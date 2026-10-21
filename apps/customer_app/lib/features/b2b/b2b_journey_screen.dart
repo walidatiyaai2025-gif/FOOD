@@ -4669,7 +4669,7 @@ class _FinanceCard extends StatelessWidget {
                         ar ? 'ملخص الحساب المالي' : 'Financial account summary',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
@@ -4722,7 +4722,7 @@ class _FinanceCard extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onSurfaceVariant,
@@ -4735,7 +4735,7 @@ class _FinanceCard extends StatelessWidget {
                                 fit: BoxFit.scaleDown,
                                 child: Text(
                                   values[i].$2,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color:
                                         Theme.of(context).colorScheme.onSurface,
                                     fontSize: 12,
@@ -4848,8 +4848,8 @@ class _MoreCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
+                style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 7.5,
                   fontWeight: FontWeight.w800,
                   height: 1.08,
