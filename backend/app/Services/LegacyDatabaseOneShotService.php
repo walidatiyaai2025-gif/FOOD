@@ -16,16 +16,22 @@ final class LegacyDatabaseOneShotService
         private readonly LegacyDatabaseSnapshotService $snapshots,
         private readonly LegacyFoodexImportService $importer,
         private readonly LegacyFinanceAssetMaterializerService $assets,
+        private readonly LegacyImportRehearsalResetService $reset,
     ) {}
 
-    public function run(bool $apply, ?callable $progress = null): array
+    public function run(
+        bool $apply,
+        bool $resetApprovedScope = false,
+        ?string $resetConfirmation = null,
+        ?callable $progress = null,
+    ): array
     {
         $this->progress($progress, 'preflight', 'start');
         $preflight = $this->importer->preflight();
         $this->progress($progress, 'preflight', 'done');
 
         if (! $apply) {
-            return $this->dryRun($preflight, $progress);
+            return $this->dryRun($preflight, $resetApprovedScope, $progress);
         }
 
         $runId = (string) Str::uuid();
@@ -44,6 +50,17 @@ final class LegacyDatabaseOneShotService
             $this->progress($progress, 'full-source-snapshot', 'start');
             $snapshot = $this->snapshots->snapshot();
             $this->progress($progress, 'full-source-snapshot', 'done');
+
+            $resetReport = null;
+            if ($resetApprovedScope) {
+                $this->progress($progress, 'approved-target-reset', 'start');
+                $resetReport = $this->reset->execute($resetConfirmation ?? '');
+                $this->progress($progress, 'approved-target-reset', 'done');
+
+                // The reset deliberately preserves business identities and their provenance.
+                // Recompute readiness so masters can use the protected post-reset baseline.
+                $preflight = $this->importer->preflight();
+            }
 
             $this->assertSemanticTargetReady($preflight);
 
@@ -76,6 +93,7 @@ final class LegacyDatabaseOneShotService
                 'source_row_count' => $snapshot['source_row_count'],
                 'archived_row_count' => $snapshot['archived_row_count'],
                 'all_source_data_preserved' => (bool) $snapshot['verification']['healthy'],
+                'approved_target_reset' => $resetReport,
                 'semantic_verifications_healthy' => $semanticHealthy,
                 'native_fixed_asset_ready' => (bool) $assetPreflight['ready_for_native_promotion'],
                 'coverage' => $coverage,
@@ -112,7 +130,7 @@ final class LegacyDatabaseOneShotService
         }
     }
 
-    private function dryRun(array $preflight, ?callable $progress): array
+    private function dryRun(array $preflight, bool $resetApprovedScope, ?callable $progress): array
     {
         $this->progress($progress, 'full-source-inventory', 'start');
         $snapshotPreview = $this->snapshots->preview();
@@ -139,6 +157,7 @@ final class LegacyDatabaseOneShotService
         return [
             'mode' => 'dry-run',
             'preflight' => $preflight,
+            'approved_target_reset_preview' => $resetApprovedScope ? $this->reset->preview() : null,
             'full_source_inventory' => $snapshotPreview,
             'phase_previews' => $phasePreviews,
             'rules' => [
@@ -171,6 +190,10 @@ final class LegacyDatabaseOneShotService
         $this->progress($progress, $phase, 'start');
         $before = $this->artisanJson($verifyCommand);
         if ($before['exit_code'] === 0 && (bool) ($before['report']['healthy'] ?? false)) {
+            if ($phase === 'stock') {
+                $this->assertStockVerification($before['report']);
+            }
+
             $this->progress($progress, $phase, 'done');
 
             return [
@@ -180,11 +203,20 @@ final class LegacyDatabaseOneShotService
         }
 
         $dryRun = $this->importPhase($phase, false);
+        $expectedStockPositions = null;
+        if ($phase === 'stock') {
+            $expectedStockPositions = $this->assertStockPlan($dryRun);
+        }
+
         $apply = $this->importPhase($phase, true);
         $after = $this->artisanJson($verifyCommand);
 
         if ($after['exit_code'] !== 0 || ! (bool) ($after['report']['healthy'] ?? false)) {
             throw new RuntimeException("{$phase} verification failed after apply.");
+        }
+
+        if ($phase === 'stock') {
+            $this->assertStockVerification($after['report'], $expectedStockPositions);
         }
 
         $this->progress($progress, $phase, 'done');
@@ -195,6 +227,76 @@ final class LegacyDatabaseOneShotService
             'apply' => $apply,
             'verification' => $after['report'],
         ];
+    }
+
+    private function assertStockPlan(array $dryRun): int
+    {
+        $planned = (array) ($dryRun['planned'] ?? []);
+        $accepted = (int) ($planned['accepted_stock_detail_rows'] ?? 0);
+        $positive = (int) ($planned['positive_positions'] ?? 0);
+
+        if ($accepted <= 0 || $positive <= 0) {
+            throw new RuntimeException(
+                'Stock one-shot refused: the source scan did not produce any positive cutover inventory positions.'
+            );
+        }
+
+        foreach (['invalid_source_rows', 'negative_positions', 'unmapped_locations', 'unmapped_items'] as $metric) {
+            if ((int) ($planned[$metric] ?? 0) !== 0) {
+                throw new RuntimeException(
+                    "Stock one-shot refused: {$metric}=".((int) ($planned[$metric] ?? 0)).'.'
+                );
+            }
+        }
+
+        return $positive;
+    }
+
+    private function assertStockVerification(array $report, ?int $expectedPositivePositions = null): void
+    {
+        $expected = $expectedPositivePositions
+            ?? (int) (($report['expected']['positive_positions'] ?? null)
+                ?? ($report['latest_run']['summary']['planned']['positive_positions'] ?? 0));
+
+        $actual = (int) ($report['inventories']['total'] ?? 0);
+        $positive = (int) ($report['inventories']['positive'] ?? 0);
+        $movements = (int) ($report['stock_movements']['legacy_baseline'] ?? 0);
+        $mappings = (int) ($report['legacy_inventory_mappings'] ?? 0);
+
+        if ($expected <= 0 || $actual !== $expected || $positive !== $expected
+            || $movements !== $expected || $mappings !== $expected) {
+            throw new RuntimeException(
+                'Stock one-shot verification refused: expected positive positions do not match '.
+                "inventories/movements/mappings ({$expected}/{$actual}/{$movements}/{$mappings})."
+            );
+        }
+
+        $wholesaleStoreId = DB::table('stores')
+            ->where('code', 'FOODEX-WHOLESALE')
+            ->value('id');
+
+        if ($wholesaleStoreId === null) {
+            throw new RuntimeException('Stock one-shot verification refused: FOODEX-WHOLESALE store is missing.');
+        }
+
+        $storeInventoryRows = (int) DB::table('inventories as i')
+            ->join('warehouses as w', 'w.id', '=', 'i.warehouse_id')
+            ->where('w.store_id', (int) $wholesaleStoreId)
+            ->where('i.quantity', '>', 0)
+            ->count();
+
+        $storeQuantity = (float) DB::table('inventories as i')
+            ->join('warehouses as w', 'w.id', '=', 'i.warehouse_id')
+            ->where('w.store_id', (int) $wholesaleStoreId)
+            ->where('i.quantity', '>', 0)
+            ->sum('i.quantity');
+
+        if ($storeInventoryRows !== $expected || $storeQuantity <= 0) {
+            throw new RuntimeException(
+                'Stock one-shot verification refused: imported inventory is not fully attached to '.
+                "FOODEX-WHOLESALE ({$storeInventoryRows}/{$expected}, qty={$storeQuantity})."
+            );
+        }
     }
 
     private function runAssets(?callable $progress): array
@@ -333,7 +435,8 @@ final class LegacyDatabaseOneShotService
         $target = (array) ($preflight['target'] ?? []);
         $ready = (bool) ($target['clean_baseline_ready'] ?? false)
             || (bool) ($target['legacy_upgrade_ready'] ?? false)
-            || (bool) ($target['legacy_masters_rerun_ready'] ?? false);
+            || (bool) ($target['legacy_masters_rerun_ready'] ?? false)
+            || (bool) ($target['legacy_protected_reset_ready'] ?? false);
 
         if (! $ready) {
             throw new RuntimeException(
