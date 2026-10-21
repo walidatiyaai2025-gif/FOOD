@@ -383,7 +383,9 @@ class FoodexUnifiedHeaderSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ColoredBox(
-        color: palette.background,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Theme.of(context).scaffoldBackgroundColor
+            : palette.background,
         child: SafeArea(
           bottom: false,
           child: Column(
