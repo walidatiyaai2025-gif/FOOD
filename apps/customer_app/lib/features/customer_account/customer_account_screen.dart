@@ -280,8 +280,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
               _profileCard(),
               const SizedBox(height: CustomerUiSpacing.sm),
               ValueListenableBuilder<ThemeMode>(
-                valueListenable:
-                    CustomerDisplayPreferences.instance.themeMode,
+                valueListenable: CustomerDisplayPreferences.instance.themeMode,
                 builder: (context, themeMode, _) => CustomerAccountSurfaceCard(
                   key: const ValueKey('customer-account-dark-mode'),
                   padding: EdgeInsets.zero,
