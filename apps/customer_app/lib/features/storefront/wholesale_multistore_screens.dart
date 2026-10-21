@@ -57,6 +57,17 @@ Future<int> resolveWholesaleStoreId({
   return 0;
 }
 
+bool _wholesaleProductIsAvailable(Map<String, dynamic> row) {
+  final rawAvailable = row['available_quantity'];
+  final available = rawAvailable == null
+      ? null
+      : double.tryParse(rawAvailable.toString());
+
+  return row['is_available'] != false &&
+      row['availability_state']?.toString().toUpperCase() != 'OUT_OF_STOCK' &&
+      (available == null || available > .0001);
+}
+
 class WholesaleHomeDesignScreen extends StatefulWidget {
   const WholesaleHomeDesignScreen({
     required this.location,
@@ -2309,8 +2320,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
     final currency = row['currency']?.toString().trim().isNotEmpty == true
         ? row['currency'].toString().trim().toUpperCase()
         : widget.defaultCurrency;
-    final isAvailable = row['is_available'] != false &&
-        row['availability_state'] != 'OUT_OF_STOCK';
+    final isAvailable = _wholesaleProductIsAvailable(row);
     final promotion = row['promotion'] is Map
         ? (row['promotion'] as Map)['name']?.toString().trim()
         : row['promotion_name']?.toString().trim();
@@ -2323,7 +2333,10 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
       key: ValueKey('wholesale-product-card-$id'),
       color: Colors.white,
       borderRadius: BorderRadius.circular(18),
-      child: InkWell(
+      child: Opacity(
+        key: ValueKey('wholesale-product-dimmed-$id'),
+        opacity: isAvailable ? 1 : .48,
+        child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: id <= 0 || widget.storeId <= 0
             ? null
@@ -2466,8 +2479,8 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                         child: _WholesaleCardBadge(
                           key: ValueKey('wholesale-product-out-of-stock-$id'),
                           label: context.tr('customer.product.out_of_stock'),
-                          background: Colors.white,
-                          foreground: palette.muted,
+                          background: const Color(0xFF4B5563),
+                          foreground: Colors.white,
                         ),
                       ),
                     if (widget.showCommerceActions && isAvailable && id > 0)
@@ -2530,6 +2543,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -4431,8 +4445,7 @@ class _WholesaleProductDetailsDesignScreenState
     final available = row['available_quantity'] == null
         ? null
         : doubleValue(row['available_quantity'], 0);
-    final isAvailable = row['is_available'] != false &&
-        row['availability_state'] != 'OUT_OF_STOCK';
+    final isAvailable = _wholesaleProductIsAvailable(row);
     if (!isAvailable || value + .0001 < minimum) return false;
     final steps = (value - minimum) / increment;
     if ((steps - steps.round()).abs() >= .0001) return false;
@@ -4449,8 +4462,7 @@ class _WholesaleProductDetailsDesignScreenState
     final available = row['available_quantity'] == null
         ? null
         : doubleValue(row['available_quantity'], 0);
-    final isAvailable = row['is_available'] != false &&
-        row['availability_state'] != 'OUT_OF_STOCK';
+    final isAvailable = _wholesaleProductIsAvailable(row);
     if (!isAvailable) {
       return context.tr('customer.product.out_of_stock');
     }
@@ -4665,8 +4677,7 @@ class _WholesaleProductDetailsDesignScreenState
                   row['currency']?.toString().trim().isNotEmpty == true
                       ? row['currency'].toString().trim().toUpperCase()
                       : 'EGP';
-              final isAvailable = row['is_available'] != false &&
-                  row['availability_state'] != 'OUT_OF_STOCK';
+              final isAvailable = _wholesaleProductIsAvailable(row);
               final availableQuantity = row['available_quantity'] == null
                   ? null
                   : doubleValue(row['available_quantity'], 0);
@@ -6903,8 +6914,7 @@ class _WholesaleOrdersDesignScreenState
     if (raw is! Map) return null;
 
     final product = Map<String, dynamic>.from(raw);
-    final isAvailable = product['is_available'] != false &&
-        product['availability_state'] != 'OUT_OF_STOCK';
+    final isAvailable = _wholesaleProductIsAvailable(product);
     if (!isAvailable) return null;
 
     final minimum = math.max(
