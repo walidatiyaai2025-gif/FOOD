@@ -441,15 +441,25 @@ final class Customer360Controller extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:40'],
+            'password' => ['nullable', 'string', 'min:8', 'max:255', 'confirmed'],
         ]);
 
         $name = trim((string) $validated['name']);
         $email = Str::lower(trim((string) $validated['email']));
         $phone = trim((string) ($validated['phone'] ?? ''));
         $phone = $phone === '' ? null : $phone;
+        $password = $validated['password'] ?? null;
+        $password = is_string($password) && trim($password) !== '' ? $password : null;
 
+        if ($password !== null && Str::endsWith($email, '@contacts.foodex.local')) {
+            throw ValidationException::withMessages([
+                'password' => [__('customer_360.identity.login_email_required')],
+            ]);
+        }
+
+        $previousUserId = (int) ($customer->user_id ?? 0);
         $duplicateUser = User::query()
-            ->whereKeyNot((int) $customer->user_id)
+            ->whereKeyNot($previousUserId)
             ->whereRaw('LOWER(email) = ?', [$email])
             ->exists();
         $duplicateCustomer = PlatformCustomer::query()
@@ -468,50 +478,129 @@ final class Customer360Controller extends Controller
             'phone' => $customer->phone,
         ];
 
-        $updated = DB::transaction(function () use ($customer, $name, $email, $phone): PlatformCustomer {
-            $locked = PlatformCustomer::query()
-                ->whereKey($customer->getKey())
-                ->lockForUpdate()
-                ->firstOrFail();
-            $user = User::query()
-                ->whereKey($locked->user_id)
-                ->lockForUpdate()
-                ->firstOrFail();
+        [$updated, $loginUser, $userWasCreated, $passwordChanged, $wasActive] = DB::transaction(
+            function () use ($customer, $name, $email, $phone, $password): array {
+                $locked = PlatformCustomer::query()
+                    ->whereKey($customer->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            $user->forceFill([
-                'name' => $name,
-                'email' => $email,
-                'is_platform_customer' => true,
-            ])->save();
+                $staleUserId = (int) ($locked->user_id ?? 0);
+                $user = User::query()
+                    ->whereKey($staleUserId)
+                    ->lockForUpdate()
+                    ->first();
+                $userWasCreated = ! $user instanceof User;
 
-            $locked->forceFill([
-                'name' => $name,
-                'email' => $email,
-                'phone' => $phone,
-            ])->save();
+                if ($userWasCreated) {
+                    $user = User::query()->create([
+                        'name' => $name,
+                        'email' => $email,
+                        'password' => Hash::make($password ?? Str::random(64)),
+                        'locale' => in_array(app()->getLocale(), ['ar', 'en'], true) ? app()->getLocale() : 'ar',
+                        'is_active' => $password !== null,
+                        'is_platform_customer' => true,
+                        'deactivated_at' => $password === null ? now() : null,
+                        'deactivation_reason' => $password === null
+                            ? 'Imported customer; mobile login not provisioned.'
+                            : null,
+                    ]);
+                }
 
-            DB::table('customers')
-                ->where('id', $locked->legacy_customer_id)
-                ->update([
+                $wasActive = (bool) $user->is_active;
+                $userValues = [
+                    'name' => $name,
+                    'email' => $email,
+                    'is_platform_customer' => true,
+                ];
+                if ($password !== null) {
+                    $userValues = array_merge($userValues, [
+                        'password' => Hash::make($password),
+                        'is_active' => true,
+                        'deactivated_at' => null,
+                        'deactivation_reason' => null,
+                    ]);
+                }
+                $user->forceFill($userValues)->save();
+
+                $customerValues = [
+                    'user_id' => $user->getKey(),
+                    'name' => $name,
+                    'email' => $email,
+                    'phone' => $phone,
+                ];
+                if ($password !== null) {
+                    $customerValues['is_active'] = true;
+                }
+                $locked->forceFill($customerValues)->save();
+
+                $legacyValues = [
                     'name' => $name,
                     'email' => $email,
                     'phone' => $phone,
                     'updated_at' => now(),
-                ]);
+                ];
+                if ($userWasCreated) {
+                    $legacyUserId = DB::table('customers')
+                        ->where('id', $locked->legacy_customer_id)
+                        ->value('user_id');
+                    $legacyUserExists = $legacyUserId !== null
+                        && User::query()->whereKey((int) $legacyUserId)->exists();
 
-            foreach (['b2b_customers', 'b2c_customers'] as $table) {
-                DB::table($table)
-                    ->where('user_id', $user->getKey())
-                    ->update([
-                        'name' => $name,
-                        'email' => $email,
-                        'phone' => $phone,
-                        'updated_at' => now(),
-                    ]);
-            }
+                    if ($legacyUserId === null
+                        || (int) $legacyUserId === $staleUserId
+                        || ! $legacyUserExists) {
+                        $legacyValues['user_id'] = $user->getKey();
+                    }
+                }
+                DB::table('customers')
+                    ->where('id', $locked->legacy_customer_id)
+                    ->update($legacyValues);
 
-            return $locked->refresh();
-        }, 3);
+                foreach (['b2b_customers', 'b2c_customers'] as $table) {
+                    if ($userWasCreated) {
+                        DB::table($table)
+                            ->where('user_id', $staleUserId)
+                            ->update([
+                                'user_id' => $user->getKey(),
+                                'updated_at' => now(),
+                            ]);
+                        DB::table($table)
+                            ->whereNull('user_id')
+                            ->where('legacy_customer_id', $locked->legacy_customer_id)
+                            ->update([
+                                'user_id' => $user->getKey(),
+                                'updated_at' => now(),
+                            ]);
+                    }
+
+                    DB::table($table)
+                        ->where(function ($query) use ($locked, $user): void {
+                            $query->where('legacy_customer_id', $locked->legacy_customer_id)
+                                ->orWhere('user_id', $user->getKey());
+                        })
+                        ->update([
+                            'name' => $name,
+                            'email' => $email,
+                            'phone' => $phone,
+                            'updated_at' => now(),
+                        ]);
+                }
+
+                if ($password !== null) {
+                    $user->tokens()->delete();
+                }
+
+                return [
+                    $locked->refresh(),
+                    $user->refresh(),
+                    $userWasCreated,
+                    $password !== null,
+                    $wasActive,
+                ];
+            },
+            3,
+        );
 
         $audit->record(
             'customer360.identity_updated',
@@ -526,9 +615,34 @@ final class Customer360Controller extends Controller
             $request,
         );
 
+        if ($passwordChanged) {
+            $audit->record(
+                'customer360.mobile_password_reset',
+                $actor,
+                $loginUser,
+                [
+                    'user_id' => (int) $loginUser->getKey(),
+                    'was_active' => $wasActive,
+                    'login_identity_repaired' => $userWasCreated,
+                ],
+                [
+                    'user_id' => (int) $loginUser->getKey(),
+                    'is_active' => true,
+                    'tokens_revoked' => true,
+                    'login_identity_repaired' => $userWasCreated,
+                ],
+                $request,
+            );
+        }
+
         return redirect()
             ->to(route('admin.customer-360.show', ['platformCustomer' => $updated->getKey()]).'#identity')
-            ->with('status', __('customer_360.identity.updated'));
+            ->with(
+                'status',
+                $passwordChanged
+                    ? __('customer_360.identity.credentials_saved')
+                    : __('customer_360.identity.updated'),
+            );
     }
 
     public function resetMobilePassword(
