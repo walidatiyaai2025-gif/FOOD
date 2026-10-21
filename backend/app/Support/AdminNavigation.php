@@ -111,7 +111,9 @@ class AdminNavigation
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'products', 'admin.b2c_workspace.modules.products', 'catalog.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'inventory', 'admin.b2c_workspace.modules.inventory', 'inventory.view'),
                 $this->module($user, $channels, 'b2b', 'products', 'admin.b2b_sidebar.product_management', 'catalog.view'),
-                $this->module($user, $channels, 'b2b', 'inventory', 'admin.b2b_sidebar.inventory_management', 'inventory.view'),
+                $useCustomerServiceDashboardProfile
+                    ? $this->module($user, $channels, 'b2b', 'inventory', 'admin.b2b_sidebar.inventory_management', 'inventory.view')
+                    : null,
             ]),
             $this->group('accounts', 'admin.nav_groups.accounts', '◎', [
                 $this->routeItemScoped($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'customers.view')
@@ -140,7 +142,9 @@ class AdminNavigation
                 $this->routeItemAny($user, 'field_ops_finance', 'admin.field_operations.finance', 'admin.field-operations.finance', ['finance.view']),
             ]),
             $this->group('marketing', 'admin.nav_groups.marketing', '✦', [
-                $this->whatsAppCampaignsItem($user),
+                $useCustomerServiceDashboardProfile
+                    ? $this->routeItem($user, 'whatsapp_campaigns', 'whatsapp.campaigns.nav_title', 'admin.whatsapp-campaigns.index', 'whatsapp.campaigns.view')
+                    : $this->whatsAppCampaignsItem($user),
                 $useCustomerServiceDashboardProfile
                     ? null
                     : $this->routeItem($user, 'whatsapp_chatbot', 'chatbot.nav_title', 'admin.whatsapp-chatbot.index', 'chatbot.view'),
