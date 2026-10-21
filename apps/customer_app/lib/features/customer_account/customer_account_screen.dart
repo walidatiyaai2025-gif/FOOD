@@ -209,18 +209,14 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
     final accepted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(_locale == 'ar' ? 'تواصل معنا' : 'Contact us'),
+        title: Text(context.tr('customer.contact.title')),
         content: Form(
           key: formKey,
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  _locale == 'ar'
-                      ? 'اكتب رسالتك ورقم الهاتف الذي تريد أن تتواصل عليه خدمة العملاء.'
-                      : 'Send your message and the phone number Customer Service should use to contact you.',
-                ),
+                Text(context.tr('customer.contact.subtitle')),
                 const SizedBox(height: CustomerUiSpacing.md),
                 TextFormField(
                   key: const ValueKey('customer-contact-phone'),
@@ -228,12 +224,10 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
                   keyboardType: TextInputType.phone,
                   maxLength: 50,
                   decoration: InputDecoration(
-                    labelText: _locale == 'ar' ? 'رقم الهاتف' : 'Phone number',
+                    labelText: context.tr('customer.contact.phone'),
                   ),
                   validator: (value) => value == null || value.trim().isEmpty
-                      ? (_locale == 'ar'
-                          ? 'رقم الهاتف مطلوب'
-                          : 'Phone number is required')
+                      ? context.tr('customer.contact.phone_required')
                       : null,
                 ),
                 const SizedBox(height: CustomerUiSpacing.sm),
@@ -244,13 +238,11 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
                   maxLines: 7,
                   maxLength: 8000,
                   decoration: InputDecoration(
-                    labelText: _locale == 'ar' ? 'الرسالة' : 'Message',
+                    labelText: context.tr('customer.contact.message'),
                     alignLabelWithHint: true,
                   ),
                   validator: (value) => value == null || value.trim().isEmpty
-                      ? (_locale == 'ar'
-                          ? 'اكتب الرسالة'
-                          : 'Message is required')
+                      ? context.tr('customer.contact.message_required')
                       : null,
                 ),
               ],
@@ -269,7 +261,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
                 Navigator.of(dialogContext).pop(true);
               }
             },
-            child: Text(_locale == 'ar' ? 'إرسال' : 'Send'),
+            child: Text(context.tr('customer.contact.send')),
           ),
         ],
       ),
@@ -299,9 +291,10 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
         SnackBar(
           key: const ValueKey('customer-contact-success'),
           content: Text(
-            _locale == 'ar'
-                ? 'تم إرسال رسالتك لخدمة العملاء${reference.isEmpty ? '' : ' · الحالة #$reference'}'
-                : 'Your message was sent to Customer Service${reference.isEmpty ? '' : ' · Case #$reference'}',
+            context.tr('customer.contact.success') +
+                (reference.isEmpty
+                    ? ''
+                    : ' · ${context.tr('customer.contact.case')} #$reference'),
           ),
         ),
       );
@@ -319,7 +312,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
           content: Text(
             fieldMessage ??
                 error.serverMessage ??
-                error.code,
+                error.code.isEmpty ? context.tr('customer.contact.error') : error.code,
           ),
         ),
       );
@@ -503,7 +496,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
                 const SizedBox(height: CustomerUiSpacing.sm),
                 CustomerAccountShortcutCard(
                   key: const ValueKey('customer-account-contact-us'),
-                  title: _locale == 'ar' ? 'تواصل معنا' : 'Contact us',
+                  title: context.tr('customer.contact.title'),
                   icon: Icons.support_agent_rounded,
                   onTap: _contactUs,
                 ),
