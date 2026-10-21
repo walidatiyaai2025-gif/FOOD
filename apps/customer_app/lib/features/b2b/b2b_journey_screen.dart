@@ -4399,54 +4399,42 @@ class _B2bMorePageState extends State<_B2bMorePage> {
   Widget build(BuildContext context) {
     final ar = Localizations.localeOf(context).languageCode == 'ar';
     final items = <_MoreItem>[
-      _MoreItem(Icons.apartment_rounded, context.tr('b2b.profile.company'),
-          _showProfile,
-          tone: 0),
       _MoreItem(
-          Icons.account_balance_wallet_rounded,
-          context.tr('b2b.profile.financial'),
-          () => _open(widget.dashboardRoute),
-          tone: 1),
-      _MoreItem(Icons.shopping_bag_outlined, context.tr('b2b.profile.orders'),
-          () => _open(widget.ordersRoute),
-          tone: 2),
-      _MoreItem(Icons.receipt_long_rounded, context.tr('b2b.finance.invoices'),
-          () => _open(widget.invoicesRoute),
-          tone: 3),
-      _MoreItem(Icons.credit_card_rounded, context.tr('b2b.finance.statement'),
-          () => _open(widget.statementRoute),
-          tone: 4),
+        Icons.apartment_rounded,
+        context.tr('b2b.profile.company'),
+        _showProfile,
+        tone: 0,
+      ),
       _MoreItem(
-          Icons.bar_chart_rounded,
-          context.tr('b2b.profile.purchases_report'),
-          () => _open(widget.purchasesRoute),
-          tone: 2),
+        Icons.account_balance_wallet_rounded,
+        context.tr('b2b.profile.financial'),
+        () => _open(widget.dashboardRoute),
+        tone: 1,
+      ),
       _MoreItem(
-          Icons.local_fire_department_rounded,
-          context.tr('b2b.top_products.title'),
-          () => _open(widget.topProductsRoute),
-          tone: 3),
+        Icons.credit_card_rounded,
+        context.tr('b2b.finance.statement'),
+        () => _open(widget.statementRoute),
+        tone: 4,
+      ),
       _MoreItem(
-          Icons.notifications_rounded,
-          context.tr('b2b.profile.notifications'),
-          () => _open(widget.notificationsRoute),
-          tone: 1),
-      _MoreItem(Icons.location_on_rounded, context.tr('b2b.profile.addresses'),
-          () => _open(widget.addressesRoute),
-          tone: 0),
-      _MoreItem(Icons.settings_rounded, context.tr('b2b.profile.settings'),
-          _showSettings,
-          tone: 4),
-      _MoreItem(Icons.language_rounded, context.tr('b2b.profile.language'),
-          _showSettings,
-          tone: 3),
-      _MoreItem(Icons.support_agent_rounded, context.tr('b2b.profile.support'),
-          () => _open(CustomerRoutePaths.diagnostics),
-          tone: 2),
-      if (widget.onLogout != null)
-        _MoreItem(Icons.shield_rounded, context.tr('b2b.profile.security'),
-            _showSettings,
-            tone: 1),
+        Icons.bar_chart_rounded,
+        context.tr('b2b.profile.purchases_report'),
+        () => _open(widget.purchasesRoute),
+        tone: 2,
+      ),
+      _MoreItem(
+        Icons.local_fire_department_rounded,
+        context.tr('b2b.top_products.title'),
+        () => _open(widget.topProductsRoute),
+        tone: 3,
+      ),
+      _MoreItem(
+        Icons.location_on_rounded,
+        context.tr('b2b.profile.addresses'),
+        () => _open(widget.addressesRoute),
+        tone: 0,
+      ),
     ];
 
     return Directionality(
@@ -4504,7 +4492,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                       LayoutBuilder(
                         builder: (_, constraints) {
                           const gap = 6.0;
-                          const columns = 5;
+                          const columns = 3;
                           final width =
                               (constraints.maxWidth - gap * (columns - 1)) /
                                   columns;
