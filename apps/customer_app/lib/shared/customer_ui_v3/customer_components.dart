@@ -428,7 +428,7 @@ class CustomerProductCard extends StatelessWidget {
             ),
             child: Padding(
               padding: EdgeInsets.all(
-                compact ? CustomerUiSpacing.xs : CustomerUiSpacing.sm,
+                compact ? CustomerUiSpacing.xxs : CustomerUiSpacing.xs,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -499,14 +499,14 @@ class CustomerProductCard extends StatelessWidget {
                           ),
                         ),
                       if (brandImageUrl?.trim().isNotEmpty == true)
-                        PositionedDirectional(
+                        Positioned(
                           bottom: CustomerUiSpacing.xs,
-                          end: CustomerUiSpacing.xs,
+                          right: CustomerUiSpacing.xs,
                           child: Tooltip(
                             message: brandLabel?.trim() ?? '',
                             child: Container(
-                              width: 34,
-                              height: 34,
+                              width: 30,
+                              height: 30,
                               padding: const EdgeInsets.all(3),
                               clipBehavior: Clip.antiAlias,
                               decoration: BoxDecoration(
@@ -522,8 +522,42 @@ class CustomerProductCard extends StatelessWidget {
                                   fit: BoxFit.contain,
                                   errorBuilder: (_, __, ___) => const Icon(
                                     Icons.sell_outlined,
-                                    size: 18,
+                                    size: 16,
                                     color: CustomerUiColors.deepGreenSoft,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (isAvailable && onAdd != null)
+                        Positioned(
+                          bottom: CustomerUiSpacing.xs,
+                          left: CustomerUiSpacing.xs,
+                          child: Semantics(
+                            button: true,
+                            label: addSemanticLabel,
+                            child: InkResponse(
+                              onTap: onAdd,
+                              radius: 23,
+                              child: const DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: CustomerUiColors.lime,
+                                  shape: BoxShape.circle,
+                                  boxShadow: <BoxShadow>[
+                                    BoxShadow(
+                                      color: Color(0x33000000),
+                                      blurRadius: 7,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: SizedBox.square(
+                                  dimension: 36,
+                                  child: Icon(
+                                    Icons.add_rounded,
+                                    size: 20,
+                                    color: CustomerUiColors.deepGreenStrong,
                                   ),
                                 ),
                               ),
@@ -532,18 +566,32 @@ class CustomerProductCard extends StatelessWidget {
                         ),
                     ],
                   ),
-                  const SizedBox(height: CustomerUiSpacing.xs),
-                  if (categoryLabel?.trim().isNotEmpty == true) ...[
-                    CustomerBadge(
-                      label: categoryLabel!,
-                      tone: CustomerBadgeTone.accent,
-                    ),
-                    SizedBox(
-                      height: compact
-                          ? CustomerUiSpacing.xxs
-                          : CustomerUiSpacing.xs,
-                    ),
-                  ],
+                  const SizedBox(height: CustomerUiSpacing.xxs),
+                  Row(
+                    textDirection: TextDirection.rtl,
+                    children: [
+                      Flexible(
+                        child: CustomerBadge(
+                          key: const ValueKey('customer-product-price-badge'),
+                          label: priceLabel,
+                          tone: CustomerBadgeTone.success,
+                        ),
+                      ),
+                      if (categoryLabel?.trim().isNotEmpty == true) ...[
+                        const Spacer(),
+                        Flexible(
+                          child: CustomerBadge(
+                            key: const ValueKey(
+                              'customer-product-category-badge',
+                            ),
+                            label: categoryLabel!,
+                            tone: CustomerBadgeTone.accent,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: CustomerUiSpacing.xxs),
                   SizedBox(
                     width: double.infinity,
                     height: 14,
@@ -560,63 +608,6 @@ class CustomerProductCard extends StatelessWidget {
                             ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: CustomerUiSpacing.xs),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: Wrap(
-                          spacing: CustomerUiSpacing.xs,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text(
-                              priceLabel,
-                              style: (compact
-                                      ? Theme.of(context).textTheme.titleMedium
-                                      : Theme.of(context).textTheme.titleLarge)
-                                  ?.copyWith(
-                                color: CustomerUiColors.deepGreenStrong,
-                              ),
-                            ),
-                            if (oldPriceLabel?.trim().isNotEmpty == true)
-                              Text(
-                                oldPriceLabel!,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: CustomerUiColors.muted,
-                                      decoration: TextDecoration.lineThrough,
-                                    ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      if (isAvailable && onAdd != null)
-                        Semantics(
-                          button: true,
-                          label: addSemanticLabel,
-                          child: InkResponse(
-                            onTap: onAdd,
-                            radius: 28,
-                            child: const DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: CustomerUiColors.lime,
-                                shape: BoxShape.circle,
-                              ),
-                              child: SizedBox.square(
-                                dimension: 44,
-                                child: Icon(
-                                  Icons.add_rounded,
-                                  size: 17,
-                                  color: CustomerUiColors.deepGreenStrong,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
                   ),
                 ],
               ),
