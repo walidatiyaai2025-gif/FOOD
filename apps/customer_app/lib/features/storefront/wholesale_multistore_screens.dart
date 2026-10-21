@@ -1684,8 +1684,9 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                         child: _WholesaleCardBadge(
                           key: ValueKey('wholesale-product-category-$id'),
                           label: category,
-                          background: palette.soft,
-                          foreground: palette.primaryDark,
+                          background: const Color(0xFFFFD76A),
+                          foreground: const Color(0xFF6B4900),
+                          compact: true,
                         ),
                       ),
                     PositionedDirectional(
@@ -1827,29 +1828,39 @@ class _WholesaleCardBadge extends StatelessWidget {
     required this.label,
     required this.background,
     required this.foreground,
+    this.compact = false,
     super.key,
   });
 
   final String label;
   final Color background;
   final Color foreground;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) => Container(
-        constraints: const BoxConstraints(maxWidth: 92),
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+        constraints: BoxConstraints(maxWidth: compact ? 78 : 92),
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 5 : 7,
+          vertical: compact ? 3 : 4,
+        ),
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: Colors.white.withOpacity(.75)),
+          border: Border.all(
+            color: compact
+                ? const Color(0xFFFFC44D)
+                : Colors.white.withOpacity(.75),
+          ),
         ),
         child: Text(
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: TextStyle(
             color: foreground,
-            fontSize: 8.5,
+            fontSize: compact ? 7.5 : 8.5,
             height: 1,
             fontWeight: FontWeight.w900,
           ),
