@@ -6085,9 +6085,13 @@ class _WholesaleCheckoutDesignScreenState
   Future<void> _applyCoupon() async {
     final code = _normalizedCoupon;
     final commerceApi = widget.commerceApi;
-    final quoteApi =
-        commerceApi is WholesaleQuoteApi ? commerceApi : null;
-    if (code.isEmpty || quoteApi == null || applyingCoupon) return;
+    if (code.isEmpty ||
+        commerceApi == null ||
+        commerceApi is! WholesaleQuoteApi ||
+        applyingCoupon) {
+      return;
+    }
+    final WholesaleQuoteApi quoteApi = commerceApi as WholesaleQuoteApi;
 
     setState(() => applyingCoupon = true);
     try {
