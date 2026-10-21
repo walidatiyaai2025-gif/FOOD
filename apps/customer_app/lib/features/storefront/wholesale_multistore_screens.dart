@@ -889,6 +889,16 @@ class _WholesalePseudo3dVehiclePainter extends CustomPainter {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
+
+    // The vehicle body is mirrored in RTL, but the FOODEX wordmark must
+    // remain readable left-to-right on the mirrored side panel.
+    canvas.save();
+    if (facingLeft) {
+      const logoCenterX = 62.0;
+      canvas.translate(logoCenterX, 0);
+      canvas.scale(-1, 1);
+      canvas.translate(-logoCenterX, 0);
+    }
     logoPainter.paint(
       canvas,
       Offset(
@@ -896,6 +906,7 @@ class _WholesalePseudo3dVehiclePainter extends CustomPainter {
         51 - logoPainter.height / 2,
       ),
     );
+    canvas.restore();
 
     canvas.drawRRect(
       RRect.fromRectAndRadius(
