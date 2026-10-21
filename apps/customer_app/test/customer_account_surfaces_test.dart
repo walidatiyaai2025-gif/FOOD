@@ -467,7 +467,8 @@ class _ReverseGeocoderFake implements CustomerReverseGeocoder {
       );
 }
 
-class _AccountFakeApi implements B2cAccountApi, B2cRetailFavoritesApi, CustomerContactApi {
+class _AccountFakeApi
+    implements B2cAccountApi, B2cRetailFavoritesApi, CustomerContactApi {
   _AccountFakeApi({
     this.profileError,
     this.addressesValue = const {'data': []},
