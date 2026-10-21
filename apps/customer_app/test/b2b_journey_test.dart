@@ -584,6 +584,9 @@ void main() {
           'currency': 'KWD',
           'balance': 125.0,
           'balance_direction': 'customer_owes_company',
+          'total_debits': 420.0,
+          'total_purchases': 400.0,
+          'outstanding_receivable': 125.0,
           'credit_limit': 1000.0,
           'available_credit_line': 875.0,
           'purchasing_power': 875.0,
@@ -612,10 +615,12 @@ void main() {
     expect(find.text('TAX-872'), findsNothing);
     expect(find.text('نشط'), findsNothing);
     expect(find.byKey(const ValueKey('b2b-account-hub')), findsOneWidget);
-    expect(find.text('عليك'), findsOneWidget);
+    expect(find.text('إجمالي مشترياتك'), findsOneWidget);
+    expect(find.text('400.000 KWD'), findsOneWidget);
+    expect(find.text('إجمالي مديونيتك'), findsOneWidget);
     expect(find.text('125.000 KWD'), findsOneWidget);
     expect(find.text('1000.000 KWD'), findsNothing);
-    expect(find.text('875.000 KWD'), findsOneWidget);
+    expect(find.text('875.000 KWD'), findsNothing);
     expect(find.text('طلباتي'), findsWidgets);
     expect(find.text('الفواتير'), findsWidgets);
     expect(find.text('كشف الحساب'), findsOneWidget);
