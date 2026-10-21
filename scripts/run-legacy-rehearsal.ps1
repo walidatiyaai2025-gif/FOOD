@@ -57,6 +57,30 @@ try {
         php -l app\Services\LegacyFoodexImportService.php
     }
 
+    Run-Step 'PHP syntax - full source archive' {
+        php -l app\Services\LegacyFullArchiveService.php
+    }
+
+    Run-Step 'PHP syntax - stock location resolver' {
+        php -l app\Services\LegacyStockLocationResolver.php
+    }
+
+    Run-Step 'PHP syntax - invoice source materializer' {
+        php -l app\Services\LegacyInvoiceSourceMaterializerService.php
+    }
+
+    Run-Step 'PHP syntax - business impact materializer' {
+        php -l app\Services\LegacyBusinessImpactMaterializerService.php
+    }
+
+    Run-Step 'PHP syntax - Van native history' {
+        php -l app\Services\LegacyVanInventoryHistoryMaterializerService.php
+    }
+
+    Run-Step 'PHP syntax - stock reconciliation' {
+        php -l app\Services\LegacyStockReconciliationService.php
+    }
+
     Run-Step 'PHP syntax - legacy routes' {
         php -l routes\legacy_import.php
     }
@@ -83,6 +107,18 @@ try {
     # Additive schema upgrade only. Never use migrate:fresh/reset/wipe.
     Run-Step 'Apply additive migrations' {
         php artisan migrate --force
+    }
+
+    Run-Step 'Full SQL Server archive dry-run' {
+        php artisan foodex:legacy-archive-all
+    }
+
+    Run-Step 'Full SQL Server archive apply' {
+        php artisan foodex:legacy-archive-all --apply
+    }
+
+    Run-Step 'Full SQL Server coverage verify' {
+        php artisan foodex:legacy-archive-verify
     }
 
     Run-Step 'Scoped reset preview' {
@@ -136,6 +172,10 @@ try {
         php artisan foodex:legacy-stock-verify
     }
 
+    Run-Step 'Stock source-to-target reconcile' {
+        php artisan foodex:legacy-stock-reconcile
+    }
+
     Run-Step 'Sales history dry-run' {
         php artisan foodex:legacy-import sales-history
     }
@@ -144,6 +184,38 @@ try {
     }
     Run-Step 'Sales history verify' {
         php artisan foodex:legacy-sales-history-verify
+    }
+
+    Run-Step 'Invoice extra materialization' {
+        php artisan foodex:legacy-invoice-extras --apply
+    }
+
+    Run-Step 'Invoice extra verification' {
+        php artisan foodex:legacy-invoice-extras-verify
+    }
+
+    Run-Step 'Native Van history dry-run' {
+        php artisan foodex:legacy-van-history
+    }
+
+    Run-Step 'Native Van history apply' {
+        php artisan foodex:legacy-van-history --apply
+    }
+
+    Run-Step 'Native Van history verify' {
+        php artisan foodex:legacy-van-history-verify
+    }
+
+    Run-Step 'Business-impact materialization dry-run' {
+        php artisan foodex:legacy-business-materialize
+    }
+
+    Run-Step 'Business-impact materialization apply' {
+        php artisan foodex:legacy-business-materialize --apply
+    }
+
+    Run-Step 'Business-impact coverage verify' {
+        php artisan foodex:legacy-business-verify
     }
 
     Run-Step 'Purchase history dry-run' {
@@ -205,6 +277,10 @@ try {
     Run-Step 'FINAL stock verify' {
         php artisan foodex:legacy-stock-verify
     }
+
+    Run-Step 'FINAL stock source-to-target reconcile' {
+        php artisan foodex:legacy-stock-reconcile
+    }
     Run-Step 'FINAL sales verify' {
         php artisan foodex:legacy-sales-history-verify
     }
@@ -220,6 +296,10 @@ try {
 
     Run-Step 'FINAL finance assets verify' {
         php artisan foodex:legacy-finance-assets-verify
+    }
+
+    Run-Step 'FINAL full SQL Server coverage verify' {
+        php artisan foodex:legacy-archive-verify
     }
 
     Write-Host ""
