@@ -840,33 +840,35 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: CustomerDisplayPreferences.instance.themeMode,
       builder: (context, themeMode, _) => MaterialApp(
-      navigatorKey: _navigatorKey,
-      scaffoldMessengerKey: _messengerKey,
-      navigatorObservers: [CustomerDiagnosticsNavigatorObserver(_diagnostics)],
-      debugShowCheckedModeBanner: false,
-      title: 'FOODEX Customer',
-      theme: widget.theme ?? FoodexTheme.light(),
-      darkTheme: widget.theme ?? FoodexTheme.dark(),
-      themeMode: widget.theme == null ? themeMode : ThemeMode.light,
-      locale: _locale,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('ar'), Locale('en')],
-      builder: (context, child) => _withPreviewViewport(
-        AppTranslations(
-          locale: _locale,
-          overrides: _translations,
-          child: child ?? const SizedBox.shrink(),
+        navigatorKey: _navigatorKey,
+        scaffoldMessengerKey: _messengerKey,
+        navigatorObservers: [
+          CustomerDiagnosticsNavigatorObserver(_diagnostics),
+        ],
+        debugShowCheckedModeBanner: false,
+        title: 'FOODEX Customer',
+        theme: widget.theme ?? FoodexTheme.light(),
+        darkTheme: widget.theme ?? FoodexTheme.dark(),
+        themeMode: widget.theme == null ? themeMode : ThemeMode.light,
+        locale: _locale,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('ar'), Locale('en')],
+        builder: (context, child) => _withPreviewViewport(
+          AppTranslations(
+            locale: _locale,
+            overrides: _translations,
+            child: child ?? const SizedBox.shrink(),
+          ),
         ),
-      ),
-      initialRoute: widget.initialRoute,
-      onGenerateInitialRoutes: (routeName) => [
-        router.onGenerateRoute(RouteSettings(name: routeName)),
-      ],
-      onGenerateRoute: router.onGenerateRoute,
+        initialRoute: widget.initialRoute,
+        onGenerateInitialRoutes: (routeName) => [
+          router.onGenerateRoute(RouteSettings(name: routeName)),
+        ],
+        onGenerateRoute: router.onGenerateRoute,
       ),
     );
   }
