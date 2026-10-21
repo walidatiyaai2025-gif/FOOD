@@ -4849,7 +4849,7 @@ class _MoreCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 7.5,
                   fontWeight: FontWeight.w800,
                   height: 1.08,
