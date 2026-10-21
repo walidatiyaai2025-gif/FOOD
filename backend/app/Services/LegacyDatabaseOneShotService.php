@@ -271,9 +271,12 @@ final class LegacyDatabaseOneShotService
     private function assertStockVerification(array $report, ?int $expectedPositiveProducts = null): void
     {
         $expected = $expectedPositiveProducts
-            ?? (int) (($report['expected']['positive_products'] ?? null)
-                ?? ($report['latest_run']['summary']['planned']['positive_products'] ?? 0)
-                ?? ($report['expected']['positive_positions'] ?? 0));
+            ?? (int) (
+                $report['expected']['positive_products']
+                ?? $report['latest_run']['summary']['planned']['positive_products']
+                ?? $report['expected']['positive_positions']
+                ?? 0
+            );
 
         $actual = (int) ($report['inventories']['total'] ?? 0);
         $positive = (int) ($report['inventories']['positive'] ?? 0);
@@ -468,7 +471,7 @@ final class LegacyDatabaseOneShotService
                             'source_system' => self::SOURCE_SYSTEM,
                             'source_view' => 'dbo.wh_vw_ItemStock2Now',
                             'normalization' => 'principal_warehouse_product_aggregate',
-                            'source_inventory_ids' => array_values($aggregate['source_inventory_ids']),
+                            'source_inventory_ids' => $aggregate['source_inventory_ids'],
                         ]),
                         'updated_at' => now(),
                         'created_at' => now(),
