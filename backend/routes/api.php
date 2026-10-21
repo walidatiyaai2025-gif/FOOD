@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\CustomerCatalogImageController;
 use App\Http\Controllers\Api\V1\CustomerInvoiceController;
 use App\Http\Controllers\Api\V1\CustomerProfileController;
+use App\Http\Controllers\Api\V1\CustomerSupportCaseController;
 use App\Http\Controllers\Api\V1\DriverAssignmentController;
 use App\Http\Controllers\Api\V1\DriverCollectionController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
@@ -324,6 +325,8 @@ Route::prefix('v1')->group(function (): void {
 
         Route::get('/profile', [CustomerProfileController::class, 'show']);
         Route::patch('/profile', [CustomerProfileController::class, 'update']);
+        Route::post('/customer-service/contact', CustomerSupportCaseController::class)
+            ->middleware('throttle:10,1');
         Route::get('/profile/addresses', [CustomerProfileController::class, 'addresses']);
         Route::get('/profile/addresses/{address}', [CustomerProfileController::class, 'showAddress'])->whereNumber('address');
         Route::post('/profile/addresses', [CustomerProfileController::class, 'storeAddress']);
