@@ -9,6 +9,7 @@ import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/api/b2b_api.dart';
 import '../../core/api/b2c_account_api.dart';
@@ -99,6 +100,46 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
 
   late Future<Map<String, dynamic>> future = _load();
   bool _liveAdScheduled = false;
+
+  static const _vehicleIntroSeenKey =
+      'foodex.wholesale.home.vehicle_intro_seen.v1';
+
+  Future<void> _showFirstHomeVehicleIntroIfNeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_vehicleIntroSeenKey) == true || !mounted) return;
+
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay == null) return;
+
+    await prefs.setBool(_vehicleIntroSeenKey, true);
+    if (!mounted) return;
+
+    final completed = Completer<void>();
+    var removed = false;
+    late final OverlayEntry entry;
+
+    void finish() {
+      if (!removed) {
+        removed = true;
+        entry.remove();
+      }
+      if (!completed.isCompleted) completed.complete();
+    }
+
+    entry = OverlayEntry(
+      builder: (_) => _WholesaleFirstHomeVehicleIntro(
+        onFinished: finish,
+      ),
+    );
+    overlay.insert(entry);
+
+    await completed.future.timeout(
+      const Duration(seconds: 5),
+      onTimeout: () {
+        finish();
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -258,6 +299,8 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
             if (!_liveAdScheduled) {
               _liveAdScheduled = true;
               WidgetsBinding.instance.addPostFrameCallback((_) async {
+                if (!mounted) return;
+                await _showFirstHomeVehicleIntroIfNeeded();
                 if (!mounted) return;
                 await campaignPopups
                     .showForContext(
@@ -587,6 +630,341 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
           },
         ),
       );
+}
+
+
+class _WholesaleFirstHomeVehicleIntro extends StatefulWidget {
+  const _WholesaleFirstHomeVehicleIntro({
+    required this.onFinished,
+  });
+
+  final VoidCallback onFinished;
+
+  @override
+  State<_WholesaleFirstHomeVehicleIntro> createState() =>
+      _WholesaleFirstHomeVehicleIntroState();
+}
+
+class _WholesaleFirstHomeVehicleIntroState
+    extends State<_WholesaleFirstHomeVehicleIntro>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController controller;
+  bool finished = false;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3400),
+    )
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) _finish();
+      })
+      ..forward();
+  }
+
+  void _finish() {
+    if (finished) return;
+    finished = true;
+    widget.onFinished();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (CustomerUiMotion.isReduced(context) && controller.duration != null) {
+      controller.duration = const Duration(milliseconds: 700);
+    }
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Positioned.fill(
+        child: IgnorePointer(
+          child: AnimatedBuilder(
+            animation: controller,
+            builder: (context, _) {
+              final size = MediaQuery.sizeOf(context);
+              final rtl = Directionality.of(context) == TextDirection.rtl;
+              final t = controller.value;
+              final drive = Curves.easeInOutCubic.transform(
+                ((t - .04) / .86).clamp(0.0, 1.0),
+              );
+              final fadeIn = Curves.easeOut.transform(
+                (t / .14).clamp(0.0, 1.0),
+              );
+              final fadeOut = Curves.easeIn.transform(
+                ((t - .82) / .18).clamp(0.0, 1.0),
+              );
+              final opacity = (fadeIn * (1 - fadeOut)).clamp(0.0, 1.0);
+
+              final startX = rtl ? size.width + 190.0 : -190.0;
+              final endX = rtl ? -190.0 : size.width + 190.0;
+              final x = ui.lerpDouble(startX, endX, drive) ?? startX;
+              final perspective =
+                  .82 + math.sin(drive * math.pi).clamp(0.0, 1.0) * .2;
+              final y = size.height * .46 -
+                  math.sin(drive * math.pi) * 24 +
+                  math.sin(t * math.pi * 8) * 2.2;
+              final tilt = math.sin(t * math.pi * 5) * .014;
+              final wheelTurn = drive * math.pi * 15;
+
+              return Opacity(
+                opacity: opacity,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: RadialGradient(
+                            center: const Alignment(0, .05),
+                            radius: .85,
+                            colors: [
+                              Colors.white.withOpacity(.08),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: x,
+                      top: y,
+                      child: Transform.rotate(
+                        angle: tilt,
+                        child: Transform.scale(
+                          scale: perspective,
+                          child: CustomPaint(
+                            key: const ValueKey(
+                              'wholesale-first-home-vehicle-intro',
+                            ),
+                            size: const Size(190, 108),
+                            painter: _WholesalePseudo3dVehiclePainter(
+                              facingLeft: rtl,
+                              wheelTurn: wheelTurn,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      );
+}
+
+class _WholesalePseudo3dVehiclePainter extends CustomPainter {
+  const _WholesalePseudo3dVehiclePainter({
+    required this.facingLeft,
+    required this.wheelTurn,
+  });
+
+  final bool facingLeft;
+  final double wheelTurn;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    if (facingLeft) {
+      canvas.translate(size.width, 0);
+      canvas.scale(-1, 1);
+    }
+
+    final shadow = Paint()
+      ..color = const Color(0x33000000)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.width * .52, size.height * .82),
+        width: size.width * .78,
+        height: 18,
+      ),
+      shadow,
+    );
+
+    final boxSide = ui.Gradient.linear(
+      const Offset(18, 28),
+      const Offset(128, 78),
+      const [
+        Color(0xFF0C9B55),
+        Color(0xFF006736),
+      ],
+    );
+    final sidePaint = Paint()..shader = boxSide;
+    final topPaint = Paint()..color = const Color(0xFF44C784);
+    final frontPaint = Paint()..color = const Color(0xFF045C34);
+    final trimPaint = Paint()
+      ..color = const Color(0xFFF4D06F)
+      ..style = PaintingStyle.fill;
+
+    final cargoSide = ui.Path()
+      ..moveTo(18, 31)
+      ..lineTo(119, 31)
+      ..lineTo(126, 73)
+      ..lineTo(18, 73)
+      ..close();
+    canvas.drawPath(cargoSide, sidePaint);
+
+    final cargoTop = ui.Path()
+      ..moveTo(18, 31)
+      ..lineTo(35, 21)
+      ..lineTo(119, 21)
+      ..lineTo(133, 31)
+      ..close();
+    canvas.drawPath(cargoTop, topPaint);
+
+    final cab = ui.Path()
+      ..moveTo(119, 36)
+      ..lineTo(153, 39)
+      ..lineTo(174, 59)
+      ..lineTo(175, 73)
+      ..lineTo(124, 73)
+      ..close();
+    canvas.drawPath(cab, frontPaint);
+
+    final cabTop = ui.Path()
+      ..moveTo(119, 36)
+      ..lineTo(131, 28)
+      ..lineTo(156, 32)
+      ..lineTo(170, 45)
+      ..lineTo(153, 39)
+      ..close();
+    canvas.drawPath(cabTop, Paint()..color = const Color(0xFF168A53));
+
+    final windshield = ui.Path()
+      ..moveTo(134, 34)
+      ..lineTo(154, 37)
+      ..lineTo(166, 49)
+      ..lineTo(143, 47)
+      ..close();
+    canvas.drawPath(
+      windshield,
+      Paint()
+        ..shader = ui.Gradient.linear(
+          const Offset(137, 34),
+          const Offset(164, 50),
+          const [
+            Color(0xFFD9F3FF),
+            Color(0xFF5B8798),
+          ],
+        ),
+    );
+
+    final sideWindow = ui.Path()
+      ..moveTo(123, 40)
+      ..lineTo(140, 42)
+      ..lineTo(141, 55)
+      ..lineTo(125, 55)
+      ..close();
+    canvas.drawPath(
+      sideWindow,
+      Paint()..color = const Color(0xFFB8D9E6),
+    );
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(26, 39, 72, 24),
+        const Radius.circular(6),
+      ),
+      Paint()..color = Colors.white.withOpacity(.95),
+    );
+
+    final logoPainter = TextPainter(
+      text: const TextSpan(
+        text: 'FOODEX',
+        style: TextStyle(
+          color: Color(0xFF006736),
+          fontSize: 15,
+          fontWeight: FontWeight.w900,
+          letterSpacing: .4,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    logoPainter.paint(
+      canvas,
+      Offset(
+        62 - logoPainter.width / 2,
+        51 - logoPainter.height / 2,
+      ),
+    );
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(18, 67, 158, 8),
+        const Radius.circular(4),
+      ),
+      Paint()..color = const Color(0xFF063D28),
+    );
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(160, 58, 16, 8),
+        const Radius.circular(3),
+      ),
+      trimPaint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(169, 70, 13, 5),
+        const Radius.circular(2),
+      ),
+      Paint()..color = const Color(0xFFC7D0CE),
+    );
+
+    _wheel(canvas, const Offset(52, 76), wheelTurn);
+    _wheel(canvas, const Offset(145, 76), wheelTurn);
+
+    canvas.drawPath(
+      ui.Path()
+        ..moveTo(28, 27)
+        ..lineTo(112, 27),
+      Paint()
+        ..color = Colors.white.withOpacity(.58)
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke,
+    );
+
+    canvas.restore();
+  }
+
+  void _wheel(Canvas canvas, Offset center, double angle) {
+    canvas.drawCircle(center, 16, Paint()..color = const Color(0xFF1C2529));
+    canvas.drawCircle(center, 10, Paint()..color = const Color(0xFF66737A));
+    canvas.drawCircle(center, 4, Paint()..color = const Color(0xFFD7E0DE));
+
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(angle);
+    final spoke = Paint()
+      ..color = const Color(0xFFCBD4D2)
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    for (var i = 0; i < 4; i++) {
+      final a = i * math.pi / 2;
+      canvas.drawLine(
+        Offset(math.cos(a) * 4, math.sin(a) * 4),
+        Offset(math.cos(a) * 9, math.sin(a) * 9),
+        spoke,
+      );
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _WholesalePseudo3dVehiclePainter oldDelegate) =>
+      oldDelegate.facingLeft != facingLeft ||
+      oldDelegate.wheelTurn != wheelTurn;
 }
 
 class _WholesaleBannerCarousel extends StatefulWidget {
