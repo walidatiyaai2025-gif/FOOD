@@ -10,10 +10,8 @@ enum WholesaleProductCardSize {
 
   final int columns;
 
-  WholesaleProductCardSize get next =>
-      WholesaleProductCardSize.values[
-        (index + 1) % WholesaleProductCardSize.values.length
-      ];
+  WholesaleProductCardSize get next => WholesaleProductCardSize
+      .values[(index + 1) % WholesaleProductCardSize.values.length];
 }
 
 class CustomerDisplayPreferences {
@@ -23,15 +21,14 @@ class CustomerDisplayPreferences {
       CustomerDisplayPreferences._();
 
   static const _darkModeKey = 'customer_display_dark_mode';
-  static const _wholesaleCardSizeKey =
-      'customer_wholesale_product_card_size';
+  static const _wholesaleCardSizeKey = 'customer_wholesale_product_card_size';
 
   final ValueNotifier<ThemeMode> themeMode =
       ValueNotifier<ThemeMode>(ThemeMode.light);
   final ValueNotifier<WholesaleProductCardSize> wholesaleProductCardSize =
       ValueNotifier<WholesaleProductCardSize>(
-        WholesaleProductCardSize.compact,
-      );
+    WholesaleProductCardSize.compact,
+  );
 
   bool _initialized = false;
 
