@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\B2bAccount;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,7 +21,77 @@ class B2bFinanceTest extends TestCase
     {
         $this->seed(CoreReferenceSeeder::class);
         [$user, $customer] = $this->buyer('finance-buyer@example.test', 'active');
+
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2B')->value('id'),
+            'code' => 'B2B-FINANCE-58',
+            'name' => 'Finance Wholesale',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $unitId = (int) DB::table('units')->insertGetId([
+            'code' => 'FIN-EA',
+            'name' => 'Each',
+            'decimal_places' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $primaryProduct = Product::query()->create([
+            'unit_id' => $unitId,
+            'sku' => 'FIN-IMG-PRIMARY',
+            'name' => 'Primary image product',
+            'is_active' => true,
+        ]);
+        $fallbackProduct = Product::query()->create([
+            'unit_id' => $unitId,
+            'sku' => 'FIN-IMG-FALLBACK',
+            'name' => 'Fallback image product',
+            'is_active' => true,
+        ]);
+        $noImageProduct = Product::query()->create([
+            'unit_id' => $unitId,
+            'sku' => 'FIN-NO-IMAGE',
+            'name' => 'No image product',
+            'is_active' => true,
+        ]);
+        DB::table('product_images')->insert([
+            [
+                'product_id' => $primaryProduct->id,
+                'path' => 'images/primary-lower-sort.jpg',
+                'sort_order' => 0,
+                'is_primary' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'product_id' => $primaryProduct->id,
+                'path' => 'https://cdn.example.test/primary.jpg',
+                'sort_order' => 99,
+                'is_primary' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'product_id' => $fallbackProduct->id,
+                'path' => 'images/fallback-late.jpg',
+                'sort_order' => 2,
+                'is_primary' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'product_id' => $fallbackProduct->id,
+                'path' => '/images/fallback-first.jpg',
+                'sort_order' => 1,
+                'is_primary' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
         $invoice = Invoice::query()->create([
+            'store_id' => $storeId,
             'customer_id' => $customer->id,
             'invoice_number' => 'INV-58-1',
             'status' => 'issued',
@@ -42,6 +113,7 @@ class B2bFinanceTest extends TestCase
         ]);
         DB::table('invoice_items')->insert([
             'invoice_id' => $invoice->id,
+            'product_id' => $noImageProduct->id,
             'description' => 'Wholesale item',
             'sku_snapshot' => 'WHO-58',
             'quantity' => 1,
@@ -54,6 +126,36 @@ class B2bFinanceTest extends TestCase
             'line_snapshot' => json_encode(['secret_internal' => 'hidden']),
             'created_at' => now(),
             'updated_at' => now(),
+        ]);
+        DB::table('invoice_items')->insert([
+            [
+                'invoice_id' => $invoice->id,
+                'product_id' => $primaryProduct->id,
+                'description' => 'Primary image item',
+                'sku_snapshot' => 'FIN-IMG-PRIMARY',
+                'quantity' => 1,
+                'unit_price' => 1,
+                'line_discount_total' => 0,
+                'line_tax_total' => 0,
+                'line_total' => 1,
+                'currency' => 'KWD',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'invoice_id' => $invoice->id,
+                'product_id' => $fallbackProduct->id,
+                'description' => 'Fallback image item',
+                'sku_snapshot' => 'FIN-IMG-FALLBACK',
+                'quantity' => 1,
+                'unit_price' => 1,
+                'line_discount_total' => 0,
+                'line_tax_total' => 0,
+                'line_total' => 1,
+                'currency' => 'KWD',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
         DB::table('payments')->insert(['invoice_id' => $invoice->id, 'provider' => 'account', 'provider_reference' => 'PAY-58', 'status' => 'paid', 'amount' => 5, 'currency' => 'KWD', 'created_at' => now(), 'updated_at' => now()]);
         Sanctum::actingAs($user);
@@ -87,10 +189,18 @@ class B2bFinanceTest extends TestCase
             ->assertJsonPath('data.items.0.description', 'Wholesale item')
             ->assertJsonPath('data.items.0.discount_total', 1)
             ->assertJsonPath('data.items.0.tax_total', 1)
+            ->assertJsonPath('data.items.0.image_url', null)
+            ->assertJsonPath('data.items.1.image_url', 'https://cdn.example.test/primary.jpg')
+            ->assertJsonPath('data.items.2.image_url', url('/images/fallback-first.jpg'))
             ->assertJsonPath('data.payments.0.method', 'account')
             ->assertJsonPath('data.payments.0.reference', 'PAY-58')
             ->assertJsonPath('data.payments.0.amount', 5)
-            ->assertJsonPath('data.pdf_path', '/api/v1/b2b/invoices/'.$invoice->id.'/download');
+            ->assertJsonPath('data.pdf_path', '/api/v1/b2b/invoices/'.$invoice->id.'/download?store_id='.$storeId);
+
+        $this->getJson('/api/v1/b2b/invoices/'.$invoice->id.'?store_id='.$storeId)
+            ->assertOk()
+            ->assertJsonPath('data.items.1.image_url', 'https://cdn.example.test/primary.jpg')
+            ->assertJsonPath('data.items.2.image_url', url('/images/fallback-first.jpg'));
 
         $pdf = $this->get('/api/v1/b2b/invoices/'.$invoice->id.'/download?locale=ar');
         $pdf->assertOk()->assertHeader('content-type', 'application/pdf');
