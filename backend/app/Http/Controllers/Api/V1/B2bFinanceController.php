@@ -8,7 +8,6 @@ use App\Models\B2bCustomer;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Payment;
-use App\Models\Product;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
@@ -20,6 +19,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class B2bFinanceController extends Controller
 {
@@ -370,12 +370,26 @@ class B2bFinanceController extends Controller
                 ->where('invoice_id', $invoice->getKey())
                 ->orderBy('id')
                 ->get();
-            $productImages = Product::query()
-                ->whereIn(
-                    'id',
-                    $invoiceItems->pluck('product_id')->filter()->unique()->values()->all(),
-                )
-                ->pluck('primary_image_path', 'id');
+            $productIds = $invoiceItems
+                ->pluck('product_id')
+                ->filter()
+                ->map(static fn ($productId): int => (int) $productId)
+                ->unique()
+                ->values();
+
+            $productImages = $productIds->isEmpty()
+                ? collect()
+                : DB::table('product_images')
+                    ->whereIn('product_id', $productIds->all())
+                    ->orderBy('product_id')
+                    ->orderByDesc('is_primary')
+                    ->orderBy('sort_order')
+                    ->orderBy('id')
+                    ->get(['product_id', 'path'])
+                    ->unique('product_id')
+                    ->mapWithKeys(static fn (object $image): array => [
+                        (int) $image->product_id => $image->path,
+                    ]);
 
             $payload['items'] = $invoiceItems
                 ->map(function (InvoiceItem $item) use ($invoice, $productImages): array {
