@@ -485,6 +485,20 @@ class CustomerProductCard extends StatelessWidget {
                             tone: CustomerBadgeTone.discount,
                           ),
                         ),
+                      if (categoryLabel?.trim().isNotEmpty == true)
+                        PositionedDirectional(
+                          top: discountLabel?.trim().isNotEmpty == true
+                              ? 40
+                              : CustomerUiSpacing.xs,
+                          start: CustomerUiSpacing.xs,
+                          child: CustomerBadge(
+                            key: const ValueKey(
+                              'customer-product-category-badge',
+                            ),
+                            label: categoryLabel!,
+                            tone: CustomerBadgeTone.accent,
+                          ),
+                        ),
                       if (onFavorite != null)
                         PositionedDirectional(
                           top: CustomerUiSpacing.xs,
@@ -567,29 +581,13 @@ class CustomerProductCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: CustomerUiSpacing.xxs),
-                  Row(
-                    textDirection: TextDirection.rtl,
-                    children: [
-                      Flexible(
-                        child: CustomerBadge(
-                          key: const ValueKey('customer-product-price-badge'),
-                          label: priceLabel,
-                          tone: CustomerBadgeTone.success,
-                        ),
-                      ),
-                      if (categoryLabel?.trim().isNotEmpty == true) ...[
-                        const Spacer(),
-                        Flexible(
-                          child: CustomerBadge(
-                            key: const ValueKey(
-                              'customer-product-category-badge',
-                            ),
-                            label: categoryLabel!,
-                            tone: CustomerBadgeTone.accent,
-                          ),
-                        ),
-                      ],
-                    ],
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: CustomerBadge(
+                      key: const ValueKey('customer-product-price-badge'),
+                      label: priceLabel,
+                      tone: CustomerBadgeTone.success,
+                    ),
                   ),
                   const SizedBox(height: CustomerUiSpacing.xxs),
                   SizedBox(
