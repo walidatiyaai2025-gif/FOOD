@@ -1987,7 +1987,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                         ),
                       ),
                     Positioned(
-                      right: widget.onRemoveFavorite != null ? 34 : 0,
+                      right: 0,
                       bottom: 0,
                       child: _WholesaleCardBadge(
                         key: ValueKey('wholesale-product-price-$id'),
@@ -1997,9 +1997,9 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                       ),
                     ),
                     if (promotion != null && promotion.isNotEmpty)
-                      PositionedDirectional(
-                        start: 0,
-                        top: category.isNotEmpty ? 25 : 0,
+                      Positioned(
+                        right: 0,
+                        top: category.isNotEmpty ? 23 : 0,
                         child: _WholesaleCardBadge(
                           key: ValueKey('wholesale-product-promotion-$id'),
                           label: promotion,
@@ -2010,7 +2010,13 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
                     if (brand.isNotEmpty)
                       Positioned(
                         right: 0,
-                        top: category.isNotEmpty ? 23 : 0,
+                        top: category.isNotEmpty
+                            ? (promotion != null && promotion.isNotEmpty
+                                ? 46
+                                : 23)
+                            : (promotion != null && promotion.isNotEmpty
+                                ? 23
+                                : 0),
                         child: _WholesaleCardBadge(
                           key: ValueKey('wholesale-product-brand-$id'),
                           label: brand,
