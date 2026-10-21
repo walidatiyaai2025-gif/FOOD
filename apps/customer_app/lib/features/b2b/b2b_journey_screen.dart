@@ -4412,12 +4412,6 @@ class _B2bMorePageState extends State<_B2bMorePage> {
         tone: 1,
       ),
       _MoreItem(
-        Icons.credit_card_rounded,
-        context.tr('b2b.finance.statement'),
-        () => _open(widget.statementRoute),
-        tone: 4,
-      ),
-      _MoreItem(
         Icons.bar_chart_rounded,
         context.tr('b2b.profile.purchases_report'),
         () => _open(widget.purchasesRoute),
