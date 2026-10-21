@@ -23,6 +23,44 @@ abstract final class CustomerUiColors {
   static const info = Color(0xFF3B82F6);
   static const destructive = Color(0xFFE5484D);
   static const shadow = Color(0x1F163629);
+
+  // Wholesale storefront illustration and commerce-state tokens.
+  // Keep feature screens free of local Color(0x...) literals.
+  static const wholesaleVehicleShadow = Color(0x33000000);
+  static const wholesaleVehicleGreenLight = Color(0xFF0C9B55);
+  static const wholesaleVehicleGreen = Color(0xFF006736);
+  static const wholesaleVehicleTop = Color(0xFF44C784);
+  static const wholesaleVehicleFront = Color(0xFF045C34);
+  static const wholesaleVehicleTrim = Color(0xFFF4D06F);
+  static const wholesaleVehicleCabTop = Color(0xFF168A53);
+  static const wholesaleVehicleGlassLight = Color(0xFFD9F3FF);
+  static const wholesaleVehicleGlassDark = Color(0xFF5B8798);
+  static const wholesaleVehicleSideGlass = Color(0xFFB8D9E6);
+  static const wholesaleVehicleChassis = Color(0xFF063D28);
+  static const wholesaleVehicleBumper = Color(0xFFC7D0CE);
+  static const wholesaleWheelTire = Color(0xFF1C2529);
+  static const wholesaleWheelRim = Color(0xFF66737A);
+  static const wholesaleWheelHub = Color(0xFFD7E0DE);
+  static const wholesaleWheelSpoke = Color(0xFFCBD4D2);
+  static const wholesaleBrandToneGreen = Color(0xFF087347);
+  static const wholesaleBrandToneBlue = Color(0xFF2E5FA8);
+  static const wholesaleBrandToneOrange = Color(0xFFB54708);
+  static const wholesaleBrandTonePurple = Color(0xFF7A4EA3);
+  static const wholesaleBrandToneAmber = Color(0xFF8B5A00);
+  static const wholesaleCategoryBadgeBackground = Color(0xFFFFD76A);
+  static const wholesaleCategoryBadgeForeground = Color(0xFF6B4900);
+  static const wholesalePriceBadgeBackground = Color(0xFFE9F7EE);
+  static const wholesaleNegativeValue = Color(0xFFD62828);
+  static const wholesalePromotionBadgeBackground = Color(0xFFFFF2CC);
+  static const wholesalePromotionBadgeForeground = Color(0xFF7A4B00);
+  static const wholesaleOutOfStockBackground = Color(0xFF4B5563);
+  static const wholesaleCommerceInk = Color(0xFF102033);
+  static const wholesaleBadgeBorder = Color(0xFFFFC44D);
+  static const wholesaleSoftShadow = Color(0x12000000);
+  static const wholesaleDisabled = Color(0xFFB8C4BE);
+  static const wholesaleWaveAccent = Color(0xFFB9F227);
+  static const wholesalePositiveValue = Color(0xFF078A43);
+  static const wholesaleFinalValue = Color(0xFF1565C0);
 }
 
 abstract final class CustomerUiSpacing {
