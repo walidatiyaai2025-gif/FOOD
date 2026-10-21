@@ -324,6 +324,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
             _productGrid(
               context,
               products: data.bestSellers,
+              categories: data.categories,
               gridKey: const ValueKey('retail-best-sellers-grid'),
               keyPrefix: 'retail-best-seller',
             ),
@@ -339,6 +340,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
             _productGrid(
               context,
               products: data.allProductsPreview,
+              categories: data.categories,
               gridKey: const ValueKey('retail-all-products-grid'),
               keyPrefix: 'retail-product',
             ),
@@ -366,53 +368,77 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
   Widget _productGrid(
     BuildContext context, {
     required List<B2cProduct> products,
+    required List<B2cCategory> categories,
     required Key gridKey,
     required String keyPrefix,
-  }) {
-    final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-    final cardExtent = (368.0 + (scaledDelta * 240.0)) * .85;
+  }) =>
+      LayoutBuilder(
+        builder: (context, constraints) {
+          const columns = 3;
+          const rowGap = 0.0;
+          final gridWidth =
+              constraints.maxWidth - (CustomerUiSpacing.xs * (columns - 1));
+          final cellWidth = gridWidth / columns;
+          final imageWidth = (cellWidth - (CustomerUiSpacing.xs * 2))
+              .clamp(0.0, double.infinity);
+          final imageHeight = imageWidth / 1.75;
+          final textScale = MediaQuery.textScalerOf(context).scale(1);
+          final scaledDelta = (textScale - 1.0).clamp(0.0, 1.0).toDouble();
+          final cardExtent = imageHeight + 80 + (scaledDelta * 24);
 
-    return GridView.builder(
-      key: gridKey,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: products.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: CustomerUiSpacing.xs,
-        mainAxisSpacing: CustomerUiSpacing.sm,
-        mainAxisExtent: cardExtent,
-      ),
-      itemBuilder: (context, index) {
-        final product = products[index];
-        final price = product.price == null
-            ? product.sku
-            : '${product.price!.toStringAsFixed(0)} ${product.currency}';
-        return CustomerProductCard(
-          key: ValueKey('$keyPrefix-${product.id}'),
-          title: product.name,
-          priceLabel: price,
-          imageUrl: product.imageUrl,
-          brandLabel: product.brandName,
-          brandImageUrl: product.brandImageUrl,
-          isAvailable: product.isAvailable,
-          unavailableLabel: context.tr('customer.product.out_of_stock'),
-          onTap: widget.navigation.openProduct == null
-              ? null
-              : () => widget.navigation.openProduct!(
-                    context,
-                    storeId: widget.storeId,
-                    productId: product.id,
-                  ),
-          onAdd: !product.isAvailable || widget.onAddToCart == null
-              ? null
-              : () => _addProduct(product),
-          addSemanticLabel: context.tr('customer.action.add_cart'),
-        );
-      },
-    );
-  }
+          return GridView.builder(
+            key: gridKey,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: products.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              crossAxisSpacing: CustomerUiSpacing.xs,
+              mainAxisSpacing: rowGap,
+              mainAxisExtent: cardExtent,
+            ),
+            itemBuilder: (context, index) {
+              final product = products[index];
+              final price = product.price == null
+                  ? product.sku
+                  : '${product.price!.toStringAsFixed(0)} ${product.currency}';
+              String? categoryLabel;
+              final categoryId = product.categoryId;
+              if (categoryId != null) {
+                for (final category in categories) {
+                  if (category.id == categoryId) {
+                    categoryLabel = category.name;
+                    break;
+                  }
+                }
+              }
+
+              return CustomerProductCard(
+                key: ValueKey('$keyPrefix-${product.id}'),
+                title: product.name,
+                priceLabel: price,
+                categoryLabel: categoryLabel,
+                imageUrl: product.imageUrl,
+                brandLabel: product.brandName,
+                brandImageUrl: product.brandImageUrl,
+                isAvailable: product.isAvailable,
+                unavailableLabel: context.tr('customer.product.out_of_stock'),
+                onTap: widget.navigation.openProduct == null
+                    ? null
+                    : () => widget.navigation.openProduct!(
+                          context,
+                          storeId: widget.storeId,
+                          productId: product.id,
+                        ),
+                onAdd: !product.isAvailable || widget.onAddToCart == null
+                    ? null
+                    : () => _addProduct(product),
+                addSemanticLabel: context.tr('customer.action.add_cart'),
+              );
+            },
+          );
+        },
+      );
 }
 
 class _HomeHeroBanner extends StatelessWidget {
@@ -424,7 +450,7 @@ class _HomeHeroBanner extends StatelessWidget {
   Widget build(BuildContext context) => ClipRRect(
         borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
         child: SizedBox(
-          height: 154,
+          height: 123,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -643,13 +669,9 @@ class _RetailBestSellerTickerHeaderState
       key: const ValueKey('retail-best-seller-ticker-header'),
       children: [
         Flexible(
-          child: Text(
-            widget.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: CustomerUiColors.deepGreenStrong,
-                ),
+          child: FoodexAnimatedOxbloodTitle(
+            title: widget.title,
+            fontSize: Theme.of(context).textTheme.titleLarge?.fontSize ?? 22,
           ),
         ),
         if (product != null) ...[
@@ -688,7 +710,7 @@ class _RetailHomeSkeleton extends StatelessWidget {
       padding: const EdgeInsets.all(CustomerUiSpacing.page),
       children: [
         const CustomerSkeletonBox(
-          height: 154,
+          height: 123,
           radius: CustomerUiRadii.xl,
         ),
         const SizedBox(height: CustomerUiSpacing.xl),

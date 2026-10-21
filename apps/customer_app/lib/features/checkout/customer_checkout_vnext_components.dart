@@ -165,11 +165,13 @@ class CustomerCheckoutTotalRow {
     required this.label,
     required this.value,
     this.emphasized = false,
+    this.valueColor,
   });
 
   final String label;
   final String value;
   final bool emphasized;
+  final Color? valueColor;
 }
 
 class CustomerCheckoutTotalsCard extends StatelessWidget {
@@ -215,11 +217,13 @@ class CustomerCheckoutTotalsCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: rows[index].emphasized
                             ? Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  color: CustomerUiColors.deepGreenStrong,
+                                  color: rows[index].valueColor ??
+                                      CustomerUiColors.deepGreenStrong,
                                   fontWeight: FontWeight.w900,
                                 )
                             : Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: CustomerUiColors.inkSoft,
+                                  color: rows[index].valueColor ??
+                                      CustomerUiColors.inkSoft,
                                   fontWeight: FontWeight.w700,
                                 ),
                       ),

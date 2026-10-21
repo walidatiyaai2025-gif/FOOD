@@ -2,15 +2,21 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\WhatsApp\ConnectionHealthRecorder;
 use App\Domain\WhatsApp\ConnectionProfileManager;
+use App\Domain\WhatsApp\ModuleState;
+use App\Domain\WhatsApp\OutboundMessage;
 use App\Domain\WhatsApp\RuntimePolicy;
+use App\Domain\WhatsApp\WhatsAppProviderRegistry;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\WhatsAppConnectionProfile;
+use App\Services\AuditLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use JsonException;
@@ -101,6 +107,65 @@ final class WhatsAppConnectionController extends Controller
         $valid = $manager->validate($actor, $profile);
 
         return $this->back(__($valid ? 'whatsapp.connections.validation_ok' : 'whatsapp.connections.validation_failed'));
+    }
+
+    public function sendTestMessage(
+        Request $request,
+        WhatsAppConnectionProfile $profile,
+        WhatsAppProviderRegistry $providers,
+        ConnectionHealthRecorder $health,
+        AuditLogger $audit,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        abort_unless($actor->hasPermission('whatsapp.settings'), 403);
+
+        $data = $request->validate([
+            'recipient' => ['required', 'string', 'max:32'],
+            'message' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $recipient = $this->normalizeTestRecipient((string) $data['recipient']);
+        $message = trim((string) $data['message']);
+
+        try {
+            $result = $providers->forProfile($profile)->send(
+                $profile,
+                new OutboundMessage(
+                    recipient: $recipient,
+                    kind: 'text',
+                    body: $message,
+                    metadata: ['source' => 'dashboard_connection_test'],
+                    idempotencyKey: 'whatsapp-connection-test:'
+                        .(int) $profile->getKey().':'.(string) Str::uuid(),
+                ),
+            );
+            $health->outboundSucceeded($profile);
+        } catch (Throwable $exception) {
+            $health->providerError($profile, $exception->getMessage());
+
+            throw ValidationException::withMessages([
+                'recipient' => [app()->getLocale() === 'ar'
+                    ? 'فشل إرسال رسالة واتساب التجريبية: '.$exception->getMessage()
+                    : 'WhatsApp test message failed: '.$exception->getMessage()],
+            ]);
+        }
+
+        $audit->record(
+            'whatsapp.connection_test_message_sent',
+            $actor,
+            $profile,
+            null,
+            [
+                'recipient' => $this->maskPhone($recipient),
+                'provider_message_id' => $result->providerMessageId,
+                'provider' => (string) $profile->provider_type,
+            ],
+            $request,
+        );
+
+        return $this->back(app()->getLocale() === 'ar'
+            ? 'تم إرسال رسالة واتساب التجريبية إلى '.$recipient.'.'
+            : 'WhatsApp test message sent to '.$recipient.'.');
     }
 
     public function switchPrimary(
@@ -203,6 +268,36 @@ final class WhatsAppConnectionController extends Controller
         app()->setLocale(in_array($actor->locale, ['ar', 'en'], true) ? $actor->locale : 'ar');
 
         return $actor;
+    }
+
+    private function normalizeTestRecipient(string $number): string
+    {
+        $normalized = preg_replace('/[\s().-]+/', '', trim($number)) ?? '';
+
+        if (str_starts_with($normalized, '00')) {
+            $normalized = '+'.substr($normalized, 2);
+        } elseif (preg_match('/^01[0-9]{9}$/D', $normalized) === 1) {
+            $normalized = '+2'.$normalized;
+        } elseif (preg_match('/^201[0-9]{9}$/D', $normalized) === 1) {
+            $normalized = '+'.$normalized;
+        }
+
+        if (! ModuleState::validNumber($normalized)) {
+            throw ValidationException::withMessages([
+                'recipient' => [app()->getLocale() === 'ar'
+                    ? 'رقم واتساب غير صالح. اكتب رقمًا دوليًا مثل +201012345678 أو رقمًا مصريًا يبدأ بـ 01.'
+                    : 'Invalid WhatsApp number. Use E.164 such as +201012345678 or an Egyptian mobile beginning with 01.'],
+            ]);
+        }
+
+        return $normalized;
+    }
+
+    private function maskPhone(string $number): string
+    {
+        $visible = min(4, max(0, strlen($number) - 1));
+
+        return str_repeat('*', max(0, strlen($number) - $visible)).substr($number, -$visible);
     }
 
     private function back(string $message): RedirectResponse

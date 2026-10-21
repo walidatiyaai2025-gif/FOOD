@@ -1,12 +1,164 @@
 // ignore_for_file: prefer_interpolation_to_compose_strings, deprecated_member_use
 
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
+import '../../core/theme/customer_ui_v3_tokens.dart';
+
+final ValueNotifier<int> foodexWholesaleCartProductCount =
+    ValueNotifier<int>(0);
+
+void syncFoodexWholesaleCartProductCount(Object? payload) {
+  if (payload is! Map) {
+    foodexWholesaleCartProductCount.value = 0;
+    return;
+  }
+
+  final rawItems = payload['items'];
+  if (rawItems is! List) {
+    foodexWholesaleCartProductCount.value = 0;
+    return;
+  }
+
+  final count = rawItems.whereType<Map>().where((item) {
+    final quantity = double.tryParse(item['quantity']?.toString() ?? '') ?? 0;
+    final itemId = int.tryParse(item['id']?.toString() ?? '') ?? 0;
+    final product = item['product'];
+    final productId = product is Map
+        ? int.tryParse(product['id']?.toString() ?? '') ?? 0
+        : int.tryParse(item['product_id']?.toString() ?? '') ?? 0;
+    return quantity > 0 && (itemId > 0 || productId > 0);
+  }).length;
+
+  foodexWholesaleCartProductCount.value = count;
+}
+
+OverlayEntry? _foodexWholesaleCartAddHoverEntry;
+Timer? _foodexWholesaleCartAddHoverTimer;
+
+void showFoodexWholesaleCartAddHover({
+  required OverlayState overlay,
+  required TextDirection textDirection,
+  required double topInset,
+  required String productName,
+  String? imageUrl,
+  Duration duration = const Duration(seconds: 5),
+}) {
+  _foodexWholesaleCartAddHoverTimer?.cancel();
+  _foodexWholesaleCartAddHoverEntry?.remove();
+  _foodexWholesaleCartAddHoverEntry = null;
+
+  late final OverlayEntry entry;
+  entry = OverlayEntry(
+    builder: (context) => Positioned(
+      top: topInset + 48,
+      left: textDirection == TextDirection.rtl ? 10 : null,
+      right: textDirection == TextDirection.ltr ? 10 : null,
+      child: Material(
+        color: Colors.transparent,
+        child: IgnorePointer(
+          child: Container(
+            key: const ValueKey('wholesale-cart-add-hover'),
+            constraints: const BoxConstraints(maxWidth: 250),
+            padding: const EdgeInsets.fromLTRB(8, 7, 9, 7),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: CustomerUiColors.storefrontBorderSoft),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(
+                  color: CustomerUiColors.storefrontShadowMedium,
+                  blurRadius: 16,
+                  offset: Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              textDirection: textDirection,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: CustomerUiColors.storefrontMintWash,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: imageUrl != null && imageUrl.trim().isNotEmpty
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.inventory_2_outlined,
+                            size: 19,
+                            color: CustomerUiColors.wholesalePositiveValue,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.inventory_2_outlined,
+                          size: 19,
+                          color: CustomerUiColors.wholesalePositiveValue,
+                        ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'تمت الإضافة للسلة',
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: CustomerUiColors.wholesaleVehicleGreen,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        productName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: CustomerUiColors.wholesaleCommerceInk,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Icon(
+                  Icons.check_circle_rounded,
+                  size: 18,
+                  color: CustomerUiColors.wholesalePositiveValue,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  _foodexWholesaleCartAddHoverEntry = entry;
+  overlay.insert(entry);
+  _foodexWholesaleCartAddHoverTimer = Timer(duration, () {
+    if (_foodexWholesaleCartAddHoverEntry == entry) {
+      entry.remove();
+      _foodexWholesaleCartAddHoverEntry = null;
+    }
+  });
+}
 
 class FoodexPalette {
   const FoodexPalette({
@@ -28,12 +180,12 @@ class FoodexPalette {
   final Color muted;
 
   static const grocery = FoodexPalette(
-    primary: Color(0xFF078A43),
-    primaryDark: Color(0xFF006736),
-    accent: Color(0xFFB5F23E),
+    primary: CustomerUiColors.wholesalePositiveValue,
+    primaryDark: CustomerUiColors.wholesaleVehicleGreen,
+    accent: CustomerUiColors.storefrontLimeStrong,
     background: Color(0xFFF8FBF9),
-    soft: Color(0xFFF1F8F4),
-    text: Color(0xFF102033),
+    soft: CustomerUiColors.storefrontMintWash,
+    text: CustomerUiColors.wholesaleCommerceInk,
     muted: Color(0xFF6B7785),
   );
 
@@ -43,17 +195,17 @@ class FoodexPalette {
     accent: Color(0xFF37CCFF),
     background: Color(0xFFF8FCFF),
     soft: Color(0xFFEEF8FE),
-    text: Color(0xFF102033),
+    text: CustomerUiColors.wholesaleCommerceInk,
     muted: Color(0xFF6B7785),
   );
 
   static const wholesale = FoodexPalette(
-    primary: Color(0xFF078A43),
-    primaryDark: Color(0xFF006736),
+    primary: CustomerUiColors.wholesalePositiveValue,
+    primaryDark: CustomerUiColors.wholesaleVehicleGreen,
     accent: Color(0xFF92D853),
     background: Color(0xFFF8FBF9),
-    soft: Color(0xFFF1F8F4),
-    text: Color(0xFF102033),
+    soft: CustomerUiColors.storefrontMintWash,
+    text: CustomerUiColors.wholesaleCommerceInk,
     muted: Color(0xFF6B7785),
   );
 }
@@ -241,16 +393,7 @@ class FoodexWholesaleHeader extends StatelessWidget {
                 message: address == null || address!.trim().isEmpty
                     ? title
                     : '$title\n$address',
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13.3,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+                child: _FoodexAnimatedHeaderTitle(title: title),
               ),
             ),
             const SizedBox(width: 8),
@@ -329,10 +472,14 @@ class FoodexWholesaleHeader extends StatelessWidget {
               onTap: onNotifications ?? () => _defaultNotifications(context),
             ),
             const SizedBox(width: 4),
-            _FoodexWholesaleHeaderIcon(
-              key: cartKey,
-              icon: Icons.shopping_cart_outlined,
-              onTap: onCart ?? () => _defaultCart(context),
+            ValueListenableBuilder<int>(
+              valueListenable: foodexWholesaleCartProductCount,
+              builder: (context, count, _) => _FoodexWholesaleHeaderIcon(
+                key: cartKey,
+                icon: Icons.shopping_cart_outlined,
+                badgeCount: count,
+                onTap: onCart ?? () => _defaultCart(context),
+              ),
             ),
           ],
         ),
@@ -414,33 +561,189 @@ class FoodexUnifiedHeaderSurface extends StatelessWidget {
       );
 }
 
+class _FoodexAnimatedHeaderTitle extends StatefulWidget {
+  const _FoodexAnimatedHeaderTitle({required this.title});
+
+  final String title;
+
+  @override
+  State<_FoodexAnimatedHeaderTitle> createState() =>
+      _FoodexAnimatedHeaderTitleState();
+}
+
+class _FoodexAnimatedHeaderTitleState extends State<_FoodexAnimatedHeaderTitle>
+    with SingleTickerProviderStateMixin {
+  static const _style = TextStyle(
+    color: Colors.white,
+    fontSize: 13.3,
+    fontWeight: FontWeight.w800,
+  );
+
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1650),
+  )..forward();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = widget.title.trim();
+    final arabicBrand = title.startsWith('فوديكس');
+    final englishMatch =
+        RegExp(r'^foodex', caseSensitive: false).firstMatch(title);
+
+    if (!arabicBrand && englishMatch == null) {
+      return Text(
+        widget.title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: _style,
+      );
+    }
+
+    final brand =
+        arabicBrand ? 'فوديكس' : title.substring(0, englishMatch!.end);
+    final rest = title.substring(brand.length);
+
+    final animatedBrand = AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final progress = _controller.value;
+        final wave = math.sin(progress * math.pi * 2);
+        final travel = progress * 2.5;
+
+        return Transform.translate(
+          offset: Offset(0, wave * .8),
+          child: ShaderMask(
+            blendMode: BlendMode.srcIn,
+            shaderCallback: (bounds) => LinearGradient(
+              begin: Alignment(-1.8 + travel, -.8 + wave * .15),
+              end: Alignment(.2 + travel, .8 - wave * .15),
+              colors: const <Color>[
+                CustomerUiColors.storefrontLimeWash,
+                CustomerUiColors.storefrontLimeStrong,
+                CustomerUiColors.storefrontGreenGlow,
+                CustomerUiColors.white,
+                CustomerUiColors.storefrontGreenHighlight,
+              ],
+              stops: const <double>[0, .22, .48, .7, 1],
+            ).createShader(bounds),
+            child: Text(
+              brand,
+              maxLines: 1,
+              softWrap: false,
+              style: _style.copyWith(
+                color: Colors.white,
+                letterSpacing: arabicBrand ? 0 : .25,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (rest.isEmpty) {
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment:
+            arabicBrand ? Alignment.centerRight : Alignment.centerLeft,
+        child: animatedBrand,
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      textDirection: arabicBrand ? TextDirection.rtl : TextDirection.ltr,
+      children: [
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment:
+                arabicBrand ? Alignment.centerRight : Alignment.centerLeft,
+            child: animatedBrand,
+          ),
+        ),
+        Flexible(
+          flex: 2,
+          child: Text(
+            rest,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: _style,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _FoodexWholesaleHeaderIcon extends StatelessWidget {
   const _FoodexWholesaleHeaderIcon({
     required this.icon,
     this.onTap,
+    this.badgeCount = 0,
     super.key,
   });
 
   final IconData icon;
   final VoidCallback? onTap;
+  final int badgeCount;
 
   @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.white.withOpacity(.14),
-        shape: const CircleBorder(),
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: SizedBox(
-            width: 28,
-            height: 28,
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 12,
+  Widget build(BuildContext context) => Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Material(
+            color: Colors.white.withOpacity(.14),
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: onTap,
+              customBorder: const CircleBorder(),
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 12,
+                ),
+              ),
             ),
           ),
-        ),
+          if (badgeCount > 0)
+            Positioned(
+              right: -5,
+              top: -6,
+              child: Container(
+                key: const ValueKey('wholesale-header-cart-badge'),
+                constraints: const BoxConstraints(
+                  minWidth: 16,
+                  minHeight: 16,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: CustomerUiColors.wholesaleNegativeValue,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: Colors.white, width: 1.2),
+                ),
+                child: Text(
+                  badgeCount > 99 ? '99+' : badgeCount.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 8,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+        ],
       );
 }
 
@@ -486,6 +789,7 @@ class FoodexSectionHeader extends StatelessWidget {
     this.onAction,
     this.textScale = 1,
     this.spacingScale = 1,
+    this.animatedGoldTitle = false,
     super.key,
   });
 
@@ -495,6 +799,7 @@ class FoodexSectionHeader extends StatelessWidget {
   final VoidCallback? onAction;
   final double textScale;
   final double spacingScale;
+  final bool animatedGoldTitle;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -507,14 +812,19 @@ class FoodexSectionHeader extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: palette.text,
-                  fontSize: 18 * textScale,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              child: animatedGoldTitle
+                  ? _FoodexAnimatedGoldSectionTitle(
+                      title: title,
+                      textScale: textScale,
+                    )
+                  : Text(
+                      title,
+                      style: TextStyle(
+                        color: palette.text,
+                        fontSize: 18 * textScale,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
             ),
             if (onAction == null)
               Text(
@@ -543,6 +853,160 @@ class FoodexSectionHeader extends StatelessWidget {
       );
 }
 
+class _FoodexAnimatedGoldSectionTitle extends StatefulWidget {
+  const _FoodexAnimatedGoldSectionTitle({
+    required this.title,
+    required this.textScale,
+  });
+
+  final String title;
+  final double textScale;
+
+  @override
+  State<_FoodexAnimatedGoldSectionTitle> createState() =>
+      _FoodexAnimatedGoldSectionTitleState();
+}
+
+class _FoodexAnimatedGoldSectionTitleState
+    extends State<_FoodexAnimatedGoldSectionTitle>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1750),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final progress = _controller.value;
+          final wave = math.sin(progress * math.pi * 2);
+          final travel = progress * 2.6;
+
+          return Transform.translate(
+            offset: Offset(0, wave * 1.15),
+            child: ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) => LinearGradient(
+                begin: Alignment(-1.9 + travel, -.7 + wave * .12),
+                end: Alignment(.1 + travel, .8 - wave * .12),
+                colors: const <Color>[
+                  CustomerUiColors.storefrontGoldDeep,
+                  CustomerUiColors.storefrontGoldMid,
+                  CustomerUiColors.storefrontGoldLight,
+                  CustomerUiColors.storefrontGoldBright,
+                  CustomerUiColors.storefrontGoldDark,
+                ],
+                stops: const <double>[0, .22, .48, .72, 1],
+              ).createShader(bounds),
+              child: Text(
+                widget.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18 * widget.textScale,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: .15,
+                  shadows: const <Shadow>[
+                    Shadow(
+                      color: CustomerUiColors.storefrontGoldShadow,
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+}
+
+class FoodexAnimatedOxbloodTitle extends StatefulWidget {
+  const FoodexAnimatedOxbloodTitle({
+    required this.title,
+    this.fontSize = 18,
+    this.fontWeight = FontWeight.w900,
+    super.key,
+  });
+
+  final String title;
+  final double fontSize;
+  final FontWeight fontWeight;
+
+  @override
+  State<FoodexAnimatedOxbloodTitle> createState() =>
+      _FoodexAnimatedOxbloodTitleState();
+}
+
+class _FoodexAnimatedOxbloodTitleState extends State<FoodexAnimatedOxbloodTitle>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1650),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final progress = _controller.value;
+          final wave = math.sin(progress * math.pi * 2);
+          final travel = progress * 2.7;
+
+          return Transform.translate(
+            offset: Offset(0, wave * 1.05),
+            child: ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) => LinearGradient(
+                begin: Alignment(-1.9 + travel, -.75 + wave * .12),
+                end: Alignment(.1 + travel, .8 - wave * .12),
+                colors: const <Color>[
+                  CustomerUiColors.storefrontOxbloodDeep,
+                  CustomerUiColors.storefrontOxblood,
+                  CustomerUiColors.storefrontOxbloodMid,
+                  CustomerUiColors.storefrontOxbloodLight,
+                  CustomerUiColors.storefrontOxbloodDark,
+                ],
+                stops: const <double>[0, .22, .48, .72, 1],
+              ).createShader(bounds),
+              child: Text(
+                widget.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: widget.fontSize,
+                  fontWeight: widget.fontWeight,
+                  letterSpacing: .12,
+                  shadows: const <Shadow>[
+                    Shadow(
+                      color: CustomerUiColors.storefrontOxbloodShadow,
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+}
+
 class FoodexProductImage extends StatelessWidget {
   const FoodexProductImage({
     required this.url,
@@ -554,34 +1018,52 @@ class FoodexProductImage extends StatelessWidget {
   final FoodexPalette palette;
 
   @override
-  Widget build(BuildContext context) => Container(
-        decoration: BoxDecoration(
-          color: palette.soft,
-          borderRadius: BorderRadius.circular(18),
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 1.055, end: 1),
+        duration: const Duration(milliseconds: 720),
+        curve: Curves.easeOutCubic,
+        builder: (context, scale, child) => Transform.scale(
+          scale: scale,
+          child: child,
         ),
-        clipBehavior: Clip.antiAlias,
-        child: url == null || url!.isEmpty
-            ? Center(
-                child: Icon(
-                  Icons.inventory_2_outlined,
-                  color: palette.primary,
-                  size: 52,
-                ),
-              )
-            : Image.network(
-                url!,
-                fit: BoxFit.cover,
-                loadingBuilder: (_, child, progress) => progress == null
-                    ? child
-                    : const Center(child: CircularProgressIndicator()),
-                errorBuilder: (_, __, ___) => Center(
+        child: Container(
+          margin: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: palette.soft,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const <BoxShadow>[
+              BoxShadow(
+                color: CustomerUiColors.marketplaceImageShadow,
+                blurRadius: 13,
+                spreadRadius: 1,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: url == null || url!.isEmpty
+              ? Center(
                   child: Icon(
                     Icons.inventory_2_outlined,
                     color: palette.primary,
                     size: 52,
                   ),
+                )
+              : Image.network(
+                  url!,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (_, child, progress) => progress == null
+                      ? child
+                      : const Center(child: FoodexWaveLoading()),
+                  errorBuilder: (_, __, ___) => Center(
+                    child: Icon(
+                      Icons.inventory_2_outlined,
+                      color: palette.primary,
+                      size: 52,
+                    ),
+                  ),
                 ),
-              ),
+        ),
       );
 }
 
@@ -690,7 +1172,7 @@ class FoodexLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const Center(child: CircularProgressIndicator());
+      const Center(child: FoodexWaveLoading());
 }
 
 class FoodexErrorState extends StatelessWidget {

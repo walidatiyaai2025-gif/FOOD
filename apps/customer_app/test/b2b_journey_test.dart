@@ -439,9 +439,8 @@ void main() {
   );
 
   testWidgets(
-    'B2B dashboard Store icon resolves principal Wholesale and opens canonical home',
+    'B2B dashboard hides the Store shortcut from the hero',
     (tester) async {
-      final storefront = _FakeWholesaleStorefrontApi();
       final api = _FakeB2bApi({
         'customer': {'name': 'Buyer'},
         'account': {'company_name': 'Buyer Co', 'status': 'active'},
@@ -473,20 +472,15 @@ void main() {
           session: b2b,
           initialRoute: '/b2b/dashboard',
           b2bApi: api,
-          storefrontApi: storefront,
           actionApi: _FakeCustomerActionApi(),
         ),
       );
       await _pumpCustomerFrames(tester);
 
-      final shopping = find.byKey(const ValueKey('b2b-dashboard-shopping'));
-      expect(shopping, findsOneWidget);
-
-      await tester.tap(shopping);
-      await _pumpCustomerFrames(tester);
-
-      expect(storefront.selectionCalls, 1);
-      expect(storefront.lastStoreId, 70);
+      expect(
+        find.byKey(const ValueKey('b2b-dashboard-shopping')),
+        findsNothing,
+      );
       expect(
         api.paths
             .where((path) => path.startsWith('/api/v1/b2b/dashboard'))
@@ -584,6 +578,9 @@ void main() {
           'currency': 'KWD',
           'balance': 125.0,
           'balance_direction': 'customer_owes_company',
+          'total_debits': 420.0,
+          'total_purchases': 400.0,
+          'outstanding_receivable': 125.0,
           'credit_limit': 1000.0,
           'available_credit_line': 875.0,
           'purchasing_power': 875.0,
@@ -612,19 +609,28 @@ void main() {
     expect(find.text('TAX-872'), findsNothing);
     expect(find.text('نشط'), findsNothing);
     expect(find.byKey(const ValueKey('b2b-account-hub')), findsOneWidget);
-    expect(find.text('عليك'), findsOneWidget);
+    expect(find.text('إجمالي مشترياتك'), findsOneWidget);
+    expect(find.text('400.000 KWD'), findsOneWidget);
+    expect(find.text('إجمالي مديونيتك'), findsOneWidget);
     expect(find.text('125.000 KWD'), findsOneWidget);
+    expect(find.text('الحساب المالي'), findsNothing);
     expect(find.text('1000.000 KWD'), findsNothing);
-    expect(find.text('875.000 KWD'), findsOneWidget);
-    expect(find.text('طلباتي'), findsWidgets);
-    expect(find.text('الفواتير'), findsWidgets);
-    expect(find.text('كشف الحساب'), findsOneWidget);
+    expect(find.text('875.000 KWD'), findsNothing);
+    expect(find.text('كشف الحساب'), findsNothing);
     expect(find.text('تقرير المشتريات'), findsOneWidget);
-    expect(find.text('الإشعارات'), findsOneWidget);
     expect(find.text('العناوين'), findsOneWidget);
+    expect(find.text('الإشعارات'), findsNothing);
+    expect(find.text('المساعدة والدعم'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('b2b-more-bottom-settings')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('b2b-more-language-action')),
+      findsOneWidget,
+    );
     expect(find.text('العربية'), findsOneWidget);
-    expect(find.text('English'), findsOneWidget);
-    expect(find.text('المساعدة والدعم'), findsOneWidget);
+    expect(find.text('English'), findsNothing);
     expect(
       find.byKey(const ValueKey('b2b-profile-security-action')),
       findsOneWidget,

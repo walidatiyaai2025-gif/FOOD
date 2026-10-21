@@ -50,6 +50,9 @@ final class B2bAccountLedgerService
 
         $totalDebits = round((float) $transactions->sum('debit'), 3);
         $totalCredits = round((float) $transactions->sum('credit'), 3);
+        $totalPurchases = round((float) $transactions
+            ->filter(fn (array $row): bool => $row['type'] === 'invoice')
+            ->sum('debit'), 3);
         // Business-facing convention (#893): positive means customer credit;
         // negative means the customer owes the company.
         $balance = round($totalCredits - $totalDebits, 3);
@@ -72,6 +75,7 @@ final class B2bAccountLedgerService
             'currency' => $currency,
             'total_debits' => $totalDebits,
             'total_credits' => $totalCredits,
+            'total_purchases' => $totalPurchases,
             'balance' => $balance,
             'balance_direction' => $balance > 0 ? 'company_owes_customer' : ($balance < 0 ? 'customer_owes_company' : 'settled'),
             'outstanding_receivable' => $outstandingReceivable,

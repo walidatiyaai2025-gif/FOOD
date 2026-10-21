@@ -23,9 +23,10 @@ void main() {
         source, contains('const _startupTaskTimeout = Duration(seconds: 3);'));
     expect(source, contains('if (!_runtimeReady)'));
     expect(
-        source,
-        contains(
-            "AssetImage(\n                  'assets/branding/foodex-economical-group.webp',"));
+      source,
+      contains("import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';"),
+    );
+    expect(source, contains('return const FoodexWaveLoading();'));
     expect(source, contains("'session_restore_timeout'"));
     expect(source, contains("'diagnostics_startup_timeout'"));
     expect(source, contains("'data_mode_startup_timeout'"));
