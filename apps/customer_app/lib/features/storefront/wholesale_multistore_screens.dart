@@ -5760,7 +5760,6 @@ class _CartTotalPanel extends StatelessWidget {
     final subtotal = cart['subtotal'];
     final discount = quote['discount_total'];
     final delivery = quote['delivery_total'];
-    final tax = quote['tax_total'];
     final total = quote['grand_total'] ?? cart['grand_total'] ?? subtotal;
 
     return Column(
@@ -5782,11 +5781,6 @@ class _CartTotalPanel extends StatelessWidget {
               CustomerCheckoutTotalRow(
                 label: context.tr('b2b.cart.delivery'),
                 value: money(delivery, currency: currency),
-              ),
-            if (tax != null)
-              CustomerCheckoutTotalRow(
-                label: context.tr('b2b.cart.tax'),
-                value: money(tax, currency: currency),
               ),
             CustomerCheckoutTotalRow(
               label: context.tr('b2b.cart.total'),
