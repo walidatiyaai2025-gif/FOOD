@@ -64,6 +64,7 @@ class WholesaleHomeDesignScreen extends StatefulWidget {
     required this.api,
     required this.storefrontApi,
     required this.actionApi,
+    this.commerceApi,
     this.pendingActionStore,
     this.showBottomNavigation = true,
     super.key,
@@ -74,6 +75,7 @@ class WholesaleHomeDesignScreen extends StatefulWidget {
   final B2bApi? api;
   final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
+  final WholesaleCommerceApi? commerceApi;
   final CustomerPendingActionStore? pendingActionStore;
   final bool showBottomNavigation;
 
@@ -161,7 +163,21 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
       };
     }
 
-    return {'products': products, 'storefront': storefront};
+    Object? cart;
+    if (widget.commerceApi != null) {
+      try {
+        cart = await widget.commerceApi!.cart(resolvedStoreId);
+        syncFoodexWholesaleCartProductCount(cart);
+      } catch (_) {
+        // Home remains usable if the optional cart badge refresh fails.
+      }
+    }
+
+    return {
+      'products': products,
+      'storefront': storefront,
+      if (cart != null) 'cart': cart,
+    };
   }
 
   List<Map<String, dynamic>> _filterWholesaleHomeRows(
@@ -1835,11 +1851,12 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
 
     setState(() => busy = true);
     try {
-      await widget.actionApi.addCartItem(
+      final cartPayload = await widget.actionApi.addCartItem(
         storeId: widget.storeId,
         productId: id,
         quantity: minimum,
       );
+      syncFoodexWholesaleCartProductCount(cartPayload);
       if (messenger == null || !messenger.mounted) return;
       _showWholesaleCartConfirmation(
         messenger: messenger,
@@ -4836,6 +4853,9 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                     (snapshot.data is Map
                         ? Map<String, dynamic>.from(snapshot.data as Map)
                         : <String, dynamic>{});
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  syncFoodexWholesaleCartProductCount(cart);
+                });
                 if (storeId <= 0) {
                   storeId = intValue(cart['store_id']);
                 }
