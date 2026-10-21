@@ -151,8 +151,7 @@ class _RetailDashboardApi extends HttpB2bApi {
   _RetailDashboardApi({
     required this.hasNewInsights,
     this.logoUrl = 'https://analytics.foodex.test/downtown-store.png',
-    this.dashboardLogoUrl =
-        'https://dashboard.foodex.test/downtown-store.png',
+    this.dashboardLogoUrl = 'https://dashboard.foodex.test/downtown-store.png',
   }) : super(
           baseUrl: 'https://api.foodex.test',
           token: 'test-token',

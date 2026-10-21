@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 import '../../core/theme/customer_ui_v3_tokens.dart';
 
 class CustomerCurvedHeaderSurface extends StatelessWidget {
@@ -600,10 +599,11 @@ class CustomerProductCard extends StatelessWidget {
                         title,
                         maxLines: 1,
                         softWrap: false,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontSize: compact ? 9 : 9.5,
-                              height: 1.1,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontSize: compact ? 9 : 9.5,
+                                  height: 1.1,
+                                ),
                       ),
                     ),
                   ),
