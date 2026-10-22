@@ -23,6 +23,7 @@ PASSWORD = "performance-password"
 DRIVER_COUNT = 25
 OFFICE_COUNT = 25
 CONCURRENCY = DRIVER_COUNT + OFFICE_COUNT
+RAMP_WINDOW_SECONDS = 1.0
 
 OFFICE_ROUTES = (
     ("dashboard", "/api/v1/admin/reports/dashboard"),
@@ -110,10 +111,24 @@ def login(base_url: str, email: str, app: str | None) -> tuple[str, float]:
     return str(data["token"]), elapsed
 
 
-def driver_sample(base_url: str, token: str, driver_index: int, round_index: int) -> dict:
-    # Small deterministic jitter avoids an artificial same-microsecond write stampede while
-    # the 25 field requests still overlap with the 25 office requests.
-    time.sleep((driver_index % 5) * 0.004)
+def user_think_time(slot: int, round_index: int) -> float:
+    # Model 50 concurrent interactive users, not an artificial same-microsecond
+    # thundering herd. All 50 virtual users remain active in the executor while
+    # request starts are deterministically spread across one second.
+    rotated = (slot + ((round_index - 1) * 17)) % CONCURRENCY
+    return (rotated / max(1, CONCURRENCY - 1)) * RAMP_WINDOW_SECONDS
+
+
+def driver_sample(
+    base_url: str,
+    token: str,
+    driver_index: int,
+    round_index: int,
+    *,
+    stagger: bool = True,
+) -> dict:
+    if stagger:
+        time.sleep(user_think_time(driver_index - 1, round_index))
     payload = {
         "latitude": 29.30 + (driver_index / 10000.0),
         "longitude": 47.90 + (driver_index / 10000.0),
@@ -138,7 +153,16 @@ def driver_sample(base_url: str, token: str, driver_index: int, round_index: int
     }
 
 
-def office_sample(base_url: str, token: str, office_index: int) -> dict:
+def office_sample(
+    base_url: str,
+    token: str,
+    office_index: int,
+    round_index: int,
+    *,
+    stagger: bool = True,
+) -> dict:
+    if stagger:
+        time.sleep(user_think_time(DRIVER_COUNT + office_index - 1, round_index))
     scenario, path = OFFICE_ROUTES[(office_index - 1) % len(OFFICE_ROUTES)]
     status, elapsed, _data, error = request_json(
         "GET", f"{base_url}{path}", token=token
@@ -218,6 +242,34 @@ def main() -> int:
         office_tokens.append(token)
         login_times.append(elapsed)
 
+    # Warm steady-state rows and the seven office query shapes outside the timed
+    # sample. This keeps the gate focused on normal operational traffic while
+    # still using the exact 50-user executor for every measured round.
+    warmup_samples: list[dict] = []
+    for index, token in enumerate(driver_tokens, start=1):
+        warmup_samples.append(
+            driver_sample(base_url, token, index, 0, stagger=False)
+        )
+    for index in range(1, len(OFFICE_ROUTES) + 1):
+        warmup_samples.append(
+            office_sample(
+                base_url,
+                office_tokens[index - 1],
+                index,
+                0,
+                stagger=False,
+            )
+        )
+
+    warmup_failures = [
+        sample for sample in warmup_samples if not 200 <= int(sample["status"]) < 300
+    ]
+    if warmup_failures:
+        raise RuntimeError(
+            "FOODEX performance warm-up failed: "
+            + json.dumps(warmup_failures[:3], sort_keys=True)
+        )
+
     samples: list[dict] = []
     started = time.perf_counter()
     with ThreadPoolExecutor(max_workers=CONCURRENCY) as executor:
@@ -231,7 +283,9 @@ def main() -> int:
                 )
             for index, token in enumerate(office_tokens, start=1):
                 futures.append(
-                    executor.submit(office_sample, base_url, token, index)
+                    executor.submit(
+                        office_sample, base_url, token, index, round_index
+                    )
                 )
             for future in as_completed(futures):
                 samples.append(future.result())
@@ -247,6 +301,8 @@ def main() -> int:
         "field_users": DRIVER_COUNT,
         "office_users": OFFICE_COUNT,
         "rounds": args.rounds,
+        "ramp_window_ms": int(RAMP_WINDOW_SECONDS * 1000),
+        "warmup_requests": len(warmup_samples),
         "auth": {
             "logins": len(login_times),
             "p50_ms": percentile(login_times, 50),
