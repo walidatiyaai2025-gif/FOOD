@@ -680,6 +680,72 @@ class AdminCatalogManagementTest extends TestCase
             ->assertSee('Inline Product Renamed');
     }
 
+    public function test_wholesale_catalog_inline_stock_uses_principal_warehouse_only(): void
+    {
+        $user = $this->superAdmin('en');
+        $principal = app(\App\Services\WholesalePrincipal::class);
+        $storeId = $principal->storeId();
+        $warehouseId = $principal->warehouseId();
+        $catalog = app(CatalogOwnership::class)->defaultCatalogForStore($storeId, 'b2b');
+        $unitId = (int) DB::table('units')->where('scope', 'global')->where('is_active', true)->value('id');
+        $productId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalog->id,
+            'unit_id' => $unitId,
+            'sku' => 'INLINE-B2B-P',
+            'name' => 'Inline Wholesale Product',
+            'low_stock_threshold' => 0,
+            'is_active' => true,
+            'lifecycle_state' => 'active',
+            'lifecycle_effective_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('store_products')->insert([
+            'store_id' => $storeId,
+            'product_id' => $productId,
+            'price' => 10,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($user)->patch('/admin/catalog/products/'.$productId.'/inline', [
+            'field' => 'stock_quantity',
+            'warehouse_id' => $warehouseId,
+            'value' => 33,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('inventories', [
+            'warehouse_id' => $warehouseId,
+            'product_id' => $productId,
+            'quantity' => 33,
+        ]);
+
+        $otherWarehouseId = (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $storeId,
+            'code' => 'INLINE-B2B-OTHER',
+            'name' => 'Other Wholesale Warehouse',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->from('/admin/catalog?tab=products')
+            ->patch('/admin/catalog/products/'.$productId.'/inline', [
+                'field' => 'stock_quantity',
+                'warehouse_id' => $otherWarehouseId,
+                'value' => 44,
+            ])
+            ->assertRedirect('/admin/catalog?tab=products')
+            ->assertSessionHasErrors(['warehouse_id']);
+
+        $this->assertDatabaseMissing('inventories', [
+            'warehouse_id' => $otherWarehouseId,
+            'product_id' => $productId,
+        ]);
+    }
+
     public function test_catalog_management_requires_catalog_permission(): void
     {
         $user = User::query()->create([
