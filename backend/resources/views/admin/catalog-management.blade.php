@@ -233,6 +233,11 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 <input class="catalog-inline-input" data-inline-stock-quantity type="number" step=".001" min="{{ (float)($stockPosition->reserved_quantity ?? 0) }}" name="value" value="{{ (float)($stockPosition->quantity ?? 0) }}" inputmode="decimal">
 <button class="catalog-inline-save" type="submit" aria-label="{{ app()->getLocale()==='ar'?'حفظ المخزون':'Save stock' }}">✓</button>
 </form>
+@if($p->is_available)
+<span class="catalog-stock" style="margin-top:4px" data-availability-state="AVAILABLE"><span class="catalog-stock-dot"></span>{{ \App\Support\DisplayNumber::quantity((float)$p->available_quantity) }} {{ app()->getLocale()==='ar'?'متاح':'available' }}</span>
+@else
+<span class="catalog-stock out" style="margin-top:4px" data-availability-state="OUT_OF_STOCK"><span class="catalog-stock-dot"></span>{{ app()->getLocale()==='ar'?'نفد':'Out' }}</span>
+@endif
 @else
 <span class="muted">{{ app()->getLocale()==='ar'?'لا يوجد مخزن نشط':'No active warehouse' }}</span>
 @endif
