@@ -1964,6 +1964,7 @@ class _WholesaleBestSellerTickerHeader extends StatefulWidget {
     required this.palette,
     required this.storeId,
     required this.onAction,
+    this.trailing,
   });
 
   final String title;
@@ -1971,6 +1972,7 @@ class _WholesaleBestSellerTickerHeader extends StatefulWidget {
   final FoodexPalette palette;
   final int storeId;
   final VoidCallback? onAction;
+  final Widget? trailing;
 
   @override
   State<_WholesaleBestSellerTickerHeader> createState() =>
@@ -2179,6 +2181,10 @@ class _WholesaleBestSellerTickerHeaderState
                 ),
               ),
             ),
+          if (widget.trailing != null) ...[
+            const SizedBox(width: 2),
+            widget.trailing!,
+          ],
         ],
       ),
     );
