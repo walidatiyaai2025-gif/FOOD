@@ -6,6 +6,7 @@ import 'package:foodex_customer_app/core/routing/customer_commerce_context.dart'
 import 'package:foodex_customer_app/features/retail/catalog/retail_catalog_screens.dart';
 import 'package:foodex_customer_app/features/retail/customer_ui_v3/customer_retail_shell.dart';
 import 'package:foodex_customer_app/features/retail/customer_ui_v3/retail_home_v3_screen.dart';
+import 'package:foodex_customer_app/features/storefront/storefront_design_system.dart';
 
 void main() {
   testWidgets(
@@ -83,6 +84,16 @@ void main() {
       await _pumpRetailHomeReady(tester);
 
       expect(find.byKey(const ValueKey('retail-catalog-home')), findsOneWidget);
+      final sharedSurface = tester.widget<FoodexUnifiedHeaderSurface>(
+        find.byType(FoodexUnifiedHeaderSurface),
+      );
+      expect(sharedSurface.palette.primary, FoodexPalette.wholesale.primary);
+      expect(
+        sharedSurface.palette.primaryDark,
+        FoodexPalette.wholesale.primaryDark,
+      );
+      expect(sharedSurface.title, 'Retail Seven');
+      expect(sharedSurface.address, 'Retail Area');
       expect(
           find.byKey(const ValueKey('retail-catalog-search')), findsOneWidget);
       expect(find.byKey(const ValueKey('retail-category-3')), findsOneWidget);
@@ -552,6 +563,15 @@ class _FakeStorefrontApi implements StorefrontApi {
 
   @override
   Future<Map<String, dynamic>> retailHome(int storeId) async => {
+        'store': {
+          'id': storeId,
+          'name': 'Retail Seven',
+          'logo_url': null,
+        },
+        'branding': {
+          'logo_url': null,
+          'address': 'Retail Area',
+        },
         'sections': [
           {
             'type': 'best_sellers',
