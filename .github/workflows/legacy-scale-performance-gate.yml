@@ -89,6 +89,7 @@ jobs:
           set -euo pipefail
           php artisan db:seed --class=Database\\Seeders\\EnterprisePerformanceSeeder --force
           cp storage/app/private/enterprise-performance/fixture-manifest.json ../artifacts/legacy-scale/legacy1x-fixture.json
+          php ../scripts/foodex-mysql-steady-state.php --timeout-seconds 120 --output ../artifacts/legacy-scale/legacy1x-db-settle.json
 
       - name: Start baseline application server
         working-directory: backend
@@ -136,6 +137,7 @@ jobs:
           set -euo pipefail
           php artisan db:seed --class=Database\\Seeders\\EnterprisePerformanceSeeder --force
           cp storage/app/private/enterprise-performance/fixture-manifest.json ../artifacts/legacy-scale/legacy4x-fixture.json
+          php ../scripts/foodex-mysql-steady-state.php --timeout-seconds 120 --output ../artifacts/legacy-scale/legacy4x-db-settle.json
 
       - name: Start 4x application server
         working-directory: backend
