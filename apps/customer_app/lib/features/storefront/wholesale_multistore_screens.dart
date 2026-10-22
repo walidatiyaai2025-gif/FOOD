@@ -2240,10 +2240,13 @@ class _WholesaleProductGrid extends StatelessWidget {
         maxItems == null ? rows : rows.take(maxItems!).toList(growable: false);
     final columns =
         columnsOverride ?? _wholesaleProductColumns(displayRows.length);
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final compactTextExtra =
+        ((textScale - 1).clamp(0.0, 1.0).toDouble()) * 16;
     final mainAxisExtent = switch (columns) {
-      1 => 248.0,
-      2 => 182.0,
-      _ => 132.0,
+      1 => 252.0,
+      2 => 188.0,
+      _ => 144.0 + compactTextExtra,
     };
 
     return GridView.builder(
@@ -2255,7 +2258,7 @@ class _WholesaleProductGrid extends StatelessWidget {
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: columns,
         crossAxisSpacing: 8,
-        mainAxisSpacing: columns >= 3 ? 0 : 8,
+        mainAxisSpacing: columns >= 3 ? 6 : 8,
         mainAxisExtent: mainAxisExtent,
       ),
       itemBuilder: (context, index) => _WholesaleProductCard(
@@ -2422,7 +2425,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
         : twoColumns
             ? const EdgeInsets.fromLTRB(11, 11, 11, 9)
             : const EdgeInsets.fromLTRB(7, 7, 7, 6);
-    final nameHeight = singleColumn ? 28.0 : (twoColumns ? 20.0 : 14.0);
+    final nameHeight = singleColumn ? 28.0 : (twoColumns ? 20.0 : 18.0);
     final nameFontSize = singleColumn ? 15.0 : (twoColumns ? 12.0 : 9.0);
     final actionDimension = singleColumn ? 36.0 : (twoColumns ? 28.0 : 22.0);
     final actionIconSize = singleColumn ? 18.0 : (twoColumns ? 15.0 : 13.0);
