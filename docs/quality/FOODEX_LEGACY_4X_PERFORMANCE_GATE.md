@@ -26,6 +26,9 @@ the cited ~187k scanned sales-detail scale and ~24,950 finance-row baseline.
 
 ## Workload
 
+The HTTP harness performs a deterministic steady-state warm-up before timing: one initial heartbeat for each of the 25 field actors plus one request for each office route. Timed rounds still keep all 50 virtual users active, with request starts deterministically spread across a 1-second interaction window to model concurrent human/field usage without an artificial same-microsecond thundering herd. Warm-up requests are excluded from latency and throughput metrics.
+
+
 Each HTTP round uses 50 concurrent authenticated users:
 
 - 25 active Driver users posting real `/api/v1/driver/location/heartbeat` traffic;
