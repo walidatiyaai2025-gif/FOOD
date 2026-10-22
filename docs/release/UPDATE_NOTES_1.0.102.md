@@ -19,3 +19,5 @@ FOODEX 1.0.102 promotes the latest authoritative main lineage through the comple
 ## Self-healing runtime rebuild
 
 - Rebuilt from main after #2373 so the Dashboard update carries the complete application-owned Laravel runtime and operator-visible failure diagnostics.
+
+- Final self-healing rebuild after #2376: optional exact runtime files are included only when present, preventing composer.lock packaging failure.
