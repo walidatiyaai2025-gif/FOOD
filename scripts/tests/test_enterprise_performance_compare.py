@@ -175,6 +175,31 @@ class EnterprisePerformanceCompareTest(unittest.TestCase):
         self.assertTrue(any("missing baseline scenario" in item for item in result["failures"]))
         self.assertTrue(any("no accepted baseline" in item for item in result["failures"]))
 
+    def test_github_php_patch_drift_is_equivalent_but_minor_drift_fails(self) -> None:
+        baseline = report(source="a" * 40, baseline=None)
+        baseline["environment"]["php"] = "8.3.35"
+        candidate = report(source="b" * 40, baseline="a" * 40)
+        candidate["environment"]["php"] = "8.3.36"
+
+        self.assertEqual("PASS", MODULE.compare_reports(baseline, candidate)["status"])
+
+        candidate["environment"]["php"] = "8.4.0"
+        result = MODULE.compare_reports(baseline, candidate)
+
+        self.assertEqual("FAIL", result["status"])
+        self.assertTrue(any("environment fingerprint mismatch" in item for item in result["failures"]))
+
+    def test_cpanel_php_patch_drift_remains_strict(self) -> None:
+        baseline = report(source="a" * 40, baseline=None, cpanel=True)
+        baseline["environment"]["php"] = "8.3.35"
+        candidate = report(source="b" * 40, baseline="a" * 40, cpanel=True)
+        candidate["environment"]["php"] = "8.3.36"
+
+        result = MODULE.compare_reports(baseline, candidate)
+
+        self.assertEqual("FAIL", result["status"])
+        self.assertTrue(any("environment fingerprint mismatch" in item for item in result["failures"]))
+
     def test_slow_query_threshold_is_reported_as_investigation_warning(self) -> None:
         baseline = report(source="a" * 40, baseline=None)
         candidate = report(source="b" * 40, baseline="a" * 40)
