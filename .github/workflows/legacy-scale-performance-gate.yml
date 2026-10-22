@@ -49,6 +49,8 @@ jobs:
       QUEUE_CONNECTION: sync
       BCRYPT_ROUNDS: 4
       FOODEX_PERF_ALLOW_SEED: "1"
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: error
 
     steps:
       - name: Checkout candidate
