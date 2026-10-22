@@ -78,6 +78,8 @@ class WholesaleHomeDesignScreen extends StatefulWidget {
     this.commerceApi,
     this.favoritesApi,
     this.pendingActionStore,
+    this.onLocaleChanged,
+    this.onLogout,
     this.showBottomNavigation = true,
     super.key,
   });
@@ -90,6 +92,8 @@ class WholesaleHomeDesignScreen extends StatefulWidget {
   final WholesaleCommerceApi? commerceApi;
   final B2cRetailFavoritesApi? favoritesApi;
   final CustomerPendingActionStore? pendingActionStore;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
   final bool showBottomNavigation;
 
   @override
@@ -2692,6 +2696,8 @@ class WholesaleFavoritesDesignScreen extends StatefulWidget {
     required this.storefrontApi,
     required this.actionApi,
     this.pendingActionStore,
+    this.onLocaleChanged,
+    this.onLogout,
     super.key,
   });
 
@@ -2701,6 +2707,8 @@ class WholesaleFavoritesDesignScreen extends StatefulWidget {
   final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
   final CustomerPendingActionStore? pendingActionStore;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
 
   @override
   State<WholesaleFavoritesDesignScreen> createState() =>
@@ -2804,6 +2812,9 @@ class _WholesaleFavoritesDesignScreenState
               body: FoodexUnifiedHeaderSurface(
                 title: context.tr('b2b.app.title'),
                 location: widget.location,
+                isAuthenticated: widget.session.isAuthenticated,
+                onLocaleChanged: widget.onLocaleChanged,
+                onLogout: widget.onLogout,
                 searchHint: context.tr(
                   'customer.products.search_name_sku_barcode',
                 ),
@@ -2818,6 +2829,9 @@ class _WholesaleFavoritesDesignScreenState
               body: FoodexUnifiedHeaderSurface(
                 title: context.tr('b2b.app.title'),
                 location: widget.location,
+                isAuthenticated: widget.session.isAuthenticated,
+                onLocaleChanged: widget.onLocaleChanged,
+                onLogout: widget.onLogout,
                 searchHint: context.tr(
                   'customer.products.search_name_sku_barcode',
                 ),
@@ -2837,6 +2851,9 @@ class _WholesaleFavoritesDesignScreenState
               body: FoodexUnifiedHeaderSurface(
                 title: context.tr('b2b.app.title'),
                 location: widget.location,
+                isAuthenticated: widget.session.isAuthenticated,
+                onLocaleChanged: widget.onLocaleChanged,
+                onLogout: widget.onLogout,
                 searchHint: context.tr(
                   'customer.products.search_name_sku_barcode',
                 ),
@@ -2893,6 +2910,10 @@ class _WholesaleFavoritesDesignScreenState
                     logoUrl: branding['logo_url']?.toString(),
                     address: branding['address']?.toString(),
                     palette: palette,
+                    location: widget.location,
+                    isAuthenticated: widget.session.isAuthenticated,
+                    onLocaleChanged: widget.onLocaleChanged,
+                    onLogout: widget.onLogout,
                     searchController: search,
                     searchKey: const ValueKey('wholesale-favorites-search'),
                     searchHint: context.tr('b2b.catalog.search_hint'),
@@ -3028,6 +3049,8 @@ class WholesaleCatalogDesignScreen extends StatefulWidget {
     required this.actionApi,
     this.favoritesApi,
     this.pendingActionStore,
+    this.onLocaleChanged,
+    this.onLogout,
     super.key,
   });
 
@@ -3038,6 +3061,8 @@ class WholesaleCatalogDesignScreen extends StatefulWidget {
   final CustomerActionApi actionApi;
   final B2cRetailFavoritesApi? favoritesApi;
   final CustomerPendingActionStore? pendingActionStore;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
 
   @override
   State<WholesaleCatalogDesignScreen> createState() =>
@@ -3256,6 +3281,9 @@ class _WholesaleCatalogDesignScreenState
               body: FoodexUnifiedHeaderSurface(
                 title: context.tr('b2b.app.title'),
                 location: widget.location,
+                isAuthenticated: widget.session.isAuthenticated,
+                onLocaleChanged: widget.onLocaleChanged,
+                onLogout: widget.onLogout,
                 searchHint: context.tr(
                   'customer.products.search_name_sku_barcode',
                 ),
@@ -3270,6 +3298,9 @@ class _WholesaleCatalogDesignScreenState
               body: FoodexUnifiedHeaderSurface(
                 title: context.tr('b2b.app.title'),
                 location: widget.location,
+                isAuthenticated: widget.session.isAuthenticated,
+                onLocaleChanged: widget.onLocaleChanged,
+                onLogout: widget.onLogout,
                 searchHint: context.tr(
                   'customer.products.search_name_sku_barcode',
                 ),
@@ -3313,6 +3344,9 @@ class _WholesaleCatalogDesignScreenState
               body: FoodexUnifiedHeaderSurface(
                 title: context.tr('b2b.app.title'),
                 location: widget.location,
+                isAuthenticated: widget.session.isAuthenticated,
+                onLocaleChanged: widget.onLocaleChanged,
+                onLogout: widget.onLogout,
                 searchHint: context.tr(
                   'customer.products.search_name_sku_barcode',
                 ),
@@ -3578,6 +3612,10 @@ class _WholesaleCatalogDesignScreenState
                     logoUrl: branding['logo_url']?.toString(),
                     address: branding['address']?.toString(),
                     palette: palette,
+                    location: widget.location,
+                    isAuthenticated: widget.session.isAuthenticated,
+                    onLocaleChanged: widget.onLocaleChanged,
+                    onLogout: widget.onLogout,
                     searchController: search,
                     searchKey: const ValueKey('wholesale-catalog-search'),
                     searchHint: context.tr('b2b.catalog.search_hint'),
@@ -4389,6 +4427,8 @@ class WholesaleProductDetailsDesignScreen extends StatefulWidget {
     required this.actionApi,
     this.favoritesApi,
     this.pendingActionStore,
+    this.onLocaleChanged,
+    this.onLogout,
     super.key,
   });
 
@@ -4399,6 +4439,8 @@ class WholesaleProductDetailsDesignScreen extends StatefulWidget {
   final CustomerActionApi actionApi;
   final B2cRetailFavoritesApi? favoritesApi;
   final CustomerPendingActionStore? pendingActionStore;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
 
   @override
   State<WholesaleProductDetailsDesignScreen> createState() =>
