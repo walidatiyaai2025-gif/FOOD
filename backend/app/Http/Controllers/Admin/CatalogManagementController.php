@@ -938,12 +938,14 @@ final class CatalogManagementController extends Controller
                     'updated_at' => now(),
                 ]);
             } else {
+                $assignmentColumn = $field === 'price' ? 'price' : 'is_active';
+                $assignmentValue = $field === 'price'
+                    ? ($data['value'] ?? null)
+                    : (bool) $data['value'];
                 DB::table('store_products')
                     ->where('id', $assignment->id)
                     ->update([
-                        $field === 'price' ? 'price' : 'is_active' => $field === 'price'
-                            ? ($data['value'] ?? null)
-                            : (bool) $data['value'],
+                        $assignmentColumn => $assignmentValue,
                         'updated_at' => now(),
                     ]);
             }
