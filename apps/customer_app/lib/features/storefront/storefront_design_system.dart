@@ -898,6 +898,7 @@ class FoodexSectionHeader extends StatelessWidget {
     required this.palette,
     this.action = 'عرض الكل',
     this.onAction,
+    this.trailing,
     this.textScale = 1,
     this.spacingScale = 1,
     this.animatedGoldTitle = false,
@@ -908,6 +909,7 @@ class FoodexSectionHeader extends StatelessWidget {
   final String action;
   final FoodexPalette palette;
   final VoidCallback? onAction;
+  final Widget? trailing;
   final double textScale;
   final double spacingScale;
   final bool animatedGoldTitle;
@@ -961,6 +963,10 @@ class FoodexSectionHeader extends StatelessWidget {
                   ),
                 ),
               ),
+            if (trailing != null) ...[
+              const SizedBox(width: 2),
+              trailing!,
+            ],
           ],
         ),
       );
