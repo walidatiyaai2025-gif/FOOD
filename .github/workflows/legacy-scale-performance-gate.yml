@@ -92,7 +92,7 @@ jobs:
         working-directory: backend
         run: |
           set -euo pipefail
-          nohup env PHP_CLI_SERVER_WORKERS=16 php artisan serve --host=127.0.0.1 --port=8000 > ../artifacts/legacy-scale/server-1x.log 2>&1 &
+          nohup setsid env PHP_CLI_SERVER_WORKERS=50 php artisan serve --no-reload --host=127.0.0.1 --port=8000 > ../artifacts/legacy-scale/server-1x.log 2>&1 &
           echo $! > ../artifacts/legacy-scale/server.pid
           for i in $(seq 1 60); do
             if curl -fsS http://127.0.0.1:8000/health >/dev/null; then
@@ -113,10 +113,18 @@ jobs:
         working-directory: backend
         run: |
           if [[ -f ../artifacts/legacy-scale/server.pid ]]; then
-            kill "$(cat ../artifacts/legacy-scale/server.pid)" || true
+            server_pid="$(cat ../artifacts/legacy-scale/server.pid)"
+            kill -- "-$server_pid" || true
+            rm -f ../artifacts/legacy-scale/server.pid
           fi
-          pkill -f "artisan serve --host=127.0.0.1 --port=8000" || true
-          sleep 2
+          for i in $(seq 1 30); do
+            if ! curl -fsS http://127.0.0.1:8000/health >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 0.2
+          done
+          echo "FOODEX performance server did not stop cleanly" >&2
+          exit 1
 
       - name: Seed 4x legacy-volume dataset
         working-directory: backend
@@ -131,7 +139,7 @@ jobs:
         working-directory: backend
         run: |
           set -euo pipefail
-          nohup env PHP_CLI_SERVER_WORKERS=16 php artisan serve --host=127.0.0.1 --port=8000 > ../artifacts/legacy-scale/server-4x.log 2>&1 &
+          nohup setsid env PHP_CLI_SERVER_WORKERS=50 php artisan serve --no-reload --host=127.0.0.1 --port=8000 > ../artifacts/legacy-scale/server-4x.log 2>&1 &
           echo $! > ../artifacts/legacy-scale/server.pid
           for i in $(seq 1 60); do
             if curl -fsS http://127.0.0.1:8000/health >/dev/null; then
@@ -146,6 +154,24 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/foodex-legacy-scale-load.py             --profile legacy4x             --rounds 3             --output artifacts/legacy-scale/legacy4x-http.json
+
+      - name: Stop 4x application server
+        if: always()
+        working-directory: backend
+        run: |
+          if [[ -f ../artifacts/legacy-scale/server.pid ]]; then
+            server_pid="$(cat ../artifacts/legacy-scale/server.pid)"
+            kill -- "-$server_pid" || true
+            rm -f ../artifacts/legacy-scale/server.pid
+          fi
+          for i in $(seq 1 30); do
+            if ! curl -fsS http://127.0.0.1:8000/health >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 0.2
+          done
+          echo "FOODEX performance server did not stop cleanly" >&2
+          exit 1
 
       - name: Capture slow-query and EXPLAIN evidence
         env:
