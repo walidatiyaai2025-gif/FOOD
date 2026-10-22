@@ -121,7 +121,10 @@ def safe_path(path: str) -> str:
 
 
 def complete_runtime_files(repo_root: Path) -> list[str]:
-    selected: set[str] = set(RUNTIME_EXACT)
+    selected: set[str] = {
+        path for path in RUNTIME_EXACT
+        if (repo_root / path).is_file()
+    }
 
     for prefix in RUNTIME_PREFIXES:
         root = repo_root / prefix.rstrip("/")
