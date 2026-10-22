@@ -663,6 +663,10 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                       logoUrl: branding['logo_url']?.toString(),
                       address: branding['address']?.toString(),
                       palette: palette,
+                      location: widget.location,
+                      isAuthenticated: widget.session.isAuthenticated,
+                      onLocaleChanged: widget.onLocaleChanged,
+                      onLogout: widget.onLogout,
                       searchController: search,
                       searchKey: const ValueKey('wholesale-home-search'),
                       searchHint: context.tr(
