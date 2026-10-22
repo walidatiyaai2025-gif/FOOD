@@ -103,7 +103,7 @@ class AdminSidebarManagementTest extends TestCase
     }
 
     /** @param array<int,array<string,mixed>> $items
-     *  @return array<int,array<string,mixed>>
+     * @return array<int,array<string,mixed>>
      */
     private function flatten(array $items): array
     {
