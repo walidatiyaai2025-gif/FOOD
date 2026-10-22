@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Services\AdminSidebarManager;
+use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,7 +36,7 @@ final class SidebarManagementController extends Controller
             'roles' => $roles,
             'selectedRole' => $selectedRole,
             'matrix' => $sidebar->roleMatrix($selectedRole),
-            'navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor($request->user()),
+            'navGroups' => app(AdminNavigation::class)->groupsFor($request->user()),
             'navContext' => 'sidebar_role_access',
             'user' => $request->user(),
         ]);
@@ -69,7 +70,7 @@ final class SidebarManagementController extends Controller
         return view('admin.sidebar-layout', [
             'layout' => $sidebar->layoutData(),
             'protectedItems' => $sidebar->registry()['protected_items'],
-            'navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor($request->user()),
+            'navGroups' => app(AdminNavigation::class)->groupsFor($request->user()),
             'navContext' => 'sidebar_layout',
             'user' => $request->user(),
         ]);
