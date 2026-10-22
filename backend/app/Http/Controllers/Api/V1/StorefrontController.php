@@ -9,7 +9,6 @@ use App\Services\B2bAccountLedgerService;
 use App\Services\B2bPricingMode;
 use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
-use App\Services\RetailMerchantIdentityService;
 use App\Services\SmartOrderingAttributionService;
 use App\Services\WholesalePrincipal;
 use Illuminate\Database\Query\Builder;
@@ -23,7 +22,6 @@ use Illuminate\Validation\ValidationException;
 final class StorefrontController extends Controller
 {
     public function __construct(
-        private readonly RetailMerchantIdentityService $retailMerchants,
         private readonly SmartOrderingAttributionService $smartOrderingAttribution,
     ) {}
 
@@ -268,11 +266,6 @@ final class StorefrontController extends Controller
 
     public function show(Request $request, int $store): JsonResponse
     {
-        $user = $request->user('sanctum');
-        if ($request->bearerToken() !== null && $user instanceof User) {
-            $this->retailMerchants->assertCanPurchaseFromRetailStore($user, $store);
-        }
-
         $storeRow = $this->retailStoreQuery($request, false)
             ->where('stores.id', $store)
             ->first();
@@ -554,14 +547,6 @@ final class StorefrontController extends Controller
                 'storefront_settings.theme_code',
                 'storefront_settings.header_address',
             ]);
-
-        $user = $request->user('sanctum');
-        if ($request->bearerToken() !== null && $user instanceof User) {
-            $excludedStoreIds = $this->retailMerchants->retailStoreIds($user);
-            if ($excludedStoreIds !== []) {
-                $query->whereNotIn('stores.id', $excludedStoreIds);
-            }
-        }
 
         if (! $applyZone) {
             return $query;
