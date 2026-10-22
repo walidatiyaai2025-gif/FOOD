@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -165,6 +164,7 @@ final class AdminSidebarManager
                         ->where('role_id', $role->id)
                         ->where('item_key', $key)
                         ->delete();
+
                     continue;
                 }
 
@@ -182,8 +182,8 @@ final class AdminSidebarManager
     }
 
     /**
-     * @param array<string,array<string,mixed>> $groups
-     * @param array<string,array<string,mixed>> $items
+     * @param  array<string,array<string,mixed>>  $groups
+     * @param  array<string,array<string,mixed>>  $items
      */
     public function saveLayout(array $groups, array $items): void
     {
@@ -238,7 +238,7 @@ final class AdminSidebarManager
      * already produced the authorized navigation. This layer can only hide,
      * rename, regroup, or reorder authorized targets; it can never grant access.
      *
-     * @param list<array<string,mixed>> $groups
+     * @param  list<array<string,mixed>>  $groups
      * @return list<array<string,mixed>>
      */
     public function apply(User $user, array $groups): array
