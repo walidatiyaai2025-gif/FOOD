@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\CatalogOwnership;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -683,7 +684,7 @@ class AdminCatalogManagementTest extends TestCase
     public function test_wholesale_catalog_inline_stock_uses_principal_warehouse_only(): void
     {
         $user = $this->superAdmin('en');
-        $principal = app(\App\Services\WholesalePrincipal::class);
+        $principal = app(WholesalePrincipal::class);
         $storeId = $principal->storeId();
         $warehouseId = $principal->warehouseId();
         $catalog = app(CatalogOwnership::class)->defaultCatalogForStore($storeId, 'b2b');
