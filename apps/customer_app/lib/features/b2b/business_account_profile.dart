@@ -80,10 +80,6 @@ class _B2bBusinessAccountProfileState extends State<B2bBusinessAccountProfile> {
           final managedStoreIds = _ids(data['managed_retail_store_ids']);
           final retailStoreIds = _ids(data['retail_store_ids']);
           final b2bCustomerIds = _ids(data['b2b_customer_ids']);
-          final addresses = _rows(data['addresses']);
-          final favorites = _rows(data['favorites']);
-          final roles = _strings(data['roles']);
-
           final companyName = _first(
             businessAccount['company_name'],
             data['company_name'],
