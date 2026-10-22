@@ -15,3 +15,7 @@ FOODEX 1.0.102 promotes the latest authoritative main lineage through the comple
 
 - Production API remains https://foodex.50sols.com.
 - Use the newly generated FOODEX Dashboard update package for the retry; do not reuse the earlier 1.0.102 package that failed during run_migrations.
+
+## Self-healing runtime rebuild
+
+- Rebuilt from main after #2373 so the Dashboard update carries the complete application-owned Laravel runtime and operator-visible failure diagnostics.
