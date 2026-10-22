@@ -59,7 +59,7 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 .catalog-filter-chip{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-weight:800}
 .catalog-category-results{display:grid;gap:10px;min-width:0}
 .catalog-table-card{padding:0;overflow:visible}
-.catalog-products-table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;min-width:900px}
+.catalog-products-table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;min-width:1380px}
 .catalog-products-table th{padding:11px 12px;background:#f8fafc;color:var(--foodex-muted);font-size:.78rem;font-weight:800;border-bottom:1px solid var(--foodex-border);white-space:nowrap}
 .catalog-products-table td{padding:9px 12px;border-bottom:1px solid var(--foodex-border);vertical-align:middle;font-size:.88rem}
 .catalog-products-table tbody tr:last-child td{border-bottom:0}
@@ -176,6 +176,8 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 @php($stockWarehouseId=$isB2b && $principalWarehouseId ? (int)$principalWarehouseId : (($rowWarehouses->first()->id ?? null) ? (int)$rowWarehouses->first()->id : null))
 @php($stockPosition=$stockWarehouseId ? $inventoryPositions->get($stockWarehouseId.':'.$p->id) : null)
 @php($appVisible=(bool)($p->grid_app_visible ?? false))
+@php($currentBrand=$p->brand_id ? $currentBrands->get((int)$p->brand_id) : null)
+@php($currentUnit=$p->unit_id ? $currentUnits->get((int)$p->unit_id) : null)
 <tr class="catalog-product-row">
 <td class="catalog-mobile-full">
 <div class="catalog-product-cell">
@@ -217,7 +219,7 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 <button type="submit" class="catalog-inline-price-save" title="{{ app()->getLocale()==='ar'?'حفظ السعر':'Save price' }}" aria-label="{{ app()->getLocale()==='ar'?'حفظ السعر':'Save price' }}">✓</button>
 </form>
 </td>
-<td data-label="{{ app()->getLocale()==='ar'?'المخزون':'Stock' }}">
+<td data-label="{{ app()->getLocale()==='ar'?'المخزون':'Stock' }}" data-availability-state="{{ $p->is_available?'AVAILABLE':'OUT_OF_STOCK' }}">
 @if($stockWarehouseId)
 <form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-stock" data-inline-stock-form>@csrf @method('PATCH')
 <input type="hidden" name="field" value="stock_quantity">@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif
@@ -238,8 +240,8 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 <td data-label="{{ app()->getLocale()==='ar'?'حد المخزون المنخفض':'Low stock' }}"><form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">@csrf @method('PATCH')<input type="hidden" name="field" value="low_stock_threshold">@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif<input class="catalog-inline-input" type="number" min="0" step=".001" name="value" value="{{ (float)$p->low_stock_threshold }}"><button class="catalog-inline-save" type="submit">✓</button></form></td>
 <td data-label="{{ app()->getLocale()==='ar'?'عرض في التطبيق':'Show in app' }}"><form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">@csrf @method('PATCH')<input type="hidden" name="field" value="app_visible"><input type="hidden" name="value" value="{{ $appVisible?0:1 }}">@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif<button type="submit" class="catalog-inline-toggle {{ $appVisible?'on':'off' }}">{{ $appVisible?(app()->getLocale()==='ar'?'ظاهر':'Visible'):(app()->getLocale()==='ar'?'مخفي':'Hidden') }}</button></form></td>
 <td class="catalog-col-sku" data-label="{{ app()->getLocale()==='ar'?'رمز المنتج':'SKU' }}">{{ $p->sku }}</td>
-<td class="catalog-col-brand" data-label="{{ app()->getLocale()==='ar'?'العلامة التجارية':'Brand' }}"><form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">@csrf @method('PATCH')<input type="hidden" name="field" value="brand_id">@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif<select class="catalog-inline-select" name="value" onchange="this.form.submit()"><option value="">—</option>@foreach($brands as $brand)@if(($brand->scope ?? 'global')==='global' || (int)($brand->store_id ?? 0)===(int)$p->catalog_store_id)<option value="{{ $brand->id }}" @selected((int)$p->brand_id===(int)$brand->id)>{{ $brand->name }}</option>@endif @endforeach</select></form></td>
-<td data-label="{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}"><form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">@csrf @method('PATCH')<input type="hidden" name="field" value="unit_id">@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif<select class="catalog-inline-select" name="value" onchange="this.form.submit()" required>@foreach($units as $unit)@if(($unit->scope ?? 'global')==='global' || (int)($unit->store_id ?? 0)===(int)$p->catalog_store_id)<option value="{{ $unit->id }}" @selected((int)$p->unit_id===(int)$unit->id)>{{ $unit->name }} ({{ $unit->code }})</option>@endif @endforeach</select></form></td>
+<td class="catalog-col-brand" data-label="{{ app()->getLocale()==='ar'?'العلامة التجارية':'Brand' }}"><form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">@csrf @method('PATCH')<input type="hidden" name="field" value="brand_id">@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif<select class="catalog-inline-select" name="value" onchange="this.form.submit()"><option value="">—</option>@if($currentBrand && !$brands->contains('id',(int)$currentBrand->id))<option value="{{ $currentBrand->id }}" selected>{{ $currentBrand->name }}{{ $currentBrand->is_active?'':' · '.(app()->getLocale()==='ar'?'غير نشط':'Inactive') }}</option>@endif @foreach($brands as $brand)@if(($brand->scope ?? 'global')==='global' || (int)($brand->store_id ?? 0)===(int)$p->catalog_store_id)<option value="{{ $brand->id }}" @selected((int)$p->brand_id===(int)$brand->id)>{{ $brand->name }}</option>@endif @endforeach</select></form></td>
+<td data-label="{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}"><form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">@csrf @method('PATCH')<input type="hidden" name="field" value="unit_id">@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif<select class="catalog-inline-select" name="value" onchange="this.form.submit()" required>@if($currentUnit && !$units->contains('id',(int)$currentUnit->id))<option value="{{ $currentUnit->id }}" selected>{{ $currentUnit->name }} ({{ $currentUnit->code }}) · {{ app()->getLocale()==='ar'?'غير نشط':'Inactive' }}</option>@endif @foreach($units as $unit)@if(($unit->scope ?? 'global')==='global' || (int)($unit->store_id ?? 0)===(int)$p->catalog_store_id)<option value="{{ $unit->id }}" @selected((int)$p->unit_id===(int)$unit->id)>{{ $unit->name }} ({{ $unit->code }})</option>@endif @endforeach</select></form></td>
 <td data-label="{{ app()->getLocale()==='ar'?'الحالة':'Status' }}">
 <form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-status-form">
 @csrf @method('PATCH')
