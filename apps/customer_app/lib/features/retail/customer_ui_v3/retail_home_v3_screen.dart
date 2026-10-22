@@ -165,8 +165,7 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
                   )
                 : const <String, dynamic>{};
             final storeName = store['name']?.toString().trim() ?? '';
-            final brandingLogo =
-                branding['logo_url']?.toString().trim() ?? '';
+            final brandingLogo = branding['logo_url']?.toString().trim() ?? '';
             final storeLogo = store['logo_url']?.toString().trim() ?? '';
             final address = branding['address']?.toString().trim() ?? '';
 
@@ -497,8 +496,7 @@ class _HomeHeroBanner extends StatelessWidget {
                     colors: [
                       FoodexPalette.wholesale.primaryDark
                           .withValues(alpha: 0.88),
-                      FoodexPalette.wholesale.primary
-                          .withValues(alpha: 0.28),
+                      FoodexPalette.wholesale.primary.withValues(alpha: 0.28),
                     ],
                   ),
                 ),
