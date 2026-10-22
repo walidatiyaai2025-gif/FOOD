@@ -183,7 +183,7 @@ jobs:
           grep -Fq 'test_owned_store_block_is_multi_store_scoped_and_platform_customer_identity_is_not_duplicated' backend/tests/Feature/RetailMerchantIdentityIsolationTest.php
 
           # B — Platform Home Retail placement and exact Retail entry.
-          grep -Fq 'test_retail_merchant_own_store_is_hidden_and_direct_browse_is_forbidden' backend/tests/Feature/PlatformCustomerMarketplaceTest.php
+          grep -Fq 'test_retail_merchant_can_discover_and_browse_own_store_but_cannot_purchase_from_it' backend/tests/Feature/PlatformCustomerMarketplaceTest.php
           grep -Fq 'marketplace loads guest platform storefront and opens exact retail store' apps/customer_app/test/platform_marketplace_home_test.dart
           grep -Fq 'authenticated retail browse carries bearer token without changing guest routes' apps/customer_app/test/guest_browsing_policy_test.dart
 

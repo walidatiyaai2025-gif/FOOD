@@ -3,9 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Services\ProductAvailabilityService;
-use App\Services\RetailMerchantIdentityService;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,7 +12,6 @@ use Illuminate\Support\Facades\DB;
 final class PlatformMarketplaceController extends Controller
 {
     public function __construct(
-        private readonly RetailMerchantIdentityService $retailMerchants,
         private readonly ProductAvailabilityService $availability,
     ) {}
 
@@ -294,7 +291,7 @@ final class PlatformMarketplaceController extends Controller
         $area = trim((string) $request->query('area', ''));
         $now = now();
 
-        $query = DB::table('banners')
+        $placementsQuery = DB::table('banners')
             ->join('stores', 'stores.id', '=', 'banners.target_id')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->leftJoin('storefront_settings', 'storefront_settings.store_id', '=', 'stores.id')
@@ -310,38 +307,9 @@ final class PlatformMarketplaceController extends Controller
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2C');
 
-        $user = $request->user('sanctum');
-        if ($request->bearerToken() !== null && $user instanceof User) {
-            $excludedStoreIds = $this->retailMerchants->retailStoreIds($user);
-            if ($excludedStoreIds !== []) {
-                $query->whereNotIn('stores.id', $excludedStoreIds);
-            }
-        }
+        $this->applyRetailLocationScope($placementsQuery, $countryCode, $city, $area);
 
-        if ($countryCode !== '' || $city !== '' || $area !== '') {
-            $query->where(function (Builder $scope) use ($countryCode, $city, $area): void {
-                $scope->whereNotExists(function (Builder $zones): void {
-                    $zones->selectRaw('1')
-                        ->from('store_service_zones')
-                        ->whereColumn('store_service_zones.store_id', 'stores.id')
-                        ->where('store_service_zones.is_active', true);
-                })->orWhereExists(function (Builder $zones) use ($countryCode, $city, $area): void {
-                    $zones->selectRaw('1')
-                        ->from('store_service_zones')
-                        ->whereColumn('store_service_zones.store_id', 'stores.id')
-                        ->where('store_service_zones.is_active', true)
-                        ->when($countryCode !== '', fn (Builder $q) => $q->where('store_service_zones.country_code', $countryCode))
-                        ->when($city !== '', fn (Builder $q) => $q->where(function (Builder $q) use ($city): void {
-                            $q->whereNull('store_service_zones.city')->orWhere('store_service_zones.city', $city);
-                        }))
-                        ->when($area !== '', fn (Builder $q) => $q->where(function (Builder $q) use ($area): void {
-                            $q->whereNull('store_service_zones.area')->orWhere('store_service_zones.area', $area);
-                        }));
-                });
-            });
-        }
-
-        return $query
+        $placements = $placementsQuery
             ->orderBy('banners.sort_order')
             ->orderBy('banners.id')
             ->get([
@@ -379,8 +347,92 @@ final class PlatformMarketplaceController extends Controller
                 'starts_at' => $placement->starts_at === null ? null : (string) $placement->starts_at,
                 'ends_at' => $placement->ends_at === null ? null : (string) $placement->ends_at,
             ])
-            ->values()
+            ->unique('store_id')
+            ->values();
+
+        $configuredStoreIds = $placements
+            ->pluck('store_id')
+            ->map(static fn ($id): int => (int) $id)
             ->all();
+
+        $fallbackQuery = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->leftJoin('storefront_settings', 'storefront_settings.store_id', '=', 'stores.id')
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2C');
+
+        if ($configuredStoreIds !== []) {
+            $fallbackQuery->whereNotIn('stores.id', $configuredStoreIds);
+        }
+
+        $this->applyRetailLocationScope($fallbackQuery, $countryCode, $city, $area);
+
+        $fallback = $fallbackQuery
+            ->orderBy('stores.id')
+            ->get([
+                'stores.id as store_id',
+                'stores.code',
+                'stores.name',
+                'stores.logo_path',
+                'storefront_settings.theme_code',
+                'storefront_settings.header_address',
+            ])
+            ->map(fn (object $store): array => [
+                'id' => (int) $store->store_id,
+                'store_id' => (int) $store->store_id,
+                'placement_id' => null,
+                'banner_id' => null,
+                'code' => (string) $store->code,
+                'name' => (string) $store->name,
+                'title' => (string) $store->name,
+                'banner_url' => $this->assetUrl($store->logo_path),
+                'logo_url' => $this->assetUrl($store->logo_path),
+                'theme_code' => (string) ($store->theme_code ?? 'retail_grocery'),
+                'address' => $store->header_address,
+                'channel' => 'b2c',
+                'placement_scope' => 'active_retail_store_fallback',
+                'target_type' => 'retail_store',
+                'target_id' => (int) $store->store_id,
+                'target_url' => '/retail/'.(int) $store->store_id.'/home',
+                'sort_order' => null,
+                'starts_at' => null,
+                'ends_at' => null,
+            ])
+            ->values();
+
+        return $placements->concat($fallback)->values()->all();
+    }
+
+    private function applyRetailLocationScope(
+        Builder $query,
+        string $countryCode,
+        string $city,
+        string $area,
+    ): void {
+        if ($countryCode === '' && $city === '' && $area === '') {
+            return;
+        }
+
+        $query->where(function (Builder $scope) use ($countryCode, $city, $area): void {
+            $scope->whereNotExists(function (Builder $zones): void {
+                $zones->selectRaw('1')
+                    ->from('store_service_zones')
+                    ->whereColumn('store_service_zones.store_id', 'stores.id')
+                    ->where('store_service_zones.is_active', true);
+            })->orWhereExists(function (Builder $zones) use ($countryCode, $city, $area): void {
+                $zones->selectRaw('1')
+                    ->from('store_service_zones')
+                    ->whereColumn('store_service_zones.store_id', 'stores.id')
+                    ->where('store_service_zones.is_active', true)
+                    ->when($countryCode !== '', fn (Builder $q) => $q->where('store_service_zones.country_code', $countryCode))
+                    ->when($city !== '', fn (Builder $q) => $q->where(function (Builder $q) use ($city): void {
+                        $q->whereNull('store_service_zones.city')->orWhere('store_service_zones.city', $city);
+                    }))
+                    ->when($area !== '', fn (Builder $q) => $q->where(function (Builder $q) use ($area): void {
+                        $q->whereNull('store_service_zones.area')->orWhere('store_service_zones.area', $area);
+                    }));
+            });
+        });
     }
 
     /** @return list<array<string,mixed>> */

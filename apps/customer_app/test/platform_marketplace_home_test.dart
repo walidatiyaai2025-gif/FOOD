@@ -17,34 +17,6 @@ void main() {
     final requests = <Uri>[];
     final client = MockClient((request) async {
       requests.add(request.url);
-      if (request.url.path == '/api/v1/stores') {
-        return http.Response(
-          jsonEncode({
-            'data': [
-              {
-                'id': 7,
-                'code': 'RETAIL-07',
-                'name': 'Retail Seven',
-                'logo_url': null,
-              },
-              {
-                'id': 8,
-                'code': 'RETAIL-08',
-                'name': 'Retail Eight',
-                'logo_url': null,
-              },
-              {
-                'id': 9,
-                'code': 'RETAIL-09',
-                'name': 'Retail Nine',
-                'logo_url': null,
-              },
-            ],
-          }),
-          200,
-          headers: const {'content-type': 'application/json'},
-        );
-      }
       if (request.url.path == '/api/v1/platform/products/42') {
         return http.Response(
           jsonEncode({
@@ -146,9 +118,9 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(requests, hasLength(2));
-    expect(requests.first.path, '/api/v1/platform/storefront');
-    expect(requests.last.path, '/api/v1/stores');
+    expect(requests, hasLength(1));
+    expect(requests.single.path, '/api/v1/platform/storefront');
+    expect(requests.any((uri) => uri.path == '/api/v1/stores'), isFalse);
     expect(
       find.byKey(const ValueKey('marketplace-brand-title')),
       findsOneWidget,
@@ -194,19 +166,6 @@ void main() {
       'guest keeps Wholesale primary hero and rotates active Retail stores in the separate compact section',
       (tester) async {
     final client = MockClient((request) async {
-      if (request.url.path == '/api/v1/stores') {
-        return http.Response(
-          jsonEncode({
-            'data': [
-              {'id': 8, 'code': 'RETAIL-08', 'name': 'Primary Retail'},
-              {'id': 11, 'code': 'RETAIL-11', 'name': 'Retail Eleven'},
-              {'id': 12, 'code': 'RETAIL-12', 'name': 'Retail Twelve'},
-            ],
-          }),
-          200,
-        );
-      }
-
       return http.Response(
         jsonEncode({
           'store': {'id': 70, 'name': 'Wholesale', 'channel': 'b2b'},
@@ -236,6 +195,15 @@ void main() {
               'name': 'Retail Eleven',
               'title': 'Retail Eleven',
               'sort_order': 3,
+            },
+            {
+              'id': 12,
+              'store_id': 12,
+              'placement_id': null,
+              'name': 'Retail Twelve',
+              'title': 'Retail Twelve',
+              'placement_scope': 'active_retail_store_fallback',
+              'sort_order': null,
             },
           ],
         }),
@@ -293,30 +261,11 @@ void main() {
   });
 
   testWidgets(
-      'guest falls back to public Retail stores after the Wholesale hero when placements are empty',
+      'guest renders authoritative active Retail fallback rows without calling paginated stores endpoint',
       (tester) async {
     final requests = <Uri>[];
     final client = MockClient((request) async {
       requests.add(request.url);
-      if (request.url.path == '/api/v1/stores') {
-        return http.Response(
-          jsonEncode({
-            'data': [
-              {
-                'id': 11,
-                'code': 'RETAIL-11',
-                'name': 'Retail Eleven',
-                'theme_code': 'retail_grocery',
-                'address': 'Guest Retail Area',
-                'logo_url': null,
-              },
-            ],
-          }),
-          200,
-          headers: const {'content-type': 'application/json'},
-        );
-      }
-
       return http.Response(
         jsonEncode({
           'store': {
@@ -330,7 +279,24 @@ void main() {
             'image_url': null,
           },
           'products': {'data': []},
-          'retail_banners': const [],
+          'retail_banners': [
+            {
+              'id': 11,
+              'store_id': 11,
+              'code': 'RETAIL-11',
+              'name': 'Retail Eleven',
+              'title': 'Retail Eleven',
+              'theme_code': 'retail_grocery',
+              'address': 'Guest Retail Area',
+              'logo_url': null,
+              'banner_url': null,
+              'channel': 'b2c',
+              'placement_scope': 'active_retail_store_fallback',
+              'target_type': 'retail_store',
+              'target_id': 11,
+              'target_url': '/retail/11/home',
+            },
+          ],
         }),
         200,
         headers: const {'content-type': 'application/json'},
@@ -369,7 +335,7 @@ void main() {
     );
     expect(
       requests.where((uri) => uri.path == '/api/v1/stores'),
-      hasLength(1),
+      isEmpty,
     );
     expect(
       find.byKey(const ValueKey('marketplace-wholesale-entry')),
@@ -889,7 +855,19 @@ void main() {
           'hero': {'title': 'Wholesale'},
           'categories': const [],
           'products': {'data': const []},
-          'retail_banners': const [],
+          'retail_banners': [
+            {
+              'id': 22,
+              'store_id': 22,
+              'name': 'Retail 22',
+              'title': 'Retail 22',
+              'logo_url': null,
+              'channel': 'b2c',
+              'placement_scope': 'active_retail_store_fallback',
+              'target_type': 'retail_store',
+              'target_id': 22,
+            },
+          ],
         }),
         200,
       );
