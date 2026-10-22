@@ -442,8 +442,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
               homeCardSizeControlPlaced = true;
               final icon = switch (cardSize) {
                 WholesaleProductCardSize.compact => Icons.view_module_rounded,
-                WholesaleProductCardSize.comfortable =>
-                  Icons.grid_view_rounded,
+                WholesaleProductCardSize.comfortable => Icons.grid_view_rounded,
                 WholesaleProductCardSize.expanded => Icons.view_agenda_rounded,
               };
               return SizedBox(
@@ -2247,8 +2246,7 @@ class _WholesaleProductGrid extends StatelessWidget {
     final columns =
         columnsOverride ?? _wholesaleProductColumns(displayRows.length);
     final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final compactTextExtra =
-        ((textScale - 1).clamp(0.0, 1.0).toDouble()) * 16;
+    final compactTextExtra = ((textScale - 1).clamp(0.0, 1.0).toDouble()) * 16;
     final mainAxisExtent = switch (columns) {
       1 => 252.0,
       2 => 188.0,
