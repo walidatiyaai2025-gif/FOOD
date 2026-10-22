@@ -576,15 +576,16 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                   : null;
               final activeCommerceContext =
                   _safeCommerceContext(data, wholesaleContext);
-              final storeSlidesCount = 1 + retail.length;
+              final retailBannerCount = retail.length;
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                _startBannerAutoSlide(storeSlidesCount);
+                _startBannerAutoSlide(retailBannerCount);
               });
 
               return LayoutBuilder(
                 builder: (context, constraints) {
                   final bannerHeight =
                       constraints.maxWidth < 350 ? 158.0 : 166.0;
+                  final retailBannerHeight = bannerHeight / 2;
                   const productColumns = 3;
                   final productAspectRatio =
                       (constraints.maxWidth >= 720 ? .72 : .68) / .85;
@@ -596,46 +597,48 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                       ),
                       SliverToBoxAdapter(
                         child: SizedBox(
-                          key: const ValueKey('marketplace-banner-carousel'),
+                          key: const ValueKey('marketplace-primary-banner'),
                           height: bannerHeight,
+                          child: SizedBox(
+                            key: const ValueKey(
+                              'marketplace-wholesale-entry',
+                            ),
+                            child: _WholesaleHero(
+                              onTap: wholesaleContext == null
+                                  ? null
+                                  : () => _openWholesaleStore(
+                                        wholesaleContext,
+                                      ),
+                              title: (hero['title']?.toString().trim() ?? '')
+                                      .isNotEmpty
+                                  ? hero['title'].toString().trim()
+                                  : 'FOODEX Wholesale',
+                              imageUrl: hero['image_url']?.toString(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (retail.isNotEmpty)
+                        SliverToBoxAdapter(
                           child: Column(
+                            key: const ValueKey(
+                              'marketplace-retail-store-banner-section',
+                            ),
                             children: [
-                              Expanded(
+                              SizedBox(
+                                key: const ValueKey(
+                                  'marketplace-retail-store-carousel',
+                                ),
+                                height: retailBannerHeight,
                                 child: PageView.builder(
-                                  key: const ValueKey(
-                                      'marketplace-store-carousel'),
                                   controller: _bannerController,
-                                  itemCount: storeSlidesCount,
+                                  itemCount: retail.length,
                                   onPageChanged: (index) {
                                     if (_bannerIndex == index) return;
                                     setState(() => _bannerIndex = index);
                                   },
                                   itemBuilder: (_, index) {
-                                    if (index == 0) {
-                                      return SizedBox(
-                                        key: const ValueKey(
-                                          'marketplace-wholesale-entry',
-                                        ),
-                                        child: _WholesaleHero(
-                                          onTap: wholesaleContext == null
-                                              ? null
-                                              : () => _openWholesaleStore(
-                                                    wholesaleContext,
-                                                  ),
-                                          title: (hero['title']
-                                                          ?.toString()
-                                                          .trim() ??
-                                                      '')
-                                                  .isNotEmpty
-                                              ? hero['title'].toString().trim()
-                                              : 'FOODEX Wholesale',
-                                          imageUrl:
-                                              hero['image_url']?.toString(),
-                                        ),
-                                      );
-                                    }
-
-                                    final store = retail[index - 1];
+                                    final store = retail[index];
                                     return Padding(
                                       padding:
                                           const EdgeInsetsDirectional.fromSTEB(
@@ -653,16 +656,19 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                                   },
                                 ),
                               ),
-                              if (storeSlidesCount > 1)
+                              if (retail.length > 1)
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 4),
+                                  padding: const EdgeInsets.only(
+                                    top: 3,
+                                    bottom: 3,
+                                  ),
                                   child: Row(
                                     key: const ValueKey(
-                                      'marketplace-banner-indicators',
+                                      'marketplace-retail-banner-indicators',
                                     ),
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: List.generate(
-                                      storeSlidesCount,
+                                      retail.length,
                                       (index) => AnimatedContainer(
                                         duration:
                                             const Duration(milliseconds: 180),
@@ -673,7 +679,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: _bannerIndex == index
-                                              ? const Color(0xFF0B7A4B)
+                                              ? FoodexPalette
+                                                  .wholesale.primary
                                               : const Color(0xFFD7DDE1),
                                           borderRadius:
                                               BorderRadius.circular(999),
@@ -685,7 +692,6 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                             ],
                           ),
                         ),
-                      ),
                       if (categories.isNotEmpty)
                         SliverToBoxAdapter(
                           child: _MarketplaceCategoryRail(
@@ -1000,36 +1006,38 @@ class _RetailStoreBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final id = _int(store['id']);
+    final id = _int(store['store_id'] ?? store['id']);
     final image = store['banner_url']?.toString().trim();
     final title = store['title']?.toString().trim();
     final name = store['name']?.toString().trim() ?? '';
     final displayTitle = title != null && title.isNotEmpty ? title : name;
-    final isArabic =
-        Localizations.localeOf(context).languageCode.toLowerCase() == 'ar';
 
     Widget backgroundFallback() => const DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: AlignmentDirectional.topStart,
               end: AlignmentDirectional.bottomEnd,
-              colors: [Color(0xFF00623B), Color(0xFF079454)],
+              colors: [
+                CustomerUiColors.wholesaleVehicleGreen,
+                CustomerUiColors.wholesalePositiveValue,
+              ],
             ),
           ),
           child: Align(
             alignment: AlignmentDirectional.centerEnd,
             child: Padding(
-              padding: EdgeInsetsDirectional.only(end: 22),
+              padding: EdgeInsetsDirectional.only(end: 18),
               child: Icon(
                 Icons.storefront_rounded,
                 color: Color(0x35FFFFFF),
-                size: 88,
+                size: 48,
               ),
             ),
           ),
         );
 
     return SizedBox(
+      key: ValueKey('marketplace-retail-banner-$id'),
       width: width,
       child: Material(
         color: Colors.white,
@@ -1055,73 +1063,64 @@ class _RetailStoreBanner extends StatelessWidget {
                     begin: AlignmentDirectional.centerStart,
                     end: AlignmentDirectional.centerEnd,
                     colors: [
-                      Color(0xE9004C31),
-                      Color(0x9D006A40),
-                      Color(0x25006A40),
+                      Color(0xE900452F),
+                      Color(0xA6078A43),
+                      Color(0x30078A43),
                     ],
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsetsDirectional.fromSTEB(18, 15, 18, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                padding:
+                    const EdgeInsetsDirectional.fromSTEB(15, 8, 12, 8),
+                child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0x4DFFFFFF),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        isArabic ? 'متجر التجزئة' : 'Retail store',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 220),
-                      child: Text(
-                        displayTitle,
-                        key: ValueKey(
-                          'marketplace-retail-banner-title-$id',
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 21,
-                          height: 1.12,
-                          fontWeight: FontWeight.w900,
-                        ),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            displayTitle,
+                            key: ValueKey(
+                              'marketplace-retail-banner-title-$id',
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15.5,
+                              height: 1.08,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            context.tr('customer.marketplace.shop_now'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10.5,
+                              height: 1,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 9),
+                    const SizedBox(width: 10),
                     Container(
-                      constraints: const BoxConstraints(minWidth: 94),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 15,
-                        vertical: 8,
+                      width: 30,
+                      height: 30,
+                      decoration: const BoxDecoration(
+                        color: Color(0xEFFFFFFF),
+                        shape: BoxShape.circle,
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        context.tr('customer.marketplace.shop_now'),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Color(0xFF087347),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 11,
-                        ),
+                      child: const Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 18,
+                        color: CustomerUiColors.wholesaleVehicleGreen,
                       ),
                     ),
                   ],
