@@ -46,6 +46,37 @@ def canonical_environment_key(report: dict[str, Any]) -> str:
     return hashlib.sha256(payload).hexdigest()[:16]
 
 
+def comparison_environment_key(report: dict[str, Any]) -> str:
+    """Fingerprint environments for an apples-to-apples comparison.
+
+    GitHub's setup-php can roll an 8.3.x patch forward even when the workflow
+    requests an older patch. Patch-only drift on the same hosted runner is not
+    a meaningful environment change for the smoke comparison; the measured
+    latency/query/memory gates still detect regressions. Reference/cPanel
+    evidence remains strict, as do PHP minor, database, runner and memory-limit
+    changes.
+    """
+    environment = report["environment"]
+    php = str(environment.get("php") or "")
+    runner = environment.get("runner")
+    cpanel_reference = bool(environment.get("cpanel_reference"))
+
+    if runner == "github-actions" and not cpanel_reference:
+        parts = php.split(".")
+        if len(parts) >= 2 and all(part.isdigit() for part in parts[:2]):
+            php = ".".join(parts[:2])
+
+    identity = {
+        "php": php,
+        "database": environment.get("database"),
+        "runner": runner,
+        "memory_limit": environment.get("memory_limit"),
+        "cpanel_reference": cpanel_reference,
+    }
+    payload = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()[:16]
+
+
 def _approved_exception(scenario: dict[str, Any], metric: str) -> dict[str, Any] | None:
     verdict = scenario.get("verdict")
     if not isinstance(verdict, dict):
@@ -137,8 +168,8 @@ def compare_reports(baseline: dict[str, Any], candidate: dict[str, Any]) -> dict
     if baseline["profile"] != candidate["profile"]:
         failures.append("profile mismatch between baseline and candidate")
 
-    baseline_environment_key = canonical_environment_key(baseline)
-    candidate_environment_key = canonical_environment_key(candidate)
+    baseline_environment_key = comparison_environment_key(baseline)
+    candidate_environment_key = comparison_environment_key(candidate)
     if baseline_environment_key != candidate_environment_key:
         failures.append("environment fingerprint mismatch between baseline and candidate")
 
