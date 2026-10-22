@@ -649,7 +649,7 @@ void main() {
     );
     expect(find.byKey(const ValueKey('b2b-profile-logout')), findsNothing);
     expect(find.byKey(const ValueKey('b2b-more-app-version')), findsOneWidget);
-    expect(find.text('الإصدار 1.0.95'), findsOneWidget);
+    expect(find.text('الإصدار 1.0.102'), findsOneWidget);
     expect(find.text('company_name'), findsNothing);
   });
 
