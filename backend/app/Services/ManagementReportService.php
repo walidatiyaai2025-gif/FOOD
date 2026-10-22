@@ -348,11 +348,40 @@ final class ManagementReportService
     /** @param array<string, mixed> $filters */
     private function customersReport(array $filters, int $limit, int $offset): array
     {
+        // Pre-aggregate lifetime first-order dates once per customer identity. The
+        // previous correlated MIN() subquery was re-scanning orders for every
+        // grouped customer row and became O(customers x orders) at legacy4x.
+        $b2cFirstOrders = DB::table('orders')
+            ->whereNotNull('b2c_customer_id')
+            ->selectRaw('b2c_customer_id, MIN(created_at) as first_order_at')
+            ->groupBy('b2c_customer_id');
+
+        $b2bFirstOrders = DB::table('orders')
+            ->whereNotNull('b2b_customer_id')
+            ->selectRaw('b2b_customer_id, MIN(created_at) as first_order_at')
+            ->groupBy('b2b_customer_id');
+
+        $legacyFirstOrders = DB::table('orders')
+            ->whereNull('b2c_customer_id')
+            ->whereNull('b2b_customer_id')
+            ->whereNotNull('customer_id')
+            ->selectRaw('customer_id, MIN(created_at) as first_order_at')
+            ->groupBy('customer_id');
+
         $query = DB::table('orders')
             ->leftJoin('b2c_customers', 'b2c_customers.id', '=', 'orders.b2c_customer_id')
             ->leftJoin('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
             ->leftJoin('customers as legacy_customers', 'legacy_customers.id', '=', 'orders.customer_id')
-            ->leftJoin('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'b2b_customers.id');
+            ->leftJoin('b2b_accounts', 'b2b_accounts.b2b_customer_id', '=', 'b2b_customers.id')
+            ->leftJoinSub($b2cFirstOrders, 'b2c_first_orders', function ($join): void {
+                $join->on('b2c_first_orders.b2c_customer_id', '=', 'orders.b2c_customer_id');
+            })
+            ->leftJoinSub($b2bFirstOrders, 'b2b_first_orders', function ($join): void {
+                $join->on('b2b_first_orders.b2b_customer_id', '=', 'orders.b2b_customer_id');
+            })
+            ->leftJoinSub($legacyFirstOrders, 'legacy_first_orders', function ($join): void {
+                $join->on('legacy_first_orders.customer_id', '=', 'orders.customer_id');
+            });
 
         $this->applyOrderFilters($query, $filters);
 
@@ -369,26 +398,8 @@ final class ManagementReportService
             ->selectRaw(
                 'COALESCE(SUM(CASE WHEN orders.status NOT IN (\'cancelled\',\'refunded\') THEN orders.grand_total ELSE 0 END), 0) as order_value',
             )
-            ->selectSub(
-                DB::table('orders as first_orders')
-                    ->selectRaw('MIN(first_orders.created_at)')
-                    ->where(function (Builder $identity): void {
-                        $identity
-                            ->where(function (Builder $b2c): void {
-                                $b2c->whereColumn('first_orders.b2c_customer_id', 'orders.b2c_customer_id')
-                                    ->whereNotNull('orders.b2c_customer_id');
-                            })
-                            ->orWhere(function (Builder $b2b): void {
-                                $b2b->whereColumn('first_orders.b2b_customer_id', 'orders.b2b_customer_id')
-                                    ->whereNotNull('orders.b2b_customer_id');
-                            })
-                            ->orWhere(function (Builder $legacy): void {
-                                $legacy->whereColumn('first_orders.customer_id', 'orders.customer_id')
-                                    ->whereNull('orders.b2c_customer_id')
-                                    ->whereNull('orders.b2b_customer_id');
-                            });
-                    }),
-                'first_order_at',
+            ->selectRaw(
+                'COALESCE(b2c_first_orders.first_order_at, b2b_first_orders.first_order_at, legacy_first_orders.first_order_at) as first_order_at',
             )
             ->groupBy(
                 'orders.channel',
@@ -399,6 +410,9 @@ final class ManagementReportService
                 'b2b_customers.name',
                 'legacy_customers.name',
                 'b2b_accounts.company_name',
+                'b2c_first_orders.first_order_at',
+                'b2b_first_orders.first_order_at',
+                'legacy_first_orders.first_order_at',
             )
             ->orderByDesc('order_value')
             ->get();
