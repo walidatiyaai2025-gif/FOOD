@@ -809,8 +809,6 @@ class _ProfileEmpty extends StatelessWidget {
       );
 }
 
-List<Object?> _rows(Object? value) => value is List ? value : const <Object?>[];
-
 List<Map<String, dynamic>> _mapRows(Object? value) =>
     (value as List? ?? const <Object>[])
         .whereType<Map>()
@@ -821,11 +819,6 @@ List<int> _ids(Object? value) => (value as List? ?? const <Object>[])
     .map((item) =>
         item is num ? item.toInt() : int.tryParse(item.toString()) ?? 0)
     .where((id) => id > 0)
-    .toList(growable: false);
-
-List<String> _strings(Object? value) => (value as List? ?? const <Object>[])
-    .map((item) => item.toString().trim())
-    .where((item) => item.isNotEmpty)
     .toList(growable: false);
 
 String _first(
