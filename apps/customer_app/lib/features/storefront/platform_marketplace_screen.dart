@@ -641,11 +641,8 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                                     final store = retail[index];
                                     return Padding(
                                       padding:
-                                          const EdgeInsetsDirectional.fromSTEB(
-                                        10,
-                                        4,
-                                        10,
-                                        1,
+                                          const EdgeInsetsDirectional.symmetric(
+                                        horizontal: 10,
                                       ),
                                       child: _RetailStoreBanner(
                                         store: store,
@@ -1057,15 +1054,18 @@ class _RetailStoreBanner extends StatelessWidget {
                 )
               else
                 backgroundFallback(),
-              const DecoratedBox(
+              DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: AlignmentDirectional.centerStart,
                     end: AlignmentDirectional.centerEnd,
                     colors: [
-                      Color(0xE900452F),
-                      Color(0xA6078A43),
-                      Color(0x30078A43),
+                      FoodexPalette.wholesale.primaryDark
+                          .withValues(alpha: 0.92),
+                      FoodexPalette.wholesale.primary
+                          .withValues(alpha: 0.65),
+                      FoodexPalette.wholesale.primary
+                          .withValues(alpha: 0.18),
                     ],
                   ),
                 ),
@@ -1113,8 +1113,8 @@ class _RetailStoreBanner extends StatelessWidget {
                     Container(
                       width: 30,
                       height: 30,
-                      decoration: const BoxDecoration(
-                        color: Color(0xEFFFFFFF),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.94),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
