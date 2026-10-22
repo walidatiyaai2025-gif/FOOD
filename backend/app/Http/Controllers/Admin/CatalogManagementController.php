@@ -833,6 +833,7 @@ final class CatalogManagementController extends Controller
         $field = (string) $request->validate([
             'field' => ['required', Rule::in([
                 'name',
+                'description',
                 'category_id',
                 'brand_id',
                 'unit_id',
@@ -958,6 +959,7 @@ final class CatalogManagementController extends Controller
             $this->authorizeCatalogAction($request, 'catalog.edit', $storeId, $channel);
             $rules = match ($field) {
                 'name' => ['value' => ['required', 'string', 'max:255']],
+                'description' => ['value' => ['nullable', 'string', 'max:5000']],
                 'category_id', 'brand_id' => ['value' => ['nullable', 'integer']],
                 'unit_id' => ['value' => ['required', 'integer']],
                 'low_stock_threshold' => ['value' => ['required', 'numeric', 'min:0']],
