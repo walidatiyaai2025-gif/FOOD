@@ -483,12 +483,12 @@ class _HomeHeroBanner extends StatelessWidget {
                 Image.network(
                   banner.imageUrl!,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const ColoredBox(
+                  errorBuilder: (_, __, ___) => ColoredBox(
                     color: FoodexPalette.wholesale.primary,
                   ),
                 )
               else
-                const ColoredBox(color: FoodexPalette.wholesale.primary),
+                ColoredBox(color: FoodexPalette.wholesale.primary),
               DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
