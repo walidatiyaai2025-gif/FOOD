@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 
 import '../../core/api/b2b_api.dart';
+import '../../core/theme/customer_ui_v3_tokens.dart';
 
 class B2bBusinessAccountProfile extends StatefulWidget {
   const B2bBusinessAccountProfile({
@@ -301,7 +302,7 @@ class _ProfileHero extends StatelessWidget {
       key: const ValueKey('b2b-profile-hero'),
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF005B3E),
+        color: CustomerUiColors.deepGreen,
         borderRadius: BorderRadius.circular(24),
         boxShadow: const [
           BoxShadow(
@@ -336,7 +337,7 @@ class _ProfileHero extends StatelessWidget {
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(
                             alignment: Alignment.center,
-                            color: const Color(0xFFE7F8D7),
+                            color: CustomerUiColors.limeSoft,
                             child: Text(
                               initial,
                               style: const TextStyle(
@@ -352,7 +353,7 @@ class _ProfileHero extends StatelessWidget {
                             'b2b-profile-store-image-fallback',
                           ),
                           alignment: Alignment.center,
-                          color: const Color(0xFFE7F8D7),
+                          color: CustomerUiColors.limeSoft,
                           child: Text(
                             initial,
                             style: const TextStyle(
