@@ -297,6 +297,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                 body: FoodexUnifiedHeaderSurface(
                   title: context.tr('b2b.app.title'),
                   location: widget.location,
+                  isAuthenticated: widget.session.isAuthenticated,
+                  onLocaleChanged: widget.onLocaleChanged,
+                  onLogout: widget.onLogout,
                   searchHint: context.tr(
                     'customer.products.search_name_sku_barcode',
                   ),
@@ -311,6 +314,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                 body: FoodexUnifiedHeaderSurface(
                   title: context.tr('b2b.app.title'),
                   location: widget.location,
+                  isAuthenticated: widget.session.isAuthenticated,
+                  onLocaleChanged: widget.onLocaleChanged,
+                  onLogout: widget.onLogout,
                   searchHint: context.tr(
                     'customer.products.search_name_sku_barcode',
                   ),
