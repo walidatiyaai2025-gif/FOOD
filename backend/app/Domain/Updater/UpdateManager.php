@@ -145,7 +145,8 @@ final class UpdateManager
 
             return $history->refresh();
         } catch (Throwable $exception) {
-            $reason = "Update failed during [{$stage}]. Rollback was attempted.";
+            $exceptionSummary = $this->exceptionSummary($exception);
+            $reason = "Update failed during [{$stage}]. Cause: {$exceptionSummary}. Rollback was attempted.";
             $rollbackSucceeded = true;
             $rollbackAttempted = false;
             $rollbackEvidence = [];
@@ -212,7 +213,13 @@ final class UpdateManager
             };
 
             $this->checkpoint($history, array_merge(
-                [$failureKey => 'failed', 'result' => 'failed'],
+                [
+                    $failureKey => 'failed',
+                    'result' => 'failed',
+                    'failure_stage' => $stage,
+                    'failure_cause' => $exceptionSummary,
+                    'failure_exception' => class_basename($exception),
+                ],
                 $rollbackEvidence,
             ), [
                 'status' => 'failed',
@@ -234,6 +241,8 @@ final class UpdateManager
                 [
                     'target_version' => $manifest->targetVersion,
                     'stage' => $stage,
+                    'cause' => $exceptionSummary,
+                    'exception' => class_basename($exception),
                     'rollback_status' => $history->rollback_status,
                     'maintenance_mode_remained' => $maintenanceMode,
                 ],
@@ -241,6 +250,42 @@ final class UpdateManager
 
             throw new RuntimeException($reason, 0, $exception);
         }
+    }
+
+    private function exceptionSummary(Throwable $exception): string
+    {
+        $parts = [];
+        $current = $exception;
+        $depth = 0;
+
+        while ($current !== null && $depth < 3) {
+            $message = trim(preg_replace('/\s+/', ' ', $current->getMessage()) ?? '');
+            if ($message !== '') {
+                // Do not expose absolute server paths in UI/audit-visible failure text.
+                $message = preg_replace(
+                    '#(?<![A-Za-z0-9._-])/(?:[^\s:()]+/)+[^\s:()]+#',
+                    '[server-path]',
+                    $message,
+                ) ?? $message;
+
+                // Keep operator-visible diagnostics bounded while preserving SQLSTATE,
+                // migration names and framework/runtime failure messages.
+                if (mb_strlen($message) > 1200) {
+                    $message = mb_substr($message, 0, 1200).'…';
+                }
+
+                if (! in_array($message, $parts, true)) {
+                    $parts[] = $message;
+                }
+            }
+
+            $current = $current->getPrevious();
+            $depth++;
+        }
+
+        return $parts !== []
+            ? implode(' | Caused by: ', $parts)
+            : class_basename($exception);
     }
 
     /**

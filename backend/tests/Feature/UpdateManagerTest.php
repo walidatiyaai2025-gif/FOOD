@@ -99,6 +99,7 @@ class UpdateManagerTest extends TestCase
             $this->fail('The update should have failed.');
         } catch (RuntimeException $exception) {
             $this->assertStringContainsString('health_check', $exception->getMessage());
+            $this->assertStringContainsString('Simulated update runtime failure.', $exception->getMessage());
         }
 
         $this->assertSame([
@@ -124,10 +125,13 @@ class UpdateManagerTest extends TestCase
             'backup_status' => 'available',
             'rollback_status' => 'succeeded',
             'maintenance_mode_remained' => false,
-            'failure_reason' => 'Update failed during [health_check]. Rollback was attempted.',
+            'failure_reason' => 'Update failed during [health_check]. Cause: Simulated update runtime failure.. Rollback was attempted.',
         ]);
         $failedHistory = UpdateHistory::query()->where('to_version', '1.1.0')->firstOrFail();
         $this->assertSame('failed', $failedHistory->execution_evidence['health_check'] ?? null);
+        $this->assertSame('health_check', $failedHistory->execution_evidence['failure_stage'] ?? null);
+        $this->assertSame('Simulated update runtime failure.', $failedHistory->execution_evidence['failure_cause'] ?? null);
+        $this->assertSame('RuntimeException', $failedHistory->execution_evidence['failure_exception'] ?? null);
         $this->assertSame('passed', $failedHistory->execution_evidence['rollback_files'] ?? null);
         $this->assertSame('passed', $failedHistory->execution_evidence['rollback_database'] ?? null);
         $this->assertSame('passed', $failedHistory->execution_evidence['rollback_health_check'] ?? null);
@@ -160,7 +164,7 @@ class UpdateManagerTest extends TestCase
         } catch (RuntimeException $exception) {
             $this->assertStringContainsString('manual recovery is required', $exception->getMessage());
             $this->assertStringContainsString('Maintenance mode remains enabled', $exception->getMessage());
-            $this->assertStringNotContainsString('Simulated update runtime failure', $exception->getMessage());
+            $this->assertStringContainsString('Simulated update runtime failure', $exception->getMessage());
         }
 
         $this->assertContains('rollback_files', $runtime->calls);
@@ -172,7 +176,7 @@ class UpdateManagerTest extends TestCase
             'failed_stage' => 'health_check',
             'rollback_status' => 'incomplete',
             'maintenance_mode_remained' => true,
-            'failure_reason' => 'Update failed during [health_check]. Rollback was attempted. Rollback is incomplete; manual recovery is required. Maintenance mode remains enabled.',
+            'failure_reason' => 'Update failed during [health_check]. Cause: Simulated update runtime failure.. Rollback was attempted. Rollback is incomplete; manual recovery is required. Maintenance mode remains enabled.',
         ]);
         $this->assertDatabaseMissing('system_versions', ['version' => '1.1.0']);
         $this->assertDatabaseHas('audit_logs', ['event' => 'updater.failed']);

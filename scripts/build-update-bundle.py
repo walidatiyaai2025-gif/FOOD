@@ -120,6 +120,35 @@ def safe_path(path: str) -> str:
     return value
 
 
+def complete_runtime_files(repo_root: Path) -> list[str]:
+    selected: set[str] = set(RUNTIME_EXACT)
+
+    for prefix in RUNTIME_PREFIXES:
+        root = repo_root / prefix.rstrip("/")
+        if not root.is_dir():
+            continue
+        for source in sorted(path for path in root.rglob("*") if path.is_file()):
+            selected.add(safe_path(source.relative_to(repo_root).as_posix()))
+
+    selected.update(RUNTIME_ALWAYS_INCLUDE)
+
+    for required_dir in RUNTIME_ALWAYS_INCLUDE_DIRS:
+        root = repo_root / required_dir
+        if not root.is_dir():
+            raise RuntimeError(f"Required public runtime directory is missing: {required_dir}")
+        for source in sorted(path for path in root.rglob("*") if path.is_file()):
+            selected.add(safe_path(source.relative_to(repo_root).as_posix()))
+
+    for generated_dir in GENERATED_RUNTIME_DIRS:
+        root = repo_root / generated_dir
+        if not root.is_dir():
+            continue
+        for source in sorted(path for path in root.rglob("*") if path.is_file()):
+            selected.add(safe_path(source.relative_to(repo_root).as_posix()))
+
+    return sorted(selected)
+
+
 def changed_runtime_files(base: str, repo_root: Path) -> list[str]:
     diff = run_git("diff", "--name-status", "--find-renames", f"{base}..HEAD")
     selected: set[str] = set()
@@ -251,7 +280,10 @@ def main() -> int:
         )
 
     run_git("cat-file", "-e", f"{args.base}^{{commit}}")
-    files = changed_runtime_files(args.base, repo_root)
+    # Dashboard updates are cumulative/self-healing by contract. Package the
+    # complete application-owned runtime so drifted shared-host installs can
+    # recover missing unchanged Laravel files before migrations execute.
+    files = complete_runtime_files(repo_root)
     entries = package_entries(files)
 
     migrations = [path for path in files if path.startswith("backend/database/migrations/")]
