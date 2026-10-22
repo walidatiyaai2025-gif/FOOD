@@ -247,8 +247,21 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
     public function runMigrations(): void
     {
-        if (Artisan::call('migrate', ['--force' => true]) !== 0) {
-            throw new RuntimeException('Update migrations failed.');
+        $exitCode = Artisan::call('migrate', ['--force' => true]);
+
+        if ($exitCode !== 0) {
+            $output = trim((string) Artisan::output());
+            $output = preg_replace('/\s+/', ' ', $output) ?? $output;
+
+            if (mb_strlen($output) > 1200) {
+                $output = mb_substr($output, 0, 1200).'…';
+            }
+
+            throw new RuntimeException(
+                $output !== ''
+                    ? 'Update migrations failed: '.$output
+                    : 'Update migrations failed with exit code '.$exitCode.'.'
+            );
         }
     }
 
