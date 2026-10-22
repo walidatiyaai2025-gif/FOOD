@@ -13,6 +13,7 @@ on:
       - main
     paths:
       - VERSION
+      - docs/release/UPDATE_NOTES_*.md
       - docs/release/FOODEX_1_0_77_PRODUCTION_HOLD.md
 
 permissions:
