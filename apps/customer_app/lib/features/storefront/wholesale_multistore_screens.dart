@@ -168,16 +168,6 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
     });
   }
 
-  Future<void> _setHomeProductColumns(int columns) async {
-    final size = switch (columns) {
-      1 => WholesaleProductCardSize.expanded,
-      2 => WholesaleProductCardSize.comfortable,
-      _ => WholesaleProductCardSize.compact,
-    };
-    await CustomerDisplayPreferences.instance
-        .setWholesaleProductCardSize(size);
-  }
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
@@ -435,6 +425,34 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
             }
 
             final content = <Widget>[];
+            var homeCardSizeControlPlaced = false;
+
+            Widget? takeHomeCardSizeControl() {
+              if (homeCardSizeControlPlaced) return null;
+              homeCardSizeControlPlaced = true;
+              final icon = switch (cardSize) {
+                WholesaleProductCardSize.compact => Icons.view_module_rounded,
+                WholesaleProductCardSize.comfortable =>
+                  Icons.grid_view_rounded,
+                WholesaleProductCardSize.expanded => Icons.view_agenda_rounded,
+              };
+              return SizedBox(
+                width: 30,
+                height: 30,
+                child: IconButton(
+                  key: const ValueKey('wholesale-home-card-size'),
+                  tooltip: context.tr('b2b.catalog.card_size'),
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () async {
+                    await CustomerDisplayPreferences.instance
+                        .cycleWholesaleProductCardSize();
+                  },
+                  icon: Icon(icon, size: 17),
+                ),
+              );
+            }
+
             final hasBannerSection = effectiveSections.any((section) {
               final type = section['type']?.toString() ?? '';
               return type == 'hero' || type == 'banner_slider';
@@ -511,6 +529,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                 case 'product_carousel':
                   {
                     final sectionRows = _wholesaleRowsForSection(rows, section);
+                    final cardSizeControl = takeHomeCardSizeControl();
                     content.add(
                       type == 'best_sellers'
                           ? _WholesaleBestSellerTickerHeader(
@@ -526,6 +545,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                                         ),
                                       )
                                   : null,
+                              trailing: cardSizeControl,
                             )
                           : FoodexSectionHeader(
                               title: sectionTitle,
@@ -540,6 +560,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                                         ),
                                       )
                                   : null,
+                              trailing: cardSizeControl,
                             ),
                     );
                     content.add(
@@ -605,6 +626,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                   textScale: .8,
                   spacingScale: .25,
                   onAction: storeId > 0 ? () => openCatalog() : null,
+                  trailing: takeHomeCardSizeControl(),
                 ),
               );
               content.add(
@@ -652,92 +674,6 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                         key: const ValueKey('wholesale-home-scroll-body'),
                         padding: EdgeInsets.zero,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 6, 14, 3),
-                            child: Row(
-                              key: const ValueKey(
-                                'wholesale-home-card-size-row',
-                              ),
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                for (final columns in const <int>[1, 2, 3])
-                                  Padding(
-                                    padding:
-                                        const EdgeInsetsDirectional.only(
-                                      start: 4,
-                                    ),
-                                    child: SizedBox(
-                                      width: 34,
-                                      height: 34,
-                                      child: IconButton(
-                                        key: ValueKey(
-                                          'wholesale-home-card-size-$columns',
-                                        ),
-                                        tooltip:
-                                            '$columns ' +
-                                            context.tr(
-                                              'b2b.catalog.card_size',
-                                            ),
-                                        padding: EdgeInsets.zero,
-                                        visualDensity: VisualDensity.compact,
-                                        style: IconButton.styleFrom(
-                                          backgroundColor:
-                                              cardSize.columns == columns
-                                                  ? palette.soft
-                                                  : Colors.transparent,
-                                          foregroundColor:
-                                              cardSize.columns == columns
-                                                  ? palette.primaryDark
-                                                  : palette.muted,
-                                        ),
-                                        onPressed: () =>
-                                            _setHomeProductColumns(columns),
-                                        icon: Stack(
-                                          alignment: Alignment.center,
-                                          children: [
-                                            Icon(
-                                              columns == 1
-                                                  ? Icons.view_agenda_rounded
-                                                  : columns == 2
-                                                      ? Icons.grid_view_rounded
-                                                      : Icons.view_module_rounded,
-                                              size: 18,
-                                            ),
-                                            Positioned(
-                                              right: 0,
-                                              bottom: 0,
-                                              child: Container(
-                                                width: 13,
-                                                height: 13,
-                                                alignment: Alignment.center,
-                                                decoration: BoxDecoration(
-                                                  color: Colors.white,
-                                                  borderRadius:
-                                                      BorderRadius.circular(7),
-                                                  border: Border.all(
-                                                    color: palette.soft,
-                                                  ),
-                                                ),
-                                                child: Text(
-                                                  '$columns',
-                                                  style: TextStyle(
-                                                    color: palette.primaryDark,
-                                                    fontSize: 7.5,
-                                                    fontWeight:
-                                                        FontWeight.w900,
-                                                    height: 1,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
                           ...content,
                           const SizedBox(height: 5.5),
                         ],
@@ -1780,6 +1716,7 @@ class _WholesaleBrandTickerHeader extends StatefulWidget {
     required this.palette,
     required this.storeId,
     required this.onAction,
+    this.trailing,
   });
 
   final String title;
@@ -1787,6 +1724,7 @@ class _WholesaleBrandTickerHeader extends StatefulWidget {
   final FoodexPalette palette;
   final int storeId;
   final VoidCallback? onAction;
+  final Widget? trailing;
 
   @override
   State<_WholesaleBrandTickerHeader> createState() =>
@@ -1995,6 +1933,10 @@ class _WholesaleBrandTickerHeaderState
                 ),
               ),
             ),
+          if (widget.trailing != null) ...[
+            const SizedBox(width: 2),
+            widget.trailing!,
+          ],
         ],
       ),
     );
