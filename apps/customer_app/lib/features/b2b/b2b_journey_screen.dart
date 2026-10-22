@@ -17,7 +17,6 @@ import '../../core/config/customer_app_release.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
-import '../../core/theme/customer_display_preferences.dart';
 import '../customer_account/customer_address_book_screen.dart';
 import '../customer_account/customer_account_data.dart';
 import '../customer_account/customer_notification_center_screen.dart';
@@ -121,6 +120,8 @@ class B2bJourneyScreen extends StatelessWidget {
           body: FoodexUnifiedHeaderSurface(
             title: context.tr('b2b.app.title'),
             location: location,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
             searchHint: context.tr(
               'customer.products.search_name_sku_barcode',
             ),
@@ -148,6 +149,8 @@ class B2bJourneyScreen extends StatelessWidget {
         body: FoodexUnifiedHeaderSurface(
           title: context.tr('b2b.app.title'),
           location: location,
+          onLocaleChanged: onLocaleChanged,
+          onLogout: onLogout,
           searchHint: context.tr(
             'customer.products.search_name_sku_barcode',
           ),
@@ -178,6 +181,8 @@ class B2bJourneyScreen extends StatelessWidget {
                 FoodexWholesaleHeader(
                   title: context.tr('b2b.app.title'),
                   palette: FoodexPalette.wholesale,
+                  onLocaleChanged: onLocaleChanged,
+                  onLogout: onLogout,
                   searchHint: context.tr(
                     'customer.products.search_name_sku_barcode',
                   ),
@@ -239,6 +244,8 @@ class B2bJourneyScreen extends StatelessWidget {
           body: FoodexUnifiedHeaderSurface(
             title: context.tr('b2b.app.title'),
             location: location,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
             searchHint: context.tr(
               'customer.products.search_name_sku_barcode',
             ),
@@ -303,6 +310,8 @@ class B2bJourneyScreen extends StatelessWidget {
         body: FoodexUnifiedHeaderSurface(
           title: context.tr('b2b.app.title'),
           location: location,
+          onLocaleChanged: onLocaleChanged,
+          onLogout: onLogout,
           searchHint: context.tr(
             'customer.products.search_name_sku_barcode',
           ),
@@ -4458,6 +4467,100 @@ class _B2bMorePageState extends State<_B2bMorePage> {
       ),
     );
   }
+}
+
+class _B2bContactDraft {
+  const _B2bContactDraft({
+    required this.phone,
+    required this.message,
+  });
+
+  final String phone;
+  final String message;
+}
+
+class _B2bContactDialog extends StatefulWidget {
+  const _B2bContactDialog();
+
+  @override
+  State<_B2bContactDialog> createState() => _B2bContactDialogState();
+}
+
+class _B2bContactDialogState extends State<_B2bContactDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _phone = TextEditingController();
+  final _message = TextEditingController();
+
+  @override
+  void dispose() {
+    _phone.dispose();
+    _message.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        key: const ValueKey('b2b-contact-dialog'),
+        title: Text(context.tr('customer.contact.title')),
+        content: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(context.tr('customer.contact.subtitle')),
+                const SizedBox(height: 12),
+                TextFormField(
+                  key: const ValueKey('b2b-contact-phone'),
+                  controller: _phone,
+                  keyboardType: TextInputType.phone,
+                  maxLength: 50,
+                  decoration: InputDecoration(
+                    labelText: context.tr('customer.contact.phone'),
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? context.tr('customer.contact.phone_required')
+                      : null,
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  key: const ValueKey('b2b-contact-message'),
+                  controller: _message,
+                  minLines: 4,
+                  maxLines: 7,
+                  maxLength: 8000,
+                  decoration: InputDecoration(
+                    labelText: context.tr('customer.contact.message'),
+                    alignLabelWithHint: true,
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? context.tr('customer.contact.message_required')
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(context.tr('customer.action.cancel')),
+          ),
+          FilledButton(
+            key: const ValueKey('b2b-contact-submit'),
+            onPressed: () {
+              if (_formKey.currentState?.validate() != true) return;
+              Navigator.of(context).pop(
+                _B2bContactDraft(
+                  phone: _phone.text.trim(),
+                  message: _message.text.trim(),
+                ),
+              );
+            },
+            child: Text(context.tr('customer.contact.send')),
+          ),
+        ],
+      );
 }
 
 class _FinanceCard extends StatelessWidget {
