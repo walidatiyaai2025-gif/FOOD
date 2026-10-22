@@ -149,13 +149,37 @@ class _RetailHomeV3ScreenState extends State<RetailHomeV3Screen>
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('retail-catalog-home'),
         resizeToAvoidBottomInset: true,
-        backgroundColor: CustomerUiColors.mint,
+        backgroundColor: FoodexPalette.wholesale.background,
         body: FutureBuilder<_RetailHomeV3Data>(
           future: _future,
           builder: (context, snapshot) {
+            final homeData = snapshot.data;
+            final store = homeData?.storefront['store'] is Map
+                ? Map<String, dynamic>.from(
+                    homeData!.storefront['store'] as Map,
+                  )
+                : const <String, dynamic>{};
+            final branding = homeData?.storefront['branding'] is Map
+                ? Map<String, dynamic>.from(
+                    homeData!.storefront['branding'] as Map,
+                  )
+                : const <String, dynamic>{};
+            final storeName = store['name']?.toString().trim() ?? '';
+            final brandingLogo = branding['logo_url']?.toString().trim() ?? '';
+            final storeLogo = store['logo_url']?.toString().trim() ?? '';
+            final address = branding['address']?.toString().trim() ?? '';
+
             return FoodexUnifiedHeaderSurface(
-              title: context.tr('customer.home.title'),
-              palette: FoodexPalette.grocery,
+              title: storeName.isNotEmpty
+                  ? storeName
+                  : context.tr('customer.home.title'),
+              palette: FoodexPalette.wholesale,
+              logoUrl: brandingLogo.isNotEmpty
+                  ? brandingLogo
+                  : storeLogo.isNotEmpty
+                      ? storeLogo
+                      : null,
+              address: address.isNotEmpty ? address : null,
               searchController: _search,
               searchHint: context.tr(
                 'customer.products.search_name_sku_barcode',
@@ -458,20 +482,21 @@ class _HomeHeroBanner extends StatelessWidget {
                 Image.network(
                   banner.imageUrl!,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const ColoredBox(
-                    color: CustomerUiColors.mintStrong,
+                  errorBuilder: (_, __, ___) => ColoredBox(
+                    color: FoodexPalette.wholesale.primary,
                   ),
                 )
               else
-                const ColoredBox(color: CustomerUiColors.mintStrong),
+                ColoredBox(color: FoodexPalette.wholesale.primary),
               DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: AlignmentDirectional.bottomStart,
                     end: AlignmentDirectional.topEnd,
                     colors: [
-                      CustomerUiColors.deepGreenStrong.withValues(alpha: 0.80),
-                      CustomerUiColors.deepGreen.withValues(alpha: 0.12),
+                      FoodexPalette.wholesale.primaryDark
+                          .withValues(alpha: 0.88),
+                      FoodexPalette.wholesale.primary.withValues(alpha: 0.28),
                     ],
                   ),
                 ),
@@ -692,7 +717,7 @@ class _HomeSectionTitle extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         title,
         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: CustomerUiColors.deepGreenStrong,
+              color: FoodexPalette.wholesale.primaryDark,
             ),
       );
 }

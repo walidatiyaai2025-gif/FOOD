@@ -159,16 +159,20 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('marketplace-banner-carousel')),
+      find.byKey(const ValueKey('marketplace-primary-banner')),
       findsOneWidget,
     );
-    final carousel = find.byKey(const ValueKey('marketplace-store-carousel'));
-    expect(carousel, findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey('marketplace-retail-store-banner-section'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('marketplace-retail-store-carousel')),
+      findsOneWidget,
+    );
     expect(find.text('FOODEX Wholesale').hitTestable(), findsOneWidget);
-    expect(find.text('Retail Seven Offer').hitTestable(), findsNothing);
-
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pump(const Duration(milliseconds: 450));
     expect(find.text('Retail Seven Offer').hitTestable(), findsOneWidget);
 
     await tester.tap(find.text('Retail Seven Offer').hitTestable());
@@ -187,7 +191,7 @@ void main() {
   });
 
   testWidgets(
-      'guest uses one store carousel with Wholesale first then primary and remaining Retail stores once',
+      'guest keeps Wholesale primary hero and rotates active Retail stores in the separate compact section',
       (tester) async {
     final client = MockClient((request) async {
       if (request.url.path == '/api/v1/stores') {
@@ -255,23 +259,25 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey('marketplace-banner-carousel')),
+      find.byKey(const ValueKey('marketplace-primary-banner')),
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('marketplace-store-carousel')),
+      find.byKey(
+        const ValueKey('marketplace-retail-store-banner-section'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('marketplace-retail-store-carousel')),
       findsOneWidget,
     );
     expect(find.text('FOODEX Wholesale').hitTestable(), findsOneWidget);
-    expect(find.text('Primary Retail').hitTestable(), findsNothing);
+    expect(find.text('Primary Retail').hitTestable(), findsOneWidget);
     expect(
       find.text('Duplicate placement must not duplicate store'),
       findsNothing,
     );
-
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pump(const Duration(milliseconds: 450));
-    expect(find.text('Primary Retail').hitTestable(), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(milliseconds: 450));
@@ -280,6 +286,10 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(milliseconds: 450));
     expect(find.text('Retail Twelve').hitTestable(), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(milliseconds: 450));
+    expect(find.text('Primary Retail').hitTestable(), findsOneWidget);
   });
 
   testWidgets(
@@ -366,23 +376,40 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('marketplace-banner-carousel')),
+      find.byKey(const ValueKey('marketplace-primary-banner')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('marketplace-retail-store-banner-section'),
+      ),
       findsOneWidget,
     );
     expect(find.text('FOODEX Wholesale').hitTestable(), findsOneWidget);
-    expect(find.text('Retail Eleven').hitTestable(), findsNothing);
-
-    final wholesaleTop = tester
-        .getTopLeft(find.byKey(const ValueKey('marketplace-wholesale-entry')))
-        .dy;
-    final carouselTop = tester
-        .getTopLeft(find.byKey(const ValueKey('marketplace-banner-carousel')))
-        .dy;
-    expect(wholesaleTop, carouselTop);
-
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pump(const Duration(milliseconds: 450));
     expect(find.text('Retail Eleven').hitTestable(), findsOneWidget);
+
+    final primary = find.byKey(const ValueKey('marketplace-primary-banner'));
+    final retailCarousel =
+        find.byKey(const ValueKey('marketplace-retail-store-carousel'));
+    final retailBanner =
+        find.byKey(const ValueKey('marketplace-retail-banner-11'));
+    final primaryBottom = tester.getBottomLeft(primary).dy;
+    final retailTop = tester
+        .getTopLeft(
+          find.byKey(
+            const ValueKey('marketplace-retail-store-banner-section'),
+          ),
+        )
+        .dy;
+    expect(retailTop, greaterThanOrEqualTo(primaryBottom));
+    expect(
+      tester.getSize(retailCarousel).height,
+      closeTo(tester.getSize(primary).height / 2, 0.1),
+    );
+    expect(
+      tester.getSize(retailBanner).height,
+      closeTo(tester.getSize(primary).height / 2, 0.1),
+    );
 
     await tester.tap(find.text('Retail Eleven').hitTestable());
     await tester.pumpAndSettle();
@@ -397,7 +424,7 @@ void main() {
   });
 
   testWidgets(
-      'marketplace store carousel auto-rotates Wholesale then Retail every five seconds and loops',
+      'Retail banner section auto-rotates active stores every five seconds while Wholesale stays fixed',
       (tester) async {
     final client = MockClient((request) async => http.Response(
           jsonEncode({
@@ -443,24 +470,23 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    final carousel = find.byKey(const ValueKey('marketplace-store-carousel'));
+    final carousel =
+        find.byKey(const ValueKey('marketplace-retail-store-carousel'));
     expect(carousel, findsOneWidget);
     expect(find.byKey(const ValueKey('marketplace-wholesale-entry')),
         findsOneWidget);
     expect(find.text('FOODEX Wholesale').hitTestable(), findsOneWidget);
-    expect(find.text('Retail Seven Offer').hitTestable(), findsNothing);
+    expect(find.text('Retail Seven Offer').hitTestable(), findsOneWidget);
     expect(find.text('Retail Eight Offer').hitTestable(), findsNothing);
 
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(milliseconds: 450));
-    expect(find.text('Retail Seven Offer').hitTestable(), findsOneWidget);
-
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pump(const Duration(milliseconds: 450));
     expect(find.text('Retail Eight Offer').hitTestable(), findsOneWidget);
+    expect(find.text('FOODEX Wholesale').hitTestable(), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(milliseconds: 450));
+    expect(find.text('Retail Seven Offer').hitTestable(), findsOneWidget);
     expect(find.text('FOODEX Wholesale').hitTestable(), findsOneWidget);
   });
 
@@ -516,6 +542,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        const ValueKey('marketplace-retail-store-banner-section'),
+      ),
+      findsNothing,
+    );
 
     await tester.enterText(
       find.byKey(const ValueKey('marketplace-search')),
@@ -891,17 +924,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
 
-    final storeCarousel = tester.widget<PageView>(
-      find.byKey(const ValueKey('marketplace-store-carousel')),
+    expect(
+      find.byKey(const ValueKey('marketplace-retail-store-carousel')),
+      findsOneWidget,
     );
-    storeCarousel.controller!.animateToPage(
-      1,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.linear,
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
     expect(
       find.byKey(const ValueKey('marketplace-retail-banner-title-22')),
       findsOneWidget,
@@ -927,11 +953,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
 
-    final returnedCarousel = tester.widget<PageView>(
-      find.byKey(const ValueKey('marketplace-store-carousel')),
+    expect(
+      find.byKey(const ValueKey('marketplace-retail-store-carousel')),
+      findsOneWidget,
     );
-    returnedCarousel.controller!.jumpToPage(0);
-    await tester.pump();
 
     await tester.tap(
       find.byKey(const ValueKey('marketplace-wholesale-banner-action')),
@@ -1104,12 +1129,12 @@ void main() {
     expect(
         find.byKey(const ValueKey('marketplace-categories')), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('marketplace-banner-carousel')),
+      find.byKey(const ValueKey('marketplace-primary-banner')),
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('marketplace-banner-indicators')),
-      findsOneWidget,
+      find.byKey(const ValueKey('marketplace-retail-banner-indicators')),
+      findsNothing,
     );
     expect(find.text('October Wholesale'), findsOneWidget);
     expect(
@@ -1124,14 +1149,20 @@ void main() {
         .getTopLeft(find.byKey(const ValueKey('marketplace-wholesale-entry')))
         .dy;
     final bannerTop = tester
-        .getTopLeft(find.byKey(const ValueKey('marketplace-banner-carousel')))
+        .getTopLeft(find.byKey(const ValueKey('marketplace-primary-banner')))
+        .dy;
+    final retailBottom = tester
+        .getBottomLeft(
+          find.byKey(
+            const ValueKey('marketplace-retail-store-banner-section'),
+          ),
+        )
         .dy;
     expect(wholesaleTop, bannerTop);
-    expect(bannerTop, lessThan(categoriesTop));
+    expect(bannerTop, lessThan(retailBottom));
+    expect(retailBottom, lessThanOrEqualTo(categoriesTop));
     expect(find.byIcon(Icons.local_cafe_outlined), findsWidgets);
 
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pump(const Duration(milliseconds: 450));
     expect(
       find.byKey(const ValueKey('marketplace-retail-banner-title-7')),
       findsOneWidget,
