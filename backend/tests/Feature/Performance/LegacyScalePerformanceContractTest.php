@@ -47,4 +47,24 @@ final class LegacyScalePerformanceContractTest extends TestCase
         $this->assertSame(25, EnterprisePerformanceSeeder::FIELD_USERS);
         $this->assertGreaterThanOrEqual(35, EnterprisePerformanceSeeder::LOAD_USERS);
     }
+
+    public function test_driver_current_location_evidence_is_classified_as_bounded_current_state(): void
+    {
+        $backendRoot = dirname(__DIR__, 3);
+        $repositoryRoot = dirname($backendRoot);
+
+        $migration = file_get_contents(
+            $backendRoot.'/database/migrations/2026_09_30_005120_create_driver_current_locations.php',
+        );
+        $evidenceRunner = file_get_contents(
+            $repositoryRoot.'/scripts/foodex-legacy-scale-db-evidence.php',
+        );
+
+        $this->assertIsString($migration);
+        $this->assertIsString($evidenceRunner);
+        $this->assertStringContainsString("foreignId('driver_id')->unique()", $migration);
+        $this->assertStringContainsString("'field_tracking_current'", $evidenceRunner);
+        $this->assertStringContainsString("'growing_tables' => []", $evidenceRunner);
+        $this->assertStringContainsString('Bounded current-state table', $evidenceRunner);
+    }
 }
