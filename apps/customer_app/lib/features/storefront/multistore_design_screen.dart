@@ -157,6 +157,9 @@ class MultiStoreDesignScreen extends StatelessWidget {
             location: location,
             api: b2bApi,
             commerceApi: wholesaleApi,
+            session: currentSession?.call() ?? session,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
           ),
           CustomerFooterDestination.account,
         );
@@ -166,6 +169,9 @@ class MultiStoreDesignScreen extends StatelessWidget {
             location: location,
             storefrontApi: storefrontApi,
             commerceApi: wholesaleApi,
+            session: currentSession?.call() ?? session,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
           ),
           CustomerFooterDestination.account,
         );
@@ -175,6 +181,9 @@ class MultiStoreDesignScreen extends StatelessWidget {
             location: location,
             api: b2bApi,
             commerceApi: wholesaleApi,
+            session: currentSession?.call() ?? session,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
           ),
           CustomerFooterDestination.orders,
         );
