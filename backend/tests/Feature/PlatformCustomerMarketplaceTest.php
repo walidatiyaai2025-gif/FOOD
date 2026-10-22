@@ -169,7 +169,7 @@ class PlatformCustomerMarketplaceTest extends TestCase
             ->assertJsonPath('data.0.availability_state', 'AVAILABLE');
     }
 
-    public function test_retail_merchant_own_store_is_hidden_and_direct_browse_is_forbidden(): void
+    public function test_retail_merchant_can_discover_and_browse_own_store_but_cannot_purchase_from_it(): void
     {
         [$wholesaleStore, $ownedStore] = $this->marketplaceFixture();
         $b2cType = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
@@ -219,31 +219,67 @@ class PlatformCustomerMarketplaceTest extends TestCase
 
         $this->withToken($merchant->createToken('customer-app')->plainTextToken);
 
-        $this->getJson('/api/v1/platform/storefront')
-            ->assertOk()
-            ->assertJsonCount(1, 'retail_banners')
-            ->assertJsonPath('retail_banners.0.store_id', $foreignStore)
-            ->assertJsonMissing(['store_id' => $ownedStore]);
+        $platform = $this->getJson('/api/v1/platform/storefront')->assertOk();
+        $platformIds = collect($platform->json('retail_banners'))->pluck('store_id')->map(fn ($id) => (int) $id)->all();
+        $this->assertContains($ownedStore, $platformIds);
+        $this->assertContains($foreignStore, $platformIds);
 
-        $this->getJson('/api/v1/store-selector')
-            ->assertOk()
-            ->assertJsonMissing(['id' => $ownedStore])
-            ->assertJsonPath('retail_stores.0.id', $foreignStore);
+        $selector = $this->getJson('/api/v1/store-selector')->assertOk();
+        $selectorIds = collect($selector->json('retail_stores'))->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $this->assertContains($ownedStore, $selectorIds);
+        $this->assertContains($foreignStore, $selectorIds);
 
-        $this->getJson('/api/v1/stores')
-            ->assertOk()
-            ->assertJsonMissing(['id' => $ownedStore])
-            ->assertJsonPath('data.0.id', $foreignStore);
+        $stores = $this->getJson('/api/v1/stores')->assertOk();
+        $storeIds = collect($stores->json('data'))->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $this->assertContains($ownedStore, $storeIds);
+        $this->assertContains($foreignStore, $storeIds);
 
-        foreach ([
-            '/api/v1/stores/'.$ownedStore.'/storefront',
-            '/api/v1/stores/'.$ownedStore.'/products',
-        ] as $url) {
-            $this->getJson($url)
-                ->assertForbidden()
-                ->assertJsonPath('code', SelfStorePurchaseNotAllowed::ERROR_CODE)
-                ->assertJsonPath('store_id', $ownedStore);
+        $this->getJson('/api/v1/stores/'.$ownedStore.'/storefront')
+            ->assertOk()
+            ->assertJsonPath('store.id', $ownedStore);
+
+        $this->getJson('/api/v1/stores/'.$ownedStore.'/products')
+            ->assertOk();
+
+        $this->getJson('/api/v1/cart?store='.$ownedStore)
+            ->assertForbidden()
+            ->assertJsonPath('code', SelfStorePurchaseNotAllowed::ERROR_CODE)
+            ->assertJsonPath('store_id', $ownedStore);
+    }
+
+    public function test_platform_home_appends_every_active_b2c_store_beyond_guest_store_default_page_size(): void
+    {
+        [, $configuredRetailStore] = $this->marketplaceFixture();
+        $b2cType = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $now = now();
+        $fallbackIds = [];
+
+        for ($index = 1; $index <= 25; $index++) {
+            $fallbackIds[] = (int) DB::table('stores')->insertGetId([
+                'store_type_id' => $b2cType,
+                'code' => 'RETAIL-FALLBACK-'.str_pad((string) $index, 2, '0', STR_PAD_LEFT),
+                'name' => 'Retail Fallback '.$index,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
         }
+
+        $response = $this->getJson('/api/v1/platform/storefront')->assertOk();
+        $retailRows = collect($response->json('retail_banners'));
+        $retailIds = $retailRows->pluck('store_id')->map(fn ($id) => (int) $id)->all();
+
+        $this->assertGreaterThan(20, count($retailIds));
+        $this->assertSame($configuredRetailStore, (int) $retailRows->first()['store_id']);
+
+        foreach ($fallbackIds as $storeId) {
+            $this->assertContains($storeId, $retailIds);
+        }
+
+        $fallback = $retailRows->firstWhere('store_id', $fallbackIds[24]);
+        $this->assertNotNull($fallback);
+        $this->assertSame('active_retail_store_fallback', $fallback['placement_scope']);
+        $this->assertSame('Retail Fallback 25', $fallback['title']);
     }
 
     public function test_store_selector_exposes_only_the_authoritative_principal_wholesale_target(): void
