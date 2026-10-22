@@ -97,24 +97,31 @@ final class ManagementReportService
     /** @param array<string, mixed> $filters */
     private function ordersReport(array $filters, int $limit, int $offset): array
     {
-        $query = DB::table('orders')
-            ->join('stores', 'stores.id', '=', 'orders.store_id')
-            ->leftJoin('b2c_customers', 'b2c_customers.id', '=', 'orders.b2c_customer_id')
-            ->leftJoin('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
-            ->leftJoin('customers as legacy_customers', 'legacy_customers.id', '=', 'orders.customer_id');
+        // Keep aggregate scans on the orders table only. Joining stores and three
+        // customer tables into every COUNT/SUM/AVG made four identical report
+        // requests amplify into dozens of large join scans at legacy4x volume.
+        $orders = DB::table('orders');
+        $this->applyOrderFilters($orders, $filters);
 
-        $this->applyOrderFilters($query, $filters);
+        $summary = (clone $orders)
+            ->selectRaw(
+                'COUNT(*) as orders_count, '.
+                'COALESCE(SUM(orders.grand_total), 0) as gross_value, '.
+                'COALESCE(SUM(CASE WHEN orders.status NOT IN (?, ?) THEN orders.grand_total ELSE 0 END), 0) as recognized_revenue, '.
+                'COALESCE(AVG(CASE WHEN orders.status NOT IN (?, ?) THEN orders.grand_total END), 0) as average_order_value',
+                [
+                    ...self::NON_REVENUE_STATUSES,
+                    ...self::NON_REVENUE_STATUSES,
+                ],
+            )
+            ->first();
 
-        $totalRows = (clone $query)->count('orders.id');
-        $grossValue = (float) (clone $query)->sum('orders.grand_total');
-        $recognizedRevenue = (float) (clone $query)
-            ->whereNotIn('orders.status', self::NON_REVENUE_STATUSES)
-            ->sum('orders.grand_total');
-        $averageOrder = (float) ((clone $query)
-            ->whereNotIn('orders.status', self::NON_REVENUE_STATUSES)
-            ->avg('orders.grand_total') ?? 0);
+        $totalRows = (int) ($summary->orders_count ?? 0);
+        $grossValue = (float) ($summary->gross_value ?? 0);
+        $recognizedRevenue = (float) ($summary->recognized_revenue ?? 0);
+        $averageOrder = (float) ($summary->average_order_value ?? 0);
 
-        $statusBreakdown = (clone $query)
+        $statusBreakdown = (clone $orders)
             ->selectRaw('orders.status, COUNT(*) as orders_count, COALESCE(SUM(orders.grand_total), 0) as order_value')
             ->groupBy('orders.status')
             ->orderBy('orders.status')
@@ -145,7 +152,15 @@ final class ManagementReportService
             ])
             ->all();
 
-        $rows = (clone $query)
+        $rowsQuery = DB::table('orders')
+            ->join('stores', 'stores.id', '=', 'orders.store_id')
+            ->leftJoin('b2c_customers', 'b2c_customers.id', '=', 'orders.b2c_customer_id')
+            ->leftJoin('b2b_customers', 'b2b_customers.id', '=', 'orders.b2b_customer_id')
+            ->leftJoin('customers as legacy_customers', 'legacy_customers.id', '=', 'orders.customer_id');
+
+        $this->applyOrderFilters($rowsQuery, $filters);
+
+        $rows = $rowsQuery
             ->select([
                 'orders.id',
                 'orders.order_number',
