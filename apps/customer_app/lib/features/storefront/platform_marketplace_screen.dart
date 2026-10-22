@@ -676,8 +676,7 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: _bannerIndex == index
-                                              ? FoodexPalette
-                                                  .wholesale.primary
+                                              ? FoodexPalette.wholesale.primary
                                               : const Color(0xFFD7DDE1),
                                           borderRadius:
                                               BorderRadius.circular(999),
@@ -1062,17 +1061,14 @@ class _RetailStoreBanner extends StatelessWidget {
                     colors: [
                       FoodexPalette.wholesale.primaryDark
                           .withValues(alpha: 0.92),
-                      FoodexPalette.wholesale.primary
-                          .withValues(alpha: 0.65),
-                      FoodexPalette.wholesale.primary
-                          .withValues(alpha: 0.18),
+                      FoodexPalette.wholesale.primary.withValues(alpha: 0.65),
+                      FoodexPalette.wholesale.primary.withValues(alpha: 0.18),
                     ],
                   ),
                 ),
               ),
               Padding(
-                padding:
-                    const EdgeInsetsDirectional.fromSTEB(15, 8, 12, 8),
+                padding: const EdgeInsetsDirectional.fromSTEB(15, 8, 12, 8),
                 child: Row(
                   children: [
                     Expanded(
