@@ -1,0 +1,169 @@
+name: FOODEX Legacy 4x Performance Gate
+
+on:
+  pull_request:
+    paths:
+      - "backend/database/seeders/EnterprisePerformanceSeeder.php"
+      - "backend/tests/Feature/Performance/LegacyScalePerformanceContractTest.php"
+      - "scripts/foodex-legacy-scale-*.py"
+      - "scripts/foodex-legacy-scale-*.php"
+      - "docs/quality/FOODEX_LEGACY_4X_PERFORMANCE_GATE.md"
+      - ".github/workflows/legacy-scale-performance-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  legacy-scale:
+    name: 4x data / 50 concurrent users
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: foodex_perf
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+
+    env:
+      APP_ENV: testing
+      APP_DEBUG: "false"
+      APP_URL: http://127.0.0.1:8000
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: foodex_perf
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      BCRYPT_ROUNDS: 4
+      FOODEX_PERF_ALLOW_SEED: "1"
+
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v7
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, intl, pdo_mysql, curl
+          coverage: none
+          tools: composer:v2
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare application and schema
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          cp .env.example .env
+          php artisan key:generate
+          php artisan migrate --force
+          mkdir -p ../artifacts/legacy-scale
+
+      - name: Verify issue 2274 scale contract
+        working-directory: backend
+        run: vendor/bin/phpunit tests/Feature/Performance/LegacyScalePerformanceContractTest.php
+
+      - name: Seed current-volume baseline
+        working-directory: backend
+        env:
+          FOODEX_PERF_PROFILE: legacy1x
+        run: |
+          set -euo pipefail
+          php artisan db:seed --class=Database\\Seeders\\EnterprisePerformanceSeeder --force
+          cp storage/app/private/enterprise-performance/fixture-manifest.json ../artifacts/legacy-scale/legacy1x-fixture.json
+
+      - name: Start baseline application server
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          nohup env PHP_CLI_SERVER_WORKERS=16 php artisan serve --host=127.0.0.1 --port=8000 > ../artifacts/legacy-scale/server-1x.log 2>&1 &
+          echo $! > ../artifacts/legacy-scale/server.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8000/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat ../artifacts/legacy-scale/server-1x.log
+          exit 1
+
+      - name: Benchmark 1x baseline with 50 concurrent users
+        run: |
+          set -euo pipefail
+          python3 scripts/foodex-legacy-scale-load.py             --profile legacy1x             --rounds 3             --output artifacts/legacy-scale/legacy1x-http.json
+
+      - name: Stop baseline server
+        if: always()
+        working-directory: backend
+        run: |
+          if [[ -f ../artifacts/legacy-scale/server.pid ]]; then
+            kill "$(cat ../artifacts/legacy-scale/server.pid)" || true
+          fi
+          pkill -f "artisan serve --host=127.0.0.1 --port=8000" || true
+          sleep 2
+
+      - name: Seed 4x legacy-volume dataset
+        working-directory: backend
+        env:
+          FOODEX_PERF_PROFILE: legacy4x
+        run: |
+          set -euo pipefail
+          php artisan db:seed --class=Database\\Seeders\\EnterprisePerformanceSeeder --force
+          cp storage/app/private/enterprise-performance/fixture-manifest.json ../artifacts/legacy-scale/legacy4x-fixture.json
+
+      - name: Start 4x application server
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          nohup env PHP_CLI_SERVER_WORKERS=16 php artisan serve --host=127.0.0.1 --port=8000 > ../artifacts/legacy-scale/server-4x.log 2>&1 &
+          echo $! > ../artifacts/legacy-scale/server.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8000/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat ../artifacts/legacy-scale/server-4x.log
+          exit 1
+
+      - name: Benchmark 4x dataset with 50 concurrent users
+        run: |
+          set -euo pipefail
+          python3 scripts/foodex-legacy-scale-load.py             --profile legacy4x             --rounds 3             --output artifacts/legacy-scale/legacy4x-http.json
+
+      - name: Capture slow-query and EXPLAIN evidence
+        env:
+          FOODEX_PERF_PROFILE: legacy4x
+        run: |
+          set -euo pipefail
+          php scripts/foodex-legacy-scale-db-evidence.php             artifacts/legacy-scale/legacy4x-db-evidence.json
+
+      - name: Compare baseline and scaled evidence
+        run: |
+          set -euo pipefail
+          python3 scripts/foodex-legacy-scale-compare.py             artifacts/legacy-scale/legacy1x-http.json             artifacts/legacy-scale/legacy4x-http.json             --json-output artifacts/legacy-scale/comparison.json             --markdown-output artifacts/legacy-scale/report.md
+
+      - name: Upload issue 2274 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-2274-legacy-4x-performance
+          path: artifacts/legacy-scale/
+          if-no-files-found: error
+          retention-days: 30
