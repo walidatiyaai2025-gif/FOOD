@@ -12,6 +12,10 @@ use RuntimeException;
 
 class EnterprisePerformanceSeeder extends Seeder
 {
+    public const LOAD_USERS = 50;
+
+    public const FIELD_USERS = 25;
+
     private const PREFIX = 'PERF-';
 
     /**
@@ -257,7 +261,7 @@ class EnterprisePerformanceSeeder extends Seeder
         $password = Hash::make('performance-password');
         $now = $this->anchor;
 
-        for ($index = 1; $index <= 25; $index++) {
+        for ($index = 1; $index <= self::FIELD_USERS; $index++) {
             $userId = (int) DB::table('users')->insertGetId([
                 'name' => sprintf('Performance Driver %02d', $index),
                 'username' => sprintf('perf_driver_%03d', $index),
@@ -285,7 +289,7 @@ class EnterprisePerformanceSeeder extends Seeder
             ]);
         }
 
-        for ($index = 1; $index <= 25; $index++) {
+        for ($index = 1; $index <= self::LOAD_USERS - self::FIELD_USERS; $index++) {
             $userId = (int) DB::table('users')->insertGetId([
                 'name' => sprintf('Performance Office %02d', $index),
                 'username' => sprintf('perf_office_%03d', $index),
