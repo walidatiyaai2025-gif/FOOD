@@ -189,6 +189,29 @@ class EnterprisePerformanceCompareTest(unittest.TestCase):
         self.assertEqual("FAIL", result["status"])
         self.assertTrue(any("environment fingerprint mismatch" in item for item in result["failures"]))
 
+    def test_github_smoke_ignores_small_absolute_latency_jitter_only(self) -> None:
+        baseline = report(source="a" * 40, baseline=None, p95=10.0, p99=12.0)
+        baseline["profile"] = "smoke"
+        candidate = report(
+            source="b" * 40,
+            baseline="a" * 40,
+            p95=12.0,
+            p99=15.0,
+        )
+        candidate["profile"] = "smoke"
+
+        result = MODULE.compare_reports(baseline, candidate)
+        self.assertEqual("PASS", result["status"])
+
+        candidate["scenarios"][0]["metrics"]["median_round_p95_ms"] = 22.0
+        candidate["scenarios"][0]["metrics"]["p99_ms"] = 35.0
+        result = MODULE.compare_reports(baseline, candidate)
+        checks = {item["name"]: item for item in result["scenarios"][0]["checks"]}
+
+        self.assertEqual("FAIL", result["status"])
+        self.assertEqual("FAIL", checks["p95"]["status"])
+        self.assertEqual("FAIL", checks["p99"]["status"])
+
     def test_cpanel_php_patch_drift_remains_strict(self) -> None:
         baseline = report(source="a" * 40, baseline=None, cpanel=True)
         baseline["environment"]["php"] = "8.3.35"
