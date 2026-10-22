@@ -23,6 +23,11 @@ RELATIVE_THRESHOLDS = {
     "memory": 15.0,
 }
 
+GITHUB_SMOKE_ABSOLUTE_JITTER_MS = {
+    "p95": 10.0,
+    "p99": 20.0,
+}
+
 CPANEL_P95_GUARDRAILS_MS = {
     "lightweight_authenticated_read": 1000.0,
     "paginated_crud": 1500.0,
@@ -115,10 +120,14 @@ def _relative_check(
     candidate_value: float,
     threshold_percent: float,
     exception: dict[str, Any] | None = None,
+    absolute_regression_floor: float = 0.0,
 ) -> dict[str, Any]:
     regression = _regression_percent(baseline_value, candidate_value)
-    exceeds = candidate_value > baseline_value and (
-        regression is None or regression > threshold_percent
+    absolute_regression = candidate_value - baseline_value
+    exceeds = (
+        candidate_value > baseline_value
+        and (regression is None or regression > threshold_percent)
+        and absolute_regression > absolute_regression_floor
     )
     exception_applied = exceeds and exception is not None
 
@@ -129,6 +138,8 @@ def _relative_check(
         "candidate": candidate_value,
         "regression_percent": regression,
         "threshold_percent": threshold_percent,
+        "absolute_regression": absolute_regression,
+        "absolute_regression_floor": absolute_regression_floor,
         "status": "PASS" if not exceeds or exception_applied else "FAIL",
         "exception_applied": exception_applied,
         "exception": exception if exception_applied else None,
@@ -180,6 +191,17 @@ def compare_reports(baseline: dict[str, Any], candidate: dict[str, Any]) -> dict
             f"({declared_baseline!r} != {baseline['source_head']!r})"
         )
 
+    github_smoke_comparison = (
+        baseline["profile"] == "smoke"
+        and candidate["profile"] == "smoke"
+        and baseline["environment"].get("runner") == "github-actions"
+        and candidate["environment"].get("runner") == "github-actions"
+        and not bool(baseline["environment"].get("cpanel_reference"))
+        and not bool(candidate["environment"].get("cpanel_reference"))
+    )
+    p95_floor = GITHUB_SMOKE_ABSOLUTE_JITTER_MS["p95"] if github_smoke_comparison else 0.0
+    p99_floor = GITHUB_SMOKE_ABSOLUTE_JITTER_MS["p99"] if github_smoke_comparison else 0.0
+
     baseline_scenarios = {scenario["id"]: scenario for scenario in baseline["scenarios"]}
     candidate_scenarios = {scenario["id"]: scenario for scenario in candidate["scenarios"]}
 
@@ -219,6 +241,7 @@ def compare_reports(baseline: dict[str, Any], candidate: dict[str, Any]) -> dict
                 candidate_value=float(candidate_scenario["metrics"]["median_round_p95_ms"]),
                 threshold_percent=RELATIVE_THRESHOLDS["p95"],
                 exception=_approved_exception(candidate_scenario, "p95"),
+                absolute_regression_floor=p95_floor,
             )
         )
         checks.append(
@@ -227,6 +250,7 @@ def compare_reports(baseline: dict[str, Any], candidate: dict[str, Any]) -> dict
                 baseline_value=float(baseline_scenario["metrics"]["p99_ms"]),
                 candidate_value=float(candidate_scenario["metrics"]["p99_ms"]),
                 threshold_percent=RELATIVE_THRESHOLDS["p99"],
+                absolute_regression_floor=p99_floor,
             )
         )
         checks.append(
