@@ -395,7 +395,7 @@ class FoodexWholesaleHeader extends StatelessWidget {
               const SizedBox(width: 6),
             ],
             ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 72),
+              constraints: const BoxConstraints(maxWidth: 56),
               child: Tooltip(
                 message: address == null || address!.trim().isEmpty
                     ? title
