@@ -47,6 +47,8 @@ $lastSnapshot = null;
 do {
     $rows = $pdo->query(
         "SHOW GLOBAL STATUS WHERE Variable_name IN (".
+        "'Innodb_redo_log_current_lsn',".
+        "'Innodb_redo_log_checkpoint_lsn',".
         "'Innodb_lsn_current',".
         "'Innodb_lsn_last_checkpoint',".
         "'Innodb_os_log_pending_writes',".
@@ -59,14 +61,22 @@ do {
         $status[(string) $row['Variable_name']] = (int) $row['Value'];
     }
 
-    if (! isset($status['Innodb_lsn_current'], $status['Innodb_lsn_last_checkpoint'])) {
-        throw new RuntimeException('Required InnoDB LSN status variables are unavailable.');
+    // Oracle MySQL 8.0.30+ exposes the redo-specific names. Keep the older
+    // LSN names as a compatibility fallback for Percona/older deployments.
+    $currentLsn = $status['Innodb_redo_log_current_lsn']
+        ?? $status['Innodb_lsn_current']
+        ?? null;
+    $checkpointLsn = $status['Innodb_redo_log_checkpoint_lsn']
+        ?? $status['Innodb_lsn_last_checkpoint']
+        ?? null;
+
+    if ($currentLsn === null || $checkpointLsn === null) {
+        throw new RuntimeException(
+            'Required InnoDB redo checkpoint status variables are unavailable.',
+        );
     }
 
-    $checkpointLag = max(
-        0,
-        $status['Innodb_lsn_current'] - $status['Innodb_lsn_last_checkpoint'],
-    );
+    $checkpointLag = max(0, $currentLsn - $checkpointLsn);
     $pendingWrites = $status['Innodb_os_log_pending_writes'] ?? 0;
     $pendingFsyncs = $status['Innodb_os_log_pending_fsyncs'] ?? 0;
 
