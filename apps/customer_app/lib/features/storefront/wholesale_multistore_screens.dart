@@ -5463,12 +5463,18 @@ class WholesaleCartDesignScreen extends StatefulWidget {
     required this.location,
     required this.api,
     required this.commerceApi,
+    this.session,
+    this.onLocaleChanged,
+    this.onLogout,
     super.key,
   });
 
   final String location;
   final B2bApi? api;
   final WholesaleCommerceApi? commerceApi;
+  final CustomerSession? session;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
 
   @override
   State<WholesaleCartDesignScreen> createState() =>
@@ -5668,6 +5674,9 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
           body: FoodexUnifiedHeaderSurface(
             title: context.tr('b2b.app.title'),
             location: widget.location,
+            isAuthenticated: widget.session?.isAuthenticated ?? true,
+            onLocaleChanged: widget.onLocaleChanged,
+            onLogout: widget.onLogout,
             searchHint: context.tr(
               'customer.products.search_name_sku_barcode',
             ),
@@ -6182,12 +6191,18 @@ class WholesaleCheckoutDesignScreen extends StatefulWidget {
     required this.location,
     required this.storefrontApi,
     required this.commerceApi,
+    this.session,
+    this.onLocaleChanged,
+    this.onLogout,
     super.key,
   });
 
   final String location;
   final StorefrontApi? storefrontApi;
   final WholesaleCommerceApi? commerceApi;
+  final CustomerSession? session;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
 
   @override
   State<WholesaleCheckoutDesignScreen> createState() =>
@@ -6394,6 +6409,9 @@ class _WholesaleCheckoutDesignScreenState
           body: FoodexUnifiedHeaderSurface(
             title: context.tr('b2b.app.title'),
             location: widget.location,
+            isAuthenticated: widget.session?.isAuthenticated ?? true,
+            onLocaleChanged: widget.onLocaleChanged,
+            onLogout: widget.onLogout,
             searchHint: context.tr(
               'customer.products.search_name_sku_barcode',
             ),
@@ -7120,12 +7138,18 @@ class WholesaleOrdersDesignScreen extends StatefulWidget {
     required this.location,
     required this.api,
     required this.commerceApi,
+    this.session,
+    this.onLocaleChanged,
+    this.onLogout,
     super.key,
   });
 
   final String location;
   final B2bApi? api;
   final WholesaleCommerceApi? commerceApi;
+  final CustomerSession? session;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
 
   @override
   State<WholesaleOrdersDesignScreen> createState() =>
@@ -7640,11 +7664,17 @@ class WholesaleOrderDetailsDesignScreen extends StatefulWidget {
   const WholesaleOrderDetailsDesignScreen({
     required this.location,
     required this.api,
+    this.session,
+    this.onLocaleChanged,
+    this.onLogout,
     super.key,
   });
 
   final String location;
   final B2bApi? api;
+  final CustomerSession? session;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
 
   @override
   State<WholesaleOrderDetailsDesignScreen> createState() =>
@@ -7722,6 +7752,9 @@ class _WholesaleOrderDetailsDesignScreenState
           body: FoodexUnifiedHeaderSurface(
             title: context.tr('b2b.app.title'),
             location: widget.location,
+            isAuthenticated: widget.session?.isAuthenticated ?? true,
+            onLocaleChanged: widget.onLocaleChanged,
+            onLogout: widget.onLogout,
             searchHint: context.tr(
               'customer.products.search_name_sku_barcode',
             ),
