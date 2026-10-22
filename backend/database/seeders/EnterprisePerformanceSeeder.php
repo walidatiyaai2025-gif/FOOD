@@ -6,11 +6,16 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 class EnterprisePerformanceSeeder extends Seeder
 {
+    public const LOAD_USERS = 50;
+
+    public const FIELD_USERS = 25;
+
     private const PREFIX = 'PERF-';
 
     /**
@@ -51,6 +56,30 @@ class EnterprisePerformanceSeeder extends Seeder
             'stock_movements' => 25000,
             'finance_records' => 10000,
             'audit_events_messages' => 25000,
+        ],
+        'legacy1x' => [
+            'tenants' => 3,
+            'stores' => 6,
+            'warehouses' => 12,
+            'products' => 600,
+            'customers' => 3600,
+            'orders' => 12500,
+            'order_items' => 187500,
+            'stock_movements' => 62500,
+            'finance_records' => 25000,
+            'audit_events_messages' => 62500,
+        ],
+        'legacy4x' => [
+            'tenants' => 3,
+            'stores' => 6,
+            'warehouses' => 12,
+            'products' => 2400,
+            'customers' => 14400,
+            'orders' => 50000,
+            'order_items' => 750000,
+            'stock_movements' => 250000,
+            'finance_records' => 100000,
+            'audit_events_messages' => 250000,
         ],
         'heavy' => [
             'tenants' => 3,
@@ -104,6 +133,10 @@ class EnterprisePerformanceSeeder extends Seeder
         $this->seedFinance($profileName, $profile);
         $this->seedAudit($profileName, $profile, array_keys($stores));
 
+        if (str_starts_with($profileName, 'legacy')) {
+            $this->seedLoadUsers($stores);
+        }
+
         $manifest = $this->manifest($profileName, $profile);
         $this->assertManifest($profile, $manifest['actual']);
         $this->writeManifest($manifest);
@@ -127,6 +160,8 @@ class EnterprisePerformanceSeeder extends Seeder
 
     private function cleanupFixture(): void
     {
+        $this->cleanupLoadUsers();
+
         DB::table('payments')->where('provider_reference', 'like', self::PREFIX.'%')->delete();
         DB::table('invoices')->where('invoice_number', 'like', self::PREFIX.'%')->delete();
         DB::table('orders')->where('order_number', 'like', self::PREFIX.'%')->delete();
@@ -153,6 +188,124 @@ class EnterprisePerformanceSeeder extends Seeder
         DB::table('products')->where('sku', 'like', self::PREFIX.'%')->delete();
         DB::table('catalogs')->where('code', 'like', 'perf-%')->delete();
         DB::table('stores')->where('code', 'like', self::PREFIX.'%')->delete();
+    }
+
+    private function cleanupLoadUsers(): void
+    {
+        $userIds = DB::table('users')
+            ->where(function ($query): void {
+                $query->where('email', 'like', 'perf-driver-%@example.test')
+                    ->orWhere('email', 'like', 'perf-office-%@example.test');
+            })
+            ->pluck('id');
+
+        if ($userIds->isEmpty()) {
+            return;
+        }
+
+        $driverIds = DB::table('drivers')
+            ->whereIn('user_id', $userIds)
+            ->pluck('id');
+
+        if ($driverIds->isNotEmpty()) {
+            if (Schema::hasTable('driver_current_locations')) {
+                DB::table('driver_current_locations')->whereIn('driver_id', $driverIds)->delete();
+            }
+
+            if (Schema::hasTable('fleet_current_locations')) {
+                DB::table('fleet_current_locations')
+                    ->where('actor_type', 'driver')
+                    ->whereIn('actor_id', $driverIds)
+                    ->delete();
+            }
+
+            DB::table('drivers')->whereIn('id', $driverIds)->delete();
+        }
+
+        if (Schema::hasTable('personal_access_tokens')) {
+            DB::table('personal_access_tokens')
+                ->where('tokenable_type', 'App\\Models\\User')
+                ->whereIn('tokenable_id', $userIds)
+                ->delete();
+        }
+
+        DB::table('role_user')->whereIn('user_id', $userIds)->delete();
+
+        if (Schema::hasTable('user_store_roles')) {
+            DB::table('user_store_roles')->whereIn('user_id', $userIds)->delete();
+        }
+
+        DB::table('users')->whereIn('id', $userIds)->delete();
+    }
+
+    /**
+     * Provision the deterministic 50-user workload required by #2274:
+     * 25 active field/Driver users and 25 office/SUPER_ADMIN users.
+     *
+     * @param array<int, int> $stores
+     */
+    private function seedLoadUsers(array $stores): void
+    {
+        $driverRoleId = (int) DB::table('roles')->where('code', 'B2C_DRIVER')->value('id');
+        $officeRoleId = (int) DB::table('roles')->where('code', 'SUPER_ADMIN')->value('id');
+
+        if ($driverRoleId <= 0 || $officeRoleId <= 0) {
+            throw new RuntimeException('Performance load users require B2C_DRIVER and SUPER_ADMIN roles.');
+        }
+
+        $storeIds = array_keys($stores);
+        if ($storeIds === []) {
+            throw new RuntimeException('Performance load users require at least one seeded store.');
+        }
+
+        $password = Hash::make('performance-password');
+        $now = $this->anchor;
+
+        for ($index = 1; $index <= self::FIELD_USERS; $index++) {
+            $userId = (int) DB::table('users')->insertGetId([
+                'name' => sprintf('Performance Driver %02d', $index),
+                'username' => sprintf('perf_driver_%03d', $index),
+                'email' => sprintf('perf-driver-%03d@example.test', $index),
+                'password' => $password,
+                'locale' => 'en',
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+            DB::table('role_user')->insert([
+                'role_id' => $driverRoleId,
+                'user_id' => $userId,
+            ]);
+
+            DB::table('drivers')->insert([
+                'user_id' => $userId,
+                'store_id' => $storeIds[($index - 1) % count($storeIds)],
+                'driver_type' => 'b2c',
+                'is_available' => true,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+
+        for ($index = 1; $index <= self::LOAD_USERS - self::FIELD_USERS; $index++) {
+            $userId = (int) DB::table('users')->insertGetId([
+                'name' => sprintf('Performance Office %02d', $index),
+                'username' => sprintf('perf_office_%03d', $index),
+                'email' => sprintf('perf-office-%03d@example.test', $index),
+                'password' => $password,
+                'locale' => 'en',
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+            DB::table('role_user')->insert([
+                'role_id' => $officeRoleId,
+                'user_id' => $userId,
+            ]);
+        }
     }
 
     /**

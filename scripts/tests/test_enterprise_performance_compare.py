@@ -175,6 +175,54 @@ class EnterprisePerformanceCompareTest(unittest.TestCase):
         self.assertTrue(any("missing baseline scenario" in item for item in result["failures"]))
         self.assertTrue(any("no accepted baseline" in item for item in result["failures"]))
 
+    def test_github_php_patch_drift_is_equivalent_but_minor_drift_fails(self) -> None:
+        baseline = report(source="a" * 40, baseline=None)
+        baseline["environment"]["php"] = "8.3.35"
+        candidate = report(source="b" * 40, baseline="a" * 40)
+        candidate["environment"]["php"] = "8.3.36"
+
+        self.assertEqual("PASS", MODULE.compare_reports(baseline, candidate)["status"])
+
+        candidate["environment"]["php"] = "8.4.0"
+        result = MODULE.compare_reports(baseline, candidate)
+
+        self.assertEqual("FAIL", result["status"])
+        self.assertTrue(any("environment fingerprint mismatch" in item for item in result["failures"]))
+
+    def test_github_smoke_ignores_small_absolute_latency_jitter_only(self) -> None:
+        baseline = report(source="a" * 40, baseline=None, p95=10.0, p99=12.0)
+        baseline["profile"] = "smoke"
+        candidate = report(
+            source="b" * 40,
+            baseline="a" * 40,
+            p95=12.0,
+            p99=15.0,
+        )
+        candidate["profile"] = "smoke"
+
+        result = MODULE.compare_reports(baseline, candidate)
+        self.assertEqual("PASS", result["status"])
+
+        candidate["scenarios"][0]["metrics"]["median_round_p95_ms"] = 22.0
+        candidate["scenarios"][0]["metrics"]["p99_ms"] = 35.0
+        result = MODULE.compare_reports(baseline, candidate)
+        checks = {item["name"]: item for item in result["scenarios"][0]["checks"]}
+
+        self.assertEqual("FAIL", result["status"])
+        self.assertEqual("FAIL", checks["p95"]["status"])
+        self.assertEqual("FAIL", checks["p99"]["status"])
+
+    def test_cpanel_php_patch_drift_remains_strict(self) -> None:
+        baseline = report(source="a" * 40, baseline=None, cpanel=True)
+        baseline["environment"]["php"] = "8.3.35"
+        candidate = report(source="b" * 40, baseline="a" * 40, cpanel=True)
+        candidate["environment"]["php"] = "8.3.36"
+
+        result = MODULE.compare_reports(baseline, candidate)
+
+        self.assertEqual("FAIL", result["status"])
+        self.assertTrue(any("environment fingerprint mismatch" in item for item in result["failures"]))
+
     def test_slow_query_threshold_is_reported_as_investigation_warning(self) -> None:
         baseline = report(source="a" * 40, baseline=None)
         candidate = report(source="b" * 40, baseline="a" * 40)

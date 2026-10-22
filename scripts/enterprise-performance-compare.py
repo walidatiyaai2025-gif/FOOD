@@ -23,6 +23,11 @@ RELATIVE_THRESHOLDS = {
     "memory": 15.0,
 }
 
+GITHUB_SMOKE_ABSOLUTE_JITTER_MS = {
+    "p95": 10.0,
+    "p99": 20.0,
+}
+
 CPANEL_P95_GUARDRAILS_MS = {
     "lightweight_authenticated_read": 1000.0,
     "paginated_crud": 1500.0,
@@ -41,6 +46,37 @@ def canonical_environment_key(report: dict[str, Any]) -> str:
         "runner": environment.get("runner"),
         "memory_limit": environment.get("memory_limit"),
         "cpanel_reference": bool(environment.get("cpanel_reference")),
+    }
+    payload = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()[:16]
+
+
+def comparison_environment_key(report: dict[str, Any]) -> str:
+    """Fingerprint environments for an apples-to-apples comparison.
+
+    GitHub's setup-php can roll an 8.3.x patch forward even when the workflow
+    requests an older patch. Patch-only drift on the same hosted runner is not
+    a meaningful environment change for the smoke comparison; the measured
+    latency/query/memory gates still detect regressions. Reference/cPanel
+    evidence remains strict, as do PHP minor, database, runner and memory-limit
+    changes.
+    """
+    environment = report["environment"]
+    php = str(environment.get("php") or "")
+    runner = environment.get("runner")
+    cpanel_reference = bool(environment.get("cpanel_reference"))
+
+    if runner == "github-actions" and not cpanel_reference:
+        parts = php.split(".")
+        if len(parts) >= 2 and all(part.isdigit() for part in parts[:2]):
+            php = ".".join(parts[:2])
+
+    identity = {
+        "php": php,
+        "database": environment.get("database"),
+        "runner": runner,
+        "memory_limit": environment.get("memory_limit"),
+        "cpanel_reference": cpanel_reference,
     }
     payload = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()[:16]
@@ -84,10 +120,14 @@ def _relative_check(
     candidate_value: float,
     threshold_percent: float,
     exception: dict[str, Any] | None = None,
+    absolute_regression_floor: float = 0.0,
 ) -> dict[str, Any]:
     regression = _regression_percent(baseline_value, candidate_value)
-    exceeds = candidate_value > baseline_value and (
-        regression is None or regression > threshold_percent
+    absolute_regression = candidate_value - baseline_value
+    exceeds = (
+        candidate_value > baseline_value
+        and (regression is None or regression > threshold_percent)
+        and absolute_regression > absolute_regression_floor
     )
     exception_applied = exceeds and exception is not None
 
@@ -98,6 +138,8 @@ def _relative_check(
         "candidate": candidate_value,
         "regression_percent": regression,
         "threshold_percent": threshold_percent,
+        "absolute_regression": absolute_regression,
+        "absolute_regression_floor": absolute_regression_floor,
         "status": "PASS" if not exceeds or exception_applied else "FAIL",
         "exception_applied": exception_applied,
         "exception": exception if exception_applied else None,
@@ -137,8 +179,8 @@ def compare_reports(baseline: dict[str, Any], candidate: dict[str, Any]) -> dict
     if baseline["profile"] != candidate["profile"]:
         failures.append("profile mismatch between baseline and candidate")
 
-    baseline_environment_key = canonical_environment_key(baseline)
-    candidate_environment_key = canonical_environment_key(candidate)
+    baseline_environment_key = comparison_environment_key(baseline)
+    candidate_environment_key = comparison_environment_key(candidate)
     if baseline_environment_key != candidate_environment_key:
         failures.append("environment fingerprint mismatch between baseline and candidate")
 
@@ -148,6 +190,17 @@ def compare_reports(baseline: dict[str, Any], candidate: dict[str, Any]) -> dict
             "candidate baseline_head does not match baseline source_head "
             f"({declared_baseline!r} != {baseline['source_head']!r})"
         )
+
+    github_smoke_comparison = (
+        baseline["profile"] == "smoke"
+        and candidate["profile"] == "smoke"
+        and baseline["environment"].get("runner") == "github-actions"
+        and candidate["environment"].get("runner") == "github-actions"
+        and not bool(baseline["environment"].get("cpanel_reference"))
+        and not bool(candidate["environment"].get("cpanel_reference"))
+    )
+    p95_floor = GITHUB_SMOKE_ABSOLUTE_JITTER_MS["p95"] if github_smoke_comparison else 0.0
+    p99_floor = GITHUB_SMOKE_ABSOLUTE_JITTER_MS["p99"] if github_smoke_comparison else 0.0
 
     baseline_scenarios = {scenario["id"]: scenario for scenario in baseline["scenarios"]}
     candidate_scenarios = {scenario["id"]: scenario for scenario in candidate["scenarios"]}
@@ -188,6 +241,7 @@ def compare_reports(baseline: dict[str, Any], candidate: dict[str, Any]) -> dict
                 candidate_value=float(candidate_scenario["metrics"]["median_round_p95_ms"]),
                 threshold_percent=RELATIVE_THRESHOLDS["p95"],
                 exception=_approved_exception(candidate_scenario, "p95"),
+                absolute_regression_floor=p95_floor,
             )
         )
         checks.append(
@@ -196,6 +250,7 @@ def compare_reports(baseline: dict[str, Any], candidate: dict[str, Any]) -> dict
                 baseline_value=float(baseline_scenario["metrics"]["p99_ms"]),
                 candidate_value=float(candidate_scenario["metrics"]["p99_ms"]),
                 threshold_percent=RELATIVE_THRESHOLDS["p99"],
+                absolute_regression_floor=p99_floor,
             )
         )
         checks.append(

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\FleetCurrentLocation;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -21,50 +22,68 @@ final class FleetLocationService
         }
 
         $capturedAt = CarbonImmutable::parse((string) $attributes['captured_at']);
+        $values = [
+            'vehicle_id' => $attributes['vehicle_id'] ?? ($attributes['van_id'] ?? null),
+            'assignment_id' => $attributes['assignment_id'] ?? null,
+            'route_key' => $attributes['route_key'] ?? null,
+            'store_id' => $attributes['store_id'] ?? null,
+            'channel' => $attributes['channel'] ?? null,
+            'latitude' => $attributes['latitude'],
+            'longitude' => $attributes['longitude'],
+            'accuracy' => $attributes['accuracy'] ?? null,
+            'speed' => $attributes['speed'] ?? null,
+            'heading' => $attributes['heading'] ?? null,
+            'captured_at' => $capturedAt,
+            'received_at' => now(),
+            'source_app' => $attributes['source_app'] ?? 'unknown',
+            'app_version' => $attributes['app_version'] ?? null,
+            'is_mocked' => $attributes['is_mocked'] ?? null,
+        ];
 
-        return DB::transaction(function () use ($actorType, $actorId, $attributes, $capturedAt): FleetCurrentLocation {
+        // Never take a next-key/gap lock before the first insert. With many new
+        // actors arriving together, SELECT ... FOR UPDATE on a missing composite
+        // unique key can deadlock unrelated actor inserts in InnoDB.
+        $current = FleetCurrentLocation::query()
+            ->where('actor_type', $actorType)
+            ->where('actor_id', $actorId)
+            ->first();
+
+        if (! $current instanceof FleetCurrentLocation) {
+            try {
+                return FleetCurrentLocation::query()->create([
+                    'actor_type' => $actorType,
+                    'actor_id' => $actorId,
+                    ...$values,
+                ]);
+            } catch (QueryException $exception) {
+                // A concurrent heartbeat for the same actor may have won the
+                // insert race. Only continue when that authoritative row now
+                // exists; otherwise preserve the original database failure.
+                $current = FleetCurrentLocation::query()
+                    ->where('actor_type', $actorType)
+                    ->where('actor_id', $actorId)
+                    ->first();
+
+                if (! $current instanceof FleetCurrentLocation) {
+                    throw $exception;
+                }
+            }
+        }
+
+        return DB::transaction(function () use ($actorType, $actorId, $values, $capturedAt): FleetCurrentLocation {
             $current = FleetCurrentLocation::query()
                 ->where('actor_type', $actorType)
                 ->where('actor_id', $actorId)
                 ->lockForUpdate()
-                ->first();
+                ->firstOrFail();
 
-            if (
-                $current instanceof FleetCurrentLocation
-                && CarbonImmutable::parse((string) $current->captured_at)->greaterThanOrEqualTo($capturedAt)
-            ) {
-                return $current->fresh();
+            if (CarbonImmutable::parse((string) $current->captured_at)->greaterThanOrEqualTo($capturedAt)) {
+                return $current;
             }
 
-            $values = [
-                'vehicle_id' => $attributes['vehicle_id'] ?? ($attributes['van_id'] ?? null),
-                'assignment_id' => $attributes['assignment_id'] ?? null,
-                'route_key' => $attributes['route_key'] ?? null,
-                'store_id' => $attributes['store_id'] ?? null,
-                'channel' => $attributes['channel'] ?? null,
-                'latitude' => $attributes['latitude'],
-                'longitude' => $attributes['longitude'],
-                'accuracy' => $attributes['accuracy'] ?? null,
-                'speed' => $attributes['speed'] ?? null,
-                'heading' => $attributes['heading'] ?? null,
-                'captured_at' => $capturedAt,
-                'received_at' => now(),
-                'source_app' => $attributes['source_app'] ?? 'unknown',
-                'app_version' => $attributes['app_version'] ?? null,
-                'is_mocked' => $attributes['is_mocked'] ?? null,
-            ];
+            $current->forceFill($values)->save();
 
-            if ($current instanceof FleetCurrentLocation) {
-                $current->forceFill($values)->save();
-
-                return $current->fresh();
-            }
-
-            return FleetCurrentLocation::query()->create([
-                'actor_type' => $actorType,
-                'actor_id' => $actorId,
-                ...$values,
-            ]);
+            return $current;
         }, 3);
     }
 
