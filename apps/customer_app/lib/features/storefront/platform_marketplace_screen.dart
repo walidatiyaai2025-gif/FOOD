@@ -51,7 +51,6 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
   int _bannerCount = -1;
   int? _selectedCategoryId;
   String? _pendingAfterAuth;
-  List<Map<String, dynamic>>? _retailStoreFallback;
   CustomerCommerceContext? _lastChosenCommerceContext;
 
   CustomerSession get _currentSession =>
@@ -89,65 +88,22 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     );
     final data = await _get(uri.toString());
 
-    // Keep one platform-wide store switcher for guest and signed-in users.
-    // Dashboard placements keep their configured order, then any active Retail
-    // stores missing from placements are appended from the public store list.
-    // Authentication never locks the customer into the current store.
+    // The platform storefront API is authoritative for Retail discovery.
+    // It returns configured placements first, then every eligible active B2C
+    // store as a fallback row. Keep a defensive per-store dedupe in the app so
+    // a malformed duplicate placement can never duplicate the store carousel.
     final configuredRetail = _rows(data['retail_banners']);
-    _retailStoreFallback ??= await _loadRetailStoreFallback(baseUrl);
-    final retailCarousel = _mergeRetailStoreCarousel(
-      configuredRetail,
-      _retailStoreFallback!,
-    );
-    if (retailCarousel.isNotEmpty) {
-      data['retail_banners'] = retailCarousel;
-    }
+    data['retail_banners'] = _mergeRetailStoreCarousel(configuredRetail);
 
     return data;
   }
 
-  Future<List<Map<String, dynamic>>> _loadRetailStoreFallback(
-    String baseUrl,
-  ) async {
-    try {
-      final payload = await _get('$baseUrl/api/v1/stores');
-      return _rows(payload['data'])
-          .where((store) => _int(store['id']) > 0)
-          .map((store) {
-        final id = _int(store['id']);
-        final name = store['name']?.toString().trim() ?? '';
-        return <String, dynamic>{
-          ...store,
-          'id': id,
-          'store_id': id,
-          'title': name,
-          'banner_url': store['banner_url'] ?? store['logo_url'],
-          'channel': 'b2c',
-          'placement_scope': 'guest_store_fallback',
-          'target_type': 'retail_store',
-          'target_id': id,
-          'target_url': '/retail/$id/home',
-        };
-      }).toList(growable: false);
-    } catch (_) {
-      return const <Map<String, dynamic>>[];
-    }
-  }
-
   List<Map<String, dynamic>> _mergeRetailStoreCarousel(
     List<Map<String, dynamic>> configuredRetail,
-    List<Map<String, dynamic>> publicStores,
   ) {
     final byStoreId = <int, Map<String, dynamic>>{};
 
     for (final store in configuredRetail) {
-      final id = _int(store['store_id'] ?? store['id']);
-      if (id > 0 && !byStoreId.containsKey(id)) {
-        byStoreId[id] = store;
-      }
-    }
-
-    for (final store in publicStores) {
       final id = _int(store['store_id'] ?? store['id']);
       if (id > 0 && !byStoreId.containsKey(id)) {
         byStoreId[id] = store;
@@ -229,7 +185,6 @@ class _PlatformMarketplaceScreenState extends State<PlatformMarketplaceScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.session.accessToken != widget.session.accessToken ||
         oldWidget.session.isAuthenticated != widget.session.isAuthenticated) {
-      _retailStoreFallback = null;
       _future = _load();
     }
   }
