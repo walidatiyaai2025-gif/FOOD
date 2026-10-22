@@ -476,8 +476,7 @@ class FoodexWholesaleHeader extends StatelessWidget {
               _FoodexWholesaleHeaderIcon(
                 key: notificationKey,
                 icon: Icons.notifications_none_rounded,
-                onTap:
-                    onNotifications ?? () => _defaultNotifications(context),
+                onTap: onNotifications ?? () => _defaultNotifications(context),
               ),
               const SizedBox(width: 4),
               ValueListenableBuilder<int>(
