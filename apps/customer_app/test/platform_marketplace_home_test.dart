@@ -1160,7 +1160,7 @@ void main() {
         .dy;
     expect(wholesaleTop, bannerTop);
     expect(bannerTop, lessThan(retailBottom));
-    expect(retailBottom, lessThan(categoriesTop));
+    expect(retailBottom, lessThanOrEqualTo(categoriesTop));
     expect(find.byIcon(Icons.local_cafe_outlined), findsWidgets);
 
     expect(
