@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.102 - 2026-10-22
+- Promote the latest authoritative `main` lineage through `e6fccacb53919610bce36e9c9efd54c3583259ec` as FOODEX 1.0.102.
+- Include the completed Wholesale Customer UI polish from #2360 / PR #2361: Home product-card sizing control, authenticated header account controls, guest-action hiding, simplified More shortcuts with Customer Service contact, Company Data cleanup, store-branding account image, and compact-card overflow fixes.
+- Rebuild the Dashboard cumulative update and Customer Android application from the exact 1.0.102 release source.
+- Keep Driver and Van functionally unchanged; only synchronize their release identities to `1.0.102+102` and rebuild their Android artifacts from the same exact source lineage.
+- Preserve the production API endpoint `https://foodex.50sols.com` and canonical release validation, checksum, update-manifest and provenance gates.
+
 ## 1.0.95 - 2026-10-20
 - Add SUPER_ADMIN Customer 360 identity editing for customer name, email and phone, keeping the canonical User, Platform Customer, legacy customer and B2B/B2C customer records synchronized.
 - Add Customer App password provisioning/reset directly from Customer 360, including account activation, previous Sanctum session revocation and auditable security events.
