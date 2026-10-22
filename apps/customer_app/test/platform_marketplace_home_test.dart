@@ -391,6 +391,8 @@ void main() {
     final primary = find.byKey(const ValueKey('marketplace-primary-banner'));
     final retailCarousel =
         find.byKey(const ValueKey('marketplace-retail-store-carousel'));
+    final retailBanner =
+        find.byKey(const ValueKey('marketplace-retail-banner-11'));
     final primaryBottom = tester.getBottomLeft(primary).dy;
     final retailTop = tester
         .getTopLeft(
@@ -402,6 +404,10 @@ void main() {
     expect(retailTop, greaterThanOrEqualTo(primaryBottom));
     expect(
       tester.getSize(retailCarousel).height,
+      closeTo(tester.getSize(primary).height / 2, 0.1),
+    );
+    expect(
+      tester.getSize(retailBanner).height,
       closeTo(tester.getSize(primary).height / 2, 0.1),
     );
 
