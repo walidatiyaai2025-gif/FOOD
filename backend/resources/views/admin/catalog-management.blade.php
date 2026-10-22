@@ -40,7 +40,7 @@ html[dir=ltr] .catalog-tabs-row .tabs{direction:ltr;justify-content:flex-start}
 .image-thumb{width:64px;height:64px;border-radius:12px;object-fit:cover;border:1px solid var(--foodex-border);background:var(--foodex-background)}.image-grid{display:flex;flex-wrap:wrap;gap:8px;min-width:180px}.image-item{display:grid;gap:4px;justify-items:start}.image-item.primary .image-thumb{outline:2px solid var(--foodex-green)}.image-upload{min-width:220px}.foodex-upload-preview{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px;min-height:0}.foodex-upload-preview img{width:64px;height:64px;object-fit:cover;border:1px solid var(--foodex-border);border-radius:10px;background:#fff}.foodex-upload-preview:empty{display:none}
 .catalog-grid-image{display:flex;align-items:center;gap:5px;min-width:70px}.catalog-grid-image-form{margin:0;display:flex;align-items:center}.catalog-grid-image-input{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;overflow:hidden!important;pointer-events:none}.catalog-grid-image-trigger{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;min-width:22px;padding:0;border:1px solid var(--foodex-border);border-radius:50%;background:#fff;color:var(--foodex-ink);font-size:.72rem;font-weight:900;cursor:pointer;line-height:1}.catalog-grid-image-trigger:hover{background:var(--foodex-background);border-color:var(--foodex-green)}.catalog-grid-image-form.is-uploading .catalog-grid-image-trigger{opacity:.6;pointer-events:none}.catalog-grid-image-note{font-size:.68rem;color:var(--foodex-muted)}
 .catalog-sort-link{display:inline-flex;align-items:center;gap:5px;color:inherit;text-decoration:none}.catalog-sort-link:hover{color:var(--foodex-green-dark)}.catalog-sort-arrow{font-size:.68rem;opacity:.7}
-.catalog-inline-price-form{display:flex;align-items:center;gap:5px;min-width:0}.catalog-inline-price-input{width:92px;min-width:0;padding:6px 7px;border:1px solid var(--foodex-border);border-radius:8px;background:#fff;font:inherit;font-weight:800}.catalog-inline-price-input:focus{outline:2px solid rgba(22,101,52,.13);border-color:var(--foodex-green)}.catalog-inline-price-save{width:25px;height:25px;min-width:25px;border:1px solid var(--foodex-border);border-radius:7px;background:#fff;color:var(--foodex-green-dark);cursor:pointer;font-weight:900;line-height:1}.catalog-inline-price-save:hover{background:var(--foodex-green-soft)}
+.catalog-inline-price-form,.catalog-inline-form{display:flex;align-items:center;gap:5px;min-width:0}.catalog-inline-price-input,.catalog-inline-input,.catalog-inline-select{width:100%;min-width:0;padding:6px 7px;border:1px solid var(--foodex-border);border-radius:8px;background:#fff;font:inherit;font-weight:700;box-sizing:border-box}.catalog-inline-price-input{width:92px;font-weight:800}.catalog-inline-input:focus,.catalog-inline-select:focus,.catalog-inline-price-input:focus{outline:2px solid rgba(22,101,52,.13);border-color:var(--foodex-green)}.catalog-inline-price-save,.catalog-inline-save{width:25px;height:25px;min-width:25px;border:1px solid var(--foodex-border);border-radius:7px;background:#fff;color:var(--foodex-green-dark);cursor:pointer;font-weight:900;line-height:1}.catalog-inline-price-save:hover,.catalog-inline-save:hover{background:var(--foodex-green-soft)}.catalog-inline-toggle{border:1px solid var(--foodex-border);border-radius:999px;background:#fff;padding:6px 9px;cursor:pointer;font-weight:800;white-space:nowrap}.catalog-inline-toggle.on{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.catalog-inline-toggle.off{color:var(--foodex-muted)}.catalog-inline-stock{display:grid;grid-template-columns:minmax(80px,1fr) auto;gap:5px;align-items:center}.catalog-inline-stock select{grid-column:1/-1}
 .catalog-products-shell{display:grid;gap:12px}
 .catalog-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .catalog-toolbar-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -154,20 +154,28 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 <section class="card catalog-table-card table-wrap">
 <table class="catalog-products-table" data-pagination-required>
 <thead><tr>
-<th style="width:28%"><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'name','product_dir'=>($productFilters['sort']==='name' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'المنتج':'Product' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='name' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
-<th class="catalog-col-category" style="width:13%"><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'category','product_dir'=>($productFilters['sort']==='category' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'التصنيف':'Category' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='category' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
-<th style="width:12%"><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'price','product_dir'=>($productFilters['sort']==='price' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'السعر':'Price' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='price' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
-<th style="width:12%"><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'stock','product_dir'=>($productFilters['sort']==='stock' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'المخزون':'Stock' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='stock' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
-<th class="catalog-col-sku" style="width:12%"><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'sku','product_dir'=>($productFilters['sort']==='sku' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'رمز المنتج':'SKU' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='sku' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
-<th class="catalog-col-brand" style="width:11%"><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'brand','product_dir'=>($productFilters['sort']==='brand' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'العلامة التجارية':'Brand' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='brand' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
-<th style="width:8%"><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'status','product_dir'=>($productFilters['sort']==='status' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'الحالة':'Status' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='status' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
-<th style="width:4%">{{ app()->getLocale()==='ar'?'الإجراءات':'Actions' }}</th>
+<th><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'name','product_dir'=>($productFilters['sort']==='name' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'المنتج':'Product' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='name' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
+<th class="catalog-col-category"><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'category','product_dir'=>($productFilters['sort']==='category' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'التصنيف':'Category' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='category' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
+<th><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'price','product_dir'=>($productFilters['sort']==='price' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'السعر':'Price' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='price' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
+<th><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'stock','product_dir'=>($productFilters['sort']==='stock' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'المخزون':'Stock' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='stock' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
+<th>{{ app()->getLocale()==='ar'?'حد المخزون المنخفض':'Low stock' }}</th>
+<th>{{ app()->getLocale()==='ar'?'عرض في التطبيق':'Show in app' }}</th>
+<th class="catalog-col-sku"><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'sku','product_dir'=>($productFilters['sort']==='sku' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'رمز المنتج':'SKU' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='sku' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
+<th class="catalog-col-brand"><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'brand','product_dir'=>($productFilters['sort']==='brand' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'العلامة التجارية':'Brand' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='brand' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
+<th>{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}</th>
+<th><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'status','product_dir'=>($productFilters['sort']==='status' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'الحالة':'Status' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='status' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
+<th>{{ app()->getLocale()==='ar'?'الإجراءات':'Actions' }}</th>
 </tr></thead>
 <tbody>
 @forelse($products as $p)
 @php($assignment=$assignments->get($p->catalog_store_id.':'.$p->id))
 @php($currency=$currencies->get((int)$p->catalog_store_id))
 @php($images=$productImages->get($p->id,collect()))
+@php($rowWarehouses=$catalogWarehouses->get((int)$p->catalog_store_id,collect()))
+@php($isB2b=strtolower((string)$p->catalog_channel)==='b2b')
+@php($stockWarehouseId=$isB2b && $principalWarehouseId ? (int)$principalWarehouseId : (($rowWarehouses->first()->id ?? null) ? (int)$rowWarehouses->first()->id : null))
+@php($stockPosition=$stockWarehouseId ? $inventoryPositions->get($stockWarehouseId.':'.$p->id) : null)
+@php($appVisible=(bool)($p->grid_app_visible ?? false))
 <tr class="catalog-product-row">
 <td class="catalog-mobile-full">
 <div class="catalog-product-cell">
@@ -184,34 +192,60 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 </form>
 </div>
 <div class="catalog-product-copy">
-<div class="catalog-product-name" title="{{ $p->name }}">{{ $p->name }}</div>
+<form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">@csrf @method('PATCH')
+<input type="hidden" name="field" value="name">
+@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif
+<input class="catalog-inline-input" name="value" value="{{ $p->name }}" required maxlength="255" aria-label="{{ app()->getLocale()==='ar'?'اسم المنتج':'Product name' }}">
+<button class="catalog-inline-save" type="submit" aria-label="{{ app()->getLocale()==='ar'?'حفظ الاسم':'Save name' }}">✓</button>
+</form>
 @if($p->description)<div class="catalog-product-sub" title="{{ $p->description }}">{{ $p->description }}</div>@endif
 </div>
 </div>
 </td>
-<td class="catalog-col-category" data-label="{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}">{{ $p->category ?: '—' }}</td>
+<td class="catalog-col-category" data-label="{{ app()->getLocale()==='ar'?'التصنيف':'Category' }}">
+<form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">@csrf @method('PATCH')
+<input type="hidden" name="field" value="category_id">@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif
+<select class="catalog-inline-select" name="value" onchange="this.form.submit()"><option value="">—</option>@foreach($categories->where('catalog_id',$p->catalog_id) as $category)<option value="{{ $category->id }}" @selected((int)$p->category_id===(int)$category->id)>{{ $category->name }}</option>@endforeach</select>
+</form></td>
 <td data-label="{{ app()->getLocale()==='ar'?'السعر':'Price' }}">
-<form method="post" action="{{ route('admin.catalog.products.price',$p->id) }}" class="catalog-inline-price-form">
+<form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-price-form">
 @csrf @method('PATCH')
+<input type="hidden" name="field" value="price">
 @if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif
-<input class="catalog-inline-price-input" type="number" step=".001" min="0" name="price" value="{{ $p->grid_price }}" inputmode="decimal" aria-label="{{ app()->getLocale()==='ar'?'سعر المنتج':'Product price' }}" placeholder="—">
+<input class="catalog-inline-price-input" type="number" step=".001" min="0" name="value" value="{{ $p->grid_price }}" inputmode="decimal" aria-label="{{ app()->getLocale()==='ar'?'سعر المنتج':'Product price' }}" placeholder="—">
 @if($currency)<span class="catalog-currency">{{ $currency }}</span>@endif
 <button type="submit" class="catalog-inline-price-save" title="{{ app()->getLocale()==='ar'?'حفظ السعر':'Save price' }}" aria-label="{{ app()->getLocale()==='ar'?'حفظ السعر':'Save price' }}">✓</button>
 </form>
 </td>
 <td data-label="{{ app()->getLocale()==='ar'?'المخزون':'Stock' }}">
-@if($p->is_available)
-<span class="catalog-stock" data-availability-state="AVAILABLE"><span class="catalog-stock-dot"></span>{{ \App\Support\DisplayNumber::quantity((float)$p->available_quantity) }}</span>
+@if($stockWarehouseId)
+<form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-stock" data-inline-stock-form>@csrf @method('PATCH')
+<input type="hidden" name="field" value="stock_quantity">@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif
+@if($isB2b)
+<input type="hidden" name="warehouse_id" value="{{ $stockWarehouseId }}">
+@elseif($rowWarehouses->count()>1)
+<select class="catalog-inline-select" name="warehouse_id" data-inline-stock-warehouse>@foreach($rowWarehouses as $warehouse)@php($position=$inventoryPositions->get($warehouse->id.':'.$p->id))<option value="{{ $warehouse->id }}" data-quantity="{{ (float)($position->quantity ?? 0) }}" data-reserved="{{ (float)($position->reserved_quantity ?? 0) }}">{{ $warehouse->name }}</option>@endforeach</select>
 @else
-<span class="catalog-stock out" data-availability-state="OUT_OF_STOCK"><span class="catalog-stock-dot"></span>{{ app()->getLocale()==='ar'?'نفد':'Out' }}</span>
+<input type="hidden" name="warehouse_id" value="{{ $stockWarehouseId }}">
+@endif
+<input class="catalog-inline-input" data-inline-stock-quantity type="number" step=".001" min="{{ (float)($stockPosition->reserved_quantity ?? 0) }}" name="value" value="{{ (float)($stockPosition->quantity ?? 0) }}" inputmode="decimal">
+<button class="catalog-inline-save" type="submit" aria-label="{{ app()->getLocale()==='ar'?'حفظ المخزون':'Save stock' }}">✓</button>
+</form>
+@else
+<span class="muted">{{ app()->getLocale()==='ar'?'لا يوجد مخزن نشط':'No active warehouse' }}</span>
 @endif
 </td>
+<td data-label="{{ app()->getLocale()==='ar'?'حد المخزون المنخفض':'Low stock' }}"><form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">@csrf @method('PATCH')<input type="hidden" name="field" value="low_stock_threshold">@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif<input class="catalog-inline-input" type="number" min="0" step=".001" name="value" value="{{ (float)$p->low_stock_threshold }}"><button class="catalog-inline-save" type="submit">✓</button></form></td>
+<td data-label="{{ app()->getLocale()==='ar'?'عرض في التطبيق':'Show in app' }}"><form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">@csrf @method('PATCH')<input type="hidden" name="field" value="app_visible"><input type="hidden" name="value" value="{{ $appVisible?0:1 }}">@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif<button type="submit" class="catalog-inline-toggle {{ $appVisible?'on':'off' }}">{{ $appVisible?(app()->getLocale()==='ar'?'ظاهر':'Visible'):(app()->getLocale()==='ar'?'مخفي':'Hidden') }}</button></form></td>
 <td class="catalog-col-sku" data-label="{{ app()->getLocale()==='ar'?'رمز المنتج':'SKU' }}">{{ $p->sku }}</td>
-<td class="catalog-col-brand" data-label="{{ app()->getLocale()==='ar'?'العلامة التجارية':'Brand' }}">{{ $p->brand ?: '—' }}</td>
+<td class="catalog-col-brand" data-label="{{ app()->getLocale()==='ar'?'العلامة التجارية':'Brand' }}"><form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">@csrf @method('PATCH')<input type="hidden" name="field" value="brand_id">@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif<select class="catalog-inline-select" name="value" onchange="this.form.submit()"><option value="">—</option>@foreach($brands as $brand)@if(($brand->scope ?? 'global')==='global' || (int)($brand->store_id ?? 0)===(int)$p->catalog_store_id)<option value="{{ $brand->id }}" @selected((int)$p->brand_id===(int)$brand->id)>{{ $brand->name }}</option>@endif @endforeach</select></form></td>
+<td data-label="{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}"><form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">@csrf @method('PATCH')<input type="hidden" name="field" value="unit_id">@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif<select class="catalog-inline-select" name="value" onchange="this.form.submit()" required>@foreach($units as $unit)@if(($unit->scope ?? 'global')==='global' || (int)($unit->store_id ?? 0)===(int)$p->catalog_store_id)<option value="{{ $unit->id }}" @selected((int)$p->unit_id===(int)$unit->id)>{{ $unit->name }} ({{ $unit->code }})</option>@endif @endforeach</select></form></td>
 <td data-label="{{ app()->getLocale()==='ar'?'الحالة':'Status' }}">
-<form method="post" action="{{ route('admin.catalog.products.status',$p->id) }}" class="catalog-status-form">
+<form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-status-form">
 @csrf @method('PATCH')
-<input type="hidden" name="is_active" value="{{ $p->is_active?0:1 }}">
+<input type="hidden" name="field" value="is_active">
+<input type="hidden" name="value" value="{{ $p->is_active?0:1 }}">
+@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif
 <button type="submit" class="catalog-status catalog-status-toggle {{ $p->is_active?'':'off' }}" title="{{ $p->is_active?(app()->getLocale()==='ar'?'اضغط لتعطيل المنتج':'Click to deactivate product'):(app()->getLocale()==='ar'?'اضغط لتفعيل المنتج':'Click to activate product') }}">
 <span class="catalog-status-dot"></span>{{ $p->is_active?(app()->getLocale()==='ar'?'نشط':'Active'):(app()->getLocale()==='ar'?'غير نشط':'Inactive') }}
 </button>
@@ -231,7 +265,7 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 </td>
 </tr>
 @empty
-<tr><td colspan="8"><div class="catalog-empty">{{ $hasProductFilters ? (app()->getLocale()==='ar'?'لا توجد منتجات تطابق الفلاتر الحالية.':'No products match the current filters.') : (app()->getLocale()==='ar'?'لا توجد منتجات.':'No products yet.') }}</div></td></tr>
+<tr><td colspan="11"><div class="catalog-empty">{{ $hasProductFilters ? (app()->getLocale()==='ar'?'لا توجد منتجات تطابق الفلاتر الحالية.':'No products match the current filters.') : (app()->getLocale()==='ar'?'لا توجد منتجات.':'No products yet.') }}</div></td></tr>
 @endforelse
 </tbody>
 </table>
@@ -515,5 +549,16 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
         });
     });
 })();
+document.querySelectorAll('[data-inline-stock-warehouse]').forEach(function(select){
+    select.addEventListener('change',function(){
+        var option=this.options[this.selectedIndex];
+        var form=this.closest('[data-inline-stock-form]');
+        if(!form||!option)return;
+        var input=form.querySelector('[data-inline-stock-quantity]');
+        if(!input)return;
+        input.value=option.dataset.quantity||'0';
+        input.min=option.dataset.reserved||'0';
+    });
+});
 </script>
 </body></html>
