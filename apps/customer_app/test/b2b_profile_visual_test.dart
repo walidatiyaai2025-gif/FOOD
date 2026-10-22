@@ -8,8 +8,6 @@ void main() {
   testWidgets(
       'C13 Screen 13 renders Arabic account/settings composition and switch hook',
       (tester) async {
-    var switchCount = 0;
-
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('ar'),
@@ -24,7 +22,6 @@ void main() {
               api: const _ProfileApi(),
               endpoint: '/api/v1/profile',
               addressesRoute: '/b2b/addresses',
-              onSwitchStore: () => switchCount += 1,
             ),
           ),
         ),
@@ -41,30 +38,21 @@ void main() {
     expect(find.text('حسابي'), findsOneWidget);
     expect(find.text('شركة فودكس'), findsWidgets);
     expect(find.text('حساب نشط'), findsOneWidget);
-    expect(find.byKey(const ValueKey('b2b-profile-actions')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-profile-actions')), findsNothing);
     expect(
       find.byKey(const ValueKey('b2b-profile-addresses-action')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.byKey(const ValueKey('b2b-profile-settings-action')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.byKey(const ValueKey('b2b-profile-switch-store')),
-      findsOneWidget,
+      findsNothing,
     );
-    expect(find.text('تبديل المتجر'), findsOneWidget);
-    expect(find.text('الجملة والتجزئة'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('b2b-profile-switch-store')));
-    await tester.pump();
-    expect(switchCount, 1);
-
-    await tester.tap(find.byKey(const ValueKey('b2b-profile-settings-action')));
-    await tester.pumpAndSettle();
-    expect(find.text('إعدادات الحساب'), findsOneWidget);
-    expect(find.text('AR'), findsWidgets);
+    expect(find.text('تبديل المتجر'), findsNothing);
+    expect(find.text('الجملة والتجزئة'), findsNothing);
 
     expect(find.text('company_name'), findsNothing);
     expect(find.text('retail_store_ids'), findsNothing);
@@ -98,8 +86,8 @@ void main() {
     );
     expect(find.text('My account'), findsOneWidget);
     expect(find.text('Account details'), findsOneWidget);
-    expect(find.text('Switch store'), findsOneWidget);
-    expect(find.textContaining('from More'), findsOneWidget);
+    expect(find.text('Switch store'), findsNothing);
+    expect(find.byKey(const ValueKey('b2b-profile-actions')), findsNothing);
     expect(find.text('Active'), findsOneWidget);
   });
 }

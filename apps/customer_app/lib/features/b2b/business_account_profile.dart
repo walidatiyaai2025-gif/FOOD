@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 
 import '../../core/api/b2b_api.dart';
+import '../../core/theme/customer_ui_v3_tokens.dart';
 
 class B2bBusinessAccountProfile extends StatefulWidget {
   const B2bBusinessAccountProfile({
     required this.api,
     required this.endpoint,
     required this.addressesRoute,
+    this.storeImageUrl,
     this.onSwitchStore,
     super.key,
   });
@@ -15,6 +17,7 @@ class B2bBusinessAccountProfile extends StatefulWidget {
   final B2bApi api;
   final String endpoint;
   final String addressesRoute;
+  final String? storeImageUrl;
 
   /// UI hook consumed by the cross-cutting C13 navigation lane (#894).
   /// Screen 13 owns the visible action; #408/#894 own switch authorization
@@ -78,10 +81,6 @@ class _B2bBusinessAccountProfileState extends State<B2bBusinessAccountProfile> {
           final managedStoreIds = _ids(data['managed_retail_store_ids']);
           final retailStoreIds = _ids(data['retail_store_ids']);
           final b2bCustomerIds = _ids(data['b2b_customer_ids']);
-          final addresses = _rows(data['addresses']);
-          final favorites = _rows(data['favorites']);
-          final roles = _strings(data['roles']);
-
           final companyName = _first(
             businessAccount['company_name'],
             data['company_name'],
@@ -120,16 +119,7 @@ class _B2bBusinessAccountProfileState extends State<B2bBusinessAccountProfile> {
                 email: email,
                 accountStatus: accountStatus,
                 typeLabel: typeLabel,
-              ),
-              const SizedBox(height: 14),
-              _QuickActions(
-                isArabic: isArabic,
-                addressesRoute: widget.addressesRoute,
-                locale: locale,
-                roles: roles,
-                addressesCount: addresses.length,
-                favoritesCount: favorites.length,
-                onSwitchStore: widget.onSwitchStore,
+                storeImageUrl: widget.storeImageUrl,
               ),
               const SizedBox(height: 14),
               _ProfileCard(
@@ -285,6 +275,7 @@ class _ProfileHero extends StatelessWidget {
     required this.email,
     required this.accountStatus,
     required this.typeLabel,
+    required this.storeImageUrl,
   });
 
   final bool isArabic;
@@ -292,6 +283,7 @@ class _ProfileHero extends StatelessWidget {
   final String email;
   final String accountStatus;
   final String typeLabel;
+  final String? storeImageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -310,7 +302,7 @@ class _ProfileHero extends StatelessWidget {
       key: const ValueKey('b2b-profile-hero'),
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF005B3E),
+        color: CustomerUiColors.deepGreen,
         borderRadius: BorderRadius.circular(24),
         boxShadow: const [
           BoxShadow(
@@ -334,21 +326,43 @@ class _ProfileHero extends StatelessWidget {
           const SizedBox(height: 14),
           Row(
             children: [
-              Container(
-                width: 58,
-                height: 58,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE7F8D7),
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  initial,
-                  style: const TextStyle(
-                    color: Color(0xFF005B3E),
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                  ),
+              ClipOval(
+                child: SizedBox(
+                  width: 58,
+                  height: 58,
+                  child: storeImageUrl?.trim().isNotEmpty == true
+                      ? Image.network(
+                          storeImageUrl!.trim(),
+                          key: const ValueKey('b2b-profile-store-image'),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            alignment: Alignment.center,
+                            color: CustomerUiColors.limeSoft,
+                            child: Text(
+                              initial,
+                              style: const TextStyle(
+                                color: Color(0xFF005B3E),
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        )
+                      : Container(
+                          key: const ValueKey(
+                            'b2b-profile-store-image-fallback',
+                          ),
+                          alignment: Alignment.center,
+                          color: CustomerUiColors.limeSoft,
+                          child: Text(
+                            initial,
+                            style: const TextStyle(
+                              color: Color(0xFF005B3E),
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(width: 13),
@@ -409,232 +423,6 @@ class _ProfileHero extends StatelessWidget {
       ),
     );
   }
-}
-
-class _QuickActions extends StatelessWidget {
-  const _QuickActions({
-    required this.isArabic,
-    required this.addressesRoute,
-    required this.locale,
-    required this.roles,
-    required this.addressesCount,
-    required this.favoritesCount,
-    required this.onSwitchStore,
-  });
-
-  final bool isArabic;
-  final String addressesRoute;
-  final String locale;
-  final List<String> roles;
-  final int addressesCount;
-  final int favoritesCount;
-  final VoidCallback? onSwitchStore;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        key: const ValueKey('b2b-profile-actions'),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFDDE8E1)),
-        ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final itemWidth = (constraints.maxWidth - 10) / 2;
-            return Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                SizedBox(
-                  width: itemWidth,
-                  child: _AccountActionTile(
-                    key: const ValueKey('b2b-profile-addresses-action'),
-                    icon: Icons.location_on_outlined,
-                    label: isArabic ? 'العناوين' : 'Addresses',
-                    caption: isArabic
-                        ? '$addressesCount عنوان محفوظ'
-                        : '$addressesCount saved',
-                    onTap: () =>
-                        Navigator.of(context).pushNamed(addressesRoute),
-                  ),
-                ),
-                SizedBox(
-                  width: itemWidth,
-                  child: _AccountActionTile(
-                    key: const ValueKey('b2b-profile-settings-action'),
-                    icon: Icons.settings_outlined,
-                    label: isArabic ? 'الإعدادات' : 'Settings',
-                    caption: isArabic ? 'اللغة والحساب' : 'Language & account',
-                    onTap: () => _showSettings(
-                      context,
-                      isArabic: isArabic,
-                      locale: locale,
-                      roles: roles,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: itemWidth,
-                  child: _AccountActionTile(
-                    key: const ValueKey('b2b-profile-switch-store'),
-                    icon: Icons.swap_horiz_rounded,
-                    label: isArabic ? 'تبديل المتجر' : 'Switch store',
-                    caption:
-                        isArabic ? 'الجملة والتجزئة' : 'Wholesale / Retail',
-                    onTap: onSwitchStore,
-                    pendingIntegration: onSwitchStore == null,
-                  ),
-                ),
-                SizedBox(
-                  width: itemWidth,
-                  child: _AccountActionTile(
-                    key: const ValueKey('b2b-profile-favorites-summary'),
-                    icon: Icons.favorite_border_rounded,
-                    label: isArabic ? 'المفضلة' : 'Favorites',
-                    caption: isArabic
-                        ? '$favoritesCount عنصر محفوظ'
-                        : '$favoritesCount saved',
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      );
-
-  static Future<void> _showSettings(
-    BuildContext context, {
-    required bool isArabic,
-    required String locale,
-    required List<String> roles,
-  }) =>
-      showModalBottomSheet<void>(
-        context: context,
-        showDragHandle: true,
-        builder: (sheetContext) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  isArabic ? 'إعدادات الحساب' : 'Account settings',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(sheetContext)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 16),
-                _ProfileRow(
-                  icon: Icons.language_rounded,
-                  label: isArabic ? 'اللغة' : 'Language',
-                  value: locale.isEmpty ? '—' : locale.toUpperCase(),
-                ),
-                _ProfileRow(
-                  icon: Icons.security_outlined,
-                  label: isArabic ? 'عدد الصلاحيات' : 'Role count',
-                  value: roles.length.toString(),
-                  isLast: true,
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-}
-
-class _AccountActionTile extends StatelessWidget {
-  const _AccountActionTile({
-    required super.key,
-    required this.icon,
-    required this.label,
-    required this.caption,
-    this.onTap,
-    this.pendingIntegration = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final String caption;
-  final VoidCallback? onTap;
-  final bool pendingIntegration;
-
-  @override
-  Widget build(BuildContext context) => Material(
-        color: const Color(0xFFF6FAF7),
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 98),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2ECE6)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 34,
-                      height: 34,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE7F8D7),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        icon,
-                        color: const Color(0xFF078A43),
-                        size: 19,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (onTap != null)
-                      const Icon(
-                        Icons.chevron_right_rounded,
-                        color: Color(0xFF8A9991),
-                        size: 20,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 9),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF17231D),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  pendingIntegration
-                      ? (Localizations.localeOf(context).languageCode == 'ar'
-                          ? '$caption · من المزيد'
-                          : '$caption · from More')
-                      : caption,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF68766E),
-                    fontSize: 9.5,
-                    height: 1.25,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
 }
 
 class _ProfileCard extends StatelessWidget {
@@ -1022,8 +810,6 @@ class _ProfileEmpty extends StatelessWidget {
       );
 }
 
-List<Object?> _rows(Object? value) => value is List ? value : const <Object?>[];
-
 List<Map<String, dynamic>> _mapRows(Object? value) =>
     (value as List? ?? const <Object>[])
         .whereType<Map>()
@@ -1034,11 +820,6 @@ List<int> _ids(Object? value) => (value as List? ?? const <Object>[])
     .map((item) =>
         item is num ? item.toInt() : int.tryParse(item.toString()) ?? 0)
     .where((id) => id > 0)
-    .toList(growable: false);
-
-List<String> _strings(Object? value) => (value as List? ?? const <Object>[])
-    .map((item) => item.toString().trim())
-    .where((item) => item.isNotEmpty)
     .toList(growable: false);
 
 String _first(

@@ -35,6 +35,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
     required this.onAuthenticated,
     required this.onPlatformRegistered,
     required this.onLocaleChanged,
+    this.onLogout,
     required this.catalogApi,
     required this.accountApi,
     required this.actionApi,
@@ -58,6 +59,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
   final CustomerAuthenticated onAuthenticated;
   final ValueChanged<String> onPlatformRegistered;
   final ValueChanged<Locale> onLocaleChanged;
+  final Future<void> Function()? onLogout;
   final B2cCatalogApi catalogApi;
   final B2cAccountApi accountApi;
   final CustomerActionApi actionApi;
@@ -114,6 +116,8 @@ class MultiStoreDesignScreen extends StatelessWidget {
             favoritesApi: wholesaleFavoritesApi,
             pendingActionStore: pendingActionStore,
             showBottomNavigation: false,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
           ),
           CustomerFooterDestination.home,
         );
@@ -127,6 +131,8 @@ class MultiStoreDesignScreen extends StatelessWidget {
             actionApi: actionApi,
             favoritesApi: wholesaleFavoritesApi,
             pendingActionStore: pendingActionStore,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
           ),
           CustomerFooterDestination.products,
         );
@@ -140,6 +146,8 @@ class MultiStoreDesignScreen extends StatelessWidget {
             actionApi: actionApi,
             favoritesApi: wholesaleFavoritesApi,
             pendingActionStore: pendingActionStore,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
           ),
           CustomerFooterDestination.products,
         );
@@ -149,6 +157,9 @@ class MultiStoreDesignScreen extends StatelessWidget {
             location: location,
             api: b2bApi,
             commerceApi: wholesaleApi,
+            session: currentSession?.call() ?? session,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
           ),
           CustomerFooterDestination.account,
         );
@@ -158,6 +169,9 @@ class MultiStoreDesignScreen extends StatelessWidget {
             location: location,
             storefrontApi: storefrontApi,
             commerceApi: wholesaleApi,
+            session: currentSession?.call() ?? session,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
           ),
           CustomerFooterDestination.account,
         );
@@ -167,12 +181,21 @@ class MultiStoreDesignScreen extends StatelessWidget {
             location: location,
             api: b2bApi,
             commerceApi: wholesaleApi,
+            session: currentSession?.call() ?? session,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
           ),
           CustomerFooterDestination.orders,
         );
       case CustomerRoutePaths.b2bOrderDetails:
         return withFooter(
-          WholesaleOrderDetailsDesignScreen(location: location, api: b2bApi),
+          WholesaleOrderDetailsDesignScreen(
+            location: location,
+            api: b2bApi,
+            session: currentSession?.call() ?? session,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
+          ),
           CustomerFooterDestination.orders,
         );
       case CustomerRoutePaths.b2bFavorites:
@@ -188,6 +211,8 @@ class MultiStoreDesignScreen extends StatelessWidget {
             storefrontApi: storefrontApi,
             actionApi: actionApi,
             pendingActionStore: pendingActionStore,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
           ),
           CustomerFooterDestination.favorites,
         );

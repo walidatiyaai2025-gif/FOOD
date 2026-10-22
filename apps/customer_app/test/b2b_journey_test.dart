@@ -628,21 +628,26 @@ void main() {
     expect(find.text('العناوين'), findsOneWidget);
     expect(find.text('الإشعارات'), findsNothing);
     expect(find.text('المساعدة والدعم'), findsNothing);
+    expect(find.text('اتصل بنا'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('wholesale-header-account-menu')),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey('b2b-more-bottom-settings')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.byKey(const ValueKey('b2b-more-language-action')),
-      findsOneWidget,
+      findsNothing,
     );
-    expect(find.text('العربية'), findsOneWidget);
+    expect(find.text('العربية'), findsNothing);
     expect(find.text('English'), findsNothing);
     expect(
       find.byKey(const ValueKey('b2b-profile-security-action')),
-      findsOneWidget,
+      findsNothing,
     );
-    expect(find.byKey(const ValueKey('b2b-profile-logout')), findsOneWidget);
+    expect(find.byKey(const ValueKey('b2b-profile-logout')), findsNothing);
     expect(find.byKey(const ValueKey('b2b-more-app-version')), findsOneWidget);
     expect(find.text('الإصدار 1.0.95'), findsOneWidget);
     expect(find.text('company_name'), findsNothing);

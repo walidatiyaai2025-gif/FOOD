@@ -409,6 +409,7 @@ class CustomerAppRouter {
             onAuthenticated: onAuthenticated,
             onPlatformRegistered: onPlatformRegistered,
             onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
             marketplaceClient: marketplaceClient,
             marketplaceBarcodeScanner: marketplaceBarcodeScanner,
           );

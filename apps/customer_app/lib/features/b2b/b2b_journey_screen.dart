@@ -17,7 +17,6 @@ import '../../core/config/customer_app_release.dart';
 import '../../core/localization/app_translations.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
-import '../../core/theme/customer_display_preferences.dart';
 import '../customer_account/customer_address_book_screen.dart';
 import '../customer_account/customer_account_data.dart';
 import '../customer_account/customer_notification_center_screen.dart';
@@ -121,6 +120,8 @@ class B2bJourneyScreen extends StatelessWidget {
           body: FoodexUnifiedHeaderSurface(
             title: context.tr('b2b.app.title'),
             location: location,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
             searchHint: context.tr(
               'customer.products.search_name_sku_barcode',
             ),
@@ -148,6 +149,8 @@ class B2bJourneyScreen extends StatelessWidget {
         body: FoodexUnifiedHeaderSurface(
           title: context.tr('b2b.app.title'),
           location: location,
+          onLocaleChanged: onLocaleChanged,
+          onLogout: onLogout,
           searchHint: context.tr(
             'customer.products.search_name_sku_barcode',
           ),
@@ -178,6 +181,8 @@ class B2bJourneyScreen extends StatelessWidget {
                 FoodexWholesaleHeader(
                   title: context.tr('b2b.app.title'),
                   palette: FoodexPalette.wholesale,
+                  onLocaleChanged: onLocaleChanged,
+                  onLogout: onLogout,
                   searchHint: context.tr(
                     'customer.products.search_name_sku_barcode',
                   ),
@@ -239,6 +244,8 @@ class B2bJourneyScreen extends StatelessWidget {
           body: FoodexUnifiedHeaderSurface(
             title: context.tr('b2b.app.title'),
             location: location,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
             searchHint: context.tr(
               'customer.products.search_name_sku_barcode',
             ),
@@ -286,6 +293,10 @@ class B2bJourneyScreen extends StatelessWidget {
           addressesRoute: _scopedB2bRoute(CustomerRoutePaths.b2bAddresses),
           cartRoute: _b2bCartRoute(),
           storeId: commerceContext?.storeId,
+          contactApi: accountApi is CustomerContactApi
+              ? accountApi as CustomerContactApi
+              : null,
+          storefrontApi: storefrontApi,
           onLocaleChanged: onLocaleChanged,
           onLogout: onLogout,
         ),
@@ -299,6 +310,8 @@ class B2bJourneyScreen extends StatelessWidget {
         body: FoodexUnifiedHeaderSurface(
           title: context.tr('b2b.app.title'),
           location: location,
+          onLocaleChanged: onLocaleChanged,
+          onLogout: onLogout,
           searchHint: context.tr(
             'customer.products.search_name_sku_barcode',
           ),
@@ -4147,6 +4160,8 @@ class _B2bMorePage extends StatefulWidget {
     required this.addressesRoute,
     required this.cartRoute,
     this.storeId,
+    this.contactApi,
+    this.storefrontApi,
     this.onLocaleChanged,
     this.onLogout,
   });
@@ -4164,6 +4179,8 @@ class _B2bMorePage extends StatefulWidget {
   final String addressesRoute;
   final String cartRoute;
   final int? storeId;
+  final CustomerContactApi? contactApi;
+  final StorefrontApi? storefrontApi;
   final ValueChanged<Locale>? onLocaleChanged;
   final Future<void> Function()? onLogout;
 
@@ -4190,142 +4207,125 @@ class _B2bMorePageState extends State<_B2bMorePage> {
 
   void _open(String route) => Navigator.of(context).pushNamed(route);
 
-  Future<void> _showProfile() => showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        builder: (_) => SafeArea(
-          child: DraggableScrollableSheet(
-            expand: false,
-            initialChildSize: .82,
-            maxChildSize: .94,
-            builder: (_, controller) => Column(
-              children: [
-                FoodexWholesaleHeader(
-                  title: context.tr('b2b.app.title'),
-                  palette: FoodexPalette.wholesale,
-                  searchHint: context.tr(
-                    'customer.products.search_name_sku_barcode',
-                  ),
-                  onNotifications: () => _open(widget.notificationsRoute),
-                  onCart: () => _open(widget.cartRoute),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: controller,
-                    padding: const EdgeInsets.all(16),
-                    child: B2bBusinessAccountProfile(
-                      api: widget.api,
-                      endpoint: widget.profileEndpoint,
-                      addressesRoute: widget.addressesRoute,
-                    ),
-                  ),
-                ),
-              ],
+  Future<void> _showProfile() async {
+    String? storeImageUrl;
+    final storeId = widget.storeId;
+    final storefrontApi = widget.storefrontApi;
+    if (storeId != null && storeId > 0 && storefrontApi != null) {
+      try {
+        final storefront = await storefrontApi.wholesaleHome(storeId);
+        final branding = storefront['branding'] is Map
+            ? Map<String, dynamic>.from(storefront['branding'] as Map)
+            : <String, dynamic>{};
+        final store = storefront['store'] is Map
+            ? Map<String, dynamic>.from(storefront['store'] as Map)
+            : <String, dynamic>{};
+        final brandingLogo = branding['logo_url']?.toString().trim() ?? '';
+        final storeLogo = store['logo_url']?.toString().trim() ?? '';
+        final storeBanner = store['banner_url']?.toString().trim() ?? '';
+        storeImageUrl = brandingLogo.isNotEmpty
+            ? brandingLogo
+            : storeLogo.isNotEmpty
+                ? storeLogo
+                : storeBanner.isNotEmpty
+                    ? storeBanner
+                    : null;
+      } catch (_) {
+        // Company data remains available even if optional storefront branding
+        // cannot be refreshed.
+      }
+    }
+
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (_) => SafeArea(
+        child: DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: .82,
+          maxChildSize: .94,
+          builder: (_, controller) => SingleChildScrollView(
+            controller: controller,
+            padding: const EdgeInsets.all(16),
+            child: B2bBusinessAccountProfile(
+              api: widget.api,
+              endpoint: widget.profileEndpoint,
+              addressesRoute: widget.addressesRoute,
+              storeImageUrl: storeImageUrl,
             ),
           ),
         ),
-      );
-
-  Future<void> _showSettings() async {
-    final ar = Localizations.localeOf(context).languageCode == 'ar';
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: false,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ValueListenableBuilder<ThemeMode>(
-              valueListenable: CustomerDisplayPreferences.instance.themeMode,
-              builder: (context, themeMode, _) => SwitchListTile(
-                key: const ValueKey('b2b-settings-dark-mode'),
-                secondary: Icon(
-                  themeMode == ThemeMode.dark
-                      ? Icons.dark_mode_rounded
-                      : Icons.light_mode_rounded,
-                ),
-                title: Text(
-                  context.tr('customer.appearance.dark_mode'),
-                ),
-                subtitle: Text(
-                  context.tr('customer.appearance.dark_mode_subtitle'),
-                ),
-                value: themeMode == ThemeMode.dark,
-                onChanged: (enabled) async {
-                  await CustomerDisplayPreferences.instance
-                      .setDarkMode(enabled);
-                },
-              ),
-            ),
-            FoodexWholesaleHeader(
-              title: context.tr('b2b.app.title'),
-              palette: FoodexPalette.wholesale,
-              searchHint: context.tr(
-                'customer.products.search_name_sku_barcode',
-              ),
-              onNotifications: () => _open(widget.notificationsRoute),
-              onCart: () => _open(widget.cartRoute),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.onLocaleChanged != null)
-                    ListTile(
-                      leading: const Icon(Icons.language_rounded),
-                      title: Text(context.tr('b2b.profile.language')),
-                      trailing: SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(
-                            value: 'ar',
-                            label: Text(
-                                'ع'), // localization-gate: allow language selector
-                          ),
-                          ButtonSegment(
-                            value: 'en',
-                            label: Text(
-                                'EN'), // localization-gate: allow language selector
-                          ),
-                        ],
-                        selected: {ar ? 'ar' : 'en'},
-                        onSelectionChanged: (value) {
-                          widget.onLocaleChanged!(Locale(value.first));
-                          Navigator.pop(sheetContext);
-                        },
-                      ),
-                    ),
-                  ListTile(
-                    leading: const Icon(Icons.support_agent_outlined),
-                    title: Text(context.tr('b2b.profile.support')),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      _open(CustomerRoutePaths.diagnostics);
-                    },
-                  ),
-                  if (widget.onLogout != null)
-                    ListTile(
-                      key: const ValueKey('b2b-more-security-action'),
-                      leading: const Icon(Icons.security_outlined),
-                      title: Text(context.tr('b2b.profile.security')),
-                      trailing: const Icon(Icons.logout_rounded),
-                      onTap: () async {
-                        Navigator.pop(sheetContext);
-                        await widget.onLogout!();
-                      },
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
+  }
+
+  Future<void> _showContactUs() async {
+    final api = widget.contactApi;
+    final storeId = widget.storeId;
+    if (api == null || storeId == null || storeId <= 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(context.tr('customer.error.action_failed')),
+          ),
+        );
+      return;
+    }
+
+    final draft = await showDialog<_B2bContactDraft>(
+      context: context,
+      builder: (_) => const _B2bContactDialog(),
+    );
+    if (draft == null || !mounted) return;
+
+    try {
+      final raw = await api.submitContactUs(
+        storeId: storeId,
+        phone: draft.phone,
+        message: draft.message,
+      );
+      if (!mounted) return;
+      final envelope = raw is Map
+          ? Map<Object?, Object?>.from(raw)
+          : const <Object?, Object?>{};
+      final data = envelope['data'] is Map
+          ? Map<Object?, Object?>.from(envelope['data'] as Map)
+          : envelope;
+      final caseId = int.tryParse(data['id']?.toString() ?? '');
+      final ar = Localizations.localeOf(context).languageCode == 'ar';
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            key: const ValueKey('b2b-contact-success'),
+            content: Text(
+              caseId != null && caseId > 0
+                  ? (ar
+                      ? 'تم إرسال رسالتك لخدمة العملاء · الحالة #$caseId'
+                      : 'Message sent to Customer Service · Case #$caseId')
+                  : (ar
+                      ? 'تم إرسال رسالتك لخدمة العملاء.'
+                      : 'Message sent to Customer Service.'),
+            ),
+          ),
+        );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(context.tr('customer.error.action_failed')),
+          ),
+        );
+    }
   }
 
   @override
@@ -4355,6 +4355,12 @@ class _B2bMorePageState extends State<_B2bMorePage> {
         context.tr('b2b.profile.addresses'),
         () => _open(widget.addressesRoute),
         tone: 0,
+      ),
+      _MoreItem(
+        Icons.support_agent_rounded,
+        ar ? 'اتصل بنا' : 'Contact us',
+        _showContactUs,
+        tone: 4,
       ),
     ];
 
@@ -4390,6 +4396,8 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                 },
                 onNotifications: () => _open(widget.notificationsRoute),
                 onCart: () => _open(widget.cartRoute),
+                onLocaleChanged: widget.onLocaleChanged,
+                onLogout: widget.onLogout,
               ),
               Expanded(
                 child: SingleChildScrollView(
@@ -4412,8 +4420,8 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                       const SizedBox(height: 14),
                       LayoutBuilder(
                         builder: (_, constraints) {
-                          const gap = 6.0;
-                          const columns = 2;
+                          const gap = 4.0;
+                          const columns = 5;
                           final width =
                               (constraints.maxWidth - gap * (columns - 1)) /
                                   columns;
@@ -4421,7 +4429,7 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                               MediaQuery.textScalerOf(context).scale(1);
                           final scaledDelta =
                               (textScale - 1.0).clamp(0.0, 1.0).toDouble();
-                          final cardHeight = 66.0 + (scaledDelta * 32.0);
+                          final cardHeight = 70.0 + (scaledDelta * 26.0);
                           return Wrap(
                             spacing: gap,
                             runSpacing: gap,
@@ -4436,120 +4444,19 @@ class _B2bMorePageState extends State<_B2bMorePage> {
                           );
                         },
                       ),
-                      if (widget.onLogout != null) ...[
-                        const SizedBox(height: 14),
-                        OutlinedButton.icon(
-                          key: const ValueKey('b2b-profile-logout'),
-                          onPressed: widget.onLogout,
-                          icon: const Icon(Icons.logout_rounded),
-                          label: Text(context.tr('customer.logout')),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${context.tr('customer.version')} $customerAppVersion',
-                          key: const ValueKey('b2b-more-app-version'),
-                          textAlign: TextAlign.center,
-                          style:
-                              Theme.of(context).textTheme.labelSmall?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                        ),
-                      ],
-                      if (widget.onLocaleChanged != null ||
-                          widget.onLogout != null) ...[
-                        const SizedBox(height: 12),
-                        Material(
-                          key: const ValueKey('b2b-more-bottom-settings'),
-                          color: Theme.of(context).cardColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(CustomerUiRadii.lg),
-                            side: BorderSide(
-                              color: Theme.of(context).dividerColor,
+                      const SizedBox(height: 8),
+                      Text(
+                        '${context.tr('customer.version')} $customerAppVersion',
+                        key: const ValueKey('b2b-more-app-version'),
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
                             ),
-                          ),
-                          child: Column(
-                            children: [
-                              ValueListenableBuilder<ThemeMode>(
-                                valueListenable: CustomerDisplayPreferences
-                                    .instance.themeMode,
-                                builder: (context, themeMode, _) =>
-                                    SwitchListTile(
-                                  key: const ValueKey('b2b-more-dark-mode'),
-                                  secondary: Icon(
-                                    themeMode == ThemeMode.dark
-                                        ? Icons.dark_mode_rounded
-                                        : Icons.light_mode_rounded,
-                                  ),
-                                  title: Text(
-                                    context.tr('customer.appearance.dark_mode'),
-                                  ),
-                                  subtitle: Text(
-                                    context.tr(
-                                      'customer.appearance.dark_mode_subtitle',
-                                    ),
-                                  ),
-                                  value: themeMode == ThemeMode.dark,
-                                  onChanged: (enabled) async {
-                                    await CustomerDisplayPreferences.instance
-                                        .setDarkMode(enabled);
-                                  },
-                                ),
-                              ),
-                              if (widget.onLocaleChanged != null)
-                                ListTile(
-                                  key: const ValueKey(
-                                    'b2b-more-language-action',
-                                  ),
-                                  dense: true,
-                                  leading: const Icon(
-                                    Icons.language_rounded,
-                                    color: _B2bMorePageState.deep,
-                                  ),
-                                  title:
-                                      Text(context.tr('b2b.profile.language')),
-                                  subtitle: Text(
-                                    ar
-                                        ? 'العربية'
-                                        : 'English', // localization-gate: allow language self-name
-                                  ),
-                                  trailing: Icon(
-                                    ar
-                                        ? Icons.chevron_left_rounded
-                                        : Icons.chevron_right_rounded,
-                                  ),
-                                  onTap: _showSettings,
-                                ),
-                              if (widget.onLocaleChanged != null &&
-                                  widget.onLogout != null)
-                                const Divider(height: 1),
-                              if (widget.onLogout != null)
-                                ListTile(
-                                  key: const ValueKey(
-                                    'b2b-profile-security-action',
-                                  ),
-                                  dense: true,
-                                  leading: const Icon(
-                                    Icons.security_outlined,
-                                    color: _B2bMorePageState.deep,
-                                  ),
-                                  title:
-                                      Text(context.tr('b2b.profile.security')),
-                                  trailing: Icon(
-                                    ar
-                                        ? Icons.chevron_left_rounded
-                                        : Icons.chevron_right_rounded,
-                                  ),
-                                  onTap: _showSettings,
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
+                      ),
                     ],
                   ),
                 ),
@@ -4560,6 +4467,100 @@ class _B2bMorePageState extends State<_B2bMorePage> {
       ),
     );
   }
+}
+
+class _B2bContactDraft {
+  const _B2bContactDraft({
+    required this.phone,
+    required this.message,
+  });
+
+  final String phone;
+  final String message;
+}
+
+class _B2bContactDialog extends StatefulWidget {
+  const _B2bContactDialog();
+
+  @override
+  State<_B2bContactDialog> createState() => _B2bContactDialogState();
+}
+
+class _B2bContactDialogState extends State<_B2bContactDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _phone = TextEditingController();
+  final _message = TextEditingController();
+
+  @override
+  void dispose() {
+    _phone.dispose();
+    _message.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        key: const ValueKey('b2b-contact-dialog'),
+        title: Text(context.tr('customer.contact.title')),
+        content: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(context.tr('customer.contact.subtitle')),
+                const SizedBox(height: 12),
+                TextFormField(
+                  key: const ValueKey('b2b-contact-phone'),
+                  controller: _phone,
+                  keyboardType: TextInputType.phone,
+                  maxLength: 50,
+                  decoration: InputDecoration(
+                    labelText: context.tr('customer.contact.phone'),
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? context.tr('customer.contact.phone_required')
+                      : null,
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  key: const ValueKey('b2b-contact-message'),
+                  controller: _message,
+                  minLines: 4,
+                  maxLines: 7,
+                  maxLength: 8000,
+                  decoration: InputDecoration(
+                    labelText: context.tr('customer.contact.message'),
+                    alignLabelWithHint: true,
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? context.tr('customer.contact.message_required')
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(context.tr('customer.action.cancel')),
+          ),
+          FilledButton(
+            key: const ValueKey('b2b-contact-submit'),
+            onPressed: () {
+              if (_formKey.currentState?.validate() != true) return;
+              Navigator.of(context).pop(
+                _B2bContactDraft(
+                  phone: _phone.text.trim(),
+                  message: _message.text.trim(),
+                ),
+              );
+            },
+            child: Text(context.tr('customer.contact.send')),
+          ),
+        ],
+      );
 }
 
 class _FinanceCard extends StatelessWidget {

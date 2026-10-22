@@ -9,6 +9,7 @@ import 'package:foodex_formatting/foodex_formatting.dart';
 
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
+import '../../core/theme/customer_display_preferences.dart';
 import '../../core/theme/customer_ui_v3_tokens.dart';
 
 final ValueNotifier<int> foodexWholesaleCartProductCount =
@@ -222,6 +223,9 @@ class FoodexWholesaleHeader extends StatelessWidget {
     this.onClearSearch,
     this.onNotifications,
     this.onCart,
+    this.isAuthenticated = true,
+    this.onLocaleChanged,
+    this.onLogout,
     this.notificationKey,
     this.cartKey,
     this.location,
@@ -237,6 +241,9 @@ class FoodexWholesaleHeader extends StatelessWidget {
   final String? address;
   final VoidCallback? onNotifications;
   final VoidCallback? onCart;
+  final bool isAuthenticated;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
   final Key? notificationKey;
   final Key? cartKey;
   final String? location;
@@ -388,7 +395,7 @@ class FoodexWholesaleHeader extends StatelessWidget {
               const SizedBox(width: 6),
             ],
             ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 72),
+              constraints: const BoxConstraints(maxWidth: 56),
               child: Tooltip(
                 message: address == null || address!.trim().isEmpty
                     ? title
@@ -420,10 +427,7 @@ class FoodexWholesaleHeader extends StatelessWidget {
                       minHeight: 34,
                     ),
                     suffixIcon: onClearSearch == null
-                        ? const Icon(
-                            Icons.qr_code_scanner_rounded,
-                            size: 16,
-                          )
+                        ? null
                         : IconButton(
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(
@@ -436,10 +440,12 @@ class FoodexWholesaleHeader extends StatelessWidget {
                                     : onClearSearch,
                             icon: const Icon(Icons.close_rounded, size: 16),
                           ),
-                    suffixIconConstraints: const BoxConstraints(
-                      minWidth: 34,
-                      minHeight: 34,
-                    ),
+                    suffixIconConstraints: onClearSearch == null
+                        ? null
+                        : const BoxConstraints(
+                            minWidth: 34,
+                            minHeight: 34,
+                          ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 8,
@@ -466,21 +472,28 @@ class FoodexWholesaleHeader extends StatelessWidget {
             const SizedBox(width: 6),
             ...trailingActions,
             if (trailingActions.isNotEmpty) const SizedBox(width: 4),
-            _FoodexWholesaleHeaderIcon(
-              key: notificationKey,
-              icon: Icons.notifications_none_rounded,
-              onTap: onNotifications ?? () => _defaultNotifications(context),
-            ),
-            const SizedBox(width: 4),
-            ValueListenableBuilder<int>(
-              valueListenable: foodexWholesaleCartProductCount,
-              builder: (context, count, _) => _FoodexWholesaleHeaderIcon(
-                key: cartKey,
-                icon: Icons.shopping_cart_outlined,
-                badgeCount: count,
-                onTap: onCart ?? () => _defaultCart(context),
+            if (isAuthenticated) ...[
+              _FoodexWholesaleHeaderIcon(
+                key: notificationKey,
+                icon: Icons.notifications_none_rounded,
+                onTap: onNotifications ?? () => _defaultNotifications(context),
               ),
-            ),
+              const SizedBox(width: 4),
+              ValueListenableBuilder<int>(
+                valueListenable: foodexWholesaleCartProductCount,
+                builder: (context, count, _) => _FoodexWholesaleHeaderIcon(
+                  key: cartKey,
+                  icon: Icons.shopping_cart_outlined,
+                  badgeCount: count,
+                  onTap: onCart ?? () => _defaultCart(context),
+                ),
+              ),
+              const SizedBox(width: 4),
+              _FoodexWholesaleAccountMenu(
+                onLocaleChanged: onLocaleChanged,
+                onLogout: onLogout,
+              ),
+            ],
           ],
         ),
       );
@@ -500,6 +513,9 @@ class FoodexUnifiedHeaderSurface extends StatelessWidget {
     this.onClearSearch,
     this.onNotifications,
     this.onCart,
+    this.isAuthenticated = true,
+    this.onLocaleChanged,
+    this.onLogout,
     this.notificationKey,
     this.cartKey,
     this.leading,
@@ -521,6 +537,9 @@ class FoodexUnifiedHeaderSurface extends StatelessWidget {
   final VoidCallback? onClearSearch;
   final VoidCallback? onNotifications;
   final VoidCallback? onCart;
+  final bool isAuthenticated;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
   final Key? notificationKey;
   final Key? cartKey;
   final Widget? leading;
@@ -549,6 +568,9 @@ class FoodexUnifiedHeaderSurface extends StatelessWidget {
                 onClearSearch: onClearSearch,
                 onNotifications: onNotifications,
                 onCart: onCart,
+                isAuthenticated: isAuthenticated,
+                onLocaleChanged: onLocaleChanged,
+                onLogout: onLogout,
                 notificationKey: notificationKey,
                 cartKey: cartKey,
                 leading: leading,
@@ -561,6 +583,93 @@ class FoodexUnifiedHeaderSurface extends StatelessWidget {
           ),
         ),
       );
+}
+
+class _FoodexWholesaleAccountMenu extends StatelessWidget {
+  const _FoodexWholesaleAccountMenu({
+    this.onLocaleChanged,
+    this.onLogout,
+  });
+
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: CustomerDisplayPreferences.instance.themeMode,
+      builder: (context, themeMode, _) => PopupMenuButton<String>(
+        key: const ValueKey('wholesale-header-account-menu'),
+        tooltip: isArabic ? 'الحساب' : 'Account',
+        position: PopupMenuPosition.under,
+        onSelected: (value) async {
+          switch (value) {
+            case 'theme':
+              await CustomerDisplayPreferences.instance.setDarkMode(
+                themeMode != ThemeMode.dark,
+              );
+              return;
+            case 'language':
+              onLocaleChanged?.call(Locale(isArabic ? 'en' : 'ar'));
+              return;
+            case 'logout':
+              await onLogout?.call();
+              return;
+          }
+        },
+        itemBuilder: (context) => <PopupMenuEntry<String>>[
+          PopupMenuItem<String>(
+            value: 'theme',
+            child: Row(
+              children: [
+                Icon(
+                  themeMode == ThemeMode.dark
+                      ? Icons.light_mode_rounded
+                      : Icons.dark_mode_rounded,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  themeMode == ThemeMode.dark
+                      ? (isArabic ? 'الوضع الفاتح' : 'Light mode')
+                      : (isArabic ? 'الوضع الداكن' : 'Dark mode'),
+                ),
+              ],
+            ),
+          ),
+          if (onLocaleChanged != null)
+            PopupMenuItem<String>(
+              value: 'language',
+              child: Row(
+                children: [
+                  const Icon(Icons.language_rounded, size: 20),
+                  const SizedBox(width: 10),
+                  Text(isArabic ? 'English' : 'العربية'),
+                ],
+              ),
+            ),
+          if (onLogout != null) const PopupMenuDivider(),
+          if (onLogout != null)
+            PopupMenuItem<String>(
+              value: 'logout',
+              child: Row(
+                children: [
+                  const Icon(Icons.logout_rounded, size: 20),
+                  const SizedBox(width: 10),
+                  Text(isArabic ? 'تسجيل الخروج' : 'Sign out'),
+                ],
+              ),
+            ),
+        ],
+        child: const _FoodexWholesaleHeaderIcon(
+          icon: Icons.person_outline_rounded,
+          onTap: null,
+        ),
+      ),
+    );
+  }
 }
 
 class _FoodexAnimatedHeaderTitle extends StatefulWidget {
@@ -788,6 +897,7 @@ class FoodexSectionHeader extends StatelessWidget {
     required this.palette,
     this.action = 'عرض الكل',
     this.onAction,
+    this.trailing,
     this.textScale = 1,
     this.spacingScale = 1,
     this.animatedGoldTitle = false,
@@ -798,6 +908,7 @@ class FoodexSectionHeader extends StatelessWidget {
   final String action;
   final FoodexPalette palette;
   final VoidCallback? onAction;
+  final Widget? trailing;
   final double textScale;
   final double spacingScale;
   final bool animatedGoldTitle;
@@ -851,6 +962,10 @@ class FoodexSectionHeader extends StatelessWidget {
                   ),
                 ),
               ),
+            if (trailing != null) ...[
+              const SizedBox(width: 2),
+              trailing!,
+            ],
           ],
         ),
       );

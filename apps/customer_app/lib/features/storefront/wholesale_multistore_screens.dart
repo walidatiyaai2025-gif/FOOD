@@ -78,6 +78,8 @@ class WholesaleHomeDesignScreen extends StatefulWidget {
     this.commerceApi,
     this.favoritesApi,
     this.pendingActionStore,
+    this.onLocaleChanged,
+    this.onLogout,
     this.showBottomNavigation = true,
     super.key,
   });
@@ -90,6 +92,8 @@ class WholesaleHomeDesignScreen extends StatefulWidget {
   final WholesaleCommerceApi? commerceApi;
   final B2cRetailFavoritesApi? favoritesApi;
   final CustomerPendingActionStore? pendingActionStore;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
   final bool showBottomNavigation;
 
   @override
@@ -109,6 +113,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
   }
 
   late Future<Map<String, dynamic>> future = _load();
+  late WholesaleProductCardSize cardSize;
   bool _liveAdScheduled = false;
 
   Future<void> _showHomeVehicleIntro() async {
@@ -152,7 +157,19 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
   @override
   void initState() {
     super.initState();
+    cardSize =
+        CustomerDisplayPreferences.instance.wholesaleProductCardSize.value;
+    CustomerDisplayPreferences.instance.wholesaleProductCardSize
+        .addListener(_onHomeProductCardSizeChanged);
     WidgetsBinding.instance.addObserver(this);
+  }
+
+  void _onHomeProductCardSizeChanged() {
+    if (!mounted) return;
+    setState(() {
+      cardSize =
+          CustomerDisplayPreferences.instance.wholesaleProductCardSize.value;
+    });
   }
 
   @override
@@ -263,6 +280,8 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    CustomerDisplayPreferences.instance.wholesaleProductCardSize
+        .removeListener(_onHomeProductCardSizeChanged);
     search.dispose();
     super.dispose();
   }
@@ -278,6 +297,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                 body: FoodexUnifiedHeaderSurface(
                   title: context.tr('b2b.app.title'),
                   location: widget.location,
+                  isAuthenticated: widget.session.isAuthenticated,
+                  onLocaleChanged: widget.onLocaleChanged,
+                  onLogout: widget.onLogout,
                   searchHint: context.tr(
                     'customer.products.search_name_sku_barcode',
                   ),
@@ -292,6 +314,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                 body: FoodexUnifiedHeaderSurface(
                   title: context.tr('b2b.app.title'),
                   location: widget.location,
+                  isAuthenticated: widget.session.isAuthenticated,
+                  onLocaleChanged: widget.onLocaleChanged,
+                  onLogout: widget.onLogout,
                   searchHint: context.tr(
                     'customer.products.search_name_sku_barcode',
                   ),
@@ -410,6 +435,33 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
             }
 
             final content = <Widget>[];
+            var homeCardSizeControlPlaced = false;
+
+            Widget? takeHomeCardSizeControl() {
+              if (homeCardSizeControlPlaced) return null;
+              homeCardSizeControlPlaced = true;
+              final icon = switch (cardSize) {
+                WholesaleProductCardSize.compact => Icons.view_module_rounded,
+                WholesaleProductCardSize.comfortable => Icons.grid_view_rounded,
+                WholesaleProductCardSize.expanded => Icons.view_agenda_rounded,
+              };
+              return SizedBox(
+                width: 30,
+                height: 30,
+                child: IconButton(
+                  key: const ValueKey('wholesale-home-card-size'),
+                  tooltip: context.tr('b2b.catalog.card_size'),
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () async {
+                    await CustomerDisplayPreferences.instance
+                        .cycleWholesaleProductCardSize();
+                  },
+                  icon: Icon(icon, size: 17),
+                ),
+              );
+            }
+
             final hasBannerSection = effectiveSections.any((section) {
               final type = section['type']?.toString() ?? '';
               return type == 'hero' || type == 'banner_slider';
@@ -486,6 +538,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                 case 'product_carousel':
                   {
                     final sectionRows = _wholesaleRowsForSection(rows, section);
+                    final cardSizeControl = takeHomeCardSizeControl();
                     content.add(
                       type == 'best_sellers'
                           ? _WholesaleBestSellerTickerHeader(
@@ -501,6 +554,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                                         ),
                                       )
                                   : null,
+                              trailing: cardSizeControl,
                             )
                           : FoodexSectionHeader(
                               title: sectionTitle,
@@ -515,6 +569,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                                         ),
                                       )
                                   : null,
+                              trailing: cardSizeControl,
                             ),
                     );
                     content.add(
@@ -528,6 +583,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                         palette: palette,
                         favoritesApi: widget.favoritesApi,
                         maxItems: type == 'best_sellers' ? 9 : 3,
+                        columnsOverride: cardSize.columns,
                         showCommerceActions: true,
                         homeWholeNumberPrice: true,
                       ),
@@ -579,6 +635,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                   textScale: .8,
                   spacingScale: .25,
                   onAction: storeId > 0 ? () => openCatalog() : null,
+                  trailing: takeHomeCardSizeControl(),
                 ),
               );
               content.add(
@@ -592,6 +649,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                   palette: palette,
                   favoritesApi: widget.favoritesApi,
                   maxItems: 3,
+                  columnsOverride: cardSize.columns,
                   showCommerceActions: true,
                   homeWholeNumberPrice: true,
                 ),
@@ -610,6 +668,10 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                       logoUrl: branding['logo_url']?.toString(),
                       address: branding['address']?.toString(),
                       palette: palette,
+                      location: widget.location,
+                      isAuthenticated: widget.session.isAuthenticated,
+                      onLocaleChanged: widget.onLocaleChanged,
+                      onLogout: widget.onLogout,
                       searchController: search,
                       searchKey: const ValueKey('wholesale-home-search'),
                       searchHint: context.tr(
@@ -1895,6 +1957,7 @@ class _WholesaleBestSellerTickerHeader extends StatefulWidget {
     required this.palette,
     required this.storeId,
     required this.onAction,
+    this.trailing,
   });
 
   final String title;
@@ -1902,6 +1965,7 @@ class _WholesaleBestSellerTickerHeader extends StatefulWidget {
   final FoodexPalette palette;
   final int storeId;
   final VoidCallback? onAction;
+  final Widget? trailing;
 
   @override
   State<_WholesaleBestSellerTickerHeader> createState() =>
@@ -2110,6 +2174,10 @@ class _WholesaleBestSellerTickerHeaderState
                 ),
               ),
             ),
+          if (widget.trailing != null) ...[
+            const SizedBox(width: 2),
+            widget.trailing!,
+          ],
         ],
       ),
     );
@@ -2171,10 +2239,12 @@ class _WholesaleProductGrid extends StatelessWidget {
         maxItems == null ? rows : rows.take(maxItems!).toList(growable: false);
     final columns =
         columnsOverride ?? _wholesaleProductColumns(displayRows.length);
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final compactTextExtra = ((textScale - 1).clamp(0.0, 1.0).toDouble()) * 16;
     final mainAxisExtent = switch (columns) {
-      1 => 248.0,
-      2 => 182.0,
-      _ => 132.0,
+      1 => 252.0,
+      2 => 188.0,
+      _ => 144.0 + compactTextExtra,
     };
 
     return GridView.builder(
@@ -2186,7 +2256,7 @@ class _WholesaleProductGrid extends StatelessWidget {
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: columns,
         crossAxisSpacing: 8,
-        mainAxisSpacing: columns >= 3 ? 0 : 8,
+        mainAxisSpacing: columns >= 3 ? 6 : 8,
         mainAxisExtent: mainAxisExtent,
       ),
       itemBuilder: (context, index) => _WholesaleProductCard(
@@ -2353,7 +2423,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
         : twoColumns
             ? const EdgeInsets.fromLTRB(11, 11, 11, 9)
             : const EdgeInsets.fromLTRB(7, 7, 7, 6);
-    final nameHeight = singleColumn ? 28.0 : (twoColumns ? 20.0 : 14.0);
+    final nameHeight = singleColumn ? 28.0 : (twoColumns ? 20.0 : 18.0);
     final nameFontSize = singleColumn ? 15.0 : (twoColumns ? 12.0 : 9.0);
     final actionDimension = singleColumn ? 36.0 : (twoColumns ? 28.0 : 22.0);
     final actionIconSize = singleColumn ? 18.0 : (twoColumns ? 15.0 : 13.0);
@@ -2637,6 +2707,8 @@ class WholesaleFavoritesDesignScreen extends StatefulWidget {
     required this.storefrontApi,
     required this.actionApi,
     this.pendingActionStore,
+    this.onLocaleChanged,
+    this.onLogout,
     super.key,
   });
 
@@ -2646,6 +2718,8 @@ class WholesaleFavoritesDesignScreen extends StatefulWidget {
   final StorefrontApi? storefrontApi;
   final CustomerActionApi actionApi;
   final CustomerPendingActionStore? pendingActionStore;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
 
   @override
   State<WholesaleFavoritesDesignScreen> createState() =>
@@ -2749,6 +2823,9 @@ class _WholesaleFavoritesDesignScreenState
               body: FoodexUnifiedHeaderSurface(
                 title: context.tr('b2b.app.title'),
                 location: widget.location,
+                isAuthenticated: widget.session.isAuthenticated,
+                onLocaleChanged: widget.onLocaleChanged,
+                onLogout: widget.onLogout,
                 searchHint: context.tr(
                   'customer.products.search_name_sku_barcode',
                 ),
@@ -2763,6 +2840,9 @@ class _WholesaleFavoritesDesignScreenState
               body: FoodexUnifiedHeaderSurface(
                 title: context.tr('b2b.app.title'),
                 location: widget.location,
+                isAuthenticated: widget.session.isAuthenticated,
+                onLocaleChanged: widget.onLocaleChanged,
+                onLogout: widget.onLogout,
                 searchHint: context.tr(
                   'customer.products.search_name_sku_barcode',
                 ),
@@ -2782,6 +2862,9 @@ class _WholesaleFavoritesDesignScreenState
               body: FoodexUnifiedHeaderSurface(
                 title: context.tr('b2b.app.title'),
                 location: widget.location,
+                isAuthenticated: widget.session.isAuthenticated,
+                onLocaleChanged: widget.onLocaleChanged,
+                onLogout: widget.onLogout,
                 searchHint: context.tr(
                   'customer.products.search_name_sku_barcode',
                 ),
@@ -2838,6 +2921,10 @@ class _WholesaleFavoritesDesignScreenState
                     logoUrl: branding['logo_url']?.toString(),
                     address: branding['address']?.toString(),
                     palette: palette,
+                    location: widget.location,
+                    isAuthenticated: widget.session.isAuthenticated,
+                    onLocaleChanged: widget.onLocaleChanged,
+                    onLogout: widget.onLogout,
                     searchController: search,
                     searchKey: const ValueKey('wholesale-favorites-search'),
                     searchHint: context.tr('b2b.catalog.search_hint'),
@@ -2973,6 +3060,8 @@ class WholesaleCatalogDesignScreen extends StatefulWidget {
     required this.actionApi,
     this.favoritesApi,
     this.pendingActionStore,
+    this.onLocaleChanged,
+    this.onLogout,
     super.key,
   });
 
@@ -2983,6 +3072,8 @@ class WholesaleCatalogDesignScreen extends StatefulWidget {
   final CustomerActionApi actionApi;
   final B2cRetailFavoritesApi? favoritesApi;
   final CustomerPendingActionStore? pendingActionStore;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
 
   @override
   State<WholesaleCatalogDesignScreen> createState() =>
@@ -3201,6 +3292,9 @@ class _WholesaleCatalogDesignScreenState
               body: FoodexUnifiedHeaderSurface(
                 title: context.tr('b2b.app.title'),
                 location: widget.location,
+                isAuthenticated: widget.session.isAuthenticated,
+                onLocaleChanged: widget.onLocaleChanged,
+                onLogout: widget.onLogout,
                 searchHint: context.tr(
                   'customer.products.search_name_sku_barcode',
                 ),
@@ -3215,6 +3309,9 @@ class _WholesaleCatalogDesignScreenState
               body: FoodexUnifiedHeaderSurface(
                 title: context.tr('b2b.app.title'),
                 location: widget.location,
+                isAuthenticated: widget.session.isAuthenticated,
+                onLocaleChanged: widget.onLocaleChanged,
+                onLogout: widget.onLogout,
                 searchHint: context.tr(
                   'customer.products.search_name_sku_barcode',
                 ),
@@ -3258,6 +3355,9 @@ class _WholesaleCatalogDesignScreenState
               body: FoodexUnifiedHeaderSurface(
                 title: context.tr('b2b.app.title'),
                 location: widget.location,
+                isAuthenticated: widget.session.isAuthenticated,
+                onLocaleChanged: widget.onLocaleChanged,
+                onLogout: widget.onLogout,
                 searchHint: context.tr(
                   'customer.products.search_name_sku_barcode',
                 ),
@@ -3339,6 +3439,10 @@ class _WholesaleCatalogDesignScreenState
                       logoUrl: branding['logo_url']?.toString(),
                       address: branding['address']?.toString(),
                       palette: palette,
+                      location: widget.location,
+                      isAuthenticated: widget.session.isAuthenticated,
+                      onLocaleChanged: widget.onLocaleChanged,
+                      onLogout: widget.onLogout,
                       searchController: search,
                       searchKey:
                           const ValueKey('wholesale-category-browser-search'),
@@ -3412,6 +3516,10 @@ class _WholesaleCatalogDesignScreenState
                       logoUrl: branding['logo_url']?.toString(),
                       address: branding['address']?.toString(),
                       palette: palette,
+                      location: widget.location,
+                      isAuthenticated: widget.session.isAuthenticated,
+                      onLocaleChanged: widget.onLocaleChanged,
+                      onLogout: widget.onLogout,
                       searchController: search,
                       searchKey:
                           const ValueKey('wholesale-brand-browser-search'),
@@ -3523,6 +3631,10 @@ class _WholesaleCatalogDesignScreenState
                     logoUrl: branding['logo_url']?.toString(),
                     address: branding['address']?.toString(),
                     palette: palette,
+                    location: widget.location,
+                    isAuthenticated: widget.session.isAuthenticated,
+                    onLocaleChanged: widget.onLocaleChanged,
+                    onLogout: widget.onLogout,
                     searchController: search,
                     searchKey: const ValueKey('wholesale-catalog-search'),
                     searchHint: context.tr('b2b.catalog.search_hint'),
@@ -4334,6 +4446,8 @@ class WholesaleProductDetailsDesignScreen extends StatefulWidget {
     required this.actionApi,
     this.favoritesApi,
     this.pendingActionStore,
+    this.onLocaleChanged,
+    this.onLogout,
     super.key,
   });
 
@@ -4344,6 +4458,8 @@ class WholesaleProductDetailsDesignScreen extends StatefulWidget {
   final CustomerActionApi actionApi;
   final B2cRetailFavoritesApi? favoritesApi;
   final CustomerPendingActionStore? pendingActionStore;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
 
   @override
   State<WholesaleProductDetailsDesignScreen> createState() =>
@@ -4687,6 +4803,9 @@ class _WholesaleProductDetailsDesignScreenState
         body: FoodexUnifiedHeaderSurface(
           title: context.tr('b2b.app.title'),
           location: widget.location,
+          isAuthenticated: widget.session.isAuthenticated,
+          onLocaleChanged: widget.onLocaleChanged,
+          onLogout: widget.onLogout,
           searchHint: context.tr(
             'customer.products.search_name_sku_barcode',
           ),
@@ -5342,12 +5461,18 @@ class WholesaleCartDesignScreen extends StatefulWidget {
     required this.location,
     required this.api,
     required this.commerceApi,
+    this.session,
+    this.onLocaleChanged,
+    this.onLogout,
     super.key,
   });
 
   final String location;
   final B2bApi? api;
   final WholesaleCommerceApi? commerceApi;
+  final CustomerSession? session;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
 
   @override
   State<WholesaleCartDesignScreen> createState() =>
@@ -5547,6 +5672,9 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
           body: FoodexUnifiedHeaderSurface(
             title: context.tr('b2b.app.title'),
             location: widget.location,
+            isAuthenticated: widget.session?.isAuthenticated ?? true,
+            onLocaleChanged: widget.onLocaleChanged,
+            onLogout: widget.onLogout,
             searchHint: context.tr(
               'customer.products.search_name_sku_barcode',
             ),
@@ -6061,12 +6189,18 @@ class WholesaleCheckoutDesignScreen extends StatefulWidget {
     required this.location,
     required this.storefrontApi,
     required this.commerceApi,
+    this.session,
+    this.onLocaleChanged,
+    this.onLogout,
     super.key,
   });
 
   final String location;
   final StorefrontApi? storefrontApi;
   final WholesaleCommerceApi? commerceApi;
+  final CustomerSession? session;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
 
   @override
   State<WholesaleCheckoutDesignScreen> createState() =>
@@ -6273,6 +6407,9 @@ class _WholesaleCheckoutDesignScreenState
           body: FoodexUnifiedHeaderSurface(
             title: context.tr('b2b.app.title'),
             location: widget.location,
+            isAuthenticated: widget.session?.isAuthenticated ?? true,
+            onLocaleChanged: widget.onLocaleChanged,
+            onLogout: widget.onLogout,
             searchHint: context.tr(
               'customer.products.search_name_sku_barcode',
             ),
@@ -6999,12 +7136,18 @@ class WholesaleOrdersDesignScreen extends StatefulWidget {
     required this.location,
     required this.api,
     required this.commerceApi,
+    this.session,
+    this.onLocaleChanged,
+    this.onLogout,
     super.key,
   });
 
   final String location;
   final B2bApi? api;
   final WholesaleCommerceApi? commerceApi;
+  final CustomerSession? session;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
 
   @override
   State<WholesaleOrdersDesignScreen> createState() =>
@@ -7519,11 +7662,17 @@ class WholesaleOrderDetailsDesignScreen extends StatefulWidget {
   const WholesaleOrderDetailsDesignScreen({
     required this.location,
     required this.api,
+    this.session,
+    this.onLocaleChanged,
+    this.onLogout,
     super.key,
   });
 
   final String location;
   final B2bApi? api;
+  final CustomerSession? session;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
 
   @override
   State<WholesaleOrderDetailsDesignScreen> createState() =>
@@ -7601,6 +7750,9 @@ class _WholesaleOrderDetailsDesignScreenState
           body: FoodexUnifiedHeaderSurface(
             title: context.tr('b2b.app.title'),
             location: widget.location,
+            isAuthenticated: widget.session?.isAuthenticated ?? true,
+            onLocaleChanged: widget.onLocaleChanged,
+            onLogout: widget.onLogout,
             searchHint: context.tr(
               'customer.products.search_name_sku_barcode',
             ),
