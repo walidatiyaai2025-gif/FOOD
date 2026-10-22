@@ -54,6 +54,12 @@ The DB evidence runner `scripts/foodex-legacy-scale-db-evidence.php` additionall
 slow-query fingerprints and EXPLAIN plans for representative growing-table reads. Repeated queries at
 or above 250 ms or an unindexed full scan of a declared growing table fail the DB evidence gate.
 
+`driver_current_locations` is intentionally classified as bounded current state, not historical
+tracking growth: the schema enforces `UNIQUE(driver_id)`, so there can be at most one mutable row per
+driver. MySQL is therefore allowed to choose a tiny full scan (for example, 25 active drivers) instead
+of the `received_at` index; this is recorded as evidence but is not treated as an unbounded-volume
+failure. Historical/growing tables remain subject to the full-scan rejection rule.
+
 ## CI evidence
 
 `.github/workflows/legacy-scale-performance-gate.yml` performs:
