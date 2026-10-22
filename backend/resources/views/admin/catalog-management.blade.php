@@ -200,7 +200,11 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 <input class="catalog-inline-input" name="value" value="{{ $p->name }}" required maxlength="255" aria-label="{{ app()->getLocale()==='ar'?'اسم المنتج':'Product name' }}">
 <button class="catalog-inline-save" type="submit" aria-label="{{ app()->getLocale()==='ar'?'حفظ الاسم':'Save name' }}">✓</button>
 </form>
-@if($p->description)<div class="catalog-product-sub" title="{{ $p->description }}">{{ $p->description }}</div>@endif
+<form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form" style="margin-top:4px">@csrf @method('PATCH')
+<input type="hidden" name="field" value="description">@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif
+<input class="catalog-inline-input catalog-product-sub" name="value" value="{{ $p->description }}" maxlength="5000" placeholder="{{ app()->getLocale()==='ar'?'الوصف':'Description' }}" aria-label="{{ app()->getLocale()==='ar'?'وصف المنتج':'Product description' }}">
+<button class="catalog-inline-save" type="submit" aria-label="{{ app()->getLocale()==='ar'?'حفظ الوصف':'Save description' }}">✓</button>
+</form>
 </div>
 </div>
 </td>
