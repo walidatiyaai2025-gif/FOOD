@@ -81,7 +81,13 @@ def request_json(
         with urlopen(request, timeout=timeout) as response:
             raw = response.read()
             elapsed = (time.perf_counter() - started) * 1000.0
-            decoded = json.loads(raw.decode("utf-8")) if raw else None
+            decoded = None
+            if raw:
+                text = raw.decode("utf-8", errors="replace")
+                try:
+                    decoded = json.loads(text)
+                except json.JSONDecodeError:
+                    decoded = {"text": text}
             return response.status, elapsed, decoded, None
     except HTTPError as exc:
         elapsed = (time.perf_counter() - started) * 1000.0
