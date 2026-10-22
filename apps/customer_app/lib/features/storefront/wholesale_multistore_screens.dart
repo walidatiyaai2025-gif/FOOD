@@ -3438,6 +3438,10 @@ class _WholesaleCatalogDesignScreenState
                       logoUrl: branding['logo_url']?.toString(),
                       address: branding['address']?.toString(),
                       palette: palette,
+                      location: widget.location,
+                      isAuthenticated: widget.session.isAuthenticated,
+                      onLocaleChanged: widget.onLocaleChanged,
+                      onLogout: widget.onLogout,
                       searchController: search,
                       searchKey:
                           const ValueKey('wholesale-category-browser-search'),
@@ -3511,6 +3515,10 @@ class _WholesaleCatalogDesignScreenState
                       logoUrl: branding['logo_url']?.toString(),
                       address: branding['address']?.toString(),
                       palette: palette,
+                      location: widget.location,
+                      isAuthenticated: widget.session.isAuthenticated,
+                      onLocaleChanged: widget.onLocaleChanged,
+                      onLogout: widget.onLogout,
                       searchController: search,
                       searchKey:
                           const ValueKey('wholesale-brand-browser-search'),
@@ -4794,6 +4802,9 @@ class _WholesaleProductDetailsDesignScreenState
         body: FoodexUnifiedHeaderSurface(
           title: context.tr('b2b.app.title'),
           location: widget.location,
+          isAuthenticated: widget.session.isAuthenticated,
+          onLocaleChanged: widget.onLocaleChanged,
+          onLogout: widget.onLogout,
           searchHint: context.tr(
             'customer.products.search_name_sku_barcode',
           ),
