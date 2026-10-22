@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        if (Schema::hasTable('legacy_fixed_asset_records')) {
+            return;
+        }
+
         Schema::create('legacy_fixed_asset_records', function (Blueprint $table): void {
             $table->id();
             $table->string('source_system', 64)->default('foodex_sqlserver');
