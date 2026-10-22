@@ -676,7 +676,7 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                                         tooltip:
                                             '$columns ' +
                                             context.tr(
-                                              'b2b.catalog.columns',
+                                              'b2b.catalog.card_size',
                                             ),
                                         padding: EdgeInsets.zero,
                                         visualDensity: VisualDensity.compact,
