@@ -167,18 +167,6 @@ void main() {
       (tester) async {
     final client = MockClient((request) async {
       return http.Response(
-          jsonEncode({
-            'data': [
-              {'id': 8, 'code': 'RETAIL-08', 'name': 'Primary Retail'},
-              {'id': 11, 'code': 'RETAIL-11', 'name': 'Retail Eleven'},
-              {'id': 12, 'code': 'RETAIL-12', 'name': 'Retail Twelve'},
-            ],
-          }),
-          200,
-        );
-      }
-
-      return http.Response(
         jsonEncode({
           'store': {'id': 70, 'name': 'Wholesale', 'channel': 'b2b'},
           'hero': {'title': 'FOODEX Wholesale', 'image_url': null},
