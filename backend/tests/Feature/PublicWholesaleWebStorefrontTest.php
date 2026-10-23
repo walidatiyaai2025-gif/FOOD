@@ -36,7 +36,7 @@ final class PublicWholesaleWebStorefrontTest extends TestCase
             ->assertOk()
             ->assertSee('FOODEX Test Chicken')
             ->assertSee('FOODEX Test Brand')
-            ->assertSee('السعر داخل التطبيق')
+            ->assertSee(__('wholesale_public.common.price_in_app'))
             ->assertDontSee('98765.432')
             ->assertDontSee('EGP 98,765')
             ->assertDontSee('Add to cart');
@@ -54,12 +54,12 @@ final class PublicWholesaleWebStorefrontTest extends TestCase
         $this->get('/brands')
             ->assertOk()
             ->assertSee('FOODEX Test Brand')
-            ->assertSee('عرض المنتجات');
+            ->assertSee(__('wholesale_public.brands_page.view_products'));
 
         $this->get('/products/'.$productId)
             ->assertOk()
             ->assertSee('FOODEX Test Chicken')
-            ->assertSee('سجّل من التطبيق لمعرفة السعر والشراء')
+            ->assertSee(__('wholesale_public.product.price_gate_title'))
             ->assertDontSee('98765.432')
             ->assertDontSee('Add to cart');
     }
