@@ -23,6 +23,7 @@
         <p class="wweb-muted">{{ app()->getLocale()==='ar'?'هذه إعدادات الويب فقط. تطبيق العميل له مسودة وأقسام وبانرات مستقلة تماماً. الهوية الأساسية فقط مشتركة.':'These settings control Public Web only. The Customer App has a completely separate Draft, sections and banners. Only base identity is shared.' }}</p>
         <div class="wweb-actions">
             <a class="foodex-primary" href="{{ route('admin.b2b.module',['module'=>'storefront']) }}">{{ app()->getLocale()==='ar'?'فتح إعدادات تطبيق العميل':'Open Customer App settings' }}</a>
+            <a class="foodex-primary" href="{{ route('admin.b2b.web-storefront.preview') }}" target="_blank" rel="noopener">{{ app()->getLocale()==='ar'?'معاينة مسودة الويب':'Preview Web Draft' }}</a>
             @if($webEnabled)<a class="foodex-primary" href="{{ route('public.wholesale.home') }}" target="_blank" rel="noopener">{{ app()->getLocale()==='ar'?'فتح الموقع المنشور':'Open published site' }}</a>@endif
         </div>
 
