@@ -67,10 +67,6 @@ final class PublicWholesaleStorefrontController extends Controller
             'facebook_text_ar' => (string) ($branding['facebook_text_ar'] ?? ''),
             'facebook_text_en' => (string) ($branding['facebook_text_en'] ?? ''),
         ];
-        $context['identity']['primary_color'] = (string) ($settings['primary_color'] ?? $context['identity']['primary_color']);
-        $context['identity']['primary_dark_color'] = (string) ($settings['primary_dark_color'] ?? $context['identity']['primary_dark_color']);
-        $context['identity']['accent_color'] = (string) ($settings['accent_color'] ?? $context['identity']['accent_color']);
-        $context['identity']['background_color'] = (string) ($settings['background_color'] ?? $context['identity']['background_color']);
 
         $suffix = app()->getLocale() === 'ar' ? 'ar' : 'en';
         $pageTitle = trim((string) ($branding['meta_title_'.$suffix] ?? ''));
