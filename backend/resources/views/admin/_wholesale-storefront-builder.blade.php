@@ -12,10 +12,11 @@
     $sfPreviewUrl = route('admin.app-preview.index', ['app'=>'customer','channel'=>'b2b','store_id'=>$sfStoreId,'persona'=>'guest','mode'=>'draft']);
     $canManageStorefront = $user->hasPermission('settings.manage');
     $isSuper = $user->hasRole('SUPER_ADMIN');
-    $primary = $sfSettings['primary_color'] ?? '#5D2A91';
-    $primaryDark = $sfSettings['primary_dark_color'] ?? '#35195E';
-    $accent = $sfSettings['accent_color'] ?? '#B983F0';
-    $background = $sfSettings['background_color'] ?? '#FBFAFD';
+    $primary = $sfSettings['primary_color'] ?? '#00452F';
+    $primaryDark = $sfSettings['primary_dark_color'] ?? '#003C2A';
+    $accent = $sfSettings['accent_color'] ?? '#9BE252';
+    $background = $sfSettings['background_color'] ?? '#EDF7F1';
+    $publicWebEnabled = (bool)($sfSettings['public_web_enabled'] ?? false);
 @endphp
 
 <style>
@@ -31,6 +32,22 @@
             @csrf @method('PUT')
             <input type="hidden" name="store_id" value="{{ $sfStore['id'] ?? 0 }}">
             <input type="hidden" name="theme_code" value="wholesale_b2b">
+            @if($isSuper)
+            <div class="wsf-item wide" style="margin-bottom:12px;border-color:{{ $publicWebEnabled ? '#9BE252' : '#DDE8E1' }}">
+                <div class="wsf-item-head">
+                    <div>
+                        <strong>{{ app()->getLocale()==='ar'?'الصفحة العامة لمتجر الجملة':'Public Wholesale Web Landing' }}</strong>
+                        <div class="wsf-muted">{{ app()->getLocale()==='ar'?'عند الإيقاف يفتح رابط الموقع صفحة دخول الإدارة. عند التشغيل يظهر الكتالوج بدون أسعار أو شراء.':'When off, the site opens management login. When on, guests can browse the catalog without prices or checkout.' }}</div>
+                    </div>
+                    <span class="wsf-badge">{{ $publicWebEnabled ? (app()->getLocale()==='ar'?'مفتوحة':'ON') : (app()->getLocale()==='ar'?'مغلقة':'OFF') }}</span>
+                </div>
+                <input type="hidden" name="public_web_enabled" value="0">
+                <label style="margin-top:10px"><span><input type="checkbox" name="public_web_enabled" value="1" @checked($publicWebEnabled)> {{ app()->getLocale()==='ar'?'تشغيل الصفحة العامة':'Enable public landing page' }}</span></label>
+                @if($publicWebEnabled)
+                    <a href="{{ route('public.wholesale.home') }}" target="_blank" rel="noopener" class="foodex-primary" style="margin-top:10px;display:inline-flex">{{ app()->getLocale()==='ar'?'فتح الصفحة العامة':'Open public landing' }}</a>
+                @endif
+            </div>
+            @endif
             <div class="wsf-form">
                 <label>{{ app()->getLocale()==='ar'?'الشعار':'Logo' }}<input type="file" name="logo" accept="image/jpeg,image/png,image/webp"></label>
                 <label>{{ app()->getLocale()==='ar'?'عنوان التوصيل/التغطية':'Header location text' }}<input name="header_address" maxlength="255" value="{{ $sfSettings['header_address'] ?? '' }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: توريد القاهرة والإسكندرية':'e.g. Cairo & Alexandria supply' }}"></label>
@@ -44,6 +61,11 @@
                 <label>{{ app()->getLocale()==='ar'?'عنوان الهيرو بالإنجليزية':'English hero title' }}<input name="brand_subtitle_en" value="{{ $sfSettings['brand_subtitle_en'] ?? '' }}" maxlength="500" placeholder="Best prices for retailers"></label>
                 <label>{{ app()->getLocale()==='ar'?'زر الهيرو بالعربية':'Arabic hero CTA' }}<input name="hero_cta_ar" value="{{ $sfSettings['hero_cta_ar'] ?? '' }}" maxlength="120" placeholder="تصفح الكتالوج"></label>
                 <label>{{ app()->getLocale()==='ar'?'زر الهيرو بالإنجليزية':'English hero CTA' }}<input name="hero_cta_en" value="{{ $sfSettings['hero_cta_en'] ?? '' }}" maxlength="120" placeholder="Browse catalog"></label>
+                <label class="wide">{{ app()->getLocale()==='ar'?'رابط صفحة فيسبوك':'Facebook page URL' }}<input type="url" name="facebook_url" value="{{ $sfSettings['facebook_url'] ?? '' }}" maxlength="500" placeholder="https://www.facebook.com/..."></label>
+                <label>{{ app()->getLocale()==='ar'?'عنوان فيسبوك بالعربية':'Arabic Facebook title' }}<input name="facebook_title_ar" value="{{ $sfSettings['facebook_title_ar'] ?? '' }}" maxlength="255" placeholder="تابع فوديكس على فيسبوك"></label>
+                <label>{{ app()->getLocale()==='ar'?'عنوان فيسبوك بالإنجليزية':'English Facebook title' }}<input name="facebook_title_en" value="{{ $sfSettings['facebook_title_en'] ?? '' }}" maxlength="255" placeholder="Follow FOODEX on Facebook"></label>
+                <label>{{ app()->getLocale()==='ar'?'نص فيسبوك بالعربية':'Arabic Facebook text' }}<textarea name="facebook_text_ar" rows="2" maxlength="500">{{ $sfSettings['facebook_text_ar'] ?? '' }}</textarea></label>
+                <label>{{ app()->getLocale()==='ar'?'نص فيسبوك بالإنجليزية':'English Facebook text' }}<textarea name="facebook_text_en" rows="2" maxlength="500">{{ $sfSettings['facebook_text_en'] ?? '' }}</textarea></label>
             </div>
             <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ المسودة':'Save Draft' }}</button></div>
         </form>
