@@ -742,6 +742,7 @@ Route::prefix('admin')
         Route::delete('/business/drivers/{driver}', [BusinessManagementController::class, 'destroyDriver'])->name('business.drivers.destroy');
         Route::post('/catalog/products', [CatalogManagementController::class, 'storeProduct'])->name('catalog.products.store');
         Route::patch('/catalog/products/{product}', [CatalogManagementController::class, 'updateProduct'])->name('catalog.products.update');
+        Route::patch('/catalog/products/{product}/inline', [CatalogManagementController::class, 'updateProductInline'])->whereNumber('product')->name('catalog.products.inline');
         Route::patch('/catalog/products/{product}/grid-image', [CatalogManagementController::class, 'replaceProductGridImage'])->whereNumber('product')->name('catalog.products.grid-image');
         Route::patch('/catalog/products/{product}/price', [CatalogManagementController::class, 'updateProductPrice'])->whereNumber('product')->name('catalog.products.price');
         Route::patch('/catalog/products/{product}/status', [CatalogManagementController::class, 'toggleProductStatus'])->name('catalog.products.status');

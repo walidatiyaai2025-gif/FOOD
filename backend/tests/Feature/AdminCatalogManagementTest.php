@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\CatalogOwnership;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -574,6 +575,176 @@ class AdminCatalogManagementTest extends TestCase
             ->assertSee('Cold Drinks Child')
             ->assertSee('data-catalog-category-filters', false)
             ->assertSee('data-catalog-filter-reset href="'.$resetCategories.'"', false);
+    }
+
+    public function test_catalog_grid_inline_updates_stock_threshold_visibility_and_core_fields(): void
+    {
+        $user = $this->superAdmin('en');
+        $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId,
+            'code' => 'INLINE-CATALOG',
+            'name' => 'Inline Catalog Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $catalog = app(CatalogOwnership::class)->defaultCatalogForStore($storeId, 'b2c');
+        $unitId = (int) DB::table('units')->where('scope', 'global')->where('is_active', true)->value('id');
+        $productId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalog->id,
+            'unit_id' => $unitId,
+            'sku' => 'INLINE-P',
+            'name' => 'Inline Product',
+            'low_stock_threshold' => 1,
+            'is_active' => true,
+            'lifecycle_state' => 'active',
+            'lifecycle_effective_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('store_products')->insert([
+            'store_id' => $storeId,
+            'product_id' => $productId,
+            'price' => 2.5,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $warehouseId = (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $storeId,
+            'code' => 'INLINE-WH',
+            'name' => 'Inline Warehouse',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $inline = '/admin/catalog/products/'.$productId.'/inline';
+
+        $this->actingAs($user)->patch($inline, [
+            'field' => 'name',
+            'value' => 'Inline Product Renamed',
+            'support_access' => 1,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->actingAs($user)->patch($inline, [
+            'field' => 'low_stock_threshold',
+            'value' => 4.5,
+            'support_access' => 1,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->actingAs($user)->patch($inline, [
+            'field' => 'stock_quantity',
+            'warehouse_id' => $warehouseId,
+            'value' => 12.25,
+            'support_access' => 1,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->actingAs($user)->patch($inline, [
+            'field' => 'price',
+            'value' => 3.75,
+            'support_access' => 1,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->actingAs($user)->patch($inline, [
+            'field' => 'app_visible',
+            'value' => 0,
+            'support_access' => 1,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('products', [
+            'id' => $productId,
+            'name' => 'Inline Product Renamed',
+            'low_stock_threshold' => 4.5,
+        ]);
+        $this->assertDatabaseHas('inventories', [
+            'warehouse_id' => $warehouseId,
+            'product_id' => $productId,
+            'quantity' => 12.25,
+        ]);
+        $this->assertDatabaseHas('store_products', [
+            'store_id' => $storeId,
+            'product_id' => $productId,
+            'price' => 3.75,
+            'is_active' => 0,
+        ]);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'catalog.product.inline_updated']);
+
+        $this->actingAs($user)
+            ->get('/admin/catalog?tab=products&store_id='.$storeId.'&support_access=1')
+            ->assertOk()
+            ->assertSee('Show in app')
+            ->assertSee('Low stock')
+            ->assertSee('data-inline-stock-form', false)
+            ->assertSee('name="field" value="app_visible"', false)
+            ->assertSee('Inline Product Renamed');
+    }
+
+    public function test_wholesale_catalog_inline_stock_uses_principal_warehouse_only(): void
+    {
+        $user = $this->superAdmin('en');
+        $principal = app(WholesalePrincipal::class);
+        $storeId = $principal->storeId();
+        $warehouseId = $principal->warehouseId();
+        $catalog = app(CatalogOwnership::class)->defaultCatalogForStore($storeId, 'b2b');
+        $unitId = (int) DB::table('units')->where('scope', 'global')->where('is_active', true)->value('id');
+        $productId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalog->id,
+            'unit_id' => $unitId,
+            'sku' => 'INLINE-B2B-P',
+            'name' => 'Inline Wholesale Product',
+            'low_stock_threshold' => 0,
+            'is_active' => true,
+            'lifecycle_state' => 'active',
+            'lifecycle_effective_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('store_products')->insert([
+            'store_id' => $storeId,
+            'product_id' => $productId,
+            'price' => 10,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($user)->patch('/admin/catalog/products/'.$productId.'/inline', [
+            'field' => 'stock_quantity',
+            'warehouse_id' => $warehouseId,
+            'value' => 33,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('inventories', [
+            'warehouse_id' => $warehouseId,
+            'product_id' => $productId,
+            'quantity' => 33,
+        ]);
+
+        $otherWarehouseId = (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $storeId,
+            'code' => 'INLINE-B2B-OTHER',
+            'name' => 'Other Wholesale Warehouse',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->from('/admin/catalog?tab=products')
+            ->patch('/admin/catalog/products/'.$productId.'/inline', [
+                'field' => 'stock_quantity',
+                'warehouse_id' => $otherWarehouseId,
+                'value' => 44,
+            ])
+            ->assertRedirect('/admin/catalog?tab=products')
+            ->assertSessionHasErrors(['warehouse_id']);
+
+        $this->assertDatabaseMissing('inventories', [
+            'warehouse_id' => $otherWarehouseId,
+            'product_id' => $productId,
+        ]);
     }
 
     public function test_catalog_management_requires_catalog_permission(): void

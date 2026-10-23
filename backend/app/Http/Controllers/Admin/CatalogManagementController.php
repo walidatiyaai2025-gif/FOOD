@@ -169,6 +169,7 @@ final class CatalogManagementController extends Controller
             'units.name as unit',
             DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path'),
             DB::raw($priceSortExpression.' as grid_price'),
+            DB::raw('(SELECT catalog_grid_assignment.is_active FROM store_products AS catalog_grid_assignment WHERE catalog_grid_assignment.product_id = products.id AND catalog_grid_assignment.store_id = catalogs.store_id LIMIT 1) as grid_app_visible'),
             DB::raw($stockSortExpression.' as grid_stock_quantity'),
         ];
         $productQuery = DB::table('products')
@@ -409,6 +410,26 @@ final class CatalogManagementController extends Controller
             ->values()
             ->all();
 
+        $catalogWarehouses = DB::table('warehouses')
+            ->whereIn('store_id', $storeIds)
+            ->where('is_active', true)
+            ->orderBy('store_id')
+            ->orderBy('id')
+            ->get(['id', 'store_id', 'name'])
+            ->groupBy('store_id');
+        $pageWarehouseIds = $catalogWarehouses
+            ->flatten(1)
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+        $inventoryPositions = ($pageProductIds === [] || $pageWarehouseIds === [])
+            ? collect()
+            : DB::table('inventories')
+                ->whereIn('product_id', $pageProductIds)
+                ->whereIn('warehouse_id', $pageWarehouseIds)
+                ->get(['id', 'warehouse_id', 'product_id', 'quantity', 'reserved_quantity'])
+                ->keyBy(fn ($row) => $row->warehouse_id.':'.$row->product_id);
+
         return view('admin.catalog-management', [
             'user' => $actor,
             'navGroups' => app(AdminNavigation::class)->groupsFor($actor),
@@ -495,6 +516,9 @@ final class CatalogManagementController extends Controller
                     'product_images.is_primary',
                 ])
                 ->groupBy('product_id'),
+            'catalogWarehouses' => $catalogWarehouses,
+            'inventoryPositions' => $inventoryPositions,
+            'principalWarehouseId' => $principalWarehouseIdForSort,
             'assignments' => DB::table('store_products')
                 ->whereIn('store_id', $storeIds)
                 ->whereIn('product_id', $pageProductIds)
@@ -801,6 +825,213 @@ final class CatalogManagementController extends Controller
         }
 
         return back()->with('status', $this->msg('تم تعديل المنتج وصوره.', 'Product and images updated.'));
+    }
+
+    public function updateProductInline(Request $request, int $product): RedirectResponse
+    {
+        $owner = $this->productOwner($product);
+        $field = (string) $request->validate([
+            'field' => ['required', Rule::in([
+                'name',
+                'description',
+                'category_id',
+                'brand_id',
+                'unit_id',
+                'price',
+                'stock_quantity',
+                'low_stock_threshold',
+                'is_active',
+                'app_visible',
+            ])],
+        ])['field'];
+
+        $storeId = (int) $owner->store_id;
+        $channel = strtolower((string) $owner->channel);
+        $before = [];
+        $after = [];
+        $auditContext = ['field' => $field, 'store_id' => $storeId];
+
+        if ($field === 'stock_quantity') {
+            $this->authorizeCatalogAction($request, 'inventory.manage', $storeId, $channel);
+            $data = $request->validate([
+                'value' => ['required', 'numeric', 'min:0'],
+                'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
+            ]);
+            $warehouseId = (int) $data['warehouse_id'];
+            $warehouse = DB::table('warehouses')
+                ->where('id', $warehouseId)
+                ->where('store_id', $storeId)
+                ->where('is_active', true)
+                ->first(['id', 'store_id']);
+            if ($warehouse === null) {
+                throw ValidationException::withMessages([
+                    'warehouse_id' => [$this->msg('اختر مخزناً نشطاً تابعاً لنفس المتجر.', 'Choose an active warehouse owned by this store.')],
+                ]);
+            }
+
+            if ($channel === 'b2b') {
+                $principal = app(WholesalePrincipal::class);
+                if ($storeId !== $principal->storeId() || $warehouseId !== $principal->warehouseId()) {
+                    throw ValidationException::withMessages([
+                        'warehouse_id' => [$this->msg('مخزون الجملة يُعدّل فقط على المخزن الرئيسي.', 'Wholesale stock can only be edited on the principal warehouse.')],
+                    ]);
+                }
+            }
+
+            $quantity = (float) $data['value'];
+            DB::transaction(function () use ($warehouseId, $product, $quantity, &$before, &$after): void {
+                $inventory = DB::table('inventories')
+                    ->where('warehouse_id', $warehouseId)
+                    ->where('product_id', $product)
+                    ->lockForUpdate()
+                    ->first();
+
+                $reserved = (float) ($inventory->reserved_quantity ?? 0);
+                if ($quantity + 0.0001 < $reserved) {
+                    throw ValidationException::withMessages([
+                        'value' => [$this->msg('الكمية لا يمكن أن تكون أقل من الكمية المحجوزة.', 'Quantity cannot be lower than reserved stock.')],
+                    ]);
+                }
+
+                $before = $inventory === null ? [] : (array) $inventory;
+                if ($inventory === null) {
+                    DB::table('inventories')->insert([
+                        'warehouse_id' => $warehouseId,
+                        'product_id' => $product,
+                        'quantity' => $quantity,
+                        'reserved_quantity' => 0,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                } else {
+                    DB::table('inventories')->where('id', $inventory->id)->update([
+                        'quantity' => $quantity,
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                $after = (array) DB::table('inventories')
+                    ->where('warehouse_id', $warehouseId)
+                    ->where('product_id', $product)
+                    ->first();
+            });
+            $auditContext['warehouse_id'] = $warehouseId;
+        } elseif (in_array($field, ['price', 'app_visible'], true)) {
+            $this->authorizeCatalogAction($request, 'catalog.manage', $storeId, $channel);
+            $rules = $field === 'price'
+                ? ['value' => ['nullable', 'numeric', 'min:0']]
+                : ['value' => ['required', 'boolean']];
+            $data = $request->validate($rules);
+            $assignment = DB::table('store_products')
+                ->where('store_id', $storeId)
+                ->where('product_id', $product)
+                ->first();
+            $before = $assignment === null ? [] : (array) $assignment;
+
+            if ($assignment === null) {
+                $productActive = (bool) DB::table('products')->where('id', $product)->value('is_active');
+                DB::table('store_products')->insert([
+                    'store_id' => $storeId,
+                    'product_id' => $product,
+                    'price' => $field === 'price' ? ($data['value'] ?? null) : null,
+                    'is_active' => $field === 'app_visible' ? (bool) $data['value'] : $productActive,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } else {
+                $assignmentColumn = $field === 'price' ? 'price' : 'is_active';
+                $assignmentValue = $field === 'price'
+                    ? ($data['value'] ?? null)
+                    : (bool) $data['value'];
+                DB::table('store_products')
+                    ->where('id', $assignment->id)
+                    ->update([
+                        $assignmentColumn => $assignmentValue,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            $after = (array) DB::table('store_products')
+                ->where('store_id', $storeId)
+                ->where('product_id', $product)
+                ->first();
+        } else {
+            $this->authorizeCatalogAction($request, 'catalog.edit', $storeId, $channel);
+            $rules = match ($field) {
+                'name' => ['value' => ['required', 'string', 'max:255']],
+                'description' => ['value' => ['nullable', 'string', 'max:5000']],
+                'category_id', 'brand_id' => ['value' => ['nullable', 'integer']],
+                'unit_id' => ['value' => ['required', 'integer']],
+                'low_stock_threshold' => ['value' => ['required', 'numeric', 'min:0']],
+                'is_active' => ['value' => ['required', 'boolean']],
+                default => ['value' => ['nullable']],
+            };
+            $data = $request->validate($rules);
+            $value = $data['value'] ?? null;
+
+            if ($field === 'category_id') {
+                $value = $value === null || $value === '' ? null : (int) $value;
+                $this->validateProductCategoryReference($value, $owner);
+            } elseif ($field === 'brand_id') {
+                $value = $value === null || $value === '' ? null : (int) $value;
+                $this->validateProductLookupReference('brands', $value, $owner);
+            } elseif ($field === 'unit_id') {
+                $value = (int) $value;
+                $this->validateProductLookupReference('units', $value, $owner);
+            } elseif ($field === 'low_stock_threshold') {
+                $value = (float) $value;
+            } elseif ($field === 'is_active') {
+                $value = (bool) $value;
+            }
+
+            $beforeProduct = DB::table('products')->where('id', $product)->first();
+            $before = $beforeProduct === null ? [] : (array) $beforeProduct;
+
+            if ($field === 'is_active') {
+                $nextLifecycle = $value ? 'active' : 'paused';
+                DB::transaction(function () use ($product, $value, $nextLifecycle, $beforeProduct, $request): void {
+                    DB::table('products')->where('id', $product)->update([
+                        'is_active' => $value,
+                        'lifecycle_state' => $nextLifecycle,
+                        'lifecycle_effective_at' => ($beforeProduct->lifecycle_state ?? null) === $nextLifecycle
+                            ? ($beforeProduct->lifecycle_effective_at ?? now())
+                            : now(),
+                        'end_of_life_at' => null,
+                        'updated_at' => now(),
+                    ]);
+                    if (($beforeProduct->lifecycle_state ?? null) !== $nextLifecycle) {
+                        DB::table('product_lifecycle_transitions')->insert([
+                            'product_id' => $product,
+                            'user_id' => $this->actor($request)->id,
+                            'from_state' => $beforeProduct->lifecycle_state,
+                            'to_state' => $nextLifecycle,
+                            'effective_at' => now(),
+                            'reason' => __('catalog_completion.lifecycle.legacy_active_toggle_reason'),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                });
+            } else {
+                DB::table('products')->where('id', $product)->update([
+                    $field => $value,
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $after = (array) DB::table('products')->where('id', $product)->first();
+        }
+
+        app(AuditLogger::class)->record(
+            'catalog.product.inline_updated',
+            $this->actor($request),
+            Product::query()->find($product),
+            array_merge($before, $auditContext),
+            array_merge($after, $auditContext),
+            $request,
+        );
+
+        return back()->with('status', $this->msg('تم حفظ التعديل مباشرة من الكتالوج.', 'Catalog inline change saved.'));
     }
 
     public function updateProductPrice(Request $request, int $product): RedirectResponse
