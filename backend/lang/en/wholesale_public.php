@@ -139,7 +139,7 @@ return [
             'discard' => 'Discard Web changes',
             'sections_title' => 'Public Web sections',
             'section_key' => 'Section key',
-            'section_key_placeholder' => 'brands',
+            'section_key_placeholder' => 'brands', // localization-gate: allow — technical ASCII section-key example required by validation.
             'key' => 'Key',
             'type' => 'Type',
             'title_ar' => 'Arabic title',
@@ -147,7 +147,7 @@ return [
             'sort_order' => 'Sort order',
             'active' => 'Active',
             'config_json' => 'Section config JSON (optional)',
-            'config_json_placeholder' => '{"limit":10}',
+            'config_json_placeholder' => '{"limit":10}', // localization-gate: allow — technical JSON example, not user-facing prose.
             'add_section' => 'Add to Web Draft',
             'save_section' => 'Save to Web Draft',
             'delete' => 'Delete',
