@@ -26,11 +26,11 @@
     <div class="fx-shell fx-header__row">
         <a class="fx-brand" href="{{ route('public.wholesale.home') }}" aria-label="{{ $identityBrand }}">
             @if(!empty($store['logo_url']))
-                <img src="{{ $store['logo_url'] }}" alt="{{ __('wholesale_public.brand_name') }}">
+                <img src="{{ $store['logo_url'] }}" alt="{{ $identityBrand }}">
             @else
                 <span class="fx-brand__mark" aria-hidden="true">✦</span>
             @endif
-            <span>{{ __('wholesale_public.brand_name') }}</span>
+            <span>{{ $identityBrand }}</span>
         </a>
         <nav class="fx-nav" aria-label="{{ __('wholesale_public.nav.primary') }}">
             <a href="{{ route('public.wholesale.home') }}">{{ __('wholesale_public.nav.home') }}</a>
@@ -60,7 +60,7 @@
 <footer class="fx-footer">
     <div class="fx-shell fx-footer__grid">
         <div>
-            <div class="fx-brand fx-brand--footer"><span class="fx-brand__mark" aria-hidden="true">✦</span><span>{{ __('wholesale_public.brand_name') }}</span></div>
+            <div class="fx-brand fx-brand--footer"><span class="fx-brand__mark" aria-hidden="true">✦</span><span>{{ $identityBrand }}</span></div>
             <p>{{ __('wholesale_public.footer.tagline') }}</p>
         </div>
         <div>
