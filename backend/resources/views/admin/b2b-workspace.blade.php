@@ -472,6 +472,10 @@
         @include('admin._wholesale-storefront-builder')
       @endif
 
+      @if($module==='web_storefront')
+        @include('admin._wholesale-web-storefront-builder')
+      @endif
+
       @if($module==='clients' && $user->hasPermission('b2b.accounts.manage'))
       <form method="post" action="{{ route('admin.b2b.clients.store') }}" class="links workspace-inline-form">
         @csrf
