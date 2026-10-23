@@ -115,7 +115,7 @@ final class StorefrontRevisionService
                 $this->auditPayload($revision),
                 $request,
             );
-            $this->invalidations->emitForRevision($revision);
+            $this->emitPreviewInvalidation($revision);
 
             return $revision;
         });
@@ -172,7 +172,7 @@ final class StorefrontRevisionService
                 $this->auditPayload($revision),
                 $request,
             );
-            $this->invalidations->emitForRevision(
+            $this->emitPreviewInvalidation(
                 $revision,
                 AppPreviewInvalidationService::STOREFRONT_UPDATED,
             );
@@ -217,7 +217,7 @@ final class StorefrontRevisionService
         );
 
         if (! hash_equals($beforeChecksum, $newChecksum)) {
-            $this->invalidations->emitForRevision(
+            $this->emitPreviewInvalidation(
                 $revision,
                 AppPreviewInvalidationService::STOREFRONT_UPDATED,
             );
@@ -275,7 +275,7 @@ final class StorefrontRevisionService
                 $this->auditPayload($draft),
                 $request,
             );
-            $this->invalidations->emitForRevision($draft);
+            $this->emitPreviewInvalidation($draft);
 
             return $draft->fresh();
         });
@@ -333,7 +333,7 @@ final class StorefrontRevisionService
                 ],
                 $request,
             );
-            $this->invalidations->emitForRevision($rolledBack);
+            $this->emitPreviewInvalidation($rolledBack);
 
             return $rolledBack;
         });
@@ -1164,6 +1164,17 @@ final class StorefrontRevisionService
         throw ValidationException::withMessages([
             'asset' => ['A storefront revision asset is no longer available for publish or rollback.'],
         ]);
+    }
+
+    private function emitPreviewInvalidation(
+        StorefrontRevision $revision,
+        string $eventName = AppPreviewInvalidationService::CONFIGURATION_UPDATED,
+    ): void {
+        if ((string) $revision->channel === 'b2b_web') {
+            return;
+        }
+
+        $this->invalidations->emitForRevision($revision, $eventName);
     }
 
     /** @return array<string,mixed> */
