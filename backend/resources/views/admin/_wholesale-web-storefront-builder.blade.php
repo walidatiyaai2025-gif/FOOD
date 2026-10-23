@@ -11,6 +11,7 @@
     $canManageWeb = $user->hasPermission('settings.manage');
     $canPublishWeb = $webStoreId > 0 && ($user->hasPermission('app_preview.publish', $webStoreId) || $user->hasPermission('app_preview.publish'));
     $webEnabled = (bool)($webSettings['public_web_enabled'] ?? false);
+    $webPublishedEnabled = (bool)($moduleData['published_web_enabled'] ?? false);
 @endphp
 
 <style>
@@ -24,7 +25,7 @@
         <div class="wweb-actions">
             <a class="foodex-primary" href="{{ route('admin.b2b.module',['module'=>'storefront']) }}">{{ app()->getLocale()==='ar'?'فتح إعدادات تطبيق العميل':'Open Customer App settings' }}</a>
             <a class="foodex-primary" href="{{ route('admin.b2b.web-storefront.preview') }}" target="_blank" rel="noopener">{{ app()->getLocale()==='ar'?'معاينة مسودة الويب':'Preview Web Draft' }}</a>
-            @if($webEnabled)<a class="foodex-primary" href="{{ route('public.wholesale.home') }}" target="_blank" rel="noopener">{{ app()->getLocale()==='ar'?'فتح الموقع المنشور':'Open published site' }}</a>@endif
+            @if($webPublishedEnabled)<a class="foodex-primary" href="{{ route('public.wholesale.home') }}" target="_blank" rel="noopener">{{ app()->getLocale()==='ar'?'فتح الموقع المنشور':'Open published site' }}</a>@endif
         </div>
 
         @if($canManageWeb)
@@ -34,7 +35,10 @@
             <div class="wweb-item" style="margin-bottom:12px">
                 <div class="wweb-item-head">
                     <div><strong>{{ app()->getLocale()==='ar'?'تشغيل الموقع العام':'Public site availability' }}</strong><div class="wweb-muted">{{ app()->getLocale()==='ar'?'عند الإيقاف يفتح رابط الموقع صفحة دخول الإدارة. عند التشغيل يظهر الكتالوج بدون أسعار أو شراء.':'When disabled the public URL redirects to management login. When enabled guests can browse without pricing or checkout.' }}</div></div>
-                    <span class="wweb-status">{{ $webEnabled ? (app()->getLocale()==='ar'?'مفتوح':'ON') : (app()->getLocale()==='ar'?'مغلق':'OFF') }}</span>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+                        <span class="wweb-status">{{ app()->getLocale()==='ar'?'المسودة: ':'Draft: ' }}{{ $webEnabled ? (app()->getLocale()==='ar'?'مفتوح':'ON') : (app()->getLocale()==='ar'?'مغلق':'OFF') }}</span>
+                        <span class="wweb-status" style="background:#f3f4f6;color:#344054">{{ app()->getLocale()==='ar'?'المنشور: ':'Published: ' }}{{ $webPublishedEnabled ? (app()->getLocale()==='ar'?'مفتوح':'ON') : (app()->getLocale()==='ar'?'مغلق':'OFF') }}</span>
+                    </div>
                 </div>
                 <input type="hidden" name="public_web_enabled" value="0">
                 <label style="margin-top:10px"><span><input type="checkbox" name="public_web_enabled" value="1" @checked($webEnabled)> {{ app()->getLocale()==='ar'?'تشغيل الصفحة العامة':'Enable public landing page' }}</span></label>
