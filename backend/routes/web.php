@@ -74,6 +74,7 @@ use App\Http\Controllers\Admin\WhatsAppSupervisorController;
 use App\Http\Controllers\Api\V1\DriverLiveTrackingController;
 use App\Http\Controllers\Installer\InstallerController;
 use App\Http\Controllers\PublicInformationController;
+use App\Http\Controllers\PublicWholesaleStorefrontController;
 use App\Http\Controllers\SmartOrderingQrPublicController;
 use App\Http\Controllers\SupplierRfqPortalController;
 use App\Http\Controllers\WhatsAppWebhookController;
@@ -84,7 +85,11 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
-Route::get('/', fn () => redirect()->route('admin.b2c.login'));
+Route::get('/', [PublicWholesaleStorefrontController::class, 'home'])->name('public.wholesale.home');
+Route::get('/brands', [PublicWholesaleStorefrontController::class, 'brands'])->name('public.wholesale.brands');
+Route::get('/products/{product}', [PublicWholesaleStorefrontController::class, 'product'])
+    ->whereNumber('product')
+    ->name('public.wholesale.product');
 
 Route::get('/downloads/apps/{app}/latest.apk', [MobileAppDownloadController::class, 'latest'])
     ->whereIn('app', ['customer', 'driver', 'van'])
