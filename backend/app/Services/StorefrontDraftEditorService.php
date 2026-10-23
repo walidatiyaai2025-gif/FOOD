@@ -51,7 +51,7 @@ final class StorefrontDraftEditorService
         $accentColor = $settings['accent_color'] ?? null;
         $backgroundColor = $settings['background_color'] ?? null;
 
-        if ($channel === 'b2b') {
+        if (in_array($channel, ['b2b', 'b2b_web'], true)) {
             $primaryColor = $primaryColor === null || $primaryColor === '' || $primaryColor === '#5D2A91' ? '#00452F' : $primaryColor;
             $primaryDarkColor = $primaryDarkColor === null || $primaryDarkColor === '' || $primaryDarkColor === '#35195E' ? '#003C2A' : $primaryDarkColor;
             $accentColor = $accentColor === null || $accentColor === '' || $accentColor === '#B983F0' ? '#9BE252' : $accentColor;
@@ -71,7 +71,7 @@ final class StorefrontDraftEditorService
                 'is_active' => (bool) ($store['is_active'] ?? false),
             ],
             'settings' => [
-                'theme_code' => (string) ($settings['theme_code'] ?? ($channel === 'b2b' ? 'wholesale_b2b' : 'retail_grocery')),
+                'theme_code' => (string) ($settings['theme_code'] ?? ($channel === 'b2b_web' ? 'wholesale_web' : ($channel === 'b2b' ? 'wholesale_b2b' : 'retail_grocery'))),
                 'primary_color' => $primaryColor,
                 'primary_dark_color' => $primaryDarkColor,
                 'accent_color' => $accentColor,
@@ -89,6 +89,16 @@ final class StorefrontDraftEditorService
                 'facebook_title_en' => (string) ($branding['facebook_title_en'] ?? ''),
                 'facebook_text_ar' => (string) ($branding['facebook_text_ar'] ?? ''),
                 'facebook_text_en' => (string) ($branding['facebook_text_en'] ?? ''),
+                'web_hero_title_ar' => (string) ($branding['hero_title_ar'] ?? ''),
+                'web_hero_title_en' => (string) ($branding['hero_title_en'] ?? ''),
+                'web_hero_subtitle_ar' => (string) ($branding['hero_subtitle_ar'] ?? ''),
+                'web_hero_subtitle_en' => (string) ($branding['hero_subtitle_en'] ?? ''),
+                'web_hero_cta_ar' => (string) ($branding['hero_cta_ar'] ?? ''),
+                'web_hero_cta_en' => (string) ($branding['hero_cta_en'] ?? ''),
+                'web_meta_title_ar' => (string) ($branding['meta_title_ar'] ?? ''),
+                'web_meta_title_en' => (string) ($branding['meta_title_en'] ?? ''),
+                'web_meta_description_ar' => (string) ($branding['meta_description_ar'] ?? ''),
+                'web_meta_description_en' => (string) ($branding['meta_description_en'] ?? ''),
             ],
             'sections' => collect((array) ($payload['sections'] ?? []))
                 ->filter(fn (mixed $item): bool => is_array($item))
@@ -569,7 +579,7 @@ final class StorefrontDraftEditorService
             ->join('catalogs', 'catalogs.id', '=', $table.'.catalog_id')
             ->where($table.'.id', (int) $targetId)
             ->where('catalogs.store_id', $storeId)
-            ->where('catalogs.channel', $channel)
+            ->where('catalogs.channel', $channel === 'b2b_web' ? 'b2b' : $channel)
             ->where('catalogs.is_migration_quarantine', false)
             ->exists();
 
