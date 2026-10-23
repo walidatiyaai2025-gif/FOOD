@@ -392,6 +392,13 @@ final class StorefrontDraftEditorController extends Controller
 
         $this->drafts->publish($actor, $storeId, $channel, $request);
 
+        if ($channel === 'b2b_web') {
+            return back()->with('status', $this->msg(
+                'تم نشر مسودة الويب. الموقع العام يستخدم الآن هذه النسخة.',
+                'Web Draft published. The public website now uses this revision.',
+            ));
+        }
+
         return back()->with('status', $this->msg(
             'تم نشر المسودة. التطبيق الحقيقي يستخدم الآن هذه النسخة.',
             'Draft published. The real app now uses this revision.',
@@ -409,8 +416,8 @@ final class StorefrontDraftEditorController extends Controller
         $this->drafts->discard($actor, $storeId, $channel, $request);
 
         return back()->with('status', $this->msg(
-            'تم إرجاع المسودة إلى النسخة المنشورة الحالية.',
-            'Draft reset to the current Published revision.',
+            $channel === 'b2b_web' ? 'تم إرجاع مسودة الويب إلى النسخة المنشورة الحالية.' : 'تم إرجاع المسودة إلى النسخة المنشورة الحالية.',
+            $channel === 'b2b_web' ? 'Web Draft reset to the current Published revision.' : 'Draft reset to the current Published revision.',
         ));
     }
 
