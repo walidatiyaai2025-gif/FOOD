@@ -13,7 +13,7 @@
         ? ((string)($identity['brand_title_ar'] ?? '') ?: __('wholesale_public.brand_name'))
         : ((string)($identity['brand_title_en'] ?? '') ?: __('wholesale_public.brand_name'));
     $isWebDraftPreview = (bool)($webPreview['active'] ?? false);
-    $webHomeUrl = $isWebDraftPreview ? route('admin.b2b.web-storefront.preview') : $webHomeUrl;
+    $webHomeUrl = $isWebDraftPreview ? route('admin.b2b.web-storefront.preview') : route('public.wholesale.home');
 @endphp
 <style>
 :root{
@@ -55,7 +55,7 @@
     <div class="fx-mobile-nav" data-mobile-nav hidden>
         <a href="{{ $webHomeUrl }}">{{ __('wholesale_public.nav.home') }}</a>
         <a href="{{ $webHomeUrl }}#categories">{{ __('wholesale_public.nav.categories') }}</a>
-        <a href="{{ route('public.wholesale.brands') }}">{{ __('wholesale_public.nav.brands') }}</a>
+        <a href="{{ $isWebDraftPreview ? $webHomeUrl.'#brands' : route('public.wholesale.brands') }}">{{ __('wholesale_public.nav.brands') }}</a>
         <a href="{{ $webHomeUrl }}#products">{{ __('wholesale_public.nav.products') }}</a>
         <a href="{{ $adminUrl }}">{{ __('wholesale_public.nav.management_login') }}</a>
     </div>
@@ -73,7 +73,7 @@
         </div>
         <div>
             <strong>{{ __('wholesale_public.footer.quick_links') }}</strong>
-            <a href="{{ route('public.wholesale.brands') }}">{{ __('wholesale_public.nav.brands') }}</a>
+            <a href="{{ $isWebDraftPreview ? $webHomeUrl.'#brands' : route('public.wholesale.brands') }}">{{ __('wholesale_public.nav.brands') }}</a>
             <a href="{{ route('public.privacy') }}">{{ __('wholesale_public.footer.privacy') }}</a>
             <a href="{{ route('public.terms') }}">{{ __('wholesale_public.footer.terms') }}</a>
         </div>
