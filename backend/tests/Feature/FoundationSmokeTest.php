@@ -26,7 +26,7 @@ class FoundationSmokeTest extends TestCase
     public function test_root_runtime_entry_redirects_to_management_login(): void
     {
         $this->get('/')
-            ->assertRedirect(route('admin.b2c.login'));
+            ->assertRedirect(route('admin.b2b.login'));
     }
 
     public function test_runtime_defaults_are_arabic_first_with_english_fallback(): void
