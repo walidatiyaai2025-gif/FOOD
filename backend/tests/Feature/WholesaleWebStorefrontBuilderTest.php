@@ -100,6 +100,15 @@ final class WholesaleWebStorefrontBuilderTest extends TestCase
         $this->assertNotNull(collect($draft->payload['sections'])->firstWhere('key', 'web_brands'));
         $this->assertNotNull(collect($draft->payload['banners'])->firstWhere('title', 'Web Only Hero'));
 
+        $this->get('/')
+            ->assertRedirect(route('admin.b2b.login'));
+
+        $this->actingAs($admin)
+            ->get(route('admin.b2b.web-storefront.preview'))
+            ->assertOk()
+            ->assertSee('Web Draft Preview')
+            ->assertSee('FOODEX Web');
+
         $this->assertDatabaseMissing('storefront_revisions', [
             'store_id' => $storeId,
             'channel' => 'b2b',
