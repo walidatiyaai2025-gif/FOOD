@@ -20,12 +20,12 @@
 
 <div class="wweb-grid">
     <section class="wweb-card">
-        <h3>{{ app()->getLocale()==='ar'?'الموقع العام لمتجر الجملة':'Public Wholesale Web' }}</h3>
-        <p class="wweb-muted">{{ app()->getLocale()==='ar'?'هذه إعدادات الويب فقط. تطبيق العميل له مسودة وأقسام وبانرات مستقلة تماماً. الهوية الأساسية فقط مشتركة.':'These settings control Public Web only. The Customer App has a completely separate Draft, sections and banners. Only base identity is shared.' }}</p>
+        <h3>{{ __('wholesale_public.admin.web_editor.title') }}</h3>
+        <p class="wweb-muted">{{ __('wholesale_public.admin.web_editor.help') }}</p>
         <div class="wweb-actions">
-            <a class="foodex-primary" href="{{ route('admin.b2b.module',['module'=>'storefront']) }}">{{ app()->getLocale()==='ar'?'فتح إعدادات تطبيق العميل':'Open Customer App settings' }}</a>
-            <a class="foodex-primary" href="{{ route('admin.b2b.web-storefront.preview') }}" target="_blank" rel="noopener">{{ app()->getLocale()==='ar'?'معاينة مسودة الويب':'Preview Web Draft' }}</a>
-            @if($webPublishedEnabled)<a class="foodex-primary" href="{{ route('public.wholesale.home') }}" target="_blank" rel="noopener">{{ app()->getLocale()==='ar'?'فتح الموقع المنشور':'Open published site' }}</a>@endif
+            <a class="foodex-primary" href="{{ route('admin.b2b.module',['module'=>'storefront']) }}">{{ __('wholesale_public.admin.web_editor.open_customer_app') }}</a>
+            <a class="foodex-primary" href="{{ route('admin.b2b.web-storefront.preview') }}" target="_blank" rel="noopener">{{ __('wholesale_public.admin.web_editor.preview_draft') }}</a>
+            @if($webPublishedEnabled)<a class="foodex-primary" href="{{ route('public.wholesale.home') }}" target="_blank" rel="noopener">{{ __('wholesale_public.admin.web_editor.open_published') }}</a>@endif
         </div>
 
         @if($canManageWeb)
@@ -34,51 +34,51 @@
             <input type="hidden" name="store_id" value="{{ $webStoreId }}">
             <div class="wweb-item" style="margin-bottom:12px">
                 <div class="wweb-item-head">
-                    <div><strong>{{ app()->getLocale()==='ar'?'تشغيل الموقع العام':'Public site availability' }}</strong><div class="wweb-muted">{{ app()->getLocale()==='ar'?'عند الإيقاف يفتح رابط الموقع صفحة دخول الإدارة. عند التشغيل يظهر الكتالوج بدون أسعار أو شراء.':'When disabled the public URL redirects to management login. When enabled guests can browse without pricing or checkout.' }}</div></div>
+                    <div><strong>{{ __('wholesale_public.admin.web_editor.availability_title') }}</strong><div class="wweb-muted">{{ __('wholesale_public.admin.web_editor.availability_help') }}</div></div>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-                        <span class="wweb-status">{{ app()->getLocale()==='ar'?'المسودة: ':'Draft: ' }}{{ $webEnabled ? (app()->getLocale()==='ar'?'مفتوح':'ON') : (app()->getLocale()==='ar'?'مغلق':'OFF') }}</span>
-                        <span class="wweb-status" style="background:var(--foodex-background);color:var(--foodex-ink)">{{ app()->getLocale()==='ar'?'المنشور: ':'Published: ' }}{{ $webPublishedEnabled ? (app()->getLocale()==='ar'?'مفتوح':'ON') : (app()->getLocale()==='ar'?'مغلق':'OFF') }}</span>
+                        <span class="wweb-status">{{ __('wholesale_public.admin.web_editor.draft_label') }} {{ $webEnabled ? __('wholesale_public.admin.web_editor.on') : __('wholesale_public.admin.web_editor.off') }}</span>
+                        <span class="wweb-status" style="background:var(--foodex-background);color:var(--foodex-ink)">{{ __('wholesale_public.admin.web_editor.published_label') }} {{ $webPublishedEnabled ? __('wholesale_public.admin.web_editor.on') : __('wholesale_public.admin.web_editor.off') }}</span>
                     </div>
                 </div>
                 <input type="hidden" name="public_web_enabled" value="0">
-                <label style="margin-top:10px"><span><input type="checkbox" name="public_web_enabled" value="1" @checked($webEnabled)> {{ app()->getLocale()==='ar'?'تشغيل الصفحة العامة':'Enable public landing page' }}</span></label>
+                <label style="margin-top:10px"><span><input type="checkbox" name="public_web_enabled" value="1" @checked($webEnabled)> {{ __('wholesale_public.admin.web_editor.enable') }}</span></label>
             </div>
 
             <div class="wweb-form">
-                <label>{{ app()->getLocale()==='ar'?'عنوان الهيرو بالعربية':'Arabic hero title' }}<input name="hero_title_ar" value="{{ $webSettings['web_hero_title_ar'] ?? '' }}" maxlength="255"></label>
-                <label>{{ app()->getLocale()==='ar'?'عنوان الهيرو بالإنجليزية':'English hero title' }}<input name="hero_title_en" value="{{ $webSettings['web_hero_title_en'] ?? '' }}" maxlength="255"></label>
-                <label>{{ app()->getLocale()==='ar'?'وصف الهيرو بالعربية':'Arabic hero subtitle' }}<textarea name="hero_subtitle_ar" rows="2" maxlength="500">{{ $webSettings['web_hero_subtitle_ar'] ?? '' }}</textarea></label>
-                <label>{{ app()->getLocale()==='ar'?'وصف الهيرو بالإنجليزية':'English hero subtitle' }}<textarea name="hero_subtitle_en" rows="2" maxlength="500">{{ $webSettings['web_hero_subtitle_en'] ?? '' }}</textarea></label>
-                <label>{{ app()->getLocale()==='ar'?'زر الهيرو بالعربية':'Arabic hero CTA' }}<input name="hero_cta_ar" value="{{ $webSettings['web_hero_cta_ar'] ?? '' }}" maxlength="120"></label>
-                <label>{{ app()->getLocale()==='ar'?'زر الهيرو بالإنجليزية':'English hero CTA' }}<input name="hero_cta_en" value="{{ $webSettings['web_hero_cta_en'] ?? '' }}" maxlength="120"></label>
+                <label>{{ __('wholesale_public.admin.web_editor.hero_title_ar') }}<input name="hero_title_ar" value="{{ $webSettings['web_hero_title_ar'] ?? '' }}" maxlength="255"></label>
+                <label>{{ __('wholesale_public.admin.web_editor.hero_title_en') }}<input name="hero_title_en" value="{{ $webSettings['web_hero_title_en'] ?? '' }}" maxlength="255"></label>
+                <label>{{ __('wholesale_public.admin.web_editor.hero_subtitle_ar') }}<textarea name="hero_subtitle_ar" rows="2" maxlength="500">{{ $webSettings['web_hero_subtitle_ar'] ?? '' }}</textarea></label>
+                <label>{{ __('wholesale_public.admin.web_editor.hero_subtitle_en') }}<textarea name="hero_subtitle_en" rows="2" maxlength="500">{{ $webSettings['web_hero_subtitle_en'] ?? '' }}</textarea></label>
+                <label>{{ __('wholesale_public.admin.web_editor.hero_cta_ar') }}<input name="hero_cta_ar" value="{{ $webSettings['web_hero_cta_ar'] ?? '' }}" maxlength="120"></label>
+                <label>{{ __('wholesale_public.admin.web_editor.hero_cta_en') }}<input name="hero_cta_en" value="{{ $webSettings['web_hero_cta_en'] ?? '' }}" maxlength="120"></label>
 
-                <label class="wide">{{ app()->getLocale()==='ar'?'رابط صفحة فيسبوك':'Facebook page URL' }}<input type="url" name="facebook_url" value="{{ $webSettings['facebook_url'] ?? '' }}" maxlength="500" placeholder="https://www.facebook.com/..."></label>
-                <label>{{ app()->getLocale()==='ar'?'عنوان فيسبوك بالعربية':'Arabic Facebook title' }}<input name="facebook_title_ar" value="{{ $webSettings['facebook_title_ar'] ?? '' }}" maxlength="255"></label>
-                <label>{{ app()->getLocale()==='ar'?'عنوان فيسبوك بالإنجليزية':'English Facebook title' }}<input name="facebook_title_en" value="{{ $webSettings['facebook_title_en'] ?? '' }}" maxlength="255"></label>
-                <label>{{ app()->getLocale()==='ar'?'نص فيسبوك بالعربية':'Arabic Facebook text' }}<textarea name="facebook_text_ar" rows="2" maxlength="500">{{ $webSettings['facebook_text_ar'] ?? '' }}</textarea></label>
-                <label>{{ app()->getLocale()==='ar'?'نص فيسبوك بالإنجليزية':'English Facebook text' }}<textarea name="facebook_text_en" rows="2" maxlength="500">{{ $webSettings['facebook_text_en'] ?? '' }}</textarea></label>
+                <label class="wide">{{ __('wholesale_public.admin.web_editor.facebook_url') }}<input type="url" name="facebook_url" value="{{ $webSettings['facebook_url'] ?? '' }}" maxlength="500" placeholder="https://www.facebook.com/..."></label>
+                <label>{{ __('wholesale_public.admin.web_editor.facebook_title_ar') }}<input name="facebook_title_ar" value="{{ $webSettings['facebook_title_ar'] ?? '' }}" maxlength="255"></label>
+                <label>{{ __('wholesale_public.admin.web_editor.facebook_title_en') }}<input name="facebook_title_en" value="{{ $webSettings['facebook_title_en'] ?? '' }}" maxlength="255"></label>
+                <label>{{ __('wholesale_public.admin.web_editor.facebook_text_ar') }}<textarea name="facebook_text_ar" rows="2" maxlength="500">{{ $webSettings['facebook_text_ar'] ?? '' }}</textarea></label>
+                <label>{{ __('wholesale_public.admin.web_editor.facebook_text_en') }}<textarea name="facebook_text_en" rows="2" maxlength="500">{{ $webSettings['facebook_text_en'] ?? '' }}</textarea></label>
 
-                <label>{{ app()->getLocale()==='ar'?'عنوان SEO بالعربية':'Arabic SEO title' }}<input name="meta_title_ar" value="{{ $webSettings['web_meta_title_ar'] ?? '' }}" maxlength="255"></label>
-                <label>{{ app()->getLocale()==='ar'?'عنوان SEO بالإنجليزية':'English SEO title' }}<input name="meta_title_en" value="{{ $webSettings['web_meta_title_en'] ?? '' }}" maxlength="255"></label>
-                <label>{{ app()->getLocale()==='ar'?'وصف SEO بالعربية':'Arabic SEO description' }}<textarea name="meta_description_ar" rows="2" maxlength="500">{{ $webSettings['web_meta_description_ar'] ?? '' }}</textarea></label>
-                <label>{{ app()->getLocale()==='ar'?'وصف SEO بالإنجليزية':'English SEO description' }}<textarea name="meta_description_en" rows="2" maxlength="500">{{ $webSettings['web_meta_description_en'] ?? '' }}</textarea></label>
+                <label>{{ __('wholesale_public.admin.web_editor.meta_title_ar') }}<input name="meta_title_ar" value="{{ $webSettings['web_meta_title_ar'] ?? '' }}" maxlength="255"></label>
+                <label>{{ __('wholesale_public.admin.web_editor.meta_title_en') }}<input name="meta_title_en" value="{{ $webSettings['web_meta_title_en'] ?? '' }}" maxlength="255"></label>
+                <label>{{ __('wholesale_public.admin.web_editor.meta_description_ar') }}<textarea name="meta_description_ar" rows="2" maxlength="500">{{ $webSettings['web_meta_description_ar'] ?? '' }}</textarea></label>
+                <label>{{ __('wholesale_public.admin.web_editor.meta_description_en') }}<textarea name="meta_description_en" rows="2" maxlength="500">{{ $webSettings['web_meta_description_en'] ?? '' }}</textarea></label>
             </div>
-            <div class="wweb-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ مسودة الويب':'Save Web Draft' }}</button></div>
+            <div class="wweb-actions"><button class="foodex-primary" type="submit">{{ __('wholesale_public.admin.web_editor.save_draft') }}</button></div>
         </form>
         @endif
     </section>
 
     <aside class="wweb-card">
-        <h3>{{ app()->getLocale()==='ar'?'مسودة الويب والنشر':'Web Draft & Publish' }}</h3>
-        <p class="wweb-muted">{{ app()->getLocale()==='ar'?'نشر الويب مستقل عن نشر تطبيق العميل.':'Web publishing is independent from Customer App publishing.' }}</p>
+        <h3>{{ __('wholesale_public.admin.web_editor.draft_publish_title') }}</h3>
+        <p class="wweb-muted">{{ __('wholesale_public.admin.web_editor.draft_publish_help') }}</p>
         <div class="wweb-item">
-            <div class="wweb-item-head"><strong>{{ $webHasDraft ? (app()->getLocale()==='ar'?'مسودة ويب نشطة':'Active Web Draft') : (app()->getLocale()==='ar'?'نسخة الويب المنشورة':'Published Web') }}</strong><span class="wweb-code">rev {{ $webRevision['revision_id'] ?? '—' }}</span></div>
+            <div class="wweb-item-head"><strong>{{ $webHasDraft ? __('wholesale_public.admin.web_editor.active_draft') : __('wholesale_public.admin.web_editor.published_web') }}</strong><span class="wweb-code">rev {{ $webRevision['revision_id'] ?? '—' }}</span></div>
             <div class="wweb-code" style="margin-top:8px">{{ substr((string)($webRevision['checksum'] ?? ''),0,16) }}</div>
         </div>
         @if($webHasDraft && $canPublishWeb)
         <div class="wweb-actions">
-            <form method="post" action="{{ route('admin.b2b.web-storefront.publish') }}">@csrf<input type="hidden" name="store_id" value="{{ $webStoreId }}"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'نشر مسودة الويب':'Publish Web Draft' }}</button></form>
-            <form method="post" action="{{ route('admin.b2b.web-storefront.discard') }}" onsubmit="return confirm(@json(app()->getLocale()==='ar'?'إلغاء تغييرات مسودة الويب؟':'Discard Web Draft changes?'))">@csrf<input type="hidden" name="store_id" value="{{ $webStoreId }}"><button class="wweb-danger" type="submit">{{ app()->getLocale()==='ar'?'إلغاء تغييرات الويب':'Discard Web changes' }}</button></form>
+            <form method="post" action="{{ route('admin.b2b.web-storefront.publish') }}">@csrf<input type="hidden" name="store_id" value="{{ $webStoreId }}"><button class="foodex-primary" type="submit">{{ __('wholesale_public.admin.web_editor.publish') }}</button></form>
+            <form method="post" action="{{ route('admin.b2b.web-storefront.discard') }}" onsubmit="return confirm(@json(__('wholesale_public.admin.web_editor.discard_confirm')))">@csrf<input type="hidden" name="store_id" value="{{ $webStoreId }}"><button class="wweb-danger" type="submit">{{ __('wholesale_public.admin.web_editor.discard') }}</button></form>
         </div>
         @endif
     </aside>
@@ -86,21 +86,21 @@
 
 <div class="wweb-grid">
     <section class="wweb-card">
-        <h3>{{ app()->getLocale()==='ar'?'أقسام الموقع العام':'Public Web sections' }}</h3>
+        <h3>{{ __('wholesale_public.admin.web_editor.sections_title') }}</h3>
         @if($canManageWeb)
         <form method="post" action="{{ route('admin.b2b.web-storefront.sections.store') }}" class="wweb-item" style="margin-bottom:12px">
             @csrf
             <input type="hidden" name="store_id" value="{{ $webStoreId }}">
             <div class="wweb-form">
-                <label>{{ app()->getLocale()==='ar'?'مفتاح القسم':'Section key' }}<input name="section_key" required maxlength="80" placeholder="brands"></label>
-                <label>{{ app()->getLocale()==='ar'?'النوع':'Type' }}<select name="section_type">@foreach($webSectionTypes as $value=>$label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></label>
-                <label>{{ app()->getLocale()==='ar'?'العنوان العربي':'Arabic title' }}<input name="title_ar" maxlength="255"></label>
-                <label>{{ app()->getLocale()==='ar'?'العنوان الإنجليزي':'English title' }}<input name="title_en" maxlength="255"></label>
-                <label>{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}<input type="number" name="sort_order" value="50" min="0" max="9999" required></label>
-                <label style="align-content:end"><span><input type="checkbox" name="is_active" value="1" checked> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
-                <label class="wide">{{ app()->getLocale()==='ar'?'إعدادات القسم JSON (اختياري)':'Section config JSON (optional)' }}<textarea name="config_json" rows="2" placeholder='{"limit":10}'></textarea></label>
+                <label>{{ __('wholesale_public.admin.web_editor.section_key') }}<input name="section_key" required maxlength="80" placeholder="brands"></label>
+                <label>{{ __('wholesale_public.admin.web_editor.type') }}<select name="section_type">@foreach($webSectionTypes as $value=>$label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></label>
+                <label>{{ __('wholesale_public.admin.web_editor.title_ar') }}<input name="title_ar" maxlength="255"></label>
+                <label>{{ __('wholesale_public.admin.web_editor.title_en') }}<input name="title_en" maxlength="255"></label>
+                <label>{{ __('wholesale_public.admin.web_editor.sort_order') }}<input type="number" name="sort_order" value="50" min="0" max="9999" required></label>
+                <label style="align-content:end"><span><input type="checkbox" name="is_active" value="1" checked> {{ __('wholesale_public.admin.web_editor.active') }}</span></label>
+                <label class="wide">{{ __('wholesale_public.admin.web_editor.config_json') }}<textarea name="config_json" rows="2" placeholder='{"limit":10}'></textarea></label>
             </div>
-            <div class="wweb-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة لمسودة الويب':'Add to Web Draft' }}</button></div>
+            <div class="wweb-actions"><button class="foodex-primary" type="submit">{{ __('wholesale_public.admin.web_editor.add_section') }}</button></div>
         </form>
         @endif
 
@@ -113,42 +113,42 @@
                     @csrf @method('PATCH')
                     <input type="hidden" name="store_id" value="{{ $webStoreId }}">
                     <div class="wweb-form">
-                        <label>{{ app()->getLocale()==='ar'?'المفتاح':'Key' }}<input name="section_key" value="{{ $section['section_key'] }}" required></label>
-                        <label>{{ app()->getLocale()==='ar'?'النوع':'Type' }}<select name="section_type">@foreach($webSectionTypes as $value=>$label)<option value="{{ $value }}" @selected($section['section_type']===$value)>{{ $label }}</option>@endforeach</select></label>
-                        <label>{{ app()->getLocale()==='ar'?'العنوان العربي':'Arabic title' }}<input name="title_ar" value="{{ $section['title_ar'] }}"></label>
-                        <label>{{ app()->getLocale()==='ar'?'العنوان الإنجليزي':'English title' }}<input name="title_en" value="{{ $section['title_en'] }}"></label>
-                        <label>{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}<input type="number" name="sort_order" value="{{ $section['sort_order'] }}" min="0" max="9999" required></label>
-                        <label style="align-content:end"><span><input type="checkbox" name="is_active" value="1" @checked($section['is_active'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
-                        <label class="wide">{{ app()->getLocale()==='ar'?'إعدادات القسم JSON (اختياري)':'Section config JSON (optional)' }}<textarea name="config_json" rows="2">{{ $section['config_json'] }}</textarea></label>
+                        <label>{{ __('wholesale_public.admin.web_editor.key') }}<input name="section_key" value="{{ $section['section_key'] }}" required></label>
+                        <label>{{ __('wholesale_public.admin.web_editor.type') }}<select name="section_type">@foreach($webSectionTypes as $value=>$label)<option value="{{ $value }}" @selected($section['section_type']===$value)>{{ $label }}</option>@endforeach</select></label>
+                        <label>{{ __('wholesale_public.admin.web_editor.title_ar') }}<input name="title_ar" value="{{ $section['title_ar'] }}"></label>
+                        <label>{{ __('wholesale_public.admin.web_editor.title_en') }}<input name="title_en" value="{{ $section['title_en'] }}"></label>
+                        <label>{{ __('wholesale_public.admin.web_editor.sort_order') }}<input type="number" name="sort_order" value="{{ $section['sort_order'] }}" min="0" max="9999" required></label>
+                        <label style="align-content:end"><span><input type="checkbox" name="is_active" value="1" @checked($section['is_active'])> {{ __('wholesale_public.admin.web_editor.active') }}</span></label>
+                        <label class="wide">{{ __('wholesale_public.admin.web_editor.config_json') }}<textarea name="config_json" rows="2">{{ $section['config_json'] }}</textarea></label>
                     </div>
-                    <div class="wweb-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ في مسودة الويب':'Save to Web Draft' }}</button></div>
+                    <div class="wweb-actions"><button class="foodex-primary" type="submit">{{ __('wholesale_public.admin.web_editor.save_section') }}</button></div>
                 </form>
-                <form method="post" action="{{ route('admin.b2b.web-storefront.sections.destroy',['section'=>$section['id']]) }}">@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $webStoreId }}"><button class="wweb-danger" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form>
+                <form method="post" action="{{ route('admin.b2b.web-storefront.sections.destroy',['section'=>$section['id']]) }}">@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $webStoreId }}"><button class="wweb-danger" type="submit">{{ __('wholesale_public.admin.web_editor.delete') }}</button></form>
                 @endif
             </div>
         @empty
-            <p class="wweb-muted">{{ app()->getLocale()==='ar'?'لا توجد أقسام ويب مهيأة.':'No Public Web sections configured.' }}</p>
+            <p class="wweb-muted">{{ __('wholesale_public.admin.web_editor.empty_sections') }}</p>
         @endforelse
         </div>
     </section>
 
     <section class="wweb-card">
-        <h3>{{ app()->getLocale()==='ar'?'بانرات الموقع العام':'Public Web banners' }}</h3>
-        <p class="wweb-muted">{{ app()->getLocale()==='ar'?'بانرات الويب مستقلة تماماً عن بانرات تطبيق العميل والمنصة.':'Web banners are fully isolated from Customer App and Platform banners.' }}</p>
+        <h3>{{ __('wholesale_public.admin.web_editor.banners_title') }}</h3>
+        <p class="wweb-muted">{{ __('wholesale_public.admin.web_editor.banners_help') }}</p>
         @if($canManageWeb)
         <form method="post" action="{{ route('admin.b2b.web-storefront.banners.store') }}" enctype="multipart/form-data" class="wweb-item" style="margin-bottom:12px">
             @csrf
             <input type="hidden" name="store_id" value="{{ $webStoreId }}">
             <div class="wweb-form">
-                <label>{{ app()->getLocale()==='ar'?'العنوان':'Title' }}<input name="title" required maxlength="255"></label>
-                <label>{{ app()->getLocale()==='ar'?'الصورة':'Image' }}<input type="file" name="banner_image" accept="image/jpeg,image/png,image/webp" required></label>
-                <label>{{ app()->getLocale()==='ar'?'الهدف':'Target' }}<select name="target_ref"><option value="">{{ app()->getLocale()==='ar'?'بدون هدف':'No target' }}</option>@foreach($webTargets as $target)<option value="{{ $target['ref'] }}">{{ $target['label'] }}</option>@endforeach</select></label>
-                <label>{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}<input type="number" name="sort_order" value="0" min="0" required></label>
-                <label>{{ app()->getLocale()==='ar'?'يبدأ في':'Starts at' }}<input type="datetime-local" name="starts_at"></label>
-                <label>{{ app()->getLocale()==='ar'?'ينتهي في':'Ends at' }}<input type="datetime-local" name="ends_at"></label>
-                <label><span><input type="checkbox" name="is_active" value="1" checked> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
+                <label>{{ __('wholesale_public.admin.web_editor.title_field') }}<input name="title" required maxlength="255"></label>
+                <label>{{ __('wholesale_public.admin.web_editor.image') }}<input type="file" name="banner_image" accept="image/jpeg,image/png,image/webp" required></label>
+                <label>{{ __('wholesale_public.admin.web_editor.target') }}<select name="target_ref"><option value="">{{ __('wholesale_public.admin.web_editor.no_target') }}</option>@foreach($webTargets as $target)<option value="{{ $target['ref'] }}">{{ $target['label'] }}</option>@endforeach</select></label>
+                <label>{{ __('wholesale_public.admin.web_editor.sort_order') }}<input type="number" name="sort_order" value="0" min="0" required></label>
+                <label>{{ __('wholesale_public.admin.web_editor.starts_at') }}<input type="datetime-local" name="starts_at"></label>
+                <label>{{ __('wholesale_public.admin.web_editor.ends_at') }}<input type="datetime-local" name="ends_at"></label>
+                <label><span><input type="checkbox" name="is_active" value="1" checked> {{ __('wholesale_public.admin.web_editor.active') }}</span></label>
             </div>
-            <div class="wweb-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة لمسودة الويب':'Add to Web Draft' }}</button></div>
+            <div class="wweb-actions"><button class="foodex-primary" type="submit">{{ __('wholesale_public.admin.web_editor.add_banner') }}</button></div>
         </form>
         @endif
 
@@ -161,21 +161,21 @@
                     @csrf @method('PATCH')
                     <input type="hidden" name="store_id" value="{{ $webStoreId }}">
                     <div class="wweb-form">
-                        <label>{{ app()->getLocale()==='ar'?'العنوان':'Title' }}<input name="title" value="{{ $banner['title'] }}" required></label>
-                        <label>{{ app()->getLocale()==='ar'?'استبدال الصورة':'Replace image' }}<input type="file" name="banner_image" accept="image/jpeg,image/png,image/webp"></label>
-                        <label>{{ app()->getLocale()==='ar'?'الهدف':'Target' }}<select name="target_ref"><option value="">{{ app()->getLocale()==='ar'?'بدون هدف':'No target' }}</option>@foreach($webTargets as $target)<option value="{{ $target['ref'] }}" @selected($banner['target_ref']===$target['ref'])>{{ $target['label'] }}</option>@endforeach</select></label>
-                        <label>{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}<input type="number" name="sort_order" value="{{ $banner['sort_order'] }}" min="0" required></label>
-                        <label>{{ app()->getLocale()==='ar'?'يبدأ في':'Starts at' }}<input type="datetime-local" name="starts_at" value="{{ empty($banner['starts_at']) ? '' : str_replace(' ', 'T', substr((string)$banner['starts_at'],0,16)) }}"></label>
-                        <label>{{ app()->getLocale()==='ar'?'ينتهي في':'Ends at' }}<input type="datetime-local" name="ends_at" value="{{ empty($banner['ends_at']) ? '' : str_replace(' ', 'T', substr((string)$banner['ends_at'],0,16)) }}"></label>
-                        <label><span><input type="checkbox" name="is_active" value="1" @checked($banner['is_active'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
+                        <label>{{ __('wholesale_public.admin.web_editor.title_field') }}<input name="title" value="{{ $banner['title'] }}" required></label>
+                        <label>{{ __('wholesale_public.admin.web_editor.replace_image') }}<input type="file" name="banner_image" accept="image/jpeg,image/png,image/webp"></label>
+                        <label>{{ __('wholesale_public.admin.web_editor.target') }}<select name="target_ref"><option value="">{{ __('wholesale_public.admin.web_editor.no_target') }}</option>@foreach($webTargets as $target)<option value="{{ $target['ref'] }}" @selected($banner['target_ref']===$target['ref'])>{{ $target['label'] }}</option>@endforeach</select></label>
+                        <label>{{ __('wholesale_public.admin.web_editor.sort_order') }}<input type="number" name="sort_order" value="{{ $banner['sort_order'] }}" min="0" required></label>
+                        <label>{{ __('wholesale_public.admin.web_editor.starts_at') }}<input type="datetime-local" name="starts_at" value="{{ empty($banner['starts_at']) ? '' : str_replace(' ', 'T', substr((string)$banner['starts_at'],0,16)) }}"></label>
+                        <label>{{ __('wholesale_public.admin.web_editor.ends_at') }}<input type="datetime-local" name="ends_at" value="{{ empty($banner['ends_at']) ? '' : str_replace(' ', 'T', substr((string)$banner['ends_at'],0,16)) }}"></label>
+                        <label><span><input type="checkbox" name="is_active" value="1" @checked($banner['is_active'])> {{ __('wholesale_public.admin.web_editor.active') }}</span></label>
                     </div>
-                    <div class="wweb-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ في مسودة الويب':'Save to Web Draft' }}</button></div>
+                    <div class="wweb-actions"><button class="foodex-primary" type="submit">{{ __('wholesale_public.admin.web_editor.save_banner') }}</button></div>
                 </form>
-                <form method="post" action="{{ route('admin.b2b.web-storefront.banners.destroy',['banner'=>$banner['id']]) }}">@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $webStoreId }}"><button class="wweb-danger" type="submit">{{ app()->getLocale()==='ar'?'حذف':'Delete' }}</button></form>
+                <form method="post" action="{{ route('admin.b2b.web-storefront.banners.destroy',['banner'=>$banner['id']]) }}">@csrf @method('DELETE')<input type="hidden" name="store_id" value="{{ $webStoreId }}"><button class="wweb-danger" type="submit">{{ __('wholesale_public.admin.web_editor.delete') }}</button></form>
                 @endif
             </div>
         @empty
-            <p class="wweb-muted">{{ app()->getLocale()==='ar'?'لا توجد بانرات ويب حالياً.':'No Public Web banners yet.' }}</p>
+            <p class="wweb-muted">{{ __('wholesale_public.admin.web_editor.empty_banners') }}</p>
         @endforelse
         </div>
     </section>
