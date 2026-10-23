@@ -433,6 +433,10 @@ final class StorefrontRevisionService
     {
         $this->assertStoreChannel($storeId, $channel);
 
+        if ($channel === 'b2b_web') {
+            return $this->snapshotWholesaleWebLive($storeId);
+        }
+
         $store = DB::table('stores')->where('id', $storeId)->first();
         abort_unless($store !== null, 404);
 
@@ -538,6 +542,12 @@ final class StorefrontRevisionService
         ?StorefrontRevision $assetRevision = null,
     ): void {
         $normalized = $this->validatedPayload($payload, $storeId, $channel);
+
+        if ($channel === 'b2b_web') {
+            $this->applyWholesaleWebPayload($normalized, $storeId, $assetRevision);
+
+            return;
+        }
 
         $settings = (array) $normalized['settings'];
         DB::table('storefront_settings')->updateOrInsert(
@@ -817,9 +827,9 @@ final class StorefrontRevisionService
 
     private function assertStoreChannel(int $storeId, string $channel): void
     {
-        abort_unless(in_array($channel, ['b2b', 'b2c'], true), 422);
+        abort_unless(in_array($channel, ['b2b', 'b2b_web', 'b2c'], true), 422);
 
-        $expectedType = $channel === 'b2b' ? 'B2B' : 'B2C';
+        $expectedType = in_array($channel, ['b2b', 'b2b_web'], true) ? 'B2B' : 'B2C';
         $exists = DB::table('stores')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->where('stores.id', $storeId)
