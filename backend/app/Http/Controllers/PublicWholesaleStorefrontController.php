@@ -22,7 +22,7 @@ final class PublicWholesaleStorefrontController extends Controller
         $brandId = max(0, (int) $request->query('brand', 0));
         $categoryId = max(0, (int) $request->query('category', 0));
 
-        $sections = DB::table('storefront_sections')
+        $sections = DB::table('wholesale_web_sections')
             ->where('store_id', $storeId)
             ->where('is_active', true)
             ->orderBy('sort_order')
@@ -213,13 +213,17 @@ final class PublicWholesaleStorefrontController extends Controller
     {
         if (! Schema::hasTable('stores')
             || ! Schema::hasTable('store_types')
-            || ! Schema::hasTable('storefront_settings')) {
+            || ! Schema::hasTable('storefront_settings')
+            || ! Schema::hasTable('wholesale_web_settings')
+            || ! Schema::hasTable('wholesale_web_sections')
+            || ! Schema::hasTable('wholesale_web_banners')) {
             return $this->disabledContext();
         }
 
         $row = DB::table('stores')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->leftJoin('storefront_settings', 'storefront_settings.store_id', '=', 'stores.id')
+            ->leftJoin('wholesale_web_settings', 'wholesale_web_settings.store_id', '=', 'stores.id')
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2B')
             ->orderBy('stores.id')
@@ -229,17 +233,47 @@ final class PublicWholesaleStorefrontController extends Controller
                 'stores.name',
                 'stores.logo_path',
                 'storefront_settings.header_address',
-                'storefront_settings.branding',
+                'wholesale_web_settings.is_enabled',
+                'wholesale_web_settings.hero_title_ar',
+                'wholesale_web_settings.hero_title_en',
+                'wholesale_web_settings.hero_subtitle_ar',
+                'wholesale_web_settings.hero_subtitle_en',
+                'wholesale_web_settings.hero_cta_ar',
+                'wholesale_web_settings.hero_cta_en',
+                'wholesale_web_settings.facebook_url',
+                'wholesale_web_settings.facebook_title_ar',
+                'wholesale_web_settings.facebook_title_en',
+                'wholesale_web_settings.facebook_text_ar',
+                'wholesale_web_settings.facebook_text_en',
+                'wholesale_web_settings.meta_title_ar',
+                'wholesale_web_settings.meta_title_en',
+                'wholesale_web_settings.meta_description_ar',
+                'wholesale_web_settings.meta_description_en',
             ]);
 
         if ($row === null) {
             return $this->disabledContext();
         }
 
-        $branding = $this->decodedJson($row->branding ?? null);
+        $branding = [
+            'hero_title_ar' => (string) ($row->hero_title_ar ?? ''),
+            'hero_title_en' => (string) ($row->hero_title_en ?? ''),
+            'hero_subtitle_ar' => (string) ($row->hero_subtitle_ar ?? ''),
+            'hero_subtitle_en' => (string) ($row->hero_subtitle_en ?? ''),
+            'hero_cta_ar' => (string) ($row->hero_cta_ar ?? ''),
+            'hero_cta_en' => (string) ($row->hero_cta_en ?? ''),
+            'facebook_url' => (string) ($row->facebook_url ?? ''),
+            'facebook_title_ar' => (string) ($row->facebook_title_ar ?? ''),
+            'facebook_title_en' => (string) ($row->facebook_title_en ?? ''),
+            'facebook_text_ar' => (string) ($row->facebook_text_ar ?? ''),
+            'facebook_text_en' => (string) ($row->facebook_text_en ?? ''),
+        ];
+        $suffix = app()->getLocale() === 'ar' ? 'ar' : 'en';
+        $pageTitle = trim((string) ($row->{'meta_title_'.$suffix} ?? ''));
+        $metaDescription = trim((string) ($row->{'meta_description_'.$suffix} ?? ''));
 
         return [
-            'enabled' => filter_var($branding['public_web_enabled'] ?? false, FILTER_VALIDATE_BOOL),
+            'enabled' => (bool) ($row->is_enabled ?? false),
             'store' => [
                 'id' => (int) $row->id,
                 'code' => (string) $row->code,
@@ -248,6 +282,8 @@ final class PublicWholesaleStorefrontController extends Controller
                 'address' => $row->header_address,
             ],
             'branding' => $branding,
+            'pageTitle' => $pageTitle !== '' ? $pageTitle : __('wholesale_public.page_title'),
+            'metaDescription' => $metaDescription !== '' ? $metaDescription : __('wholesale_public.meta_description'),
             'appUrl' => route('public.mobile-apps.latest', ['app' => 'customer']),
             'adminUrl' => route('admin.b2b.login'),
         ];
@@ -304,7 +340,7 @@ final class PublicWholesaleStorefrontController extends Controller
 
     private function bannerQuery(int $storeId): Builder
     {
-        return DB::table('banners')
+        return DB::table('wholesale_web_banners')
             ->where('store_id', $storeId)
             ->where('is_active', true)
             ->where(function (Builder $query): void {
@@ -368,6 +404,8 @@ final class PublicWholesaleStorefrontController extends Controller
             'enabled' => false,
             'store' => ['id' => 0, 'name' => 'FOODEX', 'logo_url' => null],
             'branding' => [],
+            'pageTitle' => __('wholesale_public.page_title'),
+            'metaDescription' => __('wholesale_public.meta_description'),
             'appUrl' => route('public.mobile-apps.latest', ['app' => 'customer']),
             'adminUrl' => route('admin.b2b.login'),
         ];
