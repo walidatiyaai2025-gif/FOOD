@@ -66,6 +66,7 @@ class B2bWorkspaceController extends Controller
         'finance' => 'finance.view',
         'reports' => 'reports.view',
         'storefront' => 'settings.view',
+        'web_storefront' => 'settings.view',
         'settings' => 'settings.view',
     ];
 
@@ -1052,6 +1053,77 @@ class B2bWorkspaceController extends Controller
         ];
     }
 
+    private function webStorefrontModuleData(array $storeIds): array
+    {
+        $store = DB::table('stores')
+            ->whereIn('id', $storeIds)
+            ->orderBy('id')
+            ->first(['id', 'code', 'name', 'logo_path', 'is_active']);
+
+        if ($store === null) {
+            return ['columns' => [], 'rows' => []];
+        }
+
+        $storeId = (int) $store->id;
+        $editor = app(StorefrontDraftEditorService::class)->viewModel($storeId, 'b2b_web');
+
+        $targets = DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', 'b2b')
+            ->where('catalogs.is_migration_quarantine', false)
+            ->where('products.is_active', true)
+            ->orderBy('products.name')
+            ->limit(200)
+            ->get(['products.id', 'products.name'])
+            ->map(fn ($row) => [
+                'ref' => 'product:'.(int) $row->id,
+                'label' => $this->msg('منتج · '.$row->name, 'Product · '.$row->name),
+            ])
+            ->values()
+            ->all();
+
+        $categoryTargets = DB::table('categories')
+            ->join('catalogs', 'catalogs.id', '=', 'categories.catalog_id')
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', 'b2b')
+            ->where('catalogs.is_migration_quarantine', false)
+            ->where('categories.is_active', true)
+            ->orderBy('categories.name')
+            ->limit(120)
+            ->get(['categories.id', 'categories.name'])
+            ->map(fn ($row) => [
+                'ref' => 'category:'.(int) $row->id,
+                'label' => $this->msg('تصنيف · '.$row->name, 'Category · '.$row->name),
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'columns' => [],
+            'rows' => [],
+            'store' => $editor['store'],
+            'settings' => $editor['settings'],
+            'revision' => $editor['revision'],
+            'section_types' => [
+                'hero' => 'Hero',
+                'banner_slider' => $this->msg('سلايدر بانرات الويب', 'Web Banner Slider'),
+                'categories' => $this->msg('التصنيفات', 'Categories'),
+                'benefits' => $this->msg('مزايا فوديكس', 'FOODEX Benefits'),
+                'offers' => $this->msg('عروض الجملة', 'Wholesale Offers'),
+                'featured_products' => $this->msg('منتجات مميزة', 'Featured Products'),
+                'best_sellers' => $this->msg('الأكثر مبيعاً', 'Best Sellers'),
+                'brands' => $this->msg('العلامات التجارية', 'Brands'),
+                'social' => $this->msg('فيسبوك والتواصل', 'Facebook & Social'),
+                'product_grid' => $this->msg('شبكة منتجات', 'Product Grid'),
+                'product_carousel' => $this->msg('سلايدر منتجات', 'Product Carousel'),
+            ],
+            'sections' => $editor['sections'],
+            'banners' => $editor['banners'],
+            'targets' => [...$categoryTargets, ...$targets],
+        ];
+    }
+
     private function settingsModuleData(User $user, array $storeIds): array
     {
         $actions = [];
@@ -1477,6 +1549,7 @@ class B2bWorkspaceController extends Controller
             'finance' => $this->financeModuleData($storeIds, $user, $request),
             'reports' => $this->reportModuleData($user, $storeIds, $request),
             'storefront' => $this->storefrontModuleData($storeIds),
+            'web_storefront' => $this->webStorefrontModuleData($storeIds),
             'settings' => $this->settingsModuleData($user, $storeIds),
             default => ['columns' => [], 'rows' => []],
         };
