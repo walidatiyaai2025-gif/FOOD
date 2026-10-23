@@ -10,6 +10,6 @@
         @if(!empty($item['brand_name']))<span class="fx-eyebrow">{{ $item['brand_name'] }}</span>@endif
         <a class="fx-product-card__title" href="{{ route('public.wholesale.product',['product'=>$item['id']]) }}">{{ $item['name'] }}</a>
         @if(!empty($item['category_name']))<span class="fx-muted">{{ $item['category_name'] }}</span>@endif
-        <div class="fx-price-lock"><span aria-hidden="true">🔒</span>{{ app()->getLocale()==='ar'?'السعر داخل التطبيق':'Price in app' }}</div>
+        <div class="fx-price-lock"><span aria-hidden="true">🔒</span>{{ __('wholesale_public.common.price_in_app') }}</div>
     </div>
 </article>
