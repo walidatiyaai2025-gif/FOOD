@@ -150,7 +150,7 @@ final class WholesaleWebStorefrontBuilderTest extends TestCase
 
         $this->get('/')
             ->assertOk()
-            ->assertSee('FOODEX Wholesale Web')
+            ->assertSee('FOODEX Web')
             ->assertDontSee('Add to cart');
     }
 
