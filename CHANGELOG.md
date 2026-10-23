@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.104 - 2026-10-23
+- Promote the authoritative `main` lineage through `abdf0c0b799887fb5720034cc9a8187a140a40d1` as FOODEX 1.0.104; owner-selected 1.0.103 remains unpublished.
+- Carry the completed 1.0.102 self-healing Dashboard updater hardening, including retry-safe migrations, full application-owned runtime packaging, explicit failure diagnostics, and safe handling of optional exact runtime files.
+- Include the Marketplace mockup foundation from #2381, Retail branding/banner convergence from #2387, and authoritative Retail discovery with read-only owner browsing plus existing self-purchase protection from #2389.
+- Include the production MySQL legacy `driver_current_locations.received_at` normalization from #2382 so strict MySQL can create the freshness index safely.
+- Include the public FOODEX Wholesale web landing from #2391 with Dashboard-controlled enable/disable, price-free catalog/product/brands browsing, app-directed purchasing, and canonical FOODEX green identity.
+- Include Catalog single-surface inline operations from #2384 for product fields, stock quantity, low-stock threshold, status and app visibility with warehouse scope, authorization and audit enforcement.
+- Rebuild the Dashboard cumulative update, Laravel Setup, Customer, Driver and Van Android artifacts from the exact 1.0.104 release lineage; synchronize all mobile identities to `1.0.104+104`.
+- Preserve the production API endpoint `https://foodex.50sols.com` and the canonical release validation, provenance, checksum and fresh-install gates.
+
 ## 1.0.102 - 2026-10-22
 - Promote the latest authoritative `main` lineage through `e6fccacb53919610bce36e9c9efd54c3583259ec` as FOODEX 1.0.102.
 - Include the completed Wholesale Customer UI polish from #2360 / PR #2361: Home product-card sizing control, authenticated header account controls, guest-action hiding, simplified More shortcuts with Customer Service contact, Company Data cleanup, store-branding account image, and compact-card overflow fixes.
