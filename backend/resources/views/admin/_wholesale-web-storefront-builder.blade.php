@@ -92,13 +92,13 @@
             @csrf
             <input type="hidden" name="store_id" value="{{ $webStoreId }}">
             <div class="wweb-form">
-                <label>{{ __('wholesale_public.admin.web_editor.section_key') }}<input name="section_key" required maxlength="80" placeholder="brands"></label>
+                <label>{{ __('wholesale_public.admin.web_editor.section_key') }}<input name="section_key" required maxlength="80" placeholder="{{ __('wholesale_public.admin.web_editor.section_key_placeholder') }}"></label>
                 <label>{{ __('wholesale_public.admin.web_editor.type') }}<select name="section_type">@foreach($webSectionTypes as $value=>$label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></label>
-                <label>{{ __('wholesale_public.admin.web_editor.title_ar') }}<input name="title_ar" maxlength="255"></label>
-                <label>{{ __('wholesale_public.admin.web_editor.title_en') }}<input name="title_en" maxlength="255"></label>
+                <label>{{ __('wholesale_public.admin.web_editor.title_ar') }}<input name="title_ar" maxlength="255" dir="rtl"></label> {{-- localization-gate: allow explicit bilingual authoring field --}}
+                <label>{{ __('wholesale_public.admin.web_editor.title_en') }}<input name="title_en" maxlength="255" dir="ltr"></label> {{-- localization-gate: allow explicit bilingual authoring field --}}
                 <label>{{ __('wholesale_public.admin.web_editor.sort_order') }}<input type="number" name="sort_order" value="50" min="0" max="9999" required></label>
                 <label style="align-content:end"><span><input type="checkbox" name="is_active" value="1" checked> {{ __('wholesale_public.admin.web_editor.active') }}</span></label>
-                <label class="wide">{{ __('wholesale_public.admin.web_editor.config_json') }}<textarea name="config_json" rows="2" placeholder='{"limit":10}'></textarea></label>
+                <label class="wide">{{ __('wholesale_public.admin.web_editor.config_json') }}<textarea name="config_json" rows="2" placeholder="{{ __('wholesale_public.admin.web_editor.config_json_placeholder') }}"></textarea></label>
             </div>
             <div class="wweb-actions"><button class="foodex-primary" type="submit">{{ __('wholesale_public.admin.web_editor.add_section') }}</button></div>
         </form>
@@ -115,8 +115,8 @@
                     <div class="wweb-form">
                         <label>{{ __('wholesale_public.admin.web_editor.key') }}<input name="section_key" value="{{ $section['section_key'] }}" required></label>
                         <label>{{ __('wholesale_public.admin.web_editor.type') }}<select name="section_type">@foreach($webSectionTypes as $value=>$label)<option value="{{ $value }}" @selected($section['section_type']===$value)>{{ $label }}</option>@endforeach</select></label>
-                        <label>{{ __('wholesale_public.admin.web_editor.title_ar') }}<input name="title_ar" value="{{ $section['title_ar'] }}"></label>
-                        <label>{{ __('wholesale_public.admin.web_editor.title_en') }}<input name="title_en" value="{{ $section['title_en'] }}"></label>
+                        <label>{{ __('wholesale_public.admin.web_editor.title_ar') }}<input name="title_ar" value="{{ $section['title_ar'] }}" dir="rtl"></label> {{-- localization-gate: allow explicit bilingual authoring field --}}
+                        <label>{{ __('wholesale_public.admin.web_editor.title_en') }}<input name="title_en" value="{{ $section['title_en'] }}" dir="ltr"></label> {{-- localization-gate: allow explicit bilingual authoring field --}}
                         <label>{{ __('wholesale_public.admin.web_editor.sort_order') }}<input type="number" name="sort_order" value="{{ $section['sort_order'] }}" min="0" max="9999" required></label>
                         <label style="align-content:end"><span><input type="checkbox" name="is_active" value="1" @checked($section['is_active'])> {{ __('wholesale_public.admin.web_editor.active') }}</span></label>
                         <label class="wide">{{ __('wholesale_public.admin.web_editor.config_json') }}<textarea name="config_json" rows="2">{{ $section['config_json'] }}</textarea></label>
