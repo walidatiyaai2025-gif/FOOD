@@ -4,6 +4,7 @@ return [
     'brand_name' => 'FOODEX',
     'page_title' => 'FOODEX | Wholesale Frozen Foods',
     'meta_description' => 'FOODEX wholesale frozen-food supply for businesses, restaurants and hotels.',
+    'draft_preview' => 'Web Draft Preview — this revision is not published',
     'nav' => [
         'primary' => 'Primary navigation',
         'home' => 'Home',
