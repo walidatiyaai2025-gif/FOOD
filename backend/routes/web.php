@@ -662,6 +662,7 @@ Route::prefix('admin')
         Route::delete('/b2b/storefront/banners/{banner}', [StorefrontDraftEditorController::class, 'wholesaleBannerDestroy'])->name('b2b.storefront.banners.destroy');
         Route::post('/b2b/storefront/publish', [StorefrontDraftEditorController::class, 'wholesalePublish'])->name('b2b.storefront.publish');
         Route::post('/b2b/storefront/discard', [StorefrontDraftEditorController::class, 'wholesaleDiscard'])->name('b2b.storefront.discard');
+        Route::get('/b2b/web-storefront/preview', [PublicWholesaleStorefrontController::class, 'preview'])->name('b2b.web-storefront.preview');
         Route::put('/b2b/web-storefront/settings', [StorefrontDraftEditorController::class, 'wholesaleWebSettings'])->name('b2b.web-storefront.settings');
         Route::post('/b2b/web-storefront/sections', [StorefrontDraftEditorController::class, 'wholesaleWebSectionStore'])->name('b2b.web-storefront.sections.store');
         Route::patch('/b2b/web-storefront/sections/{section}', [StorefrontDraftEditorController::class, 'wholesaleWebSectionUpdate'])->name('b2b.web-storefront.sections.update');
