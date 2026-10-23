@@ -12,6 +12,8 @@
     $identityBrand = app()->getLocale()==='ar'
         ? ((string)($identity['brand_title_ar'] ?? '') ?: __('wholesale_public.brand_name'))
         : ((string)($identity['brand_title_en'] ?? '') ?: __('wholesale_public.brand_name'));
+    $isWebDraftPreview = (bool)($webPreview['active'] ?? false);
+    $webHomeUrl = $isWebDraftPreview ? route('admin.b2b.web-storefront.preview') : $webHomeUrl;
 @endphp
 <style>
 :root{
@@ -22,9 +24,15 @@
 }
 </style>
 <body>
+@if($isWebDraftPreview)
+<div style="position:sticky;top:0;z-index:90;background:#17231D;color:#fff;padding:8px 16px;text-align:center;font-weight:800;font-size:13px">
+    {{ app()->getLocale()==='ar' ? 'معاينة مسودة الويب — هذه النسخة غير منشورة' : 'Web Draft Preview — this revision is not published' }}
+    <span style="opacity:.7;font-weight:600"> · {{ substr((string)($webPreview['revision_id'] ?? ''),0,8) }}</span>
+</div>
+@endif
 <header class="fx-header">
     <div class="fx-shell fx-header__row">
-        <a class="fx-brand" href="{{ route('public.wholesale.home') }}" aria-label="{{ $identityBrand }}">
+        <a class="fx-brand" href="{{ $webHomeUrl }}" aria-label="{{ $identityBrand }}">
             @if(!empty($store['logo_url']))
                 <img src="{{ $store['logo_url'] }}" alt="{{ $identityBrand }}">
             @else
@@ -33,10 +41,10 @@
             <span>{{ $identityBrand }}</span>
         </a>
         <nav class="fx-nav" aria-label="{{ __('wholesale_public.nav.primary') }}">
-            <a href="{{ route('public.wholesale.home') }}">{{ __('wholesale_public.nav.home') }}</a>
-            <a href="{{ route('public.wholesale.home') }}#categories">{{ __('wholesale_public.nav.categories') }}</a>
-            <a href="{{ route('public.wholesale.brands') }}">{{ __('wholesale_public.nav.brands') }}</a>
-            <a href="{{ route('public.wholesale.home') }}#products">{{ __('wholesale_public.nav.products') }}</a>
+            <a href="{{ $webHomeUrl }}">{{ __('wholesale_public.nav.home') }}</a>
+            <a href="{{ $webHomeUrl }}#categories">{{ __('wholesale_public.nav.categories') }}</a>
+            <a href="{{ $isWebDraftPreview ? $webHomeUrl.'#brands' : route('public.wholesale.brands') }}">{{ __('wholesale_public.nav.brands') }}</a>
+            <a href="{{ $webHomeUrl }}#products">{{ __('wholesale_public.nav.products') }}</a>
         </nav>
         <div class="fx-header__actions">
             <a class="fx-link-button" href="{{ $adminUrl }}">{{ __('wholesale_public.nav.management_login') }}</a>
@@ -45,10 +53,10 @@
         <button class="fx-menu-button" type="button" data-menu-toggle aria-label="{{ __('wholesale_public.nav.open_menu') }}">☰</button>
     </div>
     <div class="fx-mobile-nav" data-mobile-nav hidden>
-        <a href="{{ route('public.wholesale.home') }}">{{ __('wholesale_public.nav.home') }}</a>
-        <a href="{{ route('public.wholesale.home') }}#categories">{{ __('wholesale_public.nav.categories') }}</a>
+        <a href="{{ $webHomeUrl }}">{{ __('wholesale_public.nav.home') }}</a>
+        <a href="{{ $webHomeUrl }}#categories">{{ __('wholesale_public.nav.categories') }}</a>
         <a href="{{ route('public.wholesale.brands') }}">{{ __('wholesale_public.nav.brands') }}</a>
-        <a href="{{ route('public.wholesale.home') }}#products">{{ __('wholesale_public.nav.products') }}</a>
+        <a href="{{ $webHomeUrl }}#products">{{ __('wholesale_public.nav.products') }}</a>
         <a href="{{ $adminUrl }}">{{ __('wholesale_public.nav.management_login') }}</a>
     </div>
 </header>
