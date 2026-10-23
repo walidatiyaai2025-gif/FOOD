@@ -36,15 +36,15 @@
             <div class="wsf-item wide" style="margin-bottom:12px;border-color:{{ $publicWebEnabled ? 'var(--foodex-green-soft)' : 'var(--foodex-border)' }}">
                 <div class="wsf-item-head">
                     <div>
-                        <strong>{{ app()->getLocale()==='ar'?'الصفحة العامة لمتجر الجملة':'Public Wholesale Web Landing' }}</strong>
-                        <div class="wsf-muted">{{ app()->getLocale()==='ar'?'عند الإيقاف يفتح رابط الموقع صفحة دخول الإدارة. عند التشغيل يظهر الكتالوج بدون أسعار أو شراء.':'When off, the site opens management login. When on, guests can browse the catalog without prices or checkout.' }}</div>
+                        <strong>{{ __('wholesale_public.admin.public_landing_title') }}</strong>
+                        <div class="wsf-muted">{{ __('wholesale_public.admin.public_landing_help') }}</div>
                     </div>
-                    <span class="wsf-badge">{{ $publicWebEnabled ? (app()->getLocale()==='ar'?'مفتوحة':'ON') : (app()->getLocale()==='ar'?'مغلقة':'OFF') }}</span>
+                    <span class="wsf-badge">{{ $publicWebEnabled ? __('wholesale_public.admin.status_on') : __('wholesale_public.admin.status_off') }}</span>
                 </div>
                 <input type="hidden" name="public_web_enabled" value="0">
-                <label style="margin-top:10px"><span><input type="checkbox" name="public_web_enabled" value="1" @checked($publicWebEnabled)> {{ app()->getLocale()==='ar'?'تشغيل الصفحة العامة':'Enable public landing page' }}</span></label>
+                <label style="margin-top:10px"><span><input type="checkbox" name="public_web_enabled" value="1" @checked($publicWebEnabled)> {{ __('wholesale_public.admin.enable_public_landing') }}</span></label>
                 @if($publicWebEnabled)
-                    <a href="{{ route('public.wholesale.home') }}" target="_blank" rel="noopener" class="foodex-primary" style="margin-top:10px;display:inline-flex">{{ app()->getLocale()==='ar'?'فتح الصفحة العامة':'Open public landing' }}</a>
+                    <a href="{{ route('public.wholesale.home') }}" target="_blank" rel="noopener" class="foodex-primary" style="margin-top:10px;display:inline-flex">{{ __('wholesale_public.admin.open_public_landing') }}</a>
                 @endif
             </div>
             @endif
@@ -61,11 +61,11 @@
                 <label>{{ app()->getLocale()==='ar'?'عنوان الهيرو بالإنجليزية':'English hero title' }}<input name="brand_subtitle_en" value="{{ $sfSettings['brand_subtitle_en'] ?? '' }}" maxlength="500" placeholder="Best prices for retailers"></label>
                 <label>{{ app()->getLocale()==='ar'?'زر الهيرو بالعربية':'Arabic hero CTA' }}<input name="hero_cta_ar" value="{{ $sfSettings['hero_cta_ar'] ?? '' }}" maxlength="120" placeholder="تصفح الكتالوج"></label>
                 <label>{{ app()->getLocale()==='ar'?'زر الهيرو بالإنجليزية':'English hero CTA' }}<input name="hero_cta_en" value="{{ $sfSettings['hero_cta_en'] ?? '' }}" maxlength="120" placeholder="Browse catalog"></label>
-                <label class="wide">{{ app()->getLocale()==='ar'?'رابط صفحة فيسبوك':'Facebook page URL' }}<input type="url" name="facebook_url" value="{{ $sfSettings['facebook_url'] ?? '' }}" maxlength="500" placeholder="https://www.facebook.com/..."></label>
-                <label>{{ app()->getLocale()==='ar'?'عنوان فيسبوك بالعربية':'Arabic Facebook title' }}<input name="facebook_title_ar" value="{{ $sfSettings['facebook_title_ar'] ?? '' }}" maxlength="255" placeholder="تابع فوديكس على فيسبوك"></label>
-                <label>{{ app()->getLocale()==='ar'?'عنوان فيسبوك بالإنجليزية':'English Facebook title' }}<input name="facebook_title_en" value="{{ $sfSettings['facebook_title_en'] ?? '' }}" maxlength="255" placeholder="Follow FOODEX on Facebook"></label>
-                <label>{{ app()->getLocale()==='ar'?'نص فيسبوك بالعربية':'Arabic Facebook text' }}<textarea name="facebook_text_ar" rows="2" maxlength="500">{{ $sfSettings['facebook_text_ar'] ?? '' }}</textarea></label>
-                <label>{{ app()->getLocale()==='ar'?'نص فيسبوك بالإنجليزية':'English Facebook text' }}<textarea name="facebook_text_en" rows="2" maxlength="500">{{ $sfSettings['facebook_text_en'] ?? '' }}</textarea></label>
+                <label class="wide">{{ __('wholesale_public.admin.facebook_url') }}<input type="url" name="facebook_url" value="{{ $sfSettings['facebook_url'] ?? '' }}" maxlength="500" placeholder="https://www.facebook.com/..."></label>
+                <label>{{ __('wholesale_public.admin.facebook_title_ar') }}<input name="facebook_title_ar" value="{{ $sfSettings['facebook_title_ar'] ?? '' }}" maxlength="255" placeholder="{{ __('wholesale_public.admin.facebook_title_ar_placeholder') }}"></label>
+                <label>{{ __('wholesale_public.admin.facebook_title_en') }}<input name="facebook_title_en" value="{{ $sfSettings['facebook_title_en'] ?? '' }}" maxlength="255" placeholder="{{ __('wholesale_public.admin.facebook_title_en_placeholder') }}"></label>
+                <label>{{ __('wholesale_public.admin.facebook_text_ar') }}<textarea name="facebook_text_ar" rows="2" maxlength="500">{{ $sfSettings['facebook_text_ar'] ?? '' }}</textarea></label>
+                <label>{{ __('wholesale_public.admin.facebook_text_en') }}<textarea name="facebook_text_en" rows="2" maxlength="500">{{ $sfSettings['facebook_text_en'] ?? '' }}</textarea></label>
             </div>
             <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ المسودة':'Save Draft' }}</button></div>
         </form>
