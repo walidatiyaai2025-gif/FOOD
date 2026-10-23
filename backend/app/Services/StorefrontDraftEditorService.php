@@ -52,10 +52,10 @@ final class StorefrontDraftEditorService
         $backgroundColor = $settings['background_color'] ?? null;
 
         if ($channel === 'b2b') {
-            $primaryColor = $primaryColor === '#5D2A91' ? '#00452F' : $primaryColor;
-            $primaryDarkColor = $primaryDarkColor === '#35195E' ? '#003C2A' : $primaryDarkColor;
-            $accentColor = $accentColor === '#B983F0' ? '#9BE252' : $accentColor;
-            $backgroundColor = $backgroundColor === '#FBFAFD' ? '#EDF7F1' : $backgroundColor;
+            $primaryColor = $primaryColor === null || $primaryColor === '' || $primaryColor === '#5D2A91' ? '#00452F' : $primaryColor;
+            $primaryDarkColor = $primaryDarkColor === null || $primaryDarkColor === '' || $primaryDarkColor === '#35195E' ? '#003C2A' : $primaryDarkColor;
+            $accentColor = $accentColor === null || $accentColor === '' || $accentColor === '#B983F0' ? '#9BE252' : $accentColor;
+            $backgroundColor = $backgroundColor === null || $backgroundColor === '' || $backgroundColor === '#FBFAFD' ? '#EDF7F1' : $backgroundColor;
         }
 
         return [
