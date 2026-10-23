@@ -1,19 +1,21 @@
 @extends('public.wholesale.layout')
 
-@section('title', app()->getLocale()==='ar' ? 'فوديكس | متجر الجملة للمجمدات' : 'FOODEX | Wholesale Frozen Foods')
+@section('title', __('wholesale_public.page_title'))
 
 @section('content')
 @php
-    $ar = app()->getLocale()==='ar';
-    $heroTitle = $ar
-        ? ($branding['brand_title_ar'] ?? 'فوديكس للجملة')
-        : ($branding['brand_title_en'] ?? 'FOODEX Wholesale');
-    $heroSubtitle = $ar
-        ? ($branding['brand_subtitle_ar'] ?? 'مجمدات عالية الجودة لأعمال الجملة')
-        : ($branding['brand_subtitle_en'] ?? 'Quality frozen foods for wholesale businesses');
-    $heroCta = $ar
-        ? ($branding['hero_cta_ar'] ?? 'تصفح المنتجات')
-        : ($branding['hero_cta_en'] ?? 'Browse products');
+    $locale = app()->getLocale();
+    $localizedSuffix = $locale === 'ar' ? 'ar' : 'en';
+    $heroTitle = (string)($branding['brand_title_'.$localizedSuffix] ?? '');
+    $heroSubtitle = (string)($branding['brand_subtitle_'.$localizedSuffix] ?? '');
+    $heroCta = (string)($branding['hero_cta_'.$localizedSuffix] ?? '');
+    $facebookTitle = (string)($branding['facebook_title_'.$localizedSuffix] ?? '');
+    $facebookText = (string)($branding['facebook_text_'.$localizedSuffix] ?? '');
+    $heroTitle = $heroTitle !== '' ? $heroTitle : __('wholesale_public.hero.title');
+    $heroSubtitle = $heroSubtitle !== '' ? $heroSubtitle : __('wholesale_public.hero.subtitle');
+    $heroCta = $heroCta !== '' ? $heroCta : __('wholesale_public.hero.cta');
+    $facebookTitle = $facebookTitle !== '' ? $facebookTitle : __('wholesale_public.facebook.title');
+    $facebookText = $facebookText !== '' ? $facebookText : __('wholesale_public.facebook.body');
     $productTypes = ['featured_products','best_sellers','offers','product_grid','product_carousel','reorder'];
 @endphp
 
@@ -26,24 +28,24 @@
             @endif
             <div class="fx-hero__shade"></div>
             <div class="fx-shell fx-hero__content">
-                <span class="fx-kicker">{{ $ar?'توريد مجمدات بالجملة':'Wholesale frozen-food supply' }}</span>
+                <span class="fx-kicker">{{ __('wholesale_public.hero.kicker') }}</span>
                 <h1>{{ $heroTitle }}</h1>
                 <p>{{ $heroSubtitle }}</p>
                 <div class="fx-hero__actions">
                     <a class="fx-primary-button fx-primary-button--lime" href="#products">{{ $heroCta }}</a>
-                    <a class="fx-ghost-button" href="{{ $appUrl }}">{{ $ar?'اعرف الأسعار واطلب من التطبيق':'See prices & order in app' }}</a>
+                    <a class="fx-ghost-button" href="{{ $appUrl }}">{{ __('wholesale_public.hero.app_cta') }}</a>
                 </div>
-                <div class="fx-hero__note"><span>🔒</span>{{ $ar?'الأسعار والشراء غير معروضين على الموقع العام':'Prices and purchasing are intentionally hidden on the public website' }}</div>
+                <div class="fx-hero__note"><span aria-hidden="true">🔒</span>{{ __('wholesale_public.hero.price_note') }}</div>
             </div>
         </section>
 
     @elseif($section['type']==='benefits')
         <section class="fx-section fx-section--tight" data-reveal>
             <div class="fx-shell fx-benefits">
-                <div class="fx-benefit"><span>❄</span><div><strong>{{ $ar?'سلسلة تبريد موثوقة':'Reliable cold chain' }}</strong><small>{{ $ar?'للحفاظ على جودة المجمدات':'Protecting frozen-food quality' }}</small></div></div>
-                <div class="fx-benefit"><span>✓</span><div><strong>{{ $ar?'جودة معتمدة':'Quality focused' }}</strong><small>{{ $ar?'منتجات مختارة للأعمال':'Business-ready selection' }}</small></div></div>
-                <div class="fx-benefit"><span>🚚</span><div><strong>{{ $ar?'توريد للأعمال':'Business supply' }}</strong><small>{{ $ar?'مطاعم وفنادق ومؤسسات':'Restaurants, hotels & institutions' }}</small></div></div>
-                <div class="fx-benefit"><span>📦</span><div><strong>{{ $ar?'تشكيلة جملة':'Wholesale assortment' }}</strong><small>{{ $ar?'دواجن ولحوم وأسماك وأكثر':'Poultry, meat, seafood & more' }}</small></div></div>
+                <div class="fx-benefit"><span aria-hidden="true">❄</span><div><strong>{{ __('wholesale_public.benefits.cold_chain_title') }}</strong><small>{{ __('wholesale_public.benefits.cold_chain_body') }}</small></div></div>
+                <div class="fx-benefit"><span aria-hidden="true">✓</span><div><strong>{{ __('wholesale_public.benefits.quality_title') }}</strong><small>{{ __('wholesale_public.benefits.quality_body') }}</small></div></div>
+                <div class="fx-benefit"><span aria-hidden="true">🚚</span><div><strong>{{ __('wholesale_public.benefits.business_title') }}</strong><small>{{ __('wholesale_public.benefits.business_body') }}</small></div></div>
+                <div class="fx-benefit"><span aria-hidden="true">📦</span><div><strong>{{ __('wholesale_public.benefits.assortment_title') }}</strong><small>{{ __('wholesale_public.benefits.assortment_body') }}</small></div></div>
             </div>
         </section>
 
@@ -58,8 +60,8 @@
                         </a>
                     @endforeach
                     @if(count($banners)>1)
-                        <button type="button" class="fx-slider__prev" data-slider-prev aria-label="{{ $ar?'السابق':'Previous' }}">‹</button>
-                        <button type="button" class="fx-slider__next" data-slider-next aria-label="{{ $ar?'التالي':'Next' }}">›</button>
+                        <button type="button" class="fx-slider__prev" data-slider-prev aria-label="{{ __('wholesale_public.common.previous') }}">‹</button>
+                        <button type="button" class="fx-slider__next" data-slider-next aria-label="{{ __('wholesale_public.common.next') }}">›</button>
                     @endif
                 </div>
             </div>
@@ -69,19 +71,19 @@
         <section class="fx-section" id="categories" data-reveal>
             <div class="fx-shell">
                 <div class="fx-section-head">
-                    <div><span class="fx-kicker">{{ $ar?'استكشف':'Explore' }}</span><h2>{{ $section['title'] ?: ($ar?'الأقسام الرئيسية':'Main categories') }}</h2></div>
-                    @if($activeCategory>0)<a href="{{ route('public.wholesale.home') }}#products">{{ $ar?'إلغاء التصفية':'Clear filter' }}</a>@endif
+                    <div><span class="fx-kicker">{{ __('wholesale_public.common.explore') }}</span><h2>{{ $section['title'] ?: __('wholesale_public.common.main_categories') }}</h2></div>
+                    @if($activeCategory>0)<a href="{{ route('public.wholesale.home') }}#products">{{ __('wholesale_public.common.clear_filter') }}</a>@endif
                 </div>
                 <div class="fx-category-row">
                     @forelse($categories as $category)
                         <a class="fx-category-card @if($activeCategory===$category['id']) is-selected @endif" href="{{ route('public.wholesale.home',['category'=>$category['id']]) }}#products">
                             <span class="fx-category-card__image">
-                                @if($category['image_url'])<img src="{{ $category['image_url'] }}" alt="{{ $category['name'] }}" loading="lazy">@else<span>❄</span>@endif
+                                @if($category['image_url'])<img src="{{ $category['image_url'] }}" alt="{{ $category['name'] }}" loading="lazy">@else<span aria-hidden="true">❄</span>@endif
                             </span>
                             <strong>{{ $category['name'] }}</strong>
                         </a>
                     @empty
-                        <p class="fx-empty">{{ $ar?'لا توجد أقسام متاحة حالياً.':'No categories are currently available.' }}</p>
+                        <p class="fx-empty">{{ __('wholesale_public.common.empty_categories') }}</p>
                     @endforelse
                 </div>
             </div>
@@ -91,8 +93,8 @@
         <section class="fx-section fx-section--mint" id="brands" data-reveal>
             <div class="fx-shell">
                 <div class="fx-section-head">
-                    <div><span class="fx-kicker">{{ $ar?'شركاؤنا':'Our partners' }}</span><h2>{{ $section['title'] ?: ($ar?'العلامات التجارية':'Brands') }}</h2></div>
-                    <a href="{{ route('public.wholesale.brands') }}">{{ $ar?'عرض كل العلامات':'View all brands' }}</a>
+                    <div><span class="fx-kicker">{{ __('wholesale_public.common.our_partners') }}</span><h2>{{ $section['title'] ?: __('wholesale_public.common.brands') }}</h2></div>
+                    <a href="{{ route('public.wholesale.brands') }}">{{ __('wholesale_public.common.view_all_brands') }}</a>
                 </div>
                 <div class="fx-brand-row">
                     @forelse($brands as $brand)
@@ -101,7 +103,7 @@
                             <strong>{{ $brand['name'] }}</strong>
                         </a>
                     @empty
-                        <p class="fx-empty">{{ $ar?'لا توجد علامات مرتبطة بالمنتجات حالياً.':'No brands are currently linked to products.' }}</p>
+                        <p class="fx-empty">{{ __('wholesale_public.common.empty_brands') }}</p>
                     @endforelse
                 </div>
             </div>
@@ -113,21 +115,21 @@
             <div class="fx-shell">
                 <div class="fx-section-head">
                     <div>
-                        <span class="fx-kicker">{{ $ar?'الكتالوج':'Catalog' }}</span>
-                        <h2>{{ $section['title'] ?: ($ar?'منتجاتنا':'Our products') }}</h2>
+                        <span class="fx-kicker">{{ __('wholesale_public.common.catalog') }}</span>
+                        <h2>{{ $section['title'] ?: __('wholesale_public.common.our_products') }}</h2>
                     </div>
-                    @if($activeBrand>0 || $activeCategory>0)<a href="{{ route('public.wholesale.home') }}#products">{{ $ar?'عرض كل المنتجات':'Show all products' }}</a>@endif
+                    @if($activeBrand>0 || $activeCategory>0)<a href="{{ route('public.wholesale.home') }}#products">{{ __('wholesale_public.common.show_all_products') }}</a>@endif
                 </div>
                 <div class="fx-products-grid">
                     @forelse(array_slice($products,0,$limit) as $item)
                         @include('public.wholesale._product-card',['item'=>$item])
                     @empty
-                        <p class="fx-empty">{{ $ar?'لا توجد منتجات مطابقة حالياً.':'No matching products are currently available.' }}</p>
+                        <p class="fx-empty">{{ __('wholesale_public.common.empty_products') }}</p>
                     @endforelse
                 </div>
                 <div class="fx-app-lock">
-                    <div><span>🔒</span><strong>{{ $ar?'الأسعار والطلب داخل تطبيق فوديكس':'Prices and ordering live in the FOODEX app' }}</strong><p>{{ $ar?'الموقع للتصفح والتعرف على المنتجات. سجّل أو افتح التطبيق لمعرفة أسعار حسابك وإتمام الطلب.':'Use the website to browse the catalog. Open the app to see account pricing and place orders.' }}</p></div>
-                    <a class="fx-primary-button" href="{{ $appUrl }}">{{ $ar?'تحميل التطبيق':'Get the app' }}</a>
+                    <div><span aria-hidden="true">🔒</span><strong>{{ __('wholesale_public.app_gate.title') }}</strong><p>{{ __('wholesale_public.app_gate.body') }}</p></div>
+                    <a class="fx-primary-button" href="{{ $appUrl }}">{{ __('wholesale_public.app_gate.cta') }}</a>
                 </div>
             </div>
         </section>
@@ -138,11 +140,11 @@
                 <div class="fx-shell">
                     <div class="fx-social-card">
                         <div>
-                            <span class="fx-kicker">Facebook</span>
-                            <h2>{{ $ar?($branding['facebook_title_ar'] ?? 'تابع فوديكس على فيسبوك'):($branding['facebook_title_en'] ?? 'Follow FOODEX on Facebook') }}</h2>
-                            <p>{{ $ar?($branding['facebook_text_ar'] ?? 'تابع أحدث المنتجات والعروض وأخبار التوريد.'):($branding['facebook_text_en'] ?? 'See the latest products, offers and supply updates.') }}</p>
+                            <span class="fx-kicker">{{ __('wholesale_public.facebook.label') }}</span>
+                            <h2>{{ $facebookTitle }}</h2>
+                            <p>{{ $facebookText }}</p>
                         </div>
-                        <a class="fx-primary-button fx-primary-button--lime" href="{{ $branding['facebook_url'] }}" target="_blank" rel="noopener">{{ $ar?'زيارة صفحتنا':'Visit our page' }}</a>
+                        <a class="fx-primary-button fx-primary-button--lime" href="{{ $branding['facebook_url'] }}" target="_blank" rel="noopener">{{ __('wholesale_public.facebook.cta') }}</a>
                     </div>
                 </div>
             </section>
