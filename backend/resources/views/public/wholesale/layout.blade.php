@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale()==='ar' ? 'rtl' : 'ltr' }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="theme-color" content="#00452F">
+    <title>@yield('title', __('wholesale_public.page_title'))</title>
+    <meta name="description" content="@yield('meta_description', __('wholesale_public.meta_description'))">
+    <link rel="stylesheet" href="{{ asset('assets/wholesale/foodex-wholesale.css') }}">
+</head>
+<body>
+<header class="fx-header">
+    <div class="fx-shell fx-header__row">
+        <a class="fx-brand" href="{{ route('public.wholesale.home') }}" aria-label="{{ __('wholesale_public.brand_name') }}">
+            @if(!empty($store['logo_url']))
+                <img src="{{ $store['logo_url'] }}" alt="{{ __('wholesale_public.brand_name') }}">
+            @else
+                <span class="fx-brand__mark" aria-hidden="true">✦</span>
+            @endif
+            <span>{{ __('wholesale_public.brand_name') }}</span>
+        </a>
+        <nav class="fx-nav" aria-label="{{ __('wholesale_public.nav.primary') }}">
+            <a href="{{ route('public.wholesale.home') }}">{{ __('wholesale_public.nav.home') }}</a>
+            <a href="{{ route('public.wholesale.home') }}#categories">{{ __('wholesale_public.nav.categories') }}</a>
+            <a href="{{ route('public.wholesale.brands') }}">{{ __('wholesale_public.nav.brands') }}</a>
+            <a href="{{ route('public.wholesale.home') }}#products">{{ __('wholesale_public.nav.products') }}</a>
+        </nav>
+        <div class="fx-header__actions">
+            <a class="fx-link-button" href="{{ $adminUrl }}">{{ __('wholesale_public.nav.management_login') }}</a>
+            <a class="fx-primary-button" href="{{ $appUrl }}">{{ __('wholesale_public.nav.get_app') }}</a>
+        </div>
+        <button class="fx-menu-button" type="button" data-menu-toggle aria-label="{{ __('wholesale_public.nav.open_menu') }}">☰</button>
+    </div>
+    <div class="fx-mobile-nav" data-mobile-nav hidden>
+        <a href="{{ route('public.wholesale.home') }}">{{ __('wholesale_public.nav.home') }}</a>
+        <a href="{{ route('public.wholesale.home') }}#categories">{{ __('wholesale_public.nav.categories') }}</a>
+        <a href="{{ route('public.wholesale.brands') }}">{{ __('wholesale_public.nav.brands') }}</a>
+        <a href="{{ route('public.wholesale.home') }}#products">{{ __('wholesale_public.nav.products') }}</a>
+        <a href="{{ $adminUrl }}">{{ __('wholesale_public.nav.management_login') }}</a>
+    </div>
+</header>
+
+<main>
+    @yield('content')
+</main>
+
+<footer class="fx-footer">
+    <div class="fx-shell fx-footer__grid">
+        <div>
+            <div class="fx-brand fx-brand--footer"><span class="fx-brand__mark" aria-hidden="true">✦</span><span>{{ __('wholesale_public.brand_name') }}</span></div>
+            <p>{{ __('wholesale_public.footer.tagline') }}</p>
+        </div>
+        <div>
+            <strong>{{ __('wholesale_public.footer.quick_links') }}</strong>
+            <a href="{{ route('public.wholesale.brands') }}">{{ __('wholesale_public.nav.brands') }}</a>
+            <a href="{{ route('public.privacy') }}">{{ __('wholesale_public.footer.privacy') }}</a>
+            <a href="{{ route('public.terms') }}">{{ __('wholesale_public.footer.terms') }}</a>
+        </div>
+        <div>
+            <strong>{{ __('wholesale_public.footer.connect') }}</strong>
+            @if(!empty($branding['facebook_url']))
+                <a href="{{ $branding['facebook_url'] }}" target="_blank" rel="noopener">{{ __('wholesale_public.facebook.label') }}</a>
+            @endif
+            <a href="{{ route('public.support') }}">{{ __('wholesale_public.footer.support') }}</a>
+        </div>
+        <div>
+            <strong>{{ __('wholesale_public.footer.pricing_title') }}</strong>
+            <p>{{ __('wholesale_public.footer.pricing_body') }}</p>
+            <a class="fx-primary-button" href="{{ $appUrl }}">{{ __('wholesale_public.footer.app_cta') }}</a>
+        </div>
+    </div>
+</footer>
+<script src="{{ asset('assets/wholesale/foodex-wholesale.js') }}" defer></script>
+</body>
+</html>

@@ -26,8 +26,8 @@ final class StorefrontDraftEditorController extends Controller
     ];
 
     private const WHOLESALE_SECTION_TYPES = [
-        'hero', 'banner_slider', 'categories', 'offers', 'featured_products',
-        'best_sellers', 'reorder', 'brands', 'product_grid', 'product_carousel',
+        'hero', 'banner_slider', 'categories', 'benefits', 'offers', 'featured_products',
+        'best_sellers', 'reorder', 'brands', 'social', 'product_grid', 'product_carousel',
     ];
 
     public function __construct(

@@ -25,12 +25,14 @@ final class WholesaleStorefrontDesignController extends Controller
         'hero',
         'banner_slider',
         'categories',
+        'benefits',
         'departments',
         'offers',
         'featured_products',
         'best_sellers',
         'reorder',
         'brands',
+        'social',
         'product_grid',
         'product_carousel',
     ];
@@ -60,6 +62,12 @@ final class WholesaleStorefrontDesignController extends Controller
             'brand_subtitle_en' => ['nullable', 'string', 'max:500'],
             'hero_cta_ar' => ['nullable', 'string', 'max:120'],
             'hero_cta_en' => ['nullable', 'string', 'max:120'],
+            'facebook_url' => ['nullable', 'url', 'max:500'],
+            'facebook_title_ar' => ['nullable', 'string', 'max:255'],
+            'facebook_title_en' => ['nullable', 'string', 'max:255'],
+            'facebook_text_ar' => ['nullable', 'string', 'max:500'],
+            'facebook_text_en' => ['nullable', 'string', 'max:500'],
+            'public_web_enabled' => ['nullable', 'boolean'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
         ]);
 
@@ -78,6 +86,11 @@ final class WholesaleStorefrontDesignController extends Controller
             'brand_subtitle_en',
             'hero_cta_ar',
             'hero_cta_en',
+            'facebook_url',
+            'facebook_title_ar',
+            'facebook_title_en',
+            'facebook_text_ar',
+            'facebook_text_en',
         ] as $key) {
             $value = trim((string) ($data[$key] ?? ''));
             if ($value === '') {
@@ -85,6 +98,10 @@ final class WholesaleStorefrontDesignController extends Controller
             } else {
                 $branding[$key] = $value;
             }
+        }
+
+        if ($actor->hasRole('SUPER_ADMIN') && $request->has('public_web_enabled')) {
+            $branding['public_web_enabled'] = $request->boolean('public_web_enabled');
         }
 
         $newLogoPath = null;
@@ -133,6 +150,7 @@ final class WholesaleStorefrontDesignController extends Controller
             'store_id' => $storeId,
             'theme_code' => 'wholesale_b2b',
             'logo_changed' => $newLogoPath !== null,
+            'public_web_enabled' => (bool) ($branding['public_web_enabled'] ?? false),
         ], $request);
 
         $this->syncPublished($actor, $storeId, $request);

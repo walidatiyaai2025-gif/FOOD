@@ -12,14 +12,15 @@
     $sfPreviewUrl = route('admin.app-preview.index', ['app'=>'customer','channel'=>'b2b','store_id'=>$sfStoreId,'persona'=>'guest','mode'=>'draft']);
     $canManageStorefront = $user->hasPermission('settings.manage');
     $isSuper = $user->hasRole('SUPER_ADMIN');
-    $primary = $sfSettings['primary_color'] ?? '#5D2A91';
-    $primaryDark = $sfSettings['primary_dark_color'] ?? '#35195E';
-    $accent = $sfSettings['accent_color'] ?? '#B983F0';
-    $background = $sfSettings['background_color'] ?? '#FBFAFD';
+    $primary = (string)($sfSettings['primary_color'] ?? '');
+    $primaryDark = (string)($sfSettings['primary_dark_color'] ?? '');
+    $accent = (string)($sfSettings['accent_color'] ?? '');
+    $background = (string)($sfSettings['background_color'] ?? '');
+    $publicWebEnabled = (bool)($sfSettings['public_web_enabled'] ?? false);
 @endphp
 
 <style>
-.wsf-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);gap:16px;margin-bottom:16px}.wsf-card{background:#fff;border:1px solid var(--foodex-border);border-radius:18px;padding:16px}.wsf-card h3{margin:0 0 6px}.wsf-muted{color:#667085;font-size:.9rem}.wsf-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.wsf-form .wide{grid-column:1/-1}.wsf-card label{display:grid;gap:5px;font-size:.82rem;font-weight:700}.wsf-card input,.wsf-card select,.wsf-card textarea{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:9px 10px;background:#fff}.wsf-card input[type=color]{padding:3px;height:42px}.wsf-card input[type=checkbox]{width:auto}.wsf-preview{background:var(--wsf-bg);border:1px solid #e5e7eb;border-radius:24px;padding:16px;min-height:430px;overflow:hidden}.wsf-preview-head{display:flex;align-items:center;gap:10px;color:#fff;background:linear-gradient(135deg,var(--wsf-dark),var(--wsf-primary));border-radius:18px;padding:14px}.wsf-logo{width:50px;height:50px;border-radius:14px;background:#fff;object-fit:cover}.wsf-badge{background:var(--wsf-accent);color:#221430;border-radius:999px;padding:5px 9px;font-size:.72rem;font-weight:800}.wsf-hero{margin-top:12px;border-radius:18px;padding:20px;color:#fff;background:linear-gradient(135deg,var(--wsf-primary),var(--wsf-dark));min-height:125px}.wsf-chip-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.wsf-chip{background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:6px 9px;font-size:.75rem}.wsf-list{display:grid;gap:10px}.wsf-item{border:1px solid #e5e7eb;border-radius:14px;padding:12px}.wsf-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}.wsf-danger{border:1px solid #fecaca;background:#fff1f2;color:#b91c1c;border-radius:9px;padding:7px 10px;cursor:pointer}.wsf-thumb{width:96px;height:58px;border-radius:10px;object-fit:cover;border:1px solid #e5e7eb}.wsf-item-head{display:flex;justify-content:space-between;gap:10px;align-items:center}.wsf-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;color:#667085}@media(max-width:980px){.wsf-grid{grid-template-columns:1fr}.wsf-form{grid-template-columns:1fr}.wsf-form .wide{grid-column:auto}}
+.wsf-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);gap:16px;margin-bottom:16px}.wsf-card{background:#fff;border:1px solid var(--foodex-border);border-radius:18px;padding:16px}.wsf-card h3{margin:0 0 6px}.wsf-muted{color:#667085;font-size:.9rem}.wsf-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.wsf-form .wide{grid-column:1/-1}.wsf-card label{display:grid;gap:5px;font-size:.82rem;font-weight:700}.wsf-card input,.wsf-card select,.wsf-card textarea{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:9px 10px;background:#fff}.wsf-card input[type=color]{padding:3px;height:42px}.wsf-card input[type=checkbox]{width:auto}.wsf-preview{background:var(--wsf-bg);border:1px solid #e5e7eb;border-radius:24px;padding:16px;min-height:430px;overflow:hidden}.wsf-preview-head{display:flex;align-items:center;gap:10px;color:#fff;background:linear-gradient(135deg,var(--wsf-dark),var(--wsf-primary));border-radius:18px;padding:14px}.wsf-logo{width:50px;height:50px;border-radius:14px;background:#fff;object-fit:cover}.wsf-badge{background:var(--wsf-accent);color:var(--foodex-green-dark);border-radius:999px;padding:5px 9px;font-size:.72rem;font-weight:800}.wsf-hero{margin-top:12px;border-radius:18px;padding:20px;color:#fff;background:linear-gradient(135deg,var(--wsf-primary),var(--wsf-dark));min-height:125px}.wsf-chip-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.wsf-chip{background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:6px 9px;font-size:.75rem}.wsf-list{display:grid;gap:10px}.wsf-item{border:1px solid #e5e7eb;border-radius:14px;padding:12px}.wsf-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}.wsf-danger{border:1px solid #fecaca;background:#fff1f2;color:#b91c1c;border-radius:9px;padding:7px 10px;cursor:pointer}.wsf-thumb{width:96px;height:58px;border-radius:10px;object-fit:cover;border:1px solid #e5e7eb}.wsf-item-head{display:flex;justify-content:space-between;gap:10px;align-items:center}.wsf-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;color:#667085}@media(max-width:980px){.wsf-grid{grid-template-columns:1fr}.wsf-form{grid-template-columns:1fr}.wsf-form .wide{grid-column:auto}}
 </style>
 
 <div class="wsf-grid">
@@ -31,6 +32,22 @@
             @csrf @method('PUT')
             <input type="hidden" name="store_id" value="{{ $sfStore['id'] ?? 0 }}">
             <input type="hidden" name="theme_code" value="wholesale_b2b">
+            @if($isSuper)
+            <div class="wsf-item wide" style="margin-bottom:12px;border-color:{{ $publicWebEnabled ? 'var(--foodex-green-soft)' : 'var(--foodex-border)' }}">
+                <div class="wsf-item-head">
+                    <div>
+                        <strong>{{ __('wholesale_public.admin.public_landing_title') }}</strong>
+                        <div class="wsf-muted">{{ __('wholesale_public.admin.public_landing_help') }}</div>
+                    </div>
+                    <span class="wsf-badge">{{ $publicWebEnabled ? __('wholesale_public.admin.status_on') : __('wholesale_public.admin.status_off') }}</span>
+                </div>
+                <input type="hidden" name="public_web_enabled" value="0">
+                <label style="margin-top:10px"><span><input type="checkbox" name="public_web_enabled" value="1" @checked($publicWebEnabled)> {{ __('wholesale_public.admin.enable_public_landing') }}</span></label>
+                @if($publicWebEnabled)
+                    <a href="{{ route('public.wholesale.home') }}" target="_blank" rel="noopener" class="foodex-primary" style="margin-top:10px;display:inline-flex">{{ __('wholesale_public.admin.open_public_landing') }}</a>
+                @endif
+            </div>
+            @endif
             <div class="wsf-form">
                 <label>{{ app()->getLocale()==='ar'?'الشعار':'Logo' }}<input type="file" name="logo" accept="image/jpeg,image/png,image/webp"></label>
                 <label>{{ app()->getLocale()==='ar'?'عنوان التوصيل/التغطية':'Header location text' }}<input name="header_address" maxlength="255" value="{{ $sfSettings['header_address'] ?? '' }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: توريد القاهرة والإسكندرية':'e.g. Cairo & Alexandria supply' }}"></label>
@@ -44,6 +61,11 @@
                 <label>{{ app()->getLocale()==='ar'?'عنوان الهيرو بالإنجليزية':'English hero title' }}<input name="brand_subtitle_en" value="{{ $sfSettings['brand_subtitle_en'] ?? '' }}" maxlength="500" placeholder="Best prices for retailers"></label>
                 <label>{{ app()->getLocale()==='ar'?'زر الهيرو بالعربية':'Arabic hero CTA' }}<input name="hero_cta_ar" value="{{ $sfSettings['hero_cta_ar'] ?? '' }}" maxlength="120" placeholder="تصفح الكتالوج"></label>
                 <label>{{ app()->getLocale()==='ar'?'زر الهيرو بالإنجليزية':'English hero CTA' }}<input name="hero_cta_en" value="{{ $sfSettings['hero_cta_en'] ?? '' }}" maxlength="120" placeholder="Browse catalog"></label>
+                <label class="wide">{{ __('wholesale_public.admin.facebook_url') }}<input type="url" name="facebook_url" value="{{ $sfSettings['facebook_url'] ?? '' }}" maxlength="500" placeholder="https://www.facebook.com/..."></label>
+                <label>{{ __('wholesale_public.admin.facebook_title_ar') }}<input name="facebook_title_ar" value="{{ $sfSettings['facebook_title_ar'] ?? '' }}" maxlength="255" placeholder="{{ __('wholesale_public.admin.facebook_title_ar_placeholder') }}"></label>
+                <label>{{ __('wholesale_public.admin.facebook_title_en') }}<input name="facebook_title_en" value="{{ $sfSettings['facebook_title_en'] ?? '' }}" maxlength="255" placeholder="{{ __('wholesale_public.admin.facebook_title_en_placeholder') }}"></label>
+                <label>{{ __('wholesale_public.admin.facebook_text_ar') }}<textarea name="facebook_text_ar" rows="2" maxlength="500">{{ $sfSettings['facebook_text_ar'] ?? '' }}</textarea></label>
+                <label>{{ __('wholesale_public.admin.facebook_text_en') }}<textarea name="facebook_text_en" rows="2" maxlength="500">{{ $sfSettings['facebook_text_en'] ?? '' }}</textarea></label>
             </div>
             <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ المسودة':'Save Draft' }}</button></div>
         </form>

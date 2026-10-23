@@ -46,6 +46,17 @@ final class StorefrontDraftEditorService
         $settings = (array) ($payload['settings'] ?? []);
         $branding = (array) ($settings['branding'] ?? []);
         $store = (array) ($payload['store'] ?? []);
+        $primaryColor = $settings['primary_color'] ?? null;
+        $primaryDarkColor = $settings['primary_dark_color'] ?? null;
+        $accentColor = $settings['accent_color'] ?? null;
+        $backgroundColor = $settings['background_color'] ?? null;
+
+        if ($channel === 'b2b') {
+            $primaryColor = $primaryColor === null || $primaryColor === '' || $primaryColor === '#5D2A91' ? '#00452F' : $primaryColor;
+            $primaryDarkColor = $primaryDarkColor === null || $primaryDarkColor === '' || $primaryDarkColor === '#35195E' ? '#003C2A' : $primaryDarkColor;
+            $accentColor = $accentColor === null || $accentColor === '' || $accentColor === '#B983F0' ? '#9BE252' : $accentColor;
+            $backgroundColor = $backgroundColor === null || $backgroundColor === '' || $backgroundColor === '#FBFAFD' ? '#EDF7F1' : $backgroundColor;
+        }
 
         return [
             'revision' => array_merge(
@@ -61,10 +72,10 @@ final class StorefrontDraftEditorService
             ],
             'settings' => [
                 'theme_code' => (string) ($settings['theme_code'] ?? ($channel === 'b2b' ? 'wholesale_b2b' : 'retail_grocery')),
-                'primary_color' => $settings['primary_color'] ?? null,
-                'primary_dark_color' => $settings['primary_dark_color'] ?? null,
-                'accent_color' => $settings['accent_color'] ?? null,
-                'background_color' => $settings['background_color'] ?? null,
+                'primary_color' => $primaryColor,
+                'primary_dark_color' => $primaryDarkColor,
+                'accent_color' => $accentColor,
+                'background_color' => $backgroundColor,
                 'header_address' => $settings['header_address'] ?? '',
                 'brand_title_ar' => (string) ($branding['brand_title_ar'] ?? ''),
                 'brand_title_en' => (string) ($branding['brand_title_en'] ?? ''),
@@ -72,6 +83,12 @@ final class StorefrontDraftEditorService
                 'brand_subtitle_en' => (string) ($branding['brand_subtitle_en'] ?? ''),
                 'hero_cta_ar' => (string) ($branding['hero_cta_ar'] ?? ''),
                 'hero_cta_en' => (string) ($branding['hero_cta_en'] ?? ''),
+                'public_web_enabled' => filter_var($branding['public_web_enabled'] ?? false, FILTER_VALIDATE_BOOL),
+                'facebook_url' => (string) ($branding['facebook_url'] ?? ''),
+                'facebook_title_ar' => (string) ($branding['facebook_title_ar'] ?? ''),
+                'facebook_title_en' => (string) ($branding['facebook_title_en'] ?? ''),
+                'facebook_text_ar' => (string) ($branding['facebook_text_ar'] ?? ''),
+                'facebook_text_en' => (string) ($branding['facebook_text_en'] ?? ''),
             ],
             'sections' => collect((array) ($payload['sections'] ?? []))
                 ->filter(fn (mixed $item): bool => is_array($item))
