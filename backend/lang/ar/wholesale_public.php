@@ -139,7 +139,7 @@ return [
             'discard' => 'إلغاء تغييرات الويب',
             'sections_title' => 'أقسام الموقع العام',
             'section_key' => 'مفتاح القسم',
-            'section_key_placeholder' => 'brands',
+            'section_key_placeholder' => 'brands', // localization-gate: allow — technical ASCII section-key example required by validation.
             'key' => 'المفتاح',
             'type' => 'النوع',
             'title_ar' => 'العنوان العربي',
@@ -147,7 +147,7 @@ return [
             'sort_order' => 'الترتيب',
             'active' => 'نشط',
             'config_json' => 'إعدادات القسم JSON (اختياري)',
-            'config_json_placeholder' => '{"limit":10}',
+            'config_json_placeholder' => '{"limit":10}', // localization-gate: allow — technical JSON example, not user-facing prose.
             'add_section' => 'إضافة لمسودة الويب',
             'save_section' => 'حفظ في مسودة الويب',
             'delete' => 'حذف',
