@@ -111,7 +111,7 @@ return [
         'facebook_title_en' => 'English Facebook title',
         'facebook_text_ar' => 'Arabic Facebook text',
         'facebook_text_en' => 'English Facebook text',
-        'facebook_title_ar_placeholder' => 'تابع فوديكس على فيسبوك',
-        'facebook_title_en_placeholder' => 'Follow FOODEX on Facebook',
+        'facebook_title_ar_placeholder' => 'Enter the Arabic Facebook title',
+        'facebook_title_en_placeholder' => 'Enter the English Facebook title',
     ],
 ];
