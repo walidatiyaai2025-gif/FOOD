@@ -93,6 +93,7 @@
                 <label>{{ app()->getLocale()==='ar'?'العنوان الإنجليزي':'English title' }}<input name="title_en" maxlength="255"></label>
                 <label>{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}<input type="number" name="sort_order" value="50" min="0" max="9999" required></label>
                 <label style="align-content:end"><span><input type="checkbox" name="is_active" value="1" checked> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
+                <label class="wide">{{ app()->getLocale()==='ar'?'إعدادات القسم JSON (اختياري)':'Section config JSON (optional)' }}<textarea name="config_json" rows="2" placeholder='{"limit":10}'></textarea></label>
             </div>
             <div class="wweb-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إضافة لمسودة الويب':'Add to Web Draft' }}</button></div>
         </form>
@@ -113,6 +114,7 @@
                         <label>{{ app()->getLocale()==='ar'?'العنوان الإنجليزي':'English title' }}<input name="title_en" value="{{ $section['title_en'] }}"></label>
                         <label>{{ app()->getLocale()==='ar'?'الترتيب':'Sort order' }}<input type="number" name="sort_order" value="{{ $section['sort_order'] }}" min="0" max="9999" required></label>
                         <label style="align-content:end"><span><input type="checkbox" name="is_active" value="1" @checked($section['is_active'])> {{ app()->getLocale()==='ar'?'نشط':'Active' }}</span></label>
+                        <label class="wide">{{ app()->getLocale()==='ar'?'إعدادات القسم JSON (اختياري)':'Section config JSON (optional)' }}<textarea name="config_json" rows="2">{{ $section['config_json'] }}</textarea></label>
                     </div>
                     <div class="wweb-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ في مسودة الويب':'Save to Web Draft' }}</button></div>
                 </form>
