@@ -109,6 +109,19 @@ return new class extends Migration
             if (Schema::hasTable('storefront_sections')) {
                 DB::table('storefront_sections')
                     ->where('store_id', $storeId)
+                    ->whereIn('section_type', [
+                        'hero',
+                        'banner_slider',
+                        'categories',
+                        'benefits',
+                        'offers',
+                        'featured_products',
+                        'best_sellers',
+                        'brands',
+                        'social',
+                        'product_grid',
+                        'product_carousel',
+                    ])
                     ->orderBy('sort_order')
                     ->orderBy('id')
                     ->get()
