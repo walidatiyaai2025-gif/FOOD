@@ -178,10 +178,10 @@ final class StorefrontController extends Controller
             ],
             'theme' => [
                 'code' => (string) ($settings->theme_code ?? 'wholesale_b2b'),
-                'primary' => $settings->primary_color ?? '#5D2A91',
-                'primary_dark' => $settings->primary_dark_color ?? '#35195E',
-                'accent' => $settings->accent_color ?? '#B983F0',
-                'background' => $settings->background_color ?? '#FBFAFD',
+                'primary' => $settings->primary_color ?? '#00452F',
+                'primary_dark' => $settings->primary_dark_color ?? '#003C2A',
+                'accent' => $settings->accent_color ?? '#9BE252',
+                'background' => $settings->background_color ?? '#EDF7F1',
             ],
             'branding' => [
                 'logo_url' => $this->assetUrl($storeRow->logo_path),
@@ -425,10 +425,10 @@ final class StorefrontController extends Controller
             ],
             'theme' => [
                 'code' => (string) ($settings->theme_code ?? 'wholesale_b2b'),
-                'primary' => $settings->primary_color ?? '#5D2A91',
-                'primary_dark' => $settings->primary_dark_color ?? '#35195E',
-                'accent' => $settings->accent_color ?? '#B983F0',
-                'background' => $settings->background_color ?? '#FBFAFD',
+                'primary' => $settings->primary_color ?? '#00452F',
+                'primary_dark' => $settings->primary_dark_color ?? '#003C2A',
+                'accent' => $settings->accent_color ?? '#9BE252',
+                'background' => $settings->background_color ?? '#EDF7F1',
             ],
             'branding' => [
                 'logo_url' => $this->assetUrl($storeRow->logo_path ?? null),
