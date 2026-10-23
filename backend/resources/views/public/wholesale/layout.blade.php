@@ -26,7 +26,7 @@
 <body>
 @if($isWebDraftPreview)
 <div style="position:sticky;top:0;z-index:90;background:#17231D;color:#fff;padding:8px 16px;text-align:center;font-weight:800;font-size:13px">
-    {{ app()->getLocale()==='ar' ? 'معاينة مسودة الويب — هذه النسخة غير منشورة' : 'Web Draft Preview — this revision is not published' }}
+    {{ __('wholesale_public.draft_preview') }}
     <span style="opacity:.7;font-weight:600"> · {{ substr((string)($webPreview['revision_id'] ?? ''),0,8) }}</span>
 </div>
 @endif
