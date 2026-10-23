@@ -233,6 +233,11 @@ final class PublicWholesaleStorefrontController extends Controller
                 'stores.name',
                 'stores.logo_path',
                 'storefront_settings.header_address',
+                'storefront_settings.primary_color',
+                'storefront_settings.primary_dark_color',
+                'storefront_settings.accent_color',
+                'storefront_settings.background_color',
+                'storefront_settings.branding as shared_branding',
                 'wholesale_web_settings.is_enabled',
                 'wholesale_web_settings.hero_title_ar',
                 'wholesale_web_settings.hero_title_en',
@@ -255,6 +260,7 @@ final class PublicWholesaleStorefrontController extends Controller
             return $this->disabledContext();
         }
 
+        $sharedBranding = $this->decodedJson($row->shared_branding ?? null);
         $branding = [
             'hero_title_ar' => (string) ($row->hero_title_ar ?? ''),
             'hero_title_en' => (string) ($row->hero_title_en ?? ''),
@@ -282,6 +288,14 @@ final class PublicWholesaleStorefrontController extends Controller
                 'address' => $row->header_address,
             ],
             'branding' => $branding,
+            'identity' => [
+                'primary_color' => (string) ($row->primary_color ?: '#00452F'),
+                'primary_dark_color' => (string) ($row->primary_dark_color ?: '#003C2A'),
+                'accent_color' => (string) ($row->accent_color ?: '#9BE252'),
+                'background_color' => (string) ($row->background_color ?: '#EDF7F1'),
+                'brand_title_ar' => (string) ($sharedBranding['brand_title_ar'] ?? ''),
+                'brand_title_en' => (string) ($sharedBranding['brand_title_en'] ?? ''),
+            ],
             'pageTitle' => $pageTitle !== '' ? $pageTitle : __('wholesale_public.page_title'),
             'metaDescription' => $metaDescription !== '' ? $metaDescription : __('wholesale_public.meta_description'),
             'appUrl' => route('public.mobile-apps.latest', ['app' => 'customer']),
@@ -404,6 +418,14 @@ final class PublicWholesaleStorefrontController extends Controller
             'enabled' => false,
             'store' => ['id' => 0, 'name' => 'FOODEX', 'logo_url' => null],
             'branding' => [],
+            'identity' => [
+                'primary_color' => '#00452F',
+                'primary_dark_color' => '#003C2A',
+                'accent_color' => '#9BE252',
+                'background_color' => '#EDF7F1',
+                'brand_title_ar' => 'فوديكس',
+                'brand_title_en' => 'FOODEX',
+            ],
             'pageTitle' => __('wholesale_public.page_title'),
             'metaDescription' => __('wholesale_public.meta_description'),
             'appUrl' => route('public.mobile-apps.latest', ['app' => 'customer']),
