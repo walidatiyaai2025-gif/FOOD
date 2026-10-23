@@ -9,6 +9,7 @@ use App\Services\WholesalePrincipal;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
@@ -40,6 +41,7 @@ final class PublicWholesaleStorefrontController extends Controller
     ): View {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
+        App::setLocale(in_array($actor->locale, ['ar', 'en'], true) ? $actor->locale : 'ar');
 
         $storeId = $principal->storeId();
         $scope->assertStore($actor, $storeId, 'settings.view', 'b2b');
