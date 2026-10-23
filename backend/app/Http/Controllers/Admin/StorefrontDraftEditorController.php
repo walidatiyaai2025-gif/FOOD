@@ -30,6 +30,11 @@ final class StorefrontDraftEditorController extends Controller
         'best_sellers', 'reorder', 'brands', 'social', 'product_grid', 'product_carousel',
     ];
 
+    private const WHOLESALE_WEB_SECTION_TYPES = [
+        'hero', 'banner_slider', 'categories', 'benefits', 'offers', 'featured_products',
+        'best_sellers', 'brands', 'social', 'product_grid', 'product_carousel',
+    ];
+
     public function __construct(
         private readonly StorefrontDraftEditorService $drafts,
         private readonly TenantContextResolver $tenantContext,
@@ -91,6 +96,69 @@ final class StorefrontDraftEditorController extends Controller
             'تم حفظ هوية متجر الجملة في المسودة فقط.',
             'Wholesale storefront branding saved to Draft only.',
         ));
+    }
+
+
+    public function wholesaleWebSettings(Request $request): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $data = $this->webSettingsData($request);
+        $storeId = (int) $data['store_id'];
+        $this->authorizeWholesale($actor, $storeId, 'settings.manage');
+
+        $this->drafts->updateSettings(
+            $actor,
+            $storeId,
+            'b2b_web',
+            $this->webSettingsPatch($data, $request),
+            null,
+            $request,
+        );
+
+        return back()->with('status', $this->msg(
+            'تم حفظ إعدادات الموقع العام في مسودة الويب فقط.',
+            'Public Web settings saved to the Web Draft only.',
+        ));
+    }
+
+    public function wholesaleWebSectionStore(Request $request): RedirectResponse
+    {
+        return $this->storeSection($request, 'b2b_web');
+    }
+
+    public function wholesaleWebSectionUpdate(Request $request, string $section): RedirectResponse
+    {
+        return $this->updateSection($request, 'b2b_web', $section);
+    }
+
+    public function wholesaleWebSectionDestroy(Request $request, string $section): RedirectResponse
+    {
+        return $this->destroySection($request, 'b2b_web', $section);
+    }
+
+    public function wholesaleWebBannerStore(Request $request, BannerImageService $images): RedirectResponse
+    {
+        return $this->storeBanner($request, $images, 'b2b_web');
+    }
+
+    public function wholesaleWebBannerUpdate(Request $request, string $banner, BannerImageService $images): RedirectResponse
+    {
+        return $this->updateBanner($request, $banner, $images, 'b2b_web');
+    }
+
+    public function wholesaleWebBannerDestroy(Request $request, string $banner): RedirectResponse
+    {
+        return $this->destroyBanner($request, $banner, 'b2b_web');
+    }
+
+    public function wholesaleWebPublish(Request $request): RedirectResponse
+    {
+        return $this->publish($request, 'b2b_web');
+    }
+
+    public function wholesaleWebDiscard(Request $request): RedirectResponse
+    {
+        return $this->discard($request, 'b2b_web');
     }
 
     public function retailSectionStore(Request $request): RedirectResponse
@@ -369,6 +437,66 @@ final class StorefrontDraftEditorController extends Controller
         ]);
     }
 
+    /** @return array<string,mixed> */
+    private function webSettingsData(Request $request): array
+    {
+        return $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
+            'public_web_enabled' => ['nullable', 'boolean'],
+            'hero_title_ar' => ['nullable', 'string', 'max:255'],
+            'hero_title_en' => ['nullable', 'string', 'max:255'],
+            'hero_subtitle_ar' => ['nullable', 'string', 'max:500'],
+            'hero_subtitle_en' => ['nullable', 'string', 'max:500'],
+            'hero_cta_ar' => ['nullable', 'string', 'max:120'],
+            'hero_cta_en' => ['nullable', 'string', 'max:120'],
+            'facebook_url' => ['nullable', 'url', 'max:500'],
+            'facebook_title_ar' => ['nullable', 'string', 'max:255'],
+            'facebook_title_en' => ['nullable', 'string', 'max:255'],
+            'facebook_text_ar' => ['nullable', 'string', 'max:500'],
+            'facebook_text_en' => ['nullable', 'string', 'max:500'],
+            'meta_title_ar' => ['nullable', 'string', 'max:255'],
+            'meta_title_en' => ['nullable', 'string', 'max:255'],
+            'meta_description_ar' => ['nullable', 'string', 'max:500'],
+            'meta_description_en' => ['nullable', 'string', 'max:500'],
+        ]);
+    }
+
+    /** @param array<string,mixed> $data
+     * @return array<string,mixed>
+     */
+    private function webSettingsPatch(array $data, Request $request): array
+    {
+        $branding = [
+            'public_web_enabled' => $request->boolean('public_web_enabled'),
+        ];
+
+        foreach ([
+            'hero_title_ar',
+            'hero_title_en',
+            'hero_subtitle_ar',
+            'hero_subtitle_en',
+            'hero_cta_ar',
+            'hero_cta_en',
+            'facebook_url',
+            'facebook_title_ar',
+            'facebook_title_en',
+            'facebook_text_ar',
+            'facebook_text_en',
+            'meta_title_ar',
+            'meta_title_en',
+            'meta_description_ar',
+            'meta_description_en',
+        ] as $key) {
+            $value = trim((string) ($data[$key] ?? ''));
+            $branding[$key] = $value === '' ? null : $value;
+        }
+
+        return [
+            'theme_code' => 'wholesale_web',
+            'branding' => $branding,
+        ];
+    }
+
     /** @param array<string,mixed> $data
      * @return array<string,mixed>
      */
@@ -400,7 +528,11 @@ final class StorefrontDraftEditorController extends Controller
     /** @return array<string,mixed> */
     private function sectionData(Request $request, string $channel): array
     {
-        $types = $channel === 'b2b' ? self::WHOLESALE_SECTION_TYPES : self::RETAIL_SECTION_TYPES;
+        $types = match ($channel) {
+            'b2b' => self::WHOLESALE_SECTION_TYPES,
+            'b2b_web' => self::WHOLESALE_WEB_SECTION_TYPES,
+            default => self::RETAIL_SECTION_TYPES,
+        };
 
         return $request->validate([
             'store_id' => ['required', 'integer', 'exists:stores,id'],
@@ -447,7 +579,7 @@ final class StorefrontDraftEditorController extends Controller
             'target_url' => $targetType === 'product'
                 ? ($channel === 'b2b' ? '/b2b/products/' : '/products/').$targetId
                 : ($targetType === 'category'
-                    ? ($channel === 'b2b' ? '/b2b/categories/' : '/categories/').$targetId
+                    ? ($channel === 'b2b' ? '/b2b/categories/' : '/?category='.$targetId.'#products')
                     : ($targetType === 'retail_store'
                         ? '/retail/'.$targetId.'/home'
                         : null)),
@@ -469,7 +601,7 @@ final class StorefrontDraftEditorController extends Controller
         string $ability,
         Request $request,
     ): void {
-        if ($channel === 'b2b') {
+        if (in_array($channel, ['b2b', 'b2b_web'], true)) {
             $this->authorizeWholesale($actor, $storeId, $ability);
 
             return;
