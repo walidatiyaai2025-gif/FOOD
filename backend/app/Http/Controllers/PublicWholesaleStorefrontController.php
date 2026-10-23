@@ -151,7 +151,7 @@ final class PublicWholesaleStorefrontController extends Controller
         $row = $this->productsQuery($storeId)
             ->leftJoin('units', 'units.id', '=', 'products.unit_id')
             ->where('products.id', $product)
-            ->first([
+            ->select([
                 'products.id',
                 'products.sku',
                 'products.name',
@@ -163,7 +163,8 @@ final class PublicWholesaleStorefrontController extends Controller
                 'brands.image_path as brand_image_path',
                 'units.name as unit_name',
                 DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as primary_image_path'),
-            ]);
+            ])
+            ->first();
 
         abort_if($row === null, 404);
 
