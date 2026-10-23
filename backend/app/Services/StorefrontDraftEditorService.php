@@ -72,6 +72,12 @@ final class StorefrontDraftEditorService
                 'brand_subtitle_en' => (string) ($branding['brand_subtitle_en'] ?? ''),
                 'hero_cta_ar' => (string) ($branding['hero_cta_ar'] ?? ''),
                 'hero_cta_en' => (string) ($branding['hero_cta_en'] ?? ''),
+                'public_web_enabled' => filter_var($branding['public_web_enabled'] ?? false, FILTER_VALIDATE_BOOL),
+                'facebook_url' => (string) ($branding['facebook_url'] ?? ''),
+                'facebook_title_ar' => (string) ($branding['facebook_title_ar'] ?? ''),
+                'facebook_title_en' => (string) ($branding['facebook_title_en'] ?? ''),
+                'facebook_text_ar' => (string) ($branding['facebook_text_ar'] ?? ''),
+                'facebook_text_en' => (string) ($branding['facebook_text_en'] ?? ''),
             ],
             'sections' => collect((array) ($payload['sections'] ?? []))
                 ->filter(fn (mixed $item): bool => is_array($item))
