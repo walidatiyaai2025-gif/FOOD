@@ -720,6 +720,28 @@ final class StorefrontRevisionService
         }
 
         $settings = (array) $normalized['settings'];
+        $branding = (array) ($settings['branding'] ?? []);
+        if ($channel === 'b2b') {
+            foreach ([
+                'public_web_enabled',
+                'facebook_url',
+                'facebook_title_ar',
+                'facebook_title_en',
+                'facebook_text_ar',
+                'facebook_text_en',
+                'hero_title_ar',
+                'hero_title_en',
+                'hero_subtitle_ar',
+                'hero_subtitle_en',
+                'meta_title_ar',
+                'meta_title_en',
+                'meta_description_ar',
+                'meta_description_en',
+            ] as $webOnlyKey) {
+                unset($branding[$webOnlyKey]);
+            }
+        }
+
         DB::table('storefront_settings')->updateOrInsert(
             ['store_id' => $storeId],
             [
@@ -729,9 +751,9 @@ final class StorefrontRevisionService
                 'accent_color' => $settings['accent_color'] ?? null,
                 'background_color' => $settings['background_color'] ?? null,
                 'header_address' => $settings['header_address'] ?? null,
-                'branding' => ($settings['branding'] ?? []) === []
+                'branding' => $branding === []
                     ? null
-                    : json_encode($settings['branding'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    : json_encode($branding, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
