@@ -98,7 +98,6 @@ final class StorefrontDraftEditorController extends Controller
         ));
     }
 
-
     public function wholesaleWebSettings(Request $request): RedirectResponse
     {
         $actor = $this->actor($request);
