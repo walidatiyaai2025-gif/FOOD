@@ -6,6 +6,7 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 final class PublicWholesaleStorefrontController extends Controller
@@ -210,6 +211,12 @@ final class PublicWholesaleStorefrontController extends Controller
     /** @return array<string,mixed> */
     private function context(): array
     {
+        if (! Schema::hasTable('stores')
+            || ! Schema::hasTable('store_types')
+            || ! Schema::hasTable('storefront_settings')) {
+            return $this->disabledContext();
+        }
+
         $row = DB::table('stores')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->leftJoin('storefront_settings', 'storefront_settings.store_id', '=', 'stores.id')
@@ -226,13 +233,7 @@ final class PublicWholesaleStorefrontController extends Controller
             ]);
 
         if ($row === null) {
-            return [
-                'enabled' => false,
-                'store' => ['id' => 0, 'name' => 'FOODEX', 'logo_url' => null],
-                'branding' => [],
-                'appUrl' => route('public.mobile-apps.latest', ['app' => 'customer']),
-                'adminUrl' => route('admin.b2b.login'),
-            ];
+            return $this->disabledContext();
         }
 
         $branding = $this->decodedJson($row->branding ?? null);
@@ -357,6 +358,18 @@ final class PublicWholesaleStorefrontController extends Controller
         $decoded = json_decode($value, true);
 
         return is_array($decoded) ? $decoded : [];
+    }
+
+    /** @return array<string,mixed> */
+    private function disabledContext(): array
+    {
+        return [
+            'enabled' => false,
+            'store' => ['id' => 0, 'name' => 'FOODEX', 'logo_url' => null],
+            'branding' => [],
+            'appUrl' => route('public.mobile-apps.latest', ['app' => 'customer']),
+            'adminUrl' => route('admin.b2b.login'),
+        ];
     }
 
     private function assetUrl(mixed $path): ?string
