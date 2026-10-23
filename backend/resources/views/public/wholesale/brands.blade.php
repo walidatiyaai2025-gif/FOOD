@@ -1,17 +1,16 @@
 @extends('public.wholesale.layout')
 
-@section('title', app()->getLocale()==='ar' ? 'العلامات التجارية | فوديكس' : 'Brands | FOODEX')
+@section('title', __('wholesale_public.brands_page.title'))
 
 @section('content')
-@php($ar=app()->getLocale()==='ar')
 <section class="fx-page-hero">
     <div class="fx-shell">
-        <span class="fx-kicker">{{ $ar?'كتالوج الجملة':'Wholesale catalog' }}</span>
-        <h1>{{ $ar?'العلامات التجارية':'Brands' }}</h1>
-        <p>{{ $ar?'تصفح العلامات المتوفرة داخل كتالوج فوديكس للمجمدات بالجملة.':'Browse brands available in the FOODEX wholesale frozen-food catalog.' }}</p>
+        <span class="fx-kicker">{{ __('wholesale_public.brands_page.kicker') }}</span>
+        <h1>{{ __('wholesale_public.brands_page.heading') }}</h1>
+        <p>{{ __('wholesale_public.brands_page.body') }}</p>
         <form class="fx-search" method="get" action="{{ route('public.wholesale.brands') }}">
-            <input name="q" value="{{ $query }}" placeholder="{{ $ar?'ابحث عن علامة تجارية...':'Search brands...' }}" aria-label="{{ $ar?'البحث في العلامات التجارية':'Search brands' }}">
-            <button class="fx-primary-button" type="submit">{{ $ar?'بحث':'Search' }}</button>
+            <input name="q" value="{{ $query }}" placeholder="{{ __('wholesale_public.brands_page.search_placeholder') }}" aria-label="{{ __('wholesale_public.brands_page.search_label') }}">
+            <button class="fx-primary-button" type="submit">{{ __('wholesale_public.brands_page.search_action') }}</button>
         </form>
     </div>
 </section>
@@ -29,10 +28,10 @@
                         @endif
                     </span>
                     <strong>{{ $brand['name'] }}</strong>
-                    <small>{{ $ar?'عرض المنتجات':'View products' }}</small>
+                    <small>{{ __('wholesale_public.brands_page.view_products') }}</small>
                 </a>
             @empty
-                <p class="fx-empty">{{ $ar?'لا توجد علامات مطابقة للبحث.':'No brands match your search.' }}</p>
+                <p class="fx-empty">{{ __('wholesale_public.brands_page.empty') }}</p>
             @endforelse
         </div>
     </div>
