@@ -1121,6 +1121,9 @@ class B2bWorkspaceController extends Controller
             'sections' => $editor['sections'],
             'banners' => $editor['banners'],
             'targets' => [...$categoryTargets, ...$targets],
+            'published_web_enabled' => (bool) DB::table('wholesale_web_settings')
+                ->where('store_id', $storeId)
+                ->value('is_enabled'),
         ];
     }
 
