@@ -90,9 +90,9 @@ final class PublicWholesaleStorefrontController extends Controller
     }
 
     /**
-     * @param array<string,mixed> $context
-     * @param list<array<string,mixed>> $sections
-     * @param list<array<string,mixed>> $banners
+     * @param  array<string,mixed>  $context
+     * @param  list<array<string,mixed>>  $sections
+     * @param  list<array<string,mixed>>  $banners
      */
     private function renderHome(
         Request $request,
@@ -189,7 +189,7 @@ final class PublicWholesaleStorefrontController extends Controller
     }
 
     /**
-     * @param list<mixed> $sections
+     * @param  list<mixed>  $sections
      * @return list<array<string,mixed>>
      */
     private function payloadSections(array $sections): array
@@ -240,7 +240,7 @@ final class PublicWholesaleStorefrontController extends Controller
     }
 
     /**
-     * @param list<mixed> $banners
+     * @param  list<mixed>  $banners
      * @return list<array<string,mixed>>
      */
     private function payloadBanners(array $banners): array
