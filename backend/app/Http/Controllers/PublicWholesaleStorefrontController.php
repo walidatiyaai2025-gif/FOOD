@@ -297,6 +297,7 @@ final class PublicWholesaleStorefrontController extends Controller
             ->where('catalogs.is_active', true)
             ->where('catalogs.is_migration_quarantine', false)
             ->where('products.is_active', true)
+            ->where('brands.is_active', true)
             ->select(['brands.id', 'brands.name', 'brands.image_path'])
             ->distinct();
     }
