@@ -8,10 +8,23 @@
     <meta name="description" content="@yield('meta_description', __('wholesale_public.meta_description'))">
     <link rel="stylesheet" href="{{ asset('assets/wholesale/foodex-wholesale.css') }}">
 </head>
+@php
+    $identityBrand = app()->getLocale()==='ar'
+        ? ((string)($identity['brand_title_ar'] ?? '') ?: __('wholesale_public.brand_name'))
+        : ((string)($identity['brand_title_en'] ?? '') ?: __('wholesale_public.brand_name'));
+@endphp
+<style>
+:root{
+    --fx-green:{{ $identity['primary_color'] ?? '#00452F' }};
+    --fx-green-strong:{{ $identity['primary_dark_color'] ?? '#003C2A' }};
+    --fx-lime:{{ $identity['accent_color'] ?? '#9BE252' }};
+    --fx-mint:{{ $identity['background_color'] ?? '#EDF7F1' }};
+}
+</style>
 <body>
 <header class="fx-header">
     <div class="fx-shell fx-header__row">
-        <a class="fx-brand" href="{{ route('public.wholesale.home') }}" aria-label="{{ __('wholesale_public.brand_name') }}">
+        <a class="fx-brand" href="{{ route('public.wholesale.home') }}" aria-label="{{ $identityBrand }}">
             @if(!empty($store['logo_url']))
                 <img src="{{ $store['logo_url'] }}" alt="{{ __('wholesale_public.brand_name') }}">
             @else
