@@ -691,6 +691,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
     /**
      * @param  array<string,array<string,mixed>>  $results
      * @param  list<array<string,mixed>>  $evidence
+     * @return array{message:string,suggestions:list<string>}
      */
     private function synthesize(
         AgentTurnRequest $request,
@@ -698,33 +699,38 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         array $evidence,
         string $status,
         int $startedAt,
-    ): string {
+    ): array {
+        $fallback = fn (string $message): array => [
+            'message' => $message,
+            'suggestions' => [],
+        ];
+
         if ($this->knowledgeEvidenceInsufficient($results)) {
-            return str_starts_with(strtolower($request->locale), 'ar')
+            return $fallback(str_starts_with(strtolower($request->locale), 'ar')
                 ? 'لا توجد أدلة كافية في مصادر FOODEX المعتمدة للإجابة على سؤال المستندات هذا.'
-                : 'There is not enough approved FOODEX source evidence to answer this document question safely.';
+                : 'There is not enough approved FOODEX source evidence to answer this document question safely.');
         }
 
         if ($this->performance()->isCancelled($request->actorUserId, $request->correlationId)) {
-            return $this->withKnowledgeCitations(
+            return $fallback($this->withKnowledgeCitations(
                 $this->deterministicMessage($request->locale, $results, AgentTurnResult::DEGRADED),
                 $results,
                 $request->locale,
-            );
+            ));
         }
 
         $timeoutSeconds = $this->remainingProviderTimeoutSeconds($request, $startedAt, count($results));
         if ($timeoutSeconds === null) {
-            return $this->withKnowledgeCitations(
+            return $fallback($this->withKnowledgeCitations(
                 $this->deterministicMessage($request->locale, $results, AgentTurnResult::DEGRADED),
                 $results,
                 $request->locale,
-            );
+            ));
         }
 
         $providerResult = $this->provider->complete(new AssistantProviderRequest(
             systemInstructions: $this->synthesisInstructions($request->locale),
-            taskInstructions: 'Write the final answer using only the supplied deterministic FOODEX results and evidence ids. If a result contains approval_draft, clearly say it is only a pending approval preview and has not executed.',
+            taskInstructions: 'Write the final answer using only the supplied deterministic FOODEX results and evidence ids. Also provide 2 to 4 short, genuinely useful follow-up prompts the user can ask next. Suggestions must not claim an action already happened. If a result contains approval_draft, clearly say it is only a pending approval preview and has not executed.',
             userContent: $request->userMessage,
             context: [
                 'status' => $status,
@@ -734,11 +740,16 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             ],
             responseSchema: [
                 'type' => 'object',
-                'required' => ['message', 'used_evidence', 'uncertainty'],
+                'required' => ['message', 'used_evidence', 'uncertainty', 'suggestions'],
                 'properties' => [
                     'message' => ['type' => 'string'],
                     'used_evidence' => ['type' => 'array', 'items' => ['type' => 'string']],
                     'uncertainty' => ['type' => 'array', 'items' => ['type' => 'string']],
+                    'suggestions' => [
+                        'type' => 'array',
+                        'items' => ['type' => 'string'],
+                        'maxItems' => 4,
+                    ],
                 ],
                 'additionalProperties' => false,
             ],
@@ -752,11 +763,11 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
 
         $payload = $providerResult->structuredPayload;
         if (! $providerResult->ok || ! is_array($payload)) {
-            return $this->withKnowledgeCitations(
+            return $fallback($this->withKnowledgeCitations(
                 $this->deterministicMessage($request->locale, $results, AgentTurnResult::DEGRADED),
                 $results,
                 $request->locale,
-            );
+            ));
         }
 
         $message = is_string($payload['message'] ?? null) ? trim($payload['message']) : '';
@@ -768,14 +779,17 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         ));
 
         if ($message === '' || ($known !== [] && $used === [])) {
-            return $this->withKnowledgeCitations(
+            return $fallback($this->withKnowledgeCitations(
                 $this->deterministicMessage($request->locale, $results, AgentTurnResult::DEGRADED),
                 $results,
                 $request->locale,
-            );
+            ));
         }
 
-        return $this->withKnowledgeCitations($message, $results, $request->locale);
+        return [
+            'message' => $this->withKnowledgeCitations($message, $results, $request->locale),
+            'suggestions' => $this->sanitizeSuggestions($payload['suggestions'] ?? [], $request->locale),
+        ];
     }
 
     /** @param array<string,array<string,mixed>> $results */
