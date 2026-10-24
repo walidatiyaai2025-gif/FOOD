@@ -12,7 +12,7 @@ final readonly class AgentExecutionBudget
         public int $maxPerToolResultBytes = 16384,
         public int $maxPlanningTokens = 384,
         public int $maxSynthesisTokens = 640,
-        public int $maxElapsedMs = 12000,
+        public int $maxElapsedMs = 30000,
     ) {
         if ($maxSteps < 1 || $maxSteps > 4) {
             throw new \InvalidArgumentException('Agent maxSteps must be between 1 and 4.');
@@ -43,7 +43,7 @@ final readonly class AgentExecutionBudget
             maxPerToolResultBytes: max(2048, min(32768, intdiv($maxTotal, 4))),
             maxPlanningTokens: min(1024, max(128, (int) config('assistant.agent.planning_tokens', 384))),
             maxSynthesisTokens: min(1536, max(128, (int) config('assistant.agent.synthesis_tokens', 640))),
-            maxElapsedMs: min(30000, max(3000, (int) config('assistant.agent.max_seconds', 12) * 1000)),
+            maxElapsedMs: min(30000, max(3000, (int) config('assistant.agent.max_seconds', 30) * 1000)),
         );
     }
 }
