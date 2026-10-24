@@ -592,6 +592,11 @@ final class AssistantController extends Controller
         /** @var array<string, mixed> $payload */
         $payload = $message->getAttribute('payload') ?? [];
 
+        $responseSource = data_get($payload, 'agent.response_source');
+        $responseSource = in_array($responseSource, ['ai', 'database'], true)
+            ? $responseSource
+            : null;
+
         return [
             'id' => (int) $message->getKey(),
             'role' => (string) $message->role,
@@ -599,6 +604,7 @@ final class AssistantController extends Controller
             'intent' => $message->intent,
             'confidence' => $message->confidence === null ? null : (float) $message->confidence,
             'created_at' => $message->created_at?->toIso8601String(),
+            'response_source' => $responseSource,
             'cards' => is_array($payload['cards'] ?? null) ? $payload['cards'] : [],
             'actions' => is_array($payload['actions'] ?? null) ? $payload['actions'] : [],
             'suggested_prompts' => is_array($payload['suggested_prompts'] ?? null) ? $payload['suggested_prompts'] : [],
