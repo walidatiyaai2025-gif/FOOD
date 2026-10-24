@@ -571,14 +571,36 @@ final class ProductionLaunchPreflight
         $hasSource = is_string($release['source_commit']) && $release['source_commit'] !== '';
         $hasRun = is_string($release['github_run_number']) && $release['github_run_number'] !== '';
         $freezeApplies = $release['version'] === '1.0.77';
+        $mobileVersions = [
+            $release['customer_version'],
+            $release['driver_version'],
+            $release['van_version'],
+        ];
+        $mobileVersionsSynchronized = collect($mobileVersions)->every(
+            static fn (?string $mobileVersion): bool => is_string($mobileVersion) && $mobileVersion !== '',
+        ) && count(array_unique($mobileVersions)) === 1;
+        $dashboardUpdateNotes = is_string($release['version']) && $release['version'] !== ''
+            ? base_path('../docs/release/UPDATE_NOTES_'.$release['version'].'.md')
+            : null;
+        $dashboardUpdateApplies = ! $freezeApplies
+            && $release['lineage_source'] === 'candidate-source'
+            && is_string($dashboardUpdateNotes)
+            && is_file($dashboardUpdateNotes)
+            && $mobileVersionsSynchronized
+            && $release['customer_version'] !== $release['version'];
+
         $customerMatches = $freezeApplies
             ? (($release['customer_frozen_identity'] ?? null) === '1.0.76+76'
                 && ($release['customer_frozen_baseline'] ?? null) === '4de5a24b2ca6bd9b448a79ca05f7f44c7d428f4d')
-            : $release['customer_version'] === $release['version'];
+            : ($dashboardUpdateApplies
+                ? $mobileVersionsSynchronized
+                : $release['customer_version'] === $release['version']);
         $appVersionsMatch = $versionMatches
             && $customerMatches
-            && $release['driver_version'] === $release['version']
-            && $release['van_version'] === $release['version'];
+            && ($dashboardUpdateApplies
+                ? $mobileVersionsSynchronized
+                : ($release['driver_version'] === $release['version']
+                    && $release['van_version'] === $release['version']));
         $builds = [
             $release['customer_build_number'],
             $release['driver_build_number'],
@@ -596,12 +618,16 @@ final class ProductionLaunchPreflight
             'detail' => $passed
                 ? ($freezeApplies
                     ? 'Release 1.0.77 lineage is valid; frozen Customer 1.0.76+76 is carried forward without version mutation.'
-                    : 'Release lineage is synchronized across Dashboard, Customer, Driver and Van identities.')
+                    : ($dashboardUpdateApplies
+                        ? 'Dashboard-only release lineage is valid; Customer, Driver and Van identities remain synchronized and intentionally unchanged.'
+                        : 'Release lineage is synchronized across Dashboard, Customer, Driver and Van identities.'))
                 : 'Release lineage metadata is missing, inconsistent or incomplete.',
             'source' => $release['lineage_source'] === 'candidate-source'
                 ? ($freezeApplies
                     ? 'exact candidate source + mobile source identities + frozen Customer contract'
-                    : 'exact candidate source + synchronized mobile source identities')
+                    : ($dashboardUpdateApplies
+                        ? 'exact Dashboard candidate source + synchronized unchanged mobile identities + update notes'
+                        : 'exact candidate source + synchronized mobile source identities'))
                 : 'Release/BUILD_INFO.json + VERSION',
         ];
     }
