@@ -8,6 +8,7 @@ final class AssistantModelRegistry
         'intent_routing',
         'agent_planning',
         'grounded_synthesis',
+        'direct_reply',
     ];
 
     public function __construct(private readonly AssistantProviderSettings $settings) {}
