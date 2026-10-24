@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Domain\Assistant\Data\AiPrincipalContext;
 use App\Domain\Assistant\Data\AgentExecutionBudget;
+use App\Domain\Assistant\Data\AiPrincipalContext;
 use App\Domain\Assistant\Data\AssistantToolRequest;
 use App\Domain\Assistant\Data\AssistantToolResult;
 use App\Domain\Assistant\Performance\AssistantPerformanceManager;
