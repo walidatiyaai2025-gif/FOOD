@@ -2,11 +2,11 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.105",
+  "target_version": "1.0.106",
   "minimum_current_version": "1.0.6",
   "source_base": "8d29f4cb664988b38e07d4b558dd8ead805c50aa",
-  "source_commit": "75075c0676e5795b859f7d7b24db44c5e3f4ac65",
-  "sha256": "aa8ed2e5b02c7400269e685710acdf48cd63c20b957a7a944f14fca37ffdb776",
+  "source_commit": "e523684ce2ee5bfd26ca7655883aac62e373f122",
+  "sha256": "1ddf0637e94b59e3f8e5e1251f0eba9383ff6f8de58cd961c43224cce23b2327",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/0001_01_01_000000_create_users_table.php",
@@ -221,19 +221,19 @@
     "backend/database/migrations/2026_10_24_000100_separate_wholesale_web_storefront.php"
   ],
   "delta": {
-    "file_count": 1962,
-    "source_file_count": 1844,
+    "file_count": 1964,
+    "source_file_count": 1845,
     "files_manifest": "FOODEX-Update.files.txt"
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "FOODEX 1.0.105: Promote the authoritative Dashboard/backend lineage through `5efd2aaa9a72e72ee564d1a9dbd7d5328e28e895` as the FOODEX 1.0.105 dashboard-only update. Include the completed Wholesale storefront separation from #2394 / PR #2396: Customer App storefront editing remains isolated on the mobile channel while Public Wholesale Web has its own `b2b_web` draft, preview, sections, banners, settings, publish/discard flow and enable state. Keep the public Wholesale Web price-free and purchase-free while preserving management login, FOODEX branding, SEO metadata, brands/categories/products presentation and app-directed purchasing. Build the cumulative Dashboard Update package from the exact 1.0.105 source lineage using the canonical FOODEX Update Bundle workflow. Do not rebuild or version-bump Customer, Driver or Van APKs for this dashboard-only promotion; their source identities remain `1.0.104+104`. Preserve production API `https://foodex.50sols.com`, updater recovery safeguards, cumulative upgrade compatibility and manifest/checksum validation.",
+  "release_notes": "FOODEX 1.0.106: Carry the Public Wholesale Web polish from the post-1.0.105 source lineage: Alexandria Google Font, 1560px widescreen shell, polished accessible hamburger drawer, larger branded image fallbacks, and canonical FOODEX icon usage across header/footer/favicon/catalog fallbacks. Fix the public Customer App download CTA so `/downloads/apps/customer/latest.apk` no longer returns HTTP 503 while the server-side APK mirror is still warming. Prefer the verified local APK mirror when ready; otherwise queue mirror preparation and immediately redirect the visitor to the immutable official GitHub Release APK for the exact Android policy version. Keep Customer, Driver and Van Android identities unchanged at `1.0.104+104`; this is a Dashboard/Public Web-only update and does not rebuild mobile APKs. Preserve version-locked download routing, local mirror integrity checks, cumulative updater compatibility and production API `https://foodex.50sols.com`.",
   "dashboard_fields": {
-    "target_version": "1.0.105",
+    "target_version": "1.0.106",
     "minimum_current_version": "1.0.6",
-    "source_commit": "75075c0676e5795b859f7d7b24db44c5e3f4ac65",
-    "sha256": "aa8ed2e5b02c7400269e685710acdf48cd63c20b957a7a944f14fca37ffdb776",
+    "source_commit": "e523684ce2ee5bfd26ca7655883aac62e373f122",
+    "sha256": "1ddf0637e94b59e3f8e5e1251f0eba9383ff6f8de58cd961c43224cce23b2327",
     "contains_migrations": true,
-    "release_notes": "FOODEX 1.0.105: Promote the authoritative Dashboard/backend lineage through `5efd2aaa9a72e72ee564d1a9dbd7d5328e28e895` as the FOODEX 1.0.105 dashboard-only update. Include the completed Wholesale storefront separation from #2394 / PR #2396: Customer App storefront editing remains isolated on the mobile channel while Public Wholesale Web has its own `b2b_web` draft, preview, sections, banners, settings, publish/discard flow and enable state. Keep the public Wholesale Web price-free and purchase-free while preserving management login, FOODEX branding, SEO metadata, brands/categories/products presentation and app-directed purchasing. Build the cumulative Dashboard Update package from the exact 1.0.105 source lineage using the canonical FOODEX Update Bundle workflow. Do not rebuild or version-bump Customer, Driver or Van APKs for this dashboard-only promotion; their source identities remain `1.0.104+104`. Preserve production API `https://foodex.50sols.com`, updater recovery safeguards, cumulative upgrade compatibility and manifest/checksum validation."
+    "release_notes": "FOODEX 1.0.106: Carry the Public Wholesale Web polish from the post-1.0.105 source lineage: Alexandria Google Font, 1560px widescreen shell, polished accessible hamburger drawer, larger branded image fallbacks, and canonical FOODEX icon usage across header/footer/favicon/catalog fallbacks. Fix the public Customer App download CTA so `/downloads/apps/customer/latest.apk` no longer returns HTTP 503 while the server-side APK mirror is still warming. Prefer the verified local APK mirror when ready; otherwise queue mirror preparation and immediately redirect the visitor to the immutable official GitHub Release APK for the exact Android policy version. Keep Customer, Driver and Van Android identities unchanged at `1.0.104+104`; this is a Dashboard/Public Web-only update and does not rebuild mobile APKs. Preserve version-locked download routing, local mirror integrity checks, cumulative updater compatibility and production API `https://foodex.50sols.com`."
   }
 }
