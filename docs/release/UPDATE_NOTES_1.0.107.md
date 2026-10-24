@@ -9,7 +9,7 @@ Dashboard/backend only. Customer, Driver and Van Android source identities remai
 ## Included fixes
 
 - Qwen3 requests use OpenAI-compatible `reasoning_effort: none` for FOODEX low-latency provider paths.
-- Assistant Settings capability testing is collapsed from three consecutive AI requests into one forced-tool contract request, preventing the previous burst that could surface HTTP 429 Too Many Requests.
+- Assistant Settings now separates a one-request **Test saved connection** check from a one-request **Test agent capabilities** forced-tool contract. The previous three-request burst is removed, preventing the Dashboard test action from amplifying HTTP 429 Too Many Requests.
 - HTTP 429 is no longer immediately retried by the provider resilience loop.
 - Assistant replies now expose a safe response-source marker in the API and UI: AI for model-only replies, Database for FOODEX tool/evidence-backed replies.
 - Arabic and English response-source labels are included with no chain-of-thought exposure.
