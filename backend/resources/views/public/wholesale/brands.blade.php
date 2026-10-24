@@ -24,7 +24,7 @@
                         @if($brand['image_url'])
                             <img src="{{ $brand['image_url'] }}" alt="{{ $brand['name'] }}" loading="lazy">
                         @else
-                            <span class="fx-brand-fallback">{{ mb_substr($brand['name'],0,1) }}</span>
+                            <span class="fx-brand-fallback" aria-hidden="true"><img src="{{ asset('assets/wholesale/foodex-icon.png') }}" alt=""></span>
                         @endif
                     </span>
                     <strong>{{ $brand['name'] }}</strong>

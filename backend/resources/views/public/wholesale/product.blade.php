@@ -20,7 +20,7 @@
                     @if($product['image_url'])
                         <img src="{{ $product['image_url'] }}" alt="{{ $product['name'] }}" data-main-product-image>
                     @else
-                        <span class="fx-image-placeholder" aria-hidden="true">❄</span>
+                        <span class="fx-image-placeholder" aria-hidden="true"><img class="fx-fallback-image" src="{{ asset('assets/wholesale/foodex-icon.png') }}" alt=""></span>
                     @endif
                 </div>
                 @if(count($product['images'])>1)
