@@ -175,7 +175,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                 $this->providerPayload($config['model'], [
                     'model' => $config['model'],
                     'temperature' => 0,
-                    'max_tokens' => min(128, $config['max_tokens']),
+                    'max_tokens' => min(512, $config['max_tokens']),
                     'messages' => [
                         ['role' => 'user', 'content' => 'Reply with exactly: FOODEX_OK'],
                     ],
@@ -467,7 +467,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                 $this->providerPayload($config['model'], [
                     'model' => $config['model'],
                     'temperature' => 0,
-                    'max_tokens' => min(128, $config['max_tokens']),
+                    'max_tokens' => min(512, $config['max_tokens']),
                     'messages' => [
                         ['role' => 'user', 'content' => 'Call the foodex_capability_probe tool with {"ok":true,"contract":"foodex"}.'],
                     ],
