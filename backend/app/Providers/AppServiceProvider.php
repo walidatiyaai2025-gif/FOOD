@@ -122,6 +122,20 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(max(1, (int) config('assistant.rate_limit', 30)))->by($key);
         });
 
+        RateLimiter::for('assistant-provider-test', function (Request $request): Limit {
+            $userId = $request->user()?->getAuthIdentifier();
+            $key = $userId === null ? 'ip:'.$request->ip() : 'user:'.$userId;
+
+            return Limit::perMinute(10)->by($key);
+        });
+
+        RateLimiter::for('assistant-provider-capabilities', function (Request $request): Limit {
+            $userId = $request->user()?->getAuthIdentifier();
+            $key = $userId === null ? 'ip:'.$request->ip() : 'user:'.$userId;
+
+            return Limit::perMinute(5)->by($key);
+        });
+
         RateLimiter::for('restaurant-integration-api', function (Request $request): Limit {
             $credential = (string) $request->header('X-Restaurant-App-Key', '');
             $publicId = Str::before($credential, '.');
