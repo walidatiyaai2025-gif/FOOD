@@ -1257,7 +1257,7 @@ PROMPT;
             return null;
         }
 
-        return min(12, max(3, intdiv($remainingMs, 1000)));
+        return min(30, max(3, intdiv($remainingMs, 1000)));
     }
 
     private function performance(): AssistantPerformanceManager
