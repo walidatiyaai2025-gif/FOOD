@@ -133,14 +133,19 @@ class AssistantAgentOrchestratorTest extends TestCase
         $this->assertSame(0, DB::table('audit_logs')->where('event', 'assistant.tool.read')->count());
     }
 
-    public function test_plain_general_model_reply_is_repaired_into_direct_ai_answer_with_suggestions(): void
+    public function test_malformed_general_planner_reply_is_repaired_into_direct_ai_answer_with_suggestions(): void
     {
         $storeId = $this->store('b2b', 'AI-AGENT-DIRECT-REPAIR');
         $actor = $this->globalUser('SUPER_ADMIN');
 
         $this->bindTools([$this->tool('sales.summary', ['recognized_revenue' => 10])]);
         $this->bindProvider([
-            $this->providerResult(text: 'A plain general response that did not follow the planner schema.'),
+            new AssistantProviderResult(
+                ok: false,
+                provider: 'test',
+                model: 'test',
+                failureReason: AssistantProviderResult::FAILURE_MALFORMED,
+            ),
             $this->providerResult(structured: [
                 'message' => 'Here is the direct AI answer.',
                 'suggestions' => [
