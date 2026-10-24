@@ -262,7 +262,10 @@ async function stableScreenshot(
     initialDelay = 750,
     attempts = 24,
     interval = 250,
-    stabilityRatio = 0.0001,
+    // Flutter may repaint tiny time-dependent regions even after the runtime
+    // is ready. Require self-drift <= 0.05%, still 2x stricter than the actual
+    // embedded-vs-standalone parity gate (0.1%), for consecutive samples.
+    stabilityRatio = 0.0005,
     stableSamplesRequired = 2,
   } = {},
 ) {
