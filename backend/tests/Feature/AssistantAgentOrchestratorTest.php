@@ -265,6 +265,40 @@ class AssistantAgentOrchestratorTest extends TestCase
         );
     }
 
+    public function test_failed_planned_tool_can_recover_with_safe_ai_guidance_and_ai_provenance(): void
+    {
+        $storeId = $this->store('b2b', 'AI-AGENT-RECOVER');
+        $actor = $this->globalUser('SUPER_ADMIN');
+
+        $this->bindTools([$this->failingTool('inventory.alerts')]);
+        $this->bindProvider([
+            $this->providerResult(toolCalls: [
+                ['name' => 'inventory__alerts', 'arguments' => [], 'id' => 'fail'],
+            ]),
+            $this->providerResult(structured: [
+                'message' => 'I could not read the live inventory data, but I can help you narrow the next check.',
+                'suggestions' => [
+                    'Try the inventory alerts again.',
+                    'Ask for a product-specific stock check.',
+                ],
+            ]),
+        ]);
+
+        $result = app(AssistantAgentOrchestrator::class)->run(
+            $this->turn($actor, $storeId, 'Check my inventory risk.', 'agent-safe-recover'),
+        );
+
+        $this->assertSame(AgentTurnResult::DEGRADED, $result->status);
+        $this->assertSame(AgentTurnResult::SOURCE_AI, $result->responseSource());
+        $this->assertSame('FAILED', $result->toolExecutions[0]['status']);
+        $this->assertSame('TOOL_UNAVAILABLE', $result->toolExecutions[0]['failure_code']);
+        $this->assertSame([
+            'Try the inventory alerts again.',
+            'Ask for a product-specific stock check.',
+        ], $result->brainResult->suggestedPrompts);
+        $this->assertNull($result->toolResult);
+    }
+
     public function test_permission_is_rechecked_by_real_executor_before_planned_tool_runs(): void
     {
         $storeId = app(WholesalePrincipal::class)->storeId();
