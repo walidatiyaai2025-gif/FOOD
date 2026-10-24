@@ -16,9 +16,11 @@ use App\Services\AssistantRuntimeSettings;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class AssistantSettingsTest extends TestCase
@@ -29,6 +31,58 @@ class AssistantSettingsTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+    }
+
+    public function test_provider_probe_does_not_share_the_dashboard_numeric_throttle_bucket(): void
+    {
+        Http::preventStrayRequests();
+        Route::middleware(['web', 'throttle:30,1'])->get('/_test/dashboard-throttle', fn () => response('ok'));
+        $this->actingAs($this->settingsManager());
+
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $this->get('/_test/dashboard-throttle')->assertOk();
+        }
+
+        $this->post('/admin/settings/assistant/provider/test')->assertStatus(302);
+    }
+
+    public function test_provider_probe_allows_reasoning_without_exceeding_the_configured_budget(): void
+    {
+        foreach ([256, 1024] as $budget) {
+            Http::swap(new Factory);
+            $sentBudgets = [];
+            Http::fake(function ($request) use (&$sentBudgets) {
+                $sentBudgets[] = $request['max_tokens'];
+
+                return Http::response(['choices' => [['message' => ['content' => 'FOODEX_OK']]]]);
+            });
+
+            app(AssistantExternalAiClient::class)->probe([
+                'api_url' => 'https://ai.example.test/v1/chat/completions',
+                'model' => 'reasoning-test-model',
+                'timeout_seconds' => 20,
+                'max_tokens' => $budget,
+            ], null);
+
+            $this->assertSame(array_fill(0, 3, min(512, $budget)), $sentBudgets);
+        }
+    }
+
+    public function test_provider_probe_retains_its_ten_per_minute_limit_and_recovers(): void
+    {
+        Http::preventStrayRequests();
+        $this->actingAs($this->settingsManager());
+
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $this->post('/admin/settings/assistant/provider/test')->assertStatus(302);
+        }
+
+        $this->post('/admin/settings/assistant/provider/test')
+            ->assertStatus(429)
+            ->assertHeader('Retry-After');
+
+        $this->travel(61)->seconds();
+        $this->post('/admin/settings/assistant/provider/test')->assertStatus(302);
     }
 
     public function test_runtime_setting_overrides_environment_default_and_persists(): void
