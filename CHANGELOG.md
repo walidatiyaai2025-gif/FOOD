@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.105 - 2026-10-24
+- Promote the authoritative Dashboard/backend lineage through `5efd2aaa9a72e72ee564d1a9dbd7d5328e28e895` as the FOODEX 1.0.105 dashboard-only update.
+- Include the completed Wholesale storefront separation from #2394 / PR #2396: Customer App storefront editing remains isolated on the mobile channel while Public Wholesale Web has its own `b2b_web` draft, preview, sections, banners, settings, publish/discard flow and enable state.
+- Keep the public Wholesale Web price-free and purchase-free while preserving management login, FOODEX branding, SEO metadata, brands/categories/products presentation and app-directed purchasing.
+- Build the cumulative Dashboard Update package from the exact 1.0.105 source lineage using the canonical FOODEX Update Bundle workflow.
+- Do not rebuild or version-bump Customer, Driver or Van APKs for this dashboard-only promotion; their source identities remain `1.0.104+104`.
+- Preserve production API `https://foodex.50sols.com`, updater recovery safeguards, cumulative upgrade compatibility and manifest/checksum validation.
+
 ## 1.0.104 - 2026-10-23
 - Promote the authoritative `main` lineage through `abdf0c0b799887fb5720034cc9a8187a140a40d1` as FOODEX 1.0.104; owner-selected 1.0.103 remains unpublished.
 - Carry the completed 1.0.102 self-healing Dashboard updater hardening, including retry-safe migrations, full application-owned runtime packaging, explicit failure diagnostics, and safe handling of optional exact runtime files.
