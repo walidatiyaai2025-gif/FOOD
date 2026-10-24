@@ -541,7 +541,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
 
             return $this->probeResult(
                 reachable: true,
-                chat: true,
+                chat: $toolContract,
                 structuredJson: $structuredJson,
                 toolCalls: $toolContract,
                 config: $config,
