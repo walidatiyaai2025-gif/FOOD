@@ -17,6 +17,16 @@ class CiPlanTest(unittest.TestCase):
     def test_release_contract_expands_all_runtime_areas(self):
         p=module.resolve(self.config,["docs/release/RELEASE_ARTIFACT_CONTRACT.md"],"docs/1253-release")
         for a in ("backend","customer","driver","van"): self.assertTrue(p["areas"][a])
+    def test_release_contract_without_mobile_paths_remains_dashboard_only_for_platform_builds(self):
+        p=module.resolve(
+            self.config,
+            ["backend/app/Services/AssistantExternalAiClient.php","docs/release/UPDATE_NOTES_1.0.107.md"],
+            "fix/2397-foodex-107-ai-provenance",
+        )
+        self.assertTrue(p["backend_dashboard_only"])
+        for area in ("customer","driver","van"):
+            self.assertTrue(p["areas"][area],area)
+
     def test_customer_freeze_validator_expands_all_runtime_areas(self):
         p=module.resolve(self.config,["scripts/validate_customer_freeze_contract.py"],"worker/1381-customer-freeze-release-contract")
         for a in ("backend","customer","driver","van"): self.assertTrue(p["areas"][a])
