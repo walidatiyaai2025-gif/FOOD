@@ -2,7 +2,7 @@
 
 ## 1.0.107 - 2026-10-24
 - Make FOODEX Qwen3/OpenAI-compatible Assistant requests low-latency by sending `reasoning_effort: none` for provider health, capability probes, routing, planning and grounded synthesis while retaining deterministic fail-safe behavior.
-- Fix Dashboard > FOODEX Assistant Settings provider testing so the agent-capability check validates Chat Completions, structured JSON arguments and tool calling in one forced-tool request instead of three back-to-back requests that could trigger provider HTTP 429.
+- Fix Dashboard > FOODEX Assistant Settings provider testing: Test saved connection is now one lightweight request, Test agent capabilities is a separate one-request forced-tool contract, and the old three-request burst that could trigger provider HTTP 429 is removed.
 - Stop immediate retries of provider HTTP 429 responses so FOODEX does not amplify throttling; existing safe fallback/circuit behavior remains in control.
 - Add Assistant response provenance to current replies and conversation history: tool/evidence-backed business answers are labeled `Database / قاعدة البيانات`, while successful model-only replies are labeled `AI / ذكاء اصطناعي`.
 - Preserve RBAC, store/channel scope, read-only tool enforcement, server-authoritative business data and the rule that chain-of-thought/reasoning is never exposed or persisted.
