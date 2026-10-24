@@ -390,6 +390,69 @@ class AssistantSettingsTest extends TestCase
         }
     }
 
+    public function test_typed_provider_complete_accepts_tool_only_response_with_planner_schema(): void
+    {
+        Http::fake([
+            'https://ai.example.test/*' => Http::response([
+                'choices' => [[
+                    'message' => [
+                        'content' => null,
+                        'tool_calls' => [[
+                            'id' => 'call_sales',
+                            'type' => 'function',
+                            'function' => [
+                                'name' => 'sales__summary',
+                                'arguments' => '{}',
+                            ],
+                        ]],
+                    ],
+                    'finish_reason' => 'tool_calls',
+                ]],
+            ], 200),
+        ]);
+
+        app(AssistantProviderSettings::class)->persist([
+            'enabled' => true,
+            'api_url' => 'https://ai.example.test/v1/chat/completions',
+            'model' => 'qwen3:4b',
+            'timeout_seconds' => 20,
+            'context_window_tokens' => 32768,
+            'max_tokens' => 1024,
+        ]);
+
+        $result = app(AssistantProviderGatewayInterface::class)->complete(
+            new AssistantProviderRequest(
+                systemInstructions: 'Plan with registered tools only.',
+                taskInstructions: 'Choose the minimum tool.',
+                userContent: 'Show sales.',
+                allowedTools: [[
+                    'type' => 'function',
+                    'function' => [
+                        'name' => 'sales__summary',
+                        'description' => 'Read sales summary.',
+                        'parameters' => ['type' => 'object', 'properties' => []],
+                    ],
+                ]],
+                responseSchema: [
+                    'type' => 'object',
+                    'required' => ['action', 'message', 'steps', 'suggestions'],
+                    'properties' => [
+                        'action' => ['type' => 'string'],
+                        'message' => ['type' => 'string'],
+                        'steps' => ['type' => 'array'],
+                        'suggestions' => ['type' => 'array'],
+                    ],
+                ],
+                useCase: 'agent_planning',
+            ),
+        );
+
+        $this->assertTrue($result->ok);
+        $this->assertNull($result->structuredPayload);
+        $this->assertSame('sales__summary', $result->toolCalls[0]['name']);
+        Http::assertSentCount(1);
+    }
+
     public function test_typed_provider_complete_normalizes_payload_tool_calls_and_usage(): void
     {
         Http::fake([
