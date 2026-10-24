@@ -255,22 +255,75 @@ function instrumentPage(page) {
   });
 }
 
-async function stableScreenshot(target, page, { initialDelay = 600 } = {}) {
-  await page.waitForTimeout(initialDelay);
-  let previousHash = null;
-  let latest = null;
+async function stableScreenshot(
+  target,
+  page,
+  {
+    initialDelay = 750,
+    attempts = 24,
+    interval = 250,
+    // Flutter may repaint tiny time-dependent regions even after the runtime
+    // is ready. Require self-drift <= 0.05%, still 2x stricter than the actual
+    // embedded-vs-standalone parity gate (0.1%), for consecutive samples.
+    stabilityRatio = 0.0005,
+    stableSamplesRequired = 2,
+  } = {},
+) {
+  await page.waitForTimeout(Math.max(initialDelay, 750));
+  await page.evaluate(async () => {
+    if (document.fonts?.ready) await document.fonts.ready;
+  });
 
-  for (let attempt = 0; attempt < 8; attempt++) {
+  let previous = null;
+  let latest = null;
+  let stableSamples = 0;
+  let bestRatio = Number.POSITIVE_INFINITY;
+
+  for (let attempt = 0; attempt < attempts; attempt++) {
     await page.evaluate(() => new Promise((resolve) =>
       requestAnimationFrame(() => requestAnimationFrame(resolve))));
-    latest = await target.screenshot();
-    const hash = crypto.createHash('sha256').update(latest).digest('hex');
-    if (hash === previousHash) return latest;
-    previousHash = hash;
-    await page.waitForTimeout(200);
+
+    latest = await target.screenshot({
+      animations: 'disabled',
+      caret: 'hide',
+    });
+
+    if (previous !== null) {
+      const before = PNG.sync.read(previous);
+      const after = PNG.sync.read(latest);
+
+      if (before.width !== after.width || before.height !== after.height) {
+        stableSamples = 0;
+      } else {
+        const changed = pixelmatch(
+          before.data,
+          after.data,
+          null,
+          after.width,
+          after.height,
+          { threshold: 0.1 },
+        );
+        const ratio = changed / (after.width * after.height);
+        bestRatio = Math.min(bestRatio, ratio);
+
+        if (ratio <= stabilityRatio) {
+          stableSamples += 1;
+          if (stableSamples >= stableSamplesRequired) return latest;
+        } else {
+          stableSamples = 0;
+        }
+      }
+    }
+
+    previous = latest;
+    await page.waitForTimeout(interval);
   }
 
-  throw new Error('preview_render_did_not_stabilize');
+  const best = Number.isFinite(bestRatio) ? (bestRatio * 100).toFixed(5) + '%' : 'n/a';
+  throw new Error(
+    'preview_render_did_not_stabilize:min_self_drift=' + best +
+    ':required=' + (stabilityRatio * 100).toFixed(5) + '%',
+  );
 }
 
 async function waitForState(page, testCase, surface) {

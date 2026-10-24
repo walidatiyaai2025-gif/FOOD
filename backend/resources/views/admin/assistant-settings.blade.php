@@ -65,6 +65,17 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
 @if(session('provider_test_success'))<div class="foodex-state" role="status">{{ session('provider_test_success') }}</div>@endif
 @if(session('provider_test_error'))<div class="foodex-state" role="alert">{{ session('provider_test_error') }}</div>@endif
+@if(session('provider_connection'))
+@php($connection = session('provider_connection'))
+<div class="assistant-settings-card" data-provider-connection-test>
+<div class="assistant-capabilities">
+<div class="assistant-capability"><span>{{ __('assistant_settings.reachable') }}</span><strong>{{ $connection['reachable'] ? __('assistant_settings.yes') : __('assistant_settings.no') }}</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.provider_health') }}</span><strong>{{ $connection['healthy'] ? __('assistant_settings.pass') : __('assistant_settings.fail') }}</strong></div>
+<div class="assistant-capability"><span>HTTP</span><strong>{{ $connection['status_code'] ?? '—' }}</strong></div>
+<div class="assistant-capability"><span>{{ __('assistant_settings.latency') }}</span><strong>{{ (int) ($connection['latency_ms'] ?? 0) }}ms</strong></div>
+</div>
+</div>
+@endif
 @if(session('provider_probe'))
 @php($probe = session('provider_probe'))
 <div class="assistant-settings-card" data-provider-capability-probe>
@@ -212,11 +223,17 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </div>
 </form>
 
-<form method="post" action="{{ route('admin.assistant-settings.provider.test') }}" class="assistant-provider-test">
+<div class="assistant-provider-test">
+<form method="post" action="{{ route('admin.assistant-settings.provider.test') }}">
+@csrf
+<button type="submit" class="secondary">{{ __('assistant_settings.test_connection') }}</button>
+</form>
+<form method="post" action="{{ route('admin.assistant-settings.provider.capabilities') }}">
 @csrf
 <button type="submit" class="secondary">{{ __('assistant_settings.test_capabilities') }}</button>
-<span>{{ __('assistant_settings.test_help') }}</span>
 </form>
+<span>{{ __('assistant_settings.test_help') }}</span>
+</div>
 @else
 <div class="assistant-note">
 <p><strong>{{ __('assistant_settings.api_url') }}:</strong> {{ $providerSettings['api_url'] ?: __('assistant_settings.not_available') }}</p>

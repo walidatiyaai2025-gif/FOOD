@@ -170,14 +170,17 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
             $response = $this->request(
                 apiKey: $this->settings->apiKey(),
                 timeoutSeconds: $config['timeout_seconds'],
-            )->post($config['api_url'], [
-                'model' => $config['model'],
-                'temperature' => 0,
-                'max_tokens' => min(128, $config['max_tokens']),
-                'messages' => [
-                    ['role' => 'user', 'content' => 'Reply with exactly: FOODEX_OK'],
-                ],
-            ]);
+            )->post(
+                $config['api_url'],
+                $this->providerPayload($config['model'], [
+                    'model' => $config['model'],
+                    'temperature' => 0,
+                    'max_tokens' => min(128, $config['max_tokens']),
+                    'messages' => [
+                        ['role' => 'user', 'content' => 'Reply with exactly: FOODEX_OK'],
+                    ],
+                ]),
+            );
 
             $latency = (int) round((microtime(true) - $started) * 1000);
             $content = data_get($response->json(), 'choices.0.message.content');
@@ -453,21 +456,56 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         try {
             $this->assertSafeEndpoint($config['api_url']);
 
-            $chat = $this->request(
+            // One forced tool call validates Chat Completions transport,
+            // structured JSON arguments and tool calling without firing
+            // three back-to-back requests from the Dashboard test button.
+            $response = $this->request(
                 apiKey: $apiKey,
                 timeoutSeconds: $config['timeout_seconds'],
-            )->post($config['api_url'], [
-                'model' => $config['model'],
-                'temperature' => 0,
-                'max_tokens' => min(128, $config['max_tokens']),
-                'messages' => [
-                    ['role' => 'user', 'content' => 'Reply with exactly: FOODEX_OK'],
-                ],
-            ]);
+            )->post(
+                $config['api_url'],
+                $this->providerPayload($config['model'], [
+                    'model' => $config['model'],
+                    'temperature' => 0,
+                    'max_tokens' => min(128, $config['max_tokens']),
+                    'messages' => [
+                        ['role' => 'user', 'content' => 'Call the foodex_capability_probe tool with {"ok":true,"contract":"foodex"}.'],
+                    ],
+                    'tools' => [[
+                        'type' => 'function',
+                        'function' => [
+                            'name' => 'foodex_capability_probe',
+                            'description' => 'FOODEX capability probe only.',
+                            'parameters' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'ok' => ['type' => 'boolean'],
+                                    'contract' => ['type' => 'string'],
+                                ],
+                                'required' => ['ok', 'contract'],
+                                'additionalProperties' => false,
+                            ],
+                        ],
+                    ]],
+                    'tool_choice' => [
+                        'type' => 'function',
+                        'function' => ['name' => 'foodex_capability_probe'],
+                    ],
+                ]),
+            );
 
             $latency = (int) round((microtime(true) - $started) * 1000);
 
-            if (! $chat->successful()) {
+            if (! $response->successful()) {
+                $this->providerTelemetry(
+                    $config,
+                    $config['model'],
+                    'probe_http_error',
+                    $response->status(),
+                    $latency,
+                    false,
+                );
+
                 return $this->probeResult(
                     reachable: true,
                     chat: false,
@@ -475,101 +513,48 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                     toolCalls: false,
                     config: $config,
                     latencyMs: $latency,
-                    message: __('assistant_settings.errors.provider_http', ['status' => $chat->status()]),
+                    message: __('assistant_settings.errors.provider_http', ['status' => $response->status()]),
                 );
             }
-
-            $content = data_get($chat->json(), 'choices.0.message.content');
-            $chatContract = is_string($content) && $this->normalizeModelContent($content) === 'FOODEX_OK';
-
-            if (! $chatContract) {
-                return $this->probeResult(
-                    reachable: true,
-                    chat: false,
-                    structuredJson: false,
-                    toolCalls: false,
-                    config: $config,
-                    latencyMs: $latency,
-                    message: __('assistant_settings.errors.unexpected_probe_response'),
-                );
-            }
-
-            $jsonResponse = $this->request(
-                apiKey: $apiKey,
-                timeoutSeconds: $config['timeout_seconds'],
-            )->post($config['api_url'], [
-                'model' => $config['model'],
-                'temperature' => 0,
-                'max_tokens' => min(128, $config['max_tokens']),
-                'messages' => [
-                    ['role' => 'user', 'content' => 'Return JSON only: {"ok":true,"contract":"foodex"}'],
-                ],
-            ]);
-
-            $jsonContent = data_get($jsonResponse->json(), 'choices.0.message.content');
-            $jsonDecoded = is_string($jsonContent)
-                ? json_decode($this->normalizeModelContent($jsonContent), true)
-                : null;
-            $structuredJson = $jsonResponse->successful()
-                && is_array($jsonDecoded)
-                && ($jsonDecoded['ok'] ?? null) === true
-                && ($jsonDecoded['contract'] ?? null) === 'foodex';
-
-            $toolResponse = $this->request(
-                apiKey: $apiKey,
-                timeoutSeconds: $config['timeout_seconds'],
-            )->post($config['api_url'], [
-                'model' => $config['model'],
-                'temperature' => 0,
-                'max_tokens' => min(128, $config['max_tokens']),
-                'messages' => [
-                    ['role' => 'user', 'content' => 'Call the foodex_capability_probe tool with {"ok":true}.'],
-                ],
-                'tools' => [[
-                    'type' => 'function',
-                    'function' => [
-                        'name' => 'foodex_capability_probe',
-                        'description' => 'FOODEX capability probe only.',
-                        'parameters' => [
-                            'type' => 'object',
-                            'properties' => [
-                                'ok' => ['type' => 'boolean'],
-                            ],
-                            'required' => ['ok'],
-                            'additionalProperties' => false,
-                        ],
-                    ],
-                ]],
-                'tool_choice' => [
-                    'type' => 'function',
-                    'function' => ['name' => 'foodex_capability_probe'],
-                ],
-            ]);
 
             $toolCalls = $this->normalizeToolCalls(
-                data_get($toolResponse->json(), 'choices.0.message.tool_calls', []),
+                data_get($response->json(), 'choices.0.message.tool_calls', []),
             );
-            $toolContract = $toolResponse->successful()
-                && collect($toolCalls)->contains(
-                    static fn (array $call): bool => $call['name'] === 'foodex_capability_probe'
-                        && ($call['arguments']['ok'] ?? null) === true,
-                );
+            $contractCall = collect($toolCalls)->first(
+                static fn (array $call): bool => $call['name'] === 'foodex_capability_probe',
+            );
+            $arguments = is_array($contractCall['arguments'] ?? null)
+                ? $contractCall['arguments']
+                : [];
+            $structuredJson = ($arguments['ok'] ?? null) === true
+                && ($arguments['contract'] ?? null) === 'foodex';
+            $toolContract = $contractCall !== null && $structuredJson;
 
-            $latency = (int) round((microtime(true) - $started) * 1000);
+            $this->providerTelemetry(
+                $config,
+                $config['model'],
+                $toolContract ? 'probe_ok' : 'probe_contract_failed',
+                $response->status(),
+                $latency,
+                false,
+            );
 
             return $this->probeResult(
                 reachable: true,
-                chat: true,
+                chat: $toolContract,
                 structuredJson: $structuredJson,
                 toolCalls: $toolContract,
                 config: $config,
                 latencyMs: $latency,
-                message: __('assistant_settings.test_success'),
+                message: $toolContract
+                    ? __('assistant_settings.test_success')
+                    : __('assistant_settings.errors.unexpected_probe_response'),
             );
         } catch (ValidationException $exception) {
             throw $exception;
         } catch (Throwable $exception) {
-            $this->providerTelemetry($config, $config['model'], 'probe_exception', null, 0, false);
+            $latency = (int) round((microtime(true) - $started) * 1000);
+            $this->providerTelemetry($config, $config['model'], 'probe_exception', null, $latency, false);
             report($exception);
 
             return $this->probeResult(
@@ -578,7 +563,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                 structuredJson: false,
                 toolCalls: false,
                 config: $config,
-                latencyMs: (int) round((microtime(true) - $started) * 1000),
+                latencyMs: $latency,
                 message: __('assistant_settings.errors.connection_failed'),
             );
         }
@@ -610,6 +595,21 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                 'api_url' => [__('assistant_settings.errors.public_endpoint')],
             ]);
         }
+    }
+
+    /**
+     * @param  array<string,mixed>  $payload
+     * @return array<string,mixed>
+     */
+    private function providerPayload(string $model, array $payload): array
+    {
+        // Qwen3 reasoning is useful only for explicit deep-analysis flows. FOODEX
+        // routing, probes and grounded synthesis should stay low-latency by default.
+        if (str_starts_with(strtolower(trim($model)), 'qwen3')) {
+            $payload['reasoning_effort'] = 'none';
+        }
+
+        return $payload;
     }
 
     private function request(?string $apiKey, int $timeoutSeconds): PendingRequest
@@ -654,7 +654,10 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
 
             try {
                 $response = $this->request($apiKey, (int) $config['timeout_seconds'])
-                    ->post($config['api_url'], array_merge($payload, ['model' => $model]));
+                    ->post(
+                        $config['api_url'],
+                        $this->providerPayload($model, array_merge($payload, ['model' => $model])),
+                    );
 
                 $latency = (int) round((microtime(true) - $started) * 1000);
                 $status = $response->status();
@@ -668,7 +671,9 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
 
                 $this->providerTelemetry($config, $model, 'http_error', $status, $latency, $fallback, $attempt, $correlationId);
 
-                if ($status !== 429 && $status < 500) {
+                // Never amplify throttling. 429 is terminal for this model attempt;
+                // FOODEX falls back safely instead of hammering the provider again.
+                if ($status < 500) {
                     break;
                 }
             } catch (Throwable $exception) {

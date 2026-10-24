@@ -92,6 +92,10 @@ function validateRegistry(root, registry, expectedVersion = null, options = {}) 
     if (!current[key]) fail('Current release is missing ' + key + '.');
   }
 
+  if (options.deferDashboardArtifactValidation === true) {
+    return { version: repoVersion, digest: null };
+  }
+
   const manifestPath = path.join(root, current.dashboard_update_manifest);
   const packagePath = path.join(root, current.dashboard_update_package);
   const checksumPath = path.join(root, current.dashboard_update_checksum);
@@ -196,11 +200,21 @@ function runValidate(root) {
     registry,
     baseRegistry,
   );
+  const baseBranch = process.env.GITHUB_BASE_REF || '';
+  const refName = process.env.GITHUB_REF_NAME || '';
   const isReleaseBranchValidation =
-    (process.env.GITHUB_BASE_REF || '').startsWith('release/')
-    || (process.env.GITHUB_REF_NAME || '').startsWith('release/');
+    baseBranch.startsWith('release/')
+    || refName.startsWith('release/');
+  const isDashboardUpdateCandidate =
+    /^release\/.*-update$/.test(baseBranch)
+    && validationVersion !== repoVersion;
+
   const result = validateRegistry(root, registry, validationVersion, {
     allowReleaseCandidate: isReleaseBranchValidation,
+    // release/*-update branches intentionally carry the last generated Dashboard
+    // package at this point. The exact candidate package is generated and SHA-
+    // validated only after the candidate lands on the canonical release branch.
+    deferDashboardArtifactValidation: isDashboardUpdateCandidate,
   });
 
   if (baseRef) assertAppendOnly(baseRegistry, registry);
@@ -211,6 +225,11 @@ function runValidate(root) {
       ' is ahead of published registry ' + validationVersion +
       '; published artifacts remain immutable until the release flow registers the candidate.'
     );
+    if (isDashboardUpdateCandidate) {
+      console.log(
+        'Dashboard artifact validation is deferred to the canonical release/*-update bundle workflow.'
+      );
+    }
   }
   console.log('Release registry valid: ' + result.version + ' ' + result.digest);
 }

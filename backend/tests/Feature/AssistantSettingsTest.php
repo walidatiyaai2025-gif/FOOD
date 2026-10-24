@@ -108,7 +108,8 @@ class AssistantSettingsTest extends TestCase
             ->assertSee('name="api_key"', false)
             ->assertSee('name="timeout_seconds"', false)
             ->assertSee(route('admin.assistant-settings.provider.update'), false)
-            ->assertSee(route('admin.assistant-settings.provider.test'), false);
+            ->assertSee(route('admin.assistant-settings.provider.test'), false)
+            ->assertSee(route('admin.assistant-settings.provider.capabilities'), false);
     }
 
     public function test_settings_manager_can_save_provider_and_api_key_is_encrypted_at_rest(): void
@@ -162,7 +163,7 @@ class AssistantSettingsTest extends TestCase
         Http::fake([
             'https://ai.example.test/*' => Http::response([
                 'choices' => [[
-                    'message' => ['content' => "<think>Checking provider connectivity.</think>\n```text\nFOODEX_OK\n```"],
+                    'message' => ['content' => 'FOODEX_OK'],
                 ]],
             ], 200),
         ]);
@@ -172,7 +173,7 @@ class AssistantSettingsTest extends TestCase
             [
                 'enabled' => true,
                 'api_url' => 'https://ai.example.test/v1/chat/completions',
-                'model' => 'foodex-model',
+                'model' => 'qwen3:1.7b',
                 'timeout_seconds' => 20,
             ],
             'saved-secret',
@@ -182,44 +183,77 @@ class AssistantSettingsTest extends TestCase
             ->post('/admin/settings/assistant/provider/test')
             ->assertRedirect(route('admin.assistant-settings.index'))
             ->assertSessionHas('provider_test_success')
-            ->assertSessionHas('provider_probe');
+            ->assertSessionHas('provider_connection', fn (array $health): bool => $health['reachable'] && $health['healthy'])
+            ->assertSessionMissing('provider_probe');
 
+        Http::assertSentCount(1);
         Http::assertSent(function ($request): bool {
             return $request->url() === 'https://ai.example.test/v1/chat/completions'
                 && $request->hasHeader('Authorization', 'Bearer saved-secret')
-                && $request['model'] === 'foodex-model';
+                && $request['model'] === 'qwen3:1.7b'
+                && $request['reasoning_effort'] === 'none'
+                && ! isset($request['tools']);
         });
+    }
+
+    public function test_saved_provider_capabilities_can_be_tested_with_one_request(): void
+    {
+        Http::fake([
+            'https://ai.example.test/*' => Http::response([
+                'choices' => [[
+                    'message' => [
+                        'content' => null,
+                        'tool_calls' => [[
+                            'id' => 'call_probe',
+                            'type' => 'function',
+                            'function' => [
+                                'name' => 'foodex_capability_probe',
+                                'arguments' => '{"ok":true,"contract":"foodex"}',
+                            ],
+                        ]],
+                    ],
+                ]],
+            ], 200),
+        ]);
+
+        $user = $this->settingsManager();
+        app(AssistantProviderSettings::class)->persist([
+            'enabled' => true,
+            'api_url' => 'https://ai.example.test/v1/chat/completions',
+            'model' => 'qwen3:1.7b',
+            'timeout_seconds' => 20,
+        ], 'saved-secret');
+
+        $this->actingAs($user)
+            ->post('/admin/settings/assistant/provider/capabilities')
+            ->assertRedirect(route('admin.assistant-settings.index'))
+            ->assertSessionHas('provider_test_success')
+            ->assertSessionHas('provider_probe', fn (array $probe): bool => $probe['reachable'] && $probe['agent_capable']);
+
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($request): bool => $request['reasoning_effort'] === 'none'
+            && $request['tool_choice']['function']['name'] === 'foodex_capability_probe'
+        );
     }
 
     public function test_provider_probe_separates_reachability_from_agent_capability(): void
     {
         Http::fake([
-            'https://ai.example.test/*' => Http::sequence()
-                ->push([
-                    'choices' => [[
-                        'message' => ['content' => 'FOODEX_OK'],
-                    ]],
-                ], 200)
-                ->push([
-                    'choices' => [[
-                        'message' => ['content' => '{"ok":true,"contract":"foodex"}'],
-                    ]],
-                ], 200)
-                ->push([
-                    'choices' => [[
-                        'message' => [
-                            'content' => null,
-                            'tool_calls' => [[
-                                'id' => 'call_probe',
-                                'type' => 'function',
-                                'function' => [
-                                    'name' => 'foodex_capability_probe',
-                                    'arguments' => '{"ok":true}',
-                                ],
-                            ]],
-                        ],
-                    ]],
-                ], 200),
+            'https://ai.example.test/*' => Http::response([
+                'choices' => [[
+                    'message' => [
+                        'content' => null,
+                        'tool_calls' => [[
+                            'id' => 'call_probe',
+                            'type' => 'function',
+                            'function' => [
+                                'name' => 'foodex_capability_probe',
+                                'arguments' => '{"ok":true,"contract":"foodex"}',
+                            ],
+                        ]],
+                    ],
+                ]],
+            ], 200),
         ]);
 
         app(AssistantProviderSettings::class)->persist([
@@ -248,22 +282,13 @@ class AssistantSettingsTest extends TestCase
         $this->assertTrue($result['capabilities']['budget_contract']);
         $this->assertSame(32768, $result['capabilities']['context_window_tokens']);
         $this->assertSame(1024, $result['capabilities']['max_output_tokens']);
+        Http::assertSentCount(1);
     }
 
     public function test_typed_provider_gateway_exposes_capabilities_health_and_container_binding(): void
     {
         Http::fake([
             'https://ai.example.test/*' => Http::sequence()
-                ->push([
-                    'choices' => [[
-                        'message' => ['content' => 'FOODEX_OK'],
-                    ]],
-                ], 200)
-                ->push([
-                    'choices' => [[
-                        'message' => ['content' => '{"ok":true,"contract":"foodex"}'],
-                    ]],
-                ], 200)
                 ->push([
                     'choices' => [[
                         'message' => [
@@ -273,7 +298,7 @@ class AssistantSettingsTest extends TestCase
                                 'type' => 'function',
                                 'function' => [
                                     'name' => 'foodex_capability_probe',
-                                    'arguments' => '{"ok":true}',
+                                    'arguments' => '{"ok":true,"contract":"foodex"}',
                                 ],
                             ]],
                         ],
@@ -316,6 +341,10 @@ class AssistantSettingsTest extends TestCase
         $this->assertTrue($health->healthy);
         $this->assertSame(200, $health->statusCode);
         $this->assertNull($health->failureReason);
+        Http::assertSentCount(2);
+        foreach (Http::recorded() as [$request]) {
+            $this->assertSame('none', $request['reasoning_effort']);
+        }
     }
 
     public function test_typed_provider_complete_normalizes_payload_tool_calls_and_usage(): void
@@ -400,6 +429,7 @@ class AssistantSettingsTest extends TestCase
         Http::assertSent(function ($request): bool {
             return $request['model'] === 'qwen3:4b'
                 && $request['max_tokens'] === 512
+                && $request['reasoning_effort'] === 'none'
                 && $request['tools'][0]['function']['name'] === 'orders_lookup'
                 && str_contains($request['messages'][0]['content'], 'Server-provided bounded context')
                 && str_contains($request['messages'][0]['content'], 'Required response schema');
@@ -444,7 +474,7 @@ class AssistantSettingsTest extends TestCase
         Http::fake([
             'https://ai.example.test/*' => Http::response([
                 'choices' => [[
-                    'message' => ['content' => 'The provider is reachable, but I will not follow the probe contract.'],
+                    'message' => ['content' => 'The provider is reachable, but I will not follow the health contract.'],
                 ]],
             ], 200),
         ]);
@@ -461,7 +491,10 @@ class AssistantSettingsTest extends TestCase
             ->post('/admin/settings/assistant/provider/test')
             ->assertRedirect(route('admin.assistant-settings.index'))
             ->assertSessionHas('provider_test_error')
-            ->assertSessionHas('provider_probe', fn (array $probe): bool => $probe['reachable'] && ! $probe['agent_capable']);
+            ->assertSessionHas('provider_connection', fn (array $health): bool => $health['reachable'] && ! $health['healthy'])
+            ->assertSessionMissing('provider_probe');
+
+        Http::assertSentCount(1);
     }
 
     public function test_provider_gateway_falls_back_after_malformed_primary_schema(): void
@@ -600,6 +633,27 @@ class AssistantSettingsTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_provider_gateway_does_not_retry_http_429(): void
+    {
+        Http::fake([
+            'https://ai.example.test/*' => Http::response([], 429, ['Retry-After' => '1']),
+        ]);
+
+        app(AssistantProviderSettings::class)->persist([
+            'enabled' => true,
+            'api_url' => 'https://ai.example.test/v1/chat/completions',
+            'model' => 'qwen3:4b',
+            'timeout_seconds' => 20,
+            'retry_attempts' => 2,
+        ]);
+
+        $this->assertNull(app(AssistantExternalAiClient::class)->route(
+            new AssistantBrainRequest(message: 'hello', locale: 'en'),
+        ));
+
+        Http::assertSentCount(1);
+    }
+
     public function test_provider_gateway_fails_closed_on_timeout(): void
     {
         Http::fake(static function (): never {
@@ -687,6 +741,7 @@ class AssistantSettingsTest extends TestCase
             'timeout_seconds' => 20,
         ])->assertForbidden();
         $this->actingAs($user)->post('/admin/settings/assistant/provider/test')->assertForbidden();
+        $this->actingAs($user)->post('/admin/settings/assistant/provider/capabilities')->assertForbidden();
     }
 
     public function test_global_enable_does_not_grant_assistant_use_permission(): void

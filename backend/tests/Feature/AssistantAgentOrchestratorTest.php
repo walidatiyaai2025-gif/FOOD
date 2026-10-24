@@ -83,6 +83,7 @@ class AssistantAgentOrchestratorTest extends TestCase
         $this->assertSame('COMPLETE', $result->toolExecutions[0]['status']);
         $this->assertSame('COMPLETE', $result->toolExecutions[1]['status']);
         $this->assertCount(2, $result->evidence);
+        $this->assertSame(AgentTurnResult::SOURCE_DATABASE, $result->responseSource());
         $this->assertNotNull($result->toolResult);
         $this->assertSame(20.5, $result->toolResult->data['results']['sales.summary']['recognized_revenue']);
         $this->assertSame(2, $result->toolResult->data['results']['inventory.alerts']['low_stock']);
@@ -111,6 +112,7 @@ class AssistantAgentOrchestratorTest extends TestCase
         $this->assertSame('Hello — no business read is needed.', $result->message);
         $this->assertNull($result->toolResult);
         $this->assertSame([], $result->toolExecutions);
+        $this->assertSame(AgentTurnResult::SOURCE_AI, $result->responseSource());
         $this->assertSame(0, DB::table('audit_logs')->where('event', 'assistant.tool.read')->count());
     }
 

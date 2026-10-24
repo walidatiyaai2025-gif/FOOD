@@ -496,6 +496,8 @@ Workers MUST identify workflows that run on `push` to `main` for the changed are
 
 If deployable code changed, `VERSION` must be bumped relative to the PR base and Customer/Driver mobile version identities must remain synchronized with `VERSION`. This is enforced locally and in PR CI by `scripts/validate-premerge-release-version.sh`.
 
+The narrow exception is the canonical Dashboard-only lane targeting `release/*-update`: root `VERSION` may advance while Customer/Driver/Van identities remain unchanged only when no mobile app or shared mobile dependency changed. In that lane, CI must keep Android/iOS platform builds skipped and the generated Dashboard bundle must validate the exact target version, manifest and checksum on the release head.
+
 A post-merge-only red workflow that could have been predicted on the PR is a prevention failure and must be promoted into pre-merge validation.
 
 
@@ -1468,7 +1470,7 @@ Repository default:
 - full Customer + Driver + Van build/validation belongs to explicit final convergence/release/certification lanes, where the CI map intentionally enables those areas;
 - workers must not manually invoke full mobile builds merely to make a backend/Dashboard PR look more complete.
 
-The machine-readable authority is `.ci/ci-map.json` plus `scripts/ci-plan.py` and `scripts/mobile-ci-scope.py`. Required CI exposes a `backend_dashboard_only` guard and must keep Customer/Driver/Van build jobs skipped when that guard is true.
+The machine-readable authority is `.ci/ci-map.json` plus `scripts/ci-plan.py` and `scripts/mobile-ci-scope.py`. Required CI exposes a `backend_dashboard_only` guard and must keep Customer/Driver/Van build jobs, mobile visual evidence, APP-PREVIEW parity and shared Flutter preview-runtime builds skipped when that guard is true.
 
 Any change to CI routing that causes a backend/Dashboard-only diff to schedule a mobile platform build is a regression and must fail repository tests before merge.
 

@@ -18,6 +18,8 @@ return [
     'evidence_domain' => 'بيانات FOODEX التشغيلية',
     'evidence_metric' => 'مؤشرات FOODEX',
     'evidence_authorized' => 'بيانات FOODEX المصرح بها',
+    'response_source_ai' => 'ذكاء اصطناعي',
+    'response_source_database' => 'قاعدة البيانات',
     'fresh' => 'محدث',
     'stale' => 'قديمة',
     'partial' => 'جزئية',
