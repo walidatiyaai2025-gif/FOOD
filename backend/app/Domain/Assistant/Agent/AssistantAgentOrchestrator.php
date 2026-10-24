@@ -416,6 +416,10 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         $provider = $this->providerMetadata($providerResult);
 
         if (! $providerResult->ok) {
+            if ($base->intent === null) {
+                return $this->directAiReply($request, $startedAt, $provider);
+            }
+
             return ['kind' => 'fallback', 'provider' => $provider];
         }
 
