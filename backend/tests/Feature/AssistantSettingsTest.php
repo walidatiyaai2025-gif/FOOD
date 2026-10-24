@@ -231,11 +231,11 @@ class AssistantSettingsTest extends TestCase
             ->assertSessionHas('provider_probe', fn (array $probe): bool => $probe['reachable'] && $probe['agent_capable']);
 
         Http::assertSentCount(1);
-        Http::assertSent(fn ($request): bool =>
-            $request['reasoning_effort'] === 'none'
+        Http::assertSent(fn ($request): bool => $request['reasoning_effort'] === 'none'
             && $request['tool_choice']['function']['name'] === 'foodex_capability_probe'
         );
     }
+
     public function test_provider_probe_separates_reachability_from_agent_capability(): void
     {
         Http::fake([
@@ -284,6 +284,7 @@ class AssistantSettingsTest extends TestCase
         $this->assertSame(1024, $result['capabilities']['max_output_tokens']);
         Http::assertSentCount(1);
     }
+
     public function test_typed_provider_gateway_exposes_capabilities_health_and_container_binding(): void
     {
         Http::fake([
@@ -345,6 +346,7 @@ class AssistantSettingsTest extends TestCase
             $this->assertSame('none', $request['reasoning_effort']);
         }
     }
+
     public function test_typed_provider_complete_normalizes_payload_tool_calls_and_usage(): void
     {
         Http::fake([
@@ -494,6 +496,7 @@ class AssistantSettingsTest extends TestCase
 
         Http::assertSentCount(1);
     }
+
     public function test_provider_gateway_falls_back_after_malformed_primary_schema(): void
     {
         Http::fake([
