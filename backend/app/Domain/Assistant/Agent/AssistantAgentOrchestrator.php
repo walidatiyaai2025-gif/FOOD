@@ -67,6 +67,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 (string) $plan['message'],
                 AgentTurnResult::COMPLETE,
                 $plan['provider'],
+                $plan['suggestions'] ?? [],
             );
         }
 
@@ -252,7 +253,9 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             ? AgentTurnResult::DEGRADED
             : AgentTurnResult::COMPLETE;
 
-        $message = $this->synthesize($request, $results, $evidence, $status, $startedAt);
+        $synthesis = $this->synthesize($request, $results, $evidence, $status, $startedAt);
+        $message = $synthesis['message'];
+        $suggestions = $synthesis['suggestions'];
         $state = $base->state;
         /** @var list<string> $executedKeys */
         $executedKeys = [];
@@ -273,7 +276,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             message: $message,
             intent: $primaryIntent,
             confidence: max(0.8, $base->confidence),
-            suggestedPrompts: $base->suggestedPrompts,
+            suggestedPrompts: $suggestions === [] ? $base->suggestedPrompts : $suggestions,
             state: $state,
         );
 
@@ -318,7 +321,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
     }
 
     /**
-     * @return array{kind:string,message?:string,steps?:list<array{tool:string,arguments:array<string,mixed>}>,provider:array<string,mixed>}
+     * @return array{kind:string,message?:string,suggestions?:list<string>,steps?:list<array{tool:string,arguments:array<string,mixed>}>,provider:array<string,mixed>}
      */
     private function plan(
         AgentTurnRequest $request,
@@ -362,6 +365,32 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 'max_tool_calls' => $request->budget->maxToolCalls,
             ],
             allowedTools: $allowedTools,
+            responseSchema: [
+                'type' => 'object',
+                'required' => ['action', 'message', 'steps', 'suggestions'],
+                'properties' => [
+                    'action' => ['type' => 'string', 'enum' => ['execute', 'clarify', 'no_tool']],
+                    'message' => ['type' => 'string'],
+                    'steps' => [
+                        'type' => 'array',
+                        'items' => [
+                            'type' => 'object',
+                            'required' => ['tool', 'arguments'],
+                            'properties' => [
+                                'tool' => ['type' => 'string'],
+                                'arguments' => ['type' => 'object'],
+                            ],
+                            'additionalProperties' => false,
+                        ],
+                    ],
+                    'suggestions' => [
+                        'type' => 'array',
+                        'items' => ['type' => 'string'],
+                        'maxItems' => 4,
+                    ],
+                ],
+                'additionalProperties' => false,
+            ],
             maxTokens: $request->budget->maxPlanningTokens,
             timeoutSeconds: $timeoutSeconds,
             correlationId: $request->correlationId,
@@ -397,18 +426,33 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
 
         $payload = $providerResult->structuredPayload;
         if (! is_array($payload)) {
+            $plain = is_string($providerResult->text) ? trim($providerResult->text) : '';
+            if ($base->intent === null && $plain !== '') {
+                return $this->directAiReply($request, $startedAt, $provider, $plain);
+            }
+
             return ['kind' => 'fallback', 'provider' => $provider + ['failure' => 'PROVIDER_MALFORMED']];
         }
 
         $action = strtolower(trim((string) ($payload['action'] ?? '')));
         $message = is_string($payload['message'] ?? null) ? trim($payload['message']) : '';
+        $suggestions = $this->sanitizeSuggestions($payload['suggestions'] ?? [], $request->locale);
 
         if ($action === 'clarify' && $message !== '') {
             return ['kind' => 'clarify', 'message' => $message, 'provider' => $provider];
         }
 
         if ($action === 'no_tool' && $message !== '') {
-            return ['kind' => 'no_tool', 'message' => $message, 'provider' => $provider];
+            if (count($suggestions) < 2) {
+                return $this->directAiReply($request, $startedAt, $provider, $message);
+            }
+
+            return [
+                'kind' => 'no_tool',
+                'message' => $message,
+                'suggestions' => $suggestions,
+                'provider' => $provider,
+            ];
         }
 
         if ($action !== 'execute' || ! is_array($payload['steps'] ?? null)) {
@@ -534,6 +578,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         string $message,
         string $status,
         array $provider,
+        array $suggestions = [],
     ): AgentTurnResult {
         $state = $base->state;
         $state['pending_clarification'] = $status === AgentTurnResult::NEEDS_CLARIFICATION;
@@ -548,7 +593,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 confidence: $base->confidence,
                 cards: $base->cards,
                 actions: $base->actions,
-                suggestedPrompts: $base->suggestedPrompts,
+                suggestedPrompts: $suggestions === [] ? $base->suggestedPrompts : $suggestions,
                 state: $state,
             ),
             toolResult: null,
