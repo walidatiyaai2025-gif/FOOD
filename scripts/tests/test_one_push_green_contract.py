@@ -84,6 +84,11 @@ class OnePushGreenContractTest(unittest.TestCase):
         localization = (ROOT / ".github/workflows/localization-quality-gate.yml").read_text(encoding="utf-8")
         self.assertIn("run_mobile_runtime:", gate)
         self.assertIn("backend_dashboard_only != 'true'", gate)
+        self.assertIn("BACKEND_DASHBOARD_ONLY: ${{ needs.changes.outputs.backend_dashboard_only }}", gate)
+        self.assertIn('if [[ "$BACKEND_DASHBOARD_ONLY" == "true" ]]; then', gate)
+        self.assertIn("CUSTOMER_CHANGED=false", gate)
+        self.assertIn("DRIVER_CHANGED=false", gate)
+        self.assertIn("VAN_CHANGED=false", gate)
         self.assertGreaterEqual(localization.count("inputs.run_mobile_runtime || github.event_name == 'workflow_dispatch'"), 4)
 
     def test_redocly_is_version_pinned(self):
