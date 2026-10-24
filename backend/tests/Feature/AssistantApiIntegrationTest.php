@@ -67,6 +67,7 @@ class AssistantApiIntegrationTest extends TestCase
 
         $response
             ->assertJsonPath('data.assistant_message.intent', 'sales.summary')
+            ->assertJsonPath('data.assistant_message.response_source', 'database')
             ->assertJsonPath('data.assistant_message.data.orders', 2)
             ->assertJsonPath('data.assistant_message.cards.0.data.recognized_revenue', 20)
             ->assertJsonPath('data.assistant_message.actions.0.url', '/admin/reports');
@@ -86,7 +87,9 @@ class AssistantApiIntegrationTest extends TestCase
         $this->assertSame('b2c', $authorized['channel']);
 
         $this->actingAs($admin)->getJson("/admin/assistant/conversations/{$publicId}/messages")
-            ->assertOk()->assertJsonCount(2, 'data.messages');
+            ->assertOk()
+            ->assertJsonCount(2, 'data.messages')
+            ->assertJsonPath('data.messages.1.response_source', 'database');
         $this->actingAs($admin)->getJson('/admin/assistant/conversations')
             ->assertOk()->assertJsonPath('data.conversations.0.public_id', $publicId);
         $this->actingAs($admin)->postJson("/admin/assistant/conversations/{$publicId}/clear")
