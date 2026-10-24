@@ -249,6 +249,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                         AgentTurnResult::DEGRADED,
                         $recovery['provider'],
                         $recovery['suggestions'] ?? [],
+                        $toolExecutions,
                     );
                 }
             }
@@ -592,6 +593,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
         string $status,
         array $provider,
         array $suggestions = [],
+        array $toolExecutions = [],
     ): AgentTurnResult {
         $state = $base->state;
         $state['pending_clarification'] = $status === AgentTurnResult::NEEDS_CLARIFICATION;
@@ -611,6 +613,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             ),
             toolResult: null,
             toolRequest: null,
+            toolExecutions: $toolExecutions,
             providerMetadata: $provider + ['response_source' => AgentTurnResult::SOURCE_AI],
         );
     }
