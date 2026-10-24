@@ -7,6 +7,7 @@
 - Generate 2-4 contextual follow-up prompts from AI for both direct replies and grounded FOODEX answers; suggestions are localized, deduplicated, length-bounded and rendered fresh per reply.
 - Preserve AI vs Database provenance: tool/evidence-backed answers remain labeled Database, while tool-free successful model replies are labeled AI.
 - Preserve RBAC, tenant/store/channel isolation, read-only enforcement, approval gates, provider budgets, Qwen3 low-reasoning mode, and the rule that chain-of-thought is never exposed or stored.
+- Remove the hidden 6s/12s chat latency bottleneck that could make a CPU-hosted provider pass the Settings test but fall back during real conversations; allow the Agent turn to use up to 30 seconds while the provider request still respects the saved provider timeout and bounded Agent budget.
 - Publish as Dashboard/backend-only 1.0.109 on top of 1.0.108; Customer, Driver and Van identities remain unchanged and are not rebuilt.
 
 ## 1.0.108 - 2026-10-24
