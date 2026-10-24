@@ -32,6 +32,7 @@ vendor/bin/pint --test app routes tests
 - Follow Pint output exactly.
 
 ## API
+- Use a named, purpose-scoped rate limiter for independently limited authenticated operations. Laravel numeric throttles share the user signature across routes; verify unrelated dashboard traffic cannot exhaust a provider probe's bucket while its own limit still returns 429 and Retry-After.
 - Version under `/api/v1`.
 - Keep OpenAPI synchronized with contract changes.
 - Use stable machine-readable error shapes consistent with nearby endpoints.
