@@ -355,7 +355,7 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
                 $structured = is_array($decoded) ? $decoded : null;
             }
 
-            if ($request->responseSchema !== null && $structured === null) {
+            if ($request->responseSchema !== null && $structured === null && $toolCalls === []) {
                 $sawMalformedResponse = true;
                 $this->markCircuitFailure($this->circuitKey($config['api_url'], $model), $config);
                 $this->providerTelemetry(
