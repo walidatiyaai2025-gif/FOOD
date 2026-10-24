@@ -36,7 +36,15 @@ final readonly class AgentTurnResult
 
     public function responseSource(): string
     {
-        if ($this->toolResult !== null || $this->toolExecutions !== [] || $this->evidence !== []) {
+        $explicit = $this->providerMetadata['response_source'] ?? null;
+        if (in_array($explicit, [self::SOURCE_AI, self::SOURCE_DATABASE], true)) {
+            return $explicit;
+        }
+
+        $successfulToolExecution = collect($this->toolExecutions)
+            ->contains(static fn (array $execution): bool => ($execution['status'] ?? 'FAILED') !== 'FAILED');
+
+        if ($this->toolResult !== null || $successfulToolExecution || $this->evidence !== []) {
             return self::SOURCE_DATABASE;
         }
 
