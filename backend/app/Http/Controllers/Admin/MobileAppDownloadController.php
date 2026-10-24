@@ -105,9 +105,23 @@ final class MobileAppDownloadController extends Controller
         ], 202);
     }
 
-    public function latest(string $app): BinaryFileResponse
+    public function latest(string $app): BinaryFileResponse|RedirectResponse
     {
-        return $this->download($app, $this->mirror->currentVersionForApp($app));
+        $version = $this->mirror->currentVersionForApp($app);
+        $artifact = MobileReleaseArtifact::query()
+            ->where('app', $app)
+            ->where('version', $version)
+            ->first();
+
+        if ($artifact instanceof MobileReleaseArtifact && $this->isLocallyReady($artifact)) {
+            return $this->download($app, $version);
+        }
+
+        // Keep the local mirror warming in the background, but never turn the
+        // public Customer App CTA into a 503 while the mirror is pending.
+        $this->mirror->ensureScheduled($version);
+
+        return redirect()->away($this->mirror->publicDownloadUrl($app, $version));
     }
 
     public function versioned(string $app, string $version): BinaryFileResponse
@@ -215,8 +229,15 @@ final class MobileAppDownloadController extends Controller
             return false;
         }
 
-        $path = storage_path('app/private/'.$artifact->local_path);
+        if (! is_string($artifact->local_path) || $artifact->local_path === '') {
+            return false;
+        }
 
-        return is_file($path);
+        $path = storage_path('app/private/'.$artifact->local_path);
+        $expectedBytes = (int) ($artifact->expected_bytes ?? 0);
+
+        return is_file($path)
+            && $expectedBytes > 0
+            && filesize($path) === $expectedBytes;
     }
 }

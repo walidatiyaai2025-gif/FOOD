@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.106 - 2026-10-24
+- Carry the Public Wholesale Web polish from the post-1.0.105 source lineage: Alexandria Google Font, 1560px widescreen shell, polished accessible hamburger drawer, larger branded image fallbacks, and canonical FOODEX icon usage across header/footer/favicon/catalog fallbacks.
+- Fix the public Customer App download CTA so `/downloads/apps/customer/latest.apk` no longer returns HTTP 503 while the server-side APK mirror is still warming.
+- Prefer the verified local APK mirror when ready; otherwise queue mirror preparation and immediately redirect the visitor to the immutable official GitHub Release APK for the exact Android policy version.
+- Keep Customer, Driver and Van Android identities unchanged at `1.0.104+104`; this is a Dashboard/Public Web-only update and does not rebuild mobile APKs.
+- Preserve version-locked download routing, local mirror integrity checks, cumulative updater compatibility and production API `https://foodex.50sols.com`.
+
 ## 1.0.105 - 2026-10-24
 - Promote the authoritative Dashboard/backend lineage through `5efd2aaa9a72e72ee564d1a9dbd7d5328e28e895` as the FOODEX 1.0.105 dashboard-only update.
 - Include the completed Wholesale storefront separation from #2394 / PR #2396: Customer App storefront editing remains isolated on the mobile channel while Public Wholesale Web has its own `b2b_web` draft, preview, sections, banners, settings, publish/discard flow and enable state.
