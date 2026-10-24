@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.108 - 2026-10-24
+- Port the completed #2399 / PR #2400 Assistant provider-test fix onto the cumulative 1.0.107 Dashboard lineage without regressing the one-request saved-connection and capability-test contracts.
+- Isolate Assistant saved-connection and capability test throttles into purpose-scoped named limiters so unrelated authenticated Dashboard numeric-throttle traffic cannot consume their buckets; preserve the existing 10/min and 5/min ceilings with Retry-After behavior.
+- Increase saved-connection and capability-test output budgets from the hardcoded 128-token ceiling to a bounded maximum of 512 tokens, never above the configured provider max, so reasoning-capable models can emit the required final sentinel/tool result.
+- Preserve Qwen3 `reasoning_effort: none`, no immediate retry on HTTP 429, AI-vs-Database response provenance, RBAC, tenant/store/channel scope and read-only Assistant tool enforcement.
+- Publish this as a cumulative Dashboard/backend-only 1.0.108 update on top of 1.0.107; Customer, Driver and Van Android identities remain unchanged and are not rebuilt.
+
 ## 1.0.107 - 2026-10-24
 - Make FOODEX Qwen3/OpenAI-compatible Assistant requests low-latency by sending `reasoning_effort: none` for provider health, capability probes, routing, planning and grounded synthesis while retaining deterministic fail-safe behavior.
 - Fix Dashboard > FOODEX Assistant Settings provider testing: Test saved connection is now one lightweight request, Test agent capabilities is a separate one-request forced-tool contract, and the old three-request burst that could trigger provider HTTP 429 is removed.
