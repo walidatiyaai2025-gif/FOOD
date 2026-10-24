@@ -774,8 +774,9 @@
         };
 
         const renderPrompts = values => {
-            if (!prompts || !Array.isArray(values) || values.length === 0) return;
+            if (!prompts) return;
             prompts.replaceChildren();
+            if (!Array.isArray(values) || values.length === 0) return;
 
             values.slice(0, 6).forEach(value => {
                 if (typeof value !== 'string' || value.trim() === '') return;
