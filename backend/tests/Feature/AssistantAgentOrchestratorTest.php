@@ -67,6 +67,10 @@ class AssistantAgentOrchestratorTest extends TestCase
                 'message' => 'Revenue is 20.5 and two inventory alerts need attention.',
                 'used_evidence' => ['ev-call-1', 'ev-call-2'],
                 'uncertainty' => [],
+                'suggestions' => [
+                    'Show me the products behind the inventory alerts.',
+                    'Compare today with yesterday.',
+                ],
             ]),
         ]);
 
@@ -84,6 +88,10 @@ class AssistantAgentOrchestratorTest extends TestCase
         $this->assertSame('COMPLETE', $result->toolExecutions[1]['status']);
         $this->assertCount(2, $result->evidence);
         $this->assertSame(AgentTurnResult::SOURCE_DATABASE, $result->responseSource());
+        $this->assertSame([
+            'Show me the products behind the inventory alerts.',
+            'Compare today with yesterday.',
+        ], $result->brainResult->suggestedPrompts);
         $this->assertNotNull($result->toolResult);
         $this->assertSame(20.5, $result->toolResult->data['results']['sales.summary']['recognized_revenue']);
         $this->assertSame(2, $result->toolResult->data['results']['inventory.alerts']['low_stock']);
@@ -101,6 +109,11 @@ class AssistantAgentOrchestratorTest extends TestCase
             $this->providerResult(structured: [
                 'action' => 'no_tool',
                 'message' => 'Hello — no business read is needed.',
+                'steps' => [],
+                'suggestions' => [
+                    'Explain what FOODEX Assistant can help with.',
+                    'Give me an example of a useful business question.',
+                ],
             ]),
         ]);
 
@@ -113,6 +126,42 @@ class AssistantAgentOrchestratorTest extends TestCase
         $this->assertNull($result->toolResult);
         $this->assertSame([], $result->toolExecutions);
         $this->assertSame(AgentTurnResult::SOURCE_AI, $result->responseSource());
+        $this->assertSame([
+            'Explain what FOODEX Assistant can help with.',
+            'Give me an example of a useful business question.',
+        ], $result->brainResult->suggestedPrompts);
+        $this->assertSame(0, DB::table('audit_logs')->where('event', 'assistant.tool.read')->count());
+    }
+
+    public function test_plain_general_model_reply_is_repaired_into_direct_ai_answer_with_suggestions(): void
+    {
+        $storeId = $this->store('b2b', 'AI-AGENT-DIRECT-REPAIR');
+        $actor = $this->globalUser('SUPER_ADMIN');
+
+        $this->bindTools([$this->tool('sales.summary', ['recognized_revenue' => 10])]);
+        $this->bindProvider([
+            $this->providerResult(text: 'A plain general response that did not follow the planner schema.'),
+            $this->providerResult(structured: [
+                'message' => 'Here is the direct AI answer.',
+                'suggestions' => [
+                    'Can you explain that more simply?',
+                    'Give me a practical example.',
+                ],
+            ]),
+        ]);
+
+        $result = app(AssistantAgentOrchestrator::class)->run(
+            $this->turn($actor, $storeId, 'Explain a general concept.', 'agent-direct-repair'),
+        );
+
+        $this->assertSame(AgentTurnResult::COMPLETE, $result->status);
+        $this->assertSame('Here is the direct AI answer.', $result->message);
+        $this->assertSame(AgentTurnResult::SOURCE_AI, $result->responseSource());
+        $this->assertSame([
+            'Can you explain that more simply?',
+            'Give me a practical example.',
+        ], $result->brainResult->suggestedPrompts);
+        $this->assertSame([], $result->toolExecutions);
         $this->assertSame(0, DB::table('audit_logs')->where('event', 'assistant.tool.read')->count());
     }
 
