@@ -115,7 +115,7 @@ final class StorefrontRevisionService
                 $this->auditPayload($revision),
                 $request,
             );
-            $this->invalidations->emitForRevision($revision);
+            $this->emitPreviewInvalidation($revision);
 
             return $revision;
         });
@@ -172,7 +172,7 @@ final class StorefrontRevisionService
                 $this->auditPayload($revision),
                 $request,
             );
-            $this->invalidations->emitForRevision(
+            $this->emitPreviewInvalidation(
                 $revision,
                 AppPreviewInvalidationService::STOREFRONT_UPDATED,
             );
@@ -217,7 +217,7 @@ final class StorefrontRevisionService
         );
 
         if (! hash_equals($beforeChecksum, $newChecksum)) {
-            $this->invalidations->emitForRevision(
+            $this->emitPreviewInvalidation(
                 $revision,
                 AppPreviewInvalidationService::STOREFRONT_UPDATED,
             );
@@ -275,7 +275,7 @@ final class StorefrontRevisionService
                 $this->auditPayload($draft),
                 $request,
             );
-            $this->invalidations->emitForRevision($draft);
+            $this->emitPreviewInvalidation($draft);
 
             return $draft->fresh();
         });
@@ -333,7 +333,7 @@ final class StorefrontRevisionService
                 ],
                 $request,
             );
-            $this->invalidations->emitForRevision($rolledBack);
+            $this->emitPreviewInvalidation($rolledBack);
 
             return $rolledBack;
         });
@@ -433,6 +433,10 @@ final class StorefrontRevisionService
     {
         $this->assertStoreChannel($storeId, $channel);
 
+        if ($channel === 'b2b_web') {
+            return $this->snapshotWholesaleWebLive($storeId);
+        }
+
         $store = DB::table('stores')->where('id', $storeId)->first();
         abort_unless($store !== null, 404);
 
@@ -517,6 +521,176 @@ final class StorefrontRevisionService
         ]);
     }
 
+    /** @return array<string,mixed> */
+    private function snapshotWholesaleWebLive(int $storeId): array
+    {
+        $store = DB::table('stores')->where('id', $storeId)->first();
+        abort_unless($store !== null, 404);
+
+        $shared = DB::table('storefront_settings')->where('store_id', $storeId)->first();
+        $web = DB::table('wholesale_web_settings')->where('store_id', $storeId)->first();
+
+        $sections = DB::table('wholesale_web_sections')
+            ->where('store_id', $storeId)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (object $section): array => [
+                'key' => (string) $section->section_key,
+                'type' => (string) $section->section_type,
+                'title_ar' => $section->title_ar,
+                'title_en' => $section->title_en,
+                'sort_order' => (int) $section->sort_order,
+                'config' => $this->decodeJson($section->config ?? null),
+                'is_active' => (bool) $section->is_active,
+            ])
+            ->values()
+            ->all();
+
+        $banners = DB::table('wholesale_web_banners')
+            ->where('store_id', $storeId)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->map(static fn (object $banner): array => [
+                'title' => (string) $banner->title,
+                'image_path' => (string) $banner->image_path,
+                'target_type' => $banner->target_type,
+                'target_id' => $banner->target_id === null ? null : (int) $banner->target_id,
+                'target_url' => $banner->target_url,
+                'sort_order' => (int) $banner->sort_order,
+                'is_active' => (bool) $banner->is_active,
+                'starts_at' => $banner->starts_at,
+                'ends_at' => $banner->ends_at,
+            ])
+            ->values()
+            ->all();
+
+        $branding = [
+            'public_web_enabled' => (bool) ($web->is_enabled ?? false),
+            'hero_title_ar' => $web->hero_title_ar ?? null,
+            'hero_title_en' => $web->hero_title_en ?? null,
+            'hero_subtitle_ar' => $web->hero_subtitle_ar ?? null,
+            'hero_subtitle_en' => $web->hero_subtitle_en ?? null,
+            'hero_cta_ar' => $web->hero_cta_ar ?? null,
+            'hero_cta_en' => $web->hero_cta_en ?? null,
+            'facebook_url' => $web->facebook_url ?? null,
+            'facebook_title_ar' => $web->facebook_title_ar ?? null,
+            'facebook_title_en' => $web->facebook_title_en ?? null,
+            'facebook_text_ar' => $web->facebook_text_ar ?? null,
+            'facebook_text_en' => $web->facebook_text_en ?? null,
+            'meta_title_ar' => $web->meta_title_ar ?? null,
+            'meta_title_en' => $web->meta_title_en ?? null,
+            'meta_description_ar' => $web->meta_description_ar ?? null,
+            'meta_description_en' => $web->meta_description_en ?? null,
+        ];
+
+        return $this->canonicalize([
+            'schema_version' => self::SCHEMA_VERSION,
+            'channel' => 'b2b_web',
+            'store' => [
+                'id' => $storeId,
+                'code' => (string) ($store->code ?? ''),
+                'name' => (string) ($store->name ?? ''),
+                'logo_path' => $store->logo_path ?? null,
+                'is_active' => (bool) ($store->is_active ?? false),
+            ],
+            'settings' => [
+                'theme_code' => 'wholesale_web',
+                'primary_color' => $shared->primary_color ?? '#00452F',
+                'primary_dark_color' => $shared->primary_dark_color ?? '#003C2A',
+                'accent_color' => $shared->accent_color ?? '#9BE252',
+                'background_color' => $shared->background_color ?? '#EDF7F1',
+                'header_address' => $shared->header_address ?? null,
+                'branding' => $branding,
+            ],
+            'sections' => $sections,
+            'banners' => $banners,
+            'service_zones' => [],
+        ]);
+    }
+
+    /** @param array<string,mixed> $normalized */
+    private function applyWholesaleWebPayload(
+        array $normalized,
+        int $storeId,
+        ?StorefrontRevision $assetRevision,
+    ): void {
+        $settings = (array) $normalized['settings'];
+        $branding = (array) ($settings['branding'] ?? []);
+
+        DB::table('wholesale_web_settings')->updateOrInsert(
+            ['store_id' => $storeId],
+            [
+                'is_enabled' => filter_var($branding['public_web_enabled'] ?? false, FILTER_VALIDATE_BOOL),
+                'hero_title_ar' => $branding['hero_title_ar'] ?? null,
+                'hero_title_en' => $branding['hero_title_en'] ?? null,
+                'hero_subtitle_ar' => $branding['hero_subtitle_ar'] ?? null,
+                'hero_subtitle_en' => $branding['hero_subtitle_en'] ?? null,
+                'hero_cta_ar' => $branding['hero_cta_ar'] ?? null,
+                'hero_cta_en' => $branding['hero_cta_en'] ?? null,
+                'facebook_url' => $branding['facebook_url'] ?? null,
+                'facebook_title_ar' => $branding['facebook_title_ar'] ?? null,
+                'facebook_title_en' => $branding['facebook_title_en'] ?? null,
+                'facebook_text_ar' => $branding['facebook_text_ar'] ?? null,
+                'facebook_text_en' => $branding['facebook_text_en'] ?? null,
+                'meta_title_ar' => $branding['meta_title_ar'] ?? null,
+                'meta_title_en' => $branding['meta_title_en'] ?? null,
+                'meta_description_ar' => $branding['meta_description_ar'] ?? null,
+                'meta_description_en' => $branding['meta_description_en'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
+
+        DB::table('wholesale_web_sections')->where('store_id', $storeId)->delete();
+        foreach ((array) $normalized['sections'] as $section) {
+            if (! is_array($section)) {
+                continue;
+            }
+
+            DB::table('wholesale_web_sections')->insert([
+                'store_id' => $storeId,
+                'section_key' => (string) ($section['key'] ?? ''),
+                'section_type' => (string) ($section['type'] ?? ''),
+                'title_ar' => $section['title_ar'] ?? null,
+                'title_en' => $section['title_en'] ?? null,
+                'sort_order' => (int) ($section['sort_order'] ?? 0),
+                'config' => ($section['config'] ?? []) === []
+                    ? null
+                    : json_encode($section['config'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'is_active' => (bool) ($section['is_active'] ?? false),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        DB::table('wholesale_web_banners')->where('store_id', $storeId)->delete();
+        foreach ((array) $normalized['banners'] as $banner) {
+            if (! is_array($banner)) {
+                continue;
+            }
+
+            DB::table('wholesale_web_banners')->insert([
+                'store_id' => $storeId,
+                'title' => (string) ($banner['title'] ?? ''),
+                'image_path' => (string) $this->restorableAssetPath(
+                    $assetRevision,
+                    (string) ($banner['image_path'] ?? ''),
+                ),
+                'target_type' => $banner['target_type'] ?? null,
+                'target_id' => $banner['target_id'] ?? null,
+                'target_url' => $banner['target_url'] ?? null,
+                'sort_order' => (int) ($banner['sort_order'] ?? 0),
+                'is_active' => (bool) ($banner['is_active'] ?? false),
+                'starts_at' => $banner['starts_at'] ?? null,
+                'ends_at' => $banner['ends_at'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }
+
     public function preserveLiveAssetsForScope(int $storeId, string $channel): void
     {
         $this->assertStoreChannel($storeId, $channel);
@@ -539,7 +713,35 @@ final class StorefrontRevisionService
     ): void {
         $normalized = $this->validatedPayload($payload, $storeId, $channel);
 
+        if ($channel === 'b2b_web') {
+            $this->applyWholesaleWebPayload($normalized, $storeId, $assetRevision);
+
+            return;
+        }
+
         $settings = (array) $normalized['settings'];
+        $branding = (array) ($settings['branding'] ?? []);
+        if ($channel === 'b2b') {
+            foreach ([
+                'public_web_enabled',
+                'facebook_url',
+                'facebook_title_ar',
+                'facebook_title_en',
+                'facebook_text_ar',
+                'facebook_text_en',
+                'hero_title_ar',
+                'hero_title_en',
+                'hero_subtitle_ar',
+                'hero_subtitle_en',
+                'meta_title_ar',
+                'meta_title_en',
+                'meta_description_ar',
+                'meta_description_en',
+            ] as $webOnlyKey) {
+                unset($branding[$webOnlyKey]);
+            }
+        }
+
         DB::table('storefront_settings')->updateOrInsert(
             ['store_id' => $storeId],
             [
@@ -549,9 +751,9 @@ final class StorefrontRevisionService
                 'accent_color' => $settings['accent_color'] ?? null,
                 'background_color' => $settings['background_color'] ?? null,
                 'header_address' => $settings['header_address'] ?? null,
-                'branding' => ($settings['branding'] ?? []) === []
+                'branding' => $branding === []
                     ? null
-                    : json_encode($settings['branding'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    : json_encode($branding, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -817,9 +1019,9 @@ final class StorefrontRevisionService
 
     private function assertStoreChannel(int $storeId, string $channel): void
     {
-        abort_unless(in_array($channel, ['b2b', 'b2c'], true), 422);
+        abort_unless(in_array($channel, ['b2b', 'b2b_web', 'b2c'], true), 422);
 
-        $expectedType = $channel === 'b2b' ? 'B2B' : 'B2C';
+        $expectedType = in_array($channel, ['b2b', 'b2b_web'], true) ? 'B2B' : 'B2C';
         $exists = DB::table('stores')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->where('stores.id', $storeId)
@@ -984,6 +1186,17 @@ final class StorefrontRevisionService
         throw ValidationException::withMessages([
             'asset' => ['A storefront revision asset is no longer available for publish or rollback.'],
         ]);
+    }
+
+    private function emitPreviewInvalidation(
+        StorefrontRevision $revision,
+        string $eventName = AppPreviewInvalidationService::CONFIGURATION_UPDATED,
+    ): void {
+        if ((string) $revision->channel === 'b2b_web') {
+            return;
+        }
+
+        $this->invalidations->emitForRevision($revision, $eventName);
     }
 
     /** @return array<string,mixed> */

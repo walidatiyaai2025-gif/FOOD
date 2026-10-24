@@ -130,10 +130,22 @@ final class PublicWholesaleWebStorefrontTest extends TestCase
             'accent_color' => '#9BE252',
             'background_color' => '#EDF7F1',
             'branding' => json_encode([
-                'public_web_enabled' => $enabled,
                 'brand_title_ar' => 'فوديكس للجملة',
-                'facebook_url' => 'https://www.facebook.com/foodex.test',
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('wholesale_web_settings')->insert([
+            'store_id' => $storeId,
+            'is_enabled' => $enabled,
+            'hero_title_ar' => 'فوديكس ويب للجملة',
+            'hero_title_en' => 'FOODEX Wholesale Web',
+            'hero_subtitle_ar' => 'كتالوج الويب',
+            'hero_subtitle_en' => 'Web catalog',
+            'hero_cta_ar' => 'تصفح المنتجات',
+            'hero_cta_en' => 'Browse products',
+            'facebook_url' => 'https://www.facebook.com/foodex.test',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -145,7 +157,7 @@ final class PublicWholesaleWebStorefrontTest extends TestCase
             ['featured_products', 'featured_products', 40],
             ['social_facebook', 'social', 50],
         ] as [$key, $type, $sort]) {
-            DB::table('storefront_sections')->insert([
+            DB::table('wholesale_web_sections')->insert([
                 'store_id' => $storeId,
                 'section_key' => $key,
                 'section_type' => $type,

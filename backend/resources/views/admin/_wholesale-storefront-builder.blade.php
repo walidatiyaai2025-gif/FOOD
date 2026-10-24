@@ -16,7 +16,6 @@
     $primaryDark = (string)($sfSettings['primary_dark_color'] ?? '');
     $accent = (string)($sfSettings['accent_color'] ?? '');
     $background = (string)($sfSettings['background_color'] ?? '');
-    $publicWebEnabled = (bool)($sfSettings['public_web_enabled'] ?? false);
 @endphp
 
 <style>
@@ -25,29 +24,14 @@
 
 <div class="wsf-grid">
     <section class="wsf-card">
-        <h3>{{ app()->getLocale()==='ar'?'هوية وتصميم متجر الجملة':'Wholesale branding & theme' }}</h3>
-        <p class="wsf-muted">{{ app()->getLocale()==='ar'?'كل تعديل يُحفظ كمسودة أولاً ولا يغيّر تطبيق العميل حتى النشر.':'Every edit is saved as Draft first and does not change the customer app until Publish.' }}</p>
+        <h3>{{ app()->getLocale()==='ar'?'تطبيق العميل — الهوية والتصميم':'Customer App — branding & theme' }}</h3>
+        <p class="wsf-muted">{{ app()->getLocale()==='ar'?'هذه الصفحة خاصة بتطبيق العميل فقط. إعدادات الموقع العام موجودة في صفحة مستقلة ولا تتأثر بهذه المسودة.':'This page controls the Customer App only. Public Web settings live in a separate module and are not changed by this Draft.' }}</p>
+        <div class="wsf-actions"><a class="foodex-primary" href="{{ route('admin.b2b.module',['module'=>'web_storefront']) }}">{{ app()->getLocale()==='ar'?'فتح إعدادات الموقع العام':'Open Public Web settings' }}</a></div>
         @if($canManageStorefront)
         <form method="post" action="{{ route('admin.b2b.storefront.settings') }}" enctype="multipart/form-data">
             @csrf @method('PUT')
             <input type="hidden" name="store_id" value="{{ $sfStore['id'] ?? 0 }}">
             <input type="hidden" name="theme_code" value="wholesale_b2b">
-            @if($isSuper)
-            <div class="wsf-item wide" style="margin-bottom:12px;border-color:{{ $publicWebEnabled ? 'var(--foodex-green-soft)' : 'var(--foodex-border)' }}">
-                <div class="wsf-item-head">
-                    <div>
-                        <strong>{{ __('wholesale_public.admin.public_landing_title') }}</strong>
-                        <div class="wsf-muted">{{ __('wholesale_public.admin.public_landing_help') }}</div>
-                    </div>
-                    <span class="wsf-badge">{{ $publicWebEnabled ? __('wholesale_public.admin.status_on') : __('wholesale_public.admin.status_off') }}</span>
-                </div>
-                <input type="hidden" name="public_web_enabled" value="0">
-                <label style="margin-top:10px"><span><input type="checkbox" name="public_web_enabled" value="1" @checked($publicWebEnabled)> {{ __('wholesale_public.admin.enable_public_landing') }}</span></label>
-                @if($publicWebEnabled)
-                    <a href="{{ route('public.wholesale.home') }}" target="_blank" rel="noopener" class="foodex-primary" style="margin-top:10px;display:inline-flex">{{ __('wholesale_public.admin.open_public_landing') }}</a>
-                @endif
-            </div>
-            @endif
             <div class="wsf-form">
                 <label>{{ app()->getLocale()==='ar'?'الشعار':'Logo' }}<input type="file" name="logo" accept="image/jpeg,image/png,image/webp"></label>
                 <label>{{ app()->getLocale()==='ar'?'عنوان التوصيل/التغطية':'Header location text' }}<input name="header_address" maxlength="255" value="{{ $sfSettings['header_address'] ?? '' }}" placeholder="{{ app()->getLocale()==='ar'?'مثال: توريد القاهرة والإسكندرية':'e.g. Cairo & Alexandria supply' }}"></label>
@@ -61,11 +45,6 @@
                 <label>{{ app()->getLocale()==='ar'?'عنوان الهيرو بالإنجليزية':'English hero title' }}<input name="brand_subtitle_en" value="{{ $sfSettings['brand_subtitle_en'] ?? '' }}" maxlength="500" placeholder="Best prices for retailers"></label>
                 <label>{{ app()->getLocale()==='ar'?'زر الهيرو بالعربية':'Arabic hero CTA' }}<input name="hero_cta_ar" value="{{ $sfSettings['hero_cta_ar'] ?? '' }}" maxlength="120" placeholder="تصفح الكتالوج"></label>
                 <label>{{ app()->getLocale()==='ar'?'زر الهيرو بالإنجليزية':'English hero CTA' }}<input name="hero_cta_en" value="{{ $sfSettings['hero_cta_en'] ?? '' }}" maxlength="120" placeholder="Browse catalog"></label>
-                <label class="wide">{{ __('wholesale_public.admin.facebook_url') }}<input type="url" name="facebook_url" value="{{ $sfSettings['facebook_url'] ?? '' }}" maxlength="500" placeholder="https://www.facebook.com/..."></label>
-                <label>{{ __('wholesale_public.admin.facebook_title_ar') }}<input name="facebook_title_ar" value="{{ $sfSettings['facebook_title_ar'] ?? '' }}" maxlength="255" placeholder="{{ __('wholesale_public.admin.facebook_title_ar_placeholder') }}"></label>
-                <label>{{ __('wholesale_public.admin.facebook_title_en') }}<input name="facebook_title_en" value="{{ $sfSettings['facebook_title_en'] ?? '' }}" maxlength="255" placeholder="{{ __('wholesale_public.admin.facebook_title_en_placeholder') }}"></label>
-                <label>{{ __('wholesale_public.admin.facebook_text_ar') }}<textarea name="facebook_text_ar" rows="2" maxlength="500">{{ $sfSettings['facebook_text_ar'] ?? '' }}</textarea></label>
-                <label>{{ __('wholesale_public.admin.facebook_text_en') }}<textarea name="facebook_text_en" rows="2" maxlength="500">{{ $sfSettings['facebook_text_en'] ?? '' }}</textarea></label>
             </div>
             <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ المسودة':'Save Draft' }}</button></div>
         </form>
@@ -92,7 +71,7 @@
 
 <div class="wsf-grid">
     <section class="wsf-card">
-        <h3>{{ app()->getLocale()==='ar'?'أقسام الصفحة الرئيسية':'Home sections' }}</h3>
+        <h3>{{ app()->getLocale()==='ar'?'أقسام الصفحة الرئيسية في تطبيق العميل':'Customer App home sections' }}</h3>
         @if($canManageStorefront)
         <form method="post" action="{{ route('admin.b2b.storefront.sections.store') }}" class="wsf-item" style="margin-bottom:12px">
             @csrf
@@ -148,7 +127,7 @@
     </section>
 
     <section class="wsf-card">
-        <h3>{{ app()->getLocale()==='ar'?'بانرات المنصة والجملة':'Platform & Wholesale banners' }}</h3>
+        <h3>{{ app()->getLocale()==='ar'?'بانرات تطبيق العميل والمنصة':'Customer App & Platform banners' }}</h3>
         <p class="wsf-muted">{{ app()->getLocale()==='ar'
             ? 'اختيار منتج/تصنيف يبقي البانر داخل رحلة الجملة. اختيار متجر تجزئة ينشر Placement على Platform Home لفتح ذلك المتجر، ولا يصبح بانر داخلياً للمتجر.'
             : 'Product/category targets stay in the Wholesale journey. A Retail Store target publishes a Platform Home placement that opens that exact store; it never becomes an internal Retail Store banner.' }}</p>

@@ -103,6 +103,7 @@ class AdminNavigation
                 $this->restaurantSaasItem($user),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'storefront', 'admin.b2c_workspace.modules.storefront', 'stores.view'),
                 $this->module($user, $channels, 'b2b', 'storefront', 'admin.b2b_workspace.modules.storefront', 'settings.view'),
+                $this->module($user, $channels, 'b2b', 'web_storefront', 'admin.b2b_workspace.modules.web_storefront', 'settings.view'),
             ]),
             $this->group('catalog', 'admin.nav_groups.catalog', '▦', [
                 $this->routeItem($user, 'catalog_management', 'admin.catalog_management', 'admin.catalog.index', 'catalog.view'),

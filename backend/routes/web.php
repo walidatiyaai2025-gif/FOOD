@@ -662,6 +662,16 @@ Route::prefix('admin')
         Route::delete('/b2b/storefront/banners/{banner}', [StorefrontDraftEditorController::class, 'wholesaleBannerDestroy'])->name('b2b.storefront.banners.destroy');
         Route::post('/b2b/storefront/publish', [StorefrontDraftEditorController::class, 'wholesalePublish'])->name('b2b.storefront.publish');
         Route::post('/b2b/storefront/discard', [StorefrontDraftEditorController::class, 'wholesaleDiscard'])->name('b2b.storefront.discard');
+        Route::get('/b2b/web-storefront/preview', [PublicWholesaleStorefrontController::class, 'preview'])->name('b2b.web-storefront.preview');
+        Route::put('/b2b/web-storefront/settings', [StorefrontDraftEditorController::class, 'wholesaleWebSettings'])->name('b2b.web-storefront.settings');
+        Route::post('/b2b/web-storefront/sections', [StorefrontDraftEditorController::class, 'wholesaleWebSectionStore'])->name('b2b.web-storefront.sections.store');
+        Route::patch('/b2b/web-storefront/sections/{section}', [StorefrontDraftEditorController::class, 'wholesaleWebSectionUpdate'])->name('b2b.web-storefront.sections.update');
+        Route::delete('/b2b/web-storefront/sections/{section}', [StorefrontDraftEditorController::class, 'wholesaleWebSectionDestroy'])->name('b2b.web-storefront.sections.destroy');
+        Route::post('/b2b/web-storefront/banners', [StorefrontDraftEditorController::class, 'wholesaleWebBannerStore'])->name('b2b.web-storefront.banners.store');
+        Route::patch('/b2b/web-storefront/banners/{banner}', [StorefrontDraftEditorController::class, 'wholesaleWebBannerUpdate'])->name('b2b.web-storefront.banners.update');
+        Route::delete('/b2b/web-storefront/banners/{banner}', [StorefrontDraftEditorController::class, 'wholesaleWebBannerDestroy'])->name('b2b.web-storefront.banners.destroy');
+        Route::post('/b2b/web-storefront/publish', [StorefrontDraftEditorController::class, 'wholesaleWebPublish'])->name('b2b.web-storefront.publish');
+        Route::post('/b2b/web-storefront/discard', [StorefrontDraftEditorController::class, 'wholesaleWebDiscard'])->name('b2b.web-storefront.discard');
         Route::post('/b2b/finance/remittances/{remittance}/{action}', [B2bWorkspaceController::class, 'reviewRemittance'])
             ->whereNumber('remittance')
             ->whereIn('action', ['approve', 'reject', 'reconcile'])

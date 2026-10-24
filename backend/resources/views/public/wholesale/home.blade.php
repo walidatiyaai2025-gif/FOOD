@@ -1,13 +1,14 @@
 @extends('public.wholesale.layout')
 
-@section('title', __('wholesale_public.page_title'))
+@section('title', $pageTitle ?? __('wholesale_public.page_title'))
+@section('meta_description', $metaDescription ?? __('wholesale_public.meta_description'))
 
 @section('content')
 @php
     $locale = app()->getLocale();
     $localizedSuffix = $locale === 'ar' ? 'ar' : 'en';
-    $heroTitle = (string)($branding['brand_title_'.$localizedSuffix] ?? '');
-    $heroSubtitle = (string)($branding['brand_subtitle_'.$localizedSuffix] ?? '');
+    $heroTitle = (string)($branding['hero_title_'.$localizedSuffix] ?? '');
+    $heroSubtitle = (string)($branding['hero_subtitle_'.$localizedSuffix] ?? '');
     $heroCta = (string)($branding['hero_cta_'.$localizedSuffix] ?? '');
     $facebookTitle = (string)($branding['facebook_title_'.$localizedSuffix] ?? '');
     $facebookText = (string)($branding['facebook_text_'.$localizedSuffix] ?? '');
