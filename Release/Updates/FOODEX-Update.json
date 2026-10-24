@@ -5,8 +5,8 @@
   "target_version": "1.0.105",
   "minimum_current_version": "1.0.6",
   "source_base": "8d29f4cb664988b38e07d4b558dd8ead805c50aa",
-  "source_commit": "75075c0676e5795b859f7d7b24db44c5e3f4ac65",
-  "sha256": "aa8ed2e5b02c7400269e685710acdf48cd63c20b957a7a944f14fca37ffdb776",
+  "source_commit": "9243c4b6033b3912e3efbc10890beb3acda6d635",
+  "sha256": "db971c7768b59629de061e54b5b5daf333bc8f943294861a8bec2340f3e6d4dd",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/0001_01_01_000000_create_users_table.php",
@@ -221,8 +221,8 @@
     "backend/database/migrations/2026_10_24_000100_separate_wholesale_web_storefront.php"
   ],
   "delta": {
-    "file_count": 1962,
-    "source_file_count": 1844,
+    "file_count": 1964,
+    "source_file_count": 1845,
     "files_manifest": "FOODEX-Update.files.txt"
   },
   "requires_full_redeploy": false,
@@ -231,8 +231,8 @@
   "dashboard_fields": {
     "target_version": "1.0.105",
     "minimum_current_version": "1.0.6",
-    "source_commit": "75075c0676e5795b859f7d7b24db44c5e3f4ac65",
-    "sha256": "aa8ed2e5b02c7400269e685710acdf48cd63c20b957a7a944f14fca37ffdb776",
+    "source_commit": "9243c4b6033b3912e3efbc10890beb3acda6d635",
+    "sha256": "db971c7768b59629de061e54b5b5daf333bc8f943294861a8bec2340f3e6d4dd",
     "contains_migrations": true,
     "release_notes": "FOODEX 1.0.105: Promote the authoritative Dashboard/backend lineage through `5efd2aaa9a72e72ee564d1a9dbd7d5328e28e895` as the FOODEX 1.0.105 dashboard-only update. Include the completed Wholesale storefront separation from #2394 / PR #2396: Customer App storefront editing remains isolated on the mobile channel while Public Wholesale Web has its own `b2b_web` draft, preview, sections, banners, settings, publish/discard flow and enable state. Keep the public Wholesale Web price-free and purchase-free while preserving management login, FOODEX branding, SEO metadata, brands/categories/products presentation and app-directed purchasing. Build the cumulative Dashboard Update package from the exact 1.0.105 source lineage using the canonical FOODEX Update Bundle workflow. Do not rebuild or version-bump Customer, Driver or Van APKs for this dashboard-only promotion; their source identities remain `1.0.104+104`. Preserve production API `https://foodex.50sols.com`, updater recovery safeguards, cumulative upgrade compatibility and manifest/checksum validation."
   }
