@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.109 - 2026-10-25
+- Make FOODEX Assistant genuinely hybrid: the deterministic brain remains the always-available parser/fallback while the Agent Orchestrator exclusively owns external-AI planning and synthesis, avoiding duplicate provider routing calls in one turn.
+- Answer safe general/non-live questions directly with the configured AI provider instead of forcing a Database fallback; live FOODEX business facts still require authorized server tools and cannot be invented by the model.
+- Add bounded direct-AI repair when a general provider reply does not follow the planner schema, while preserving scope-denial fail-closed behavior and preventing AI from claiming database access or completed mutations.
+- Generate 2-4 contextual follow-up prompts from AI for both direct replies and grounded FOODEX answers; suggestions are localized, deduplicated, length-bounded and rendered fresh per reply.
+- Preserve AI vs Database provenance: tool/evidence-backed answers remain labeled Database, while tool-free successful model replies are labeled AI.
+- Preserve RBAC, tenant/store/channel isolation, read-only enforcement, approval gates, provider budgets, Qwen3 low-reasoning mode, and the rule that chain-of-thought is never exposed or stored.
+- Publish as Dashboard/backend-only 1.0.109 on top of 1.0.108; Customer, Driver and Van identities remain unchanged and are not rebuilt.
+
 ## 1.0.108 - 2026-10-24
 - Port the completed #2399 / PR #2400 Assistant provider-test fix onto the cumulative 1.0.107 Dashboard lineage without regressing the one-request saved-connection and capability-test contracts.
 - Isolate Assistant saved-connection and capability test throttles into purpose-scoped named limiters so unrelated authenticated Dashboard numeric-throttle traffic cannot consume their buckets; preserve the existing 10/min and 5/min ceilings with Retry-After behavior.
