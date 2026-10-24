@@ -240,6 +240,19 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 return $this->deniedResult($base, $toolExecutions, $plan['provider']);
             }
 
+            if ($failed > 0 && $base->intent === null && ($plan['provider']['ok'] ?? false) === true) {
+                $recovery = $this->directAiReply($request, $startedAt, $plan['provider']);
+                if (($recovery['kind'] ?? null) === 'no_tool') {
+                    return $this->noToolResult(
+                        $base,
+                        (string) $recovery['message'],
+                        AgentTurnResult::DEGRADED,
+                        $recovery['provider'],
+                        $recovery['suggestions'] ?? [],
+                    );
+                }
+            }
+
             return $this->deterministicFallback(
                 $request,
                 $base,
@@ -494,7 +507,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
                 toolRequest: null,
                 toolExecutions: $priorExecutions,
                 scopeSummary: $this->scopeSummary($request),
-                providerMetadata: $provider,
+                providerMetadata: $provider + ['response_source' => AgentTurnResult::SOURCE_DATABASE],
             );
         }
 
@@ -569,7 +582,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             toolExecutions: $allExecutions,
             evidence: [$evidence],
             scopeSummary: $this->scopeSummary($request),
-            providerMetadata: $provider,
+            providerMetadata: $provider + ['response_source' => AgentTurnResult::SOURCE_DATABASE],
         );
     }
 
@@ -598,7 +611,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             ),
             toolResult: null,
             toolRequest: null,
-            providerMetadata: $provider,
+            providerMetadata: $provider + ['response_source' => AgentTurnResult::SOURCE_AI],
         );
     }
 
@@ -696,7 +709,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
             toolResult: null,
             toolRequest: null,
             toolExecutions: $executions,
-            providerMetadata: $provider,
+            providerMetadata: $provider + ['response_source' => AgentTurnResult::SOURCE_DATABASE],
         );
     }
 
