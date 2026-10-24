@@ -18,6 +18,8 @@ return [
     'evidence_domain' => 'FOODEX operational data',
     'evidence_metric' => 'FOODEX metrics',
     'evidence_authorized' => 'Authorized FOODEX data',
+    'response_source_ai' => 'AI',
+    'response_source_database' => 'Database',
     'fresh' => 'Fresh',
     'stale' => 'Stale',
     'partial' => 'Partial',
