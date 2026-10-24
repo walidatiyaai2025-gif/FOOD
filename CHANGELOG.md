@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.107 - 2026-10-24
+- Make FOODEX Qwen3/OpenAI-compatible Assistant requests low-latency by sending `reasoning_effort: none` for provider health, capability probes, routing, planning and grounded synthesis while retaining deterministic fail-safe behavior.
+- Fix Dashboard > FOODEX Assistant Settings provider testing so the agent-capability check validates Chat Completions, structured JSON arguments and tool calling in one forced-tool request instead of three back-to-back requests that could trigger provider HTTP 429.
+- Stop immediate retries of provider HTTP 429 responses so FOODEX does not amplify throttling; existing safe fallback/circuit behavior remains in control.
+- Add Assistant response provenance to current replies and conversation history: tool/evidence-backed business answers are labeled `Database / قاعدة البيانات`, while successful model-only replies are labeled `AI / ذكاء اصطناعي`.
+- Preserve RBAC, store/channel scope, read-only tool enforcement, server-authoritative business data and the rule that chain-of-thought/reasoning is never exposed or persisted.
+- Publish this as a cumulative Dashboard-only 1.0.107 update on top of the 1.0.106 lineage; Customer, Driver and Van Android identities remain unchanged.
+
 ## 1.0.106 - 2026-10-24
 - Carry the Public Wholesale Web polish from the post-1.0.105 source lineage: Alexandria Google Font, 1560px widescreen shell, polished accessible hamburger drawer, larger branded image fallbacks, and canonical FOODEX icon usage across header/footer/favicon/catalog fallbacks.
 - Fix the public Customer App download CTA so `/downloads/apps/customer/latest.apk` no longer returns HTTP 503 while the server-side APK mirror is still warming.
