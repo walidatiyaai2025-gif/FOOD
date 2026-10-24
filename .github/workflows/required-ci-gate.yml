@@ -402,6 +402,7 @@ jobs:
           POLICY_RESULT: ${{ needs.repository-policy.result }}
           BACKEND_CHANGED: ${{ needs.changes.outputs.backend }}
           BACKEND_RESULT: ${{ needs.backend-validation.result }}
+          BACKEND_DASHBOARD_ONLY: ${{ needs.changes.outputs.backend_dashboard_only }}
           CUSTOMER_CHANGED: ${{ needs.changes.outputs.customer }}
           CUSTOMER_RESULT: ${{ needs.customer-validation.result }}
           DRIVER_CHANGED: ${{ needs.changes.outputs.driver }}
@@ -452,6 +453,15 @@ jobs:
 
           require_success "Change detection" "$CHANGES_RESULT"
           require_success "Repository Policy" "$POLICY_RESULT"
+
+          # CI-map expansions may mark Customer/Driver/Van logically relevant to a
+          # release-contract change while backend_dashboard_only deliberately skips
+          # their platform jobs. Keep the final aggregator aligned with job routing.
+          if [[ "$BACKEND_DASHBOARD_ONLY" == "true" ]]; then
+            CUSTOMER_CHANGED=false
+            DRIVER_CHANGED=false
+            VAN_CHANGED=false
+          fi
 
           require_applicable_success "$BACKEND_CHANGED" "Backend validation" "$BACKEND_RESULT"
           require_applicable_success "$CUSTOMER_CHANGED" "Customer validation" "$CUSTOMER_RESULT"
