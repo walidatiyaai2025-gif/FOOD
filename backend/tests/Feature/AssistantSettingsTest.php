@@ -19,6 +19,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class AssistantSettingsTest extends TestCase
@@ -29,6 +30,44 @@ class AssistantSettingsTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+    }
+
+    public function test_provider_probe_routes_do_not_share_the_dashboard_numeric_throttle_bucket(): void
+    {
+        Http::preventStrayRequests();
+        Route::middleware(['web', 'throttle:30,1'])->get('/_test/dashboard-throttle', fn () => response('ok'));
+        $this->actingAs($this->settingsManager());
+
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $this->get('/_test/dashboard-throttle')->assertOk();
+        }
+
+        $this->post('/admin/settings/assistant/provider/test')->assertStatus(302);
+        $this->post('/admin/settings/assistant/provider/capabilities')->assertStatus(302);
+    }
+
+    public function test_provider_probe_named_limits_are_preserved_and_recover_after_expiry(): void
+    {
+        Http::preventStrayRequests();
+        $this->actingAs($this->settingsManager());
+
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $this->post('/admin/settings/assistant/provider/test')->assertStatus(302);
+        }
+
+        $this->post('/admin/settings/assistant/provider/test')
+            ->assertStatus(429)
+            ->assertHeader('Retry-After');
+
+        $this->travel(61)->seconds();
+
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $this->post('/admin/settings/assistant/provider/capabilities')->assertStatus(302);
+        }
+
+        $this->post('/admin/settings/assistant/provider/capabilities')
+            ->assertStatus(429)
+            ->assertHeader('Retry-After');
     }
 
     public function test_runtime_setting_overrides_environment_default_and_persists(): void
@@ -175,6 +214,7 @@ class AssistantSettingsTest extends TestCase
                 'api_url' => 'https://ai.example.test/v1/chat/completions',
                 'model' => 'qwen3:1.7b',
                 'timeout_seconds' => 20,
+                'max_tokens' => 256,
             ],
             'saved-secret',
         );
@@ -192,6 +232,7 @@ class AssistantSettingsTest extends TestCase
                 && $request->hasHeader('Authorization', 'Bearer saved-secret')
                 && $request['model'] === 'qwen3:1.7b'
                 && $request['reasoning_effort'] === 'none'
+                && $request['max_tokens'] === 256
                 && ! isset($request['tools']);
         });
     }
@@ -222,6 +263,7 @@ class AssistantSettingsTest extends TestCase
             'api_url' => 'https://ai.example.test/v1/chat/completions',
             'model' => 'qwen3:1.7b',
             'timeout_seconds' => 20,
+            'max_tokens' => 1024,
         ], 'saved-secret');
 
         $this->actingAs($user)
@@ -232,6 +274,7 @@ class AssistantSettingsTest extends TestCase
 
         Http::assertSentCount(1);
         Http::assertSent(fn ($request): bool => $request['reasoning_effort'] === 'none'
+            && $request['max_tokens'] === 512
             && $request['tool_choice']['function']['name'] === 'foodex_capability_probe'
         );
     }
