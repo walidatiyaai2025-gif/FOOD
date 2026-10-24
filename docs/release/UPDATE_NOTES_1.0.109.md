@@ -13,6 +13,7 @@ Dashboard/backend only. Customer, Driver and Van Android identities remain uncha
 - Permission and scope denials remain authoritative and cannot be bypassed by the model.
 - External AI planning is owned by the Agent Orchestrator; the deterministic brain remains the parser and safe fallback rather than making a second provider routing call.
 - If a safe general reply arrives outside the expected planner JSON shape, FOODEX performs one bounded direct-AI repair call instead of immediately showing the generic deterministic fallback.
+- The real conversation path no longer has a hidden 6s/12s provider ceiling: CPU-hosted Ollama/Qwen requests can use the bounded Agent window up to 30 seconds, while the saved provider timeout remains authoritative inside that safety ceiling.
 - Direct AI replies are labeled **AI / ذكاء اصطناعي**. Replies backed by FOODEX tools/evidence remain labeled **Database / قاعدة البيانات**.
 
 ## AI follow-up suggestions
