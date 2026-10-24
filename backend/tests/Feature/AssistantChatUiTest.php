@@ -120,6 +120,8 @@ class AssistantChatUiTest extends TestCase
         $this->assertStringContainsString('data-assistant-scope', $view);
         $this->assertStringContainsString('data-label-context-open', $view);
         $this->assertStringContainsString("__('assistant_ui.scope_label')", $view);
+        $this->assertStringContainsString('data-label-response-source-ai', $view);
+        $this->assertStringContainsString('data-label-response-source-database', $view);
 
         $this->assertStringContainsString('width:min(410px,calc(100vw - 24px))', $css);
         $this->assertStringContainsString('@media(max-width:1023px)', $css);
@@ -128,6 +130,7 @@ class AssistantChatUiTest extends TestCase
         $this->assertStringContainsString('.foodex-assistant-context-entry', $css);
         $this->assertStringContainsString('min-height:44px', $css);
         $this->assertStringContainsString('body.foodex-assistant-open-mobile', $css);
+        $this->assertStringContainsString('.foodex-assistant-source-badge', $css);
 
         $this->assertStringContainsString('foodex.assistant.conversation.', $js);
         $this->assertStringContainsString('/messages', $js);
@@ -136,6 +139,8 @@ class AssistantChatUiTest extends TestCase
         $this->assertStringContainsString('renderEvidence', $js);
         $this->assertStringContainsString('renderFindings', $js);
         $this->assertStringContainsString('renderApproval', $js);
+        $this->assertStringContainsString('response_source', $js);
+        $this->assertStringContainsString('labelResponseSourceAi', $js);
         $this->assertStringContainsString('context_token', $js);
         $this->assertStringContainsString('data-dashboard-assistant-open', $js);
         $this->assertStringContainsString('data-assistant-context-open', $js);
@@ -159,6 +164,8 @@ class AssistantChatUiTest extends TestCase
         $this->assertSame($englishKeys, $arabicKeys);
         $this->assertSame('Ask about this page', $english['context_open']);
         $this->assertSame('اسأل عن هذه الصفحة', $arabic['context_open']);
+        $this->assertSame('AI', $english['response_source_ai']);
+        $this->assertSame('قاعدة البيانات', $arabic['response_source_database']);
         $this->assertStringContainsString('FOODEX', $english['scope_denied']);
         $this->assertStringContainsString('FOODEX', $arabic['scope_denied']);
     }
