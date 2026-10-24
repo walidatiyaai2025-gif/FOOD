@@ -6,6 +6,7 @@
 - Increase saved-connection and capability-test output budgets from the hardcoded 128-token ceiling to a bounded maximum of 512 tokens, never above the configured provider max, so reasoning-capable models can emit the required final sentinel/tool result.
 - Preserve Qwen3 `reasoning_effort: none`, no immediate retry on HTTP 429, AI-vs-Database response provenance, RBAC, tenant/store/channel scope and read-only Assistant tool enforcement.
 - Publish this as a cumulative Dashboard/backend-only 1.0.108 update on top of 1.0.107; Customer, Driver and Van Android identities remain unchanged and are not rebuilt.
+- Generate the canonical `FOODEX-Update.zip` from the exact `release/1.0.108-update` head; do not invoke Customer, Driver or Van build lanes for this Dashboard-only release.
 
 ## 1.0.107 - 2026-10-24
 - Make FOODEX Qwen3/OpenAI-compatible Assistant requests low-latency by sending `reasoning_effort: none` for provider health, capability probes, routing, planning and grounded synthesis while retaining deterministic fail-safe behavior.
