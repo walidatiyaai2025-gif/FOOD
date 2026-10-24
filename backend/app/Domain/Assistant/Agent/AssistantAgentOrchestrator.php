@@ -242,7 +242,7 @@ final class AssistantAgentOrchestrator implements AgentOrchestratorInterface
 
             if ($failed > 0 && $base->intent === null && ($plan['provider']['ok'] ?? false) === true) {
                 $recovery = $this->directAiReply($request, $startedAt, $plan['provider']);
-                if (($recovery['kind'] ?? null) === 'no_tool') {
+                if ($recovery['kind'] === 'no_tool') {
                     return $this->noToolResult(
                         $base,
                         (string) $recovery['message'],
