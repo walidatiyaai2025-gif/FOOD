@@ -303,13 +303,13 @@ jobs:
   app-preview-visual-parity:
     name: APP-PREVIEW visual runtime parity
     needs: changes
-    if: ${{ needs.changes.outputs.app_preview_visual == 'true' }}
+    if: ${{ needs.changes.outputs.backend_dashboard_only != 'true' && needs.changes.outputs.app_preview_visual == 'true' }}
     uses: ./.github/workflows/app-preview-visual-parity.yml
 
   preview-runtime-distribution:
     name: Preview runtime distribution
     needs: changes
-    if: ${{ needs.changes.outputs.preview_runtime_distribution == 'true' }}
+    if: ${{ needs.changes.outputs.backend_dashboard_only != 'true' && needs.changes.outputs.preview_runtime_distribution == 'true' }}
     uses: ./.github/workflows/preview-runtime-distribution.yml
 
   screenshot-evidence:
@@ -461,6 +461,10 @@ jobs:
             CUSTOMER_CHANGED=false
             DRIVER_CHANGED=false
             VAN_CHANGED=false
+            MOBILE_UI_CHANGED=false
+            MOBILE_PROD_UX_ACCEPTANCE=false
+            APP_PREVIEW_VISUAL_CHANGED=false
+            PREVIEW_RUNTIME_DISTRIBUTION_CHANGED=false
           fi
 
           require_applicable_success "$BACKEND_CHANGED" "Backend validation" "$BACKEND_RESULT"
