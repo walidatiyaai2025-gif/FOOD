@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Assistant\Contracts\AssistantProviderGatewayInterface;
+use App\Domain\Assistant\Data\AssistantProviderRequest;
 use App\Domain\Assistant\Data\AssistantProviderResult;
 use App\Domain\Assistant\Intelligence\AssistantAnalysisPipeline;
 use App\Models\Role;
@@ -61,6 +62,56 @@ final class AssistantAnalysisDashboardTest extends TestCase
         $this->assertSame('HYBRID', $result['source']);
         $this->assertSame(58000, $result['agent_latency_ms']);
         $this->assertDatabaseHas('assistant_analysis_chunks', ['run_id' => $run->id, 'status' => 'complete', 'source_kind' => 'HYBRID', 'provider' => 'openai_compatible', 'model' => 'qwen3:1.7b', 'agent_latency_ms' => 58000]);
+    }
+
+    public function test_final_executive_summary_requests_arabic_user_facing_text(): void
+    {
+        $user = $this->superAdmin();
+        $provider = Mockery::mock(AssistantProviderGatewayInterface::class);
+        $provider->shouldReceive('complete')
+            ->once()
+            ->withArgs(function (AssistantProviderRequest $request): bool {
+                $this->assertStringContainsString('executive_opinion, priorities, recommendations) in Arabic', $request->systemInstructions);
+                $this->assertStringContainsString('Keep JSON keys and enum values exactly as defined by the schema.', $request->systemInstructions);
+
+                return true;
+            })
+            ->andReturn(new AssistantProviderResult(
+                ok: true, provider: 'openai_compatible', model: 'qwen3:1.7b',
+                text: '{"overall_state":"watch","executive_opinion":"توجد مخاطر تشغيلية تحتاج متابعة.","confidence":"high","priorities":["المبيعات"],"recommendations":["راجع أسباب تراجع الإيرادات."]}',
+                structuredPayload: [
+                    'overall_state' => 'watch',
+                    'executive_opinion' => 'توجد مخاطر تشغيلية تحتاج متابعة.',
+                    'confidence' => 'high',
+                    'priorities' => ['المبيعات'],
+                    'recommendations' => ['راجع أسباب تراجع الإيرادات.'],
+                ],
+                latencyMs: 95000,
+            ));
+        $this->app->instance(AssistantProviderGatewayInterface::class, $provider);
+
+        $pipeline = app(AssistantAnalysisPipeline::class);
+        $run = $pipeline->startRun('manual', $user->id);
+        DB::table('assistant_analysis_chunks')->where('run_id', $run->id)->update([
+            'status' => 'complete',
+            'source_kind' => 'HYBRID',
+            'progress_percent' => 100,
+            'agent_opinion' => json_encode([
+                'state' => 'watch',
+                'opinion' => 'تحتاج المؤشرات إلى متابعة.',
+                'confidence' => 'high',
+                'findings' => ['مؤشر يحتاج متابعة'],
+                'recommendations' => ['راجع المؤشر'],
+            ], JSON_UNESCAPED_UNICODE),
+            'completed_at' => now('UTC'),
+            'updated_at' => now('UTC'),
+        ]);
+
+        $this->assertNull($pipeline->workOne());
+
+        $summary = json_decode((string) DB::table('assistant_analysis_runs')->where('id', $run->id)->value('agent_summary'), true);
+        $this->assertSame(['راجع أسباب تراجع الإيرادات.'], $summary['recommendations']);
+        $this->assertSame(['المبيعات'], $summary['priorities']);
     }
 
     public function test_dashboard_labels_agent_and_database_sources_separately(): void
