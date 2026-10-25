@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Analytics\ReadModel\AnalyticsFactMaterializer;
+use App\Domain\Assistant\Intelligence\AssistantAnalysisPipeline;
 use App\Domain\Assistant\Intelligence\AssistantBriefService;
 use App\Domain\Assistant\Performance\RefreshAssistantAnalyticsJob;
 use App\Domain\SmartOrdering\LoyaltyService;
@@ -56,6 +57,38 @@ Artisan::command(
 Schedule::job(new RefreshAssistantAnalyticsJob)
     ->everyFifteenMinutes()
     ->withoutOverlapping(10);
+
+Artisan::command('foodex:assistant-analysis:coordinate', function (AssistantAnalysisPipeline $pipeline): int {
+    $runId = $pipeline->coordinate();
+    $this->line($runId === null
+        ? 'FOODEX AI platform analysis is already current or has an active run.'
+        : 'FOODEX AI platform analysis run #'.$runId.' is active.');
+
+    return 0;
+})->purpose('Create or resume one bounded background AI analysis run without waiting for the provider.');
+
+Artisan::command('foodex:assistant-analysis:work', function (AssistantAnalysisPipeline $pipeline): int {
+    $result = $pipeline->workOne();
+
+    if ($result === null) {
+        $this->line('No pending FOODEX AI analysis chunk.');
+
+        return 0;
+    }
+
+    $this->line((string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+
+    return ($result['status'] ?? null) === 'failed' ? 1 : 0;
+})->purpose('Process one bounded analysis chunk and wait for the configured AI agent response before completing it.');
+
+Schedule::command('foodex:assistant-analysis:coordinate')
+    ->everyTenMinutes()
+    ->withoutOverlapping(2);
+
+Schedule::command('foodex:assistant-analysis:work')
+    ->everyMinute()
+    ->runInBackground()
+    ->withoutOverlapping(5);
 
 Artisan::command(
     'foodex:assistant-intelligence-briefs {cadence=daily : daily or weekly} {--limit=200 : Maximum subscriptions processed per run}',

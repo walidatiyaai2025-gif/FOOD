@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Assistant\Intelligence\AssistantAnalysisPipeline;
 use App\Domain\Assistant\Intelligence\AssistantBriefDispatcher;
 use App\Domain\Assistant\Intelligence\AssistantBriefService;
 use App\Domain\Assistant\Intelligence\AssistantIntelligenceAuthorization;
@@ -23,6 +24,7 @@ final class AssistantIntelligenceController extends Controller
 {
     public function __construct(
         private readonly AssistantIntelligenceAuthorization $authorization,
+        private readonly AssistantAnalysisPipeline $analysis,
         private readonly AssistantIntelligenceService $intelligence,
         private readonly AssistantBriefService $briefs,
         private readonly AssistantBriefDispatcher $dispatcher,
@@ -94,7 +96,32 @@ final class AssistantIntelligenceController extends Controller
             'severities' => AssistantIntelligenceService::SEVERITIES,
             'channelLabels' => (array) __('assistant_intelligence.channel'),
             'canOpenSettings' => $actor->hasPermission('settings.view') || $actor->hasPermission('settings.manage'),
+            'analysis' => $this->analysis->dashboardSnapshot($actor),
         ]);
+    }
+
+    public function analyzeNow(Request $request): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $this->authorization->assertCanUse($actor);
+        abort_unless($this->analysis->canAccessPlatformAnalysis($actor), 403);
+
+        $run = $this->analysis->startRun('manual', (int) $actor->getKey());
+
+        $this->audit->record(
+            'assistant.intelligence.platform_analysis_requested',
+            $actor,
+            null,
+            null,
+            [
+                'run_id' => (int) $run->id,
+                'status' => (string) $run->status,
+                'total_chunks' => (int) $run->total_chunks,
+            ],
+            $request,
+        );
+
+        return back()->with('status', __('assistant_intelligence.analysis.queued'));
     }
 
     public function updateSubscription(Request $request): RedirectResponse

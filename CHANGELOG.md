@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.110 - 2026-10-25
+- Add the FOODEX AI Analytics & Intelligence control page with explicit DATABASE, DETERMINISTIC, AGENT AI and HYBRID provenance so operators can distinguish source facts from model interpretation.
+- Add a durable background platform-analysis pipeline that splits Sales, Customers, Products, Inventory, Finance, Operations and Support into bounded store batches with resumable per-chunk status, coverage, evidence and history.
+- Add a scheduler coordinator plus one bounded background worker command. The scheduler never blocks on the model; the background worker keeps a chunk RUNNING and waits up to the dedicated 120-second background Agent timeout before persisting the Agent result or an explicit database-only partial result.
+- Add real Agent domain opinions and a final executive Agent assessment tied to database evidence, including provider/model, latency, confidence, priorities and recommendations; prompts and chain-of-thought are not exposed.
+- Add Analyze platform now for authorized platform administrators without running the model inside the HTTP request.
+- Extend the OpenAI-compatible provider contract with a background_intelligence use case whose timeout may exceed the interactive provider timeout up to 120 seconds, while preserving provider concurrency controls and interactive chat budgets.
+- Add automatic stale-chunk recovery, analysis history, domain coverage, trace lineage and top database KPIs on the Intelligence Center.
+- Publish as Dashboard/backend-only FOODEX 1.0.110; Customer, Driver and Van identities remain unchanged and mobile builds stay skipped.
+
 ## 1.0.109 - 2026-10-25
 - Make FOODEX Assistant genuinely hybrid: the deterministic brain remains the always-available parser/fallback while the Agent Orchestrator exclusively owns external-AI planning and synthesis, avoiding duplicate provider routing calls in one turn.
 - Answer safe general/non-live questions directly with the configured AI provider instead of forcing a Database fallback; live FOODEX business facts still require authorized server tools and cannot be invented by the model.

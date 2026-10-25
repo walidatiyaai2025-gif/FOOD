@@ -32,6 +32,11 @@ return [
             'DemandForecastReplenishmentService',
         ],
         'background_queue' => (string) env('ASSISTANT_BACKGROUND_QUEUE', 'assistant-background'),
+        'analysis_store_batch_size' => min(500, max(10, (int) env('ASSISTANT_ANALYSIS_STORE_BATCH_SIZE', 100))),
+        'analysis_cycle_minutes' => min(1440, max(30, (int) env('ASSISTANT_ANALYSIS_CYCLE_MINUTES', 360))),
+        'analysis_agent_timeout_seconds' => min(120, max(30, (int) env('ASSISTANT_ANALYSIS_AGENT_TIMEOUT_SECONDS', 120))),
+        'analysis_agent_max_tokens' => min(1536, max(256, (int) env('ASSISTANT_ANALYSIS_AGENT_MAX_TOKENS', 768))),
+        'analysis_stale_chunk_minutes' => min(60, max(5, (int) env('ASSISTANT_ANALYSIS_STALE_CHUNK_MINUTES', 10))),
     ],
     'agent' => [
         'max_steps' => min(4, max(1, (int) env('ASSISTANT_AGENT_MAX_STEPS', 2))),
