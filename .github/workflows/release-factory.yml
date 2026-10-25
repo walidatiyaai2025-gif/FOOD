@@ -214,7 +214,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "FOODEX ${{ needs.plan.outputs.version }} is Dashboard-only; mobile ${{ needs.plan.outputs.customer_version }} remains unchanged."
-          gh workflow run release-update-bundle.yml --ref main
+          gh workflow run release-update-bundle.yml --ref main --repo "$GITHUB_REPOSITORY"
 
   mobile:
     name: Build mobile artifacts
