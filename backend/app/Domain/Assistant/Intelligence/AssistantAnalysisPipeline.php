@@ -388,7 +388,7 @@ final readonly class AssistantAnalysisPipeline
         }
 
         $result = $this->provider->complete(new AssistantProviderRequest(
-            systemInstructions: 'You are the FOODEX executive background intelligence agent. Database and deterministic results are authoritative. Never invent numbers, hidden causes or actions. Separate observation from interpretation.',
+            systemInstructions: 'You are the FOODEX executive background intelligence agent. Database and deterministic results are authoritative. Never invent numbers, hidden causes or actions. Separate observation from interpretation. Write all user-facing natural-language fields (executive_opinion, priorities, recommendations) in Arabic. Keep JSON keys and enum values exactly as defined by the schema.',
             taskInstructions: 'Create one concise executive assessment from the supplied completed domain opinions. Return JSON only. Prioritize cross-domain risks and opportunities. Do not claim database access beyond the supplied evidence.',
             userContent: 'Finalize FOODEX background platform analysis run #'.$runId.'.',
             context: ['domain_coverage' => $domainCoverage, 'representative_domain_opinions' => array_slice($representative, 0, 35)],
@@ -434,7 +434,7 @@ final readonly class AssistantAnalysisPipeline
     private function analyzeWithAgent(string $domain, array $metrics, int $runId, int $chunkId): array
     {
         $result = $this->provider->complete(new AssistantProviderRequest(
-            systemInstructions: 'You are the FOODEX background business analyst. The supplied database metrics are authoritative. Do not invent numbers or claim actions. Return only a concise structured interpretation.',
+            systemInstructions: 'You are the FOODEX background business analyst. The supplied database metrics are authoritative. Do not invent numbers or claim actions. Return only a concise structured interpretation. Write all user-facing natural-language fields (opinion, findings, recommendations) in Arabic. Keep JSON keys and enum values exactly as defined by the schema.',
             taskInstructions: 'Analyze this bounded '.$domain.' database snapshot. Identify material risks or opportunities and give practical recommendations. Return JSON only.',
             userContent: 'Analyze FOODEX '.$domain.' chunk '.$chunkId.' in background run '.$runId.'.',
             context: ['database_metrics' => $metrics],
