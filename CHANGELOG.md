@@ -9,6 +9,7 @@
 - Preserve RBAC, tenant/store/channel isolation, read-only enforcement, approval gates, provider budgets, Qwen3 low-reasoning mode, and the rule that chain-of-thought is never exposed or stored.
 - Remove the hidden 6s/12s chat latency bottleneck that could make a CPU-hosted provider pass the Settings test but fall back during real conversations; allow the Agent turn to use up to 30 seconds while the provider request still respects the saved provider timeout and bounded Agent budget.
 - Publish as Dashboard/backend-only 1.0.109 on top of 1.0.108; Customer, Driver and Van identities remain unchanged and are not rebuilt.
+- Regenerate the canonical 1.0.109 Dashboard update bundle from the reconciled release head before final convergence to `main`, preserving exact-head release metadata and checksums.
 
 ## 1.0.108 - 2026-10-24
 - Port the completed #2399 / PR #2400 Assistant provider-test fix onto the cumulative 1.0.107 Dashboard lineage without regressing the one-request saved-connection and capability-test contracts.
