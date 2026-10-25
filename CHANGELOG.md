@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.111 - 2026-10-25
+- Make Assistant Intelligence Agent output Arabic-first for all user-facing generated text on the Arabic Dashboard, including executive opinion, priorities, recommendations, domain opinions and findings.
+- Preserve the structured Agent contract by keeping JSON keys and enum values schema-compatible while localizing only natural-language fields.
+- Add regression coverage proving the final executive summary explicitly requests Arabic recommendations and priorities.
+- Publish as Dashboard/backend-only FOODEX 1.0.111; Customer, Driver and Van identities remain unchanged and mobile builds stay skipped.
+
 ## 1.0.110 - 2026-10-25
 - Add the FOODEX AI Analytics & Intelligence control page with explicit DATABASE, DETERMINISTIC, AGENT AI and HYBRID provenance so operators can distinguish source facts from model interpretation.
 - Add a durable background platform-analysis pipeline that splits Sales, Customers, Products, Inventory, Finance, Operations and Support into bounded store batches with resumable per-chunk status, coverage, evidence and history.
