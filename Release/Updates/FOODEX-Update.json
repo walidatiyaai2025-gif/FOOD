@@ -5,8 +5,8 @@
   "target_version": "1.0.110",
   "minimum_current_version": "1.0.6",
   "source_base": "8d29f4cb664988b38e07d4b558dd8ead805c50aa",
-  "source_commit": "a4e5aad93417761a27f9c3a0dd68a7d99e2ee1c8",
-  "sha256": "39111c15ff40ce3fde3747a65c7d5b8a9d968db2639af5d54f6d076fcf7d2b41",
+  "source_commit": "46c96a942b07f6c776d716bb053c71bd712d9069",
+  "sha256": "f5c0daf014f2ee4e66fd48f817891dadb506eefbd26a760e926808213042b9bb",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/0001_01_01_000000_create_users_table.php",
@@ -232,8 +232,8 @@
   "dashboard_fields": {
     "target_version": "1.0.110",
     "minimum_current_version": "1.0.6",
-    "source_commit": "a4e5aad93417761a27f9c3a0dd68a7d99e2ee1c8",
-    "sha256": "39111c15ff40ce3fde3747a65c7d5b8a9d968db2639af5d54f6d076fcf7d2b41",
+    "source_commit": "46c96a942b07f6c776d716bb053c71bd712d9069",
+    "sha256": "f5c0daf014f2ee4e66fd48f817891dadb506eefbd26a760e926808213042b9bb",
     "contains_migrations": true,
     "release_notes": "FOODEX 1.0.110: Add the FOODEX AI Analytics & Intelligence control page with explicit DATABASE, DETERMINISTIC, AGENT AI and HYBRID provenance so operators can distinguish source facts from model interpretation. Add a durable background platform-analysis pipeline that splits Sales, Customers, Products, Inventory, Finance, Operations and Support into bounded store batches with resumable per-chunk status, coverage, evidence and history. Add a scheduler coordinator plus one bounded background worker command. The scheduler never blocks on the model; the background worker keeps a chunk RUNNING and waits up to the dedicated 120-second background Agent timeout before persisting the Agent result or an explicit database-only partial result. Add real Agent domain opinions and a final executive Agent assessment tied to database evidence, including provider/model, latency, confidence, priorities and recommendations; prompts and chain-of-thought are not exposed. Add Analyze platform now for authorized platform administrators without running the model inside the HTTP request. Extend the OpenAI-compatible provider contract with a background_intelligence use case whose timeout may exceed the interactive provider timeout up to 120 seconds, while preserving provider concurrency controls and interactive chat budgets. Add automatic stale-chunk recovery, analysis history, domain coverage, trace lineage and top database KPIs on the Intelligence Center. Publish as Dashboard/backend-only FOODEX 1.0.110; Customer, Driver and Van identities remain unchanged and mobile builds stay skipped."
   }
