@@ -112,6 +112,30 @@ return [
         'finished' => 'Finished',
         'stores' => 'Stores',
         'no_agent_chunks' => 'No Agent-backed domain opinions are available yet.',
+        'sources' => [
+            'database' => 'DATABASE',
+            'deterministic' => 'DETERMINISTIC',
+            'agent_ai' => 'AGENT AI',
+            'hybrid' => 'HYBRID',
+        ],
+        'status_values' => [
+            'idle' => 'Idle',
+            'queued' => 'Queued',
+            'running' => 'Running',
+            'finalizing' => 'Finalizing',
+            'complete' => 'Complete',
+            'partial' => 'Partial',
+            'failed' => 'Failed',
+        ],
+        'trigger_values' => [
+            'manual' => 'Manual',
+            'scheduler' => 'Scheduler',
+        ],
+        'confidence_values' => [
+            'high' => 'High',
+            'medium' => 'Medium',
+            'low' => 'Low',
+        ],
         'domains' => [
             'sales' => 'Sales',
             'customers' => 'Customers',

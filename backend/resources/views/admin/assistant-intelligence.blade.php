@@ -89,6 +89,8 @@ $agentSource=strtoupper((string)($agent['source']??'DATABASE'));
 $agentOpinion=(string)($agent['executive_opinion']??'');
 $coverage=(float)($analysis['coverage_percent']??0);
 $kpis=(array)($analysis['kpis']??[]);
+$analysisSourceKey=static fn(string $value): string => strtolower(str_replace(' ','_',trim($value)));
+$analysisStatusKey=static fn(string $value): string => strtolower(trim($value));
 @endphp
 <section class="analysis-shell" aria-labelledby="foodex-analysis-title">
 <div class="intelligence-card">
@@ -98,8 +100,8 @@ $kpis=(array)($analysis['kpis']??[]);
 <h2 id="foodex-analysis-title" style="margin:4px 0 0">{{ __('assistant_intelligence.analysis.title') }}</h2>
 <p style="margin:6px 0 0;color:var(--foodex-muted)">{{ __('assistant_intelligence.analysis.description') }}</p>
 <div class="analysis-status-line">
-<span class="intelligence-badge">{{ strtoupper((string)($analysis['status']??'idle')) }}</span>
-<span class="analysis-source" data-source="{{ $agentSource }}">{{ $agentSource }}</span>
+<span class="intelligence-badge">{{ __('assistant_intelligence.analysis.status_values.'.$analysisStatusKey((string)($analysis['status']??'idle'))) }}</span>
+<span class="analysis-source" data-source="{{ $agentSource }}">{{ __('assistant_intelligence.analysis.sources.'.$analysisSourceKey($agentSource)) }}</span>
 @if(!empty($analysis['provider'])||!empty($analysis['model']))<span class="intelligence-badge">{{ trim(($analysis['provider']??'').' / '.($analysis['model']??''),' /') }}</span>@endif
 </div>
 </div>
@@ -110,22 +112,22 @@ $kpis=(array)($analysis['kpis']??[]);
 </div>
 
 <div class="analysis-kpis">
-<div class="analysis-kpi"><small>{{ __('assistant_intelligence.analysis.kpi_revenue') }}</small><strong>{{ number_format((float)($kpis['revenue']??0),2) }}</strong><span class="analysis-source" data-source="DATABASE">DATABASE</span></div>
-<div class="analysis-kpi"><small>{{ __('assistant_intelligence.analysis.kpi_orders') }}</small><strong>{{ number_format((int)($kpis['orders']??0)) }}</strong><span class="analysis-source" data-source="DATABASE">DATABASE</span></div>
-<div class="analysis-kpi"><small>{{ __('assistant_intelligence.analysis.kpi_customers') }}</small><strong>{{ number_format((int)($kpis['customers']??0)) }}</strong><span class="analysis-source" data-source="DATABASE">DATABASE</span></div>
-<div class="analysis-kpi"><small>{{ __('assistant_intelligence.analysis.kpi_stockouts') }}</small><strong>{{ number_format((int)($kpis['stockouts']??0)) }}</strong><span class="analysis-source" data-source="DATABASE">DATABASE</span></div>
+<div class="analysis-kpi"><small>{{ __('assistant_intelligence.analysis.kpi_revenue') }}</small><strong>{{ number_format((float)($kpis['revenue']??0),2) }}</strong><span class="analysis-source" data-source="DATABASE">{{ __('assistant_intelligence.analysis.sources.database') }}</span></div>
+<div class="analysis-kpi"><small>{{ __('assistant_intelligence.analysis.kpi_orders') }}</small><strong>{{ number_format((int)($kpis['orders']??0)) }}</strong><span class="analysis-source" data-source="DATABASE">{{ __('assistant_intelligence.analysis.sources.database') }}</span></div>
+<div class="analysis-kpi"><small>{{ __('assistant_intelligence.analysis.kpi_customers') }}</small><strong>{{ number_format((int)($kpis['customers']??0)) }}</strong><span class="analysis-source" data-source="DATABASE">{{ __('assistant_intelligence.analysis.sources.database') }}</span></div>
+<div class="analysis-kpi"><small>{{ __('assistant_intelligence.analysis.kpi_stockouts') }}</small><strong>{{ number_format((int)($kpis['stockouts']??0)) }}</strong><span class="analysis-source" data-source="DATABASE">{{ __('assistant_intelligence.analysis.sources.database') }}</span></div>
 </div>
 
 <div class="intelligence-card analysis-agent">
 <div>
-<div class="intelligence-head"><div><h2>{{ __('assistant_intelligence.analysis.agent_opinion') }}</h2></div><span class="analysis-source" data-source="{{ $agentSource }}">{{ $agentSource }}</span></div>
+<div class="intelligence-head"><div><h2>{{ __('assistant_intelligence.analysis.agent_opinion') }}</h2></div><span class="analysis-source" data-source="{{ $agentSource }}">{{ __('assistant_intelligence.analysis.sources.'.$analysisSourceKey($agentSource)) }}</span></div>
 @if($agentOpinion!=='')<p class="analysis-agent-copy">{{ $agentOpinion }}</p>@else<div class="analysis-empty">{{ __('assistant_intelligence.analysis.agent_waiting') }}</div>@endif
 @if($agentSource==='DATABASE')<p class="intelligence-note">{{ __('assistant_intelligence.analysis.database_only') }}</p>@endif
 </div>
 <div><dl class="intelligence-evidence">
 <div><dt>{{ __('assistant_intelligence.analysis.provider') }}</dt><dd>{{ trim(($analysis['provider']??'—').' / '.($analysis['model']??''),' /')?:'—' }}</dd></div>
 <div><dt>{{ __('assistant_intelligence.analysis.latency') }}</dt><dd>{{ isset($analysis['agent_latency_ms'])?number_format((int)$analysis['agent_latency_ms']).' ms':'—' }}</dd></div>
-<div><dt>{{ __('assistant_intelligence.analysis.confidence') }}</dt><dd>{{ strtoupper((string)($agent['confidence']??'—')) }}</dd></div>
+<div><dt>{{ __('assistant_intelligence.analysis.confidence') }}</dt><dd>{{ isset($agent['confidence']) ? __('assistant_intelligence.analysis.confidence_values.'.strtolower((string)$agent['confidence'])) : '—' }}</dd></div>
 <div><dt>{{ __('assistant_intelligence.analysis.run') }}</dt><dd>#{{ $analysis['id']??'—' }}</dd></div>
 </dl></div>
 </div>
@@ -151,19 +153,19 @@ $kpis=(array)($analysis['kpis']??[]);
 <div class="intelligence-head"><div><h2>{{ __('assistant_intelligence.analysis.chunk_opinions') }}</h2><p>{{ __('assistant_intelligence.analysis.chunk_opinions_help') }}</p></div></div>
 @if(!empty($analysis['opinions']))<div class="analysis-opinions" style="margin-top:12px">
 @foreach($analysis['opinions'] as $opinion)
-<article class="analysis-opinion"><div class="analysis-status-line" style="margin-top:0"><strong>{{ __('assistant_intelligence.analysis.domains.'.$opinion['domain']) }}</strong><span class="analysis-source" data-source="{{ strtoupper($opinion['source']) }}">{{ strtoupper($opinion['source']) }}</span></div><p>{{ $opinion['opinion'] }}</p><small>{{ __('assistant_intelligence.analysis.stores') }}: {{ $opinion['store_count'] }} · {{ $opinion['model']?:'—' }} · {{ number_format((int)$opinion['latency_ms']) }} ms</small></article>
+<article class="analysis-opinion"><div class="analysis-status-line" style="margin-top:0"><strong>{{ __('assistant_intelligence.analysis.domains.'.$opinion['domain']) }}</strong><span class="analysis-source" data-source="{{ strtoupper($opinion['source']) }}">{{ __('assistant_intelligence.analysis.sources.'.$analysisSourceKey((string)$opinion['source'])) }}</span></div><p>{{ $opinion['opinion'] }}</p><small>{{ __('assistant_intelligence.analysis.stores') }}: {{ $opinion['store_count'] }} · {{ $opinion['model']?:'—' }} · {{ number_format((int)$opinion['latency_ms']) }} ms</small></article>
 @endforeach
 </div>@else<div class="analysis-empty" style="margin-top:12px">{{ __('assistant_intelligence.analysis.no_agent_chunks') }}</div>@endif
 </div>
 
 <div class="intelligence-card"><div class="intelligence-head"><div><h2>{{ __('assistant_intelligence.analysis.trace') }}</h2><p>{{ __('assistant_intelligence.analysis.trace_help') }}</p></div></div>
 <div class="analysis-table-wrap" style="margin-top:10px"><table class="analysis-table"><thead><tr><th>ID</th><th>{{ __('assistant_intelligence.analysis.domain') }}</th><th>{{ __('assistant_intelligence.analysis.status') }}</th><th>{{ __('assistant_intelligence.analysis.source') }}</th><th>{{ __('assistant_intelligence.analysis.stores') }}</th><th>{{ __('assistant_intelligence.analysis.provider') }}</th><th>{{ __('assistant_intelligence.analysis.latency') }}</th><th>{{ __('assistant_intelligence.analysis.finished') }}</th></tr></thead><tbody>
-@foreach((array)($analysis['trace']??[]) as $row)<tr><td>#{{ $row['id'] }}</td><td>{{ __('assistant_intelligence.analysis.domains.'.$row['domain']) }}</td><td>{{ strtoupper($row['status']) }}</td><td><span class="analysis-source" data-source="{{ strtoupper($row['source']) }}">{{ strtoupper($row['source']) }}</span></td><td>{{ $row['store_count'] }}</td><td>{{ trim(($row['provider']??'').' / '.($row['model']??''),' /')?:'—' }}</td><td>{{ $row['latency_ms']?number_format((int)$row['latency_ms']).' ms':'—' }}</td><td>{{ $row['completed_at']?:'—' }}</td></tr>@endforeach
+@foreach((array)($analysis['trace']??[]) as $row)<tr><td>#{{ $row['id'] }}</td><td>{{ __('assistant_intelligence.analysis.domains.'.$row['domain']) }}</td><td>{{ __('assistant_intelligence.analysis.status_values.'.$analysisStatusKey((string)$row['status'])) }}</td><td><span class="analysis-source" data-source="{{ strtoupper($row['source']) }}">{{ __('assistant_intelligence.analysis.sources.'.$analysisSourceKey((string)$row['source'])) }}</span></td><td>{{ $row['store_count'] }}</td><td>{{ trim(($row['provider']??'').' / '.($row['model']??''),' /')?:'—' }}</td><td>{{ $row['latency_ms']?number_format((int)$row['latency_ms']).' ms':'—' }}</td><td>{{ $row['completed_at']?:'—' }}</td></tr>@endforeach
 </tbody></table></div></div>
 
 <div class="intelligence-card"><div class="intelligence-head"><div><h2>{{ __('assistant_intelligence.analysis.run_history') }}</h2></div></div>
 <div class="analysis-table-wrap" style="margin-top:10px"><table class="analysis-table"><thead><tr><th>{{ __('assistant_intelligence.analysis.run') }}</th><th>{{ __('assistant_intelligence.analysis.trigger') }}</th><th>{{ __('assistant_intelligence.analysis.status') }}</th><th>{{ __('assistant_intelligence.analysis.coverage') }}</th><th>{{ __('assistant_intelligence.analysis.source') }}</th><th>{{ __('assistant_intelligence.analysis.started') }}</th><th>{{ __('assistant_intelligence.analysis.finished') }}</th></tr></thead><tbody>
-@foreach((array)($analysis['history']??[]) as $row)<tr><td>#{{ $row['id'] }}</td><td>{{ strtoupper($row['trigger']) }}</td><td>{{ strtoupper($row['status']) }}</td><td>{{ number_format((float)$row['coverage_percent'],1) }}%</td><td><span class="analysis-source" data-source="{{ strtoupper($row['source']) }}">{{ strtoupper($row['source']) }}</span></td><td>{{ $row['started_at']?:'—' }}</td><td>{{ $row['completed_at']?:'—' }}</td></tr>@endforeach
+@foreach((array)($analysis['history']??[]) as $row)<tr><td>#{{ $row['id'] }}</td><td>{{ __('assistant_intelligence.analysis.trigger_values.'.strtolower((string)$row['trigger'])) }}</td><td>{{ __('assistant_intelligence.analysis.status_values.'.$analysisStatusKey((string)$row['status'])) }}</td><td>{{ number_format((float)$row['coverage_percent'],1) }}%</td><td><span class="analysis-source" data-source="{{ strtoupper($row['source']) }}">{{ __('assistant_intelligence.analysis.sources.'.$analysisSourceKey((string)$row['source'])) }}</span></td><td>{{ $row['started_at']?:'—' }}</td><td>{{ $row['completed_at']?:'—' }}</td></tr>@endforeach
 </tbody></table></div></div>
 </section>
 @endif

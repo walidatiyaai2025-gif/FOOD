@@ -112,6 +112,30 @@ return [
         'finished' => 'انتهى',
         'stores' => 'المتاجر',
         'no_agent_chunks' => 'لا توجد آراء Agent مرتبطة بالبيانات حتى الآن.',
+        'sources' => [
+            'database' => 'قاعدة البيانات',
+            'deterministic' => 'تحليل حتمي',
+            'agent_ai' => 'رأي الـAgent',
+            'hybrid' => 'هجين: بيانات + Agent',
+        ],
+        'status_values' => [
+            'idle' => 'غير نشط',
+            'queued' => 'في الانتظار',
+            'running' => 'قيد التحليل',
+            'finalizing' => 'جارٍ إنهاء التحليل',
+            'complete' => 'مكتمل',
+            'partial' => 'جزئي',
+            'failed' => 'فشل',
+        ],
+        'trigger_values' => [
+            'manual' => 'يدوي',
+            'scheduler' => 'المجدول',
+        ],
+        'confidence_values' => [
+            'high' => 'مرتفعة',
+            'medium' => 'متوسطة',
+            'low' => 'منخفضة',
+        ],
         'domains' => [
             'sales' => 'المبيعات',
             'customers' => 'العملاء',
