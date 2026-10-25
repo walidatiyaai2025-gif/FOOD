@@ -57,6 +57,19 @@ final class MobileReleaseArtifactMirror
         return $version;
     }
 
+    public function publicDownloadUrl(string $app, ?string $version = null): string
+    {
+        $label = self::APPS[$app] ?? null;
+        if ($label === null) {
+            throw new RuntimeException('Unsupported FOODEX mobile application.');
+        }
+
+        $version ??= $this->currentVersionForApp($app);
+        $this->assertVersion($version);
+
+        return self::RELEASE_BASE_URL.'/v'.$version.'/FOODEX-'.$label.'-'.$version.'.apk';
+    }
+
     /** @return array<string, string> */
     public function currentAppVersions(): array
     {

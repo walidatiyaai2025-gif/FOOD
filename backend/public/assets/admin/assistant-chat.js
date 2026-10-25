@@ -702,6 +702,20 @@
             meta.className = 'foodex-assistant-message-meta';
             meta.textContent = role === 'user' ? label('labelYou') : label('labelAssistant');
 
+            if (role !== 'user') {
+                const source = String(payload?.response_source || '').toLowerCase();
+                if (source === 'ai' || source === 'database') {
+                    const sourceBadge = document.createElement('span');
+                    sourceBadge.className = 'foodex-assistant-source-badge';
+                    sourceBadge.dataset.source = source;
+                    sourceBadge.textContent = source === 'ai'
+                        ? label('labelResponseSourceAi')
+                        : label('labelResponseSourceDatabase');
+                    meta.append(' · ', sourceBadge);
+                    article.dataset.responseSource = source;
+                }
+            }
+
             const bubble = document.createElement('div');
             bubble.className = 'foodex-assistant-bubble';
             bubble.textContent = content;
@@ -760,8 +774,9 @@
         };
 
         const renderPrompts = values => {
-            if (!prompts || !Array.isArray(values) || values.length === 0) return;
+            if (!prompts) return;
             prompts.replaceChildren();
+            if (!Array.isArray(values) || values.length === 0) return;
 
             values.slice(0, 6).forEach(value => {
                 if (typeof value !== 'string' || value.trim() === '') return;

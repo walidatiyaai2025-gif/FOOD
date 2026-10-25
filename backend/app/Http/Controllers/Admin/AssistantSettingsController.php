@@ -264,6 +264,45 @@ final class AssistantSettingsController extends Controller
         }
 
         $this->externalAi->assertSafeEndpoint($config['api_url']);
+        $health = $this->externalAi->health();
+
+        $message = $health->healthy
+            ? __('assistant_settings.test_success')
+            : ($health->statusCode !== null
+                ? __('assistant_settings.errors.provider_http', ['status' => $health->statusCode])
+                : __('assistant_settings.errors.connection_failed'));
+
+        return redirect()
+            ->route('admin.assistant-settings.index')
+            ->with(
+                $health->healthy ? 'provider_test_success' : 'provider_test_error',
+                $message,
+            )
+            ->with('provider_connection', [
+                'reachable' => $health->reachable,
+                'healthy' => $health->healthy,
+                'status_code' => $health->statusCode,
+                'latency_ms' => $health->latencyMs,
+                'model' => $health->model,
+            ]);
+    }
+
+    public function testCapabilities(Request $request): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        abort_unless($actor->hasPermission('settings.manage'), 403);
+
+        $config = $this->providerSettings->snapshot();
+
+        if ($config['api_url'] === '' || $config['model'] === '') {
+            throw ValidationException::withMessages([
+                'provider' => [
+                    __('assistant_settings.errors.save_before_test'),
+                ],
+            ]);
+        }
+
+        $this->externalAi->assertSafeEndpoint($config['api_url']);
 
         $result = $this->externalAi->probe(
             [

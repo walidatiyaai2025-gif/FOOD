@@ -453,6 +453,14 @@ PHP);
 
         $report = app(ProductionLaunchPreflight::class)->runtimeReport();
         $this->assertTrue($report['checks']['release_lineage']['passed']);
+        if ($customer['version'] !== $version) {
+            $this->assertSame($customer['version'], $driver['version']);
+            $this->assertSame($driver['version'], $van['version']);
+            $this->assertStringContainsString(
+                'Dashboard-only release lineage is valid',
+                $report['checks']['release_lineage']['detail'],
+            );
+        }
         $this->assertTrue($report['checks']['customer_frozen_lineage']['passed']);
     }
 

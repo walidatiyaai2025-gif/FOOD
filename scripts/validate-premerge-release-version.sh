@@ -63,9 +63,14 @@ if [[ "$current_version" == "1.0.77" ]]; then
   fi
 fi
 branch_name="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}"
+base_branch_name="${GITHUB_BASE_REF:-}"
 release_branch=false
+dashboard_update_release=false
 if [[ "$branch_name" == release/* ]]; then
   release_branch=true
+fi
+if [[ "$branch_name" == release/*-update || "$base_branch_name" == release/*-update ]]; then
+  dashboard_update_release=true
 fi
 
 # Normal feature/bug PRs are allowed to change deployable code without publishing
@@ -83,6 +88,23 @@ if [[ "$release_branch" == "true" && "$version_changed" != "true" ]]; then
     echo "Release branch '$branch_name' must bump VERSION relative to base ($base_version)." >&2
     exit 1
   fi
+fi
+
+if [[ "$dashboard_update_release" == "true" ]]; then
+  if [[ "$customer_identity" != "$driver_identity" || "$driver_identity" != "$van_identity" ]]; then
+    echo "Dashboard-only release requires unchanged, mutually synchronized mobile identities." >&2
+    exit 1
+  fi
+
+  mobile_changes="$(printf '%s\n' "$changed" | grep -E '^apps/(customer_app|driver_app|van_app)/' || true)"
+  if [[ -n "$mobile_changes" ]]; then
+    echo "Dashboard-only release must not change mobile app sources:" >&2
+    printf '%s\n' "$mobile_changes" >&2
+    exit 1
+  fi
+
+  echo "Pre-merge dashboard-only release contract passed (base=$base_version, candidate=$current_version, mobile=$customer_identity unchanged)."
+  exit 0
 fi
 
 if [[ "$current_version" != "1.0.77" && "$customer_identity" != "$driver_identity" ]]; then

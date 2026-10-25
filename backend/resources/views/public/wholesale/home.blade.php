@@ -79,7 +79,7 @@
                     @forelse($categories as $category)
                         <a class="fx-category-card @if($activeCategory===$category['id']) is-selected @endif" href="{{ route('public.wholesale.home',['category'=>$category['id']]) }}#products">
                             <span class="fx-category-card__image">
-                                @if($category['image_url'])<img src="{{ $category['image_url'] }}" alt="{{ $category['name'] }}" loading="lazy">@else<span aria-hidden="true">❄</span>@endif
+                                @if($category['image_url'])<img src="{{ $category['image_url'] }}" alt="{{ $category['name'] }}" loading="lazy">@else<span class="fx-image-placeholder fx-image-placeholder--compact" aria-hidden="true"><img class="fx-fallback-image" src="{{ asset('assets/wholesale/foodex-icon.png') }}" alt=""></span>@endif
                             </span>
                             <strong>{{ $category['name'] }}</strong>
                         </a>
@@ -100,7 +100,7 @@
                 <div class="fx-brand-row">
                     @forelse($brands as $brand)
                         <a class="fx-brand-card @if($activeBrand===$brand['id']) is-selected @endif" href="{{ route('public.wholesale.home',['brand'=>$brand['id']]) }}#products">
-                            @if($brand['image_url'])<img src="{{ $brand['image_url'] }}" alt="{{ $brand['name'] }}" loading="lazy">@else<span class="fx-brand-fallback">{{ mb_substr($brand['name'],0,1) }}</span>@endif
+                            @if($brand['image_url'])<img src="{{ $brand['image_url'] }}" alt="{{ $brand['name'] }}" loading="lazy">@else<span class="fx-brand-fallback" aria-hidden="true"><img src="{{ asset('assets/wholesale/foodex-icon.png') }}" alt=""></span>@endif
                             <strong>{{ $brand['name'] }}</strong>
                         </a>
                     @empty

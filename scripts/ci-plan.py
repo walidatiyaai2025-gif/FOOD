@@ -45,6 +45,7 @@ def changed_files(base:str,head:str)->list[str]:
 
 def resolve(config:dict,paths:list[str],branch:str="")->dict:
     areas={name:any(re.search(spec["path_regex"],p) for p in paths) for name,spec in config["areas"].items()}
+    direct_areas=dict(areas)
     expansions=[]; branch_rules=[]
     for item in config.get("expansions",[]):
         if any(re.search(item["path_regex"],p) for p in paths):
@@ -61,7 +62,20 @@ def resolve(config:dict,paths:list[str],branch:str="")->dict:
             for test in item.get("tests",[]):
                 if test not in focused[area]: focused[area].append(test)
     mobile_areas=("customer","driver","van","mobile_ui","mobile_prod_ux_acceptance")
-    backend_dashboard_only=bool(paths) and bool(areas.get("backend") or areas.get("dashboard_ui")) and not any(areas.get(name,False) for name in mobile_areas)
+    direct_mobile=any(direct_areas.get(name,False) for name in mobile_areas)
+    explicit_mobile_branch=any(
+        areas.get(name,False) and not direct_areas.get(name,False)
+        for name in mobile_areas
+    ) and bool(branch_rules)
+    # Expansions such as release-contract may request cross-surface validation,
+    # but they must not force platform builds when no mobile app/shared dependency
+    # changed. Explicit convergence branch rules still restore those lanes.
+    backend_dashboard_only=(
+        bool(paths)
+        and bool(areas.get("backend") or areas.get("dashboard_ui"))
+        and not direct_mobile
+        and not explicit_mobile_branch
+    )
     return {"schema_version":1,"branch":branch,"changed_files":paths,"areas":areas,"backend_dashboard_only":backend_dashboard_only,"expansions":expansions,"branch_rules":branch_rules,"focused_rules":focused_rules,"focused_tests":focused}
 
 def emit(plan:dict,fh)->None:

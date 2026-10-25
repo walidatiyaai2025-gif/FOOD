@@ -89,6 +89,8 @@
         data-label-evidence-domain="{{ __('assistant_ui.evidence_domain') }}"
         data-label-evidence-metric="{{ __('assistant_ui.evidence_metric') }}"
         data-label-evidence-authorized="{{ __('assistant_ui.evidence_authorized') }}"
+        data-label-response-source-ai="{{ __('assistant_ui.response_source_ai') }}"
+        data-label-response-source-database="{{ __('assistant_ui.response_source_database') }}"
         data-label-fresh="{{ __('assistant_ui.fresh') }}"
         data-label-stale="{{ __('assistant_ui.stale') }}"
         data-label-partial="{{ __('assistant_ui.partial') }}"

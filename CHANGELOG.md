@@ -1,5 +1,47 @@
 # Changelog
 
+## 1.0.109 - 2026-10-25
+- Make FOODEX Assistant genuinely hybrid: the deterministic brain remains the always-available parser/fallback while the Agent Orchestrator exclusively owns external-AI planning and synthesis, avoiding duplicate provider routing calls in one turn.
+- Answer safe general/non-live questions directly with the configured AI provider instead of forcing a Database fallback; live FOODEX business facts still require authorized server tools and cannot be invented by the model.
+- Add bounded direct-AI repair when a general provider reply does not follow the planner schema, while preserving scope-denial fail-closed behavior and preventing AI from claiming database access or completed mutations.
+- Generate 2-4 contextual follow-up prompts from AI for both direct replies and grounded FOODEX answers; suggestions are localized, deduplicated, length-bounded and rendered fresh per reply.
+- Preserve AI vs Database provenance: tool/evidence-backed answers remain labeled Database, while tool-free successful model replies are labeled AI.
+- Preserve RBAC, tenant/store/channel isolation, read-only enforcement, approval gates, provider budgets, Qwen3 low-reasoning mode, and the rule that chain-of-thought is never exposed or stored.
+- Remove the hidden 6s/12s chat latency bottleneck that could make a CPU-hosted provider pass the Settings test but fall back during real conversations; allow the Agent turn to use up to 30 seconds while the provider request still respects the saved provider timeout and bounded Agent budget.
+- Publish as Dashboard/backend-only 1.0.109 on top of 1.0.108; Customer, Driver and Van identities remain unchanged and are not rebuilt.
+- Regenerate the canonical 1.0.109 Dashboard update bundle from the reconciled release head before final convergence to `main`, preserving exact-head release metadata and checksums.
+
+## 1.0.108 - 2026-10-24
+- Port the completed #2399 / PR #2400 Assistant provider-test fix onto the cumulative 1.0.107 Dashboard lineage without regressing the one-request saved-connection and capability-test contracts.
+- Isolate Assistant saved-connection and capability test throttles into purpose-scoped named limiters so unrelated authenticated Dashboard numeric-throttle traffic cannot consume their buckets; preserve the existing 10/min and 5/min ceilings with Retry-After behavior.
+- Increase saved-connection and capability-test output budgets from the hardcoded 128-token ceiling to a bounded maximum of 512 tokens, never above the configured provider max, so reasoning-capable models can emit the required final sentinel/tool result.
+- Preserve Qwen3 `reasoning_effort: none`, no immediate retry on HTTP 429, AI-vs-Database response provenance, RBAC, tenant/store/channel scope and read-only Assistant tool enforcement.
+- Publish this as a cumulative Dashboard/backend-only 1.0.108 update on top of 1.0.107; Customer, Driver and Van Android identities remain unchanged and are not rebuilt.
+- Generate the canonical `FOODEX-Update.zip` from the exact `release/1.0.108-update` head; do not invoke Customer, Driver or Van build lanes for this Dashboard-only release.
+
+## 1.0.107 - 2026-10-24
+- Make FOODEX Qwen3/OpenAI-compatible Assistant requests low-latency by sending `reasoning_effort: none` for provider health, capability probes, routing, planning and grounded synthesis while retaining deterministic fail-safe behavior.
+- Fix Dashboard > FOODEX Assistant Settings provider testing: Test saved connection is now one lightweight request, Test agent capabilities is a separate one-request forced-tool contract, and the old three-request burst that could trigger provider HTTP 429 is removed.
+- Stop immediate retries of provider HTTP 429 responses so FOODEX does not amplify throttling; existing safe fallback/circuit behavior remains in control.
+- Add Assistant response provenance to current replies and conversation history: tool/evidence-backed business answers are labeled `Database / قاعدة البيانات`, while successful model-only replies are labeled `AI / ذكاء اصطناعي`.
+- Preserve RBAC, store/channel scope, read-only tool enforcement, server-authoritative business data and the rule that chain-of-thought/reasoning is never exposed or persisted.
+- Publish this as a cumulative Dashboard-only 1.0.107 update on top of the 1.0.106 lineage; Customer, Driver and Van Android identities remain unchanged.
+
+## 1.0.106 - 2026-10-24
+- Carry the Public Wholesale Web polish from the post-1.0.105 source lineage: Alexandria Google Font, 1560px widescreen shell, polished accessible hamburger drawer, larger branded image fallbacks, and canonical FOODEX icon usage across header/footer/favicon/catalog fallbacks.
+- Fix the public Customer App download CTA so `/downloads/apps/customer/latest.apk` no longer returns HTTP 503 while the server-side APK mirror is still warming.
+- Prefer the verified local APK mirror when ready; otherwise queue mirror preparation and immediately redirect the visitor to the immutable official GitHub Release APK for the exact Android policy version.
+- Keep Customer, Driver and Van Android identities unchanged at `1.0.104+104`; this is a Dashboard/Public Web-only update and does not rebuild mobile APKs.
+- Preserve version-locked download routing, local mirror integrity checks, cumulative updater compatibility and production API `https://foodex.50sols.com`.
+
+## 1.0.105 - 2026-10-24
+- Promote the authoritative Dashboard/backend lineage through `5efd2aaa9a72e72ee564d1a9dbd7d5328e28e895` as the FOODEX 1.0.105 dashboard-only update.
+- Include the completed Wholesale storefront separation from #2394 / PR #2396: Customer App storefront editing remains isolated on the mobile channel while Public Wholesale Web has its own `b2b_web` draft, preview, sections, banners, settings, publish/discard flow and enable state.
+- Keep the public Wholesale Web price-free and purchase-free while preserving management login, FOODEX branding, SEO metadata, brands/categories/products presentation and app-directed purchasing.
+- Build the cumulative Dashboard Update package from the exact 1.0.105 source lineage using the canonical FOODEX Update Bundle workflow.
+- Do not rebuild or version-bump Customer, Driver or Van APKs for this dashboard-only promotion; their source identities remain `1.0.104+104`.
+- Preserve production API `https://foodex.50sols.com`, updater recovery safeguards, cumulative upgrade compatibility and manifest/checksum validation.
+
 ## 1.0.104 - 2026-10-23
 - Promote the authoritative `main` lineage through `abdf0c0b799887fb5720034cc9a8187a140a40d1` as FOODEX 1.0.104; owner-selected 1.0.103 remains unpublished.
 - Carry the completed 1.0.102 self-healing Dashboard updater hardening, including retry-safe migrations, full application-owned runtime packaging, explicit failure diagnostics, and safe handling of optional exact runtime files.

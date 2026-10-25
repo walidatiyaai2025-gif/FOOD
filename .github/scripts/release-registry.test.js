@@ -153,6 +153,29 @@ test('unpublished PR candidate may advance VERSION while published registry stay
   assert.doesNotThrow(() => validateRegistry(root, registry, validationVersion));
 });
 
+test('dashboard-only candidate may defer stale generated artifact validation until release workflow', () => {
+  const { root, registry } = fixture('1.0.57');
+  fs.writeFileSync(path.join(root, 'VERSION'), '1.0.58\n');
+  fs.writeFileSync(
+    path.join(root, 'Release/Updates/FOODEX-Update.json'),
+    JSON.stringify({ package: 'FOODEX-Update.zip', target_version: '1.0.99', sha256: 'stale' }),
+  );
+
+  const validationVersion = validationVersionForCandidate(
+    '1.0.58',
+    registry,
+    JSON.parse(JSON.stringify(registry)),
+  );
+
+  assert.throws(() => validateRegistry(root, registry, validationVersion), /target_version/);
+  assert.doesNotThrow(() => validateRegistry(
+    root,
+    registry,
+    validationVersion,
+    { deferDashboardArtifactValidation: true },
+  ));
+});
+
 test('unpublished PR candidate cannot rewrite published registry history', () => {
   const { registry: base } = fixture('1.0.57');
   const mutated = JSON.parse(JSON.stringify(base));

@@ -12,6 +12,10 @@ final readonly class AgentTurnResult
 
     public const DENIED = 'DENIED';
 
+    public const SOURCE_AI = 'ai';
+
+    public const SOURCE_DATABASE = 'database';
+
     /**
      * @param  list<array<string,mixed>>  $toolExecutions
      * @param  list<array<string,mixed>>  $evidence
@@ -30,11 +34,31 @@ final readonly class AgentTurnResult
         public array $providerMetadata = [],
     ) {}
 
+    public function responseSource(): string
+    {
+        $explicit = $this->providerMetadata['response_source'] ?? null;
+        if (in_array($explicit, [self::SOURCE_AI, self::SOURCE_DATABASE], true)) {
+            return $explicit;
+        }
+
+        $successfulToolExecution = collect($this->toolExecutions)
+            ->contains(static fn (array $execution): bool => ($execution['status'] ?? 'FAILED') !== 'FAILED');
+
+        if ($this->toolResult !== null || $successfulToolExecution || $this->evidence !== []) {
+            return self::SOURCE_DATABASE;
+        }
+
+        return ($this->providerMetadata['ok'] ?? false) === true
+            ? self::SOURCE_AI
+            : self::SOURCE_DATABASE;
+    }
+
     /** @return array<string,mixed> */
     public function metadata(): array
     {
         return [
             'status' => $this->status,
+            'response_source' => $this->responseSource(),
             'tool_executions' => $this->toolExecutions,
             'evidence' => $this->evidence,
             'scope' => $this->scopeSummary,

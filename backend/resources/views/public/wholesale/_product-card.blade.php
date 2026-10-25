@@ -3,7 +3,7 @@
         @if(!empty($item['image_url']))
             <img src="{{ $item['image_url'] }}" alt="{{ $item['name'] }}" loading="lazy">
         @else
-            <span class="fx-image-placeholder" aria-hidden="true">❄</span>
+            <span class="fx-image-placeholder" aria-hidden="true"><img class="fx-fallback-image" src="{{ asset('assets/wholesale/foodex-icon.png') }}" alt=""></span>
         @endif
     </a>
     <div class="fx-product-card__body">

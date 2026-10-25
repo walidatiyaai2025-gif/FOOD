@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Assistant\Data\AgentExecutionBudget;
 use App\Domain\Assistant\Data\AiPrincipalContext;
 use App\Domain\Assistant\Data\AssistantToolRequest;
 use App\Domain\Assistant\Data\AssistantToolResult;
@@ -140,6 +141,22 @@ class AssistantPerformanceResilienceTest extends TestCase
             RefreshAssistantAnalyticsJob::class,
             static fn (RefreshAssistantAnalyticsJob $job): bool => $job->storeIds === [101, 101, 102],
         );
+    }
+
+    public function test_cpu_provider_latency_budget_allows_slow_chat_without_becoming_unbounded(): void
+    {
+        config([
+            'assistant.performance.simple_hard_ms' => 25000,
+            'assistant.performance.analysis_hard_ms' => 30000,
+            'assistant.agent.max_seconds' => 30,
+        ]);
+
+        $manager = app(AssistantPerformanceManager::class);
+        $budget = AgentExecutionBudget::fromConfig();
+
+        $this->assertSame(30000, $budget->maxElapsedMs);
+        $this->assertSame(25000, $manager->hardLatencyBudgetMs(1));
+        $this->assertSame(30000, $manager->hardLatencyBudgetMs(2));
     }
 
     public function test_latency_classes_have_distinct_hard_budgets(): void

@@ -104,14 +104,14 @@ class MobileAppDownloadTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_missing_latest_apk_returns_preparing_response_and_schedules_background_mirror(): void
+    public function test_missing_latest_apk_redirects_to_official_release_and_schedules_background_mirror(): void
     {
         Queue::fake();
         $this->installVersion('9.9.9');
         $this->setAndroidVersion('customer', '9.8.7');
 
         $this->get('/downloads/apps/customer/latest.apk')
-            ->assertStatus(503);
+            ->assertRedirect('https://github.com/walidatiyaai2025-gif/FOOD/releases/download/v9.8.7/FOODEX-Customer-9.8.7.apk');
 
         Queue::assertPushed(
             MirrorMobileReleaseArtifacts::class,

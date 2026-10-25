@@ -52,6 +52,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [[ "$GITHUB_REF_NAME" == release/*-update && "${{ github.event_name }}" == "push" ]]; then
+            echo "release_intent=false" >> "$GITHUB_OUTPUT"
+            echo "Dashboard-only update branch detected; skipping mobile trial distribution."
+            exit 0
+          fi
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "release_intent=true" >> "$GITHUB_OUTPUT"
             echo "Manual distribution requested."

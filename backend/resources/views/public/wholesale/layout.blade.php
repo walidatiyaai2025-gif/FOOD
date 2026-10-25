@@ -6,6 +6,11 @@
     <meta name="theme-color" content="#00452F">
     <title>@yield('title', __('wholesale_public.page_title'))</title>
     <meta name="description" content="@yield('meta_description', __('wholesale_public.meta_description'))">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="{{ asset('assets/wholesale/foodex-icon.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('assets/wholesale/foodex-icon.png') }}">
     <link rel="stylesheet" href="{{ asset('assets/wholesale/foodex-wholesale.css') }}">
 </head>
 @php
@@ -14,6 +19,7 @@
         : ((string)($identity['brand_title_en'] ?? '') ?: __('wholesale_public.brand_name'));
     $isWebDraftPreview = (bool)($webPreview['active'] ?? false);
     $webHomeUrl = $isWebDraftPreview ? route('admin.b2b.web-storefront.preview') : route('public.wholesale.home');
+    $foodexIconUrl = asset('assets/wholesale/foodex-icon.png');
 @endphp
 <style>
 :root{
@@ -36,7 +42,7 @@
             @if(!empty($store['logo_url']))
                 <img src="{{ $store['logo_url'] }}" alt="{{ $identityBrand }}">
             @else
-                <span class="fx-brand__mark" aria-hidden="true">✦</span>
+                <img class="fx-brand__icon" src="{{ $foodexIconUrl }}" alt="" aria-hidden="true">
             @endif
             <span>{{ $identityBrand }}</span>
         </a>
@@ -50,14 +56,21 @@
             <a class="fx-link-button" href="{{ $adminUrl }}">{{ __('wholesale_public.nav.management_login') }}</a>
             <a class="fx-primary-button" href="{{ $appUrl }}">{{ __('wholesale_public.nav.get_app') }}</a>
         </div>
-        <button class="fx-menu-button" type="button" data-menu-toggle aria-label="{{ __('wholesale_public.nav.open_menu') }}">☰</button>
+        <button class="fx-menu-button" type="button" data-menu-toggle aria-controls="fx-mobile-nav" aria-expanded="false" aria-label="{{ __('wholesale_public.nav.open_menu') }}">
+            <span class="fx-menu-button__icon" aria-hidden="true"><span></span><span></span><span></span></span>
+        </button>
     </div>
-    <div class="fx-mobile-nav" data-mobile-nav hidden>
-        <a href="{{ $webHomeUrl }}">{{ __('wholesale_public.nav.home') }}</a>
-        <a href="{{ $webHomeUrl }}#categories">{{ __('wholesale_public.nav.categories') }}</a>
-        <a href="{{ $isWebDraftPreview ? $webHomeUrl.'#brands' : route('public.wholesale.brands') }}">{{ __('wholesale_public.nav.brands') }}</a>
-        <a href="{{ $webHomeUrl }}#products">{{ __('wholesale_public.nav.products') }}</a>
-        <a href="{{ $adminUrl }}">{{ __('wholesale_public.nav.management_login') }}</a>
+    <div class="fx-mobile-nav" id="fx-mobile-nav" data-mobile-nav hidden>
+        <div class="fx-shell fx-mobile-nav__panel">
+            <a href="{{ $webHomeUrl }}">{{ __('wholesale_public.nav.home') }}</a>
+            <a href="{{ $webHomeUrl }}#categories">{{ __('wholesale_public.nav.categories') }}</a>
+            <a href="{{ $isWebDraftPreview ? $webHomeUrl.'#brands' : route('public.wholesale.brands') }}">{{ __('wholesale_public.nav.brands') }}</a>
+            <a href="{{ $webHomeUrl }}#products">{{ __('wholesale_public.nav.products') }}</a>
+            <div class="fx-mobile-nav__actions">
+                <a class="fx-link-button" href="{{ $adminUrl }}">{{ __('wholesale_public.nav.management_login') }}</a>
+                <a class="fx-primary-button" href="{{ $appUrl }}">{{ __('wholesale_public.nav.get_app') }}</a>
+            </div>
+        </div>
     </div>
 </header>
 
@@ -68,7 +81,7 @@
 <footer class="fx-footer">
     <div class="fx-shell fx-footer__grid">
         <div>
-            <div class="fx-brand fx-brand--footer"><span class="fx-brand__mark" aria-hidden="true">✦</span><span>{{ $identityBrand }}</span></div>
+            <div class="fx-brand fx-brand--footer"><img class="fx-brand__icon" src="{{ $foodexIconUrl }}" alt="" aria-hidden="true"><span>{{ $identityBrand }}</span></div>
             <p>{{ __('wholesale_public.footer.tagline') }}</p>
         </div>
         <div>
