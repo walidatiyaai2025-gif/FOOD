@@ -174,7 +174,7 @@ class AdminNavigation
             ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
                 $canAccessPlatformNavigation ? $this->whatsAppSupervisorItem($user) : null,
-                $this->routeItem($user, 'ai_analytics', 'assistant_intelligence.analysis.nav', 'admin.assistant-intelligence.index', 'assistant.use'),
+                $canAccessPlatformNavigation ? $this->routeItem($user, 'ai_analytics', 'assistant_intelligence.analysis.nav', 'admin.assistant-intelligence.index', 'assistant.use') : null,
                 $this->routeItem($user, 'reports_center', 'reports.title', 'admin.reports.index', 'reports.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'reports', 'admin.b2c_workspace.modules.reports', 'reports.view'),
                 $this->module($user, $channels, 'b2b', 'finance', 'admin.b2b_workspace.modules.finance', 'finance.view'),
