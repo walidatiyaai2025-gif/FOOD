@@ -291,10 +291,10 @@ final class AssistantExternalAiClient implements AssistantProviderGatewayInterfa
         }
 
         $apiKey = $this->settings->apiKey();
-        $timeout = min(
-            $config['timeout_seconds'],
-            max(3, $request->timeoutSeconds ?? $config['timeout_seconds']),
-        );
+        $requestedTimeout = max(3, $request->timeoutSeconds ?? $config['timeout_seconds']);
+        $timeout = $request->useCase === 'background_intelligence'
+            ? min(120, max($config['timeout_seconds'], $requestedTimeout))
+            : min($config['timeout_seconds'], $requestedTimeout);
         $maxTokens = min($config['max_tokens'], max(128, $request->maxTokens));
         $temperature = min(1.0, max(0.0, $request->temperature));
         $payload = [

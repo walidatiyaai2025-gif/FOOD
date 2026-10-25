@@ -9,6 +9,7 @@ final class AssistantModelRegistry
         'agent_planning',
         'grounded_synthesis',
         'direct_reply',
+        'background_intelligence',
     ];
 
     public function __construct(private readonly AssistantProviderSettings $settings) {}
