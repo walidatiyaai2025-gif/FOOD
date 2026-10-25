@@ -105,7 +105,7 @@ final readonly class AssistantAnalysisPipeline
                         'run_id' => $runId,
                         'batch_key' => $domain.'-'.str_pad((string) ($index + 1), 5, '0', STR_PAD_LEFT),
                         'domain' => $domain,
-                        'store_ids' => json_encode(array_values($ids), JSON_THROW_ON_ERROR),
+                        'store_ids' => json_encode($ids, JSON_THROW_ON_ERROR),
                         'status' => 'pending',
                         'source_kind' => 'DATABASE',
                         'progress_percent' => 0,
