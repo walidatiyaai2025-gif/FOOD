@@ -4,6 +4,7 @@
 - Make Assistant Intelligence Agent output Arabic-first for all user-facing generated text on the Arabic Dashboard, including executive opinion, priorities, recommendations, domain opinions and findings.
 - Preserve the structured Agent contract by keeping JSON keys and enum values schema-compatible while localizing only natural-language fields.
 - Add regression coverage proving the final executive summary explicitly requests Arabic recommendations and priorities.
+- After installing 1.0.111, run Analyze platform now to generate a fresh Arabic Agent assessment; historical stored English analysis is intentionally left unchanged.
 - Publish as Dashboard/backend-only FOODEX 1.0.111; Customer, Driver and Van identities remain unchanged and mobile builds stay skipped.
 
 ## 1.0.110 - 2026-10-25
