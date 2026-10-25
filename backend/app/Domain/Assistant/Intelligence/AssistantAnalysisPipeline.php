@@ -281,6 +281,7 @@ final readonly class AssistantAnalysisPipeline
         $opinions = $chunks->filter(fn (object $row): bool => $row->agent_opinion !== null)->sortByDesc('completed_at')->take(12)
             ->map(function (object $row): array {
                 $opinion = $this->decodeJson($row->agent_opinion);
+
                 return [
                     'id' => (int) $row->id, 'domain' => (string) $row->domain, 'source' => (string) $row->source_kind,
                     'opinion' => (string) data_get($opinion, 'opinion', ''), 'store_count' => count($this->decodeIds($row->store_ids)),
@@ -338,6 +339,7 @@ final readonly class AssistantAnalysisPipeline
             'completed_chunks' => $complete, 'failed_chunks' => $failed, 'coverage_percent' => $coverage,
             'last_progress_at' => now('UTC'), 'updated_at' => now('UTC'),
         ]);
+
         return $coverage;
     }
 
@@ -348,14 +350,20 @@ final readonly class AssistantAnalysisPipeline
             $query->where('id', $specificRunId);
         }
         $run = $query->first();
-        if ($run === null) return;
+        if ($run === null) {
+            return;
+        }
 
         $remaining = DB::table('assistant_analysis_chunks')->where('run_id', $run->id)->whereIn('status', ['pending', 'running'])->count();
-        if ($remaining > 0) return;
+        if ($remaining > 0) {
+            return;
+        }
 
         $claimed = DB::table('assistant_analysis_runs')->where('id', $run->id)->whereIn('status', ['queued', 'running'])
             ->update(['status' => 'finalizing', 'updated_at' => now('UTC')]);
-        if ($claimed === 1) $this->finalizeRun((int) $run->id);
+        if ($claimed === 1) {
+            $this->finalizeRun((int) $run->id);
+        }
     }
 
     private function finalizeRun(int $runId): void
@@ -490,6 +498,7 @@ final readonly class AssistantAnalysisPipeline
         $previousRevenue = round((float) (clone $previous)->sum('orders.grand_total'), 3);
         $orders = (int) (clone $current)->count('orders.id');
         $recognized = (int) (clone $current)->whereNotIn('orders.status', ['cancelled', 'refunded'])->count('orders.id');
+
         return [
             'orders' => $orders, 'recognized_orders' => $recognized, 'revenue' => $revenue, 'previous_revenue' => $previousRevenue,
             'revenue_change_percent' => $previousRevenue == 0.0 ? null : round((($revenue - $previousRevenue) / abs($previousRevenue)) * 100, 2),
@@ -500,29 +509,37 @@ final readonly class AssistantAnalysisPipeline
 
     private function customerMetrics(array $storeIds, CarbonImmutable $from, CarbonImmutable $to): array
     {
-        if (! Schema::hasColumn('orders', 'customer_id')) return ['available' => false, 'reason' => 'orders.customer_id_missing'];
+        if (! Schema::hasColumn('orders', 'customer_id')) {
+            return ['available' => false, 'reason' => 'orders.customer_id_missing'];
+        }
         $orders = $this->orders($storeIds, $from, $to)->whereNotNull('orders.customer_id');
         $unique = (int) (clone $orders)->distinct()->count('orders.customer_id');
         $repeat = DB::query()->fromSub((clone $orders)->selectRaw('orders.customer_id, COUNT(*) as order_count')->groupBy('orders.customer_id'), 'customer_orders')
             ->where('order_count', '>=', 2)->count();
+
         return ['available' => true, 'unique_customers' => $unique, 'repeat_customers' => (int) $repeat,
             'repeat_customer_percent' => $unique === 0 ? 0 : round(((int) $repeat / $unique) * 100, 2)];
     }
 
     private function productMetrics(array $storeIds): array
     {
-        if (! Schema::hasTable('store_products')) return ['available' => false, 'reason' => 'store_products_missing'];
+        if (! Schema::hasTable('store_products')) {
+            return ['available' => false, 'reason' => 'store_products_missing'];
+        }
         $query = DB::table('store_products')->whereIn('store_id', $storeIds);
         $total = (int) (clone $query)->count();
         $hasCost = Schema::hasColumn('store_products', 'cost_price');
         $costed = $hasCost ? (int) (clone $query)->whereNotNull('cost_price')->count() : null;
+
         return ['available' => true, 'store_product_rows' => $total, 'costed_rows' => $costed,
             'cost_coverage_percent' => ! $hasCost || $total === 0 ? null : round(((int) $costed / $total) * 100, 2)];
     }
 
     private function inventoryMetrics(array $storeIds): array
     {
-        if (! Schema::hasTable('inventories') || ! Schema::hasTable('warehouses')) return ['available' => false, 'reason' => 'inventory_tables_missing'];
+        if (! Schema::hasTable('inventories') || ! Schema::hasTable('warehouses')) {
+            return ['available' => false, 'reason' => 'inventory_tables_missing'];
+        }
         $query = DB::table('inventories')->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')->whereIn('warehouses.store_id', $storeIds);
         $onHand = round((float) (clone $query)->sum('inventories.quantity'), 3);
         $hasReserved = Schema::hasColumn('inventories', 'reserved_quantity');
@@ -530,15 +547,19 @@ final readonly class AssistantAnalysisPipeline
         $stockouts = $hasReserved
             ? (int) (clone $query)->whereRaw('(COALESCE(inventories.quantity,0) - COALESCE(inventories.reserved_quantity,0)) <= 0')->distinct()->count('inventories.product_id')
             : (int) (clone $query)->where('inventories.quantity', '<=', 0)->distinct()->count('inventories.product_id');
+
         return ['available' => true, 'on_hand_units' => $onHand, 'reserved_units' => $reserved, 'available_units' => round($onHand - $reserved, 3),
             'sku_count' => (int) (clone $query)->distinct()->count('inventories.product_id'), 'stockout_skus' => $stockouts];
     }
 
     private function financeMetrics(array $storeIds, CarbonImmutable $from, CarbonImmutable $to): array
     {
-        if (! Schema::hasTable('payments')) return ['available' => false, 'reason' => 'payments_missing'];
+        if (! Schema::hasTable('payments')) {
+            return ['available' => false, 'reason' => 'payments_missing'];
+        }
         $query = DB::table('payments')->join('orders', 'orders.id', '=', 'payments.order_id')->whereIn('orders.store_id', $storeIds)
             ->whereBetween('payments.created_at', [$from->toDateTimeString(), $to->toDateTimeString()]);
+
         return ['available' => true, 'payments' => (int) (clone $query)->count('payments.id'),
             'collected' => round((float) (clone $query)->whereIn('payments.status', ['paid', 'captured'])->sum('payments.amount'), 3),
             'refunded' => round((float) (clone $query)->where('payments.status', 'refunded')->sum('payments.amount'), 3),
@@ -550,16 +571,20 @@ final readonly class AssistantAnalysisPipeline
         $query = $this->orders($storeIds, $from, $to);
         $statuses = (clone $query)->selectRaw('orders.status, COUNT(*) as row_count')->groupBy('orders.status')->orderByDesc('row_count')->get()
             ->mapWithKeys(static fn (object $row): array => [(string) $row->status => (int) $row->row_count])->all();
+
         return ['orders' => (int) (clone $query)->count('orders.id'), 'status_breakdown' => $statuses,
             'cancelled' => (int) ($statuses['cancelled'] ?? 0), 'awaiting_dispatch' => (int) ($statuses['awaiting_dispatch'] ?? 0)];
     }
 
     private function supportMetrics(array $storeIds, CarbonImmutable $from, CarbonImmutable $to): array
     {
-        if (! Schema::hasTable('customer_service_cases')) return ['available' => false, 'reason' => 'customer_service_cases_missing'];
+        if (! Schema::hasTable('customer_service_cases')) {
+            return ['available' => false, 'reason' => 'customer_service_cases_missing'];
+        }
         $query = DB::table('customer_service_cases')->whereIn('store_id', $storeIds)->whereBetween('created_at', [$from->toDateTimeString(), $to->toDateTimeString()]);
         $overdue = Schema::hasColumn('customer_service_cases', 'sla_target_at')
             ? (int) (clone $query)->whereIn('status', ['open', 'pending'])->whereNotNull('sla_target_at')->where('sla_target_at', '<', now('UTC'))->count() : 0;
+
         return ['available' => true, 'cases' => (int) (clone $query)->count(),
             'open_or_pending' => (int) (clone $query)->whereIn('status', ['open', 'pending'])->count(), 'overdue_sla' => $overdue];
     }
@@ -573,21 +598,32 @@ final readonly class AssistantAnalysisPipeline
     private function decodeIds(mixed $value): array
     {
         $decoded = is_array($value) ? $value : json_decode((string) $value, true);
-        if (! is_array($decoded)) return [];
+        if (! is_array($decoded)) {
+            return [];
+        }
+
         return collect($decoded)->map(static fn ($id): int => (int) $id)->filter(static fn (int $id): bool => $id > 0)->unique()->values()->all();
     }
 
     private function decodeJson(mixed $value): array
     {
-        if (is_array($value)) return $value;
-        if (! is_string($value) || trim($value) === '') return [];
+        if (is_array($value)) {
+            return $value;
+        }
+        if (! is_string($value) || trim($value) === '') {
+            return [];
+        }
         $decoded = json_decode($value, true);
+
         return is_array($decoded) ? $decoded : [];
     }
 
     private function displayTime(mixed $value): ?string
     {
-        if ($value === null || trim((string) $value) === '') return null;
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+
         return CarbonImmutable::parse((string) $value, 'UTC')->setTimezone('Asia/Kuwait')->format('Y-m-d H:i');
     }
 }
