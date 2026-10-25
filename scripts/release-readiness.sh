@@ -26,7 +26,7 @@ release_version="$(tr -d '\r\n' < VERSION)"
 branch_name="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}"
 base_branch="${GITHUB_BASE_REF:-}"
 dashboard_update_release=false
-if [[ "$branch_name" == release/*-update || "$base_branch" == release/*-update ]]; then
+if [[ "${FOODEX_DASHBOARD_UPDATE_RELEASE:-false}" == "true" || "$branch_name" == release/*-update || "$base_branch" == release/*-update ]]; then
   dashboard_update_release=true
 fi
 

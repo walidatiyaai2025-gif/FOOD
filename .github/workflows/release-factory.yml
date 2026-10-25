@@ -15,6 +15,8 @@ on:
       - VERSION
       - docs/release/UPDATE_NOTES_*.md
       - docs/release/FOODEX_1_0_77_PRODUCTION_HOLD.md
+      - .github/workflows/release-factory.yml
+      - scripts/release-readiness.sh
 
 permissions:
   contents: write
@@ -39,6 +41,7 @@ jobs:
       customer_lineage_mode: ${{ steps.plan.outputs.customer_lineage_mode }}
       base_ref: ${{ steps.plan.outputs.base_ref }}
       previous_version: ${{ steps.plan.outputs.previous_version }}
+      dashboard_only: ${{ steps.plan.outputs.dashboard_only }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -54,7 +57,66 @@ jobs:
             exit 1
           fi
 
+      - id: release-mode
+        name: Detect dashboard-only release
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < VERSION)"
+          customer="$(awk '/^version:/{print $2; exit}' apps/customer_app/pubspec.yaml | tr -d '"')"
+          driver="$(awk '/^version:/{print $2; exit}' apps/driver_app/pubspec.yaml | tr -d '"')"
+          van="$(awk '/^version:/{print $2; exit}' apps/van_app/pubspec.yaml | tr -d '"')"
+          dashboard_only=false
+
+          if [[ "$customer" == "$driver" && "$customer" == "$van" && "${customer%%+*}" != "$version" ]]; then
+            mobile_version="${customer%%+*}"
+            python3 - "$version" "$mobile_version" <<'PY'
+          import sys
+          def parse(value):
+              parts=value.split(".")
+              if len(parts) != 3 or not all(part.isdigit() for part in parts):
+                  raise SystemExit(f"Invalid semantic version: {value}")
+              return tuple(map(int, parts))
+          release=parse(sys.argv[1])
+          mobile=parse(sys.argv[2])
+          if release <= mobile:
+              raise SystemExit(
+                  f"Dashboard-only release must advance repository VERSION beyond mobile version: "
+                  f"repository={sys.argv[1]} mobile={sys.argv[2]}"
+              )
+          PY
+
+            base_ref=""
+            while read -r candidate; do
+              candidate_version="$(git show "$candidate":VERSION 2>/dev/null | tr -d '[:space:]' || true)"
+              if [[ "$candidate_version" == "$mobile_version" ]]; then
+                base_ref="$candidate"
+                break
+              fi
+            done < <(git log --format=%H -- VERSION)
+
+            if [[ -z "$base_ref" ]]; then
+              echo "::error::Cannot resolve the repository VERSION boundary for mobile baseline $mobile_version."
+              exit 1
+            fi
+
+            mobile_changes="$(git diff --name-only "$base_ref"...HEAD -- apps/customer_app apps/driver_app apps/van_app)"
+            if [[ -n "$mobile_changes" ]]; then
+              echo "::error::Repository VERSION is ahead of mobile identity, but mobile source changed since $mobile_version; refusing to classify as Dashboard-only."
+              printf '%s\n' "$mobile_changes"
+              exit 1
+            fi
+
+            test -f "docs/release/UPDATE_NOTES_${version}.md"
+            grep -Fq "## $version -" CHANGELOG.md
+            dashboard_only=true
+          fi
+
+          echo "dashboard_only=$dashboard_only" >> "$GITHUB_OUTPUT"
+
       - name: Validate synchronized release readiness
+        env:
+          FOODEX_DASHBOARD_UPDATE_RELEASE: ${{ steps.release-mode.outputs.dashboard_only }}
         run: bash scripts/release-readiness.sh
       - id: plan
         shell: bash
@@ -64,7 +126,17 @@ jobs:
           customer="$(awk '/^version:/{print $2; exit}' apps/customer_app/pubspec.yaml | tr -d '"')"
           driver="$(awk '/^version:/{print $2; exit}' apps/driver_app/pubspec.yaml | tr -d '"')"
           van="$(awk '/^version:/{print $2; exit}' apps/van_app/pubspec.yaml | tr -d '"')"
-          if [[ "$version" == "1.0.77" ]]; then
+          dashboard_only="${{ steps.release-mode.outputs.dashboard_only }}"
+          if [[ "$dashboard_only" == "true" ]]; then
+            test "$customer" = "$driver"
+            test "$customer" = "$van"
+            customer_version="${customer%%+*}"
+            customer_build_number="${customer##*+}"
+            customer_source_commit="$GITHUB_SHA"
+            customer_tree_sha="$(git rev-parse HEAD:apps/customer_app)"
+            customer_lineage_mode="dashboard-only-carried-forward"
+            build_number="$customer_build_number"
+          elif [[ "$version" == "1.0.77" ]]; then
             mkdir -p artifacts
             python3 scripts/validate_customer_freeze_contract.py \
               --candidate HEAD \
@@ -126,10 +198,27 @@ jobs:
           echo "customer_lineage_mode=$customer_lineage_mode" >> "$GITHUB_OUTPUT"
           echo "base_ref=$base_ref" >> "$GITHUB_OUTPUT"
           echo "previous_version=$previous_version" >> "$GITHUB_OUTPUT"
-          echo "FOODEX release factory: $previous_version -> $version+$build_number from $GITHUB_SHA; Customer=$customer_version+$customer_build_number ($customer_lineage_mode)"
+          echo "dashboard_only=$dashboard_only" >> "$GITHUB_OUTPUT"
+          echo "FOODEX release factory: $previous_version -> $version+$build_number from $GITHUB_SHA; Customer=$customer_version+$customer_build_number ($customer_lineage_mode); dashboard_only=$dashboard_only"
+
+  dashboard-only:
+    name: Route Dashboard-only release
+    needs: plan
+    if: needs.plan.outputs.dashboard_only == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch canonical Dashboard update workflow
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "FOODEX ${{ needs.plan.outputs.version }} is Dashboard-only; mobile ${{ needs.plan.outputs.customer_version }} remains unchanged."
+          gh workflow run release-update-bundle.yml --ref main
 
   mobile:
     name: Build mobile artifacts
+    if: needs.plan.outputs.dashboard_only != 'true'
     needs: plan
     strategy:
       fail-fast: false
@@ -155,6 +244,7 @@ jobs:
   previews:
     name: Build ${{ matrix.app }} dashboard preview
     needs: plan
+    if: needs.plan.outputs.dashboard_only != 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -192,6 +282,7 @@ jobs:
   setup:
     name: Build Laravel setup once
     needs: plan
+    if: needs.plan.outputs.dashboard_only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -233,6 +324,7 @@ jobs:
   fresh-install:
     name: Validate clean install from exact Setup ZIP
     needs: [plan, setup]
+    if: needs.plan.outputs.dashboard_only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -296,6 +388,7 @@ jobs:
   dashboard-update:
     name: Build Dashboard delta update
     needs: [plan, previews]
+    if: needs.plan.outputs.dashboard_only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -354,6 +447,7 @@ jobs:
   assemble:
     name: Assemble and validate synchronized release
     needs: [plan, mobile, setup, fresh-install, dashboard-update]
+    if: needs.plan.outputs.dashboard_only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
