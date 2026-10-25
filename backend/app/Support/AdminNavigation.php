@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Domain\Assistant\Intelligence\AssistantIntelligenceAuthorization;
 use App\Domain\SmartOrdering\SmartOrderingEnterpriseEntitlementBridge;
 use App\Domain\WhatsApp\RuntimePolicy;
 use App\Enterprise\Entitlements\EntitlementScope;
@@ -68,6 +69,7 @@ class AdminNavigation
         $isSuperAdmin = $this->isSuperAdmin($user);
         $canAccessPlatformErp = $this->canAccessPlatformErp($user);
         $canAccessPlatformNavigation = $canAccessPlatformErp;
+        $canUseAssistantIntelligence = app(AssistantIntelligenceAuthorization::class)->canUse($user);
         $useCustomerServiceDashboardProfile = $this->usesCustomerServiceDashboardProfile($user);
 
         // Business-first order: enter a channel, define stores/catalog/accounts, execute operations,
@@ -174,7 +176,7 @@ class AdminNavigation
             ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
                 $canAccessPlatformNavigation ? $this->whatsAppSupervisorItem($user) : null,
-                $isSuperAdmin ? $this->routeItem($user, 'ai_analytics', 'assistant_intelligence.analysis.nav', 'admin.assistant-intelligence.index', 'assistant.use') : null,
+                $canUseAssistantIntelligence ? $this->routeItem($user, 'ai_analytics', 'assistant_intelligence.analysis.nav', 'admin.assistant-intelligence.index', 'assistant.use') : null,
                 $this->routeItem($user, 'reports_center', 'reports.title', 'admin.reports.index', 'reports.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'reports', 'admin.b2c_workspace.modules.reports', 'reports.view'),
                 $this->module($user, $channels, 'b2b', 'finance', 'admin.b2b_workspace.modules.finance', 'finance.view'),
