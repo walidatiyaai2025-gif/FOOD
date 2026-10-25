@@ -38,6 +38,21 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 .intelligence-pagination{margin-top:12px}
 @media(max-width:1023px){.intelligence-layout{grid-template-columns:1fr}}
 @media(max-width:767px){.intelligence-card{padding:14px}.intelligence-head,.intelligence-brief-row{flex-direction:column;align-items:stretch}.intelligence-evidence{grid-template-columns:1fr}.intelligence-actions>*{flex:1}.intelligence-actions button{width:100%}}
+
+.analysis-shell{display:grid;gap:14px;margin-bottom:16px}
+.analysis-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start}
+.analysis-status-line{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.analysis-source{display:inline-flex;align-items:center;min-height:28px;padding:3px 9px;border-radius:999px;border:1px solid var(--foodex-border);font-size:.74rem;font-weight:800;letter-spacing:.02em}
+.analysis-source[data-source="DATABASE"]{background:#f3f6f8;color:#334155}.analysis-source[data-source="DETERMINISTIC"]{background:#edf6ff;color:#075985}.analysis-source[data-source="AGENT AI"]{background:#f4ecff;color:#6b21a8}.analysis-source[data-source="HYBRID"]{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+.analysis-progress{height:10px;background:var(--foodex-background);border-radius:999px;overflow:hidden;border:1px solid var(--foodex-border);margin-top:10px}.analysis-progress>span{display:block;height:100%;background:var(--foodex-green);width:var(--analysis-progress,0%)}
+.analysis-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.analysis-kpi{padding:14px;border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface)}.analysis-kpi small{display:block;color:var(--foodex-muted);font-weight:700}.analysis-kpi strong{display:block;font-size:1.35rem;margin-top:4px}
+.analysis-agent{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,.6fr);gap:12px}.analysis-agent-copy{line-height:1.7;font-size:1rem}.analysis-lists{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.analysis-lists ul{margin:6px 0 0;padding-inline-start:20px}
+.analysis-domains{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.analysis-domain{padding:12px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-background)}.analysis-domain strong{display:flex;justify-content:space-between;gap:8px}.analysis-domain small{display:block;color:var(--foodex-muted);margin-top:5px}
+.analysis-opinions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.analysis-opinion{padding:13px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-surface)}
+.analysis-table-wrap{overflow:auto}.analysis-table{width:100%;border-collapse:collapse;min-width:780px}.analysis-table th,.analysis-table td{padding:9px 10px;border-bottom:1px solid var(--foodex-border);text-align:start;white-space:nowrap}.analysis-table th{font-size:.76rem;color:var(--foodex-muted)}
+.analysis-empty{padding:18px;border:1px dashed var(--foodex-border);border-radius:12px;color:var(--foodex-muted);text-align:center}
+@media(max-width:1023px){.analysis-top,.analysis-agent{grid-template-columns:1fr}.analysis-kpis,.analysis-domains{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:767px){.analysis-kpis,.analysis-domains,.analysis-opinions,.analysis-lists{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -64,6 +79,93 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="foodex-state" role="alert">
 <ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
 </div>
+@endif
+
+
+@if($analysis)
+@php
+$agent=(array)($analysis['agent']??[]);
+$agentSource=strtoupper((string)($agent['source']??'DATABASE'));
+$agentOpinion=(string)($agent['executive_opinion']??'');
+$coverage=(float)($analysis['coverage_percent']??0);
+$kpis=(array)($analysis['kpis']??[]);
+@endphp
+<section class="analysis-shell" aria-labelledby="foodex-analysis-title">
+<div class="intelligence-card">
+<div class="analysis-top">
+<div>
+<span class="foodex-subtitle">{{ __('assistant_intelligence.analysis.subtitle') }}</span>
+<h2 id="foodex-analysis-title" style="margin:4px 0 0">{{ __('assistant_intelligence.analysis.title') }}</h2>
+<p style="margin:6px 0 0;color:var(--foodex-muted)">{{ __('assistant_intelligence.analysis.description') }}</p>
+<div class="analysis-status-line">
+<span class="intelligence-badge">{{ strtoupper((string)($analysis['status']??'idle')) }}</span>
+<span class="analysis-source" data-source="{{ $agentSource }}">{{ $agentSource }}</span>
+@if(!empty($analysis['provider'])||!empty($analysis['model']))<span class="intelligence-badge">{{ trim(($analysis['provider']??'').' / '.($analysis['model']??''),' /') }}</span>@endif
+</div>
+</div>
+<form method="post" action="{{ route('admin.assistant-intelligence.analyze') }}">@csrf<button type="submit" class="foodex-primary" data-submit-once>{{ __('assistant_intelligence.analysis.analyze_now') }}</button></form>
+</div>
+<div class="analysis-status-line" style="justify-content:space-between"><strong>{{ __('assistant_intelligence.analysis.coverage') }} · {{ number_format($coverage,1) }}%</strong>@if(!empty($analysis['last_progress_at']))<span>{{ __('assistant_intelligence.analysis.last_progress') }} · {{ $analysis['last_progress_at'] }}</span>@endif</div>
+<div class="analysis-progress" style="--analysis-progress:{{ min(100,max(0,$coverage)) }}%"><span></span></div>
+</div>
+
+<div class="analysis-kpis">
+<div class="analysis-kpi"><small>{{ __('assistant_intelligence.analysis.kpi_revenue') }}</small><strong>{{ number_format((float)($kpis['revenue']??0),2) }}</strong><span class="analysis-source" data-source="DATABASE">DATABASE</span></div>
+<div class="analysis-kpi"><small>{{ __('assistant_intelligence.analysis.kpi_orders') }}</small><strong>{{ number_format((int)($kpis['orders']??0)) }}</strong><span class="analysis-source" data-source="DATABASE">DATABASE</span></div>
+<div class="analysis-kpi"><small>{{ __('assistant_intelligence.analysis.kpi_customers') }}</small><strong>{{ number_format((int)($kpis['customers']??0)) }}</strong><span class="analysis-source" data-source="DATABASE">DATABASE</span></div>
+<div class="analysis-kpi"><small>{{ __('assistant_intelligence.analysis.kpi_stockouts') }}</small><strong>{{ number_format((int)($kpis['stockouts']??0)) }}</strong><span class="analysis-source" data-source="DATABASE">DATABASE</span></div>
+</div>
+
+<div class="intelligence-card analysis-agent">
+<div>
+<div class="intelligence-head"><div><h2>{{ __('assistant_intelligence.analysis.agent_opinion') }}</h2></div><span class="analysis-source" data-source="{{ $agentSource }}">{{ $agentSource }}</span></div>
+@if($agentOpinion!=='')<p class="analysis-agent-copy">{{ $agentOpinion }}</p>@else<div class="analysis-empty">{{ __('assistant_intelligence.analysis.agent_waiting') }}</div>@endif
+@if($agentSource==='DATABASE')<p class="intelligence-note">{{ __('assistant_intelligence.analysis.database_only') }}</p>@endif
+</div>
+<div><dl class="intelligence-evidence">
+<div><dt>{{ __('assistant_intelligence.analysis.provider') }}</dt><dd>{{ trim(($analysis['provider']??'—').' / '.($analysis['model']??''),' /')?:'—' }}</dd></div>
+<div><dt>{{ __('assistant_intelligence.analysis.latency') }}</dt><dd>{{ isset($analysis['agent_latency_ms'])?number_format((int)$analysis['agent_latency_ms']).' ms':'—' }}</dd></div>
+<div><dt>{{ __('assistant_intelligence.analysis.confidence') }}</dt><dd>{{ strtoupper((string)($agent['confidence']??'—')) }}</dd></div>
+<div><dt>{{ __('assistant_intelligence.analysis.run') }}</dt><dd>#{{ $analysis['id']??'—' }}</dd></div>
+</dl></div>
+</div>
+
+@if(!empty($agent['priorities'])||!empty($agent['recommendations']))
+<div class="intelligence-card analysis-lists">
+<div><strong>{{ __('assistant_intelligence.analysis.priorities') }}</strong><ul>@foreach((array)($agent['priorities']??[]) as $item)<li>{{ $item }}</li>@endforeach</ul></div>
+<div><strong>{{ __('assistant_intelligence.analysis.recommendations') }}</strong><ul>@foreach((array)($agent['recommendations']??[]) as $item)<li>{{ $item }}</li>@endforeach</ul></div>
+</div>
+@endif
+
+<div class="intelligence-card">
+<div class="intelligence-head"><div><h2>{{ __('assistant_intelligence.analysis.pipeline') }}</h2><p>{{ __('assistant_intelligence.analysis.pipeline_help') }}</p></div></div>
+<div class="analysis-domains" style="margin-top:12px">
+@foreach((array)($analysis['domains']??[]) as $domain=>$state)
+<div class="analysis-domain"><strong><span>{{ __('assistant_intelligence.analysis.domains.'.$domain) }}</span><span>{{ number_format((float)($state['coverage']??0),0) }}%</span></strong>
+<div class="analysis-progress" style="--analysis-progress:{{ min(100,max(0,(float)($state['coverage']??0))) }}%"><span></span></div>
+<small>{{ __('assistant_intelligence.analysis.completed') }} {{ (int)($state['complete']??0) }} · {{ __('assistant_intelligence.analysis.partial') }} {{ (int)($state['partial']??0) }} · {{ __('assistant_intelligence.analysis.running') }} {{ (int)($state['running']??0) }} · {{ __('assistant_intelligence.analysis.pending') }} {{ (int)($state['pending']??0) }}</small></div>
+@endforeach
+</div></div>
+
+<div class="intelligence-card">
+<div class="intelligence-head"><div><h2>{{ __('assistant_intelligence.analysis.chunk_opinions') }}</h2><p>{{ __('assistant_intelligence.analysis.chunk_opinions_help') }}</p></div></div>
+@if(!empty($analysis['opinions']))<div class="analysis-opinions" style="margin-top:12px">
+@foreach($analysis['opinions'] as $opinion)
+<article class="analysis-opinion"><div class="analysis-status-line" style="margin-top:0"><strong>{{ __('assistant_intelligence.analysis.domains.'.$opinion['domain']) }}</strong><span class="analysis-source" data-source="{{ strtoupper($opinion['source']) }}">{{ strtoupper($opinion['source']) }}</span></div><p>{{ $opinion['opinion'] }}</p><small>{{ __('assistant_intelligence.analysis.stores') }}: {{ $opinion['store_count'] }} · {{ $opinion['model']?:'—' }} · {{ number_format((int)$opinion['latency_ms']) }} ms</small></article>
+@endforeach
+</div>@else<div class="analysis-empty" style="margin-top:12px">{{ __('assistant_intelligence.analysis.no_agent_chunks') }}</div>@endif
+</div>
+
+<div class="intelligence-card"><div class="intelligence-head"><div><h2>{{ __('assistant_intelligence.analysis.trace') }}</h2><p>{{ __('assistant_intelligence.analysis.trace_help') }}</p></div></div>
+<div class="analysis-table-wrap" style="margin-top:10px"><table class="analysis-table"><thead><tr><th>ID</th><th>{{ __('assistant_intelligence.analysis.domain') }}</th><th>{{ __('assistant_intelligence.analysis.status') }}</th><th>{{ __('assistant_intelligence.analysis.source') }}</th><th>{{ __('assistant_intelligence.analysis.stores') }}</th><th>{{ __('assistant_intelligence.analysis.provider') }}</th><th>{{ __('assistant_intelligence.analysis.latency') }}</th><th>{{ __('assistant_intelligence.analysis.finished') }}</th></tr></thead><tbody>
+@foreach((array)($analysis['trace']??[]) as $row)<tr><td>#{{ $row['id'] }}</td><td>{{ __('assistant_intelligence.analysis.domains.'.$row['domain']) }}</td><td>{{ strtoupper($row['status']) }}</td><td><span class="analysis-source" data-source="{{ strtoupper($row['source']) }}">{{ strtoupper($row['source']) }}</span></td><td>{{ $row['store_count'] }}</td><td>{{ trim(($row['provider']??'').' / '.($row['model']??''),' /')?:'—' }}</td><td>{{ $row['latency_ms']?number_format((int)$row['latency_ms']).' ms':'—' }}</td><td>{{ $row['completed_at']?:'—' }}</td></tr>@endforeach
+</tbody></table></div></div>
+
+<div class="intelligence-card"><div class="intelligence-head"><div><h2>{{ __('assistant_intelligence.analysis.run_history') }}</h2></div></div>
+<div class="analysis-table-wrap" style="margin-top:10px"><table class="analysis-table"><thead><tr><th>{{ __('assistant_intelligence.analysis.run') }}</th><th>{{ __('assistant_intelligence.analysis.trigger') }}</th><th>{{ __('assistant_intelligence.analysis.status') }}</th><th>{{ __('assistant_intelligence.analysis.coverage') }}</th><th>{{ __('assistant_intelligence.analysis.source') }}</th><th>{{ __('assistant_intelligence.analysis.started') }}</th><th>{{ __('assistant_intelligence.analysis.finished') }}</th></tr></thead><tbody>
+@foreach((array)($analysis['history']??[]) as $row)<tr><td>#{{ $row['id'] }}</td><td>{{ strtoupper($row['trigger']) }}</td><td>{{ strtoupper($row['status']) }}</td><td>{{ number_format((float)$row['coverage_percent'],1) }}%</td><td><span class="analysis-source" data-source="{{ strtoupper($row['source']) }}">{{ strtoupper($row['source']) }}</span></td><td>{{ $row['started_at']?:'—' }}</td><td>{{ $row['completed_at']?:'—' }}</td></tr>@endforeach
+</tbody></table></div></div>
+</section>
 @endif
 
 <div class="intelligence-layout">

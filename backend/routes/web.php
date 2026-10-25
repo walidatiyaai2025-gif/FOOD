@@ -886,6 +886,7 @@ Route::prefix('admin')
         Route::post('/apps/downloads/prepare', [MobileAppDownloadController::class, 'prepare'])->name('mobile-apps.prepare');
         Route::post('/apps/downloads/retry', [MobileAppDownloadController::class, 'retry'])->name('mobile-apps.retry');
         Route::get('/assistant/intelligence', [AssistantIntelligenceController::class, 'index'])->name('assistant-intelligence.index');
+        Route::post('/assistant/intelligence/analyze', [AssistantIntelligenceController::class, 'analyzeNow'])->middleware('throttle:6,1')->name('assistant-intelligence.analyze');
         Route::put('/assistant/intelligence/subscription', [AssistantIntelligenceController::class, 'updateSubscription'])->middleware('throttle:30,1')->name('assistant-intelligence.subscription.update');
         Route::post('/assistant/intelligence/generate', [AssistantIntelligenceController::class, 'generate'])->middleware('throttle:10,1')->name('assistant-intelligence.generate');
         Route::post('/assistant/intelligence/findings/{finding}/acknowledge', [AssistantIntelligenceController::class, 'acknowledge'])->whereNumber('finding')->middleware('throttle:30,1')->name('assistant-intelligence.findings.acknowledge');
