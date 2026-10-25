@@ -26,7 +26,7 @@ release_version="$(tr -d '\r\n' < VERSION)"
 branch_name="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}"
 base_branch="${GITHUB_BASE_REF:-}"
 dashboard_update_release=false
-if [[ "$branch_name" == release/*-update || "$base_branch" == release/*-update ]]; then
+if [[ "${FOODEX_DASHBOARD_UPDATE_RELEASE:-false}" == "true" || "$branch_name" == release/*-update || "$base_branch" == release/*-update ]]; then
   dashboard_update_release=true
 fi
 
@@ -64,6 +64,39 @@ else
   mobile_release_version="${customer_version%%+*}"
 fi
 [[ "$mobile_release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+
+if [[ "$dashboard_update_release" != "true" && "$release_version" != "1.0.77" && "$release_version" != "$mobile_release_version" ]]; then
+  if [[ "$customer_version" == "$driver_version" && "$customer_version" == "$van_version" ]]; then
+    if python3 - "$release_version" "$mobile_release_version" <<'PY'
+import sys
+
+def parse(value):
+    parts=value.split(".")
+    if len(parts) != 3 or not all(part.isdigit() for part in parts):
+        raise SystemExit(1)
+    return tuple(map(int, parts))
+
+raise SystemExit(0 if parse(sys.argv[1]) > parse(sys.argv[2]) else 1)
+PY
+    then
+      dashboard_base_ref=""
+      while read -r candidate; do
+        candidate_version="$(git show "$candidate":VERSION 2>/dev/null | tr -d '[:space:]' || true)"
+        if [[ "$candidate_version" == "$mobile_release_version" ]]; then
+          dashboard_base_ref="$candidate"
+          break
+        fi
+      done < <(git log --format=%H -- VERSION)
+
+      if [[ -n "$dashboard_base_ref" ]]; then
+        mobile_changes="$(git diff --name-only "$dashboard_base_ref"...HEAD -- apps/customer_app apps/driver_app apps/van_app)"
+        if [[ -z "$mobile_changes" && -f "docs/release/UPDATE_NOTES_${release_version}.md" ]] && grep -Fq "## $release_version -" CHANGELOG.md; then
+          dashboard_update_release=true
+        fi
+      fi
+    fi
+  fi
+fi
 
 if [[ "$dashboard_update_release" == "true" ]]; then
   if [[ -n "$base_branch" ]] && git rev-parse --verify "origin/$base_branch" >/dev/null 2>&1; then
