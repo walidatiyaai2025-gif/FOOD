@@ -669,121 +669,62 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <dialog class="order-detail-drawer foodex-record-drawer" open aria-modal="true" aria-label="{{ __('order_operations.view_order') }}">
 <div class="order-detail-drawer-shell foodex-record-drawer-shell">
 <div class="order-detail-drawer-head foodex-record-drawer-header"><div><strong>{{ __('order_operations.view_order') }}</strong><div>{{ $detail['number'] }}</div></div><a class="order-detail-close foodex-record-drawer-close" href="{{ route('admin.operations.orders.index',$detailCloseQuery) }}" aria-label="{{ __('order_operations.detail.close') }}">×</a></div>
-<section class="detail-grid foodex-record-grid">
-<div class="foodex-card panel">
-<h2>{{ __('order_operations.detail.context') }} · {{ $detail['number'] }}</h2>
-<div class="timeline-item" data-order-authoritative-context>
-<strong>{{ $businessLabel($detail['channel']) }} · {{ $detail['store'] }}</strong> {{-- localization-gate: allow channel resolved through localized businessLabel --}}
-<div>{{ __('order_operations.detail.source') }}: {{ $businessLabel($detail['source']) }}</div>
-<small>{{ __('order_operations.detail.authorized_channel') }}: {{ $businessLabel($detail['channel']) }}</small>
-</div>
-<h2 style="margin-top:16px">{{ __('order_operations.detail.delivery_address') }}</h2>
-@if($detail['delivery_address'])
+<section class="detail-grid foodex-record-grid" data-order-actionable-detail>
+@php($detailHasMapAction = !empty($detail['delivery_address']['has_coordinates']))
+@php($detailHasInvoiceAction = !empty($detail['invoice_id']) && !empty($detail['can_view_invoice']))
+@php($detailHasDispatchAction = ($detail['dispatch_status'] ?? '')==='assigned' && !empty($detail['dispatch_assignee_id']) && !empty($detail['can_dispatch']))
+@php($detailHasEditAction = !empty($detail['can_edit']) && !empty($detail['edit_options']))
+@php($detailDriverProofs = collect($detail['delivery_evidence'] ?? [])->flatMap(fn($assignment) => $assignment['timeline'] ?? [])->filter(fn($event) => !empty($event['proof'])))
+@php($detailVanProofs = collect($detail['van_delivery_evidence'] ?? [])->flatMap(fn($assignment) => $assignment['timeline'] ?? [])->filter(fn($event) => !empty($event['proof'])))
+@php($detailVanExecutionProofs = collect($detail['van_events'] ?? [])->filter(fn($event) => !empty($event['proof_path'])))
+@php($detailHasAnyAction = $detailHasMapAction || $detailHasInvoiceAction || $detailHasDispatchAction || $detailHasEditAction || $detailDriverProofs->isNotEmpty() || $detailVanProofs->isNotEmpty() || $detailVanExecutionProofs->isNotEmpty())
+
+@if($detailHasMapAction)
+<div class="foodex-card panel" data-order-detail-action-section="map">
+<h2>{{ $isAr ? 'عنوان التوصيل' : 'Delivery address' }}</h2>
 @php($delivery=$detail['delivery_address'])
-<div class="timeline">
 <div class="timeline-item">
 <strong>{{ $delivery['formatted'] ?: __('order_operations.detail.saved_address') }}</strong>
 @if(!empty($delivery['recipient_name']))<div>{{ __('order_operations.detail.recipient') }}: {{ $delivery['recipient_name'] }}</div>@endif
 @if(!empty($delivery['delivery_phone']))<div>{{ __('order_operations.detail.phone') }}: {{ $delivery['delivery_phone'] }}</div>@endif
-@if(!empty($delivery['landmark']))<div>{{ __('order_operations.detail.landmark') }}: {{ $delivery['landmark'] }}</div>@endif
-@if(!empty($delivery['delivery_notes']))<div>{{ __('order_operations.detail.delivery_notes') }}: {{ $delivery['delivery_notes'] }}</div>@endif
-@if(!empty($delivery['has_coordinates']))
-<div style="margin-top:10px">
-<small>{{ number_format((float)$delivery['latitude'],7,'.','') }}, {{ number_format((float)$delivery['longitude'],7,'.','') }}</small>
-<br>
-<a class="foodex-primary" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query={{ urlencode((string)$delivery['latitude'].','.(string)$delivery['longitude']) }}">{{ __('order_operations.detail.open_map') }}</a>
+<div style="margin-top:8px"><a class="foodex-primary" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query={{ urlencode((string)$delivery['latitude'].','.(string)$delivery['longitude']) }}">{{ __('order_operations.detail.open_map') }}</a></div>
 </div>
-@else
-<small>{{ __('order_operations.detail.no_coordinates') }}</small>
+</div>
 @endif
-</div>
-</div>
-@else
-<div class="foodex-empty-state">{{ __('order_operations.detail.no_snapshot') }}</div>
-@endif
-</div>
-<div class="foodex-card panel" data-order-financials>
-<h2>{{ $isAr ? 'الدفع والفاتورة' : 'Payment & invoice' }}</h2>
-<div class="timeline">
+
+@if($detailHasInvoiceAction)
+<div class="foodex-card panel" data-order-financials data-order-detail-action-section="invoice">
+<h2>{{ $isAr ? 'الفاتورة والتحصيل' : 'Invoice & settlement' }}</h2>
 <div class="timeline-item">
-<strong>{{ $isAr ? 'الدفع' : 'Payment' }} · {{ $businessLabel($detail['payment_status']) }}</strong>
-@if($detail['payment_provider'])<div>{{ strtoupper(str_replace(['_','-'],' ',(string)$detail['payment_provider'])) }}</div>@endif
-@if($detail['payment_amount'] !== null)<small>{{ number_format((float)$detail['payment_amount'],3) }} {{ $detail['payment_currency'] ?: $detail['currency'] }}</small>@endif
-</div>
-@if($detail['invoice_id'] && $detail['can_view_invoice'])
-<div class="timeline-item">
-<strong>{{ $isAr ? 'الفاتورة' : 'Invoice' }} · {{ $detail['invoice_number'] ?: '#'.$detail['invoice_id'] }}</strong>
-<div>{{ $businessLabel($detail['invoice_status']) }}</div>
-@if($detail['invoice_total'] !== null)<small>{{ number_format((float)$detail['invoice_total'],3) }} {{ $detail['invoice_currency'] ?: $detail['currency'] }}</small>@endif
+<strong>{{ $detail['invoice_number'] ?: '#'.$detail['invoice_id'] }}</strong>
+@if($detail['invoice_total'] !== null)<div>{{ number_format((float)$detail['invoice_total'],3) }} {{ $detail['invoice_currency'] ?: $detail['currency'] }}</div>@endif
 <div style="margin-top:8px"><a class="foodex-primary" href="{{ route('admin.invoices.show',$detail['invoice_id']) }}">{{ $isAr ? 'فتح الفاتورة والتحصيل' : 'Open invoice & settlement' }}</a></div>
 </div>
+</div>
 @endif
-</div>
-</div>
-<div class="foodex-card panel" data-order-dispatch-detail>
-<h2>{{ __('order_operations.dispatch.current_assignment') }}</h2>
-@if($detail['dispatch_status']==='awaiting_dispatch')<div class="dispatch-warning">{{ __('order_operations.dispatch.warning') }}</div>@endif
-<div class="timeline">
+
+@if($detailHasDispatchAction)
+<div class="foodex-card panel" data-order-dispatch-detail data-order-detail-action-section="dispatch">
+<h2>{{ $isAr ? 'التنفيذ والتوجيه' : 'Execution & routing' }}</h2>
 <div class="timeline-item">
-<strong>{{ $businessLabel($detail['dispatch_status']) }}</strong>
-@if($detail['dispatch_assignee'])<div>{{ __('order_operations.columns.assignee') }}: {{ $businessLabel($detail['dispatch_assignee_type']) }} · {{ $detail['dispatch_assignee'] }}</div>@endif
-@if($detail['dispatch_territory'])<div>{{ __('order_operations.dispatch.territory') }}: {{ $detail['dispatch_territory'] }}</div>@endif
-@if($detail['dispatch_source'])<div>{{ __('order_operations.dispatch.source') }}: {{ $businessLabel($detail['dispatch_source']) }}</div>@endif
-@if($detail['dispatch_reason'])<div>{{ __('order_operations.dispatch.routing_reason') }}: {{ $businessLabel($detail['dispatch_reason']) }}</div>@endif
+<strong>{{ $detail['dispatch_assignee'] }}</strong>
+<div>{{ $businessLabel($detail['dispatch_assignee_type']) }}</div>
 </div>
-</div>
-<h3>{{ __('order_operations.dispatch.history') }}</h3>
-<div class="timeline">
-@forelse($detail['van_assignments'] as $entry)
-<div class="timeline-item"><strong>{{ __('order_operations.dispatch.van') }} · {{ $entry['van'] }}</strong><div>{{ $businessLabel($entry['status']) }} · {{ $businessLabel($entry['source']) }}</div>@if($entry['reason'])<div>{{ $businessLabel($entry['reason']) }}</div>@endif<small>{{ optional($entry['assigned_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }} @if($entry['ended_at'])→ {{ optional($entry['ended_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}@endif</small></div>
-@empty<div class="foodex-empty-state">{{ __('order_operations.dispatch.no_history') }}</div>@endforelse
-</div>
-<h3>{{ __('order_operations.dispatch.audit_title') }}</h3>
-<div class="timeline" data-order-dispatch-audit>
-@forelse($detail['dispatch_audit'] as $entry)
-<div class="timeline-item">
-<strong>{{ __('order_operations.dispatch.audit_events.'.$entry['event_key']) }}</strong>
-<div>{{ $entry['actor'] !== '' ? $entry['actor'] : __('order_operations.dispatch.system_actor') }}</div>
-@if($entry['status'])<div>{{ $businessLabel($entry['status']) }}</div>@endif {{-- localization-gate: allow status resolved through localized businessLabel --}}
-@if($entry['assignee_type'])<div>{{ __('order_operations.columns.assignee') }}: {{ $businessLabel($entry['assignee_type']) }}</div>@endif
-@if($entry['source'])<div>{{ __('order_operations.dispatch.source') }}: {{ $businessLabel($entry['source']) }}</div>@endif
-@if($entry['reason'])<div>{{ __('order_operations.dispatch.routing_reason') }}: {{ $businessLabel($entry['reason']) }}</div>@endif
-<small>{{ optional($entry['created_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}</small>
-</div>
-@empty<div class="foodex-empty-state">{{ __('order_operations.dispatch.audit_empty') }}</div>@endforelse
-</div>
-</div>
-@if($detail['channel']==='b2b')
-<div class="foodex-card panel" data-b2b-van-operations>
-<h2>{{ __('order_operations.detail.van_execution_timeline') }}</h2>
-@if($detail['van_execution'])
-<div class="timeline-item" data-van-execution-state>
-<strong>{{ $businessLabel($detail['van_execution']->status) }}</strong> {{-- localization-gate: allow execution status is resolved through localized businessLabel --}}
-@if($detail['van_execution']->failure_reason_code)<div>{{ __('order_operations.detail.failure_reason') }}: {{ $businessLabel($detail['van_execution']->failure_reason_code) }}</div>@endif
-@if($detail['van_execution']->failure_note)<div>{{ __('order_operations.detail.van_note') }}: {{ $detail['van_execution']->failure_note }}</div>@endif
-<small>{{ $detail['van_execution']->last_transition_at ? \Carbon\Carbon::parse($detail['van_execution']->last_transition_at)->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small>
+<form method="post" action="{{ route('admin.operations.orders.dispatch.clear',$detail['id']) }}" style="margin-top:10px" data-order-detail-unassign>
+@csrf @method('DELETE')
+<input type="hidden" name="reason" value="detail_manual_unassign">
+<button type="submit" class="danger btn">{{ $isAr ? (($detail['dispatch_assignee_type'] ?? '')==='van' ? 'سحب الطلب من الفان' : 'سحب الطلب من السائق') : (($detail['dispatch_assignee_type'] ?? '')==='van' ? 'Pull order from Van' : 'Pull order from driver') }}</button>
+</form>
 </div>
 @endif
-<div class="timeline" style="margin-top:10px">
-@forelse($detail['van_events'] as $event)
-<div class="timeline-item" data-van-execution-event="{{ $event['id'] }}">
-<strong>{{ $businessLabel($event['action']) }} · {{ $businessLabel($event['from_status']) }} → {{ $businessLabel($event['to_status']) }}</strong>
-@if($event['actor']!=='')<div>{{ $event['actor'] }}</div>@endif
-@if($event['reason_code'])<div>{{ __('order_operations.detail.failure_reason') }}: {{ $businessLabel($event['reason_code']) }}</div>@endif
-@if($event['note'])<div>{{ __('order_operations.detail.van_note') }}: {{ $event['note'] }}</div>@endif
-@if($event['proof_path'])<div><a class="foodex-primary" href="{{ asset('storage/'.ltrim((string)$event['proof_path'],'/')) }}" target="_blank" rel="noopener" data-van-proof-link>{{ __('order_operations.detail.van_proof') }}</a></div>@endif
-<small>{{ $event['captured_at'] ? \Carbon\Carbon::parse($event['captured_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small>
-</div>
-@empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_van_events') }}</div>@endforelse
-</div>
-<h3>{{ __('order_operations.detail.collection_timeline') }}</h3>
-<div class="timeline" data-van-collection-timeline>
-@forelse($detail['collections'] as $collection)
-<div class="timeline-item"><strong>{{ \App\Support\DisplayNumber::money($collection['amount'], $collection['currency']) }} {{ $collection['currency'] }} · {{ $businessLabel($collection['status']) }}</strong><div>{{ $businessLabel($collection['source']) }}</div><small>{{ $collection['created_at'] ? \Carbon\Carbon::parse($collection['created_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small></div> {{-- localization-gate: allow collection status/source are resolved through localized businessLabel --}}
-@empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_collections') }}</div>@endforelse
-</div>
+
+@if($detailHasEditAction && !request('edit'))
+<div class="foodex-card panel" data-order-detail-action-section="edit">
+<h2>{{ $isAr ? 'تعديل الطلب' : 'Edit order' }}</h2>
+<a class="foodex-primary" href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$detail['id'],'edit'=>1])) }}">{{ $isAr ? 'فتح تعديل الطلب' : 'Edit order' }}</a>
 </div>
 @endif
+
 @if(request('edit') && $detail['can_edit'] && $detail['edit_options'])
 @php($editOptions=$detail['edit_options'])
 <div class="foodex-card panel" data-order-edit-panel>
@@ -864,66 +805,45 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </form>
 </div>
 @endif
-<div class="foodex-card panel"><h2>{{ __('order_operations.detail.status_timeline') }} · {{ $detail['number'] }}</h2><div class="timeline">@forelse($detail['history'] as $entry)<div class="timeline-item"><strong>{{ $businessLabel($entry['from']) }} → {{ $businessLabel($entry['to']) }}</strong><div>{{ $businessLabel($entry['note']) }}</div><small>{{ optional($entry['created_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}</small></div>@empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_history') }}</div>@endforelse</div></div>
-<div class="foodex-card panel"><h2>{{ __('order_operations.detail.driver_history') }}</h2><div class="timeline">@forelse($detail['assignments'] as $entry)<div class="timeline-item"><strong>{{ str_starts_with((string)$entry['driver'],'#') ? __('order_operations.detail.unnamed_driver') : $entry['driver'] }}</strong><div>{{ $businessLabel($entry['status']) }}</div><small>{{ optional($entry['assigned_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }} @if($entry['completed_at'])→ {{ optional($entry['completed_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}@endif</small></div>@empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_assignments') }}</div>@endforelse</div></div>
-<div class="foodex-card panel" data-delivery-evidence>
-<h2>{{ __('order_operations.detail.delivery_timeline') }}</h2>
+
+
+@if($detailDriverProofs->isNotEmpty())
+<div class="foodex-card panel" data-delivery-evidence data-order-detail-action-section="driver-proofs">
+<h2>{{ $isAr ? 'إثباتات السائق' : 'Driver proofs' }}</h2>
 <div class="timeline">
-@forelse($detail['delivery_evidence'] as $assignment)
-<div class="timeline-item" data-delivery-evidence-assignment="{{ $assignment['id'] }}">
-<strong>{{ str_starts_with((string)$assignment['driver_name'],'#') ? __('order_operations.detail.unnamed_driver') : $assignment['driver_name'] }} · {{ $businessLabel($assignment['status']) }}</strong>
-@if(empty($assignment['timeline']))
-<small>{{ __('order_operations.detail.no_assignment_events') }}</small>
-@else
-<div class="timeline" style="margin-top:10px">
-@foreach($assignment['timeline'] as $event)
-<div class="timeline-item" data-delivery-evidence-event="{{ $event['id'] }}">
+@foreach($detailDriverProofs as $event)
+<div class="timeline-item">
 <strong>{{ $businessLabel($event['from_status']) }} → {{ $businessLabel($event['to_status']) }}</strong>
-@if($event['reason_code'])<div>{{ __('order_operations.detail.failure_reason') }}: {{ $businessLabel($event['reason_code']) }}</div>@endif
-@if($event['note'])<div>{{ __('order_operations.detail.driver_note') }}: {{ $event['note'] }}</div>@endif
-@if($event['proof'])
-<div><a class="foodex-primary" href="{{ $event['proof']['url'] }}" target="_blank" rel="noopener" data-delivery-proof-link>{{ __('order_operations.detail.view_proof') }}</a></div>
-@endif
-<small>{{ $event['captured_at'] ? \Carbon\Carbon::parse($event['captured_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small>
+<a class="foodex-primary" href="{{ $event['proof']['url'] }}" target="_blank" rel="noopener" data-delivery-proof-link>{{ __('order_operations.detail.view_proof') }}</a>
 </div>
 @endforeach
 </div>
+</div>
 @endif
-</div>
-@empty
-<div class="foodex-empty-state">{{ __('order_operations.detail.no_delivery_evidence') }}</div>
-@endforelse
-</div>
-</div>
-<div class="foodex-card panel" data-van-delivery-evidence>
-<h2>{{ __('order_operations.detail.van_delivery_timeline') }}</h2>
+
+@if($detailVanProofs->isNotEmpty() || $detailVanExecutionProofs->isNotEmpty())
+<div class="foodex-card panel" data-van-delivery-evidence data-order-detail-action-section="van-proofs">
+<h2>{{ $isAr ? 'إثباتات الفان' : 'Van proofs' }}</h2>
 <div class="timeline">
-@forelse($detail['van_delivery_evidence'] as $assignment)
-<div class="timeline-item" data-van-delivery-evidence-assignment="{{ $assignment['id'] }}">
-<strong>{{ $assignment['van_name'] }} · {{ $businessLabel($assignment['execution_status'] ?? $assignment['assignment_status']) }}</strong>
-@if(empty($assignment['timeline']))
-<small>{{ __('order_operations.detail.no_assignment_events') }}</small>
-@else
-<div class="timeline" style="margin-top:10px">
-@foreach($assignment['timeline'] as $event)
-<div class="timeline-item" data-van-delivery-evidence-event="{{ $event['id'] }}">
+@foreach($detailVanProofs as $event)
+<div class="timeline-item">
 <strong>{{ $businessLabel($event['from_status']) }} → {{ $businessLabel($event['to_status']) }}</strong>
-@if($event['reason_code'])<div>{{ __('order_operations.detail.failure_reason') }}: {{ $businessLabel($event['reason_code']) }}</div>@endif
-@if($event['note'])<div>{{ __('order_operations.detail.van_note') }}: {{ $event['note'] }}</div>@endif
-@if($event['proof'])
-<div><a class="foodex-primary" href="{{ $event['proof']['url'] }}" target="_blank" rel="noopener" data-van-delivery-proof-link>{{ __('order_operations.detail.view_proof') }}</a></div>
-@endif
-<small>{{ $event['captured_at'] ? \Carbon\Carbon::parse($event['captured_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small>
+<a class="foodex-primary" href="{{ $event['proof']['url'] }}" target="_blank" rel="noopener" data-van-delivery-proof-link>{{ __('order_operations.detail.view_proof') }}</a>
+</div>
+@endforeach
+@foreach($detailVanExecutionProofs as $event)
+<div class="timeline-item">
+<strong>{{ $businessLabel($event['action']) }}</strong>
+<a class="foodex-primary" href="{{ asset('storage/'.ltrim((string)$event['proof_path'],'/')) }}" target="_blank" rel="noopener" data-van-proof-link>{{ __('order_operations.detail.van_proof') }}</a>
 </div>
 @endforeach
 </div>
+</div>
 @endif
-</div>
-@empty
-<div class="foodex-empty-state">{{ __('order_operations.detail.no_van_delivery_evidence') }}</div>
-@endforelse
-</div>
-</div>
+
+@if(!$detailHasAnyAction)
+<div class="foodex-empty-state" data-order-detail-no-actions>{{ $isAr ? 'لا توجد إجراءات متاحة على هذا الطلب حالياً.' : 'No actions are currently available for this order.' }}</div>
+@endif
 </section>
 </div>
 </dialog>
