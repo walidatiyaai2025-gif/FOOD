@@ -85,7 +85,7 @@ final class PushDeviceController extends Controller
         }
 
         $storeId = isset($data['store_id']) ? (int) $data['store_id'] : null;
-        $targetChannel = $data['app'] === 'driver' && is_string($driverChannel)
+        $targetChannel = $data['app'] === 'driver'
             ? $driverChannel
             : (string) ($data['target_channel'] ?? 'all');
         if ($storeId !== null) {
