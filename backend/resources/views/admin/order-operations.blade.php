@@ -67,6 +67,7 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-owner{display:grid;gap:3px}.order-owner strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-owner small{color:var(--foodex-muted);font-size:.61rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .order-financial{display:grid;gap:4px}.order-financial>strong{font-size:.77rem;white-space:nowrap}.order-financial small{color:var(--foodex-muted);font-size:.61rem}
 .order-grid-actions{text-align:center}
+.order-inline-status{display:grid;grid-template-columns:minmax(0,1fr) 32px;gap:4px;align-items:center;margin-top:3px;max-width:220px}.order-inline-status select{min-width:0;width:100%;height:30px;padding:0 7px;border:1px solid var(--foodex-border);border-radius:8px;background:var(--foodex-surface);font-size:.62rem;font-weight:800;color:var(--foodex-ink)}.order-inline-status-submit{width:32px;height:30px;padding:0;border:1px solid var(--foodex-action-green);border-radius:8px;background:var(--foodex-action-green);color:#fff;font-size:.78rem;font-weight:900;cursor:pointer}.order-inline-status-note{grid-column:1/-1;min-width:0;width:100%;box-sizing:border-box;height:30px;padding:0 7px;border:1px solid var(--foodex-border);border-radius:8px;font-size:.61rem}.order-inline-status-note[hidden]{display:none!important}
 .status-tab{--status-tab-bg:#fff;--status-tab-fg:var(--foodex-ink);--status-tab-border:var(--foodex-border);border-color:var(--status-tab-border)!important;background:var(--status-tab-bg)!important;color:var(--status-tab-fg)!important}
 .status-tab[data-order-action-tab]{--status-tab-bg:var(--foodex-palette-fff7ed);--status-tab-fg:var(--foodex-palette-c2410c);--status-tab-border:var(--foodex-palette-fdba74)}
 .status-tab[data-order-status-tab="pending"]{--status-tab-bg:var(--foodex-palette-fff7ed);--status-tab-fg:var(--foodex-palette-c2410c);--status-tab-border:var(--foodex-palette-fed7aa)}
@@ -402,6 +403,21 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <td>
     <div class="order-grid-primary">
         <span class="order-status-chip" data-state="{{ $rowStatusState }}">{{ $row['status_label'] }}</span>
+        @if($row['can_manage'] && count($row['available_statuses']))
+            <form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}" class="order-inline-status" data-order-inline-status>
+                @csrf
+                <select name="status" required aria-label="{{ __('order_operations.next_status') }}" data-order-inline-status-select>
+                    <option value="">{{ __('order_operations.choose_next_status') }}</option>
+                    @foreach($row['available_statuses'] as $status)
+                        <option value="{{ $status['code'] }}">{{ $status['label'] }}</option>
+                    @endforeach
+                </select>
+                <button class="order-inline-status-submit" type="submit" aria-label="{{ __('order_operations.update_status') }}" title="{{ __('order_operations.update_status') }}">✓</button>
+                @if($row['channel']==='b2b' && $row['status']==='pending')
+                    <input class="order-inline-status-note" name="note" maxlength="1000" data-order-inline-rejection-note hidden placeholder="{{ $isAr ? 'سبب الرفض (إلزامي عند الرفض)' : 'Rejection reason (required when rejecting)' }}">
+                @endif
+            </form>
+        @endif
         @if($rowActionRequired)
             <span class="order-attention-chip">{{ $isAr ? 'يحتاج إجراء' : 'Action required' }}</span>
         @endif
@@ -983,6 +999,21 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         resizeFrame = window.requestAnimationFrame(fitAll);
     }, {passive:true});
 })();
+</script>
+<script>
+document.querySelectorAll('[data-order-inline-status]').forEach(function(form){
+    var select=form.querySelector('[data-order-inline-status-select]');
+    var note=form.querySelector('[data-order-inline-rejection-note]');
+    if(!select||!note){return;}
+    var sync=function(){
+        var rejecting=select.value==='cancelled';
+        note.hidden=!rejecting;
+        note.required=rejecting;
+        if(!rejecting){note.value='';}
+    };
+    select.addEventListener('change',sync);
+    sync();
+});
 </script>
 </body></html>
 @if($detail)
