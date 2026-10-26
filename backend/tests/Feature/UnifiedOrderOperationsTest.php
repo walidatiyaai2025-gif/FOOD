@@ -210,7 +210,12 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-order-inline-status', $view);
         $this->assertStringContainsString('data-order-inline-status-select', $view);
         $this->assertStringContainsString('data-order-inline-rejection-note', $view);
+        $this->assertStringContainsString('data-order-inline-dispatch', $view);
+        $this->assertStringContainsString('data-order-inline-customer-service-owner', $view);
+        $this->assertStringContainsString('data-order-inline-picker-select', $view);
+        $this->assertStringContainsString('data-order-inline-picker-reason', $view);
         $this->assertStringContainsString('.order-inline-status{display:grid;', $view);
+        $this->assertStringContainsString('.order-inline-picker{display:grid;', $view);
         $this->assertStringContainsString('colspan="7"', $view);
         $this->assertStringContainsString('position:sticky;top:0', $view);
         $this->assertStringContainsString('data-action-required="{{ $rowActionRequired ? \'1\' : \'0\' }}"', $view);
