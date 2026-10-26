@@ -824,6 +824,34 @@ class OrderDomainTest extends TestCase
     }
 
     /** @return array{0: User, 1: Customer} */
+    public function test_delivered_order_cannot_be_cancelled(): void
+    {
+        $order = $this->makeOrder(
+            $this->b2cCustomer,
+            $this->b2cStoreId,
+            'b2c',
+            'delivered',
+        );
+
+        $admin = $this->makeGlobalRoleUser('SUPER_ADMIN', 'delivered-no-cancel@example.test');
+        Sanctum::actingAs($admin);
+
+        $this->postJson("/api/v1/orders/{$order->id}/status", [
+            'status' => 'cancelled',
+            'note' => 'Attempt cancellation after delivery',
+        ])->assertConflict();
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'delivered',
+        ]);
+        $this->assertDatabaseMissing('order_status_history', [
+            'order_id' => $order->id,
+            'from_status' => 'delivered',
+            'to_status' => 'cancelled',
+        ]);
+    }
+
     public function test_cancelling_assigned_b2b_order_closes_van_and_dispatch_state(): void
     {
         $order = $this->makeOrder(
