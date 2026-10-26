@@ -595,6 +595,66 @@ class OrderDomainTest extends TestCase
 
     }
 
+    public function test_order_with_active_driver_allows_only_manual_cancellation(): void
+    {
+        $order = $this->makeOrder(
+            $this->b2cCustomer,
+            $this->b2cStoreId,
+            'b2c',
+            'out_for_delivery',
+            1,
+        );
+
+        $driverUserId = (int) DB::table('users')->insertGetId([
+            'name' => 'Driver Status Gate',
+            'email' => 'driver-status-gate@example.test',
+            'password' => bcrypt('password'),
+            'locale' => 'en',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $driverId = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $driverUserId,
+            'store_id' => $this->b2cStoreId,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('driver_assignments')->insert([
+            'driver_id' => $driverId,
+            'order_id' => $order->id,
+            'store_id' => $this->b2cStoreId,
+            'assignment_type' => 'b2c',
+            'status' => 'assigned',
+            'assigned_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $admin = $this->makeGlobalRoleUser('SUPER_ADMIN', 'driver-status-gate-admin@example.test');
+        Sanctum::actingAs($admin);
+
+        $this->postJson("/api/v1/orders/{$order->id}/status", [
+            'status' => 'delivered',
+            'note' => 'Manual completion must be blocked while Driver owns execution',
+        ])->assertConflict();
+
+        $this->postJson("/api/v1/orders/{$order->id}/status", [
+            'status' => 'cancelled',
+            'note' => 'Customer cancelled while order was with Driver',
+        ])->assertOk()
+            ->assertJsonPath('status', 'cancelled');
+
+        $this->assertDatabaseHas('driver_assignments', [
+            'order_id' => $order->id,
+            'driver_id' => $driverId,
+            'status' => 'cancelled',
+        ]);
+    }
+
     public function test_super_admin_can_follow_valid_transition_chain_and_delivery_consumes_reserved_stock(): void
     {
         $order = $this->makeOrder(
