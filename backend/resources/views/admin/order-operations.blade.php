@@ -387,8 +387,11 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <th>{{ __('order_operations.customer_service_owner.column') }}</th>
 <th>{{ __('order_operations.columns.actions') }}</th>
 </tr></thead><tbody>
-@if(count($rows))
-@foreach($rows as $row)
+@php
+$hasOrderRows = count($rows) > 0;
+if ($hasOrderRows) {
+    foreach ($rows as $row) {
+@endphp
 @php($rowStatusState = strtolower((string) $row['status']))
 @php($rowDelivered = in_array($rowStatusState, ['delivered','completed'], true))
 @php($rowMergedStatus = $rowDelivered || $rowStatusState === 'cancelled')
@@ -688,10 +691,14 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </details>
 </td>
 </tr>
-@endforeach
-@else
+@php
+    }
+} else {
+@endphp
 <tr><td colspan="7"><div class="foodex-empty-state">{{ __('order_operations.empty') }}</div></td></tr>
-@endif
+@php
+}
+@endphp
 </tbody></table>
 </section>
 {{ $orders->links() }}
