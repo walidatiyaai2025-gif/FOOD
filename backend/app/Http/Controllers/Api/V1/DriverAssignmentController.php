@@ -99,11 +99,13 @@ class DriverAssignmentController extends Controller
         ]);
         $order = Order::query()->findOrFail($data['order_id']);
         $channel = strtolower((string) $order->channel);
-        $manualWholesaleOverride = $channel === 'b2b' && (bool) ($data['customer_service_override'] ?? false);
+        $manualWholesaleOverride = $channel === 'b2b'
+            && (bool) ($data['customer_service_override'] ?? false)
+            && $request->is('admin/operations/orders/*');
         abort_unless(
             $channel === 'b2c' || $manualWholesaleOverride,
             409,
-            'B2B orders are fulfilled by Van runtime unless an authorized manual dispatch override is used.',
+            'B2B Driver assignment is available only through authorized manual Order Operations dispatch.',
         );
 
         $ability = 'orders.dispatch';
