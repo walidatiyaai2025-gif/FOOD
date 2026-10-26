@@ -58,7 +58,7 @@
   },
   "coverage_summary": {
     "baseline_route_families": 42,
-    "audited_capabilities": 49,
+    "audited_capabilities": 50,
     "unresolved_nav_missing": 0,
     "unresolved_nav_weak": 0,
     "duplicate_destinations": 1,
@@ -1827,6 +1827,38 @@
       "remediation_owner": null,
       "remediation_scope": null,
       "notes": "Buyer-only procurement context; intentionally separate from restaurant Customer Orders and from wholesale seller administration."
+    },
+    {
+      "id": "operations.driver_orders_context",
+      "domain": "Operations",
+      "capability": "Driver assigned orders",
+      "route": [
+        "admin.drivers.orders"
+      ],
+      "route_path": [
+        "/admin/drivers/{driver}/orders"
+      ],
+      "controller_view": "DriverOrdersController → admin._driver-orders-popup",
+      "role_persona": "authorized operations / driver management user",
+      "permission_entitlement": "drivers.{channel}.view or drivers.{channel}.manage within store scope",
+      "navigation_owner": "Order Operations / Driver context",
+      "navigation_type": "CONTEXT_ACTION",
+      "visible_entry_point": "Driver name / assigned-order context action from operations surfaces",
+      "parent_context": "Order Operations / Driver management",
+      "ar_label": "طلبات السائق",
+      "en_label": "Driver orders",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Parent operations context remains active; popup owns local state",
+      "back_path": "Close popup and return to parent operations surface",
+      "status": "CONTEXT_ONLY_OK",
+      "evidence": [
+        "backend/routes/web.php",
+        "backend/app/Http/Controllers/Admin/DriverOrdersController.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Contextual popup route; intentionally not a standalone sidebar destination."
     }
   ],
   "route_level_overrides": [
