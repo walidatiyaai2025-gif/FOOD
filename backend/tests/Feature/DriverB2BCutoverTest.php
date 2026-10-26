@@ -45,7 +45,6 @@ class DriverB2BCutoverTest extends TestCase
             'platform' => 'android',
             'environment' => 'production',
             'token' => 'manual-b2b-driver-device-token',
-            'target_channel' => 'b2b',
         ])->assertCreated();
 
         $this->assertDatabaseHas('push_device_tokens', [
