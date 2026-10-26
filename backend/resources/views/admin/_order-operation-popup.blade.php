@@ -4,7 +4,9 @@
     <div class="order-popup-summary">
         <div><small>{{ $isAr ? 'الطلب' : 'Order' }}</small><strong>{{ $detail['number'] }}</strong></div>
         <div><small>{{ $isAr ? 'العميل' : 'Customer' }}</small><strong>{{ $detail['customer'] }}</strong></div>
+        <div><small>{{ $isAr ? 'المتجر' : 'Store' }}</small><strong>{{ $detail['store'] }}</strong></div>
         <div><small>{{ $isAr ? 'الحالة' : 'Status' }}</small><strong>{{ $detail['status_label'] }}</strong></div>
+        <div><small>{{ $isAr ? 'حالة الدفع' : 'Payment status' }}</small><strong>{{ $detail['payment_status'] ?: '—' }}</strong></div>
         <div><small>{{ $isAr ? 'قيمة الطلب' : 'Order value' }}</small><strong class="{{ $paymentPaid ? 'is-paid' : 'is-unpaid' }}">{{ $money($detail['total'],$detail['currency']) }}</strong></div>
     </div>
 
