@@ -235,6 +235,9 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-order-detail-no-actions', $view);
         $this->assertStringContainsString('.ops-table th:nth-child(1){width:7.5%}', $view);
         $this->assertStringContainsString('.ops-table th:nth-child(2){width:12.75%}', $view);
+        $this->assertStringContainsString("<th>{{ \$isAr ? 'العميل' : 'Customer' }}</th>\n<th>{{ \$isAr ? 'الدفع والإجمالي' : 'Payment & total' }}</th>\n<th>{{ __('order_operations.columns.status') }}</th>", $view);
+        $this->assertStringContainsString('سحب من السائق', $view);
+        $this->assertStringContainsString('سحب من الفان', $view);
         $this->assertStringContainsString('.order-inline-status{display:grid;', $view);
         $this->assertStringContainsString('.order-inline-picker{display:grid;', $view);
         $this->assertStringContainsString('colspan="7"', $view);
