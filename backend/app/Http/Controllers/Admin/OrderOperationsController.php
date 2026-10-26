@@ -2599,6 +2599,18 @@ final class OrderOperationsController extends Controller
             ];
         }
 
+        if (
+            $dispatch instanceof OrderDispatchState
+            && (string) $dispatch->status === 'awaiting_dispatch'
+        ) {
+            return [
+                'label' => strtolower((string) $order->channel) === 'b2b'
+                    ? __('order_operations.lifecycle_labels.awaiting_dispatch_assignment')
+                    : __('order_operations.lifecycle_labels.awaiting_driver_assignment'),
+                'state' => 'pending',
+            ];
+        }
+
         if (in_array($status, ['pending', 'confirmed', 'preparing', 'ready'], true)) {
             return [
                 'label' => strtolower((string) $order->channel) === 'b2b'
