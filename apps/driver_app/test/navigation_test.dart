@@ -183,7 +183,7 @@ void main() {
           .selectedIndex,
       DriverShellDestination.home.index,
     );
-    expect(find.byKey(const Key('driver-open-deliveries')), findsOneWidget);
+    expect(find.byKey(const Key('driver-shell-deliveries')), findsOneWidget);
     expect(find.byKey(const Key('driver-route-denied')), findsNothing);
   });
 
@@ -198,7 +198,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(repo.requestedChannel, DriverChannel.b2b);
-    expect(find.byKey(const Key('driver-open-deliveries')), findsOneWidget);
+    expect(find.byKey(const Key('driver-shell-deliveries')), findsOneWidget);
     expect(find.byKey(const Key('driver-route-denied')), findsNothing);
   });
 
@@ -357,7 +357,7 @@ void main() {
     ];
 
     final callsBeforePoll = repo.listCalls;
-    await tester.pump(const Duration(seconds: 15));
+    await tester.pump(const Duration(seconds: 5));
     await tester.pump();
 
     expect(repo.listCalls, greaterThan(callsBeforePoll));
@@ -379,6 +379,64 @@ void main() {
   });
 
   testWidgets(
+      'home shows a one-time popup when a new assigned order arrives',
+      (tester) async {
+    final repo = _LiveStatusRepo();
+    await tester.pumpWidget(
+      FoodexDriverApp(
+        initialSession: session(DriverChannel.b2c),
+        assignmentRepositoryFactory: (_) => repo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-new-order-popup')), findsNothing);
+
+    repo.rows = const [
+      DriverAssignment(
+        id: 9,
+        channel: DriverChannel.b2c,
+        reference: 'LIVE-PENDING',
+        status: 'assigned',
+      ),
+      DriverAssignment(
+        id: 10,
+        channel: DriverChannel.b2c,
+        reference: 'LIVE-ACCEPTED',
+        status: 'accepted',
+      ),
+      DriverAssignment(
+        id: 12,
+        orderId: 5012,
+        channel: DriverChannel.b2c,
+        reference: 'NEW-5012',
+        status: 'assigned',
+        customerName: 'New Customer',
+        address: 'New Address',
+        currency: 'EGP',
+        grandTotal: 125.50,
+      ),
+    ];
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump();
+
+    expect(find.byKey(const Key('driver-new-order-popup')), findsOneWidget);
+    expect(find.text('طلب جديد تم إسناده لك'), findsOneWidget);
+    expect(find.text('طلب NEW-5012'), findsOneWidget);
+    expect(find.textContaining('New Customer'), findsOneWidget);
+    expect(find.textContaining('125.50 EGP'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('driver-new-order-dismiss')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-new-order-popup')), findsNothing);
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump();
+    expect(find.byKey(const Key('driver-new-order-popup')), findsNothing);
+  });
+
+  testWidgets(
       'home workload chart marks retained data stale after refresh failure',
       (tester) async {
     final repo = _StaleStatusRepo();
@@ -394,7 +452,7 @@ void main() {
     expect(find.text('مقبول · 1'), findsOneWidget);
     expect(find.textContaining('آخر بيانات مؤكدة'), findsNothing);
 
-    await tester.pump(const Duration(seconds: 15));
+    await tester.pump(const Duration(seconds: 5));
     await tester.pump();
 
     expect(repo.listCalls, greaterThan(1));
