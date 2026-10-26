@@ -648,6 +648,9 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-order-print-time', $view);
         $this->assertStringContainsString('order-delivered-merged', $view);
         $this->assertStringContainsString('data-order-delivered-time', $view);
+        $this->assertStringContainsString('\\Illuminate\\Support\\Carbon::parse', $view);
+        $this->assertStringNotContainsString('IlluminateSupportCarbon::parse', $view);
+        $this->assertStringNotContainsString('CarbonCarbon::parse', $view);
         $this->assertStringContainsString('@if(!$rowDelivered)', $view);
         $this->assertStringContainsString('order-print-header', $view);
         $this->assertStringContainsString('order-print-footer', $view);
