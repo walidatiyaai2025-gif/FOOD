@@ -173,6 +173,149 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertSee('data-order-edit', false);
     }
 
+    public function test_confirmed_order_can_return_to_pending_before_dispatch(): void
+    {
+        $store = $this->retailStore('UNIFIED-REOPEN');
+        $admin = $this->retailAdmin($store, 'unified-reopen@example.test');
+        $customer = app(B2cCustomerService::class)->create($store, ['name' => 'Reopen Buyer']);
+
+        $order = (int) DB::table('orders')->insertGetId([
+            'store_id' => $store,
+            'customer_id' => (int) $customer->legacy_customer_id,
+            'b2c_customer_id' => (int) $customer->id,
+            'order_number' => 'UNIFIED-REOPEN-1001',
+            'channel' => 'b2c',
+            'status' => 'confirmed',
+            'currency' => 'EGP',
+            'subtotal' => 20,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 20,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c')
+            ->assertOk()
+            ->assertViewHas('rows', function (array $rows) use ($order): bool {
+                $row = collect($rows)->firstWhere('id', $order);
+
+                return collect($row['available_statuses'] ?? [])
+                    ->pluck('code')
+                    ->contains('pending');
+            })
+            ->assertSee('value="pending"', false);
+
+        $this->actingAs($admin)
+            ->post("/admin/operations/orders/{$order}/status", [
+                'status' => 'pending',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order,
+            'status' => 'pending',
+        ]);
+        $this->assertDatabaseHas('order_status_history', [
+            'order_id' => $order,
+            'from_status' => 'confirmed',
+            'to_status' => 'pending',
+            'note' => 'dashboard_reverted_to_pending',
+        ]);
+    }
+
+    public function test_new_order_channel_is_fixed_and_product_lookup_only_returns_positive_available_stock(): void
+    {
+        $store = $this->retailStore('UNIFIED-STOCK');
+        $admin = $this->retailAdmin($store, 'unified-stock@example.test');
+
+        $page = $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c');
+
+        $page->assertOk()
+            ->assertViewHas('newOrderWizard', function (array $wizard): bool {
+                return ($wizard['fixed_channel'] ?? null) === 'b2c'
+                    && collect($wizard['channels'] ?? [])->pluck('code')->values()->all() === ['b2c'];
+            })
+            ->assertSee('data-channel-fixed="1"', false)
+            ->assertSee('name="channel" value="b2c"', false);
+
+        $unit = (int) DB::table('units')->orderBy('id')->value('id');
+        $catalog = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $store,
+            'channel' => 'b2c',
+            'code' => 'stock-only',
+            'name' => 'Stock Only Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $warehouse = (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $store,
+            'code' => 'WH-STOCK',
+            'name' => 'Stock Warehouse',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $availableProduct = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalog,
+            'unit_id' => $unit,
+            'sku' => 'A-STOCK-001',
+            'name' => 'A Available Product',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $outOfStockProduct = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalog,
+            'unit_id' => $unit,
+            'sku' => 'Z-STOCK-000',
+            'name' => 'Z Out Of Stock Product',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        foreach ([
+            [$availableProduct, 8, 3],
+            [$outOfStockProduct, 5, 5],
+        ] as [$productId, $quantity, $reserved]) {
+            DB::table('store_products')->insert([
+                'store_id' => $store,
+                'product_id' => $productId,
+                'price' => 12.50,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            DB::table('inventories')->insert([
+                'warehouse_id' => $warehouse,
+                'product_id' => $productId,
+                'quantity' => $quantity,
+                'reserved_quantity' => $reserved,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $lookup = $this->actingAs($admin)
+            ->getJson("/admin/operations/orders/lookups/product?channel=b2c&store_id={$store}&page=1")
+            ->assertOk();
+
+        $items = collect($lookup->json('data.items'));
+        $this->assertTrue($items->contains(fn (array $item): bool =>
+            (int) $item['id'] === $availableProduct
+            && (float) $item['available_quantity'] === 5.0
+        ));
+        $this->assertFalse($items->contains(fn (array $item): bool =>
+            (int) $item['id'] === $outOfStockProduct
+        ));
+    }
+
     public function test_order_grid_business_status_follows_confirmation_and_driver_execution(): void
     {
         $store = $this->retailStore('UNIFIED-LIFECYCLE');
@@ -269,25 +412,42 @@ class UnifiedOrderOperationsTest extends TestCase
                     && ($row['status_visual_state'] ?? null) === 'processing';
             });
 
+        $deliveredAt = now()->startOfSecond();
         DB::table('driver_assignments')->where('id', $assignment)->update([
             'status' => 'delivered',
-            'completed_at' => now(),
-            'updated_at' => now(),
+            'completed_at' => $deliveredAt,
+            'updated_at' => $deliveredAt,
         ]);
         DB::table('orders')->where('id', $order)->update([
             'status' => 'delivered',
-            'updated_at' => now(),
+            'updated_at' => $deliveredAt,
+        ]);
+        DB::table('order_status_history')->insert([
+            'order_id' => $order,
+            'store_id' => $store,
+            'user_id' => $driverUser->id,
+            'from_status' => 'out_for_delivery',
+            'to_status' => 'delivered',
+            'note' => 'Delivered to customer',
+            'created_at' => $deliveredAt,
+            'updated_at' => $deliveredAt,
         ]);
 
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2c')
             ->assertOk()
-            ->assertViewHas('rows', function (array $rows) use ($order): bool {
+            ->assertViewHas('rows', function (array $rows) use ($order, $deliveredAt): bool {
                 $row = collect($rows)->firstWhere('id', $order);
 
-                return ($row['status_label'] ?? null) === 'Order completed'
-                    && ($row['status_visual_state'] ?? null) === 'completed';
-            });
+                return ($row['status_label'] ?? null) === 'Order delivered to customer'
+                    && ($row['status_visual_state'] ?? null) === 'completed'
+                    && (string) ($row['delivered_at'] ?? '') !== ''
+                    && \Illuminate\Support\Carbon::parse((string) $row['delivered_at'])->equalTo($deliveredAt);
+            })
+            ->assertSee('order-delivered-merged', false)
+            ->assertSee('data-order-delivered-time', false)
+            ->assertSee('Delivered at')
+            ->assertSee($deliveredAt->timezone('Asia/Kuwait')->format('Y-m-d H:i:s'));
     }
 
     public function test_order_popups_render_details_and_printable_timeline_without_page_navigation(): void
@@ -486,9 +646,22 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('order-financial-action is-timeline', $view);
         $this->assertStringContainsString('window.print()', $view);
         $this->assertStringContainsString('data-order-print-time', $view);
+        $this->assertStringContainsString('order-delivered-merged', $view);
+        $this->assertStringContainsString('data-order-delivered-time', $view);
+        $this->assertStringContainsString('@if(!$rowDelivered)', $view);
         $this->assertStringContainsString('order-print-header', $view);
         $this->assertStringContainsString('order-print-footer', $view);
-        $this->assertStringContainsString("asset('brand/foodex-economical-group.webp')", file_get_contents(resource_path('views/admin/_order-operation-popup.blade.php')));
+        $popupView = file_get_contents(resource_path('views/admin/_order-operation-popup.blade.php'));
+        $this->assertIsString($popupView);
+        $this->assertStringContainsString("asset('brand/foodex-economical-group.webp')", $popupView);
+        $this->assertStringContainsString('\\Illuminate\\Support\\Carbon::parse', $popupView);
+        $this->assertStringNotContainsString('CarbonCarbon::parse', $popupView);
+
+        $wizardView = file_get_contents(resource_path('views/admin/_order-new-wizard.blade.php'));
+        $this->assertIsString($wizardView);
+        $this->assertStringContainsString('data-channel-fixed="1"', $wizardView);
+        $this->assertStringContainsString('data-wizard-channel-value', $wizardView);
+        $this->assertStringContainsString('warehouse_id:', $wizardView);
         $this->assertStringContainsString("<th>{{ \$isAr ? 'العميل' : 'Customer' }}</th>\n<th>{{ \$isAr ? 'الدفع والإجمالي' : 'Payment & total' }}</th>\n<th>{{ __('order_operations.columns.status') }}</th>", $view);
         $this->assertStringContainsString('سحب من السائق', $view);
         $this->assertStringContainsString('سحب من الفان', $view);
@@ -558,6 +731,11 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString("lifecycle_labels.assigned_driver", $controller);
         $this->assertStringContainsString("lifecycle_labels.driver_processing", $controller);
         $this->assertStringContainsString("lifecycle_labels.completed", $controller);
+        $this->assertStringContainsString("targetStatus === 'pending'", $controller);
+        $this->assertStringContainsString("'dashboard_reverted_to_pending'", $controller);
+        $this->assertStringContainsString("havingRaw('SUM(inventories.quantity - inventories.reserved_quantity) > 0')", $controller);
+        $this->assertStringContainsString("'fixed_channel' => \$channel", $controller);
+        $this->assertStringContainsString("'delivered_at' => \$deliveredAt", $controller);
         $this->assertStringContainsString("'has_active_driver' => \$hasActiveDriver", $controller);
         $this->assertStringContainsString('Orders already with a Driver can only be withdrawn and transferred to another Driver.', $controller);
         $this->assertStringContainsString("customerOrderChanged(\$model->fresh(), 'details_updated'", $controller);
