@@ -1001,7 +1001,7 @@ class _DriverPendingCard extends StatelessWidget {
           child: Container(
             padding: EdgeInsets.symmetric(
               horizontal: ultraCompact ? 8 : compact ? 10 : 14,
-              vertical: ultraCompact ? 6 : compact ? 8 : 12,
+              vertical: ultraCompact ? 3 : compact ? 4 : 5,
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
@@ -1013,8 +1013,8 @@ class _DriverPendingCard extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: ultraCompact ? 30 : compact ? 34 : 40,
-                  height: ultraCompact ? 30 : compact ? 34 : 40,
+                  width: ultraCompact ? 24 : compact ? 28 : 32,
+                  height: ultraCompact ? 24 : compact ? 28 : 32,
                   decoration: BoxDecoration(
                     color: FoodexBrand.red,
                     borderRadius: BorderRadius.circular(compact ? 10 : 14),
@@ -1022,7 +1022,7 @@ class _DriverPendingCard extends StatelessWidget {
                   child: Icon(
                     Icons.notifications_active_rounded,
                     color: Colors.white,
-                    size: ultraCompact ? 16 : compact ? 18 : 21,
+                    size: ultraCompact ? 14 : compact ? 16 : 18,
                   ),
                 ),
                 SizedBox(width: ultraCompact ? 6 : compact ? 8 : 10),
