@@ -95,10 +95,16 @@ class DriverAssignmentController extends Controller
             'driver_id' => ['required', 'integer', 'exists:drivers,id'],
             'order_id' => ['required', 'integer', 'exists:orders,id'],
             'replace_existing' => ['nullable', 'boolean'],
+            'customer_service_override' => ['nullable', 'boolean'],
         ]);
         $order = Order::query()->findOrFail($data['order_id']);
         $channel = strtolower((string) $order->channel);
-        abort_unless($channel === 'b2c', 409, 'B2B orders are fulfilled by Van runtime.');
+        $manualWholesaleOverride = $channel === 'b2b' && (bool) ($data['customer_service_override'] ?? false);
+        abort_unless(
+            $channel === 'b2c' || $manualWholesaleOverride,
+            409,
+            'B2B orders are fulfilled by Van runtime unless an authorized manual dispatch override is used.',
+        );
 
         $ability = 'orders.dispatch';
         $user = $request->user();
@@ -389,11 +395,11 @@ class DriverAssignmentController extends Controller
 
         $channel = strtolower((string) $driver->driver_type);
         abort_unless(
-            $channel === 'b2c',
+            in_array($channel, ['b2b', 'b2c'], true),
             403,
-            'Driver App execution is available only for Retail (B2C) drivers.',
+            'Driver App execution requires an authorized B2B or B2C driver profile.',
         );
-        abort_unless($user->hasPermission('deliveries.b2c.execute'), 403);
+        abort_unless($user->hasPermission('deliveries.'.$channel.'.execute'), 403);
 
         $this->driverTenants->resolve($driver);
 
