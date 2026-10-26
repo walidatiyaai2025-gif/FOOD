@@ -296,7 +296,9 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
     _pushOpenSubscription = service.opens.listen(
       (open) => unawaited(_openFromPush(open)),
     );
-    _pushAlertSubscription = service.alerts.listen(_showPushAlert);
+    _pushAlertSubscription = service.alerts.listen(
+      (alert) => unawaited(_showPushAlert(alert)),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final pending = service.takePendingOpen();
       if (pending != null) unawaited(_openFromPush(pending));
@@ -369,41 +371,87 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
     }
   }
 
-  void _showPushAlert(DriverPushAlert alert) {
+  Future<void> _showPushAlert(DriverPushAlert alert) async {
     if (!_seenPushAlerts.add(alert.eventKey)) return;
-    if (_seenPushAlerts.length > 50) {
+    if (_seenPushAlerts.length > 100) {
       _seenPushAlerts.remove(_seenPushAlerts.first);
     }
 
-    final context = _messengerKey.currentContext;
-    final identity = context == null
-        ? null
-        : driverPushIdentityLabel(
-            alert.open,
-            orderLabel: context.tr('driver.notifications.order_identity'),
-            assignmentLabel: context.tr(
-              'driver.notifications.assignment_identity',
-            ),
-          );
-    final payloadMessage = alert.body.isEmpty
-        ? alert.title
-        : '${alert.title}\n${alert.body}'; // localization-gate: allow — server-localized push payload.
-    final message =
-        identity == null ? payloadMessage : '$identity\n$payloadMessage';
+    final popupContext =
+        _driverNavigatorKey.currentContext ?? _messengerKey.currentContext;
+    if (popupContext == null || !mounted) {
+      final fallbackMessage = alert.body.isEmpty
+          ? alert.title
+          : '${alert.title}\n${alert.body}';
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text(fallbackMessage)),
+      );
+      return;
+    }
+
+    final identity = driverPushIdentityLabel(
+      alert.open,
+      orderLabel: popupContext.tr('driver.notifications.order_identity'),
+      assignmentLabel: popupContext.tr(
+        'driver.notifications.assignment_identity',
+      ),
+    );
     final actionable = !alert.open.accessRevoked &&
         (alert.open.assignmentId != null || alert.open.orderId != null);
 
-    _messengerKey.currentState?.showSnackBar(
-      SnackBar(
-        content: Text(message),
-        action: actionable
-            ? SnackBarAction(
-                label: context?.tr('driver.notifications.open') ?? 'View',
-                onPressed: () => _openFromPush(alert.open),
-              )
-            : null,
+    final openOrder = await showDialog<bool>(
+      context: popupContext,
+      builder: (dialogContext) => AlertDialog(
+        key: const Key('driver-lifecycle-update-popup'),
+        icon: const Icon(
+          Icons.notifications_active_rounded,
+          color: FoodexBrand.actionGreen,
+          size: 34,
+        ),
+        title: Text(
+          alert.title.isEmpty
+              ? popupContext.tr('driver.notifications.title')
+              : alert.title,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (identity != null) ...[
+              Text(
+                identity,
+                key: const Key('driver-lifecycle-update-identity'),
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+              if (alert.body.isNotEmpty) const SizedBox(height: 8),
+            ],
+            if (alert.body.isNotEmpty)
+              Text(
+                alert.body,
+                key: const Key('driver-lifecycle-update-body'),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            key: const Key('driver-lifecycle-update-dismiss'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(popupContext.tr('driver.dismiss')),
+          ),
+          if (actionable)
+            FilledButton.icon(
+              key: const Key('driver-lifecycle-update-open'),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              icon: const Icon(Icons.open_in_new_rounded),
+              label: Text(popupContext.tr('driver.notifications.open')),
+            ),
+        ],
       ),
     );
+
+    if (openOrder == true && mounted) {
+      await _openFromPush(alert.open);
+    }
   }
 
   Future<void> _restoreRememberedSession() async {
