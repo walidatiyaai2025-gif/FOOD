@@ -32,7 +32,8 @@ void main() {
     expect(intent?.orderId, 91);
     expect(intent?.context, isNull);
     expect(
-      CustomerOrderNotificationIntent.fromData({'store_id': 7, 'channel': 'b2c'}),
+      CustomerOrderNotificationIntent.fromData(
+          {'store_id': 7, 'channel': 'b2c'}),
       isNull,
     );
   });
