@@ -217,7 +217,6 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('order-ready-dispatch-alert', $view);
         $this->assertStringContainsString('b2b_out_for_delivery', $view);
         $this->assertStringContainsString('driver_delivery', $view);
-        $this->assertStringContainsString('الطلب مع السائق للتوصيل', $view);
         $this->assertStringContainsString('إلغاء الطلب', $view);
         $this->assertStringContainsString('سحب وتحويل الطلب لسائق آخر', $view);
         $this->assertStringContainsString('data-order-driver-transfer', $view);
@@ -289,6 +288,9 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString("'awaiting_dispatch'", $controller);
         $this->assertStringContainsString("'actionRequiredCount' => \$actionRequiredCount", $controller);
         $this->assertStringContainsString("'selectedActionRequired' => \$selectedActionRequired", $controller);
+        $this->assertStringContainsString('الطلب مع السائق للتوصيل', $controller);
+        $this->assertStringContainsString("'has_active_driver' => \$hasActiveDriver", $controller);
+        $this->assertStringContainsString('Orders already with a Driver can only be withdrawn and transferred to another Driver.', $controller);
 
         $headerFilter = file_get_contents(resource_path('views/admin/_order-operations-header-filters.blade.php'));
         $this->assertIsString($headerFilter);
