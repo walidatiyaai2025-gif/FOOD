@@ -180,6 +180,7 @@ final class DashboardOperationalNotifier
         Order $order,
         DriverAssignment $assignment,
         ?int $previousDriverId = null,
+        bool $manualB2bDispatch = false,
     ): void {
         $reassigned = $previousDriverId !== null;
         $type = $reassigned ? 'delivery.reassigned' : 'delivery.assigned';
@@ -201,7 +202,12 @@ final class DashboardOperationalNotifier
             ],
         );
 
-        $this->lifecycle->driverAssigned($order, $assignment, $previousDriverId);
+        $this->lifecycle->driverAssigned(
+            $order,
+            $assignment,
+            $previousDriverId,
+            $manualB2bDispatch,
+        );
     }
 
     public function deliveryChanged(
