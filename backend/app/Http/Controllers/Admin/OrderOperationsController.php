@@ -2213,6 +2213,13 @@ final class OrderOperationsController extends Controller
             ));
         }
 
+        $displayStatus = $this->orderOperationsDisplayStatus(
+            $order,
+            $assignment,
+            $dispatch,
+            $statusLabels,
+        );
+
         return [
             'id' => (int) $order->getKey(),
             'number' => DisplayNumber::reference($order->getKey()),
@@ -2223,9 +2230,8 @@ final class OrderOperationsController extends Controller
             'source' => $source,
             'customer' => $customerName ?? '-',
             'status' => $status,
-            'status_label' => $hasActiveDriver
-                ? $this->msg('الطلب مع السائق للتوصيل', 'Order with driver for delivery')
-                : ($statusLabels[$status] ?? $status),
+            'status_label' => $displayStatus['label'],
+            'status_visual_state' => $displayStatus['state'],
             'has_active_driver' => $hasActiveDriver,
             'available_statuses' => array_map(
                 static fn (string $candidate): array => [
@@ -2506,6 +2512,139 @@ final class OrderOperationsController extends Controller
         ];
     }
 
+    /**
+     * @param  array<string,string>  $statusLabels
+     * @return array{label:string,state:string}
+     */
+    private function orderOperationsDisplayStatus(
+        Order $order,
+        ?DriverAssignment $assignment,
+        ?OrderDispatchState $dispatch,
+        array $statusLabels,
+    ): array {
+        $status = strtolower((string) $order->status);
+        $assignmentStatus = strtolower((string) ($assignment?->status ?? ''));
+
+        if (in_array($status, ['delivered', 'completed'], true)) {
+            return [
+                'label' => __('order_operations.lifecycle_labels.completed'),
+                'state' => 'completed',
+            ];
+        }
+
+        if (in_array($status, ['cancelled', 'failed'], true)) {
+            return [
+                'label' => $statusLabels[$status] ?? $this->operationBusinessLabel($status),
+                'state' => $status,
+            ];
+        }
+
+        if ($assignment instanceof DriverAssignment) {
+            if ($assignmentStatus === 'assigned') {
+                return [
+                    'label' => __('order_operations.lifecycle_labels.assigned_driver'),
+                    'state' => 'assigned',
+                ];
+            }
+
+            if (in_array($assignmentStatus, ['accepted', 'picked_up', 'out_for_delivery'], true)) {
+                return [
+                    'label' => __('order_operations.lifecycle_labels.driver_processing'),
+                    'state' => 'processing',
+                ];
+            }
+        }
+
+        if (
+            $dispatch instanceof OrderDispatchState
+            && (string) $dispatch->status === 'assigned'
+            && (string) $dispatch->current_assignee_type === 'driver'
+        ) {
+            return [
+                'label' => __('order_operations.lifecycle_labels.assigned_driver'),
+                'state' => 'assigned',
+            ];
+        }
+
+        if (
+            $dispatch instanceof OrderDispatchState
+            && (string) $dispatch->status === 'assigned'
+            && (string) $dispatch->current_assignee_type === 'van'
+        ) {
+            return [
+                'label' => __('order_operations.lifecycle_labels.assigned_van'),
+                'state' => 'assigned',
+            ];
+        }
+
+        if ($status === 'pending') {
+            return [
+                'label' => __('order_operations.lifecycle_labels.pending_confirmation'),
+                'state' => 'pending',
+            ];
+        }
+
+        if (in_array($status, ['confirmed', 'preparing', 'ready'], true)) {
+            return [
+                'label' => strtolower((string) $order->channel) === 'b2b'
+                    ? __('order_operations.lifecycle_labels.confirmed_awaiting_dispatch')
+                    : __('order_operations.lifecycle_labels.confirmed_awaiting_driver'),
+                'state' => 'confirmed',
+            ];
+        }
+
+        return [
+            'label' => $statusLabels[$status] ?? $this->operationBusinessLabel($status),
+            'state' => $status,
+        ];
+    }
+
+    private function operationBusinessLabel(mixed $value): string
+    {
+        $key = strtolower(trim((string) ($value ?? '')));
+        if ($key === '') {
+            return '—';
+        }
+
+        $translationKey = 'order_operations.business_labels.'.$key;
+        $translated = __($translationKey);
+
+        if ($translated !== $translationKey) {
+            return $translated;
+        }
+
+        return app()->getLocale() === 'ar'
+            ? 'غير محدد'
+            : ucwords(str_replace(['_', '-', '.'], ' ', $key));
+    }
+
+    private function localizedOperationalValue(mixed $value): ?string
+    {
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return null;
+        }
+
+        $key = strtolower($raw);
+        $translationKey = 'order_operations.business_labels.'.$key;
+        $translated = __($translationKey);
+        if ($translated !== $translationKey) {
+            return $translated;
+        }
+
+        if (preg_match('/^[a-z0-9_.:-]+$/i', $raw) === 1) {
+            return app()->getLocale() === 'ar'
+                ? 'تحديث على الطلب'
+                : ucwords(str_replace(['_', '-', '.'], ' ', $raw));
+        }
+
+        return $raw;
+    }
+
     /** @return list<array<string,mixed>> */
     private function orderTimeline(Order $order, array $detail): array
     {
@@ -2518,8 +2657,8 @@ final class OrderOperationsController extends Controller
                     'تغيير حالة الطلب',
                     'Order status changed',
                 ),
-                'summary' => trim((string) ($entry['from'] ?? '')).' → '.trim((string) ($entry['to'] ?? '')),
-                'note' => $entry['note'] ?? null,
+                'summary' => $this->operationBusinessLabel($entry['from'] ?? null).' → '.$this->operationBusinessLabel($entry['to'] ?? null),
+                'note' => $this->localizedOperationalValue($entry['note'] ?? null),
                 'actor' => null,
                 'created_at' => $entry['created_at'] ?? null,
             ]);
@@ -2529,7 +2668,7 @@ final class OrderOperationsController extends Controller
             $events->push([
                 'kind' => 'driver',
                 'title' => $this->msg('إجراء على السائق', 'Driver action'),
-                'summary' => trim((string) ($entry['driver'] ?? '')).' · '.trim((string) ($entry['status'] ?? '')),
+                'summary' => trim((string) ($entry['driver'] ?? '')).' · '.$this->operationBusinessLabel($entry['status'] ?? null),
                 'note' => null,
                 'actor' => null,
                 'created_at' => $entry['assigned_at'] ?? null,
@@ -2538,7 +2677,7 @@ final class OrderOperationsController extends Controller
                 $events->push([
                     'kind' => 'driver',
                     'title' => $this->msg('انتهاء إجراء السائق', 'Driver action completed'),
-                    'summary' => trim((string) ($entry['driver'] ?? '')).' · '.trim((string) ($entry['status'] ?? '')),
+                    'summary' => trim((string) ($entry['driver'] ?? '')).' · '.$this->operationBusinessLabel($entry['status'] ?? null),
                     'note' => null,
                     'actor' => null,
                     'created_at' => $entry['completed_at'],
@@ -2550,8 +2689,8 @@ final class OrderOperationsController extends Controller
             $events->push([
                 'kind' => 'van',
                 'title' => $this->msg('إجراء على الفان', 'Van action'),
-                'summary' => trim((string) ($entry['van'] ?? '')).' · '.trim((string) ($entry['status'] ?? '')),
-                'note' => $entry['reason'] ?? null,
+                'summary' => trim((string) ($entry['van'] ?? '')).' · '.$this->operationBusinessLabel($entry['status'] ?? null),
+                'note' => $this->localizedOperationalValue($entry['reason'] ?? null),
                 'actor' => null,
                 'created_at' => $entry['assigned_at'] ?? null,
             ]);
@@ -2559,8 +2698,8 @@ final class OrderOperationsController extends Controller
                 $events->push([
                     'kind' => 'van',
                     'title' => $this->msg('انتهاء إسناد الفان', 'Van assignment ended'),
-                    'summary' => trim((string) ($entry['van'] ?? '')).' · '.trim((string) ($entry['status'] ?? '')),
-                    'note' => $entry['reason'] ?? null,
+                    'summary' => trim((string) ($entry['van'] ?? '')).' · '.$this->operationBusinessLabel($entry['status'] ?? null),
+                    'note' => $this->localizedOperationalValue($entry['reason'] ?? null),
                     'actor' => null,
                     'created_at' => $entry['ended_at'],
                 ]);
@@ -2571,8 +2710,8 @@ final class OrderOperationsController extends Controller
             $events->push([
                 'kind' => 'execution',
                 'title' => $this->msg('تنفيذ الفان', 'Van execution'),
-                'summary' => trim((string) ($entry['from_status'] ?? '')).' → '.trim((string) ($entry['to_status'] ?? '')),
-                'note' => $entry['note'] ?? $entry['reason_code'] ?? null,
+                'summary' => $this->operationBusinessLabel($entry['from_status'] ?? null).' → '.$this->operationBusinessLabel($entry['to_status'] ?? null),
+                'note' => $this->localizedOperationalValue($entry['note'] ?? $entry['reason_code'] ?? null),
                 'actor' => $entry['actor'] ?? null,
                 'created_at' => $entry['captured_at'] ?? null,
             ]);
@@ -2611,12 +2750,15 @@ final class OrderOperationsController extends Controller
         foreach ($audits as $audit) {
             /** @var array<string,mixed> $after */
             $after = $audit->getAttribute('after') ?? [];
-            $summaryParts = array_values(array_filter([
-                $after['status'] ?? null,
-                $after['routing_reason'] ?? null,
-                $after['reason'] ?? null,
-                $after['note'] ?? null,
-            ], static fn ($value): bool => is_scalar($value) && trim((string) $value) !== ''));
+            $summaryParts = array_values(array_filter(array_map(
+                fn ($value): ?string => $this->localizedOperationalValue($value),
+                [
+                    $after['status'] ?? null,
+                    $after['routing_reason'] ?? null,
+                    $after['reason'] ?? null,
+                    $after['note'] ?? null,
+                ],
+            ), static fn ($value): bool => is_string($value) && trim($value) !== ''));
 
             $events->push([
                 'kind' => 'audit',
