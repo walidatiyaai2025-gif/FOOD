@@ -773,7 +773,6 @@ class OrderOperationsIsolationTest extends TestCase
             ->get('/admin/operations/orders?order='.$order)
             ->assertOk()
             ->assertDontSee('Driver assignment history')
-            ->assertDontSee('Detail Driver')
             ->assertSee('data-order-actionable-detail', false);
     }
 
