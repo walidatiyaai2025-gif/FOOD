@@ -540,6 +540,9 @@ class _DriverHomePageState extends State<_DriverHomePage>
                 Text(
                   '${context.tr('driver.notifications.order_identity')} ${assignment.reference}',
                   key: const Key('driver-home-update-reference'),
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
                 if (!removed) ...[
