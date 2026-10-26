@@ -494,9 +494,12 @@ class UnifiedOrderOperationsTest extends TestCase
 
                 return ($row['status_label'] ?? null) === 'Order delivered to customer'
                     && ($row['status_visual_state'] ?? null) === 'completed'
+                    && ($row['available_statuses'] ?? []) === []
                     && (string) ($row['delivered_at'] ?? '') !== ''
                     && Carbon::parse((string) $row['delivered_at'])->equalTo($deliveredAt);
             })
+            ->assertDontSee('data-order-inline-status', false)
+            ->assertDontSee('Cancel order')
             ->assertSee('order-delivered-merged', false)
             ->assertSee('data-order-delivered-time', false)
             ->assertSee('data-order-customer-service-dimmed', false)
