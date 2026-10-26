@@ -28,10 +28,9 @@ abstract final class DriverRoutes {
   static const b2bDeliveries = '/driver/b2b/deliveries';
   static const b2bNotifications = '/driver/b2b/notifications';
 
-  static String home(DriverChannel channel) =>
-      channel == DriverChannel.b2b
-          ? DriverRoutes.b2bHome
-          : DriverRoutes.b2cHome;
+  static String home(DriverChannel channel) => channel == DriverChannel.b2b
+      ? DriverRoutes.b2bHome
+      : DriverRoutes.b2cHome;
 
   static String deliveries(DriverChannel channel) =>
       channel == DriverChannel.b2b
@@ -143,10 +142,10 @@ class DriverNavigator {
     final home = DriverRoutes.home(channel);
     final deliveries = DriverRoutes.deliveries(channel);
     final notifications = DriverRoutes.notifications(channel);
-    final wallet = channel == DriverChannel.b2c &&
-            repository is DriverWalletRepository
-        ? DriverRoutes.b2cWallet
-        : null;
+    final wallet =
+        channel == DriverChannel.b2c && repository is DriverWalletRepository
+            ? DriverRoutes.b2cWallet
+            : null;
 
     return _DriverHomePage(
       homeRoute: home,
@@ -849,7 +848,6 @@ class _DriverPendingCard extends StatelessWidget {
           ),
         ),
       );
-
 }
 
 class _DriverStatusCard extends StatelessWidget {
