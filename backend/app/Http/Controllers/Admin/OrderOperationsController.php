@@ -676,10 +676,14 @@ final class OrderOperationsController extends Controller
         Request $request,
         int $order,
         AdminOrderManagementService $orders,
+        OrderLifecycleNotificationService $notifications,
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.manage');
         $orders->update($request, $actor, $model);
+        $notifications->customerOrderChanged($model->fresh(), 'details_updated', [
+            'actor_user_id' => (int) $actor->getKey(),
+        ]);
 
         return redirect()
             ->route('admin.operations.orders.index', [
@@ -1496,6 +1500,7 @@ final class OrderOperationsController extends Controller
         Request $request,
         int $order,
         AuditLogger $audit,
+        OrderLifecycleNotificationService $notifications,
     ): RedirectResponse {
         $actor = $this->actor($request);
         abort_unless($this->customerServiceTeam->canManage($actor), 403);
@@ -1576,6 +1581,11 @@ final class OrderOperationsController extends Controller
                 $request,
             );
         }, 3);
+
+        $notifications->customerOrderChanged($model->fresh(), 'customer_service_updated', [
+            'assigned_user_id' => $assignedUserId,
+            'reason' => $reason === '' ? null : $reason,
+        ]);
 
         return back()->with('status', $this->msg(
             $assignedUserId === null ? 'تم إلغاء إسناد الطلب من فريق خدمة العملاء.' : 'تم إسناد الطلب لموظف خدمة العملاء.',
