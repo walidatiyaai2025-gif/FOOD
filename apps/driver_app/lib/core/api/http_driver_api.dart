@@ -70,11 +70,12 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
         .where((role) => role == 'B2C_DRIVER' || role == 'B2B_DRIVER')
         .toSet();
 
-    if (roles.length != 1 || roles.single != 'B2C_DRIVER') {
+    if (roles.length != 1) {
       throw const DriverRoleDeniedException();
     }
 
-    const channel = DriverChannel.b2c;
+    final channel =
+        roles.single == 'B2B_DRIVER' ? DriverChannel.b2b : DriverChannel.b2c;
 
     final scopeRaw = user['driver_scope'];
     if (scopeRaw is! Map) {
@@ -83,7 +84,8 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
     final scope = Map<String, dynamic>.from(scopeRaw);
     final scopeChannel = (scope['channel'] ?? '').toString().toLowerCase();
     final storeId = (scope['store_id'] as num?)?.toInt() ?? 0;
-    const expectedChannel = 'b2c';
+    final expectedChannel =
+        channel == DriverChannel.b2b ? 'b2b' : 'b2c';
     if (scopeChannel != expectedChannel || storeId <= 0) {
       throw const DriverRoleDeniedException();
     }
@@ -147,10 +149,6 @@ class HttpDriverAssignmentRepository
 
   @override
   Future<List<DriverAssignment>> list(DriverChannel channel) async {
-    if (channel != DriverChannel.b2c) {
-      throw const DriverAccessDeniedException();
-    }
-
     final response = await _request(
       () => _client.get(
         _endpoint(
@@ -180,7 +178,7 @@ class HttpDriverAssignmentRepository
         .toString()
         .toLowerCase()) {
       'b2c' => DriverChannel.b2c,
-      'b2b' => throw const DriverAccessDeniedException(),
+      'b2b' => DriverChannel.b2b,
       _ => throw const DriverApiException('Invalid assignment channel.'),
     };
 
@@ -419,10 +417,6 @@ class HttpDriverAssignmentRepository
     String? note,
     String? failureReason,
   }) async {
-    if (channel != DriverChannel.b2c) {
-      throw const DriverAccessDeniedException();
-    }
-
     await _request(
       () => _client.post(
         _endpoint('driver/assignments/$id/status'),
@@ -446,10 +440,6 @@ class HttpDriverAssignmentRepository
     String? note,
     String? failureReason,
   }) async {
-    if (channel != DriverChannel.b2c) {
-      throw const DriverAccessDeniedException();
-    }
-
     final request = http.MultipartRequest(
       'POST',
       _endpoint('driver/assignments/$id/status'),
