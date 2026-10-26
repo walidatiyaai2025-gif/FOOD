@@ -194,7 +194,12 @@ class DriverAssignmentController extends Controller
             $assignment->toArray(),
             $request,
         );
-        $dashboardNotifier->driverAssigned($order, $assignment, $previousDriverId);
+        $dashboardNotifier->driverAssigned(
+            $order,
+            $assignment,
+            $previousDriverId,
+            $manualWholesaleOverride,
+        );
 
         return response()->json(['data' => $assignment], 201);
     }
