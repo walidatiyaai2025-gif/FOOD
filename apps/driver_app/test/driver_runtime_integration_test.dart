@@ -240,7 +240,7 @@ void main() {
       'https://foodex.example/',
       'token',
       client: MockClient((request) async {
-        requests.add(request.method + ' ' + request.url.path);
+        requests.add('${request.method} ${request.url.path}');
         if (request.method == 'GET') {
           return http.Response(
             jsonEncode({
