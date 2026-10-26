@@ -325,8 +325,6 @@ final class SalesOrderOperationsDashboardService
             'exceptions' => [
                 ['key' => 'delayed', 'count' => $delayedOrders],
                 ['key' => 'awaiting_dispatch', 'count' => $awaitingDispatch],
-                ['key' => 'payment', 'count' => $paymentExceptions],
-                ['key' => 'invoice', 'count' => $invoiceExceptions],
                 ['key' => 'cancelled_refunded', 'count' => $cancelledRefunded],
             ],
             'generated_at' => CarbonImmutable::now('Asia/Kuwait')->format('Y-m-d H:i'),
