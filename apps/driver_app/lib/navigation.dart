@@ -29,13 +29,19 @@ abstract final class DriverRoutes {
   static const b2bNotifications = '/driver/b2b/notifications';
 
   static String home(DriverChannel channel) =>
-      channel == DriverChannel.b2b ? b2bHome : b2cHome;
+      channel == DriverChannel.b2b
+          ? DriverRoutes.b2bHome
+          : DriverRoutes.b2cHome;
 
   static String deliveries(DriverChannel channel) =>
-      channel == DriverChannel.b2b ? b2bDeliveries : b2cDeliveries;
+      channel == DriverChannel.b2b
+          ? DriverRoutes.b2bDeliveries
+          : DriverRoutes.b2cDeliveries;
 
   static String notifications(DriverChannel channel) =>
-      channel == DriverChannel.b2b ? b2bNotifications : b2cNotifications;
+      channel == DriverChannel.b2b
+          ? DriverRoutes.b2bNotifications
+          : DriverRoutes.b2cNotifications;
 
   static bool belongsTo(String route, DriverChannel channel) {
     final prefix =
