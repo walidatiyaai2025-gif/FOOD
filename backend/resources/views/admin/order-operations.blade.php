@@ -43,7 +43,7 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .ops-table tbody td{padding:10px;vertical-align:middle;line-height:1.32;border-bottom:1px solid var(--foodex-palette-edf1f4);background:var(--foodex-surface);transition:background .16s ease}
 .ops-table tbody tr:last-child td{border-bottom:0}
 .ops-table tbody tr:hover td{background:var(--foodex-palette-f9fbfa)}
-.ops-table th:nth-child(1){width:15%}.ops-table th:nth-child(2){width:17%}.ops-table th:nth-child(3){width:13%}.ops-table th:nth-child(4){width:18%}.ops-table th:nth-child(5){width:15%}.ops-table th:nth-child(6){width:15%}.ops-table th:nth-child(7){width:7%}
+.ops-table th:nth-child(1){width:7.5%}.ops-table th:nth-child(2){width:12.75%}.ops-table th:nth-child(3){width:15%}.ops-table th:nth-child(4){width:14.5%}.ops-table th:nth-child(5){width:23.25%}.ops-table th:nth-child(6){width:20%}.ops-table th:nth-child(7){width:7%}
 .order-grid-row{--order-row-accent:var(--foodex-palette-cbd5e1)}
 .order-grid-row>td:first-child{border-inline-start:3px solid var(--order-row-accent)}
 .order-grid-row.is-action-required{--order-row-accent:var(--foodex-palette-f59e0b)}
@@ -70,6 +70,8 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-execution{display:grid;gap:5px;min-width:0}.ops-table tbody td.order-dispatch-cell-locked{background:var(--foodex-palette-f8fafc)!important;cursor:not-allowed}.order-execution.is-dispatch-locked{opacity:.42;filter:grayscale(.28)}.order-dispatch-lock-hint{font-size:.58rem;font-weight:800;color:var(--foodex-muted)}.order-execution strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-execution small{color:var(--foodex-muted);font-size:.62rem}
 .order-owner{display:grid;gap:3px}.order-owner strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-owner small{color:var(--foodex-muted);font-size:.61rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .order-financial{display:grid;gap:4px}.order-financial>strong{font-size:.77rem;white-space:nowrap}.order-financial small{color:var(--foodex-muted);font-size:.61rem}
+.order-financial-actions{display:flex;align-items:center;gap:5px;margin-top:2px}.order-financial-action{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-green-dark);text-decoration:none;transition:transform .14s ease,border-color .14s ease,background .14s ease}.order-financial-action:hover{transform:translateY(-1px);border-color:var(--foodex-action-green);background:var(--foodex-palette-eaf7ef)}.order-financial-action .foodex-svg-icon{width:14px;height:14px}
+.order-inline-unassign{margin-top:3px}.order-inline-unassign button{min-height:25px!important;height:25px!important;padding:0 9px!important;border:1px solid var(--foodex-palette-fda4af)!important;border-radius:999px!important;background:var(--foodex-palette-fff1f2)!important;color:var(--foodex-palette-be123c)!important;font-size:.6rem!important;font-weight:900!important;cursor:pointer}
 .order-grid-actions{text-align:center}
 .order-inline-status{display:grid;grid-template-columns:minmax(0,1fr) 27px;align-items:center;gap:5px;margin-top:3px;width:100%}.order-inline-status select{--status-bg:var(--foodex-palette-f1f5f9);--status-fg:var(--foodex-palette-475569);--status-border:var(--foodex-palette-cbd5e1);appearance:none;-webkit-appearance:none;min-width:0;width:100%;max-width:none;min-height:27px!important;height:27px!important;margin:0!important;padding:0 26px 0 9px!important;border:1px solid var(--status-border)!important;border-radius:999px!important;background-color:var(--status-bg)!important;color:var(--status-fg)!important;font-size:.63rem!important;font-weight:900!important;line-height:25px!important;box-sizing:border-box!important;box-shadow:none!important;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)!important;background-position:calc(100% - 13px) 11px,calc(100% - 9px) 11px!important;background-size:4px 4px,4px 4px!important;background-repeat:no-repeat!important}.order-inline-status select[data-state="pending"],.order-inline-status select[data-state="waiting"],.order-inline-status select[data-state="awaiting_dispatch"]{--status-bg:var(--foodex-palette-fff7ed);--status-fg:var(--foodex-palette-c2410c);--status-border:var(--foodex-palette-fdba74)}.order-inline-status select[data-state="confirmed"]{--status-bg:var(--foodex-palette-eff6ff);--status-fg:var(--foodex-palette-1d4ed8);--status-border:var(--foodex-palette-93c5fd)}.order-inline-status select[data-state="preparing"],.order-inline-status select[data-state="processing"]{--status-bg:var(--foodex-palette-f5f3ff);--status-fg:var(--foodex-palette-6d28d9);--status-border:var(--foodex-palette-c4b5fd)}.order-inline-status select[data-state="ready"]{--status-bg:var(--foodex-palette-ecfeff);--status-fg:var(--foodex-palette-0e7490);--status-border:var(--foodex-palette-67e8f9)}.order-inline-status select[data-state="out_for_delivery"],.order-inline-status select[data-state="on_the_way"],.order-inline-status select[data-state="assigned"]{--status-bg:var(--foodex-palette-eef2ff);--status-fg:var(--foodex-palette-4338ca);--status-border:var(--foodex-palette-a5b4fc)}.order-inline-status select[data-state="delivered"],.order-inline-status select[data-state="completed"],.order-inline-status select[data-state="paid"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}.order-inline-status select[data-state="cancelled"],.order-inline-status select[data-state="failed"],.order-inline-status select[data-state="delivery_failed"]{--status-bg:var(--foodex-palette-fff1f2);--status-fg:var(--foodex-palette-be123c);--status-border:var(--foodex-palette-fda4af)}.order-inline-status-submit{width:27px!important;height:27px!important;min-width:27px!important;min-height:27px!important;margin:0!important;padding:0!important;border:1px solid var(--foodex-action-green)!important;border-radius:999px!important;background:var(--foodex-action-green)!important;color:#fff!important;font-size:.72rem!important;font-weight:900!important;line-height:25px!important;box-shadow:none!important;cursor:pointer}.order-inline-status-note{grid-column:1/-1;min-width:0;width:100%;box-sizing:border-box;min-height:27px!important;height:27px!important;margin:0!important;padding:0 9px!important;border:1px solid var(--foodex-border)!important;border-radius:999px!important;font-size:.61rem!important;line-height:25px!important}.order-inline-status-note[hidden]{display:none!important}.order-inline-picker{display:grid;grid-template-columns:minmax(0,1fr) 27px;align-items:center;gap:5px;margin-top:3px;width:100%}.order-inline-picker select{appearance:none;-webkit-appearance:none;min-width:0;width:100%;min-height:27px!important;height:27px!important;margin:0!important;padding:0 26px 0 9px!important;border:1px solid var(--foodex-palette-cbd5e1)!important;border-radius:999px!important;background-color:var(--foodex-palette-f1f5f9)!important;color:var(--foodex-palette-475569)!important;font-size:.63rem!important;font-weight:900!important;line-height:25px!important;box-sizing:border-box!important;box-shadow:none!important;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)!important;background-position:calc(100% - 13px) 11px,calc(100% - 9px) 11px!important;background-size:4px 4px,4px 4px!important;background-repeat:no-repeat!important}.order-inline-picker button{width:27px!important;height:27px!important;min-width:27px!important;min-height:27px!important;margin:0!important;padding:0!important;border:1px solid var(--foodex-action-green)!important;border-radius:999px!important;background:var(--foodex-action-green)!important;color:#fff!important;font-size:.72rem!important;font-weight:900!important;line-height:25px!important;box-shadow:none!important;cursor:pointer}.order-inline-picker button:disabled{opacity:.45;cursor:not-allowed}.order-inline-picker-reason{grid-column:1/-1;min-width:0;width:100%;box-sizing:border-box;min-height:27px!important;height:27px!important;margin:0!important;padding:0 9px!important;border:1px solid var(--foodex-border)!important;border-radius:999px!important;font-size:.61rem!important;line-height:25px!important}.order-inline-picker-reason[hidden]{display:none!important}
 .status-tab{--status-tab-bg:#fff;--status-tab-fg:var(--foodex-ink);--status-tab-border:var(--foodex-border);border-color:var(--status-tab-border)!important;background:var(--status-tab-bg)!important;color:var(--status-tab-fg)!important}
@@ -375,10 +377,10 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <table class="foodex-table ops-table"><thead><tr>
 <th>{{ $isAr ? 'الطلب' : 'Order' }}</th>
 <th>{{ $isAr ? 'العميل' : 'Customer' }}</th>
+<th>{{ $isAr ? 'الدفع والإجمالي' : 'Payment & total' }}</th>
 <th>{{ __('order_operations.columns.status') }}</th>
 <th>{{ $isAr ? 'التنفيذ والتوجيه' : 'Execution & routing' }}</th>
 <th>{{ __('order_operations.customer_service_owner.column') }}</th>
-<th>{{ $isAr ? 'الدفع والإجمالي' : 'Payment & total' }}</th>
 <th>{{ __('order_operations.columns.actions') }}</th>
 </tr></thead><tbody>
 @forelse($rows as $row)
@@ -405,6 +407,18 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         <div class="order-grid-meta">
             <span>{{ $row['store'] }}</span>
             <span class="order-mini-chip">{{ $businessLabel((string)$row['channel']) }}</span>
+        </div>
+    </div>
+</td>
+<td>
+    <div class="order-financial">
+        <strong>{{ number_format($row['total'],2) }} {{ $row['currency'] }}</strong>
+        <small>{{ $businessLabel($row['payment_status']) }}@if($row['payment_provider']) · {{ strtoupper(str_replace(['_','-'],' ',(string)$row['payment_provider'])) }}@endif</small>
+        <div class="order-financial-actions" data-order-financial-actions>
+            <a class="order-financial-action" href="{{ route('admin.operations.orders.index',array_merge(request()->except('edit'),['order'=>$row['id']])) }}" title="{{ $isAr ? 'تفاصيل الطلب' : 'Order details' }}" aria-label="{{ $isAr ? 'تفاصيل الطلب' : 'Order details' }}" data-order-details-icon>@include('admin._premium-icon',['name'=>'details'])</a>
+            @if($row['invoice_id'] && $row['can_view_invoice'])
+                <a class="order-financial-action" href="{{ route('admin.invoices.show',$row['invoice_id']) }}" title="{{ $isAr ? 'الفاتورة' : 'Invoice' }}" aria-label="{{ $isAr ? 'الفاتورة' : 'Invoice' }}" data-order-invoice-icon>@include('admin._premium-icon',['name'=>'invoice'])</a>
+            @endif
         </div>
     </div>
 </td>
@@ -474,6 +488,13 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             @if($row['dispatch_locked_until_confirmation'] ?? false)
                 <small class="order-dispatch-lock-hint">{{ $isAr ? 'متاح بعد تأكيد الطلب' : 'Available after order confirmation' }}</small>
             @endif
+            @if(($row['dispatch_status'] ?? '')==='assigned' && !empty($row['dispatch_assignee_id']) && ($row['can_dispatch'] ?? false))
+                <form method="post" action="{{ route('admin.operations.orders.dispatch.clear',$row['id']) }}" class="order-inline-unassign" data-order-inline-unassign>
+                    @csrf @method('DELETE')
+                    <input type="hidden" name="reason" value="grid_manual_unassign">
+                    <button type="submit">{{ $isAr ? (($row['dispatch_assignee_type'] ?? '')==='van' ? 'سحب من الفان' : 'سحب من السائق') : (($row['dispatch_assignee_type'] ?? '')==='van' ? 'Pull from Van' : 'Pull from driver') }}</button>
+                </form>
+            @endif
         @endif
     </div>
 </td>
@@ -499,22 +520,12 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         @endif
     </div>
 </td>
-<td>
-    <div class="order-financial">
-        <strong>{{ number_format($row['total'],2) }} {{ $row['currency'] }}</strong>
-        <small>{{ $businessLabel($row['payment_status']) }}@if($row['payment_provider']) · {{ strtoupper(str_replace(['_','-'],' ',(string)$row['payment_provider'])) }}@endif</small>
-    </div>
-</td>
 <td class="order-grid-actions">
 <details class="row-actions" data-order-row-actions>
 <summary aria-label="{{ __('order_operations.order_actions') }}">⋮</summary>
 <div class="row-action-menu">
-<a href="{{ route('admin.operations.orders.index',array_merge(request()->except('edit'),['order'=>$row['id']])) }}">{{ __('order_operations.view_order') }}</a>
 @if($row['can_edit'])
 <a data-order-edit href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id'],'edit'=>1])) }}">{{ $isAr ? 'تعديل الطلب' : 'Edit order' }}</a>
-@endif
-@if($row['invoice_id'] && $row['can_view_invoice'])
-<a data-order-invoice href="{{ route('admin.invoices.show',$row['invoice_id']) }}">{{ $isAr ? 'عرض / طباعة الفاتورة' : 'View / Print invoice' }}</a>
 @endif
 @if($row['channel']==='b2c' && $row['driver_id'] && $row['can_manage'])
 <form method="post" action="{{ route('admin.operations.orders.remind',$row['id']) }}" data-order-remind-driver>@csrf
