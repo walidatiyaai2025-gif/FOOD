@@ -2675,7 +2675,7 @@ final class OrderOperationsController extends Controller
         array $statusLabels,
     ): array {
         $status = strtolower((string) $order->status);
-        $assignmentStatus = strtolower((string) ($assignment?->status ?? ''));
+        $assignmentStatus = strtolower((string) ($assignment->status ?? ''));
 
         if (in_array($status, ['delivered', 'completed'], true)) {
             return [
