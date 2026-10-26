@@ -719,6 +719,7 @@ class OrderController extends Controller
             : [];
 
         $tracking = $includeTimeline ? app(OrderLiveTrackingService::class)->forOrder($order) : null;
+        $driver = $this->customerVisibleDriver($order);
 
         $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
 
@@ -788,6 +789,7 @@ class OrderController extends Controller
             ] : null,
             'collection_receipts' => $collectionReceipts,
             'tracking' => $tracking,
+            'driver' => $driver,
             'allowed_actions' => [
                 'view_invoice' => $invoice instanceof Invoice,
                 'view_map' => (bool) ($deliveryAddress['has_coordinates'] ?? false),
@@ -799,4 +801,51 @@ class OrderController extends Controller
             'created_at' => $order->created_at?->toAtomString(),
         ];
     }
+    /**
+     * @return array{id:int,name:string,phone:?string}|null
+     */
+    private function customerVisibleDriver(Order $order): ?array
+    {
+        $query = DB::table('driver_assignments')
+            ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
+            ->join('users', 'users.id', '=', 'drivers.user_id')
+            ->where('driver_assignments.order_id', $order->getKey());
+
+        if (strtolower((string) $order->status) === 'delivered') {
+            $query->whereNotIn('driver_assignments.status', [
+                'unassigned',
+                'reassigned',
+                'cancelled',
+                'failed',
+            ]);
+        } else {
+            $query->whereIn('driver_assignments.status', [
+                'assigned',
+                'accepted',
+                'picked_up',
+                'out_for_delivery',
+            ]);
+        }
+
+        $driver = $query
+            ->orderByDesc('driver_assignments.id')
+            ->first([
+                'drivers.id',
+                'users.name',
+                'users.phone_e164',
+            ]);
+
+        if ($driver === null) {
+            return null;
+        }
+
+        $phone = trim((string) ($driver->phone_e164 ?? ''));
+
+        return [
+            'id' => (int) $driver->id,
+            'name' => (string) $driver->name,
+            'phone' => $phone === '' ? null : $phone,
+        ];
+    }
+
 }
