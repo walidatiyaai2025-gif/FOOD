@@ -27,7 +27,7 @@ $newOrderIdempotencyKey = $newOrderRestore && trim((string) old('idempotency_key
     ? trim((string) old('idempotency_key'))
     : 'dashboard:'.(string) \Illuminate\Support\Str::uuid();
 $newOrderOldInput = $newOrderRestore ? [
-    'channel' => old('channel'),
+    'channel' => $newOrderWizard['fixed_channel'] ?? old('channel'),
     'store_id' => old('store_id'),
     'warehouse_id' => old('warehouse_id'),
     'customer_id' => old('customer_id'),
@@ -49,7 +49,7 @@ $newOrderOldInput = $newOrderRestore ? [
 <section class="new-order-step" data-wizard-step="0" data-active="1">
 <h3>{{ $isAr?'1. المتجر والقناة':'1. Store & channel' }}</h3>
 <div class="new-order-grid">
-<label class="new-order-field"><span>{{ $isAr?'القناة':'Channel' }}</span><select name="channel" data-wizard-channel required><option value="">{{ $isAr?'اختر القناة':'Select channel' }}</option></select></label>
+<label class="new-order-field"><span>{{ $isAr?'القناة':'Channel' }}</span><select data-wizard-channel required disabled aria-disabled="true" data-channel-fixed="1"><option value="">{{ $isAr?'القناة':'Channel' }}</option></select><input type="hidden" name="channel" value="{{ $newOrderWizard['fixed_channel'] ?? '' }}" data-wizard-channel-value><small>{{ $isAr ? 'القناة محددة تلقائياً حسب مساحة العمل الحالية ولا يمكن تغييرها.' : 'Channel is fixed automatically from the current workspace and cannot be changed.' }}</small></label>
 <label class="new-order-field"><span>{{ $isAr?'المتجر':'Store' }}</span><select name="store_id" data-wizard-store required><option value="">{{ $isAr?'اختر المتجر':'Select store' }}</option></select></label>
 </div>
 <label class="new-order-field" data-wizard-warehouse-wrap style="margin-top:14px;display:none"><span>{{ $isAr?'مخزن الصرف':'Source warehouse' }}</span><select name="warehouse_id" data-wizard-warehouse><option value="">{{ $isAr?'اختر مخزن الصرف':'Select source warehouse' }}</option></select></label>
@@ -166,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const channelSelect = form.querySelector('[data-wizard-channel]');
+    const channelValue = form.querySelector('[data-wizard-channel-value]');
     const storeSelect = form.querySelector('[data-wizard-store]');
     const warehouseWrap = form.querySelector('[data-wizard-warehouse-wrap]');
     const warehouseSelect = form.querySelector('[data-wizard-warehouse]');
@@ -291,6 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const scopedLookupParams = () => ({
         channel: channelSelect.value,
         store_id: storeSelect.value,
+        warehouse_id: channelSelect.value === 'b2b' ? warehouseSelect.value : '',
     });
     const lookupLabel = (item) => {
         const base = [item.label, item.meta].filter(Boolean).join(' · ');
@@ -667,6 +669,7 @@ document.addEventListener('DOMContentLoaded', () => {
         channelSelect.appendChild(makeOption('', isAr ? 'اختر القناة' : 'Select channel'));
         (source.channels || []).forEach((item) => channelSelect.appendChild(makeOption(item.code, item.label)));
         if (channelSelect.options.length === 2) channelSelect.selectedIndex = 1;
+        if (channelValue) channelValue.value = String(source.fixed_channel || channelSelect.value || '');
         refillStores();
         if (paymentSelect.options.length === 2) paymentSelect.selectedIndex = 1;
         invalidateQuote();
@@ -694,15 +697,15 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.dataset.open = '1';
         modal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
-        const focusTarget = step === 0 ? channelSelect : form.querySelector('[data-wizard-step="' + step + '"] input, [data-wizard-step="' + step + '"] select, [data-wizard-step="' + step + '"] textarea, [data-wizard-step="' + step + '"] button');
+        const focusTarget = step === 0 ? storeSelect : form.querySelector('[data-wizard-step="' + step + '"] input, [data-wizard-step="' + step + '"] select, [data-wizard-step="' + step + '"] textarea, [data-wizard-step="' + step + '"] button');
         modalSession = window.FoodexModalA11y?.activate({
             root: modal,
             dialog: modal.querySelector('.new-order-dialog'),
-            initialFocus: focusTarget || channelSelect,
+            initialFocus: focusTarget || storeSelect,
             returnFocus: opener instanceof HTMLElement ? opener : null,
             fallbackFocus: document.querySelector('[data-new-order-open]'),
         }) || null;
-        if (!modalSession) (focusTarget || channelSelect).focus();
+        if (!modalSession) (focusTarget || storeSelect).focus();
     };
 
     const requestClose = (trigger = null) => {
@@ -726,7 +729,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const restoreServerInput = async () => {
         if (!restoreAfterValidation || !restoreInput) return false;
 
-        channelSelect.value = String(restoreInput.channel || '');
+        channelSelect.value = String(source.fixed_channel || restoreInput.channel || '');
+        if (channelValue) channelValue.value = channelSelect.value;
         refillStores();
         storeSelect.value = String(restoreInput.store_id || '');
         refillStoreData();
@@ -796,6 +800,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     channelSelect.addEventListener('change', () => { refillStores(); invalidateQuote(); });
     storeSelect.addEventListener('change', () => { refillStoreData(); invalidateQuote(); });
+    warehouseSelect.addEventListener('change', () => {
+        lookupScopeVersion += 1;
+        linesBox.querySelectorAll('[data-wizard-line]').forEach((row) => {
+            row._lookupAbort?.abort();
+            const select = row.querySelector('[data-wizard-product]');
+            if (select) {
+                select.innerHTML = '';
+                select.appendChild(makeOption('', isAr ? 'اختر المنتج' : 'Select product'));
+                select.value = '';
+            }
+            loadProducts(row, row._lookupQuery || '', 1);
+        });
+        dirty = true;
+        invalidateQuote();
+    });
     customerSearch.addEventListener('input', () => {
         window.clearTimeout(customerSearchTimer);
         customerSearchTimer = window.setTimeout(() => loadCustomers(customerSearch.value.trim(), 1), 250);
