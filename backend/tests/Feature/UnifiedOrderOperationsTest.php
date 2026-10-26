@@ -211,6 +211,12 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-order-inline-status-select', $view);
         $this->assertStringContainsString('data-order-inline-rejection-note', $view);
         $this->assertStringContainsString('data-order-inline-dispatch', $view);
+        $this->assertStringContainsString('data-order-inline-assignee-type', $view);
+        $this->assertStringContainsString('data-order-inline-assignee-id', $view);
+        $this->assertStringContainsString('data-b2b-ready-dispatch-alert', $view);
+        $this->assertStringContainsString('order-ready-dispatch-alert', $view);
+        $this->assertStringContainsString('b2b_out_for_delivery', $view);
+        $this->assertStringContainsString('اختر سائق أو فان', $view);
         $this->assertStringContainsString('data-order-dispatch-locked', $view);
         $this->assertStringContainsString('is-dispatch-locked', $view);
         $this->assertStringContainsString('Available after order confirmation', $view);
