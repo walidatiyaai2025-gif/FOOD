@@ -268,8 +268,9 @@ class DriverFirebasePushService implements DriverPushService {
       http.Client? client}) async {
     final registry = DriverPushDeviceRegistry(
         baseUrl: FoodexEnvironment.apiBaseUrl, client: client);
-    if (!config.isConfigured && !Platform.isAndroid)
+    if (!config.isConfigured && !Platform.isAndroid) {
       return DriverFirebasePushService._(registry: registry, messaging: null);
+    }
     try {
       if (config.isConfigured) {
         await Firebase.initializeApp(options: config.toOptions());
