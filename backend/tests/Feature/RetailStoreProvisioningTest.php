@@ -392,7 +392,7 @@ class RetailStoreProvisioningTest extends TestCase
             ->assertSee('Retail Store Provisioning');
     }
 
-    public function test_retail_store_list_is_newest_first_and_newest_accordion_is_open(): void
+    public function test_retail_store_list_is_newest_first_and_add_store_is_primary_open_accordion(): void
     {
         $admin = $this->userWithRole('SUPER_ADMIN', 'accordion-owner@example.test');
         $older = $this->retailStore('OLDER');
@@ -407,11 +407,14 @@ class RetailStoreProvisioningTest extends TestCase
         $response
             ->assertOk()
             ->assertSeeInOrder(['Test NEWER', 'Test OLDER'])
-            ->assertSee('store-accordion-body', false);
+            ->assertSee('store-accordion-body', false)
+            ->assertSee('data-page-accordion="add-store" open', false)
+            ->assertSee('data-page-accordion="stores"', false)
+            ->assertSee('data-page-accordion="operations"', false);
 
         $html = (string) $response->getContent();
-        $this->assertMatchesRegularExpression('/data-store-accordion="'.$newer.'"\\s+open="open"/', $html);
-        $this->assertDoesNotMatchRegularExpression('/data-store-accordion="'.$older.'"\\s+open="open"/', $html);
+        $this->assertDoesNotMatchRegularExpression('/data-store-accordion="'.$newer.'"[^>]*\\sopen(?:="open")?/', $html);
+        $this->assertDoesNotMatchRegularExpression('/data-store-accordion="'.$older.'"[^>]*\\sopen(?:="open")?/', $html);
     }
 
     public function test_retail_profile_creation_never_provisions_restaurant_capabilities(): void
