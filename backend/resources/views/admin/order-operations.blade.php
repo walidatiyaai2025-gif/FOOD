@@ -458,7 +458,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
                 @endif
             </form>
         @endif
-        @if($rowActionRequired && !$rowNeedsB2bDispatch)
+        @if(!$rowDelivered && $rowActionRequired && !$rowNeedsB2bDispatch)
             <span class="order-attention-chip">{{ $isAr ? 'يحتاج إجراء' : 'Action required' }}</span>
         @endif
     </div>
