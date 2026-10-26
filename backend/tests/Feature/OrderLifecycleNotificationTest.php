@@ -173,6 +173,56 @@ class OrderLifecycleNotificationTest extends TestCase
         Queue::assertPushed(DispatchPushNotification::class, 8);
     }
 
+    public function test_driver_receives_assignment_status_pushes_for_accepted_and_picked_up(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        Queue::fake();
+
+        [$order, $customerUser] = $this->orderWithCustomer();
+        $driver = $this->driver('lifecycle-driver-status-updates@example.test', (int) $order->store_id);
+        $assignment = DriverAssignment::query()->create([
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+            'store_id' => $order->store_id,
+            'assignment_type' => 'b2c',
+            'status' => 'assigned',
+            'assigned_at' => now(),
+        ]);
+
+        $service = app(OrderLifecycleNotificationService::class);
+
+        $service->deliveryStatusChanged(
+            $order,
+            $assignment,
+            'assigned',
+            'accepted',
+        );
+
+        $assignment->forceFill(['status' => 'accepted'])->save();
+        $service->deliveryStatusChanged(
+            $order,
+            $assignment->fresh(),
+            'accepted',
+            'picked_up',
+        );
+
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $customerUser->id,
+            'app' => 'customer',
+            'type' => 'delivery.status_changed',
+        ]);
+        $this->assertSame(
+            2,
+            Notification::query()
+                ->where('user_id', $driver->user_id)
+                ->where('app', 'driver')
+                ->where('type', 'delivery.status_changed')
+                ->count(),
+        );
+
+        Queue::assertPushed(DispatchPushNotification::class, 4);
+    }
+
     public function test_driver_delivery_status_does_not_duplicate_customer_push_when_order_status_also_changes(): void
     {
         $this->seed(CoreReferenceSeeder::class);
