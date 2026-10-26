@@ -94,7 +94,17 @@ class EngagementOperationsBrandingTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/operations/orders?order='.$mineOrder)
             ->assertOk()
-            ->assertSee('Order status timeline');
+            ->assertDontSee('Order status timeline')
+            ->assertSee('data-order-timeline-icon', false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.operations.orders.popup', [
+                'order' => $mineOrder,
+                'kind' => 'timeline',
+            ]))
+            ->assertOk()
+            ->assertSee('Complete order timeline')
+            ->assertSee('data-order-popup-print', false);
     }
 
     public function test_platform_logo_asset_is_packaged_in_public_brand_path(): void
