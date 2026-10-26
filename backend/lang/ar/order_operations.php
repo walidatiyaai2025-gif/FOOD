@@ -237,7 +237,7 @@ return [
         'assigned_van' => 'تم تعيين الطلب لفان',
         'driver_processing' => 'السائق يقوم بمعالجة الطلب',
         'van_processing' => 'الفان يقوم بمعالجة الطلب',
-        'completed' => 'الطلب مكتمل',
+        'completed' => 'تم تسليم الطلب للعميل',
     ],
     'popup' => [
         'print' => 'طباعة',
@@ -296,6 +296,8 @@ return [
         'checkout' => 'تم إنشاء الطلب بواسطة العميل',
         'dispatch_assigned' => 'تم تعيين جهة التوصيل',
         'customer_service_approved' => 'تم تأكيد الطلب بواسطة خدمة العملاء',
+        'dashboard_reverted_to_pending' => 'تم إعادة الطلب إلى قيد الانتظار',
+        'status_reverted_to_pending' => 'تم إلغاء الفاتورة بعد إعادة الطلب إلى قيد الانتظار',
         'manual_unassigned' => 'تم سحب التوجيه يدوياً',
         'grid_manual_unassign' => 'تم سحب التوجيه من شبكة الطلبات',
         'detail_manual_unassign' => 'تم سحب التوجيه من تفاصيل الطلب',
