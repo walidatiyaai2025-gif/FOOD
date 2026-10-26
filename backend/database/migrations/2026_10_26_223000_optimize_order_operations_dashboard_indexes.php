@@ -38,21 +38,10 @@ return new class extends Migration {
                 'driver_assignments_order_status_id_idx',
             );
         });
-
-        Schema::table('order_customer_service_assignments', function (Blueprint $table): void {
-            $table->index(
-                ['order_id', 'unassigned_at', 'id'],
-                'order_cs_assignment_active_idx',
-            );
-        });
     }
 
     public function down(): void
     {
-        Schema::table('order_customer_service_assignments', function (Blueprint $table): void {
-            $table->dropIndex('order_cs_assignment_active_idx');
-        });
-
         Schema::table('driver_assignments', function (Blueprint $table): void {
             $table->dropIndex('driver_assignments_order_status_id_idx');
         });
