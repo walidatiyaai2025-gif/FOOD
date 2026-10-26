@@ -40,6 +40,10 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('data-order-detail-no-actions', $view);
         $this->assertStringContainsString('data-order-details-icon', $view);
         $this->assertStringContainsString('data-order-invoice-icon', $view);
+        $this->assertStringContainsString('data-order-timeline-icon', $view);
+        $this->assertStringContainsString('data-order-popup-dialog', $view);
+        $this->assertStringContainsString('data-order-popup-url', $view);
+        $this->assertStringContainsString('order-financial-action is-timeline', $view);
         $this->assertStringNotContainsString('<section class="detail-grid" style="margin-top:18px">', $view);
         $this->assertStringNotContainsString('<td><div class="actions">', $view);
         $this->assertStringNotContainsString('store_id={{ $detail[\'store_id\'] }}', $view);
@@ -107,6 +111,8 @@ class DashboardUiComplianceTest extends TestCase
 
         $this->assertStringContainsString("name('operations.orders.dispatch')", $routes);
         $this->assertStringContainsString("name('operations.orders.dispatch.clear')", $routes);
+        $this->assertStringContainsString("name('operations.orders.popup')", $routes);
+        $this->assertStringContainsString("whereIn('kind', ['details', 'invoice', 'timeline'])", $routes);
     }
 
     public function test_live_tracking_uses_authorized_store_lookup_instead_of_raw_store_id(): void
