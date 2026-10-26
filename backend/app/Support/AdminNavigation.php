@@ -647,22 +647,6 @@ class AdminNavigation
         );
     }
 
-    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
-    private function whatsAppSupervisorItem(User $user): ?array
-    {
-        if (! app(RuntimePolicy::class)->allowsAgentInbox()) {
-            return null;
-        }
-
-        return $this->routeItemScoped(
-            $user,
-            'whatsapp_supervisor',
-            'whatsapp_supervisor.nav_title',
-            'admin.whatsapp-supervisor.index',
-            'whatsapp.customer_service.supervise',
-        );
-    }
-
     public function hasPermissionInScope(User $user, string $permission): bool
     {
         if ($this->hasPermission($user, $permission)) {
