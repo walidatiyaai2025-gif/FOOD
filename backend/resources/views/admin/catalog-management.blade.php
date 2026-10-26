@@ -69,6 +69,7 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 .catalog-product-thumb-placeholder{width:44px;height:44px;min-width:44px;border-radius:9px;border:1px dashed var(--foodex-border);display:grid;place-items:center;color:var(--foodex-muted);font-size:.72rem;background:#fff}
 .catalog-product-copy{min-width:0}
 .catalog-product-name{font-weight:800;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35;overflow-wrap:anywhere}
+.catalog-product-name-input{display:block;width:100%;min-height:40px;height:auto;resize:none;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;line-height:1.35}
 .catalog-product-sub{color:var(--foodex-muted);font-size:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 .catalog-stock{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .catalog-stock-dot{width:7px;height:7px;border-radius:50%;background:var(--foodex-green)}
@@ -197,7 +198,7 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 <form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">@csrf @method('PATCH')
 <input type="hidden" name="field" value="name">
 @if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif
-<input class="catalog-inline-input" name="value" value="{{ $p->name }}" required maxlength="255" aria-label="{{ app()->getLocale()==='ar'?'اسم المنتج':'Product name' }}">
+<textarea class="catalog-inline-input catalog-product-name-input" name="value" rows="1" required maxlength="255" data-catalog-product-name-editor aria-label="{{ app()->getLocale()==='ar'?'اسم المنتج':'Product name' }}">{{ $p->name }}</textarea>
 <button class="catalog-inline-save" type="submit" aria-label="{{ app()->getLocale()==='ar'?'حفظ الاسم':'Save name' }}">✓</button>
 </form>
 <form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form" style="margin-top:4px">@csrf @method('PATCH')
@@ -562,6 +563,15 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
         const store = form.querySelector('[data-catalog-store-context]');
         syncCatalogScope(form);
         store?.addEventListener('change', () => syncCatalogScope(form));
+    });
+
+    const resizeProductNameEditor = (editor) => {
+        editor.style.height = 'auto';
+        editor.style.height = editor.scrollHeight + 'px';
+    };
+    document.querySelectorAll('[data-catalog-product-name-editor]').forEach((editor) => {
+        resizeProductNameEditor(editor);
+        editor.addEventListener('input', () => resizeProductNameEditor(editor));
     });
 
     document.querySelectorAll('[data-grid-image-input]').forEach((input) => {
