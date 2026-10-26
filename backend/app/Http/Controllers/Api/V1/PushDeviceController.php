@@ -56,11 +56,13 @@ final class PushDeviceController extends Controller
             abort_unless($data['app'] === 'customer', 401);
             abort_if(empty($data['install_id']), 422, 'install_id is required for anonymous Customer devices.');
         } elseif ($data['app'] === 'driver') {
-            $allowed = DB::table('drivers')
+            $driverChannel = strtolower((string) DB::table('drivers')
                 ->where('user_id', $user->id)
-                ->where('driver_type', 'b2c')
+                ->whereIn('driver_type', ['b2b', 'b2c'])
                 ->where('is_active', true)
-                ->exists();
+                ->value('driver_type'));
+            $allowed = in_array($driverChannel, ['b2b', 'b2c'], true)
+                && $user->hasPermission('deliveries.'.$driverChannel.'.execute');
             abort_unless($allowed, 403);
         } elseif ($data['app'] === 'van') {
             if (! $user->hasPermission('van.login')) {
