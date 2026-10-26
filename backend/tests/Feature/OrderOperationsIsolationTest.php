@@ -660,7 +660,7 @@ class OrderOperationsIsolationTest extends TestCase
             })
             ->assertSee('#'.$order)
             ->assertSee('New order · awaiting Driver or Van assignment')
-            ->assertSee('Please assign a driver')
+            ->assertSee('Please assign a Driver or Van')
             ->assertSee('data-b2b-assignment-required-alert', false)
             ->assertSee('value="driver:'.$driver.'"', false)
             ->assertSee('data-order-dispatch-van', false);
