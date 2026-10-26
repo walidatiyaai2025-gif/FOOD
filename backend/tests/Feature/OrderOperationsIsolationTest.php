@@ -48,7 +48,9 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/operations/orders?order='.$mineOrder)
             ->assertOk()
-            ->assertSee('Order status timeline');
+            ->assertDontSee('Order status timeline')
+            ->assertSee('data-order-actionable-detail', false)
+            ->assertSee('data-order-detail-action-section="edit"', false);
     }
 
     public function test_retail_driver_candidates_are_limited_to_exact_store_channel_and_active_profile(): void
