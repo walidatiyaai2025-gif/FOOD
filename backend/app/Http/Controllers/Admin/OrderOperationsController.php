@@ -1318,6 +1318,13 @@ final class OrderOperationsController extends Controller
         $targetStatus = (string) $validated['status'];
 
         abort_if(
+            in_array(strtolower((string) $model->status), ['delivered', 'completed'], true)
+                && $targetStatus === 'cancelled',
+            409,
+            'Delivered orders cannot be cancelled.',
+        );
+
+        abort_if(
             in_array($targetStatus, ['confirmed', 'preparing', 'ready'], true),
             409,
             'Confirmation and preparation steps are automatic when fulfillment is assigned.',
@@ -2228,7 +2235,7 @@ final class OrderOperationsController extends Controller
                 : ($context->deliveredAt[$orderId] ?? null))
             : null;
         $hasActiveDriver = $assignment instanceof DriverAssignment;
-        $availableStatuses = ! in_array($status, ['delivered', 'cancelled'], true)
+        $availableStatuses = ! in_array($status, ['delivered', 'completed', 'cancelled'], true)
             && in_array('cancelled', $activeStatusCodes, true)
                 ? ['cancelled']
                 : [];
