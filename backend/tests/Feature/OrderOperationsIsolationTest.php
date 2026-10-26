@@ -769,8 +769,9 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/operations/orders?order='.$order)
             ->assertOk()
-            ->assertSee('Driver assignment history')
-            ->assertSee('Detail Driver');
+            ->assertDontSee('Driver assignment history')
+            ->assertDontSee('Detail Driver')
+            ->assertSee('data-order-actionable-detail', false);
     }
 
     public function test_order_detail_shows_immutable_delivery_address_and_map_action(): void
