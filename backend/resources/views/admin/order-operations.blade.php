@@ -59,6 +59,9 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-status-chip[data-state="preparing"],.order-status-chip[data-state="processing"]{--status-bg:var(--foodex-palette-f5f3ff);--status-fg:var(--foodex-palette-6d28d9);--status-border:var(--foodex-palette-c4b5fd)}
 .order-status-chip[data-state="ready"]{--status-bg:var(--foodex-palette-ecfeff);--status-fg:var(--foodex-palette-0e7490);--status-border:var(--foodex-palette-67e8f9)}
 .order-status-chip[data-state="out_for_delivery"],.order-status-chip[data-state="on_the_way"],.order-status-chip[data-state="assigned"]{--status-bg:var(--foodex-palette-eef2ff);--status-fg:var(--foodex-palette-4338ca);--status-border:var(--foodex-palette-a5b4fc)}
+.order-status-chip[data-state="b2b_out_for_delivery"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}
+.order-ready-dispatch-alert{display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:0 9px;border:1px solid var(--foodex-palette-fda4af);border-radius:999px;background:var(--foodex-palette-fff1f2);color:var(--foodex-palette-be123c);font-size:.6rem;font-weight:900;white-space:nowrap;animation:orderReadyDispatchPulse 1s ease-in-out infinite}
+@keyframes orderReadyDispatchPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(190,18,60,.12)}50%{opacity:.38;box-shadow:0 0 0 4px rgba(190,18,60,.08)}}
 .order-status-chip[data-state="delivered"],.order-status-chip[data-state="completed"],.order-status-chip[data-state="paid"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}
 .order-status-chip[data-state="cancelled"],.order-status-chip[data-state="failed"],.order-status-chip[data-state="delivery_failed"]{--status-bg:var(--foodex-palette-fff1f2);--status-fg:var(--foodex-palette-be123c);--status-border:var(--foodex-palette-fda4af)}
 .order-attention-chip{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:0 8px;border:1px solid var(--foodex-palette-fdba74);border-radius:999px;background:var(--foodex-palette-fff7ed);color:var(--foodex-palette-c2410c);font-size:.61rem;font-weight:900;white-space:nowrap;box-shadow:0 3px 10px rgba(234,88,12,.08)}
@@ -381,6 +384,8 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 @php($rowActionRequired = ($row['dispatch_status'] ?? '') === 'awaiting_dispatch')
 @php($rowExecutor = $row['dispatch_assignee'] ?? $row['driver'] ?? null)
 @php($rowStatusState = strtolower((string) $row['status']))
+@php($rowNeedsB2bDispatch = $row['channel']==='b2b' && $rowStatusState==='ready' && empty($row['dispatch_assignee_id']))
+@php($rowStatusVisualState = $row['channel']==='b2b' && $rowStatusState==='out_for_delivery' ? 'b2b_out_for_delivery' : $rowStatusState)
 <tr class="order-grid-row {{ $rowActionRequired ? 'is-action-required' : '' }}" data-order-row="{{ $row['id'] }}" data-action-required="{{ $rowActionRequired ? '1' : '0' }}">
 <td>
     <div class="order-grid-primary">
@@ -402,7 +407,12 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </td>
 <td>
     <div class="order-grid-primary">
-        <span class="order-status-chip" data-state="{{ $rowStatusState }}">{{ $row['status_label'] }}</span>
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+            <span class="order-status-chip" data-state="{{ $rowStatusVisualState }}">{{ $row['status_label'] }}</span>
+            @if($rowNeedsB2bDispatch)
+                <span class="order-ready-dispatch-alert" data-b2b-ready-dispatch-alert>{{ $isAr ? 'برجاء تعيين سائق' : 'Please assign a driver' }}</span>
+            @endif
+        </div>
         @if($row['can_manage'] && count($row['available_statuses']))
             <form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}" class="order-inline-status" data-order-inline-status>
                 @csrf
@@ -418,7 +428,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
                 @endif
             </form>
         @endif
-        @if($rowActionRequired)
+        @if($rowActionRequired && !$rowNeedsB2bDispatch)
             <span class="order-attention-chip">{{ $isAr ? 'يحتاج إجراء' : 'Action required' }}</span>
         @endif
     </div>
@@ -437,20 +447,21 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             <small>{{ $row['dispatch_territory'] }}</small>
         @endif
         @if($row['can_dispatch_authorized'] ?? false)
+            @php($dispatchInitial = $row['dispatch_assignee_id'] ? (($row['dispatch_assignee_type'] ?: 'driver').':'.$row['dispatch_assignee_id']) : '')
             <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" class="order-inline-picker" data-order-inline-dispatch @if(!$row['can_dispatch']) aria-disabled="true" @endif>
                 @csrf @method('PATCH')
-                <input type="hidden" name="assignee_type" value="{{ $row['channel']==='b2b' ? 'van' : 'driver' }}">
-                <select name="assignee_id" required data-order-inline-picker-select data-initial-value="{{ (string)($row['dispatch_assignee_id'] ?? '') }}" aria-label="{{ $row['channel']==='b2b' ? __('order_operations.dispatch.choose_van') : __('order_operations.dispatch.choose_driver') }}" @disabled(!$row['can_dispatch'])>
-                    <option value="">{{ $row['channel']==='b2b' ? __('order_operations.dispatch.choose_van') : __('order_operations.dispatch.choose_driver') }}</option>
-                    @if($row['channel']==='b2c')
-                        @foreach($drivers as $driver)
-                            @if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)===$row['channel'])
-                                <option value="{{ $driver->id }}" @selected((int)($row['dispatch_assignee_id'] ?? 0)===(int)$driver->id)>{{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
-                            @endif
-                        @endforeach
-                    @else
+                <input type="hidden" name="assignee_type" value="{{ $row['dispatch_assignee_type'] ?: ($row['channel']==='b2b' ? '' : 'driver') }}" data-order-inline-assignee-type>
+                <input type="hidden" name="assignee_id" value="{{ (string)($row['dispatch_assignee_id'] ?? '') }}" data-order-inline-assignee-id>
+                <select name="dispatch_target" required data-order-inline-picker-select data-initial-value="{{ $dispatchInitial }}" aria-label="{{ $row['channel']==='b2b' ? ($isAr ? 'اختر سائق أو فان' : 'Choose Driver or Van') : __('order_operations.dispatch.choose_driver') }}" @disabled(!$row['can_dispatch'])>
+                    <option value="">{{ $row['channel']==='b2b' ? ($isAr ? 'اختر سائق أو فان' : 'Choose Driver or Van') : __('order_operations.dispatch.choose_driver') }}</option>
+                    @foreach($drivers as $driver)
+                        @if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)===$row['channel'])
+                            <option value="driver:{{ $driver->id }}" @selected($dispatchInitial==='driver:'.$driver->id)>{{ $isAr ? 'سائق' : 'Driver' }} · {{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
+                        @endif
+                    @endforeach
+                    @if($row['channel']==='b2b')
                         @foreach($vans as $van)
-                            <option value="{{ $van->id }}" @selected((int)($row['dispatch_assignee_id'] ?? 0)===(int)$van->id)>{{ $van->code }}{{ $van->plate_number ? ' · '.$van->plate_number : '' }}</option>
+                            <option value="van:{{ $van->id }}" @selected($dispatchInitial==='van:'.$van->id)>{{ $isAr ? 'فان' : 'Van' }} · {{ $van->code }}{{ $van->plate_number ? ' · '.$van->plate_number : '' }}</option>
                         @endforeach
                     @endif
                 </select>
@@ -575,6 +586,19 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </form>
 @endif
 @if($row['channel']==='b2b')
+<form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver>@csrf @method('PATCH')
+<input type="hidden" name="assignee_type" value="driver">
+<select name="assignee_id" required aria-label="{{ __('order_operations.dispatch.choose_driver') }}">
+<option value="">{{ __('order_operations.dispatch.choose_driver') }}</option>
+@foreach($drivers as $driver)
+@if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)==='b2b')
+<option value="{{ $driver->id }}">{{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
+@endif
+@endforeach
+</select>
+<input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
+<button class="foodex-primary">{{ $row['dispatch_status']==='assigned' ? __('order_operations.dispatch.reassign') : __('order_operations.dispatch.assign') }} · {{ __('order_operations.dispatch.driver') }}</button>
+</form>
 <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-van>@csrf @method('PATCH')
 <input type="hidden" name="assignee_type" value="van">
 <select name="assignee_id" required aria-label="{{ __('order_operations.dispatch.choose_van') }}">
@@ -1059,7 +1083,16 @@ document.querySelectorAll('.order-inline-picker').forEach(function(form){
     if(!select||!submit){return;}
     var initial=String(select.dataset.initialValue||'');
     var sync=function(){
-        var changed=String(select.value)!==initial;
+        var value=String(select.value||'');
+        var changed=value!==initial;
+        if(form.hasAttribute('data-order-inline-dispatch')){
+            var typeInput=form.querySelector('[data-order-inline-assignee-type]');
+            var idInput=form.querySelector('[data-order-inline-assignee-id]');
+            var parts=value.split(':');
+            if(typeInput){typeInput.value=parts.length===2?parts[0]:'';}
+            if(idInput){idInput.value=parts.length===2?parts[1]:'';}
+            changed=changed&&parts.length===2&&parts[0]!==''&&parts[1]!=='';
+        }
         submit.disabled=!changed;
         if(reason){
             reason.hidden=!changed;
