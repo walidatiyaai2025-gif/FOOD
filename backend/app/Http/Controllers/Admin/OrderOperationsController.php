@@ -22,10 +22,10 @@ use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerServiceTeamManager;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\DriverDeliveryEvidenceService;
+use App\Services\InvoiceService;
 use App\Services\OperationalLookupService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
-use App\Services\InvoiceService;
 use App\Services\OrderLifecycleNotificationService;
 use App\Services\OrderManualDispatchService;
 use App\Services\OrderOperationsRowContext;
@@ -199,11 +199,11 @@ final class OrderOperationsController extends Controller
             $orderQuery
                 ->whereNotIn('status', ['delivered', 'completed', 'cancelled'])
                 ->whereExists(function ($dispatch): void {
-                $dispatch->selectRaw('1')
-                    ->from('order_dispatch_states')
-                    ->whereColumn('order_dispatch_states.order_id', 'orders.id')
-                    ->where('order_dispatch_states.status', 'awaiting_dispatch');
-            });
+                    $dispatch->selectRaw('1')
+                        ->from('order_dispatch_states')
+                        ->whereColumn('order_dispatch_states.order_id', 'orders.id')
+                        ->where('order_dispatch_states.status', 'awaiting_dispatch');
+                });
         }
 
         $selectedStatus = isset($data['status']) ? (string) $data['status'] : null;
