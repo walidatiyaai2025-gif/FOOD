@@ -2130,6 +2130,7 @@ final class OrderOperationsController extends Controller
             'dispatch_source' => $dispatch?->routing_source,
             'dispatch_reason' => $dispatch?->routing_reason,
             'dispatch_assignee_type' => $dispatch?->current_assignee_type,
+            'dispatch_assignee_id' => $dispatch?->current_assignee_id === null ? null : (int) $dispatch->current_assignee_id,
             'dispatch_assignee' => $dispatchAssignee,
             'dispatch_territory' => $dispatchTerritory === null
                 ? null
