@@ -832,7 +832,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     </div>
 </dialog>
 </main>
-<aside class="sidebar">@include('admin._sidebar')</aside>
+<aside class="sidebar">@include('admin._sidebar',['sidebarDefaultCollapsed'=>true])</aside>
 </div>
 <script>
 (() => {
