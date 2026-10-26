@@ -3,7 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/app.dart';
 
 void main() {
-  testWidgets('driver bootstrap is Arabic-first, RTL and uses configured production API',
+  testWidgets(
+      'driver bootstrap is Arabic-first, RTL and uses configured production API',
       (tester) async {
     await tester.pumpWidget(const FoodexDriverApp());
 
@@ -29,7 +30,8 @@ void main() {
     expect(directionality.textDirection, TextDirection.rtl);
   });
 
-  testWidgets('driver login requires normal email and password credentials', (tester) async {
+  testWidgets('driver login requires normal email and password credentials',
+      (tester) async {
     await tester.pumpWidget(const FoodexDriverApp());
 
     expect(find.byKey(const Key('driver-login-email')), findsOneWidget);
@@ -63,5 +65,4 @@ void main() {
     expect(find.byKey(const Key('driver-floating-inspector')), findsNothing);
     expect(find.byKey(const Key('driver-global-logout')), findsNothing);
   });
-
 }
