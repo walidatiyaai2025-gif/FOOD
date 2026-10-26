@@ -28,6 +28,7 @@ class DriverTranslations extends InheritedWidget {
     'driver.home.ready': 'جاهز للتوصيل',
     'driver.home.status_summary': 'ملخص سريع',
     'driver.home.pending_orders': 'الطلبات المعلقة',
+    'driver.home.new_order_title': 'طلب جديد تم إسناده لك',
     'driver.home.analytics.title': 'توزيع التوصيلات',
     'driver.home.analytics.summary':
         'توزيع التوصيلات المسندة حسب الحالة. اضغط على بطاقة الحالة بالأسفل لفتح القائمة المفلترة مباشرة.',
@@ -304,6 +305,7 @@ class DriverTranslations extends InheritedWidget {
     'driver.home.ready': 'Ready to deliver',
     'driver.home.status_summary': 'Quick summary',
     'driver.home.pending_orders': 'Pending orders',
+    'driver.home.new_order_title': 'New order assigned to you',
     'driver.home.analytics.title': 'Delivery workload',
     'driver.home.analytics.summary':
         'Assigned deliveries by status. Tap a status card below to open that exact filtered list.',
