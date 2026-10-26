@@ -18,7 +18,7 @@ $printTitle = __('order_operations.popup.'.$kind);
 <div class="order-popup-content" data-order-popup-content="{{ $kind }}">
     <header class="order-print-header" data-print-only>
         <div></div>
-        <div class="order-print-type">
+        <div class="order-print-type" dir="{{ $isAr ? 'rtl' : 'ltr' }}">
             <small>{{ __('order_operations.popup.print_type') }}</small>
             <strong>{{ $printTitle }}</strong>
         </div>
