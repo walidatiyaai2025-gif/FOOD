@@ -227,6 +227,14 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-order-inline-customer-service-owner', $view);
         $this->assertStringContainsString('data-order-inline-picker-select', $view);
         $this->assertStringContainsString('data-order-inline-picker-reason', $view);
+        $this->assertStringContainsString('data-order-financial-actions', $view);
+        $this->assertStringContainsString('data-order-details-icon', $view);
+        $this->assertStringContainsString('data-order-invoice-icon', $view);
+        $this->assertStringContainsString('data-order-inline-unassign', $view);
+        $this->assertStringContainsString('data-order-actionable-detail', $view);
+        $this->assertStringContainsString('data-order-detail-no-actions', $view);
+        $this->assertStringContainsString('.ops-table th:nth-child(1){width:7.5%}', $view);
+        $this->assertStringContainsString('.ops-table th:nth-child(2){width:12.75%}', $view);
         $this->assertStringContainsString('.order-inline-status{display:grid;', $view);
         $this->assertStringContainsString('.order-inline-picker{display:grid;', $view);
         $this->assertStringContainsString('colspan="7"', $view);
@@ -291,6 +299,8 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('الطلب مع السائق للتوصيل', $controller);
         $this->assertStringContainsString("'has_active_driver' => \$hasActiveDriver", $controller);
         $this->assertStringContainsString('Orders already with a Driver can only be withdrawn and transferred to another Driver.', $controller);
+        $this->assertStringContainsString("customerOrderChanged(\$model->fresh(), 'details_updated'", $controller);
+        $this->assertStringContainsString("customerOrderChanged(\$model->fresh(), 'customer_service_updated'", $controller);
 
         $headerFilter = file_get_contents(resource_path('views/admin/_order-operations-header-filters.blade.php'));
         $this->assertIsString($headerFilter);
