@@ -44,6 +44,15 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('data-order-popup-dialog', $view);
         $this->assertStringContainsString('data-order-popup-url', $view);
         $this->assertStringContainsString('order-financial-action is-timeline', $view);
+        $this->assertStringContainsString('order-print-header', $view);
+        $this->assertStringContainsString('order-print-footer', $view);
+        $this->assertStringContainsString('data-order-print-time', $view);
+        $popup = file_get_contents(resource_path('views/admin/_order-operation-popup.blade.php'));
+        $this->assertIsString($popup);
+        $this->assertStringContainsString("asset('brand/foodex-economical-group.webp')", $popup);
+        $this->assertStringContainsString("__('order_operations.popup.print_type')", $popup);
+        $this->assertStringContainsString("__('order_operations.popup.printed_at')", $popup);
+        $this->assertStringContainsString("__('order_operations.popup.print')", $popup);
         $this->assertStringNotContainsString('<section class="detail-grid" style="margin-top:18px">', $view);
         $this->assertStringNotContainsString('<td><div class="actions">', $view);
         $this->assertStringNotContainsString('store_id={{ $detail[\'store_id\'] }}', $view);
