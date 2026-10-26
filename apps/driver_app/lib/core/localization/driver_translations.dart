@@ -27,6 +27,7 @@ class DriverTranslations extends InheritedWidget {
     'driver.home.channel': 'قناة العمل',
     'driver.home.ready': 'جاهز للتوصيل',
     'driver.home.status_summary': 'ملخص سريع',
+    'driver.home.pending_orders': 'الطلبات المعلقة',
     'driver.home.analytics.title': 'توزيع التوصيلات',
     'driver.home.analytics.summary':
         'توزيع التوصيلات المسندة حسب الحالة. اضغط على بطاقة الحالة بالأسفل لفتح القائمة المفلترة مباشرة.',
@@ -302,6 +303,7 @@ class DriverTranslations extends InheritedWidget {
     'driver.home.channel': 'Work channel',
     'driver.home.ready': 'Ready to deliver',
     'driver.home.status_summary': 'Quick summary',
+    'driver.home.pending_orders': 'Pending orders',
     'driver.home.analytics.title': 'Delivery workload',
     'driver.home.analytics.summary':
         'Assigned deliveries by status. Tap a status card below to open that exact filtered list.',

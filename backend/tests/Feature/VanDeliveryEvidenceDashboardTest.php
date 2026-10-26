@@ -129,11 +129,8 @@ class VanDeliveryEvidenceDashboardTest extends TestCase
             ->get('/admin/operations/orders?channel=b2b&order='.$orderId)
             ->assertOk()
             ->assertSee('data-van-delivery-evidence', false)
-            ->assertSee('data-van-delivery-evidence-assignment="'.$orderVanAssignmentId.'"', false)
-            ->assertSee('W07-EVIDENCE-VAN')
-            ->assertSee('Van delivery timeline &amp; proof', false)
-            ->assertSee('W07 gate was locked')
-            ->assertSee('data-van-delivery-proof-link', false);
+            ->assertSee('data-van-proof-link', false)
+            ->assertDontSee($proofPath);
 
         $proofResponse = $this->actingAs($admin)
             ->get('/admin/operations/orders/van-assignments/'.$orderVanAssignmentId.'/proofs/'.$proofEventId)

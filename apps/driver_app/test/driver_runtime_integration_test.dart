@@ -82,6 +82,42 @@ void main() {
     expect(result.token, 'abc');
   });
 
+  test('HTTP auth derives B2B driver channel from backend scope', () async {
+    final client = MockClient((request) async {
+      expect(request.url.path, '/api/v1/auth/login');
+      return http.Response(
+        jsonEncode({
+          'token': 'b2b-token',
+          'user': {
+            'name': 'Wholesale Driver',
+            'email': 'b2b-driver@example.test',
+            'locale': 'ar',
+            'roles': ['B2B_DRIVER'],
+            'driver_scope': {
+              'driver_id': 27,
+              'channel': 'b2b',
+              'store_id': 1,
+            },
+          },
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    final repo = HttpDriverAuthRepository(
+      'https://foodex.example/',
+      client: client,
+    );
+
+    final result = await repo.login(
+      email: 'b2b-driver@example.test',
+      password: 'secret-password',
+    );
+    expect(result.channel, DriverChannel.b2b);
+    expect(result.storeId, 1);
+    expect(result.token, 'b2b-token');
+  });
+
   test(
       'HTTP assignment repository uses canonical list and transition endpoints',
       () async {
@@ -197,27 +233,76 @@ void main() {
     ]);
   });
 
-  test('HTTP assignment repository rejects B2B runtime before network access',
+  test('HTTP assignment repository accepts B2B manual assignment runtime',
       () async {
-    var requests = 0;
+    final requests = <String>[];
     final repo = HttpDriverAssignmentRepository(
       'https://foodex.example/',
       'token',
       client: MockClient((request) async {
-        requests++;
-        return http.Response('{}', 200);
+        requests.add('${request.method} ${request.url.path}');
+        if (request.method == 'GET') {
+          return http.Response(
+            jsonEncode({
+              'data': [
+                {
+                  'id': 19,
+                  'order_id': 119,
+                  'assignment_type': 'b2b',
+                  'status': 'assigned',
+                  'available_statuses': ['accepted'],
+                  'order': {
+                    'number': 'B2B-119',
+                    'display_number': '#119',
+                    'status': 'out_for_delivery',
+                    'currency': 'EGP',
+                    'grand_total': 20,
+                    'customer': {'name': 'Wholesale Customer'},
+                    'store': {'name': 'Wholesale'},
+                    'items': [],
+                  },
+                }
+              ],
+            }),
+            200,
+          );
+        }
+
+        expect(jsonDecode(request.body)['status'], 'accepted');
+        return http.Response(
+          jsonEncode({
+            'data': {
+              'id': 19,
+              'order_id': 119,
+              'assignment_type': 'b2b',
+              'status': 'accepted',
+              'available_statuses': ['picked_up', 'failed'],
+              'order': {
+                'number': 'B2B-119',
+                'display_number': '#119',
+                'status': 'out_for_delivery',
+                'currency': 'EGP',
+                'grand_total': 20,
+                'customer': {'name': 'Wholesale Customer'},
+                'store': {'name': 'Wholesale'},
+                'items': [],
+              },
+            }
+          }),
+          200,
+        );
       }),
     );
 
-    await expectLater(
-      repo.list(DriverChannel.b2b),
-      throwsA(isA<DriverAccessDeniedException>()),
-    );
-    await expectLater(
-      repo.transition(9, DriverChannel.b2b, 'accepted'),
-      throwsA(isA<DriverAccessDeniedException>()),
-    );
-    expect(requests, 0);
+    final rows = await repo.list(DriverChannel.b2b);
+    expect(rows.single.channel, DriverChannel.b2b);
+    expect(rows.single.reference, '#119');
+    await repo.transition(19, DriverChannel.b2b, 'accepted');
+
+    expect(requests, [
+      'GET /api/v1/driver/assignments',
+      'POST /api/v1/driver/assignments/19/status',
+    ]);
   });
 
   test('HTTP assignment repository loads central failed-delivery reasons',

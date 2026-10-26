@@ -393,6 +393,15 @@ class DashboardOrderManagementTest extends TestCase
             ->get('/admin/b2c/orders?store_id='.$store)
             ->assertOk()
             ->assertSee('#'.$invoice->id)
+            ->assertSee('data-order-invoice-icon', false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.operations.orders.popup', [
+                'order' => (int) $order->id,
+                'kind' => 'invoice',
+            ]))
+            ->assertOk()
+            ->assertSee('data-order-popup-print', false)
             ->assertSee('Print');
     }
 

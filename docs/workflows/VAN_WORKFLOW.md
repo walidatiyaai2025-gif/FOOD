@@ -1,15 +1,13 @@
 # FOODEX Van Workflow
 
 Status: **Authoritative**
-Updated: 2026-10-10
+Updated: 2026-10-26
 
 ## Ownership
 
-The Van App is the fulfillment runtime for **B2B / Wholesale only**.
+The Van App remains the automatic routing runtime for **B2B / Wholesale** and is also available for authorized manual B2B dispatch.
 
-B2B order source does not change this rule: Customer App, Dashboard, Van-assisted order capture and integrations all converge on the same Van fulfillment lifecycle. There is **no Driver fallback for B2B**.
-
-If Smart Routing cannot select an eligible Van, the order stays in `awaiting_dispatch` until an authorized Van dispatch decision is made.
+Automatic B2B routing never falls back to a Driver. If Smart Routing cannot select an eligible Van, the order stays in `awaiting_dispatch`. An authorized Order Operations user may then explicitly choose either a B2B Driver or a Van; choosing a Driver is a manual override, not automatic fallback behavior.
 
 ## Canonical lifecycle
 
@@ -22,7 +20,7 @@ If Smart Routing cannot select an eligible Van, the order stays in `awaiting_dis
 7. Retry uses `POST /api/v1/van/orders/{order}/execution/retry` and returns the order to the server-authorized `out_for_delivery` state.
 8. COD collection uses the authoritative customer/invoice context, posts one idempotent collection and exposes its receipt.
 9. Wallet/remittance preserve custody provenance and idempotency.
-10. Live location/tracking resolves the active Van for B2B; it never substitutes Driver location.
+10. Live location/tracking resolves the currently assigned B2B execution actor: automatic/Van dispatch uses Van location, while an explicit manual Driver override uses that B2B Driver's location.
 
 ## Execution states
 
@@ -60,4 +58,4 @@ Routing/assignment history and immutable Van execution events provide audit prov
 
 ## Channel boundary
 
-Van fulfillment authority must not become a B2C fallback. B2C remains Driver-owned.
+Van fulfillment authority must not become a B2C fallback. B2C remains Driver-owned. B2B automatic routing remains Van-first even though authorized manual B2B dispatch may select a Driver.

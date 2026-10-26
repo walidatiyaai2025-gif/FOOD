@@ -95,14 +95,9 @@ class DriverDeliveryEvidenceDashboardTest extends TestCase
             ->get(route('admin.operations.orders.index', ['order' => $order->id]))
             ->assertOk()
             ->assertSee('data-delivery-evidence', false)
-            ->assertSee('data-delivery-evidence-assignment="'.$failedAssignment->id.'"', false)
-            ->assertSee('data-delivery-evidence-assignment="'.$deliveredAssignment->id.'"', false)
-            ->assertDontSee('customer_no_answer')
-            ->assertSee('العميل لا يجيب')
-            ->assertSee('Called twice')
-            ->assertSee('Handed to customer')
             ->assertSee('data-delivery-proof-link', false)
-            ->assertDontSee('delivery-proofs/evidence-proof.jpg');
+            ->assertDontSee('delivery-proofs/evidence-proof.jpg')
+            ->assertDontSee('Driver assignment history');
 
         $customer->forceFill(['name' => 'Changed customer profile'])->save();
 

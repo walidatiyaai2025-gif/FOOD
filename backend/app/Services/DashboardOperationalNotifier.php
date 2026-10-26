@@ -180,6 +180,7 @@ final class DashboardOperationalNotifier
         Order $order,
         DriverAssignment $assignment,
         ?int $previousDriverId = null,
+        bool $manualB2bDispatch = false,
     ): void {
         $reassigned = $previousDriverId !== null;
         $type = $reassigned ? 'delivery.reassigned' : 'delivery.assigned';
@@ -201,7 +202,12 @@ final class DashboardOperationalNotifier
             ],
         );
 
-        $this->lifecycle->driverAssigned($order, $assignment, $previousDriverId);
+        $this->lifecycle->driverAssigned(
+            $order,
+            $assignment,
+            $previousDriverId,
+            $manualB2bDispatch,
+        );
     }
 
     public function deliveryChanged(
@@ -314,6 +320,12 @@ final class DashboardOperationalNotifier
             ],
         );
 
+        $this->lifecycle->customerOrderChanged($order, 'invoice_updated', [
+            'invoice_id' => (int) $invoice->getKey(),
+            'invoice_status' => (string) $invoice->status,
+            'invoice_event' => $event,
+        ]);
+
         if (in_array($event, ['issued', 'reissued'], true)) {
             $this->whatsAppTransactions->forOrder(
                 $order,
@@ -354,6 +366,12 @@ final class DashboardOperationalNotifier
                 'payment_status' => $to,
             ],
         );
+
+        $this->lifecycle->customerOrderChanged($order, 'payment_updated', [
+            'payment_id' => (int) $payment->getKey(),
+            'from_payment_status' => $from,
+            'payment_status' => $to,
+        ]);
 
         $transactionalEvent = TransactionalNotificationEngine::paymentEventForStatus($to);
         if ($transactionalEvent !== null) {

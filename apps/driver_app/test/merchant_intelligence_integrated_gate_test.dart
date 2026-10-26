@@ -12,6 +12,6 @@ void main() {
     expect(navigation, contains('FoodexDonutChart('));
     expect(navigation, contains('driver-home-workload-chart'));
     expect(navigation, contains('/driver/b2c/deliveries'));
-    expect(navigation, isNot(contains('/driver/b2b/deliveries')));
+    expect(navigation, contains('/driver/b2b/deliveries'));
   });
 }

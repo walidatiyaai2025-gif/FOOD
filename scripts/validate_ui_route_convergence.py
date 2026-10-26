@@ -118,9 +118,14 @@ def validate(root: Path, registry: dict[str, Any]) -> list[str]:
             function_id = str(function.get("id", ""))
             route = str(function.get("route", ""))
             if function_id.startswith("driver.b2b") or "/driver/b2b/" in route:
-                errors.append(
-                    f"Driver route registry still exposes forbidden B2B function: {function_id or route}"
-                )
+                if function.get("scope") != "manual_dispatch_only":
+                    errors.append(
+                        f"Driver route registry exposes unscoped B2B function: {function_id or route}"
+                    )
+        if "Van-first" not in str(driver.get("fulfillment_policy", "")):
+            errors.append(
+                "Driver route registry must preserve Van-first automatic B2B routing."
+            )
         source = driver.get("authority_source")
         if isinstance(source, str) and (root / source).is_file():
             navigation = _read(root, source)
@@ -129,17 +134,15 @@ def validate(root: Path, registry: dict[str, Any]) -> list[str]:
                 "DriverRoutes.b2cDeliveries",
                 "DriverRoutes.b2cNotifications",
                 "DriverRoutes.b2cWallet",
+                "DriverRoutes.b2bHome",
+                "DriverRoutes.b2bDeliveries",
+                "DriverRoutes.b2bNotifications",
                 "DriverJourneyRuntimePage(",
                 "DriverNotificationPage(",
                 "DriverWalletPage(",
             ):
                 if marker not in navigation:
                     errors.append(f"Driver authority is missing production marker: {marker}")
-            for marker in ("DriverRoutes.b2b", "/driver/b2b/"):
-                if marker in navigation:
-                    errors.append(
-                        f"Driver authority still exposes forbidden B2B runtime marker: {marker}"
-                    )
 
     van = surfaces.get("van", {})
     if isinstance(van, dict):

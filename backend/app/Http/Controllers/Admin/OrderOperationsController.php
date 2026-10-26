@@ -22,9 +22,11 @@ use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerServiceTeamManager;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\DriverDeliveryEvidenceService;
+use App\Services\InvoiceService;
 use App\Services\OperationalLookupService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
+use App\Services\OrderLifecycleNotificationService;
 use App\Services\OrderManualDispatchService;
 use App\Services\OrderOperationsRowContext;
 use App\Services\SalesOrderOperationsDashboardService;
@@ -173,6 +175,7 @@ final class OrderOperationsController extends Controller
 
         $statusBaseQuery = clone $orderQuery;
         $actionRequiredCount = (clone $statusBaseQuery)
+            ->whereNotIn('status', ['delivered', 'completed', 'cancelled'])
             ->whereExists(function ($dispatch): void {
                 $dispatch->selectRaw('1')
                     ->from('order_dispatch_states')
@@ -193,12 +196,14 @@ final class OrderOperationsController extends Controller
             ->all();
 
         if ($selectedActionRequired) {
-            $orderQuery->whereExists(function ($dispatch): void {
-                $dispatch->selectRaw('1')
-                    ->from('order_dispatch_states')
-                    ->whereColumn('order_dispatch_states.order_id', 'orders.id')
-                    ->where('order_dispatch_states.status', 'awaiting_dispatch');
-            });
+            $orderQuery
+                ->whereNotIn('status', ['delivered', 'completed', 'cancelled'])
+                ->whereExists(function ($dispatch): void {
+                    $dispatch->selectRaw('1')
+                        ->from('order_dispatch_states')
+                        ->whereColumn('order_dispatch_states.order_id', 'orders.id')
+                        ->where('order_dispatch_states.status', 'awaiting_dispatch');
+                });
         }
 
         $selectedStatus = isset($data['status']) ? (string) $data['status'] : null;
@@ -492,9 +497,53 @@ final class OrderOperationsController extends Controller
             'selectedStoreId' => $selectedStoreId,
             'selectedChannel' => $operationalChannel,
             'availableChannels' => $availableChannels,
-            'newOrderWizard' => $this->newOrderWizard($actor),
+            'newOrderWizard' => $this->newOrderWizard($actor, $operationalChannel),
             'canAssignCustomerService' => $canAssignCustomerService,
             'customerServiceAgents' => $customerServiceAgents,
+            'isAr' => app()->getLocale() === 'ar',
+        ]);
+    }
+
+    public function popup(
+        Request $request,
+        int $order,
+        string $kind,
+    ): View {
+        abort_unless(in_array($kind, ['details', 'invoice', 'timeline'], true), 404);
+
+        $actor = $this->actor($request);
+        $model = $this->managedOrder($actor, $order, 'orders.view');
+        $channel = strtolower((string) $model->channel);
+        $statusOptions = $this->orderStatusOptions();
+        $statusLabels = collect($statusOptions)
+            ->mapWithKeys(static fn (array $option): array => [
+                (string) $option['code'] => (string) $option['label'],
+            ])
+            ->all();
+
+        $detail = $this->detail(
+            $actor,
+            $model,
+            $statusLabels,
+            $this->activeOrderStatusCodes(),
+            $this->operationalScopes($actor, $channel, 'orders.dispatch'),
+            $this->operationalScopes($actor, $channel, 'orders.manage'),
+            $this->operationalScopes($actor, $channel, 'finance.view'),
+        );
+
+        if ($kind === 'invoice') {
+            abort_unless(
+                ! empty($detail['invoice_id']) && ! empty($detail['can_view_invoice']),
+                404,
+            );
+        }
+
+        return view('admin._order-operation-popup', [
+            'kind' => $kind,
+            'detail' => $detail,
+            'timeline' => $kind === 'timeline'
+                ? $this->orderTimeline($model, $detail)
+                : [],
             'isAr' => app()->getLocale() === 'ar',
         ]);
     }
@@ -676,10 +725,14 @@ final class OrderOperationsController extends Controller
         Request $request,
         int $order,
         AdminOrderManagementService $orders,
+        OrderLifecycleNotificationService $notifications,
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.manage');
         $orders->update($request, $actor, $model);
+        $notifications->customerOrderChanged($model->fresh(), 'details_updated', [
+            'source' => 'dashboard',
+        ]);
 
         return redirect()
             ->route('admin.operations.orders.index', [
@@ -715,33 +768,37 @@ final class OrderOperationsController extends Controller
     }
 
     /** @return array{channels:list<array<string,mixed>>,payment_methods:list<array{code:string,label:string}>} */
-    private function newOrderWizard(User $actor): array
+    private function newOrderWizard(User $actor, string $channel): array
     {
+        abort_unless(in_array($channel, ['b2b', 'b2c'], true), 404);
+
         $channels = [];
-        $principalStoreId = app(WholesalePrincipal::class)->storeId();
-        $b2bStoreIds = array_values(array_filter(
-            $this->orderCreateStoreIds($actor, 'b2b'),
-            static fn (int $storeId): bool => $storeId === $principalStoreId,
-        ));
+        if ($channel === 'b2b') {
+            $principalStoreId = app(WholesalePrincipal::class)->storeId();
+            $b2bStoreIds = array_values(array_filter(
+                $this->orderCreateStoreIds($actor, 'b2b'),
+                static fn (int $storeId): bool => $storeId === $principalStoreId,
+            ));
 
-        if ($b2bStoreIds !== []) {
-            $channels[] = [
-                'code' => 'b2b',
-                'label' => $this->msg('الجملة', 'Wholesale'),
-                'stores' => [$this->newOrderStoreData('b2b', $principalStoreId)],
-            ];
-        }
-
-        $b2cStoreIds = $this->orderCreateStoreIds($actor, 'b2c');
-        if ($b2cStoreIds !== []) {
-            $channels[] = [
-                'code' => 'b2c',
-                'label' => $this->msg('التجزئة', 'Retail'),
-                'stores' => array_map(
-                    fn (int $storeId): array => $this->newOrderStoreData('b2c', $storeId),
-                    $b2cStoreIds,
-                ),
-            ];
+            if ($b2bStoreIds !== []) {
+                $channels[] = [
+                    'code' => 'b2b',
+                    'label' => $this->msg('الجملة', 'Wholesale'),
+                    'stores' => [$this->newOrderStoreData('b2b', $principalStoreId)],
+                ];
+            }
+        } else {
+            $b2cStoreIds = $this->orderCreateStoreIds($actor, 'b2c');
+            if ($b2cStoreIds !== []) {
+                $channels[] = [
+                    'code' => 'b2c',
+                    'label' => $this->msg('التجزئة', 'Retail'),
+                    'stores' => array_map(
+                        fn (int $storeId): array => $this->newOrderStoreData('b2c', $storeId),
+                        $b2cStoreIds,
+                    ),
+                ];
+            }
         }
 
         $configuredPaymentMethods = array_values(array_unique(array_map(
@@ -775,6 +832,7 @@ final class OrderOperationsController extends Controller
 
         return [
             'channels' => $channels,
+            'fixed_channel' => $channel,
             'payment_methods' => $paymentMethods,
         ];
     }
@@ -833,6 +891,7 @@ final class OrderOperationsController extends Controller
             'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'customer_id' => ['nullable', 'integer', 'min:1'],
             'selected_id' => ['nullable', 'integer', 'min:1'],
+            'warehouse_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $type = (string) $data['type'];
@@ -842,7 +901,14 @@ final class OrderOperationsController extends Controller
 
         $result = match ($type) {
             'customer' => $this->newOrderCustomerLookup($channel, $storeId, $query, $page, $selectedId),
-            'product' => $this->newOrderProductLookup($channel, $storeId, $query, $page, $selectedId),
+            'product' => $this->newOrderProductLookup(
+                $channel,
+                $storeId,
+                $query,
+                $page,
+                $selectedId,
+                isset($data['warehouse_id']) ? (int) $data['warehouse_id'] : null,
+            ),
             'address' => $this->newOrderAddressLookup(
                 $channel,
                 $storeId,
@@ -962,16 +1028,33 @@ final class OrderOperationsController extends Controller
         string $query,
         int $page,
         ?int $selectedId = null,
+        ?int $warehouseId = null,
     ): array {
         $limit = 20;
         $offset = ($page - 1) * $limit;
         $needle = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $query).'%';
+
+        $availableStock = DB::table('inventories')
+            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+            ->where('warehouses.store_id', $storeId)
+            ->where('warehouses.is_active', true)
+            ->when(
+                $channel === 'b2b' && $warehouseId !== null,
+                fn ($scope) => $scope->where('warehouses.id', $warehouseId),
+            )
+            ->groupBy('inventories.product_id')
+            ->select('inventories.product_id')
+            ->selectRaw('SUM(inventories.quantity - inventories.reserved_quantity) as available_quantity')
+            ->havingRaw('SUM(inventories.quantity - inventories.reserved_quantity) > 0');
 
         $builder = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->join('store_products', function ($join): void {
                 $join->on('store_products.product_id', '=', 'products.id')
                     ->on('store_products.store_id', '=', 'catalogs.store_id');
+            })
+            ->joinSub($availableStock, 'available_stock', function ($join): void {
+                $join->on('available_stock.product_id', '=', 'products.id');
             })
             ->where('catalogs.store_id', $storeId)
             ->where('catalogs.channel', $channel)
@@ -1008,6 +1091,7 @@ final class OrderOperationsController extends Controller
                 'catalogs.is_active as catalog_active',
                 'store_products.is_active as store_product_active',
                 'store_products.price',
+                'available_stock.available_quantity',
             ]);
 
         $hasMore = $builder->count() > $limit;
@@ -1015,12 +1099,16 @@ final class OrderOperationsController extends Controller
             $sku = trim((string) $row->sku);
             $barcode = trim((string) ($row->barcode ?? ''));
             $meta = array_values(array_filter([$sku, $barcode], static fn (string $value): bool => $value !== ''));
+            $availableQuantity = max(0, (float) ($row->available_quantity ?? 0));
+            $meta[] = (app()->getLocale() === 'ar' ? 'المتاح' : 'Available').': '
+                .rtrim(rtrim(number_format($availableQuantity, 3, '.', ''), '0'), '.');
 
             return [
                 'id' => (int) $row->id,
                 'label' => (string) $row->name,
                 'meta' => implode(' · ', $meta),
                 'price' => $row->price === null ? null : (float) $row->price,
+                'available_quantity' => $availableQuantity,
                 'active' => (bool) $row->product_active && (bool) $row->catalog_active && (bool) $row->store_product_active,
             ];
         })->values()->all();
@@ -1245,12 +1333,108 @@ final class OrderOperationsController extends Controller
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.manage');
-        $request->validate([
+        $validated = $request->validate([
             'status' => ['required', 'string', Rule::in($this->activeOrderStatusCodes())],
         ]);
+        $targetStatus = (string) $validated['status'];
+
+        abort_if(
+            strtolower((string) $model->channel) === 'b2b'
+                && (string) $model->status === 'ready'
+                && $targetStatus === 'out_for_delivery',
+            409,
+            'Ready B2B orders move to out for delivery only after Driver or Van assignment.',
+        );
+
+        if ((string) $model->status === 'confirmed' && $targetStatus === 'pending') {
+            $fresh = DB::transaction(function () use ($model, $actor, $audit, $request): Order {
+                $locked = Order::query()
+                    ->whereKey($model->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                abort_unless(
+                    (string) $locked->status === 'confirmed',
+                    409,
+                    'Only a confirmed order can be returned to pending.',
+                );
+
+                $hasActiveDriver = DriverAssignment::query()
+                    ->where('order_id', $locked->getKey())
+                    ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+                    ->lockForUpdate()
+                    ->first(['id']) !== null;
+                $hasActiveVan = OrderVanAssignment::query()
+                    ->where('order_id', $locked->getKey())
+                    ->whereNull('ended_at')
+                    ->whereNotIn('status', ['cancelled', 'delivered', 'failed', 'reassigned', 'unassigned'])
+                    ->lockForUpdate()
+                    ->first(['id']) !== null;
+                $hasActiveDispatch = OrderDispatchState::query()
+                    ->where('order_id', $locked->getKey())
+                    ->where('status', 'assigned')
+                    ->whereNotNull('current_assignee_id')
+                    ->lockForUpdate()
+                    ->first(['id']) !== null;
+
+                abort_if(
+                    $hasActiveDriver || $hasActiveVan || $hasActiveDispatch,
+                    409,
+                    'A dispatched order cannot be returned to pending.',
+                );
+
+                app(InvoiceService::class)->voidForOrder(
+                    $locked,
+                    $actor,
+                    'status_reverted_to_pending',
+                );
+
+                $locked->forceFill(['status' => 'pending'])->save();
+
+                OrderStatusHistory::query()->create([
+                    'order_id' => $locked->getKey(),
+                    'store_id' => (int) $locked->store_id,
+                    'user_id' => $actor->getKey(),
+                    'from_status' => 'confirmed',
+                    'to_status' => 'pending',
+                    'note' => 'dashboard_reverted_to_pending',
+                ]);
+
+                $audit->record(
+                    'order.status_changed',
+                    $actor,
+                    $locked,
+                    ['status' => 'confirmed'],
+                    ['status' => 'pending', 'note' => 'dashboard_reverted_to_pending'],
+                    $request,
+                );
+
+                return $locked->fresh();
+            }, 3);
+
+            $notifier->orderStatusChanged($fresh, 'confirmed', 'pending');
+
+            return back()->with('status', $this->msg(
+                'تم إعادة الطلب إلى قيد الانتظار.',
+                'Order returned to pending.',
+            ));
+        }
+
         $request->merge(['store_id' => (int) $model->store_id]);
 
         $orders->transition($request, $order, $audit, $notifier);
+
+        if (
+            strtolower((string) $model->channel) === 'b2b'
+            && $targetStatus === 'ready'
+            && OrderDispatchState::query()
+                ->where('order_id', $model->getKey())
+                ->where('status', 'assigned')
+                ->whereNotNull('current_assignee_id')
+                ->exists()
+        ) {
+            $this->markReadyOrderOutForDelivery($model, $actor, $audit, $notifier, $request);
+        }
 
         return back()->with('status', $this->msg('تم تحديث حالة الطلب.', 'Order status updated.'));
     }
@@ -1265,6 +1449,11 @@ final class OrderOperationsController extends Controller
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.view');
+        abort_unless(
+            $this->orderCanBeDispatched($model),
+            409,
+            'Order must be confirmed before dispatch.',
+        );
         $this->scope->assertStore(
             $actor,
             (int) $model->store_id,
@@ -1278,6 +1467,25 @@ final class OrderOperationsController extends Controller
             'reason' => ['required', 'string', 'max:500'],
         ]);
         $reason = trim((string) $data['reason']);
+
+        $currentDriverAssignment = DriverAssignment::query()
+            ->where('order_id', $model->getKey())
+            ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+            ->latest('id')
+            ->first();
+
+        if ($currentDriverAssignment instanceof DriverAssignment) {
+            abort_unless(
+                (string) $data['assignee_type'] === 'driver',
+                409,
+                'Orders already with a Driver can only be withdrawn and transferred to another Driver.',
+            );
+            abort_if(
+                (int) $data['assignee_id'] === (int) $currentDriverAssignment->driver_id,
+                422,
+                'Select another Driver to transfer this order.',
+            );
+        }
 
         if ((string) $data['assignee_type'] === 'driver') {
             $driverId = (int) $data['assignee_id'];
@@ -1324,6 +1532,8 @@ final class OrderOperationsController extends Controller
                 abort_unless($assignment instanceof DriverAssignment, 409, 'Driver assignment was not persisted.');
                 $dispatch->assignDriver($model, $actor, $assignment, $reason);
             });
+
+            $this->markReadyOrderOutForDelivery($model, $actor, $audit, $notifier, $request);
 
             return back()->with('status', $this->msg(
                 'تم توجيه الطلب إلى السائق.',
@@ -1375,6 +1585,8 @@ final class OrderOperationsController extends Controller
             $dispatch->assignVan($model, $actor, $vanId, $reason);
         });
 
+        $this->markReadyOrderOutForDelivery($model, $actor, $audit, $notifier, $request);
+
         return back()->with('status', $this->msg(
             'تم توجيه الطلب إلى الفان.',
             'Order dispatched to Van.',
@@ -1391,6 +1603,11 @@ final class OrderOperationsController extends Controller
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.view');
+        abort_unless(
+            $this->orderCanBeDispatched($model),
+            409,
+            'Order must be confirmed before dispatch.',
+        );
         $this->scope->assertStore(
             $actor,
             (int) $model->store_id,
@@ -1441,6 +1658,7 @@ final class OrderOperationsController extends Controller
         Request $request,
         int $order,
         AuditLogger $audit,
+        OrderLifecycleNotificationService $notifications,
     ): RedirectResponse {
         $actor = $this->actor($request);
         abort_unless($this->customerServiceTeam->canManage($actor), 403);
@@ -1522,6 +1740,10 @@ final class OrderOperationsController extends Controller
             );
         }, 3);
 
+        $notifications->customerOrderChanged($model->fresh(), 'customer_service_updated', [
+            'assigned' => $assignedUserId !== null,
+        ]);
+
         return back()->with('status', $this->msg(
             $assignedUserId === null ? 'تم إلغاء إسناد الطلب من فريق خدمة العملاء.' : 'تم إسناد الطلب لموظف خدمة العملاء.',
             $assignedUserId === null ? 'Customer Service owner removed.' : 'Order assigned to Customer Service.',
@@ -1538,6 +1760,11 @@ final class OrderOperationsController extends Controller
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.manage');
+        abort_unless(
+            $this->orderCanBeDispatched($model),
+            409,
+            'Order must be confirmed before dispatch.',
+        );
         $this->scope->assertStore(
             $actor,
             (int) $model->store_id,
@@ -1584,6 +1811,11 @@ final class OrderOperationsController extends Controller
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.manage');
+        abort_unless(
+            $this->orderCanBeDispatched($model),
+            409,
+            'Order must be confirmed before dispatch.',
+        );
         $this->scope->assertStore(
             $actor,
             (int) $model->store_id,
@@ -1621,7 +1853,7 @@ final class OrderOperationsController extends Controller
     private function listRowContext(array $orders): OrderOperationsRowContext
     {
         if ($orders === []) {
-            return new OrderOperationsRowContext([], [], [], [], [], [], [], [], [], [], [], [], [], []);
+            return new OrderOperationsRowContext([], [], [], [], [], [], [], [], [], [], [], [], [], [], []);
         }
 
         $orderIds = array_map(
@@ -1861,6 +2093,23 @@ final class OrderOperationsController extends Controller
                 : ($history->note === 'checkout' ? 'customer_checkout' : 'legacy');
         }
 
+        $deliveredAt = [];
+        foreach (
+            DB::table('order_status_history')
+                ->whereIn('order_id', $orderIds)
+                ->where('to_status', 'delivered')
+                ->whereIn('id', function ($query) use ($orderIds): void {
+                    $query->selectRaw('MAX(id)')
+                        ->from('order_status_history')
+                        ->whereIn('order_id', $orderIds)
+                        ->where('to_status', 'delivered')
+                        ->groupBy('order_id');
+                })
+                ->get(['order_id', 'created_at']) as $history
+        ) {
+            $deliveredAt[(int) $history->order_id] = $history->created_at;
+        }
+
         $settlementRows = [];
         foreach ($orders as $order) {
             if (strtolower((string) $order->channel) !== 'b2b' || $order->b2b_customer_id === null) {
@@ -1895,6 +2144,7 @@ final class OrderOperationsController extends Controller
             stores: $stores,
             sources: $sources,
             settlements: $this->accountLedger->orderRowSettlements($settlementRows),
+            deliveredAt: $deliveredAt,
         );
     }
 
@@ -2078,10 +2328,48 @@ final class OrderOperationsController extends Controller
         }
 
         $status = (string) $order->status;
+        $deliveredAt = $status === 'delivered'
+            ? ($context === null
+                ? DB::table('order_status_history')
+                    ->where('order_id', $orderId)
+                    ->where('to_status', 'delivered')
+                    ->latest('id')
+                    ->value('created_at')
+                : ($context->deliveredAt[$orderId] ?? null))
+            : null;
+        $hasActiveDriver = $assignment instanceof DriverAssignment;
         $availableStatuses = array_values(array_filter(
             OrderController::allowedTransitions($status),
             static fn (string $candidate): bool => in_array($candidate, $activeStatusCodes, true),
         ));
+        if ($hasActiveDriver) {
+            $availableStatuses = in_array('cancelled', $activeStatusCodes, true)
+                ? ['cancelled']
+                : [];
+        } elseif ($channel === 'b2b' && $status === 'ready') {
+            $availableStatuses = array_values(array_filter(
+                $availableStatuses,
+                static fn (string $candidate): bool => $candidate === 'cancelled',
+            ));
+        } elseif (
+            $status === 'confirmed'
+            && ! (
+                $dispatch instanceof OrderDispatchState
+                && (string) $dispatch->status === 'assigned'
+                && $dispatch->current_assignee_id !== null
+            )
+            && in_array('pending', $activeStatusCodes, true)
+        ) {
+            $availableStatuses[] = 'pending';
+            $availableStatuses = array_values(array_unique($availableStatuses));
+        }
+
+        $displayStatus = $this->orderOperationsDisplayStatus(
+            $order,
+            $assignment,
+            $dispatch,
+            $statusLabels,
+        );
 
         return [
             'id' => (int) $order->getKey(),
@@ -2093,7 +2381,9 @@ final class OrderOperationsController extends Controller
             'source' => $source,
             'customer' => $customerName ?? '-',
             'status' => $status,
-            'status_label' => $statusLabels[$status] ?? $status,
+            'status_label' => $displayStatus['label'],
+            'status_visual_state' => $displayStatus['state'],
+            'has_active_driver' => $hasActiveDriver,
             'available_statuses' => array_map(
                 static fn (string $candidate): array => [
                     'code' => $candidate,
@@ -2105,6 +2395,7 @@ final class OrderOperationsController extends Controller
             'currency' => (string) $order->currency,
             'created_at' => $order->created_at,
             'updated_at' => $order->updated_at,
+            'delivered_at' => $deliveredAt,
             'payment_status' => $payment?->status,
             'payment_provider' => $payment?->provider,
             'payment_amount' => $payment?->amount === null ? null : (float) $payment->amount,
@@ -2130,16 +2421,19 @@ final class OrderOperationsController extends Controller
             'dispatch_source' => $dispatch?->routing_source,
             'dispatch_reason' => $dispatch?->routing_reason,
             'dispatch_assignee_type' => $dispatch?->current_assignee_type,
+            'dispatch_assignee_id' => $dispatch?->current_assignee_id === null ? null : (int) $dispatch->current_assignee_id,
             'dispatch_assignee' => $dispatchAssignee,
             'dispatch_territory' => $dispatchTerritory === null
                 ? null
                 : ((app()->getLocale() === 'ar' ? $dispatchTerritory->name_ar : $dispatchTerritory->name_en)
                     ?: $dispatchTerritory->code),
-            'can_dispatch' => in_array(
+            'can_dispatch_authorized' => $canDispatchAuthorized = in_array(
                 (int) $order->store_id,
                 $dispatchScopes[strtolower((string) $order->channel)] ?? [],
                 true,
             ),
+            'can_dispatch' => $canDispatchAuthorized && $this->orderCanBeDispatched($order),
+            'dispatch_locked_until_confirmation' => $canDispatchAuthorized && $status === 'pending',
         ];
     }
 
@@ -2272,6 +2566,7 @@ final class OrderOperationsController extends Controller
                 ->orderByDesc('order_van_execution_events.id')
                 ->get([
                     'order_van_execution_events.id',
+                    'order_van_execution_events.order_van_assignment_id',
                     'order_van_execution_events.action',
                     'order_van_execution_events.from_status',
                     'order_van_execution_events.to_status',
@@ -2284,6 +2579,7 @@ final class OrderOperationsController extends Controller
                 ])
                 ->map(static fn (object $event): array => [
                     'id' => (int) $event->id,
+                    'order_van_assignment_id' => (int) $event->order_van_assignment_id,
                     'action' => (string) $event->action,
                     'from_status' => (string) $event->from_status,
                     'to_status' => (string) $event->to_status,
@@ -2368,6 +2664,310 @@ final class OrderOperationsController extends Controller
                 ? $this->vanDeliveryEvidence->order($actor, $order)
                 : [],
         ];
+    }
+
+    /**
+     * @param  array<string,string>  $statusLabels
+     * @return array{label:string,state:string}
+     */
+    private function orderOperationsDisplayStatus(
+        Order $order,
+        ?DriverAssignment $assignment,
+        ?OrderDispatchState $dispatch,
+        array $statusLabels,
+    ): array {
+        $status = strtolower((string) $order->status);
+        $assignmentStatus = strtolower((string) ($assignment->status ?? ''));
+
+        if (in_array($status, ['delivered', 'completed'], true)) {
+            return [
+                'label' => __('order_operations.lifecycle_labels.completed'),
+                'state' => 'completed',
+            ];
+        }
+
+        if (in_array($status, ['cancelled', 'failed'], true)) {
+            return [
+                'label' => $statusLabels[$status] ?? $this->operationBusinessLabel($status),
+                'state' => $status,
+            ];
+        }
+
+        if ($assignment instanceof DriverAssignment) {
+            if ($assignmentStatus === 'assigned') {
+                return [
+                    'label' => __('order_operations.lifecycle_labels.assigned_driver'),
+                    'state' => 'assigned',
+                ];
+            }
+
+            if (in_array($assignmentStatus, ['accepted', 'picked_up', 'out_for_delivery'], true)) {
+                return [
+                    'label' => __('order_operations.lifecycle_labels.driver_processing'),
+                    'state' => 'processing',
+                ];
+            }
+        }
+
+        if (
+            $dispatch instanceof OrderDispatchState
+            && (string) $dispatch->status === 'assigned'
+            && (string) $dispatch->current_assignee_type === 'driver'
+        ) {
+            return [
+                'label' => __('order_operations.lifecycle_labels.assigned_driver'),
+                'state' => 'assigned',
+            ];
+        }
+
+        if (
+            $dispatch instanceof OrderDispatchState
+            && (string) $dispatch->status === 'assigned'
+            && (string) $dispatch->current_assignee_type === 'van'
+        ) {
+            return [
+                'label' => __('order_operations.lifecycle_labels.assigned_van'),
+                'state' => 'assigned',
+            ];
+        }
+
+        if ($status === 'pending') {
+            return [
+                'label' => __('order_operations.lifecycle_labels.pending_confirmation'),
+                'state' => 'pending',
+            ];
+        }
+
+        if (in_array($status, ['confirmed', 'preparing', 'ready'], true)) {
+            return [
+                'label' => strtolower((string) $order->channel) === 'b2b'
+                    ? __('order_operations.lifecycle_labels.confirmed_awaiting_dispatch')
+                    : __('order_operations.lifecycle_labels.confirmed_awaiting_driver'),
+                'state' => 'confirmed',
+            ];
+        }
+
+        return [
+            'label' => $statusLabels[$status] ?? $this->operationBusinessLabel($status),
+            'state' => $status,
+        ];
+    }
+
+    private function operationBusinessLabel(mixed $value): string
+    {
+        $key = strtolower(trim((string) ($value ?? '')));
+        if ($key === '') {
+            return '—';
+        }
+
+        $translationKey = 'order_operations.business_labels.'.$key;
+        $translated = __($translationKey);
+
+        if ($translated !== $translationKey) {
+            return $translated;
+        }
+
+        return app()->getLocale() === 'ar'
+            ? 'غير محدد'
+            : ucwords(str_replace(['_', '-', '.'], ' ', $key));
+    }
+
+    private function localizedOperationalValue(mixed $value): ?string
+    {
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return null;
+        }
+
+        $key = strtolower($raw);
+        $translationKey = 'order_operations.business_labels.'.$key;
+        $translated = __($translationKey);
+        if ($translated !== $translationKey) {
+            return $translated;
+        }
+
+        if (preg_match('/^[a-z0-9_.:-]+$/i', $raw) === 1) {
+            return app()->getLocale() === 'ar'
+                ? 'تحديث على الطلب'
+                : ucwords(str_replace(['_', '-', '.'], ' ', $raw));
+        }
+
+        return $raw;
+    }
+
+    /** @return list<array<string,mixed>> */
+    private function orderTimeline(Order $order, array $detail): array
+    {
+        $events = collect();
+
+        foreach ($detail['history'] ?? [] as $entry) {
+            $events->push([
+                'kind' => 'status',
+                'title' => $this->msg(
+                    'تغيير حالة الطلب',
+                    'Order status changed',
+                ),
+                'summary' => $this->operationBusinessLabel($entry['from'] ?? null).' → '.$this->operationBusinessLabel($entry['to'] ?? null),
+                'note' => $this->localizedOperationalValue($entry['note'] ?? null),
+                'actor' => null,
+                'created_at' => $entry['created_at'] ?? null,
+            ]);
+        }
+
+        foreach ($detail['assignments'] ?? [] as $entry) {
+            $events->push([
+                'kind' => 'driver',
+                'title' => $this->msg('إجراء على السائق', 'Driver action'),
+                'summary' => trim((string) ($entry['driver'] ?? '')).' · '.$this->operationBusinessLabel($entry['status'] ?? null),
+                'note' => null,
+                'actor' => null,
+                'created_at' => $entry['assigned_at'] ?? null,
+            ]);
+            if (! empty($entry['completed_at'])) {
+                $events->push([
+                    'kind' => 'driver',
+                    'title' => $this->msg('انتهاء إجراء السائق', 'Driver action completed'),
+                    'summary' => trim((string) ($entry['driver'] ?? '')).' · '.$this->operationBusinessLabel($entry['status'] ?? null),
+                    'note' => null,
+                    'actor' => null,
+                    'created_at' => $entry['completed_at'],
+                ]);
+            }
+        }
+
+        foreach ($detail['delivery_evidence'] ?? [] as $assignmentEvidence) {
+            foreach ($assignmentEvidence['timeline'] ?? [] as $entry) {
+                $events->push([
+                    'kind' => 'driver_execution',
+                    'title' => $this->msg('تنفيذ السائق', 'Driver execution'),
+                    'summary' => trim((string) ($assignmentEvidence['driver_name'] ?? ''))
+                        .' · '.$this->operationBusinessLabel($entry['from_status'] ?? null)
+                        .' → '.$this->operationBusinessLabel($entry['to_status'] ?? null),
+                    'note' => $this->localizedOperationalValue(
+                        $entry['note'] ?? $entry['reason_code'] ?? null,
+                    ),
+                    'actor' => trim((string) ($assignmentEvidence['driver_name'] ?? '')),
+                    'created_at' => $entry['captured_at'] ?? null,
+                ]);
+            }
+        }
+
+        foreach ($detail['van_assignments'] ?? [] as $entry) {
+            $events->push([
+                'kind' => 'van',
+                'title' => $this->msg('إجراء على الفان', 'Van action'),
+                'summary' => trim((string) ($entry['van'] ?? '')).' · '.$this->operationBusinessLabel($entry['status'] ?? null),
+                'note' => $this->localizedOperationalValue($entry['reason'] ?? null),
+                'actor' => null,
+                'created_at' => $entry['assigned_at'] ?? null,
+            ]);
+            if (! empty($entry['ended_at'])) {
+                $events->push([
+                    'kind' => 'van',
+                    'title' => $this->msg('انتهاء إسناد الفان', 'Van assignment ended'),
+                    'summary' => trim((string) ($entry['van'] ?? '')).' · '.$this->operationBusinessLabel($entry['status'] ?? null),
+                    'note' => $this->localizedOperationalValue($entry['reason'] ?? null),
+                    'actor' => null,
+                    'created_at' => $entry['ended_at'],
+                ]);
+            }
+        }
+
+        foreach ($detail['van_events'] ?? [] as $entry) {
+            $events->push([
+                'kind' => 'execution',
+                'title' => $this->msg('تنفيذ الفان', 'Van execution'),
+                'summary' => $this->operationBusinessLabel($entry['from_status'] ?? null).' → '.$this->operationBusinessLabel($entry['to_status'] ?? null),
+                'note' => $this->localizedOperationalValue($entry['note'] ?? $entry['reason_code'] ?? null),
+                'actor' => $entry['actor'] ?? null,
+                'created_at' => $entry['captured_at'] ?? null,
+            ]);
+        }
+
+        $invoiceIds = Invoice::query()
+            ->where('order_id', $order->getKey())
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+
+        $audits = AuditLog::query()
+            ->leftJoin('users', 'users.id', '=', 'audit_logs.user_id')
+            ->where(function ($query) use ($order, $invoiceIds): void {
+                $query->where(function ($orderAudit) use ($order): void {
+                    $orderAudit
+                        ->where('audit_logs.auditable_type', Order::class)
+                        ->where('audit_logs.auditable_id', $order->getKey());
+                });
+                if ($invoiceIds !== []) {
+                    $query->orWhere(function ($invoiceAudit) use ($invoiceIds): void {
+                        $invoiceAudit
+                            ->where('audit_logs.auditable_type', Invoice::class)
+                            ->whereIn('audit_logs.auditable_id', $invoiceIds);
+                    });
+                }
+            })
+            ->latest('audit_logs.id')
+            ->get([
+                'audit_logs.event',
+                'audit_logs.after',
+                'audit_logs.created_at',
+                'users.name as actor_name',
+            ]);
+
+        foreach ($audits as $audit) {
+            /** @var array<string,mixed> $after */
+            $after = $audit->getAttribute('after') ?? [];
+            $summaryParts = array_values(array_filter(array_map(
+                fn ($value): ?string => $this->localizedOperationalValue($value),
+                [
+                    $after['status'] ?? null,
+                    $after['routing_reason'] ?? null,
+                    $after['reason'] ?? null,
+                    $after['note'] ?? null,
+                ],
+            ), static fn ($value): bool => is_string($value) && trim($value) !== ''));
+
+            $events->push([
+                'kind' => 'audit',
+                'title' => $this->timelineAuditLabel((string) $audit->event),
+                'summary' => implode(' · ', array_map('strval', $summaryParts)),
+                'note' => null,
+                'actor' => trim((string) ($audit->actor_name ?? '')),
+                'created_at' => $audit->created_at,
+            ]);
+        }
+
+        return $events
+            ->filter(static fn (array $event): bool => ! empty($event['created_at']))
+            ->sortByDesc(static fn (array $event): string => (string) $event['created_at'])
+            ->values()
+            ->all();
+    }
+
+    private function timelineAuditLabel(string $event): string
+    {
+        if (str_ends_with($event, '.order_created')) {
+            return $this->msg('إنشاء الطلب', 'Order created');
+        }
+
+        return match ($event) {
+            'dashboard.order_updated' => $this->msg('تعديل تفاصيل الطلب', 'Order details updated'),
+            'order.customer_service_owner.changed' => $this->msg('تحديث مسؤول خدمة العملاء', 'Customer Service owner updated'),
+            'order.dispatch.manual_assigned' => $this->msg('توجيه الطلب', 'Order routed'),
+            'order.dispatch.manual_cleared' => $this->msg('سحب توجيه الطلب', 'Order routing cleared'),
+            'operations.order.driver_reminder_sent' => $this->msg('إرسال تذكير للسائق', 'Driver reminder sent'),
+            'invoice.issued' => $this->msg('إصدار الفاتورة', 'Invoice issued'),
+            'invoice.reissued' => $this->msg('إعادة إصدار الفاتورة', 'Invoice reissued'),
+            'invoice.voided' => $this->msg('إلغاء الفاتورة', 'Invoice voided'),
+            'invoice.settled' => $this->msg('تسوية الفاتورة', 'Invoice settled'),
+            default => app()->getLocale() === 'ar'
+                ? 'تحديث على الطلب'
+                : ucwords(str_replace(['.', '_'], ' ', $event)),
+        };
     }
 
     /**
@@ -2510,6 +3110,62 @@ final class OrderOperationsController extends Controller
         $channels = $this->availableOperationalChannels($actor, 'orders.view');
 
         return (string) $channels[0]['code'];
+    }
+
+    private function markReadyOrderOutForDelivery(
+        Order $order,
+        User $actor,
+        AuditLogger $audit,
+        DashboardOperationalNotifier $notifier,
+        Request $request,
+    ): void {
+        $updated = DB::transaction(function () use ($order, $actor, $audit, $request): ?Order {
+            $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+            if ((string) $locked->status !== 'ready') {
+                return null;
+            }
+
+            $before = (string) $locked->status;
+            $locked->status = 'out_for_delivery';
+            $locked->save();
+
+            OrderStatusHistory::query()->create([
+                'order_id' => $locked->getKey(),
+                'store_id' => (int) $locked->store_id,
+                'user_id' => $actor->getKey(),
+                'from_status' => $before,
+                'to_status' => 'out_for_delivery',
+                'note' => 'dispatch_assigned',
+            ]);
+
+            $audit->record(
+                'order.status_changed',
+                $actor,
+                $locked,
+                ['status' => $before],
+                [
+                    'status' => 'out_for_delivery',
+                    'source' => 'dispatch_assignment',
+                    'note' => 'dispatch_assigned',
+                ],
+                $request,
+            );
+
+            return $locked->fresh();
+        }, 3);
+
+        if ($updated instanceof Order) {
+            $notifier->orderStatusChanged($updated, 'ready', 'out_for_delivery');
+        }
+    }
+
+    private function orderCanBeDispatched(Order $order): bool
+    {
+        return in_array(
+            strtolower((string) $order->status),
+            ['confirmed', 'preparing', 'ready', 'out_for_delivery', 'failed'],
+            true,
+        );
     }
 
     private function actor(Request $request): User

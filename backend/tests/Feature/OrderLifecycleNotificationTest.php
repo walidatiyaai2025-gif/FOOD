@@ -109,7 +109,16 @@ class OrderLifecycleNotificationTest extends TestCase
             'type' => 'delivery.unassigned',
         ]);
 
-        Queue::assertPushed(DispatchPushNotification::class, 8);
+        $service->customerOrderChanged($order->fresh(), 'details_updated', [
+            'source' => 'dashboard',
+        ]);
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $customerUser->id,
+            'app' => 'customer',
+            'type' => 'order.updated',
+        ]);
+
+        Queue::assertPushed(DispatchPushNotification::class, 9);
     }
 
     public function test_driver_delivery_status_does_not_duplicate_customer_push_when_order_status_also_changes(): void
@@ -171,7 +180,15 @@ class OrderLifecycleNotificationTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $customerUser = User::query()->create([
+            'name' => 'Lifecycle B2B Customer',
+            'email' => 'lifecycle-b2b-customer@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
         $legacyCustomer = Customer::query()->create([
+            'user_id' => $customerUser->id,
             'type' => 'b2b',
             'name' => 'Lifecycle B2B Customer',
             'email' => 'lifecycle-b2b-customer@example.test',
@@ -274,6 +291,11 @@ class OrderLifecycleNotificationTest extends TestCase
             $assigned->data['deep_link'] ?? null,
         );
         $this->assertSame($order->id, (int) ($assigned->data['order_id'] ?? 0));
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $customerUser->id,
+            'app' => 'customer',
+            'type' => 'delivery.assigned',
+        ]);
 
         DB::table('order_status_history')->insert([
             'order_id' => $order->id,
@@ -307,7 +329,105 @@ class OrderLifecycleNotificationTest extends TestCase
             'type' => 'van.delivery.reassigned_away',
         ]);
 
-        Queue::assertPushed(DispatchPushNotification::class, 3);
+        Queue::assertPushed(DispatchPushNotification::class, 5);
+    }
+
+    public function test_manual_b2b_driver_dispatch_receives_driver_app_notifications(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        Queue::fake();
+
+        $typeId = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId,
+            'code' => 'LIFECYCLE-B2B-DRIVER',
+            'name' => 'Lifecycle B2B Driver Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $customer = Customer::query()->create([
+            'type' => 'b2b',
+            'name' => 'Manual Driver Customer',
+        ]);
+        $order = Order::query()->create([
+            'store_id' => $storeId,
+            'customer_id' => $customer->id,
+            'order_number' => 'FDX-B2B-DRIVER-PUSH-1',
+            'channel' => 'b2b',
+            'status' => 'ready',
+            'currency' => 'EGP',
+            'subtotal' => 10,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 10,
+        ]);
+        $driverUser = User::query()->create([
+            'name' => 'Manual B2B Driver',
+            'email' => 'manual-b2b-driver-push@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+        $assignment = DriverAssignment::query()->create([
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+            'store_id' => $storeId,
+            'assignment_type' => 'b2b',
+            'status' => 'assigned',
+            'assigned_at' => now(),
+        ]);
+
+        $service = app(OrderLifecycleNotificationService::class);
+        $service->driverAssigned($order, $assignment, null, true);
+
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $driverUser->id,
+            'app' => 'driver',
+            'target_channel' => 'b2b',
+            'type' => 'delivery.assigned',
+        ]);
+
+        DB::table('order_dispatch_states')->insert([
+            'order_id' => $order->id,
+            'status' => 'assigned',
+            'routing_source' => 'manual_customer_service',
+            'routing_reason' => 'customer_service_driver_assignment',
+            'current_assignee_type' => 'driver',
+            'current_assignee_id' => $driver->id,
+            'decision_key' => hash('sha256', 'manual-b2b-driver-notification-'.$order->id),
+            'decided_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('order_status_history')->insert([
+            'order_id' => $order->id,
+            'store_id' => $storeId,
+            'user_id' => null,
+            'from_status' => 'ready',
+            'to_status' => 'out_for_delivery',
+            'note' => 'dispatch_assigned',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $order->forceFill(['status' => 'out_for_delivery'])->save();
+
+        $service->orderStatusChanged($order->fresh(), 'ready', 'out_for_delivery');
+
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $driverUser->id,
+            'app' => 'driver',
+            'target_channel' => 'b2b',
+            'type' => 'order.status_changed',
+        ]);
+        Queue::assertPushed(DispatchPushNotification::class, 2);
     }
 
     /** @return array{0:Order,1:User} */

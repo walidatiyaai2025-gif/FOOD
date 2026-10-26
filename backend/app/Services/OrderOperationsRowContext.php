@@ -23,6 +23,7 @@ final readonly class OrderOperationsRowContext
      * @param  array<int,stdClass>  $stores
      * @param  array<int,string>  $sources
      * @param  array<int,array<string,mixed>>  $settlements
+     * @param  array<int,mixed>  $deliveredAt
      */
     public function __construct(
         public array $assignments,
@@ -39,5 +40,6 @@ final readonly class OrderOperationsRowContext
         public array $stores,
         public array $sources,
         public array $settlements,
+        public array $deliveredAt,
     ) {}
 }

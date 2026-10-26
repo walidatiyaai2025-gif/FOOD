@@ -133,6 +133,63 @@ class OrderLiveTrackingServiceTest extends TestCase
         $this->assertArrayNotHasKey('driver_id', $tracking);
     }
 
+    public function test_b2b_manual_driver_dispatch_resolves_driver_tracking(): void
+    {
+        [$order, $storeId] = $this->order('b2b', 'TRACK-B2B-DRIVER');
+        $driverUser = User::factory()->create(['name' => 'Wholesale Driver']);
+        $driverId = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $driverUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $assignmentId = (int) DB::table('driver_assignments')->insertGetId([
+            'driver_id' => $driverId,
+            'order_id' => $order->id,
+            'store_id' => $storeId,
+            'assignment_type' => 'b2b',
+            'status' => 'out_for_delivery',
+            'assigned_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('order_dispatch_states')->insert([
+            'order_id' => $order->id,
+            'status' => 'assigned',
+            'routing_source' => 'manual_customer_service',
+            'routing_reason' => 'customer_service_driver_assignment',
+            'current_assignee_type' => 'driver',
+            'current_assignee_id' => $driverId,
+            'decision_key' => hash('sha256', 'tracking-b2b-driver-'.$order->id),
+            'decided_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('driver_current_locations')->insert([
+            'driver_id' => $driverId,
+            'store_id' => $storeId,
+            'channel' => 'b2b',
+            'latitude' => 29.37,
+            'longitude' => 47.98,
+            'captured_at' => now(),
+            'received_at' => now(),
+            'active_assignment_id' => $assignmentId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $tracking = app(OrderLiveTrackingService::class)->forOrder($order);
+
+        $this->assertSame('driver', $tracking['actor_type']);
+        $this->assertSame($driverId, $tracking['driver_id']);
+        $this->assertSame('Wholesale Driver', $tracking['driver_name']);
+        $this->assertSame('online', $tracking['live_status']);
+        $this->assertArrayNotHasKey('van_id', $tracking);
+    }
+
     public function test_b2c_tracking_stays_driver_even_if_van_assignment_exists(): void
     {
         [$order, $storeId] = $this->order('b2c', 'TRACK-B2C');

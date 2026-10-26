@@ -17,10 +17,24 @@ final class OrderLiveTrackingService
     public function forOrder(Order $order): ?array
     {
         return match (strtolower((string) $order->channel)) {
-            'b2b' => $this->vanTracking($order),
-            'b2c' => $this->driverTracking($order),
+            'b2b' => $this->b2bTracking($order),
+            'b2c' => $this->driverTracking($order, 'b2c'),
             default => null,
         };
+    }
+
+    /** @return array<string,mixed>|null */
+    private function b2bTracking(Order $order): ?array
+    {
+        $assigneeType = strtolower((string) DB::table('order_dispatch_states')
+            ->where('order_id', $order->getKey())
+            ->value('current_assignee_type'));
+
+        if ($assigneeType === 'driver') {
+            return $this->driverTracking($order, 'b2b');
+        }
+
+        return $this->vanTracking($order);
     }
 
     /** @return array<string,mixed>|null */
@@ -95,14 +109,14 @@ final class OrderLiveTrackingService
     }
 
     /** @return array<string,mixed>|null */
-    private function driverTracking(Order $order): ?array
+    private function driverTracking(Order $order, string $channel): ?array
     {
         $assignment = DB::table('driver_assignments')
             ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
             ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
             ->where('driver_assignments.order_id', $order->getKey())
             ->where('driver_assignments.store_id', $order->store_id)
-            ->where('driver_assignments.assignment_type', 'b2c')
+            ->where('driver_assignments.assignment_type', $channel)
             ->whereNotIn('driver_assignments.status', [
                 'cancelled',
                 'unassigned',
@@ -125,7 +139,7 @@ final class OrderLiveTrackingService
         $location = DB::table('driver_current_locations')
             ->where('driver_id', (int) $assignment->driver_id)
             ->where('store_id', $order->store_id)
-            ->where('channel', 'b2c')
+            ->where('channel', $channel)
             ->first([
                 'latitude',
                 'longitude',

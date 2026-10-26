@@ -24,9 +24,28 @@ abstract final class DriverRoutes {
   static const b2cDeliveries = '/driver/b2c/deliveries';
   static const b2cNotifications = '/driver/b2c/notifications';
   static const b2cWallet = '/driver/b2c/wallet';
+  static const b2bHome = '/driver/b2b/home';
+  static const b2bDeliveries = '/driver/b2b/deliveries';
+  static const b2bNotifications = '/driver/b2b/notifications';
+
+  static String home(DriverChannel channel) => channel == DriverChannel.b2b
+      ? DriverRoutes.b2bHome
+      : DriverRoutes.b2cHome;
+
+  static String deliveries(DriverChannel channel) =>
+      channel == DriverChannel.b2b
+          ? DriverRoutes.b2bDeliveries
+          : DriverRoutes.b2cDeliveries;
+
+  static String notifications(DriverChannel channel) =>
+      channel == DriverChannel.b2b
+          ? DriverRoutes.b2bNotifications
+          : DriverRoutes.b2cNotifications;
 
   static bool belongsTo(String route, DriverChannel channel) {
-    return channel == DriverChannel.b2c && route.startsWith('/driver/b2c/');
+    final prefix =
+        channel == DriverChannel.b2b ? '/driver/b2b/' : '/driver/b2c/';
+    return route.startsWith(prefix);
   }
 }
 
@@ -53,80 +72,80 @@ class DriverNavigator {
     final name = settings.name ?? DriverRoutes.root;
     DriverRuntimeInspector.instance.recordNavigation(name);
 
-    if (channel != DriverChannel.b2c) {
-      return _page(const _DriverRouteDenied(), settings);
-    }
-
     if (name == DriverRoutes.root) return _page(_homeFor(channel), settings);
 
     if (!DriverRoutes.belongsTo(name, channel)) {
       return _page(const _DriverRouteDenied(), settings);
     }
 
-    switch (name) {
-      case DriverRoutes.b2cHome:
-        return _page(_homeFor(channel), settings);
-      case DriverRoutes.b2cDeliveries:
-        final focusAssignmentId =
-            settings.arguments is int ? settings.arguments as int : null;
-        final initialAssignmentStatus =
-            settings.arguments is String ? settings.arguments as String : null;
-        return _page(
-          DriverJourneyRuntimePage(
-            channel: channel,
-            repository: repository,
-            onSessionExpired: onSessionExpired,
-            focusAssignmentId: focusAssignmentId,
-            initialAssignmentStatus: initialAssignmentStatus,
-            previewContext: previewContext,
-            homeRoute: DriverRoutes.b2cHome,
-            deliveriesRoute: DriverRoutes.b2cDeliveries,
-            notificationsRoute: DriverRoutes.b2cNotifications,
-          ),
-          settings,
-        );
-      case DriverRoutes.b2cWallet:
-        if (repository is! DriverWalletRepository) {
-          return _page(const _DriverRouteNotFound(), settings);
-        }
-        final walletRepository = repository as DriverWalletRepository;
-        return _page(DriverWalletPage(repository: walletRepository), settings);
-      case DriverRoutes.b2cNotifications:
-        final notifications = notificationRepository;
-        if (notifications == null) {
-          return _page(const _DriverRouteNotFound(), settings);
-        }
-        const deliveriesRoute = DriverRoutes.b2cDeliveries;
-        return _page(
-          Builder(
-            builder: (context) => DriverNotificationPage(
-              repository: notifications,
-              onSessionExpired: onSessionExpired,
-              homeRoute: DriverRoutes.b2cHome,
-              deliveriesRoute: deliveriesRoute,
-              notificationsRoute: DriverRoutes.b2cNotifications,
-              onOpenAssignment: (assignmentId) {
-                Navigator.of(context)
-                    .pushNamed(deliveriesRoute, arguments: assignmentId);
-              },
-            ),
-          ),
-          settings,
-        );
-      default:
-        return _page(const _DriverRouteNotFound(), settings);
+    final homeRoute = DriverRoutes.home(channel);
+    final deliveriesRoute = DriverRoutes.deliveries(channel);
+    final notificationsRoute = DriverRoutes.notifications(channel);
+
+    if (name == homeRoute) {
+      return _page(_homeFor(channel), settings);
     }
+    if (name == deliveriesRoute) {
+      final focusAssignmentId =
+          settings.arguments is int ? settings.arguments as int : null;
+      final initialAssignmentStatus =
+          settings.arguments is String ? settings.arguments as String : null;
+      return _page(
+        DriverJourneyRuntimePage(
+          channel: channel,
+          repository: repository,
+          onSessionExpired: onSessionExpired,
+          focusAssignmentId: focusAssignmentId,
+          initialAssignmentStatus: initialAssignmentStatus,
+          previewContext: previewContext,
+          homeRoute: homeRoute,
+          deliveriesRoute: deliveriesRoute,
+          notificationsRoute: notificationsRoute,
+        ),
+        settings,
+      );
+    }
+    if (name == notificationsRoute) {
+      final notifications = notificationRepository;
+      if (notifications == null) {
+        return _page(const _DriverRouteNotFound(), settings);
+      }
+      return _page(
+        Builder(
+          builder: (context) => DriverNotificationPage(
+            repository: notifications,
+            onSessionExpired: onSessionExpired,
+            homeRoute: homeRoute,
+            deliveriesRoute: deliveriesRoute,
+            notificationsRoute: notificationsRoute,
+            onOpenAssignment: (assignmentId) {
+              Navigator.of(context)
+                  .pushNamed(deliveriesRoute, arguments: assignmentId);
+            },
+          ),
+        ),
+        settings,
+      );
+    }
+    if (channel == DriverChannel.b2c && name == DriverRoutes.b2cWallet) {
+      if (repository is! DriverWalletRepository) {
+        return _page(const _DriverRouteNotFound(), settings);
+      }
+      final walletRepository = repository as DriverWalletRepository;
+      return _page(DriverWalletPage(repository: walletRepository), settings);
+    }
+
+    return _page(const _DriverRouteNotFound(), settings);
   }
 
   Widget _homeFor(DriverChannel channel) {
-    if (channel != DriverChannel.b2c) {
-      return const _DriverRouteDenied();
-    }
-    const home = DriverRoutes.b2cHome;
-    const deliveries = DriverRoutes.b2cDeliveries;
-    const notifications = DriverRoutes.b2cNotifications;
+    final home = DriverRoutes.home(channel);
+    final deliveries = DriverRoutes.deliveries(channel);
+    final notifications = DriverRoutes.notifications(channel);
     final wallet =
-        repository is DriverWalletRepository ? DriverRoutes.b2cWallet : null;
+        channel == DriverChannel.b2c && repository is DriverWalletRepository
+            ? DriverRoutes.b2cWallet
+            : null;
 
     return _DriverHomePage(
       homeRoute: home,
@@ -543,6 +562,13 @@ class _DriverHomePageState extends State<_DriverHomePage>
                 ],
               ),
               const SizedBox(height: 10),
+              _DriverPendingCard(
+                key: const Key('driver-home-pending-orders'),
+                label: context.tr('driver.home.pending_orders'),
+                value: _loading ? null : _count('assigned'),
+                onTap: _loading ? null : () => _openStatus('assigned'),
+              ),
+              const SizedBox(height: 10),
               if (_loadFailed)
                 Card(
                   child: ListTile(
@@ -728,6 +754,100 @@ class _DriverWorkloadChart extends StatelessWidget {
       ),
     );
   }
+}
+
+class _DriverPendingCard extends StatelessWidget {
+  const _DriverPendingCard({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  final String label;
+  final int? value;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: FoodexBrand.statusSurface('error'),
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: FoodexBrand.red,
+                width: 1.4,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: FoodexBrand.red,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.notifications_active_rounded,
+                    color: Colors.white,
+                    size: 23,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: FoodexBrand.dangerText,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (value == null)
+                  const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      color: FoodexBrand.red,
+                    ),
+                  )
+                else
+                  Container(
+                    constraints: const BoxConstraints(minWidth: 42),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: FoodexBrand.red,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      value.toString(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 class _DriverStatusCard extends StatelessWidget {

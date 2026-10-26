@@ -30,7 +30,7 @@ final class OrderManualDispatchService
         string $reason,
     ): OrderDispatchState {
         $reason = $this->reason($reason);
-        $this->actors->assertOrderActor($order, FulfillmentActorPolicy::DRIVER);
+        $this->actors->assertManualDispatchActor($order, FulfillmentActorPolicy::DRIVER);
 
         if (
             (int) $driverAssignment->order_id !== (int) $order->id
@@ -62,10 +62,17 @@ final class OrderManualDispatchService
                 ->where('status', 'active')
                 ->lockForUpdate()
                 ->get()
-                ->each(fn (OrderVanAssignment $assignment) => $assignment->forceFill([
-                    'status' => 'reassigned',
-                    'ended_at' => now(),
-                ])->save());
+                ->each(function (OrderVanAssignment $assignment) use ($order): void {
+                    $assignment->forceFill([
+                        'status' => 'reassigned',
+                        'ended_at' => now(),
+                    ])->save();
+                    $this->notifications->vanAssignmentRevoked(
+                        $order,
+                        $assignment->fresh(),
+                        'manual_driver_override',
+                    );
+                });
 
             $before = $state->exists ? $state->toArray() : null;
             $state->fill([
@@ -106,7 +113,7 @@ final class OrderManualDispatchService
         Carbon|string|null $at = null,
     ): OrderDispatchState {
         $reason = $this->reason($reason);
-        $this->actors->assertOrderActor($order, FulfillmentActorPolicy::VAN);
+        $this->actors->assertManualDispatchActor($order, FulfillmentActorPolicy::VAN);
         $moment = $at instanceof Carbon ? $at : ($at === null ? now() : Carbon::parse($at));
 
         $van = Van::query()

@@ -17,8 +17,8 @@ Uri _driverApiBase(String raw) {
 
 class HttpDriverAuthRepository implements DriverAuthRepository {
   HttpDriverAuthRepository(String baseUrl, {http.Client? client})
-    : _base = _driverApiBase(baseUrl),
-      _client = DriverDiagnosticHttpClient(client ?? http.Client());
+      : _base = _driverApiBase(baseUrl),
+        _client = DriverDiagnosticHttpClient(client ?? http.Client());
 
   final Uri _base;
   final http.Client _client;
@@ -70,11 +70,12 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
         .where((role) => role == 'B2C_DRIVER' || role == 'B2B_DRIVER')
         .toSet();
 
-    if (roles.length != 1 || roles.single != 'B2C_DRIVER') {
+    if (roles.length != 1) {
       throw const DriverRoleDeniedException();
     }
 
-    const channel = DriverChannel.b2c;
+    final channel =
+        roles.single == 'B2B_DRIVER' ? DriverChannel.b2b : DriverChannel.b2c;
 
     final scopeRaw = user['driver_scope'];
     if (scopeRaw is! Map) {
@@ -83,7 +84,7 @@ class HttpDriverAuthRepository implements DriverAuthRepository {
     final scope = Map<String, dynamic>.from(scopeRaw);
     final scopeChannel = (scope['channel'] ?? '').toString().toLowerCase();
     final storeId = (scope['store_id'] as num?)?.toInt() ?? 0;
-    const expectedChannel = 'b2c';
+    final expectedChannel = channel == DriverChannel.b2b ? 'b2b' : 'b2c';
     if (scopeChannel != expectedChannel || storeId <= 0) {
       throw const DriverRoleDeniedException();
     }
@@ -130,8 +131,8 @@ class HttpDriverAssignmentRepository
     String baseUrl,
     this.token, {
     http.Client? client,
-  }) : _base = _driverApiBase(baseUrl),
-       _client = DriverDiagnosticHttpClient(client ?? http.Client());
+  })  : _base = _driverApiBase(baseUrl),
+        _client = DriverDiagnosticHttpClient(client ?? http.Client());
 
   final Uri _base;
   final String token;
@@ -140,17 +141,13 @@ class HttpDriverAssignmentRepository
   Uri _endpoint(String path) => _base.resolve('api/v1/$path');
 
   Map<String, String> get _headers => {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer $token',
-  };
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
 
   @override
   Future<List<DriverAssignment>> list(DriverChannel channel) async {
-    if (channel != DriverChannel.b2c) {
-      throw const DriverAccessDeniedException();
-    }
-
     final response = await _request(
       () => _client.get(
         _endpoint(
@@ -176,11 +173,10 @@ class HttpDriverAssignmentRepository
   }
 
   DriverAssignment _assignment(Map<String, dynamic> map) {
-    final assignmentChannel = switch ((map['assignment_type'] ?? '')
-        .toString()
-        .toLowerCase()) {
+    final assignmentChannel =
+        switch ((map['assignment_type'] ?? '').toString().toLowerCase()) {
       'b2c' => DriverChannel.b2c,
-      'b2b' => throw const DriverAccessDeniedException(),
+      'b2b' => DriverChannel.b2b,
       _ => throw const DriverApiException('Invalid assignment channel.'),
     };
 
@@ -203,71 +199,66 @@ class HttpDriverAssignmentRepository
         ? Map<String, dynamic>.from(order['navigation'] as Map)
         : <String, dynamic>{};
 
-    final addressParts =
-        [
-              address['label'],
-              address['line1'],
-              address['line2'],
-              address['block'],
-              address['street'],
-              address['avenue'],
-              address['building'],
-              address['floor'],
-              address['apartment'],
-              address['area'],
-              address['city'],
-              address['governorate'],
-              address['country'],
-              address['landmark'],
-            ]
-            .where(
-              (value) => value != null && value.toString().trim().isNotEmpty,
-            )
-            .map((value) => value.toString().trim())
-            .toList(growable: false);
-
-    final items = (order['items'] as List? ?? const [])
-        .whereType<Map>()
-        .map((raw) {
-          final item = Map<String, dynamic>.from(raw);
-          return DriverOrderItem(
-            name: (item['name'] ?? '').toString(),
-            sku: (item['sku'] ?? '').toString(),
-            imageUrl: (item['image_url'] ?? '').toString(),
-            variant: (item['variant'] ?? '').toString(),
-            unit: (item['unit'] ?? '').toString(),
-            note: (item['note'] ?? '').toString(),
-            quantity: (item['quantity'] as num?)?.toDouble() ?? 0,
-            quantityConversionFactor:
-                (item['quantity_conversion_factor'] as num?)?.toDouble() ?? 1,
-            packSize: (item['pack_size'] as num?)?.toDouble() ?? 0,
-            caseSize: (item['case_size'] as num?)?.toDouble() ?? 0,
-            unitPrice: (item['unit_price'] as num?)?.toDouble() ?? 0,
-            lineTotal: (item['line_total'] as num?)?.toDouble() ?? 0,
-          );
-        })
+    final addressParts = [
+      address['label'],
+      address['line1'],
+      address['line2'],
+      address['block'],
+      address['street'],
+      address['avenue'],
+      address['building'],
+      address['floor'],
+      address['apartment'],
+      address['area'],
+      address['city'],
+      address['governorate'],
+      address['country'],
+      address['landmark'],
+    ]
+        .where(
+          (value) => value != null && value.toString().trim().isNotEmpty,
+        )
+        .map((value) => value.toString().trim())
         .toList(growable: false);
+
+    final items =
+        (order['items'] as List? ?? const []).whereType<Map>().map((raw) {
+      final item = Map<String, dynamic>.from(raw);
+      return DriverOrderItem(
+        name: (item['name'] ?? '').toString(),
+        sku: (item['sku'] ?? '').toString(),
+        imageUrl: (item['image_url'] ?? '').toString(),
+        variant: (item['variant'] ?? '').toString(),
+        unit: (item['unit'] ?? '').toString(),
+        note: (item['note'] ?? '').toString(),
+        quantity: (item['quantity'] as num?)?.toDouble() ?? 0,
+        quantityConversionFactor:
+            (item['quantity_conversion_factor'] as num?)?.toDouble() ?? 1,
+        packSize: (item['pack_size'] as num?)?.toDouble() ?? 0,
+        caseSize: (item['case_size'] as num?)?.toDouble() ?? 0,
+        unitPrice: (item['unit_price'] as num?)?.toDouble() ?? 0,
+        lineTotal: (item['line_total'] as num?)?.toDouble() ?? 0,
+      );
+    }).toList(growable: false);
 
     final invoiceMap = order['invoice'] is Map
         ? Map<String, dynamic>.from(order['invoice'] as Map)
         : null;
-    final invoiceItems = (invoiceMap?['items'] as List? ?? const [])
-        .whereType<Map>()
-        .map((raw) {
-          final item = Map<String, dynamic>.from(raw);
-          return DriverOrderItem(
-            name: (item['name'] ?? '').toString(),
-            sku: (item['sku'] ?? '').toString(),
-            imageUrl: (item['image_url'] ?? '').toString(),
-            variant: (item['variant'] ?? '').toString(),
-            unit: (item['unit'] ?? '').toString(),
-            note: (item['note'] ?? '').toString(),
-            quantity: (item['quantity'] as num?)?.toDouble() ?? 0,
-            unitPrice: (item['unit_price'] as num?)?.toDouble() ?? 0,
-            lineTotal: (item['line_total'] as num?)?.toDouble() ?? 0,
-          );
-        })
-        .toList(growable: false);
+    final invoiceItems =
+        (invoiceMap?['items'] as List? ?? const []).whereType<Map>().map((raw) {
+      final item = Map<String, dynamic>.from(raw);
+      return DriverOrderItem(
+        name: (item['name'] ?? '').toString(),
+        sku: (item['sku'] ?? '').toString(),
+        imageUrl: (item['image_url'] ?? '').toString(),
+        variant: (item['variant'] ?? '').toString(),
+        unit: (item['unit'] ?? '').toString(),
+        note: (item['note'] ?? '').toString(),
+        quantity: (item['quantity'] as num?)?.toDouble() ?? 0,
+        unitPrice: (item['unit_price'] as num?)?.toDouble() ?? 0,
+        lineTotal: (item['line_total'] as num?)?.toDouble() ?? 0,
+      );
+    }).toList(growable: false);
     final invoice = invoiceMap == null
         ? null
         : DriverInvoice(
@@ -307,16 +298,16 @@ class HttpDriverAssignmentRepository
             paidAmount: (settlementMap['paid_amount'] as num?)?.toDouble() ?? 0,
             remainingAmount:
                 (settlementMap['remaining_amount'] as num?)?.toDouble() ?? 0,
-            remainderMethod: (settlementMap['remainder_method'] ?? '')
-                .toString(),
+            remainderMethod:
+                (settlementMap['remainder_method'] ?? '').toString(),
             paymentState: (settlementMap['payment_state'] ?? '').toString(),
             amountToCollectNow:
                 (settlementMap['amount_to_collect_now'] as num?)?.toDouble() ??
-                0,
+                    0,
             invoiceOutstandingAmount:
                 (settlementMap['invoice_outstanding_amount'] as num?)
-                    ?.toDouble() ??
-                0,
+                        ?.toDouble() ??
+                    0,
           );
 
     return DriverAssignment(
@@ -324,9 +315,10 @@ class HttpDriverAssignmentRepository
       orderId: (map['order_id'] as num?)?.toInt() ?? 0,
       storeId: (map['store_id'] as num?)?.toInt() ?? 0,
       channel: assignmentChannel,
-      reference:
-          (order['number'] ?? '#${(map['order_id'] as num?)?.toInt() ?? 0}')
-              .toString(),
+      reference: (order['display_number'] ??
+              order['number'] ??
+              '#${(map['order_id'] as num?)?.toInt() ?? 0}')
+          .toString(),
       status: (map['status'] ?? '').toString(),
       storeName: (store['name'] ?? '').toString(),
       orderStatus: (order['status'] ?? '').toString(),
@@ -419,10 +411,6 @@ class HttpDriverAssignmentRepository
     String? note,
     String? failureReason,
   }) async {
-    if (channel != DriverChannel.b2c) {
-      throw const DriverAccessDeniedException();
-    }
-
     await _request(
       () => _client.post(
         _endpoint('driver/assignments/$id/status'),
@@ -446,10 +434,6 @@ class HttpDriverAssignmentRepository
     String? note,
     String? failureReason,
   }) async {
-    if (channel != DriverChannel.b2c) {
-      throw const DriverAccessDeniedException();
-    }
-
     final request = http.MultipartRequest(
       'POST',
       _endpoint('driver/assignments/$id/status'),

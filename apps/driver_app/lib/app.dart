@@ -132,7 +132,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
   final DriverBiometricAuthenticator _biometricAuthenticator =
       LocalAuthDriverBiometricAuthenticator();
 
-  static const _appVersion = '1.0.104';
+  static const _appVersion = '1.0.113';
 
   String get _baseUrl => widget.apiBaseUrl ?? FoodexEnvironment.apiBaseUrl;
 
@@ -218,9 +218,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
   }
 
   void _configureDiagnostics(DriverSession session) {
-    if (widget.previewContext != null ||
-        _baseUrl.isEmpty ||
-        session.channel != DriverChannel.b2c) {
+    if (widget.previewContext != null || _baseUrl.isEmpty) {
       DriverRuntimeInspector.instance.clearInspectorUpload();
       return;
     }
@@ -228,7 +226,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
     DriverRuntimeInspector.instance.configureInspectorUpload(
       baseUrl: _baseUrl,
       token: session.token,
-      channel: 'b2c',
+      channel: session.channel == DriverChannel.b2b ? 'b2b' : 'b2c',
       storeId: session.storeId,
     );
   }
@@ -322,9 +320,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
 
   Future<void> _openFromPush(DriverPushOpen open) async {
     final session = _session;
-    if (session == null ||
-        session.channel != DriverChannel.b2c ||
-        open.accessRevoked) {
+    if (session == null || open.accessRevoked) {
       return;
     }
 
@@ -366,7 +362,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
       return;
     }
 
-    const route = DriverRoutes.b2cDeliveries;
+    final route = DriverRoutes.deliveries(session.channel);
     final navigator = _driverNavigatorKey.currentState;
     if (navigator == null) return;
 
@@ -430,14 +426,9 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
     bool rememberMe = false,
     bool biometricEnabled = false,
   ]) {
-    if (session.channel != DriverChannel.b2c) {
-      DriverRuntimeInspector.instance.recordNavigation('driver.access_denied');
-      unawaited(_clearRememberedSession());
-      if (mounted) setState(() => _session = null);
-      return;
-    }
-
-    DriverRuntimeInspector.instance.recordNavigation(DriverRoutes.b2cHome);
+    DriverRuntimeInspector.instance.recordNavigation(
+      DriverRoutes.home(session.channel),
+    );
     _locationGateReady = false;
     if (widget.previewContext == null) {
       if (rememberMe) {

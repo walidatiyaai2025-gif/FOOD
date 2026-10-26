@@ -16,7 +16,7 @@ class DriverB2BCutoverTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_b2b_driver_cannot_login_to_driver_app_after_van_cutover(): void
+    public function test_b2b_driver_can_login_to_driver_app_for_manual_dispatch_execution(): void
     {
         [$user] = $this->legacyB2bDriver('cutover-login@example.test');
 
@@ -24,16 +24,17 @@ class DriverB2BCutoverTest extends TestCase
             'email' => $user->email,
             'password' => 'correct-password',
             'app' => 'driver',
-        ])->assertForbidden()
-            ->assertSee('not authorized for the Driver app');
+        ])->assertOk()
+            ->assertJsonPath('user.driver_scope.channel', 'b2b')
+            ->assertJsonPath('user.driver_scope.store_id', app(WholesalePrincipal::class)->storeId());
 
-        $this->assertDatabaseMissing('personal_access_tokens', [
+        $this->assertDatabaseHas('personal_access_tokens', [
             'tokenable_id' => $user->id,
             'name' => 'foodex-driver',
         ]);
     }
 
-    public function test_b2b_driver_cannot_register_driver_push_device_after_van_cutover(): void
+    public function test_b2b_driver_can_register_driver_push_device_for_manual_dispatch_execution(): void
     {
         [$user] = $this->legacyB2bDriver('cutover-push@example.test');
 
@@ -43,12 +44,13 @@ class DriverB2BCutoverTest extends TestCase
             'app' => 'driver',
             'platform' => 'android',
             'environment' => 'production',
-            'token' => 'legacy-b2b-driver-device-token',
-        ])->assertForbidden();
+            'token' => 'manual-b2b-driver-device-token',
+        ])->assertCreated();
 
-        $this->assertDatabaseMissing('push_device_tokens', [
+        $this->assertDatabaseHas('push_device_tokens', [
             'user_id' => $user->id,
             'app' => 'driver',
+            'target_channel' => 'b2b',
         ]);
     }
 

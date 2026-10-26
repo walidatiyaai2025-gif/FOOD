@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Models\DriverAssignment;
 use App\Models\Order;
-use App\Models\OrderDispatchState;
 use App\Models\OrderVanAssignment;
+use Illuminate\Support\Facades\DB;
 
 final class B2BVanFulfillmentMigrationAudit
 {
@@ -75,28 +75,43 @@ final class B2BVanFulfillmentMigrationAudit
                         ->map(fn ($id): int => (int) $id)
                         ->all();
 
-                    $dispatch = OrderDispatchState::query()
+                    $dispatch = DB::table('order_dispatch_states')
                         ->where('order_id', $order->id)
                         ->first(['status', 'current_assignee_type', 'current_assignee_id', 'routing_reason']);
 
+                    $dispatchStatus = data_get($dispatch, 'status');
+                    $dispatchAssigneeType = data_get($dispatch, 'current_assignee_type');
+                    $dispatchAssigneeId = data_get($dispatch, 'current_assignee_id');
+                    $dispatchRoutingReason = data_get($dispatch, 'routing_reason');
+
                     $issues = [];
                     if ($channel === 'b2b') {
-                        if ($activeDriverIds !== []) {
+                        $authorizedManualDriver = $dispatchStatus === 'assigned'
+                            && $dispatchAssigneeType === FulfillmentActorPolicy::DRIVER
+                            && $dispatchAssigneeId !== null
+                            && $dispatchRoutingReason === 'customer_service_driver_assignment'
+                            && $activeDriverIds !== [];
+
+                        if ($activeDriverIds !== [] && ! $authorizedManualDriver) {
                             $issues[] = 'b2b_active_driver';
                         }
-                        if ($dispatch?->current_assignee_type === FulfillmentActorPolicy::DRIVER) {
+                        if (
+                            $dispatchAssigneeType === FulfillmentActorPolicy::DRIVER
+                            && ! $authorizedManualDriver
+                        ) {
                             $issues[] = 'b2b_dispatch_driver';
                         }
                         if (count($activeVanIds) > 1) {
                             $issues[] = 'b2b_multiple_active_vans';
                         }
-                        $explicitAwaitingDispatch = $dispatch?->status === 'awaiting_dispatch'
-                            && $dispatch->current_assignee_type === null
-                            && $dispatch->current_assignee_id === null;
+                        $explicitAwaitingDispatch = $dispatchStatus === 'awaiting_dispatch'
+                            && $dispatchAssigneeType === null
+                            && $dispatchAssigneeId === null;
 
                         if (
-                            $activeVanIds === []
-                            && $dispatch?->current_assignee_type !== FulfillmentActorPolicy::VAN
+                            ! $authorizedManualDriver
+                            && $activeVanIds === []
+                            && $dispatchAssigneeType !== FulfillmentActorPolicy::VAN
                             && ! $explicitAwaitingDispatch
                         ) {
                             $issues[] = 'b2b_requires_van_routing';
@@ -105,7 +120,7 @@ final class B2BVanFulfillmentMigrationAudit
                         if ($activeVanIds !== []) {
                             $issues[] = 'b2c_active_van';
                         }
-                        if ($dispatch?->current_assignee_type === FulfillmentActorPolicy::VAN) {
+                        if ($dispatchAssigneeType === FulfillmentActorPolicy::VAN) {
                             $issues[] = 'b2c_dispatch_van';
                         }
                     }
@@ -124,8 +139,8 @@ final class B2BVanFulfillmentMigrationAudit
                             'expected_actor' => $expected,
                             'active_driver_assignment_ids' => $activeDriverIds,
                             'active_van_assignment_ids' => $activeVanIds,
-                            'dispatch_status' => $dispatch?->status,
-                            'dispatch_assignee_type' => $dispatch?->current_assignee_type,
+                            'dispatch_status' => $dispatchStatus,
+                            'dispatch_assignee_type' => $dispatchAssigneeType,
                             'dispatch_assignee_id' => $dispatch?->current_assignee_id,
                             'dispatch_reason' => $dispatch?->routing_reason,
                             'issues' => $issues,

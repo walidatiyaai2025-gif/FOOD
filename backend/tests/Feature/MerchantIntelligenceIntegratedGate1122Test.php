@@ -52,11 +52,14 @@ class MerchantIntelligenceIntegratedGate1122Test extends TestCase
             $this->assertContains($function, $customerFunctions);
         }
 
-        $driverFunctions = collect(data_get($authority, 'surfaces.driver.functions', []))
-            ->pluck('id')
-            ->all();
-        $this->assertContains('driver.b2c.deliveries', $driverFunctions);
-        $this->assertNotContains('driver.b2b.deliveries', $driverFunctions);
+        $driverFunctions = collect(data_get($authority, 'surfaces.driver.functions', []));
+        $driverFunctionIds = $driverFunctions->pluck('id')->all();
+        $this->assertContains('driver.b2c.deliveries', $driverFunctionIds);
+        $this->assertContains('driver.b2b.deliveries', $driverFunctionIds);
+        $this->assertSame(
+            'manual_dispatch_only',
+            data_get($driverFunctions->firstWhere('id', 'driver.b2b.deliveries'), 'scope'),
+        );
 
         $vanScreens = data_get($authority, 'surfaces.van.production_screens', []);
         foreach (['dashboard', 'routes', 'orders', 'wallet', 'remittance'] as $screen) {

@@ -9,6 +9,7 @@ use App\Models\Notification;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -313,7 +314,9 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
             'note' => 'Called twice',
         ]);
 
+        $principalWholesaleStoreId = app(WholesalePrincipal::class)->storeId();
         [$b2bStoreId, $b2bOrder] = $this->order('b2b', 'WHOLESALE');
+        $this->assertNotSame($principalWholesaleStoreId, $b2bStoreId);
         $b2bOrder->forceFill(['status' => 'ready'])->save();
         $b2bAdmin = $this->admin('B2B_ADMIN', $b2bStoreId, 'b2b-journey-admin@example.test');
         [$b2bDriverUser, $b2bDriver] = $this->driver(
@@ -327,7 +330,7 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
             'driver_id' => $b2bDriver->id,
             'order_id' => $b2bOrder->id,
         ])->assertConflict()
-            ->assertSee('B2B orders are fulfilled by Van runtime.');
+            ->assertSee('B2B Driver assignment is available only through authorized manual Order Operations dispatch.');
 
         $this->assertDatabaseMissing('driver_assignments', [
             'driver_id' => $b2bDriver->id,
@@ -336,7 +339,8 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
 
         Sanctum::actingAs($b2bDriverUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments')
-            ->assertForbidden();
+            ->assertConflict()
+            ->assertSee('Wholesale drivers must belong to the principal Wholesale store.');
     }
 
     private function transition(int $assignmentId, string $status, string $key)

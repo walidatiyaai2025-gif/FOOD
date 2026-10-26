@@ -123,21 +123,31 @@
           "id": "driver.b2c.wallet",
           "route": "/driver/b2c/wallet",
           "authority": "DriverWalletPage"
+        },
+        {
+          "id": "driver.b2b.home",
+          "route": "/driver/b2b/home",
+          "authority": "DriverNavigator._homeFor",
+          "scope": "manual_dispatch_only"
+        },
+        {
+          "id": "driver.b2b.deliveries",
+          "route": "/driver/b2b/deliveries",
+          "authority": "DriverJourneyRuntimePage",
+          "scope": "manual_dispatch_only"
+        },
+        {
+          "id": "driver.b2b.notifications",
+          "route": "/driver/b2b/notifications",
+          "authority": "DriverNotificationPage",
+          "scope": "manual_dispatch_only"
         }
       ],
       "forbidden_files": [
         "apps/driver_app/lib/features/tasks/driver_journey.dart"
       ],
-      "forbidden_markers": [
-        {
-          "file": "apps/driver_app/lib/navigation.dart",
-          "marker": "/driver/b2b/"
-        },
-        {
-          "file": "apps/driver_app/lib/navigation.dart",
-          "marker": "DriverRoutes.b2b"
-        }
-      ]
+      "forbidden_markers": [],
+      "fulfillment_policy": "Automatic B2B routing remains Van-first; Driver B2B routes execute only explicitly assigned manual Order Operations work."
     },
     "van": {
       "authority_source": "apps/van_app/lib/features/foundation/van_screen_inventory.dart",

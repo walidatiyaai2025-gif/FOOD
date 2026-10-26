@@ -43,7 +43,7 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .ops-table tbody td{padding:10px;vertical-align:middle;line-height:1.32;border-bottom:1px solid var(--foodex-palette-edf1f4);background:var(--foodex-surface);transition:background .16s ease}
 .ops-table tbody tr:last-child td{border-bottom:0}
 .ops-table tbody tr:hover td{background:var(--foodex-palette-f9fbfa)}
-.ops-table th:nth-child(1){width:15%}.ops-table th:nth-child(2){width:17%}.ops-table th:nth-child(3){width:13%}.ops-table th:nth-child(4){width:18%}.ops-table th:nth-child(5){width:15%}.ops-table th:nth-child(6){width:15%}.ops-table th:nth-child(7){width:7%}
+.ops-table th:nth-child(1){width:7.5%}.ops-table th:nth-child(2){width:12.75%}.ops-table th:nth-child(3){width:7.5%}.ops-table th:nth-child(4){width:14.5%}.ops-table th:nth-child(5){width:27%}.ops-table th:nth-child(6){width:23.75%}.ops-table th:nth-child(7){width:7%}.ops-table th:nth-child(3),.ops-table td:nth-child(3){padding-inline:5px}
 .order-grid-row{--order-row-accent:var(--foodex-palette-cbd5e1)}
 .order-grid-row>td:first-child{border-inline-start:3px solid var(--order-row-accent)}
 .order-grid-row.is-action-required{--order-row-accent:var(--foodex-palette-f59e0b)}
@@ -59,14 +59,25 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-status-chip[data-state="preparing"],.order-status-chip[data-state="processing"]{--status-bg:var(--foodex-palette-f5f3ff);--status-fg:var(--foodex-palette-6d28d9);--status-border:var(--foodex-palette-c4b5fd)}
 .order-status-chip[data-state="ready"]{--status-bg:var(--foodex-palette-ecfeff);--status-fg:var(--foodex-palette-0e7490);--status-border:var(--foodex-palette-67e8f9)}
 .order-status-chip[data-state="out_for_delivery"],.order-status-chip[data-state="on_the_way"],.order-status-chip[data-state="assigned"]{--status-bg:var(--foodex-palette-eef2ff);--status-fg:var(--foodex-palette-4338ca);--status-border:var(--foodex-palette-a5b4fc)}
+.order-status-chip[data-state="b2b_out_for_delivery"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}
+.order-status-chip[data-state="driver_delivery"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}
+.order-ready-dispatch-alert{display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:0 9px;border:1px solid var(--foodex-palette-fda4af);border-radius:999px;background:var(--foodex-palette-fff1f2);color:var(--foodex-palette-be123c);font-size:.6rem;font-weight:900;white-space:nowrap;animation:orderReadyDispatchPulse 1s ease-in-out infinite}
+@keyframes orderReadyDispatchPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(190,18,60,.12)}50%{opacity:.38;box-shadow:0 0 0 4px rgba(190,18,60,.08)}}
 .order-status-chip[data-state="delivered"],.order-status-chip[data-state="completed"],.order-status-chip[data-state="paid"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}
 .order-status-chip[data-state="cancelled"],.order-status-chip[data-state="failed"],.order-status-chip[data-state="delivery_failed"]{--status-bg:var(--foodex-palette-fff1f2);--status-fg:var(--foodex-palette-be123c);--status-border:var(--foodex-palette-fda4af)}
 .order-attention-chip{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:0 8px;border:1px solid var(--foodex-palette-fdba74);border-radius:999px;background:var(--foodex-palette-fff7ed);color:var(--foodex-palette-c2410c);font-size:.61rem;font-weight:900;white-space:nowrap;box-shadow:0 3px 10px rgba(234,88,12,.08)}
 .order-attention-chip::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--foodex-palette-f97316);box-shadow:0 0 0 3px rgba(249,115,22,.12)}
-.order-execution{display:grid;gap:5px;min-width:0}.order-execution strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-execution small{color:var(--foodex-muted);font-size:.62rem}
-.order-owner{display:grid;gap:3px}.order-owner strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-owner small{color:var(--foodex-muted);font-size:.61rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.order-financial{display:grid;gap:4px}.order-financial>strong{font-size:.77rem;white-space:nowrap}.order-financial small{color:var(--foodex-muted);font-size:.61rem}
+.order-execution{display:grid;gap:5px;min-width:0}.ops-table tbody td.order-dispatch-cell-locked{background:var(--foodex-palette-f8fafc)!important;cursor:not-allowed}.order-execution.is-dispatch-locked{opacity:.42;filter:grayscale(.28)}.order-dispatch-lock-hint{font-size:.58rem;font-weight:800;color:var(--foodex-muted)}.order-execution strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-execution small{color:var(--foodex-muted);font-size:.62rem}
+.order-owner{display:grid;gap:3px}.order-owner.is-complete{opacity:.38;filter:grayscale(.35);pointer-events:none;user-select:none}.ops-table tbody td.order-owner-cell.is-complete{background:var(--foodex-palette-f8fafc)!important}.order-owner strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-owner small{color:var(--foodex-muted);font-size:.61rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.order-financial{display:grid;gap:3px;min-width:0}.order-financial>strong{font-size:.69rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-financial>strong.is-paid{color:var(--foodex-palette-15803d)}.order-financial>strong.is-unpaid{color:var(--foodex-palette-be123c)}.order-financial small{color:var(--foodex-muted);font-size:.56rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.order-financial-actions{display:flex;align-items:center;gap:2px;margin-top:1px;flex-wrap:nowrap}.order-financial-action{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;min-width:19px;padding:0;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-green-dark);text-decoration:none;cursor:pointer;transition:transform .14s ease,border-color .14s ease,background .14s ease}.order-financial-action:hover{transform:translateY(-1px);border-color:var(--foodex-action-green);background:var(--foodex-palette-eaf7ef)}.order-financial-action.is-timeline{border-color:var(--foodex-palette-fda4af);background:var(--foodex-palette-fff1f2);color:var(--foodex-palette-be123c)}.order-financial-action.is-timeline:hover{border-color:var(--foodex-palette-be123c);background:var(--foodex-palette-fff1f2)}.order-financial-action .foodex-svg-icon{width:11px;height:11px}
+.order-popup-dialog{width:min(920px,94vw);max-height:88vh;padding:0;border:0;border-radius:18px;background:var(--foodex-surface);color:var(--foodex-ink);box-shadow:0 24px 70px rgba(15,23,42,.26)}.order-popup-dialog::backdrop{background:rgba(15,23,42,.48);backdrop-filter:blur(2px)}.order-popup-shell{display:grid;grid-template-rows:auto minmax(0,1fr);max-height:88vh}.order-popup-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--foodex-border);background:var(--foodex-palette-f8fafc)}.order-popup-head strong{font-size:.9rem}.order-popup-close{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid var(--foodex-border);border-radius:999px;background:#fff;color:var(--foodex-ink);font-size:1.1rem;cursor:pointer}.order-popup-body{overflow:auto;padding:14px}.order-popup-loading{padding:30px;text-align:center;color:var(--foodex-muted);font-weight:800}.order-popup-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}.order-popup-summary>div,.order-popup-facts>div{display:grid;gap:3px;padding:9px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-palette-f8fafc)}.order-popup-summary small,.order-popup-facts span{font-size:.62rem;color:var(--foodex-muted)}.order-popup-summary strong.is-paid,.order-popup-facts strong.is-paid{color:var(--foodex-palette-15803d)}.order-popup-summary strong.is-unpaid,.order-popup-facts strong.is-unpaid{color:var(--foodex-palette-be123c)}.order-popup-section{margin-top:10px;padding:12px;border:1px solid var(--foodex-border);border-radius:14px}.order-popup-section h3{margin:0 0 10px;font-size:.82rem}.order-popup-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.order-popup-table-wrap{overflow:auto}.order-popup-table{width:100%;border-collapse:collapse;font-size:.7rem}.order-popup-table th,.order-popup-table td{padding:7px;border-bottom:1px solid var(--foodex-border);text-align:start}.order-popup-toolbar{display:flex;justify-content:flex-end;margin-bottom:8px}.order-print-header,.order-print-footer{display:none}.order-popup-timeline{display:grid;gap:0}.order-popup-timeline-item{position:relative;display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;padding:0 0 14px}.order-popup-timeline-item:not(:last-child)::before{content:"";position:absolute;top:12px;bottom:-1px;inset-inline-start:6px;width:2px;background:var(--foodex-palette-e2e8f0)}.order-popup-timeline-dot{position:relative;z-index:1;width:12px;height:12px;margin-top:3px;border:3px solid var(--foodex-palette-fff1f2);border-radius:999px;background:var(--foodex-palette-be123c)}.order-popup-timeline-item>div{display:grid;gap:3px}.order-popup-timeline-item strong{font-size:.72rem}.order-popup-timeline-item small{color:var(--foodex-muted)}.order-popup-timeline-item footer{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--foodex-muted);font-size:.59rem}
+@media(max-width:760px){.order-popup-summary,.order-popup-facts{grid-template-columns:1fr 1fr}.order-popup-dialog{width:96vw}.order-popup-body{padding:10px}}
+@media print{@page{margin:18mm 14mm 22mm}body *{visibility:hidden!important}.order-popup-dialog[open],.order-popup-dialog[open] *{visibility:visible!important}.order-popup-dialog[open]{position:absolute!important;inset:0!important;width:100%!important;max-width:none!important;max-height:none!important;margin:0!important;border-radius:0!important;box-shadow:none!important}.order-popup-head,[data-no-print]{display:none!important}.order-popup-body{overflow:visible!important;padding:0!important}.order-print-header{display:grid!important;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;direction:ltr;padding:0 0 10px;margin-bottom:12px;border-bottom:2px solid var(--foodex-green)}.order-print-brand{grid-column:3;justify-self:end;display:flex!important;align-items:center;gap:8px;direction:ltr}.order-print-brand img{width:76px;height:52px;object-fit:contain}.order-print-brand strong{font-size:16px;color:var(--foodex-green-dark)}.order-print-type{grid-column:2;text-align:center}.order-print-type small{display:block;color:var(--foodex-muted);font-size:10px}.order-print-type strong{display:block;font-size:16px;margin-top:2px}.order-print-footer{display:flex!important;position:fixed;left:14mm;right:14mm;bottom:7mm;align-items:center;justify-content:center;gap:8px;padding-top:6px;border-top:1px solid var(--foodex-border);color:var(--foodex-muted);font-size:9px;background:#fff}.order-popup-section{break-inside:avoid}.order-popup-timeline-item{break-inside:avoid}}
+.order-inline-unassign{margin-top:3px}.order-inline-unassign button{min-height:25px!important;height:25px!important;padding:0 9px!important;border:1px solid var(--foodex-palette-fda4af)!important;border-radius:999px!important;background:var(--foodex-palette-fff1f2)!important;color:var(--foodex-palette-be123c)!important;font-size:.6rem!important;font-weight:900!important;cursor:pointer}
+.order-status-merged{text-align:center!important;vertical-align:middle!important}.order-status-merged .order-grid-primary{min-height:42px;align-content:center;justify-items:center;text-align:center}.order-status-merged .order-grid-primary>div:first-child{justify-content:center;width:100%}.order-delivered-merged{background:rgba(22,163,74,.035)}.order-cancelled-merged{background:rgba(190,18,60,.025)}.order-delivered-time{display:block;margin-top:4px;color:var(--foodex-muted);font-size:.6rem;font-weight:800;text-align:center}
 .order-grid-actions{text-align:center}
+.order-inline-status{display:grid;grid-template-columns:minmax(0,1fr) 27px;align-items:center;gap:5px;margin-top:3px;width:100%}.order-inline-status select{--status-bg:var(--foodex-palette-f1f5f9);--status-fg:var(--foodex-palette-475569);--status-border:var(--foodex-palette-cbd5e1);appearance:none;-webkit-appearance:none;min-width:0;width:100%;max-width:none;min-height:27px!important;height:27px!important;margin:0!important;padding:0 26px 0 9px!important;border:1px solid var(--status-border)!important;border-radius:999px!important;background-color:var(--status-bg)!important;color:var(--status-fg)!important;font-size:.63rem!important;font-weight:900!important;line-height:25px!important;box-sizing:border-box!important;box-shadow:none!important;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)!important;background-position:calc(100% - 13px) 11px,calc(100% - 9px) 11px!important;background-size:4px 4px,4px 4px!important;background-repeat:no-repeat!important}.order-inline-status select[data-state="pending"],.order-inline-status select[data-state="waiting"],.order-inline-status select[data-state="awaiting_dispatch"]{--status-bg:var(--foodex-palette-fff7ed);--status-fg:var(--foodex-palette-c2410c);--status-border:var(--foodex-palette-fdba74)}.order-inline-status select[data-state="confirmed"]{--status-bg:var(--foodex-palette-eff6ff);--status-fg:var(--foodex-palette-1d4ed8);--status-border:var(--foodex-palette-93c5fd)}.order-inline-status select[data-state="preparing"],.order-inline-status select[data-state="processing"]{--status-bg:var(--foodex-palette-f5f3ff);--status-fg:var(--foodex-palette-6d28d9);--status-border:var(--foodex-palette-c4b5fd)}.order-inline-status select[data-state="ready"]{--status-bg:var(--foodex-palette-ecfeff);--status-fg:var(--foodex-palette-0e7490);--status-border:var(--foodex-palette-67e8f9)}.order-inline-status select[data-state="out_for_delivery"],.order-inline-status select[data-state="on_the_way"],.order-inline-status select[data-state="assigned"]{--status-bg:var(--foodex-palette-eef2ff);--status-fg:var(--foodex-palette-4338ca);--status-border:var(--foodex-palette-a5b4fc)}.order-inline-status select[data-state="delivered"],.order-inline-status select[data-state="completed"],.order-inline-status select[data-state="paid"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}.order-inline-status select[data-state="cancelled"],.order-inline-status select[data-state="failed"],.order-inline-status select[data-state="delivery_failed"]{--status-bg:var(--foodex-palette-fff1f2);--status-fg:var(--foodex-palette-be123c);--status-border:var(--foodex-palette-fda4af)}.order-inline-status-submit{width:27px!important;height:27px!important;min-width:27px!important;min-height:27px!important;margin:0!important;padding:0!important;border:1px solid var(--foodex-action-green)!important;border-radius:999px!important;background:var(--foodex-action-green)!important;color:#fff!important;font-size:.72rem!important;font-weight:900!important;line-height:25px!important;box-shadow:none!important;cursor:pointer}.order-inline-status-note{grid-column:1/-1;min-width:0;width:100%;box-sizing:border-box;min-height:27px!important;height:27px!important;margin:0!important;padding:0 9px!important;border:1px solid var(--foodex-border)!important;border-radius:999px!important;font-size:.61rem!important;line-height:25px!important}.order-inline-status-note[hidden]{display:none!important}.order-inline-picker{display:grid;grid-template-columns:minmax(0,1fr) 27px;align-items:center;gap:5px;margin-top:3px;width:100%}.order-inline-picker select{appearance:none;-webkit-appearance:none;min-width:0;width:100%;min-height:27px!important;height:27px!important;margin:0!important;padding:0 26px 0 9px!important;border:1px solid var(--foodex-palette-cbd5e1)!important;border-radius:999px!important;background-color:var(--foodex-palette-f1f5f9)!important;color:var(--foodex-palette-475569)!important;font-size:.63rem!important;font-weight:900!important;line-height:25px!important;box-sizing:border-box!important;box-shadow:none!important;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)!important;background-position:calc(100% - 13px) 11px,calc(100% - 9px) 11px!important;background-size:4px 4px,4px 4px!important;background-repeat:no-repeat!important}.order-inline-picker button{width:27px!important;height:27px!important;min-width:27px!important;min-height:27px!important;margin:0!important;padding:0!important;border:1px solid var(--foodex-action-green)!important;border-radius:999px!important;background:var(--foodex-action-green)!important;color:#fff!important;font-size:.72rem!important;font-weight:900!important;line-height:25px!important;box-shadow:none!important;cursor:pointer}.order-inline-picker button:disabled{opacity:.45;cursor:not-allowed}.order-inline-picker-reason{grid-column:1/-1;min-width:0;width:100%;box-sizing:border-box;min-height:27px!important;height:27px!important;margin:0!important;padding:0 9px!important;border:1px solid var(--foodex-border)!important;border-radius:999px!important;font-size:.61rem!important;line-height:25px!important}.order-inline-picker-reason[hidden]{display:none!important}
 .status-tab{--status-tab-bg:#fff;--status-tab-fg:var(--foodex-ink);--status-tab-border:var(--foodex-border);border-color:var(--status-tab-border)!important;background:var(--status-tab-bg)!important;color:var(--status-tab-fg)!important}
 .status-tab[data-order-action-tab]{--status-tab-bg:var(--foodex-palette-fff7ed);--status-tab-fg:var(--foodex-palette-c2410c);--status-tab-border:var(--foodex-palette-fdba74)}
 .status-tab[data-order-status-tab="pending"]{--status-tab-bg:var(--foodex-palette-fff7ed);--status-tab-fg:var(--foodex-palette-c2410c);--status-tab-border:var(--foodex-palette-fed7aa)}
@@ -123,7 +134,15 @@ $businessLabel = static function ($value): string {
 <main class="main foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
 @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
-@if($errors->any())<div class="foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+@if($errors->any())
+<div class="foodex-state" role="alert">
+<ul>
+@foreach($errors->all() as $error)
+<li>{{ $error }}</li>
+@endforeach
+</ul>
+</div>
+@endif
 
 @include('admin._order-new-wizard')
 
@@ -330,9 +349,15 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <?php endif; ?>
 
 <div class="order-tab-panel" role="tabpanel" data-order-panel="orders">
-@php($channelQuery=request()->except(['channel','store_id','driver_id','dispatch_status','exception','page','order']))
-@php($channelCodes=collect($availableChannels ?? [])->pluck('code'))
-@php($orderGridResetQuery=['channel'=>$selectedChannel] + ($selectedStoreId !== null ? ['store_id'=>$selectedStoreId] : []))
+@php
+    $channelQuery=request()->except(['channel','store_id','driver_id','dispatch_status','exception','page','order']);
+@endphp
+@php
+    $channelCodes=collect($availableChannels ?? [])->pluck('code');
+@endphp
+@php
+    $orderGridResetQuery=['channel'=>$selectedChannel] + ($selectedStoreId !== null ? ['store_id'=>$selectedStoreId] : []);
+@endphp
 @if(count($availableChannels ?? []) > 1)
 <nav class="status-tabs" aria-label="{{ $isAr ? 'قنوات الطلبات' : 'Order channels' }}" data-order-channel-tabs data-order-channel-selected="{{ $selectedChannel }}">
 @foreach($availableChannels as $channelOption)
@@ -341,8 +366,12 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </nav>
 @endif
 
-@php($tabQuery=request()->except(['status','page','order','edit','action_required']))
-@php($actionQuery=request()->except(['status','page','order','edit','action_required','dispatch_status','exception']))
+@php
+    $tabQuery=request()->except(['status','page','order','edit','action_required']);
+@endphp
+@php
+    $actionQuery=request()->except(['status','page','order','edit','action_required','dispatch_status','exception']);
+@endphp
 <nav class="status-tabs" aria-label="{{ __('order_operations.statuses') }}" data-order-status-tabs data-order-status-selected="{{ $selectedStatus ?? 'all' }}">
 <a class="status-tab"
    data-order-action-tab
@@ -370,16 +399,41 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <table class="foodex-table ops-table"><thead><tr>
 <th>{{ $isAr ? 'الطلب' : 'Order' }}</th>
 <th>{{ $isAr ? 'العميل' : 'Customer' }}</th>
+<th>{{ $isAr ? 'الدفع والإجمالي' : 'Payment & total' }}</th>
 <th>{{ __('order_operations.columns.status') }}</th>
 <th>{{ $isAr ? 'التنفيذ والتوجيه' : 'Execution & routing' }}</th>
 <th>{{ __('order_operations.customer_service_owner.column') }}</th>
-<th>{{ $isAr ? 'الدفع والإجمالي' : 'Payment & total' }}</th>
 <th>{{ __('order_operations.columns.actions') }}</th>
 </tr></thead><tbody>
-@forelse($rows as $row)
-@php($rowActionRequired = ($row['dispatch_status'] ?? '') === 'awaiting_dispatch')
-@php($rowExecutor = $row['dispatch_assignee'] ?? $row['driver'] ?? null)
-@php($rowStatusState = strtolower((string) $row['status']))
+@if(count($rows))
+@foreach($rows as $row)
+@php
+    $rowStatusState = strtolower((string) $row['status']);
+@endphp
+@php
+    $rowDelivered = in_array($rowStatusState, ['delivered','completed'], true);
+@endphp
+@php
+    $rowMergedStatus = $rowDelivered || $rowStatusState === 'cancelled';
+@endphp
+@php
+    $rowActionRequired = !$rowMergedStatus && ($row['dispatch_status'] ?? '') === 'awaiting_dispatch';
+@endphp
+@php
+    $rowExecutor = $row['dispatch_assignee'] ?? $row['driver'] ?? null;
+@endphp
+@php
+    $rowWithDriver = !empty($row['has_active_driver']);
+@endphp
+@php
+    $rowCurrentDriverId = (int)($row['driver_id'] ?? 0);
+@endphp
+@php
+    $rowNeedsB2bDispatch = $row['channel']==='b2b' && $rowStatusState==='ready' && empty($row['dispatch_assignee_id']);
+@endphp
+@php
+    $rowStatusVisualState = $row['status_visual_state'] ?? $rowStatusState;
+@endphp
 <tr class="order-grid-row {{ $rowActionRequired ? 'is-action-required' : '' }}" data-order-row="{{ $row['id'] }}" data-action-required="{{ $rowActionRequired ? '1' : '0' }}">
 <td>
     <div class="order-grid-primary">
@@ -400,15 +454,63 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     </div>
 </td>
 <td>
+    @php
+        $rowPaid = strtolower((string)($row['payment_status'] ?? '')) === 'paid';
+    @endphp
+    <div class="order-financial">
+        <strong class="{{ $rowPaid ? 'is-paid' : 'is-unpaid' }}">{{ number_format($row['total'],2) }} {{ $row['currency'] }}</strong>
+        <small>{{ $businessLabel($row['payment_status']) }}@if($row['payment_provider']) · {{ strtoupper(str_replace(['_','-'],' ',(string)$row['payment_provider'])) }}@endif</small>
+        @php
+            $detailsPopupKind = 'details';
+            $invoicePopupKind = 'invoice';
+            $timelinePopupKind = 'timeline';
+        @endphp
+        <div class="order-financial-actions" data-order-financial-actions>
+            <button class="order-financial-action" type="button" title="{{ __('order_operations.popup.details') }}" aria-label="{{ __('order_operations.popup.details') }}" data-order-details-icon data-order-popup data-order-popup-title="{{ __('order_operations.popup.details') }}" data-order-popup-url="{{ route('admin.operations.orders.popup',['order'=>$row['id'],'kind'=>$detailsPopupKind]) }}">@include('admin._premium-icon',['name'=>$detailsPopupKind])</button>
+            @if($row['invoice_id'] && $row['can_view_invoice'])
+                <button class="order-financial-action" type="button" title="{{ __('order_operations.popup.invoice') }}" aria-label="{{ __('order_operations.popup.invoice') }}" data-order-invoice-icon data-order-popup data-order-popup-title="{{ __('order_operations.popup.invoice') }}" data-order-popup-url="{{ route('admin.operations.orders.popup',['order'=>$row['id'],'kind'=>$invoicePopupKind]) }}">@include('admin._premium-icon',['name'=>$invoicePopupKind])</button>
+            @endif
+            <button class="order-financial-action is-timeline" type="button" title="{{ __('order_operations.popup.timeline') }}" aria-label="{{ __('order_operations.popup.timeline') }}" data-order-timeline-icon data-order-popup data-order-popup-title="{{ __('order_operations.popup.timeline') }}" data-order-popup-url="{{ route('admin.operations.orders.popup',['order'=>$row['id'],'kind'=>$timelinePopupKind]) }}">@include('admin._premium-icon',['name'=>$timelinePopupKind])</button>
+        </div>
+    </div>
+</td>
+<td @if($rowMergedStatus) colspan="2" class="order-status-merged {{ $rowDelivered ? 'order-delivered-merged' : 'order-cancelled-merged' }}" data-order-status-merged @endif>
     <div class="order-grid-primary">
-        <span class="order-status-chip" data-state="{{ $rowStatusState }}">{{ $row['status_label'] }}</span>
-        @if($rowActionRequired)
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+            <span class="order-status-chip" data-state="{{ $rowStatusVisualState }}">{{ $row['status_label'] }}</span>
+            @if($rowNeedsB2bDispatch)
+                <span class="order-ready-dispatch-alert" data-b2b-ready-dispatch-alert>{{ $isAr ? 'برجاء تعيين سائق' : 'Please assign a driver' }}</span>
+            @endif
+        </div>
+        @if($rowDelivered)
+            <small class="order-delivered-time" data-order-delivered-time>
+                {{ $isAr ? 'وقت التسليم' : 'Delivered at' }}:
+                {{ $row['delivered_at'] ? \Illuminate\Support\Carbon::parse((string)$row['delivered_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i:s') : '—' }}
+            </small>
+        @endif
+        @if($row['can_manage'] && count($row['available_statuses']))
+            <form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}" class="order-inline-status" data-order-inline-status>
+                @csrf
+                <select name="status" required aria-label="{{ __('order_operations.next_status') }}" data-order-inline-status-select data-state="{{ $rowStatusState }}">
+                    <option value="">{{ $rowWithDriver ? ($isAr ? 'إلغاء الطلب' : 'Cancel order') : __('order_operations.choose_next_status') }}</option>
+                    @foreach($row['available_statuses'] as $status)
+                        <option value="{{ $status['code'] }}">{{ $status['label'] }}</option>
+                    @endforeach
+                </select>
+                <button class="order-inline-status-submit" type="submit" aria-label="{{ __('order_operations.update_status') }}" title="{{ __('order_operations.update_status') }}">✓</button>
+                @if($row['channel']==='b2b' && $row['status']==='pending')
+                    <input class="order-inline-status-note" name="note" maxlength="1000" data-order-inline-rejection-note hidden placeholder="{{ $isAr ? 'سبب الرفض (إلزامي عند الرفض)' : 'Rejection reason (required when rejecting)' }}">
+                @endif
+            </form>
+        @endif
+        @if(!$rowMergedStatus && $rowActionRequired && !$rowNeedsB2bDispatch)
             <span class="order-attention-chip">{{ $isAr ? 'يحتاج إجراء' : 'Action required' }}</span>
         @endif
     </div>
 </td>
-<td>
-    <div class="order-execution">
+@if(!$rowMergedStatus)
+<td class="{{ ($row['dispatch_locked_until_confirmation'] ?? false) ? 'order-dispatch-cell-locked' : '' }}" @if($row['dispatch_locked_until_confirmation'] ?? false) title="{{ $isAr ? 'التوجيه متاح بعد تأكيد الطلب' : 'Dispatch is available after order confirmation' }}" @endif>
+    <div class="order-execution {{ ($row['dispatch_locked_until_confirmation'] ?? false) ? 'is-dispatch-locked' : '' }}" @if($row['dispatch_locked_until_confirmation'] ?? false) data-order-dispatch-locked aria-disabled="true" @endif>
         @if($rowActionRequired)
             <span class="order-status-chip" data-state="awaiting_dispatch">{{ __('order_operations.dispatch.awaiting_queue') }}</span>
         @elseif($rowExecutor)
@@ -420,34 +522,78 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         @if($row['dispatch_territory'])
             <small>{{ $row['dispatch_territory'] }}</small>
         @endif
+        @if($row['can_dispatch_authorized'] ?? false)
+            @php
+                $dispatchAssigneeTypeValue = $rowWithDriver
+                    ? 'driver'
+                    : ($row['dispatch_assignee_type'] ?: ($row['channel']==='b2b' ? '' : 'driver'));
+                $dispatchInitialType = $row['dispatch_assignee_type'] ?: 'driver';
+                $dispatchInitial = $rowWithDriver
+                    ? ''
+                    : ($row['dispatch_assignee_id'] ? ($dispatchInitialType.':'.$row['dispatch_assignee_id']) : '');
+            @endphp
+            <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" class="order-inline-picker" data-order-inline-dispatch @if(!$row['can_dispatch']) aria-disabled="true" @endif>
+                @csrf @method('PATCH')
+                <input type="hidden" name="assignee_type" value="{{ $dispatchAssigneeTypeValue }}" data-order-inline-assignee-type>
+                <input type="hidden" name="assignee_id" value="{{ $rowWithDriver ? '' : (string)($row['dispatch_assignee_id'] ?? '') }}" data-order-inline-assignee-id>
+                <select name="dispatch_target" required data-order-inline-picker-select data-initial-value="{{ $dispatchInitial }}" aria-label="{{ $rowWithDriver ? ($isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver') : ($row['channel']==='b2b' ? ($isAr ? 'اختر سائق أو فان' : 'Choose Driver or Van') : __('order_operations.dispatch.choose_driver')) }}" @disabled(!$row['can_dispatch'])>
+                    <option value="">{{ $rowWithDriver ? ($isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver') : ($row['channel']==='b2b' ? ($isAr ? 'اختر سائق أو فان' : 'Choose Driver or Van') : __('order_operations.dispatch.choose_driver')) }}</option>
+                    @foreach($drivers as $driver)
+                        @if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)===$row['channel'] && (!$rowWithDriver || (int)$driver->id!==$rowCurrentDriverId))
+                            <option value="driver:{{ $driver->id }}" @selected(!$rowWithDriver && $dispatchInitial===('driver:'.$driver->id))>{{ $isAr ? 'سائق' : 'Driver' }} · {{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
+                        @endif
+                    @endforeach
+                    @if($row['channel']==='b2b' && !$rowWithDriver)
+                        @foreach($vans as $van)
+                            <option value="van:{{ $van->id }}" @selected($dispatchInitial===('van:'.$van->id))>{{ $isAr ? 'فان' : 'Van' }} · {{ $van->code }}{{ $van->plate_number ? ' · '.$van->plate_number : '' }}</option>
+                        @endforeach
+                    @endif
+                </select>
+                <button type="submit" data-order-inline-picker-submit aria-label="{{ $rowWithDriver ? ($isAr ? 'سحب وتحويل الطلب' : 'Withdraw and transfer order') : ($isAr ? 'حفظ التوجيه' : 'Save dispatch') }}" title="{{ $rowWithDriver ? ($isAr ? 'سحب وتحويل الطلب' : 'Withdraw and transfer order') : ($isAr ? 'حفظ التوجيه' : 'Save dispatch') }}" disabled>✓</button>
+                <input class="order-inline-picker-reason" name="reason" maxlength="500" data-order-inline-picker-reason hidden placeholder="{{ __('order_operations.dispatch.reason_required') }}">
+            </form>
+            @if($row['dispatch_locked_until_confirmation'] ?? false)
+                <small class="order-dispatch-lock-hint">{{ $isAr ? 'متاح بعد تأكيد الطلب' : 'Available after order confirmation' }}</small>
+            @endif
+            @if(($row['dispatch_status'] ?? '')==='assigned' && !empty($row['dispatch_assignee_id']) && ($row['can_dispatch'] ?? false))
+                <form method="post" action="{{ route('admin.operations.orders.dispatch.clear',$row['id']) }}" class="order-inline-unassign" data-order-inline-unassign>
+                    @csrf @method('DELETE')
+                    <input type="hidden" name="reason" value="grid_manual_unassign">
+                    <button type="submit">{{ $isAr ? (($row['dispatch_assignee_type'] ?? '')==='van' ? 'سحب من الفان' : 'سحب من السائق') : (($row['dispatch_assignee_type'] ?? '')==='van' ? 'Pull from Van' : 'Pull from driver') }}</button>
+                </form>
+            @endif
+        @endif
     </div>
 </td>
-<td>
-    <div class="order-owner">
+@endif
+<td class="order-owner-cell {{ $rowDelivered ? 'is-complete' : '' }}" @if($rowDelivered) aria-disabled="true" data-order-customer-service-dimmed @endif>
+    <div class="order-owner {{ $rowDelivered ? 'is-complete' : '' }}">
         @if($row['customer_service_owner'])
             <strong>{{ $row['customer_service_owner'] }}</strong>
             @if($row['customer_service_assignment_reason'])<small>{{ $businessLabel($row['customer_service_assignment_reason']) }}</small>@endif
         @else
             <span class="order-mini-chip">{{ __('order_operations.unassigned') }}</span>
         @endif
-    </div>
-</td>
-<td>
-    <div class="order-financial">
-        <strong>{{ number_format($row['total'],2) }} {{ $row['currency'] }}</strong>
-        <small>{{ $businessLabel($row['payment_status']) }}@if($row['payment_provider']) · {{ strtoupper(str_replace(['_','-'],' ',(string)$row['payment_provider'])) }}@endif</small>
+        @if(!$rowDelivered && $canAssignCustomerService && $row['can_manage'])
+            <form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" class="order-inline-picker" data-order-inline-customer-service-owner>
+                @csrf @method('PATCH')
+                <select name="assigned_user_id" data-order-inline-picker-select data-initial-value="{{ (string)($row['customer_service_owner_id'] ?? '') }}" aria-label="{{ __('order_operations.customer_service_owner.assign_follow_up') }}">
+                    <option value="">{{ __('order_operations.customer_service_owner.remove_owner') }}</option>
+                    @foreach($customerServiceAgents as $agent)
+                        <option value="{{ $agent->id }}" @selected((int)($row['customer_service_owner_id'] ?? 0)===(int)$agent->id)>{{ $agent->name }}</option>
+                    @endforeach
+                </select>
+                <button type="submit" data-order-inline-picker-submit aria-label="{{ __('order_operations.customer_service_owner.save') }}" title="{{ __('order_operations.customer_service_owner.save') }}" disabled>✓</button>
+            </form>
+        @endif
     </div>
 </td>
 <td class="order-grid-actions">
 <details class="row-actions" data-order-row-actions>
 <summary aria-label="{{ __('order_operations.order_actions') }}">⋮</summary>
 <div class="row-action-menu">
-<a href="{{ route('admin.operations.orders.index',array_merge(request()->except('edit'),['order'=>$row['id']])) }}">{{ __('order_operations.view_order') }}</a>
 @if($row['can_edit'])
 <a data-order-edit href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id'],'edit'=>1])) }}">{{ $isAr ? 'تعديل الطلب' : 'Edit order' }}</a>
-@endif
-@if($row['invoice_id'] && $row['can_view_invoice'])
-<a data-order-invoice href="{{ route('admin.invoices.show',$row['invoice_id']) }}">{{ $isAr ? 'عرض / طباعة الفاتورة' : 'View / Print invoice' }}</a>
 @endif
 @if($row['channel']==='b2c' && $row['driver_id'] && $row['can_manage'])
 <form method="post" action="{{ route('admin.operations.orders.remind',$row['id']) }}" data-order-remind-driver>@csrf
@@ -455,7 +601,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </form>
 @endif
 
-@if($canAssignCustomerService && $row['can_manage'])
+@if(!$rowDelivered && $canAssignCustomerService && $row['can_manage'])
 <form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" data-order-customer-service-owner>@csrf @method('PATCH')
 <label style="display:grid;gap:4px">
 <span>{{ __('order_operations.customer_service_owner.assign_follow_up') }}</span>
@@ -488,7 +634,9 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 @endif
 
 @if($row['channel']==='b2b' && $row['settlement'])
-@php($settlement=$row['settlement'])
+@php
+    $settlement=$row['settlement'];
+@endphp
 <div data-b2b-settlement-review style="display:grid;gap:5px;margin-top:8px;padding:9px;border-top:1px solid var(--foodex-border)">
 <strong>{{ $isAr ? 'مراجعة التسوية المالية' : 'Financial settlement review' }}</strong>
 <div>{{ $isAr ? 'رصيد العميل المتاح' : 'Customer credit balance' }}: <strong>{{ number_format((float)$settlement['customer_credit_balance'],3) }} {{ $settlement['currency'] }}</strong></div>
@@ -506,7 +654,21 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 @if($row['dispatch_status']==='awaiting_dispatch')
 <div class="dispatch-warning" data-order-dispatch-status>{{ __('order_operations.dispatch.warning') }}</div>
 @endif
-@if($row['channel']==='b2c')
+@if($rowWithDriver)
+<form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver data-order-driver-transfer>@csrf @method('PATCH')
+<input type="hidden" name="assignee_type" value="driver">
+<select name="assignee_id" required aria-label="{{ $isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver' }}">
+<option value="">{{ $isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver' }}</option>
+@foreach($drivers as $driver)
+@if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)===$row['channel'] && (int)$driver->id!==$rowCurrentDriverId)
+<option value="{{ $driver->id }}">{{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
+@endif
+@endforeach
+</select>
+<input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
+<button class="foodex-primary">{{ $isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw & transfer to another driver' }}</button>
+</form>
+@elseif($row['channel']==='b2c')
 <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver>@csrf @method('PATCH')
 <input type="hidden" name="assignee_type" value="driver">
 <select name="assignee_id" required aria-label="{{ __('order_operations.dispatch.choose_driver') }}">
@@ -520,19 +682,33 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
 <button class="foodex-primary">{{ $row['dispatch_status']==='assigned' ? __('order_operations.dispatch.reassign') : __('order_operations.dispatch.assign') }} · {{ __('order_operations.dispatch.driver') }}</button>
 </form>
+@elseif($row['channel']==='b2b')
+<form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver>@csrf @method('PATCH')
+<input type="hidden" name="assignee_type" value="driver">
+<select name="assignee_id" required aria-label="{{ __('order_operations.dispatch.choose_driver') }}">
+<option value="">{{ __('order_operations.dispatch.choose_driver') }}</option>
+@foreach($drivers as $driver)
+@if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)==='b2b')
+<option value="{{ $driver->id }}">{{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
 @endif
-@if($row['channel']==='b2b')
+@endforeach
+</select>
+<input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
+<button class="foodex-primary">{{ $row['dispatch_status']==='assigned' ? __('order_operations.dispatch.reassign') : __('order_operations.dispatch.assign') }} · {{ __('order_operations.dispatch.driver') }}</button>
+</form>
 <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-van>@csrf @method('PATCH')
 <input type="hidden" name="assignee_type" value="van">
 <select name="assignee_id" required aria-label="{{ __('order_operations.dispatch.choose_van') }}">
 <option value="">{{ __('order_operations.dispatch.choose_van') }}</option>
-@foreach($vans as $van)<option value="{{ $van->id }}">{{ $van->code }}{{ $van->plate_number ? ' · '.$van->plate_number : '' }}</option>@endforeach
+@foreach($vans as $van)
+<option value="{{ $van->id }}">{{ $van->code }}{{ $van->plate_number ? ' · '.$van->plate_number : '' }}</option>
+@endforeach
 </select>
 <input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
 <button class="foodex-primary">{{ $row['dispatch_status']==='assigned' ? __('order_operations.dispatch.reassign') : __('order_operations.dispatch.assign') }} · {{ __('order_operations.dispatch.van') }}</button>
 </form>
 @endif
-@if($row['dispatch_status']==='assigned')
+@if($row['dispatch_status']==='assigned' && !$rowWithDriver)
 <form method="post" action="{{ route('admin.operations.orders.dispatch.clear',$row['id']) }}" data-order-dispatch-clear>@csrf @method('DELETE')
 <input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
 <button type="submit">{{ __('order_operations.dispatch.unassign') }}</button>
@@ -543,7 +719,12 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 @if($row['can_manage'] && !($row['channel']==='b2b' && $row['status']==='pending'))
 @if(count($row['available_statuses']))
 <form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
-<select name="status" required aria-label="{{ __('order_operations.next_status') }}"><option value="">{{ __('order_operations.choose_next_status') }}</option>@foreach($row['available_statuses'] as $status)<option value="{{ $status['code'] }}">{{ $status['label'] }}</option>@endforeach</select>
+<select name="status" required aria-label="{{ __('order_operations.next_status') }}">
+<option value="">{{ $rowWithDriver ? ($isAr ? 'إلغاء الطلب' : 'Cancel order') : __('order_operations.choose_next_status') }}</option>
+@foreach($row['available_statuses'] as $status)
+<option value="{{ $status['code'] }}">{{ $status['label'] }}</option>
+@endforeach
+</select>
 <button class="foodex-primary">{{ __('order_operations.update_status') }}</button>
 </form>
 @else
@@ -554,134 +735,103 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </details>
 </td>
 </tr>
-@empty<tr><td colspan="7"><div class="foodex-empty-state">{{ __('order_operations.empty') }}</div></td></tr>@endforelse
+@endforeach
+@else
+<tr><td colspan="7"><div class="foodex-empty-state">{{ __('order_operations.empty') }}</div></td></tr>
+@endif
 </tbody></table>
 </section>
 {{ $orders->links() }}
 </div>
 
 @if($detail)
-@php($detailCloseQuery=request()->except(['order','edit']))
+@php
+    $detailCloseQuery=request()->except(['order','edit']);
+@endphp
 <dialog class="order-detail-drawer foodex-record-drawer" open aria-modal="true" aria-label="{{ __('order_operations.view_order') }}">
 <div class="order-detail-drawer-shell foodex-record-drawer-shell">
 <div class="order-detail-drawer-head foodex-record-drawer-header"><div><strong>{{ __('order_operations.view_order') }}</strong><div>{{ $detail['number'] }}</div></div><a class="order-detail-close foodex-record-drawer-close" href="{{ route('admin.operations.orders.index',$detailCloseQuery) }}" aria-label="{{ __('order_operations.detail.close') }}">×</a></div>
-<section class="detail-grid foodex-record-grid">
-<div class="foodex-card panel">
-<h2>{{ __('order_operations.detail.context') }} · {{ $detail['number'] }}</h2>
-<div class="timeline-item" data-order-authoritative-context>
-<strong>{{ $businessLabel($detail['channel']) }} · {{ $detail['store'] }}</strong> {{-- localization-gate: allow channel resolved through localized businessLabel --}}
-<div>{{ __('order_operations.detail.source') }}: {{ $businessLabel($detail['source']) }}</div>
-<small>{{ __('order_operations.detail.authorized_channel') }}: {{ $businessLabel($detail['channel']) }}</small>
-</div>
-<h2 style="margin-top:16px">{{ __('order_operations.detail.delivery_address') }}</h2>
-@if($detail['delivery_address'])
-@php($delivery=$detail['delivery_address'])
-<div class="timeline">
+<section class="detail-grid foodex-record-grid" data-order-actionable-detail>
+@php
+    $detailHasMapAction = !empty($detail['delivery_address']['has_coordinates']);
+@endphp
+@php
+    $detailHasInvoiceAction = !empty($detail['invoice_id']) && !empty($detail['can_view_invoice']);
+@endphp
+@php
+    $detailHasDispatchAction = ($detail['dispatch_status'] ?? '')==='assigned' && !empty($detail['dispatch_assignee_id']) && !empty($detail['can_dispatch']);
+@endphp
+@php
+    $detailHasEditAction = !empty($detail['can_edit']) && !empty($detail['edit_options']);
+@endphp
+@php
+    $detailDriverProofs = collect($detail['delivery_evidence'] ?? [])->flatMap(fn($assignment) => $assignment['timeline'] ?? [])->filter(fn($event) => !empty($event['proof']));
+@endphp
+@php
+    $detailVanProofs = collect($detail['van_delivery_evidence'] ?? [])->flatMap(fn($assignment) => $assignment['timeline'] ?? [])->filter(fn($event) => !empty($event['proof']));
+@endphp
+@php
+    $detailVanExecutionProofs = collect($detail['van_events'] ?? [])->filter(fn($event) => !empty($event['proof_path']));
+@endphp
+@php
+    $detailHasAnyAction = $detailHasMapAction || $detailHasInvoiceAction || $detailHasDispatchAction || $detailHasEditAction || $detailDriverProofs->isNotEmpty() || $detailVanProofs->isNotEmpty() || $detailVanExecutionProofs->isNotEmpty();
+@endphp
+
+@if($detailHasMapAction)
+<div class="foodex-card panel" data-order-detail-action-section="map">
+<h2>{{ $isAr ? 'عنوان التوصيل' : 'Delivery address' }}</h2>
+@php
+    $delivery=$detail['delivery_address'];
+@endphp
 <div class="timeline-item">
 <strong>{{ $delivery['formatted'] ?: __('order_operations.detail.saved_address') }}</strong>
 @if(!empty($delivery['recipient_name']))<div>{{ __('order_operations.detail.recipient') }}: {{ $delivery['recipient_name'] }}</div>@endif
 @if(!empty($delivery['delivery_phone']))<div>{{ __('order_operations.detail.phone') }}: {{ $delivery['delivery_phone'] }}</div>@endif
 @if(!empty($delivery['landmark']))<div>{{ __('order_operations.detail.landmark') }}: {{ $delivery['landmark'] }}</div>@endif
 @if(!empty($delivery['delivery_notes']))<div>{{ __('order_operations.detail.delivery_notes') }}: {{ $delivery['delivery_notes'] }}</div>@endif
-@if(!empty($delivery['has_coordinates']))
-<div style="margin-top:10px">
 <small>{{ number_format((float)$delivery['latitude'],7,'.','') }}, {{ number_format((float)$delivery['longitude'],7,'.','') }}</small>
-<br>
-<a class="foodex-primary" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query={{ urlencode((string)$delivery['latitude'].','.(string)$delivery['longitude']) }}">{{ __('order_operations.detail.open_map') }}</a>
+<div style="margin-top:8px"><a class="foodex-primary" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query={{ urlencode((string)$delivery['latitude'].','.(string)$delivery['longitude']) }}">{{ __('order_operations.detail.open_map') }}</a></div>
 </div>
-@else
-<small>{{ __('order_operations.detail.no_coordinates') }}</small>
+</div>
 @endif
-</div>
-</div>
-@else
-<div class="foodex-empty-state">{{ __('order_operations.detail.no_snapshot') }}</div>
-@endif
-</div>
-<div class="foodex-card panel" data-order-financials>
-<h2>{{ $isAr ? 'الدفع والفاتورة' : 'Payment & invoice' }}</h2>
-<div class="timeline">
+
+@if($detailHasInvoiceAction)
+<div class="foodex-card panel" data-order-financials data-order-detail-action-section="invoice">
+<h2>{{ $isAr ? 'الفاتورة والتحصيل' : 'Invoice & settlement' }}</h2>
 <div class="timeline-item">
-<strong>{{ $isAr ? 'الدفع' : 'Payment' }} · {{ $businessLabel($detail['payment_status']) }}</strong>
-@if($detail['payment_provider'])<div>{{ strtoupper(str_replace(['_','-'],' ',(string)$detail['payment_provider'])) }}</div>@endif
-@if($detail['payment_amount'] !== null)<small>{{ number_format((float)$detail['payment_amount'],3) }} {{ $detail['payment_currency'] ?: $detail['currency'] }}</small>@endif
-</div>
-@if($detail['invoice_id'] && $detail['can_view_invoice'])
-<div class="timeline-item">
-<strong>{{ $isAr ? 'الفاتورة' : 'Invoice' }} · {{ $detail['invoice_number'] ?: '#'.$detail['invoice_id'] }}</strong>
-<div>{{ $businessLabel($detail['invoice_status']) }}</div>
-@if($detail['invoice_total'] !== null)<small>{{ number_format((float)$detail['invoice_total'],3) }} {{ $detail['invoice_currency'] ?: $detail['currency'] }}</small>@endif
+<strong>{{ $detail['invoice_number'] ?: '#'.$detail['invoice_id'] }}</strong>
+@if($detail['invoice_total'] !== null)<div>{{ number_format((float)$detail['invoice_total'],3) }} {{ $detail['invoice_currency'] ?: $detail['currency'] }}</div>@endif
 <div style="margin-top:8px"><a class="foodex-primary" href="{{ route('admin.invoices.show',$detail['invoice_id']) }}">{{ $isAr ? 'فتح الفاتورة والتحصيل' : 'Open invoice & settlement' }}</a></div>
 </div>
+</div>
 @endif
-</div>
-</div>
-<div class="foodex-card panel" data-order-dispatch-detail>
-<h2>{{ __('order_operations.dispatch.current_assignment') }}</h2>
-@if($detail['dispatch_status']==='awaiting_dispatch')<div class="dispatch-warning">{{ __('order_operations.dispatch.warning') }}</div>@endif
-<div class="timeline">
+
+@if($detailHasDispatchAction)
+<div class="foodex-card panel" data-order-dispatch-detail data-order-detail-action-section="dispatch">
+<h2>{{ $isAr ? 'التنفيذ والتوجيه' : 'Execution & routing' }}</h2>
 <div class="timeline-item">
-<strong>{{ $businessLabel($detail['dispatch_status']) }}</strong>
-@if($detail['dispatch_assignee'])<div>{{ __('order_operations.columns.assignee') }}: {{ $businessLabel($detail['dispatch_assignee_type']) }} · {{ $detail['dispatch_assignee'] }}</div>@endif
-@if($detail['dispatch_territory'])<div>{{ __('order_operations.dispatch.territory') }}: {{ $detail['dispatch_territory'] }}</div>@endif
-@if($detail['dispatch_source'])<div>{{ __('order_operations.dispatch.source') }}: {{ $businessLabel($detail['dispatch_source']) }}</div>@endif
-@if($detail['dispatch_reason'])<div>{{ __('order_operations.dispatch.routing_reason') }}: {{ $businessLabel($detail['dispatch_reason']) }}</div>@endif
+<strong>{{ $detail['dispatch_assignee'] }}</strong>
+<div>{{ $businessLabel($detail['dispatch_assignee_type']) }}</div>
 </div>
-</div>
-<h3>{{ __('order_operations.dispatch.history') }}</h3>
-<div class="timeline">
-@forelse($detail['van_assignments'] as $entry)
-<div class="timeline-item"><strong>{{ __('order_operations.dispatch.van') }} · {{ $entry['van'] }}</strong><div>{{ $businessLabel($entry['status']) }} · {{ $businessLabel($entry['source']) }}</div>@if($entry['reason'])<div>{{ $businessLabel($entry['reason']) }}</div>@endif<small>{{ optional($entry['assigned_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }} @if($entry['ended_at'])→ {{ optional($entry['ended_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}@endif</small></div>
-@empty<div class="foodex-empty-state">{{ __('order_operations.dispatch.no_history') }}</div>@endforelse
-</div>
-<h3>{{ __('order_operations.dispatch.audit_title') }}</h3>
-<div class="timeline" data-order-dispatch-audit>
-@forelse($detail['dispatch_audit'] as $entry)
-<div class="timeline-item">
-<strong>{{ __('order_operations.dispatch.audit_events.'.$entry['event_key']) }}</strong>
-<div>{{ $entry['actor'] !== '' ? $entry['actor'] : __('order_operations.dispatch.system_actor') }}</div>
-@if($entry['status'])<div>{{ $businessLabel($entry['status']) }}</div>@endif {{-- localization-gate: allow status resolved through localized businessLabel --}}
-@if($entry['assignee_type'])<div>{{ __('order_operations.columns.assignee') }}: {{ $businessLabel($entry['assignee_type']) }}</div>@endif
-@if($entry['source'])<div>{{ __('order_operations.dispatch.source') }}: {{ $businessLabel($entry['source']) }}</div>@endif
-@if($entry['reason'])<div>{{ __('order_operations.dispatch.routing_reason') }}: {{ $businessLabel($entry['reason']) }}</div>@endif
-<small>{{ optional($entry['created_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}</small>
-</div>
-@empty<div class="foodex-empty-state">{{ __('order_operations.dispatch.audit_empty') }}</div>@endforelse
-</div>
-</div>
-@if($detail['channel']==='b2b')
-<div class="foodex-card panel" data-b2b-van-operations>
-<h2>{{ __('order_operations.detail.van_execution_timeline') }}</h2>
-@if($detail['van_execution'])
-<div class="timeline-item" data-van-execution-state>
-<strong>{{ $businessLabel($detail['van_execution']->status) }}</strong> {{-- localization-gate: allow execution status is resolved through localized businessLabel --}}
-@if($detail['van_execution']->failure_reason_code)<div>{{ __('order_operations.detail.failure_reason') }}: {{ $businessLabel($detail['van_execution']->failure_reason_code) }}</div>@endif
-@if($detail['van_execution']->failure_note)<div>{{ __('order_operations.detail.van_note') }}: {{ $detail['van_execution']->failure_note }}</div>@endif
-<small>{{ $detail['van_execution']->last_transition_at ? \Carbon\Carbon::parse($detail['van_execution']->last_transition_at)->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small>
+<form method="post" action="{{ route('admin.operations.orders.dispatch.clear',$detail['id']) }}" style="margin-top:10px" data-order-detail-unassign>
+@csrf @method('DELETE')
+<input type="hidden" name="reason" value="detail_manual_unassign">
+<button type="submit" class="danger btn">{{ $isAr ? (($detail['dispatch_assignee_type'] ?? '')==='van' ? 'سحب الطلب من الفان' : 'سحب الطلب من السائق') : (($detail['dispatch_assignee_type'] ?? '')==='van' ? 'Pull order from Van' : 'Pull order from driver') }}</button>
+</form>
 </div>
 @endif
-<div class="timeline" style="margin-top:10px">
-@forelse($detail['van_events'] as $event)
-<div class="timeline-item" data-van-execution-event="{{ $event['id'] }}">
-<strong>{{ $businessLabel($event['action']) }} · {{ $businessLabel($event['from_status']) }} → {{ $businessLabel($event['to_status']) }}</strong>
-@if($event['actor']!=='')<div>{{ $event['actor'] }}</div>@endif
-@if($event['reason_code'])<div>{{ __('order_operations.detail.failure_reason') }}: {{ $businessLabel($event['reason_code']) }}</div>@endif
-@if($event['note'])<div>{{ __('order_operations.detail.van_note') }}: {{ $event['note'] }}</div>@endif
-@if($event['proof_path'])<div><a class="foodex-primary" href="{{ asset('storage/'.ltrim((string)$event['proof_path'],'/')) }}" target="_blank" rel="noopener" data-van-proof-link>{{ __('order_operations.detail.van_proof') }}</a></div>@endif
-<small>{{ $event['captured_at'] ? \Carbon\Carbon::parse($event['captured_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small>
-</div>
-@empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_van_events') }}</div>@endforelse
-</div>
-<h3>{{ __('order_operations.detail.collection_timeline') }}</h3>
-<div class="timeline" data-van-collection-timeline>
-@forelse($detail['collections'] as $collection)
-<div class="timeline-item"><strong>{{ \App\Support\DisplayNumber::money($collection['amount'], $collection['currency']) }} {{ $collection['currency'] }} · {{ $businessLabel($collection['status']) }}</strong><div>{{ $businessLabel($collection['source']) }}</div><small>{{ $collection['created_at'] ? \Carbon\Carbon::parse($collection['created_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small></div> {{-- localization-gate: allow collection status/source are resolved through localized businessLabel --}}
-@empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_collections') }}</div>@endforelse
-</div>
+
+@if($detailHasEditAction && !request('edit'))
+<div class="foodex-card panel" data-order-detail-action-section="edit">
+<h2>{{ $isAr ? 'تعديل الطلب' : 'Edit order' }}</h2>
+<a class="foodex-primary" href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$detail['id'],'edit'=>1])) }}">{{ $isAr ? 'فتح تعديل الطلب' : 'Edit order' }}</a>
 </div>
 @endif
+
 @if(request('edit') && $detail['can_edit'] && $detail['edit_options'])
-@php($editOptions=$detail['edit_options'])
+@php
+    $editOptions=$detail['edit_options'];
+@endphp
 <div class="foodex-card panel" data-order-edit-panel>
 <h2>{{ $isAr ? 'تعديل الطلب' : 'Edit order' }} · {{ $detail['number'] }}</h2>
 <p>{{ $isAr ? 'يتم إعادة التسعير والتحقق من المخزون عند الحفظ. التعديل متاح للطلبات المعلقة غير المقفلة فقط.' : 'Saving re-prices and re-validates stock. Editing is limited to unlocked pending orders.' }}</p>
@@ -702,7 +852,9 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </label>
 @if($detail['channel']==='b2b')
 <label class="new-order-field"><span>{{ $isAr ? 'مخزن الصرف' : 'Source warehouse' }}</span><select name="warehouse_id" required>
-@foreach($editOptions['warehouses'] as $warehouse)<option value="{{ $warehouse['id'] }}" @selected((int)$detail['warehouse_id']===(int)$warehouse['id'])>{{ $warehouse['code'] }} · {{ $warehouse['name'] }}</option>@endforeach
+@foreach($editOptions['warehouses'] as $warehouse)
+<option value="{{ $warehouse['id'] }}" @selected((int)$detail['warehouse_id']===(int)$warehouse['id'])>{{ $warehouse['code'] }} · {{ $warehouse['name'] }}</option>
+@endforeach
 </select></label>
 @endif
 <label class="new-order-field"><span>{{ $isAr ? 'العنوان' : 'Address' }}</span><select name="address_id" data-edit-address>
@@ -713,7 +865,9 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </select><small data-edit-address-status role="status" aria-live="polite">{{ __('order_operations.lookup.results_help') }}</small>
 <button type="button" class="btn secondary" data-edit-address-retry hidden>{{ __('order_operations.lookup.retry') }}</button></label>
 <label class="new-order-field"><span>{{ $isAr ? 'طريقة الدفع' : 'Payment method' }}</span><select name="payment_method" required>
-@foreach($newOrderWizard['payment_methods'] as $method)<option value="{{ $method['code'] }}" @selected((string)$detail['payment_method']===(string)$method['code'])>{{ $method['label'] }}</option>@endforeach
+@foreach($newOrderWizard['payment_methods'] as $method)
+<option value="{{ $method['code'] }}" @selected((string)$detail['payment_method']===(string)$method['code'])>{{ $method['label'] }}</option>
+@endforeach
 </select></label>
 <label class="new-order-field"><span>{{ $isAr ? 'كود الكوبون' : 'Coupon code' }}</span><input name="coupon_code" maxlength="80" value="{{ $detail['coupon_code'] }}"></label>
 </div>
@@ -725,7 +879,9 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <label class="new-order-field"><span>{{ $isAr ? 'المنتج' : 'Product' }}</span>
 <input type="search" data-edit-product-search autocomplete="off" placeholder="{{ __('order_operations.lookup.search_product') }}">
 <select name="items[{{ $index }}][product_id]" data-edit-product required>
-@php($selectedProduct=$editOptions['selected_products'][(int)$item['product_id']] ?? null)
+@php
+    $selectedProduct=$editOptions['selected_products'][(int)$item['product_id']] ?? null;
+@endphp
 @if($selectedProduct)
 <option value="{{ $selectedProduct['id'] }}" selected>{{ $selectedProduct['meta'] }} · {{ $selectedProduct['label'] }}@if(($selectedProduct['active'] ?? true) === false) · {{ __('order_operations.lookup.selected_unavailable') }}@endif</option>
 @else
@@ -760,70 +916,58 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </form>
 </div>
 @endif
-<div class="foodex-card panel"><h2>{{ __('order_operations.detail.status_timeline') }} · {{ $detail['number'] }}</h2><div class="timeline">@forelse($detail['history'] as $entry)<div class="timeline-item"><strong>{{ $businessLabel($entry['from']) }} → {{ $businessLabel($entry['to']) }}</strong><div>{{ $businessLabel($entry['note']) }}</div><small>{{ optional($entry['created_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}</small></div>@empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_history') }}</div>@endforelse</div></div>
-<div class="foodex-card panel"><h2>{{ __('order_operations.detail.driver_history') }}</h2><div class="timeline">@forelse($detail['assignments'] as $entry)<div class="timeline-item"><strong>{{ str_starts_with((string)$entry['driver'],'#') ? __('order_operations.detail.unnamed_driver') : $entry['driver'] }}</strong><div>{{ $businessLabel($entry['status']) }}</div><small>{{ optional($entry['assigned_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }} @if($entry['completed_at'])→ {{ optional($entry['completed_at'])->timezone('Asia/Kuwait')?->format('Y-m-d H:i') ?? '—' }}@endif</small></div>@empty<div class="foodex-empty-state">{{ __('order_operations.detail.no_assignments') }}</div>@endforelse</div></div>
-<div class="foodex-card panel" data-delivery-evidence>
-<h2>{{ __('order_operations.detail.delivery_timeline') }}</h2>
+
+
+@if($detailDriverProofs->isNotEmpty())
+<div class="foodex-card panel" data-delivery-evidence data-order-detail-action-section="driver-proofs">
+<h2>{{ $isAr ? 'إثباتات السائق' : 'Driver proofs' }}</h2>
 <div class="timeline">
-@forelse($detail['delivery_evidence'] as $assignment)
-<div class="timeline-item" data-delivery-evidence-assignment="{{ $assignment['id'] }}">
-<strong>{{ str_starts_with((string)$assignment['driver_name'],'#') ? __('order_operations.detail.unnamed_driver') : $assignment['driver_name'] }} · {{ $businessLabel($assignment['status']) }}</strong>
-@if(empty($assignment['timeline']))
-<small>{{ __('order_operations.detail.no_assignment_events') }}</small>
-@else
-<div class="timeline" style="margin-top:10px">
-@foreach($assignment['timeline'] as $event)
-<div class="timeline-item" data-delivery-evidence-event="{{ $event['id'] }}">
+@foreach($detailDriverProofs as $event)
+<div class="timeline-item">
 <strong>{{ $businessLabel($event['from_status']) }} → {{ $businessLabel($event['to_status']) }}</strong>
-@if($event['reason_code'])<div>{{ __('order_operations.detail.failure_reason') }}: {{ $businessLabel($event['reason_code']) }}</div>@endif
-@if($event['note'])<div>{{ __('order_operations.detail.driver_note') }}: {{ $event['note'] }}</div>@endif
-@if($event['proof'])
-<div><a class="foodex-primary" href="{{ $event['proof']['url'] }}" target="_blank" rel="noopener" data-delivery-proof-link>{{ __('order_operations.detail.view_proof') }}</a></div>
-@endif
-<small>{{ $event['captured_at'] ? \Carbon\Carbon::parse($event['captured_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small>
+<a class="foodex-primary" href="{{ $event['proof']['url'] }}" target="_blank" rel="noopener" data-delivery-proof-link>{{ __('order_operations.detail.view_proof') }}</a>
 </div>
 @endforeach
 </div>
+</div>
 @endif
-</div>
-@empty
-<div class="foodex-empty-state">{{ __('order_operations.detail.no_delivery_evidence') }}</div>
-@endforelse
-</div>
-</div>
-<div class="foodex-card panel" data-van-delivery-evidence>
-<h2>{{ __('order_operations.detail.van_delivery_timeline') }}</h2>
+
+@if($detailVanProofs->isNotEmpty() || $detailVanExecutionProofs->isNotEmpty())
+<div class="foodex-card panel" data-van-delivery-evidence data-order-detail-action-section="van-proofs">
+<h2>{{ $isAr ? 'إثباتات الفان' : 'Van proofs' }}</h2>
 <div class="timeline">
-@forelse($detail['van_delivery_evidence'] as $assignment)
-<div class="timeline-item" data-van-delivery-evidence-assignment="{{ $assignment['id'] }}">
-<strong>{{ $assignment['van_name'] }} · {{ $businessLabel($assignment['execution_status'] ?? $assignment['assignment_status']) }}</strong>
-@if(empty($assignment['timeline']))
-<small>{{ __('order_operations.detail.no_assignment_events') }}</small>
-@else
-<div class="timeline" style="margin-top:10px">
-@foreach($assignment['timeline'] as $event)
-<div class="timeline-item" data-van-delivery-evidence-event="{{ $event['id'] }}">
+@foreach($detailVanProofs as $event)
+<div class="timeline-item">
 <strong>{{ $businessLabel($event['from_status']) }} → {{ $businessLabel($event['to_status']) }}</strong>
-@if($event['reason_code'])<div>{{ __('order_operations.detail.failure_reason') }}: {{ $businessLabel($event['reason_code']) }}</div>@endif
-@if($event['note'])<div>{{ __('order_operations.detail.van_note') }}: {{ $event['note'] }}</div>@endif
-@if($event['proof'])
-<div><a class="foodex-primary" href="{{ $event['proof']['url'] }}" target="_blank" rel="noopener" data-van-delivery-proof-link>{{ __('order_operations.detail.view_proof') }}</a></div>
-@endif
-<small>{{ $event['captured_at'] ? \Carbon\Carbon::parse($event['captured_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i') : '—' }}</small>
+<a class="foodex-primary" href="{{ $event['proof']['url'] }}" target="_blank" rel="noopener" data-van-delivery-proof-link>{{ __('order_operations.detail.view_proof') }}</a>
+</div>
+@endforeach
+@foreach($detailVanExecutionProofs as $event)
+<div class="timeline-item">
+<strong>{{ $businessLabel($event['action']) }}</strong>
+<a class="foodex-primary" href="{{ route('admin.operations.orders.van-proofs.show',['assignment'=>$event['order_van_assignment_id'],'proof'=>$event['id']]) }}" target="_blank" rel="noopener" data-van-proof-link>{{ __('order_operations.detail.van_proof') }}</a>
 </div>
 @endforeach
 </div>
+</div>
 @endif
-</div>
-@empty
-<div class="foodex-empty-state">{{ __('order_operations.detail.no_van_delivery_evidence') }}</div>
-@endforelse
-</div>
-</div>
+
+@if(!$detailHasAnyAction)
+<div class="foodex-empty-state" data-order-detail-no-actions>{{ $isAr ? 'لا توجد إجراءات متاحة على هذا الطلب حالياً.' : 'No actions are currently available for this order.' }}</div>
+@endif
 </section>
 </div>
 </dialog>
 @endif
+<dialog class="order-popup-dialog" data-order-popup-dialog aria-modal="true">
+    <div class="order-popup-shell">
+        <div class="order-popup-head" data-no-print>
+            <strong data-order-popup-title>{{ $isAr ? 'تفاصيل الطلب' : 'Order details' }}</strong>
+            <button type="button" class="order-popup-close" data-order-popup-close aria-label="{{ $isAr ? 'إغلاق' : 'Close' }}">×</button>
+        </div>
+        <div class="order-popup-body" data-order-popup-body><div class="order-popup-loading">{{ $isAr ? 'جاري التحميل…' : 'Loading…' }}</div></div>
+    </div>
+</dialog>
 </main>
 <aside class="sidebar">@include('admin._sidebar')</aside>
 </div>
@@ -982,6 +1126,121 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         window.cancelAnimationFrame(resizeFrame);
         resizeFrame = window.requestAnimationFrame(fitAll);
     }, {passive:true});
+})();
+</script>
+<script>
+document.querySelectorAll('[data-order-inline-status]').forEach(function(form){
+    var select=form.querySelector('[data-order-inline-status-select]');
+    var note=form.querySelector('[data-order-inline-rejection-note]');
+    if(!select||!note){return;}
+    var sync=function(){
+        var rejecting=select.value==='cancelled';
+        note.hidden=!rejecting;
+        note.required=rejecting;
+        if(!rejecting){note.value='';}
+    };
+    select.addEventListener('change',sync);
+    sync();
+});
+
+document.querySelectorAll('.order-inline-picker').forEach(function(form){
+    var select=form.querySelector('[data-order-inline-picker-select]');
+    var submit=form.querySelector('[data-order-inline-picker-submit]');
+    var reason=form.querySelector('[data-order-inline-picker-reason]');
+    if(!select||!submit){return;}
+    var initial=String(select.dataset.initialValue||'');
+    var sync=function(){
+        var value=String(select.value||'');
+        var changed=value!==initial;
+        if(form.hasAttribute('data-order-inline-dispatch')){
+            var typeInput=form.querySelector('[data-order-inline-assignee-type]');
+            var idInput=form.querySelector('[data-order-inline-assignee-id]');
+            var parts=value.split(':');
+            if(typeInput){typeInput.value=parts.length===2?parts[0]:'';}
+            if(idInput){idInput.value=parts.length===2?parts[1]:'';}
+            changed=changed&&parts.length===2&&parts[0]!==''&&parts[1]!=='';
+        }
+        submit.disabled=!changed;
+        if(reason){
+            reason.hidden=!changed;
+            reason.required=changed;
+            if(!changed){reason.value='';}
+        }
+    };
+    select.addEventListener('change',sync);
+    sync();
+});
+</script>
+<script>
+(() => {
+    const dialog = document.querySelector('[data-order-popup-dialog]');
+    const body = dialog?.querySelector('[data-order-popup-body]');
+    const title = dialog?.querySelector('[data-order-popup-title]');
+    const close = dialog?.querySelector('[data-order-popup-close]');
+    if (!(dialog instanceof HTMLDialogElement) || !(body instanceof HTMLElement)) return;
+
+    let controller = null;
+    const loading = @json(__('order_operations.popup.loading'));
+    const failed = @json(__('order_operations.popup.failed'));
+
+    const dismiss = () => {
+        controller?.abort();
+        controller = null;
+        dialog.close();
+    };
+
+    document.addEventListener('click', async (event) => {
+        const trigger = event.target.closest('[data-order-popup]');
+        if (trigger) {
+            event.preventDefault();
+            controller?.abort();
+            controller = new AbortController();
+            if (title) title.textContent = trigger.dataset.orderPopupTitle || '';
+            body.innerHTML = '<div class="order-popup-loading">' + loading + '</div>';
+            if (!dialog.open) dialog.showModal();
+
+            try {
+                const response = await fetch(trigger.dataset.orderPopupUrl, {
+                    headers: {'Accept':'text/html','X-Requested-With':'XMLHttpRequest'},
+                    signal: controller.signal,
+                });
+                if (!response.ok) throw new Error('popup-http-' + response.status);
+                body.innerHTML = await response.text();
+            } catch (error) {
+                if (error?.name !== 'AbortError') {
+                    body.innerHTML = '<div class="foodex-empty-state">' + failed + '</div>';
+                }
+            }
+            return;
+        }
+
+        if (event.target.closest('[data-order-popup-close]')) {
+            dismiss();
+            return;
+        }
+
+        if (event.target.closest('[data-order-popup-print]')) {
+            const locale = document.documentElement.lang || 'en';
+            const value = new Intl.DateTimeFormat(locale, {
+                dateStyle: 'full',
+                timeStyle: 'medium',
+                timeZone: 'Asia/Kuwait',
+            }).format(new Date());
+            dialog.querySelectorAll('[data-order-print-time]').forEach((node) => {
+                node.textContent = value;
+            });
+            window.print();
+        }
+    });
+
+    close?.addEventListener('click', dismiss);
+    dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) dismiss();
+    });
+    dialog.addEventListener('cancel', (event) => {
+        event.preventDefault();
+        dismiss();
+    });
 })();
 </script>
 </body></html>

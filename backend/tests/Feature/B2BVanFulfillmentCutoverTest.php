@@ -97,6 +97,45 @@ class B2BVanFulfillmentCutoverTest extends TestCase
         );
     }
 
+    public function test_cutover_preserves_authorized_manual_b2b_driver_dispatch(): void
+    {
+        [$order, , $actor, $store] = $this->orderInsideTerritory('CUTOVER-MANUAL-DRIVER', 'b2b');
+        [$driver, $driverAssignment] = $this->activeDriver($order, $store, 'b2b');
+
+        OrderDispatchState::query()->create([
+            'order_id' => $order->id,
+            'status' => 'assigned',
+            'routing_source' => 'manual_customer_service',
+            'routing_reason' => 'customer_service_driver_assignment',
+            'current_assignee_type' => 'driver',
+            'current_assignee_id' => $driver->id,
+            'decision_key' => hash('sha256', 'manual-driver-'.$order->id),
+            'decided_at' => '2026-10-26 08:00:00',
+        ]);
+
+        $result = app(B2BVanFulfillmentCutoverService::class)
+            ->apply($actor, '2026-10-26T09:00:00Z');
+
+        $this->assertSame('completed', $result['status']);
+        $this->assertSame(0, $result['summary']['postflight']['contradictory_orders']);
+        $this->assertSame(0, $result['summary']['postflight']['b2b_active_driver']);
+        $this->assertDatabaseHas('driver_assignments', [
+            'id' => $driverAssignment->id,
+            'status' => 'assigned',
+        ]);
+        $this->assertDatabaseHas('order_dispatch_states', [
+            'order_id' => $order->id,
+            'status' => 'assigned',
+            'routing_reason' => 'customer_service_driver_assignment',
+            'current_assignee_type' => 'driver',
+            'current_assignee_id' => $driver->id,
+        ]);
+        $this->assertDatabaseMissing('audit_logs', [
+            'event' => 'fulfillment.cutover.driver_ended',
+            'auditable_id' => $driverAssignment->id,
+        ]);
+    }
+
     public function test_b2b_without_eligible_van_becomes_explicit_awaiting_dispatch_and_retry_is_safe(): void
     {
         [$order, $territory, $actor, $store] = $this->orderInsideTerritory('CUTOVER-AWAIT', 'b2b');
