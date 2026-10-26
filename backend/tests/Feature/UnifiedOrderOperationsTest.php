@@ -689,7 +689,10 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-order-financial-actions', $view);
         $this->assertStringContainsString('data-order-details-icon', $view);
         $this->assertStringContainsString('data-order-invoice-icon', $view);
+        $this->assertStringContainsString('data-order-executor-line', $view);
+        $this->assertStringContainsString('class="order-executor-line" data-order-executor-line', $view);
         $this->assertStringContainsString('data-order-inline-unassign', $view);
+        $this->assertStringContainsString('.order-executor-line{display:flex;align-items:center;gap:6px;', $view);
         $this->assertStringContainsString('data-order-actionable-detail', $view);
         $this->assertStringContainsString('data-order-detail-no-actions', $view);
         $this->assertStringContainsString('.ops-table th:nth-child(1),.ops-table th:nth-child(2),.ops-table th:nth-child(3),.ops-table th:nth-child(4),.ops-table th:nth-child(5),.ops-table th:nth-child(6){width:16.666%}', $view);
