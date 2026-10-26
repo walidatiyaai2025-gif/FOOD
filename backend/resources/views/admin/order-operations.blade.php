@@ -840,8 +840,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     </div>
 </dialog>
 </main>
-@php($sidebarDefaultCollapsed = true)
-<aside class="sidebar">@include('admin._sidebar',['sidebarDefaultCollapsed'=>$sidebarDefaultCollapsed])</aside>
+<aside class="sidebar">@include('admin._sidebar',['sidebarDefaultCollapsed'=>true])</aside> {{-- localization-gate: allow Blade include expression --}}
 </div>
 <script>
 (() => {
