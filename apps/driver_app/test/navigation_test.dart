@@ -383,7 +383,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('driver-new-order-popup')), findsNothing);
+    expect(find.byKey(const Key('driver-home-update-popup')), findsNothing);
 
     repo.rows = const [
       DriverAssignment(
@@ -413,20 +413,131 @@ void main() {
 
     await tester.pump(const Duration(seconds: 5));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1200));
+    await tester.pump();
 
-    expect(find.byKey(const Key('driver-new-order-popup')), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-update-popup')), findsOneWidget);
     expect(find.text('طلب جديد تم إسناده لك'), findsOneWidget);
     expect(find.text('طلب NEW-5012'), findsOneWidget);
     expect(find.textContaining('New Customer'), findsOneWidget);
     expect(find.textContaining('125.50 EGP'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('driver-new-order-dismiss')));
+    await tester.tap(find.byKey(const Key('driver-home-update-dismiss')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('driver-new-order-popup')), findsNothing);
+    expect(find.byKey(const Key('driver-home-update-popup')), findsNothing);
 
     await tester.pump(const Duration(seconds: 5));
     await tester.pump();
-    expect(find.byKey(const Key('driver-new-order-popup')), findsNothing);
+    expect(find.byKey(const Key('driver-home-update-popup')), findsNothing);
+  });
+
+  testWidgets(
+      'home popup reports a changed existing assignment',
+      (tester) async {
+    final repo = _LiveStatusRepo();
+    await tester.pumpWidget(
+      FoodexDriverApp(
+        initialSession: session(DriverChannel.b2c),
+        assignmentRepositoryFactory: (_) => repo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    repo.rows = const [
+      DriverAssignment(
+        id: 9,
+        channel: DriverChannel.b2c,
+        reference: 'LIVE-PENDING',
+        status: 'assigned',
+      ),
+      DriverAssignment(
+        id: 10,
+        channel: DriverChannel.b2c,
+        reference: 'LIVE-ACCEPTED',
+        status: 'picked_up',
+        customerName: 'Changed Customer',
+      ),
+    ];
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1200));
+    await tester.pump();
+
+    expect(find.byKey(const Key('driver-home-update-popup')), findsOneWidget);
+    expect(find.text('تم تحديث طلب مسند إليك'), findsOneWidget);
+    expect(find.textContaining('تم الاستلام'), findsOneWidget);
+    expect(find.textContaining('Changed Customer'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('driver-home-update-dismiss')));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets(
+      'home popup reports when an assignment is removed',
+      (tester) async {
+    final repo = _LiveStatusRepo();
+    await tester.pumpWidget(
+      FoodexDriverApp(
+        initialSession: session(DriverChannel.b2c),
+        assignmentRepositoryFactory: (_) => repo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    repo.rows = const [
+      DriverAssignment(
+        id: 10,
+        channel: DriverChannel.b2c,
+        reference: 'LIVE-ACCEPTED',
+        status: 'accepted',
+      ),
+    ];
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1200));
+    await tester.pump();
+
+    expect(find.byKey(const Key('driver-home-update-popup')), findsOneWidget);
+    expect(find.text('تم سحب الطلب من حسابك'), findsOneWidget);
+    expect(find.text('طلب LIVE-PENDING'), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-update-open')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('driver-home-update-dismiss')));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('driver home cards use the reduced-height layout', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      FoodexDriverApp(
+        initialSession: session(DriverChannel.b2c),
+        assignmentRepositoryFactory: (_) => _StatusRepo(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getSize(find.byKey(const Key('driver-home-workload-chart'))).height,
+      lessThanOrEqualTo(160),
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('driver-home-pending-orders'))).height,
+      lessThanOrEqualTo(46),
+    );
+    expect(
+      tester
+          .getSize(find.byKey(const Key('driver-home-status-accepted')))
+          .height,
+      lessThanOrEqualTo(64),
+    );
   });
 
   testWidgets(
