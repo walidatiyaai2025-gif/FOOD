@@ -134,7 +134,15 @@ $businessLabel = static function ($value): string {
 <main class="main foodex-admin-main foodex-admin-page">
 @include('admin._global-header')
 @if(session('status'))<div class="foodex-state" role="status">{{ session('status') }}</div>@endif
-@if($errors->any())<div class="foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+@if($errors->any())
+<div class="foodex-state" role="alert">
+<ul>
+@foreach($errors->all() as $error)
+<li>{{ $error }}</li>
+@endforeach
+</ul>
+</div>
+@endif
 
 @include('admin._order-new-wizard')
 
@@ -387,11 +395,8 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <th>{{ __('order_operations.customer_service_owner.column') }}</th>
 <th>{{ __('order_operations.columns.actions') }}</th>
 </tr></thead><tbody>
-@php
-$hasOrderRows = count($rows) > 0;
-if ($hasOrderRows) {
-    foreach ($rows as $row) {
-@endphp
+@if(count($rows))
+@foreach($rows as $row)
 @php($rowStatusState = strtolower((string) $row['status']))
 @php($rowDelivered = in_array($rowStatusState, ['delivered','completed'], true))
 @php($rowMergedStatus = $rowDelivered || $rowStatusState === 'cancelled')
@@ -663,7 +668,9 @@ if ($hasOrderRows) {
 <input type="hidden" name="assignee_type" value="van">
 <select name="assignee_id" required aria-label="{{ __('order_operations.dispatch.choose_van') }}">
 <option value="">{{ __('order_operations.dispatch.choose_van') }}</option>
-@foreach($vans as $van)<option value="{{ $van->id }}">{{ $van->code }}{{ $van->plate_number ? ' · '.$van->plate_number : '' }}</option>@endforeach
+@foreach($vans as $van)
+<option value="{{ $van->id }}">{{ $van->code }}{{ $van->plate_number ? ' · '.$van->plate_number : '' }}</option>
+@endforeach
 </select>
 <input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
 <button class="foodex-primary">{{ $row['dispatch_status']==='assigned' ? __('order_operations.dispatch.reassign') : __('order_operations.dispatch.assign') }} · {{ __('order_operations.dispatch.van') }}</button>
@@ -680,7 +687,12 @@ if ($hasOrderRows) {
 @if($row['can_manage'] && !($row['channel']==='b2b' && $row['status']==='pending'))
 @if(count($row['available_statuses']))
 <form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
-<select name="status" required aria-label="{{ __('order_operations.next_status') }}"><option value="">{{ $rowWithDriver ? ($isAr ? 'إلغاء الطلب' : 'Cancel order') : __('order_operations.choose_next_status') }}</option>@foreach($row['available_statuses'] as $status)<option value="{{ $status['code'] }}">{{ $status['label'] }}</option>@endforeach</select>
+<select name="status" required aria-label="{{ __('order_operations.next_status') }}">
+<option value="">{{ $rowWithDriver ? ($isAr ? 'إلغاء الطلب' : 'Cancel order') : __('order_operations.choose_next_status') }}</option>
+@foreach($row['available_statuses'] as $status)
+<option value="{{ $status['code'] }}">{{ $status['label'] }}</option>
+@endforeach
+</select>
 <button class="foodex-primary">{{ __('order_operations.update_status') }}</button>
 </form>
 @else
@@ -691,14 +703,10 @@ if ($hasOrderRows) {
 </details>
 </td>
 </tr>
-@php
-    }
-} else {
-@endphp
+@endforeach
+@else
 <tr><td colspan="7"><div class="foodex-empty-state">{{ __('order_operations.empty') }}</div></td></tr>
-@php
-}
-@endphp
+@endif
 </tbody></table>
 </section>
 {{ $orders->links() }}
@@ -790,7 +798,9 @@ if ($hasOrderRows) {
 </label>
 @if($detail['channel']==='b2b')
 <label class="new-order-field"><span>{{ $isAr ? 'مخزن الصرف' : 'Source warehouse' }}</span><select name="warehouse_id" required>
-@foreach($editOptions['warehouses'] as $warehouse)<option value="{{ $warehouse['id'] }}" @selected((int)$detail['warehouse_id']===(int)$warehouse['id'])>{{ $warehouse['code'] }} · {{ $warehouse['name'] }}</option>@endforeach
+@foreach($editOptions['warehouses'] as $warehouse)
+<option value="{{ $warehouse['id'] }}" @selected((int)$detail['warehouse_id']===(int)$warehouse['id'])>{{ $warehouse['code'] }} · {{ $warehouse['name'] }}</option>
+@endforeach
 </select></label>
 @endif
 <label class="new-order-field"><span>{{ $isAr ? 'العنوان' : 'Address' }}</span><select name="address_id" data-edit-address>
@@ -801,7 +811,9 @@ if ($hasOrderRows) {
 </select><small data-edit-address-status role="status" aria-live="polite">{{ __('order_operations.lookup.results_help') }}</small>
 <button type="button" class="btn secondary" data-edit-address-retry hidden>{{ __('order_operations.lookup.retry') }}</button></label>
 <label class="new-order-field"><span>{{ $isAr ? 'طريقة الدفع' : 'Payment method' }}</span><select name="payment_method" required>
-@foreach($newOrderWizard['payment_methods'] as $method)<option value="{{ $method['code'] }}" @selected((string)$detail['payment_method']===(string)$method['code'])>{{ $method['label'] }}</option>@endforeach
+@foreach($newOrderWizard['payment_methods'] as $method)
+<option value="{{ $method['code'] }}" @selected((string)$detail['payment_method']===(string)$method['code'])>{{ $method['label'] }}</option>
+@endforeach
 </select></label>
 <label class="new-order-field"><span>{{ $isAr ? 'كود الكوبون' : 'Coupon code' }}</span><input name="coupon_code" maxlength="80" value="{{ $detail['coupon_code'] }}"></label>
 </div>
