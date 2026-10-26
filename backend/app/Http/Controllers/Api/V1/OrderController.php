@@ -8,7 +8,9 @@ use App\Models\B2cCustomer;
 use App\Models\DriverAssignment;
 use App\Models\Invoice;
 use App\Models\Order;
+use App\Models\OrderDispatchState;
 use App\Models\OrderItem;
+use App\Models\OrderVanAssignment;
 use App\Models\OrderStatusHistory;
 use App\Models\Payment;
 use App\Models\User;
@@ -22,6 +24,7 @@ use App\Services\InvoiceService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderInventoryReservationService;
+use App\Services\OrderLifecycleNotificationService;
 use App\Services\OrderLiveTrackingService;
 use App\Services\PlatformCustomerService;
 use App\Support\DisplayNumber;
@@ -277,6 +280,39 @@ class OrderController extends Controller
                         ],
                         $request,
                     );
+                }
+
+                OrderVanAssignment::query()
+                    ->where('order_id', $locked->getKey())
+                    ->where('status', 'active')
+                    ->lockForUpdate()
+                    ->get()
+                    ->each(function (OrderVanAssignment $vanAssignment) use ($locked): void {
+                        $vanAssignment->forceFill([
+                            'status' => 'cancelled',
+                            'ended_at' => now(),
+                        ])->save();
+
+                        app(OrderLifecycleNotificationService::class)->vanAssignmentRevoked(
+                            $locked,
+                            $vanAssignment->fresh(),
+                            'order_cancelled',
+                        );
+                    });
+
+                $dispatchState = OrderDispatchState::query()
+                    ->where('order_id', $locked->getKey())
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($dispatchState instanceof OrderDispatchState) {
+                    $dispatchState->forceFill([
+                        'status' => 'cancelled',
+                        'routing_reason' => 'order_cancelled',
+                        'current_assignee_type' => null,
+                        'current_assignee_id' => null,
+                        'decided_at' => now(),
+                    ])->save();
                 }
             } elseif ($targetStatus === 'delivered') {
                 app(OrderInventoryReservationService::class)->consume($locked, $user);
