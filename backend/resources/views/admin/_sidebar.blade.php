@@ -42,9 +42,9 @@ aside.foodex-sidebar-expanded{width:var(--foodex-sidebar-width)!important}
 .foodex-sidebar-brand-mark{width:42px;height:34px;flex:0 0 42px;border-radius:8px;display:grid;place-items:center;background:#fff;overflow:hidden;border:1px solid var(--foodex-border)}\n.foodex-sidebar-brand-mark img{width:100%;height:100%;object-fit:contain}
 .foodex-sidebar-toggle{width:40px;height:40px;flex:0 0 40px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-green-dark);cursor:pointer;font-size:18px}
 .foodex-sidebar-search{position:relative}.foodex-sidebar-search input{width:100%;padding-inline-start:38px}.foodex-sidebar-search .foodex-svg-icon{position:absolute;inset-inline-start:11px;top:12px;width:18px;height:18px;color:var(--foodex-muted)}
-.foodex-nav{display:grid;gap:6px}.foodex-nav-group{border:1px solid transparent;border-radius:12px}.foodex-nav-group summary{list-style:none;cursor:pointer;min-height:44px;display:grid;grid-template-columns:24px minmax(0,1fr) 18px;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;font-weight:800;color:var(--foodex-ink)}.foodex-nav-group summary::-webkit-details-marker{display:none}.foodex-nav-group summary:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+.foodex-nav{display:grid;gap:6px}.foodex-nav-group{border:1px solid transparent;border-radius:12px}.foodex-nav-group summary{list-style:none;cursor:pointer;min-height:46px;display:grid;grid-template-columns:30px minmax(0,1fr) 18px;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;font-weight:800;color:var(--foodex-ink)}.foodex-nav-group-icon{display:grid;place-items:center;width:28px;height:28px;font-size:1.35rem;line-height:1}.foodex-nav-group summary::-webkit-details-marker{display:none}.foodex-nav-group summary:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
 .foodex-nav-group[open]{border-color:var(--foodex-border);background:#fbfcfd}.foodex-nav-group[open] summary{color:var(--foodex-green-dark)}.foodex-nav-group[open] .foodex-nav-chevron{transform:rotate(180deg)}
-.foodex-nav-children{display:grid;gap:3px;padding:0 7px 7px}.foodex-nav-subchildren{display:grid;gap:2px;margin-inline-start:14px;padding-inline-start:8px;border-inline-start:1px dashed var(--foodex-border)}.foodex-nav-subchildren .foodex-nav-link{min-height:38px}.foodex-nav-link{min-height:44px;display:grid;grid-template-columns:22px minmax(0,1fr);align-items:center;gap:9px;padding:7px 9px;border-radius:10px;color:var(--foodex-ink);text-decoration:none}.foodex-nav-link:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.foodex-nav-link.active{background:var(--foodex-action-green);color:#fff;box-shadow:0 8px 18px rgba(21,138,58,.14)}
+.foodex-nav-children{display:grid;gap:3px;padding:0 7px 7px}.foodex-nav-subchildren{display:grid;gap:2px;margin-inline-start:14px;padding-inline-start:8px;border-inline-start:1px dashed var(--foodex-border)}.foodex-nav-subchildren .foodex-nav-link{min-height:40px}.foodex-nav-link{min-height:46px;display:grid;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:9px;padding:7px 9px;border-radius:10px;color:var(--foodex-ink);text-decoration:none}.foodex-nav-link>.foodex-svg-icon{width:24px;height:24px}.foodex-nav-link:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.foodex-nav-link.active{background:var(--foodex-action-green);color:#fff;box-shadow:0 8px 18px rgba(21,138,58,.14)}
 .foodex-nav-label{display:block;min-width:0}.foodex-nav-label strong{display:block;font-size:.86rem;line-height:1.2}.foodex-nav-label small{display:block;color:var(--foodex-muted);font-size:.67rem;margin-top:2px}.foodex-nav-link.active small{color:rgba(255,255,255,.8)}
 aside.foodex-sidebar-collapsed .foodex-sidebar-brand span:last-child,
 aside.foodex-sidebar-collapsed .foodex-sidebar-search,
@@ -105,9 +105,9 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     aside.foodex-sidebar-collapsed .foodex-sidebar-head{justify-content:space-between;flex-wrap:nowrap}
     aside.foodex-sidebar-collapsed .foodex-sidebar-brand{justify-content:flex-start;width:auto}
     aside.foodex-sidebar-collapsed .foodex-sidebar-toggle{width:44px;height:44px}
-    aside.foodex-sidebar-collapsed .foodex-nav-group summary{grid-template-columns:24px minmax(0,1fr) 18px;place-items:initial;padding:8px 10px}
+    aside.foodex-sidebar-collapsed .foodex-nav-group summary{grid-template-columns:30px minmax(0,1fr) 18px;place-items:initial;padding:8px 10px}
     aside.foodex-sidebar-collapsed .foodex-nav-group:not([open]) .foodex-nav-children{display:grid}
-    aside.foodex-sidebar-collapsed .foodex-nav-link{grid-template-columns:22px minmax(0,1fr);place-items:initial;padding:7px 9px}
+    aside.foodex-sidebar-collapsed .foodex-nav-link{grid-template-columns:28px minmax(0,1fr);place-items:initial;padding:7px 9px}
     .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main,
     .layout>.foodex-admin-main,html[dir=ltr] .layout>.foodex-admin-main,
     .layout>.main,html[dir=ltr] .layout>.main,
@@ -141,7 +141,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
             @php($groupPrimary = $group['label_text'] ?? __($group['label']))
             <details class="foodex-nav-group" data-group="{{ $group['key'] }}" data-nav-group="{{ $group['key'] }}" {{ $groupActive?'open':'' }}>
                 <summary>
-                    <span aria-hidden="true">{{ $group['icon'] }}</span>
+                    <span class="foodex-nav-group-icon" aria-hidden="true">{{ $group['icon'] }}</span>
                     <span>{{ $groupPrimary }}</span>
                     <span class="foodex-nav-chevron" aria-hidden="true">⌄</span>
                 </summary>
