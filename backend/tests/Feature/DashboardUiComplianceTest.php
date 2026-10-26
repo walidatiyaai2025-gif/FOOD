@@ -261,6 +261,18 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('Cancel order', $view);
     }
 
+    public function test_order_operations_opens_with_sidebar_collapsed_by_default(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
+        $sidebar = file_get_contents(resource_path('views/admin/_sidebar.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertIsString($sidebar);
+        $this->assertStringContainsString("@include('admin._sidebar',['sidebarDefaultCollapsed'=>true])", $view);
+        $this->assertStringContainsString("const defaultCollapsed = @json((bool)(\$sidebarDefaultCollapsed ?? false));", $sidebar);
+        $this->assertStringContainsString("setExpanded(compactMedia.matches || (!defaultCollapsed && localStorage.getItem(stateKey) === '1'), false);", $sidebar);
+    }
+
     public function test_order_management_grid_has_internal_lines_and_borderless_status_controls(): void
     {
         $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
