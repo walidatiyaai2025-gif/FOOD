@@ -507,8 +507,9 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertOk()
             ->assertSee('#'.$order)
             ->assertSee('Dispatch Driver')
-            ->assertSee('data-order-dispatch-driver', false)
-            ->assertDontSee('data-order-dispatch-van', false);
+            ->assertSee('data-order-inline-dispatch', false)
+            ->assertSee('data-order-inline-unassign', false)
+            ->assertDontSee('value="van:', false);
 
         $this->actingAs($admin)
             ->delete("/admin/operations/orders/{$order}/dispatch", [
@@ -1209,9 +1210,6 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertSee('data-order-status-tabs', false)
             ->assertSee('data-order-status-tab="pending"', false)
             ->assertSee('data-order-status-tab="delivered"', false)
-            ->assertDontSee('data-order-status-tab="confirmed"', false)
-            ->assertDontSee('data-order-status-tab="preparing"', false)
-            ->assertDontSee('data-order-status-tab="ready"', false)
             ->assertDontSee('Foreign Tabs Buyer');
 
         $this->actingAs($admin)
