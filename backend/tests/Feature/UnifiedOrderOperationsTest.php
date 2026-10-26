@@ -173,6 +173,53 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertSee('data-order-edit', false);
     }
 
+    public function test_order_popups_render_details_and_printable_timeline_without_page_navigation(): void
+    {
+        $store = $this->retailStore('UNIFIED-POPUPS');
+        $admin = $this->retailAdmin($store, 'unified-popups@example.test');
+        $customer = app(B2cCustomerService::class)->create($store, ['name' => 'Popup Buyer']);
+
+        $order = (int) DB::table('orders')->insertGetId([
+            'store_id' => $store,
+            'customer_id' => (int) $customer->legacy_customer_id,
+            'b2c_customer_id' => (int) $customer->id,
+            'order_number' => 'UNIFIED-POPUP-1001',
+            'channel' => 'b2c',
+            'status' => 'pending',
+            'currency' => 'EGP',
+            'subtotal' => 25,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 25,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('order_status_history')->insert([
+            'order_id' => $order,
+            'store_id' => $store,
+            'user_id' => $admin->id,
+            'from_status' => null,
+            'to_status' => 'pending',
+            'note' => 'dashboard_order_created',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get("/admin/operations/orders/{$order}/popup/details")
+            ->assertOk()
+            ->assertSee('data-order-popup-content="details"', false)
+            ->assertSee('Popup Buyer')
+            ->assertSee('25.00 EGP');
+
+        $this->actingAs($admin)
+            ->get("/admin/operations/orders/{$order}/popup/timeline")
+            ->assertOk()
+            ->assertSee('data-order-popup-content="timeline"', false)
+            ->assertSee('Print timeline')
+            ->assertSee('Order status changed');
+    }
+
     public function test_order_operations_uses_compact_single_card_kpi_summary(): void
     {
         $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
@@ -235,6 +282,13 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-order-detail-no-actions', $view);
         $this->assertStringContainsString('.ops-table th:nth-child(1){width:7.5%}', $view);
         $this->assertStringContainsString('.ops-table th:nth-child(2){width:12.75%}', $view);
+        $this->assertStringContainsString('.ops-table th:nth-child(3){width:7.5%}', $view);
+        $this->assertStringContainsString("class=\"{{ \$rowPaid ? 'is-paid' : 'is-unpaid' }}\"", $view);
+        $this->assertStringContainsString('data-order-popup-dialog', $view);
+        $this->assertStringContainsString('data-order-popup-url', $view);
+        $this->assertStringContainsString('data-order-timeline-icon', $view);
+        $this->assertStringContainsString('order-financial-action is-timeline', $view);
+        $this->assertStringContainsString('window.print()', $view);
         $this->assertStringContainsString("<th>{{ \$isAr ? 'العميل' : 'Customer' }}</th>\n<th>{{ \$isAr ? 'الدفع والإجمالي' : 'Payment & total' }}</th>\n<th>{{ __('order_operations.columns.status') }}</th>", $view);
         $this->assertStringContainsString('سحب من السائق', $view);
         $this->assertStringContainsString('سحب من الفان', $view);
