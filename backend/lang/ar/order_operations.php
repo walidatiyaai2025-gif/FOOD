@@ -295,6 +295,7 @@ return [
         'dashboard_order_created' => 'تم إنشاء الطلب من لوحة الإدارة',
         'checkout' => 'تم إنشاء الطلب بواسطة العميل',
         'dispatch_assigned' => 'تم تعيين جهة التوصيل',
+        'customer_service_approved' => 'تم تأكيد الطلب بواسطة خدمة العملاء',
         'manual_unassigned' => 'تم سحب التوجيه يدوياً',
         'grid_manual_unassign' => 'تم سحب التوجيه من شبكة الطلبات',
         'detail_manual_unassign' => 'تم سحب التوجيه من تفاصيل الطلب',
