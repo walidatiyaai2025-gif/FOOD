@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\B2cCustomerService;
+use App\Services\SalesOrderOperationsDashboardService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -66,6 +67,64 @@ class SalesOrderOperationsDashboardTest extends TestCase
             ->assertViewHas('rows', fn (array $rows): bool => count($rows) === 1
                 && (int) $rows[0]['id'] === $paymentFailure
             );
+    }
+
+    public function test_dashboard_query_count_stays_bounded_with_many_delivered_orders(): void
+    {
+        $store = $this->retailStore('SALES-PERF');
+        $customer = app(B2cCustomerService::class)->create($store, ['name' => 'Performance Buyer']);
+        $deliveredAt = now()->startOfSecond();
+
+        for ($index = 1; $index <= 40; $index++) {
+            $createdAt = $deliveredAt->copy()->subMinutes(20 + $index);
+            $orderId = $this->order(
+                $store,
+                (int) $customer->legacy_customer_id,
+                (int) $customer->id,
+                'SALES-PERF-'.$index,
+                'delivered',
+                10 + $index,
+                $createdAt,
+            );
+
+            DB::table('order_status_history')->insert([
+                'order_id' => $orderId,
+                'store_id' => $store,
+                'user_id' => null,
+                'from_status' => 'out_for_delivery',
+                'to_status' => 'delivered',
+                'note' => 'Delivered',
+                'created_at' => $deliveredAt,
+                'updated_at' => $deliveredAt,
+            ]);
+        }
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $dashboard = app(SalesOrderOperationsDashboardService::class)->build(
+            ['b2b' => [], 'b2c' => [$store]],
+            $store,
+        );
+
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $this->assertSame(40, $dashboard['kpis']['orders']);
+        $this->assertNotNull($dashboard['kpis']['average_fulfillment_minutes']);
+        $this->assertSame(
+            40,
+            array_sum(array_column($dashboard['fulfillment_breakdown'], 'count')),
+        );
+        $this->assertLessThanOrEqual(
+            16,
+            count($queries),
+            'Dashboard query count must stay bounded instead of growing with delivered-order volume.',
+        );
+
+        $sql = strtolower(implode("\n", array_column($queries, 'query')));
+        $this->assertStringNotContainsString('ordered_at', $sql);
+        $this->assertStringNotContainsString('delivered_at', $sql);
     }
 
     public function test_sales_exception_report_is_scoped_and_exportable(): void
