@@ -114,7 +114,7 @@ $printTitle = __('order_operations.popup.'.$kind);
                             @if(!empty($event['note']))<small>{{ $event['note'] }}</small>@endif
                             <footer>
                                 @if(!empty($event['actor']))<span>{{ $event['actor'] }}</span>@endif
-                                <time>{{ CarbonCarbon::parse($event['created_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i:s') }}</time>
+                                <time>{{ \Illuminate\Support\Carbon::parse($event['created_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i:s') }}</time>
                             </footer>
                         </div>
                     </article>
