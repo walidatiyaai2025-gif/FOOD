@@ -1,3 +1,22 @@
+@if(!empty($moduleData['drivers']))
+<div class="panel foodex-card" style="margin:12px 0">
+    <strong>{{ app()->getLocale()==='ar'?'السائقون وطلباتهم':'Drivers & their orders' }}</strong>
+    <p class="muted empty" style="margin:6px 0 10px">
+        {{ app()->getLocale()==='ar'?'اضغط على السائق لعرض طلباته من الأحدث إلى الأقدم مع فلترة بالتاريخ.':'Select a driver to view orders newest first with date filters.' }}
+    </p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+        @foreach($moduleData['drivers'] as $driver)
+            <button
+                type="button"
+                class="btn"
+                data-driver-orders-open
+                data-url="{{ route('admin.drivers.orders',['driver'=>$driver['id'],'channel'=>$channel,'store_id'=>$driver['store_id'] ?? null]) }}"
+            >{{ $driver['name'] }}</button>
+        @endforeach
+    </div>
+</div>
+@endif
+
 @php
     $isB2bAssignmentManager = $channel === 'b2b';
     $reassignRoute = $isB2bAssignmentManager ? 'admin.b2b.orders.driver.reassign' : 'admin.b2c.orders.driver.reassign';
@@ -50,7 +69,7 @@
                 @endphp
                 <tr>
                     <td><strong>{{ $assignment['order'] }}</strong></td>
-                    <td>{{ $assignment['driver'] }}</td>
+                    <td><button type="button" class="btn" data-driver-orders-open data-url="{{ route('admin.drivers.orders',['driver'=>$assignment['driver_id'],'channel'=>$channel,'store_id'=>$assignment['store_id']]) }}">{{ $assignment['driver'] }}</button></td>
                     <td><span class="badge {{ $assignmentStatusClass }}">{{ $assignmentStatusLabel }}</span></td>
                     <td>{{ $assignment['assigned_at'] }}</td>
                     <td style="min-width:210px">
@@ -123,3 +142,65 @@
     @if(isset($moduleData['assignments_paginator'])){{ $moduleData['assignments_paginator']->links() }}@endif
 </div>
 @endif
+
+
+<dialog id="driver-orders-dialog-{{ $channel }}" data-driver-orders-dialog style="width:min(980px,94vw);max-height:88vh;border:0;border-radius:16px;padding:0;box-shadow:0 24px 60px rgba(15,23,42,.22)">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--foodex-border);display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <strong>{{ app()->getLocale()==='ar'?'طلبات السائق':'Driver orders' }}</strong>
+        <button type="button" class="btn" data-driver-orders-close aria-label="{{ app()->getLocale()==='ar'?'إغلاق':'Close' }}">×</button>
+    </div>
+    <div data-driver-orders-body style="padding:16px;max-height:calc(88vh - 64px);overflow:auto"></div>
+</dialog>
+<script>
+(() => {
+    const dialog = document.getElementById(@json('driver-orders-dialog-'.$channel));
+    if (!dialog || dialog.dataset.ready === '1') return;
+    dialog.dataset.ready = '1';
+    const body = dialog.querySelector('[data-driver-orders-body]');
+    const loadingText = @json(app()->getLocale()==='ar'?'جاري تحميل الطلبات...':'Loading driver orders...');
+    const failedText = @json(app()->getLocale()==='ar'?'تعذر تحميل طلبات السائق.':'Unable to load driver orders.');
+
+    const load = async (url) => {
+        if (!url) return;
+        if (!dialog.open && typeof dialog.showModal === 'function') dialog.showModal();
+        body.textContent = loadingText;
+        try {
+            const response = await fetch(url, {
+                headers: {'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest'},
+                credentials: 'same-origin',
+            });
+            if (!response.ok) throw new Error('http_' + response.status);
+            body.innerHTML = await response.text();
+        } catch (_) {
+            body.textContent = failedText;
+        }
+    };
+
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-driver-orders-open]');
+        if (!trigger) return;
+        event.preventDefault();
+        load(trigger.dataset.url);
+    });
+
+    dialog.addEventListener('click', (event) => {
+        if (event.target.closest('[data-driver-orders-close]')) {
+            dialog.close();
+            return;
+        }
+        const pageLink = event.target.closest('.pagination a');
+        if (pageLink) {
+            event.preventDefault();
+            load(pageLink.href);
+        }
+    });
+
+    dialog.addEventListener('submit', (event) => {
+        const form = event.target.closest('[data-driver-orders-filter]');
+        if (!form) return;
+        event.preventDefault();
+        const params = new URLSearchParams(new FormData(form));
+        load(form.action + '?' + params.toString());
+    });
+})();
+</script>
