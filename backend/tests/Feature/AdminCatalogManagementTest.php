@@ -27,10 +27,13 @@ class AdminCatalogManagementTest extends TestCase
         $user = $this->superAdmin('ar');
 
         $this->actingAs($user)->get('/admin')
+            ->assertRedirect(route('admin.b2b.dashboard'));
+
+        $this->actingAs($user)->get('/admin/b2b/dashboard')
             ->assertOk()
             ->assertSee('dir="rtl"', false)
-            ->assertSee('.shell{direction:ltr;', false)
-            ->assertSee('.shell-sidebar{grid-column:2;grid-row:1;direction:rtl;', false);
+            ->assertSee('.layout{direction:ltr;', false)
+            ->assertSee('.sidebar{grid-column:2;grid-row:1;direction:rtl;', false);
     }
 
     public function test_super_admin_can_manage_categories_and_products_from_web_ui(): void
