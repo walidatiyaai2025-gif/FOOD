@@ -112,7 +112,7 @@ class _FoodexDriverBootstrapState extends State<_FoodexDriverBootstrap> {
   Widget build(BuildContext context) {
     return FoodexDriverApp(
       pushService: _pushService,
-      locationGateService: const GeolocatorDriverLocationGateService(),
+      locationGateService: kDebugMode ? null : const GeolocatorDriverLocationGateService(),
       versionPolicyClient: kDebugMode ? null : _versionPolicyClient,
       showPersistentFooter: _showPersistentFooter,
     );
