@@ -771,6 +771,14 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('class="order-kpi-icon"', $view);
         $this->assertStringContainsString('data-tone="{{ $metric[\'tone\'] }}"', $view);
         $this->assertStringContainsString('.order-kpi-card::before{content:""', $view);
+        $this->assertStringContainsString('grid-template-columns:repeat(auto-fit,minmax(clamp(118px,9vw,150px),1fr))', $view);
+        $this->assertStringContainsString('grid-auto-rows:minmax(118px,auto)', $view);
+        $this->assertStringContainsString('height:100%;box-sizing:border-box', $view);
+        $this->assertStringContainsString('font-size:clamp(.58rem,.58vw,.72rem)', $view);
+        $this->assertStringContainsString('font-size:clamp(.82rem,1.12vw,1.22rem)', $view);
+        $this->assertStringContainsString('.order-kpi-card{grid-template-columns:repeat(2,minmax(0,1fr))', $view);
+        $this->assertStringContainsString('.sales-ops-exceptions{grid-template-columns:repeat(2,minmax(0,1fr))', $view);
+        $this->assertStringNotContainsString('grid-template-columns:repeat(10,minmax(132px,1fr))', $view);
         $this->assertStringContainsString('@keyframes orderKpiEdge', $view);
         $this->assertStringContainsString("@include('admin._premium-icon',['name'=>\$metric['icon']])", $view);
         $this->assertStringNotContainsString("@include('admin._module-dashboard-kpi', ['metric' => \$metric])", $view);
