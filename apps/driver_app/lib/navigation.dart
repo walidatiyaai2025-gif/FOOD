@@ -365,18 +365,18 @@ class _DriverHomePageState extends State<_DriverHomePage>
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  '\${context.tr('driver.notifications.order_identity')} \${assignment.reference}',
+                  '${context.tr('driver.notifications.order_identity')} ${assignment.reference}',
                   key: const Key('driver-new-order-reference'),
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
                 if (assignment.customerName.trim().isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Text('\${context.tr('driver.detail.customer')}: \${assignment.customerName.trim()}'),
+                  Text('${context.tr('driver.detail.customer')}: ${assignment.customerName.trim()}'),
                 ],
                 if (assignment.address.trim().isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(
-                    '\${context.tr('driver.detail.address')}: \${assignment.address.trim()}',
+                    '${context.tr('driver.detail.address')}: ${assignment.address.trim()}',
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -384,7 +384,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
                 if (assignment.grandTotal > 0) ...[
                   const SizedBox(height: 8),
                   Text(
-                    '\${context.tr('driver.detail.total')}: \${assignment.grandTotal.toStringAsFixed(2)} \${assignment.currency}',
+                    '${context.tr('driver.detail.total')}: ${assignment.grandTotal.toStringAsFixed(2)} ${assignment.currency}',
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ],
