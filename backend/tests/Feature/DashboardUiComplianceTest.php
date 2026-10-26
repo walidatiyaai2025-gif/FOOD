@@ -36,7 +36,10 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString("__('order_operations.view_order')", $view);
         $this->assertStringContainsString('<dialog class="order-detail-drawer foodex-record-drawer" open', $view);
         $this->assertStringContainsString('order-detail-drawer-shell foodex-record-drawer-shell', $view);
-        $this->assertStringContainsString('<section class="detail-grid foodex-record-grid">', $view);
+        $this->assertStringContainsString('<section class="detail-grid foodex-record-grid" data-order-actionable-detail>', $view);
+        $this->assertStringContainsString('data-order-detail-no-actions', $view);
+        $this->assertStringContainsString('data-order-details-icon', $view);
+        $this->assertStringContainsString('data-order-invoice-icon', $view);
         $this->assertStringNotContainsString('<section class="detail-grid" style="margin-top:18px">', $view);
         $this->assertStringNotContainsString('<td><div class="actions">', $view);
         $this->assertStringNotContainsString('store_id={{ $detail[\'store_id\'] }}', $view);
@@ -89,9 +92,11 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('data-order-dispatch-clear', $view);
         $this->assertStringContainsString('data-order-dispatch-detail', $view);
         $this->assertStringContainsString('data-order-dispatch-workspace', $view);
-        $this->assertStringContainsString('data-b2b-van-operations', $view);
-        $this->assertStringContainsString('data-van-collection-timeline', $view);
+        $this->assertStringContainsString('data-order-inline-unassign', $view);
+        $this->assertStringContainsString('data-order-detail-unassign', $view);
+        $this->assertStringContainsString('data-order-detail-action-section="dispatch"', $view);
         $this->assertStringContainsString('data-van-proof-link', $view);
+        $this->assertStringNotContainsString('data-van-collection-timeline', $view);
         $this->assertStringContainsString("__('order_operations.dispatch.warning')", $view);
         $this->assertStringNotContainsString('name="assignee_id" type="number"', $view);
 
