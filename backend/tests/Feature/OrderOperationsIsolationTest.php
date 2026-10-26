@@ -533,6 +533,13 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2c&dispatch_status=awaiting_dispatch')
             ->assertOk()
+            ->assertViewHas('rows', function (array $rows) use ($order): bool {
+                $row = collect($rows)->firstWhere('id', $order);
+
+                return is_array($row)
+                    && ($row['status_label'] ?? null) === 'New order · awaiting driver assignment'
+                    && ($row['status_visual_state'] ?? null) === 'pending';
+            })
             ->assertSee('#'.$order)
             ->assertSee('This order requires a Customer Service dispatch decision.');
     }
