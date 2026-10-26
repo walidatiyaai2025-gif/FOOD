@@ -64,6 +64,20 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_analytics_sidebar_excludes_ai_and_whatsapp_supervisor_entries(): void
+    {
+        $user = $this->globalUser('SUPER_ADMIN', 'nav-analytics-clean@example.test');
+
+        $analytics = collect(app(AdminNavigation::class)->groupsFor($user))
+            ->firstWhere('key', 'analytics');
+
+        $this->assertIsArray($analytics);
+        $keys = collect($analytics['children'] ?? [])->pluck('key');
+
+        $this->assertFalse($keys->contains('ai_analytics'));
+        $this->assertFalse($keys->contains('whatsapp_supervisor'));
+    }
+
     public function test_retail_store_admin_sidebar_excludes_platform_only_navigation(): void
     {
         $user = $this->retailAdmin('nav-retail-isolated@example.test');
