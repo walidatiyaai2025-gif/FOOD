@@ -175,7 +175,7 @@ void main() {
     expect(find.byKey(const Key('driver-route-denied')), findsNothing);
   });
 
-  testWidgets('B2B driver runtime is denied after Van fulfillment cutover',
+  testWidgets('B2B driver starts inside the manual-dispatch B2B partition',
       (tester) async {
     final repo = ChannelRecordingRepo();
     await tester.pumpWidget(
@@ -185,9 +185,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(repo.requestedChannel, isNull);
-    expect(find.byKey(const Key('driver-open-deliveries')), findsNothing);
-    expect(find.byKey(const Key('driver-route-denied')), findsOneWidget);
+    expect(repo.requestedChannel, DriverChannel.b2b);
+    expect(find.byKey(const Key('driver-open-deliveries')), findsOneWidget);
+    expect(find.byKey(const Key('driver-route-denied')), findsNothing);
   });
 
   testWidgets(
@@ -337,6 +337,22 @@ void main() {
 
     await tester.pump(const Duration(seconds: 45));
     expect(repo.listCalls, callsAfterDispose);
+  });
+
+  testWidgets('B2B driver can navigate its own B2B delivery route',
+      (tester) async {
+    final repo = ChannelRecordingRepo();
+    await tester.pumpWidget(
+      FoodexDriverApp(
+        initialSession: session(DriverChannel.b2b),
+        assignmentRepositoryFactory: (_) => repo,
+        initialRoute: DriverRoutes.b2bDeliveries,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(repo.requestedChannel, DriverChannel.b2b);
+    expect(find.byKey(const Key('driver-route-denied')), findsNothing);
+    expect(find.byKey(const Key('driver-shell')), findsOneWidget);
   });
 
   testWidgets('B2C driver cannot navigate into B2B routes', (tester) async {
