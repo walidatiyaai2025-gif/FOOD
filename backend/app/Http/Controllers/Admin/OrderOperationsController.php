@@ -390,7 +390,7 @@ final class OrderOperationsController extends Controller
         $dailyMax = 1;
         $statusMax = 1;
 
-        if ($dashboardVisible && is_array($dashboard)) {
+        if ($dashboardVisible) {
             $dashboardBaseQuery = [
                 'channel' => $operationalChannel,
                 'from' => $dashboard['period']['from'],
