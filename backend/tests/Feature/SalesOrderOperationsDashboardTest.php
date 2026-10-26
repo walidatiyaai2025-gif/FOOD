@@ -50,9 +50,9 @@ class SalesOrderOperationsDashboardTest extends TestCase
             ->assertViewHas('dashboard', fn (array $dashboard): bool => $dashboard['kpis']['orders'] === 4
                 && $dashboard['kpis']['delayed_orders'] === 1
                 && $dashboard['kpis']['awaiting_dispatch'] === 1
-                && $dashboard['kpis']['payment_exceptions'] === 1
-                && $dashboard['kpis']['invoice_exceptions'] === 1
                 && $dashboard['kpis']['cancelled_refunded'] === 1
+                && ! array_key_exists('payment_exceptions', $dashboard['kpis'])
+                && ! array_key_exists('invoice_exceptions', $dashboard['kpis'])
             )
             ->assertSee('data-sales-operations-dashboard', false)
             ->assertSee('data-order-kpi-card', false)
