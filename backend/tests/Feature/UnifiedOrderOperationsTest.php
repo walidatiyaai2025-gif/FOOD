@@ -432,10 +432,17 @@ class UnifiedOrderOperationsTest extends TestCase
             'created_at' => $deliveredAt,
             'updated_at' => $deliveredAt,
         ]);
+        DB::table('order_dispatch_states')->insert([
+            'order_id' => $order,
+            'status' => 'awaiting_dispatch',
+            'created_at' => $deliveredAt,
+            'updated_at' => $deliveredAt,
+        ]);
 
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2c')
             ->assertOk()
+            ->assertViewHas('actionRequiredCount', 0)
             ->assertViewHas('rows', function (array $rows) use ($order, $deliveredAt): bool {
                 $row = collect($rows)->firstWhere('id', $order);
 
@@ -446,6 +453,9 @@ class UnifiedOrderOperationsTest extends TestCase
             })
             ->assertSee('order-delivered-merged', false)
             ->assertSee('data-order-delivered-time', false)
+            ->assertSee('data-order-customer-service-dimmed', false)
+            ->assertSee('data-action-required="0"', false)
+            ->assertDontSee('data-order-inline-customer-service-owner', false)
             ->assertSee('Delivered at')
             ->assertSee($deliveredAt->timezone('Asia/Kuwait')->format('Y-m-d H:i:s'));
     }
@@ -648,6 +658,9 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-order-print-time', $view);
         $this->assertStringContainsString('order-delivered-merged', $view);
         $this->assertStringContainsString('data-order-delivered-time', $view);
+        $this->assertStringContainsString('data-order-customer-service-dimmed', $view);
+        $this->assertStringContainsString('.order-owner.is-complete{opacity:.38', $view);
+        $this->assertStringContainsString("in_array(\$rowStatusState, ['delivered','completed'], true)", $view);
         $this->assertStringContainsString('\\Illuminate\\Support\\Carbon::parse', $view);
         $this->assertStringNotContainsString('IlluminateSupportCarbon::parse', $view);
         $this->assertStringNotContainsString('CarbonCarbon::parse', $view);
@@ -728,6 +741,7 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('usesCustomerServiceDashboardProfile($actor)', $controller);
         $this->assertStringContainsString("'awaiting_dispatch'", $controller);
         $this->assertStringContainsString("'actionRequiredCount' => \$actionRequiredCount", $controller);
+        $this->assertStringContainsString("whereNotIn('status', ['delivered', 'completed'])", $controller);
         $this->assertStringContainsString("'selectedActionRequired' => \$selectedActionRequired", $controller);
         $this->assertStringContainsString('orderOperationsDisplayStatus(', $controller);
         $this->assertStringContainsString("'status_visual_state' => \$displayStatus['state']", $controller);
