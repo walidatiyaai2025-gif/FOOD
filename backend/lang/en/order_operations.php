@@ -295,6 +295,7 @@ return [
         'dashboard_order_created' => 'Order created from Dashboard',
         'checkout' => 'Order created by customer',
         'dispatch_assigned' => 'Delivery assignee assigned',
+        'customer_service_approved' => 'Order confirmed by Customer Service',
         'manual_unassigned' => 'Routing manually cleared',
         'grid_manual_unassign' => 'Routing cleared from orders grid',
         'detail_manual_unassign' => 'Routing cleared from order details',
