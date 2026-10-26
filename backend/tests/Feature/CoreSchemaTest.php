@@ -88,11 +88,21 @@ class CoreSchemaTest extends TestCase
             'inventories' => ['inventories_product_idx'],
             'stock_movements' => ['stock_movements_inventory_created_idx'],
             'carts' => ['carts_store_channel_idx', 'carts_customer_channel_idx'],
-            'orders' => ['orders_store_channel_status_idx', 'orders_customer_created_idx'],
+            'orders' => [
+                'orders_store_channel_status_idx',
+                'orders_customer_created_idx',
+                'orders_ops_scope_created_idx',
+                'orders_ops_scope_status_created_idx',
+            ],
             'invoices' => ['invoices_customer_status_idx'],
             'promotions' => ['promotions_store_active_idx'],
             'drivers' => ['drivers_type_active_available_idx'],
-            'driver_assignments' => ['driver_assignments_order_status_idx'],
+            'driver_assignments' => [
+                'driver_assignments_order_status_idx',
+                'driver_assignments_order_status_id_idx',
+            ],
+            'order_dispatch_states' => ['order_dispatch_status_order_idx'],
+            'order_status_history' => ['order_history_order_status_created_idx'],
             'notifications' => ['notifications_user_read_idx'],
             'audit_logs' => ['audit_logs_user_created_idx'],
         ];
@@ -132,6 +142,47 @@ class CoreSchemaTest extends TestCase
         $this->assertContains(
             'stores_type_active_idx',
             array_column(Schema::getIndexes('stores'), 'name'),
+        );
+    }
+
+    public function test_order_operations_performance_index_migration_can_be_rolled_back_and_reapplied(): void
+    {
+        $migration = require database_path(
+            'migrations/2026_10_26_223000_optimize_order_operations_dashboard_indexes.php',
+        );
+
+        $migration->down();
+
+        $this->assertNotContains(
+            'orders_ops_scope_created_idx',
+            array_column(Schema::getIndexes('orders'), 'name'),
+        );
+        $this->assertNotContains(
+            'order_dispatch_status_order_idx',
+            array_column(Schema::getIndexes('order_dispatch_states'), 'name'),
+        );
+
+        $migration->up();
+
+        $this->assertContains(
+            'orders_ops_scope_created_idx',
+            array_column(Schema::getIndexes('orders'), 'name'),
+        );
+        $this->assertContains(
+            'orders_ops_scope_status_created_idx',
+            array_column(Schema::getIndexes('orders'), 'name'),
+        );
+        $this->assertContains(
+            'order_dispatch_status_order_idx',
+            array_column(Schema::getIndexes('order_dispatch_states'), 'name'),
+        );
+        $this->assertContains(
+            'order_history_order_status_created_idx',
+            array_column(Schema::getIndexes('order_status_history'), 'name'),
+        );
+        $this->assertContains(
+            'driver_assignments_order_status_id_idx',
+            array_column(Schema::getIndexes('driver_assignments'), 'name'),
         );
     }
 
