@@ -243,6 +243,20 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('$isAr?\'إجراءات الطلب\':\'Order actions\'', $view);
     }
 
+    public function test_order_management_grid_has_no_internal_cell_borders(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('.ops-table{width:100%;min-width:0;table-layout:fixed;border-collapse:separate;border-spacing:0;border:0!important;', $view);
+        $this->assertStringContainsString('.ops-table thead th{', $view);
+        $this->assertStringContainsString('border:0!important;white-space:nowrap', $view);
+        $this->assertStringContainsString('.ops-table tbody td{', $view);
+        $this->assertStringContainsString('line-height:1.32;border:0!important;', $view);
+        $this->assertStringContainsString('.order-grid-row>td:first-child{border-inline-start:0!important}', $view);
+        $this->assertStringNotContainsString('.ops-table tbody td{padding:10px;vertical-align:middle;line-height:1.32;border-bottom:', $view);
+    }
+
     public function test_order_operations_fits_small_laptop_viewport_without_store_or_channel_columns(): void
     {
         $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
