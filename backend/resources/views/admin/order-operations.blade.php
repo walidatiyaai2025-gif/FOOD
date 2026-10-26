@@ -388,14 +388,14 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <th>{{ __('order_operations.columns.actions') }}</th>
 </tr></thead><tbody>
 @forelse($rows as $row)
-@php($rowActionRequired = ($row['dispatch_status'] ?? '') === 'awaiting_dispatch')
-@php($rowExecutor = $row['dispatch_assignee'] ?? $row['driver'] ?? null)
 @php($rowStatusState = strtolower((string) $row['status']))
+@php($rowDelivered = $rowStatusState === 'delivered')
+@php($rowActionRequired = !$rowDelivered && ($row['dispatch_status'] ?? '') === 'awaiting_dispatch')
+@php($rowExecutor = $row['dispatch_assignee'] ?? $row['driver'] ?? null)
 @php($rowWithDriver = !empty($row['has_active_driver']))
 @php($rowCurrentDriverId = (int)($row['driver_id'] ?? 0))
 @php($rowNeedsB2bDispatch = $row['channel']==='b2b' && $rowStatusState==='ready' && empty($row['dispatch_assignee_id']))
 @php($rowStatusVisualState = $row['status_visual_state'] ?? $rowStatusState)
-@php($rowDelivered = $rowStatusState === 'delivered')
 <tr class="order-grid-row {{ $rowActionRequired ? 'is-action-required' : '' }}" data-order-row="{{ $row['id'] }}" data-action-required="{{ $rowActionRequired ? '1' : '0' }}">
 <td>
     <div class="order-grid-primary">
