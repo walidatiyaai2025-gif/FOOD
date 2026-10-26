@@ -824,6 +824,78 @@ class OrderDomainTest extends TestCase
     }
 
     /** @return array{0: User, 1: Customer} */
+    public function test_cancelling_assigned_b2b_order_closes_van_and_dispatch_state(): void
+    {
+        $order = $this->makeOrder(
+            $this->b2bCustomer,
+            $this->b2bStoreId,
+            'b2b',
+            'out_for_delivery',
+        );
+
+        $vanId = (int) DB::table('vans')->insertGetId([
+            'public_id' => '00000000-0000-0000-0000-000000000090',
+            'code' => 'VAN-CANCEL-90',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $vanAssignmentId = (int) DB::table('order_van_assignments')->insertGetId([
+            'order_id' => $order->id,
+            'van_id' => $vanId,
+            'status' => 'active',
+            'source' => 'manual_customer_service',
+            'reason' => 'customer_service_van_assignment',
+            'decision_key' => hash('sha256', 'cancel-van-'.$order->id),
+            'assigned_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('order_dispatch_states')->insert([
+            'order_id' => $order->id,
+            'status' => 'assigned',
+            'routing_source' => 'manual_customer_service',
+            'routing_reason' => 'customer_service_van_assignment',
+            'current_assignee_type' => 'van',
+            'current_assignee_id' => $vanId,
+            'decision_key' => hash('sha256', 'cancel-dispatch-'.$order->id),
+            'decided_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $admin = $this->makeGlobalRoleUser('SUPER_ADMIN', 'cancel-van-order@example.test');
+        Sanctum::actingAs($admin);
+
+        $this->postJson("/api/v1/orders/{$order->id}/status", [
+            'status' => 'cancelled',
+            'note' => 'Cancel assigned wholesale order',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'cancelled',
+        ]);
+        $this->assertDatabaseHas('order_van_assignments', [
+            'id' => $vanAssignmentId,
+            'order_id' => $order->id,
+            'van_id' => $vanId,
+            'status' => 'cancelled',
+        ]);
+        $this->assertNotNull(
+            DB::table('order_van_assignments')->where('id', $vanAssignmentId)->value('ended_at'),
+        );
+        $this->assertDatabaseHas('order_dispatch_states', [
+            'order_id' => $order->id,
+            'status' => 'cancelled',
+            'routing_reason' => 'order_cancelled',
+            'current_assignee_type' => null,
+            'current_assignee_id' => null,
+        ]);
+    }
+
     private function makeCustomer(string $type, string $email): array
     {
         $user = User::query()->create([
