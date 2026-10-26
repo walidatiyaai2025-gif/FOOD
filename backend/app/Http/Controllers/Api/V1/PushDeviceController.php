@@ -52,6 +52,8 @@ final class PushDeviceController extends Controller
             'locale' => ['nullable', 'in:ar,en'],
         ]);
 
+        $driverChannel = null;
+
         if ($user === null) {
             abort_unless($data['app'] === 'customer', 401);
             abort_if(empty($data['install_id']), 422, 'install_id is required for anonymous Customer devices.');
@@ -83,7 +85,9 @@ final class PushDeviceController extends Controller
         }
 
         $storeId = isset($data['store_id']) ? (int) $data['store_id'] : null;
-        $targetChannel = (string) ($data['target_channel'] ?? 'all');
+        $targetChannel = $data['app'] === 'driver' && is_string($driverChannel)
+            ? $driverChannel
+            : (string) ($data['target_channel'] ?? 'all');
         if ($storeId !== null) {
             $storeChannel = strtolower((string) DB::table('stores')
                 ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
