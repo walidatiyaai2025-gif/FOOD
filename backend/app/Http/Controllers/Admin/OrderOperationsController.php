@@ -1245,12 +1245,34 @@ final class OrderOperationsController extends Controller
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.manage');
-        $request->validate([
+        $validated = $request->validate([
             'status' => ['required', 'string', Rule::in($this->activeOrderStatusCodes())],
         ]);
+        $targetStatus = (string) $validated['status'];
+
+        abort_if(
+            strtolower((string) $model->channel) === 'b2b'
+                && (string) $model->status === 'ready'
+                && $targetStatus === 'out_for_delivery',
+            409,
+            'Ready B2B orders move to out for delivery only after Driver or Van assignment.',
+        );
+
         $request->merge(['store_id' => (int) $model->store_id]);
 
         $orders->transition($request, $order, $audit, $notifier);
+
+        if (
+            strtolower((string) $model->channel) === 'b2b'
+            && $targetStatus === 'ready'
+            && OrderDispatchState::query()
+                ->where('order_id', $model->getKey())
+                ->where('status', 'assigned')
+                ->whereNotNull('current_assignee_id')
+                ->exists()
+        ) {
+            $this->markReadyOrderOutForDelivery($model, $actor, $audit, $notifier, $request);
+        }
 
         return back()->with('status', $this->msg('تم تحديث حالة الطلب.', 'Order status updated.'));
     }
@@ -1330,6 +1352,8 @@ final class OrderOperationsController extends Controller
                 $dispatch->assignDriver($model, $actor, $assignment, $reason);
             });
 
+            $this->markReadyOrderOutForDelivery($model, $actor, $audit, $notifier, $request);
+
             return back()->with('status', $this->msg(
                 'تم توجيه الطلب إلى السائق.',
                 'Order dispatched to driver.',
@@ -1379,6 +1403,8 @@ final class OrderOperationsController extends Controller
 
             $dispatch->assignVan($model, $actor, $vanId, $reason);
         });
+
+        $this->markReadyOrderOutForDelivery($model, $actor, $audit, $notifier, $request);
 
         return back()->with('status', $this->msg(
             'تم توجيه الطلب إلى الفان.',
@@ -2102,6 +2128,12 @@ final class OrderOperationsController extends Controller
             OrderController::allowedTransitions($status),
             static fn (string $candidate): bool => in_array($candidate, $activeStatusCodes, true),
         ));
+        if ($channel === 'b2b' && $status === 'ready') {
+            $availableStatuses = array_values(array_filter(
+                $availableStatuses,
+                static fn (string $candidate): bool => $candidate === 'cancelled',
+            ));
+        }
 
         return [
             'id' => (int) $order->getKey(),
@@ -2533,6 +2565,53 @@ final class OrderOperationsController extends Controller
         $channels = $this->availableOperationalChannels($actor, 'orders.view');
 
         return (string) $channels[0]['code'];
+    }
+
+    private function markReadyOrderOutForDelivery(
+        Order $order,
+        User $actor,
+        AuditLogger $audit,
+        DashboardOperationalNotifier $notifier,
+        Request $request,
+    ): void {
+        $updated = DB::transaction(function () use ($order, $actor, $audit, $request): ?Order {
+            $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+            if ((string) $locked->status !== 'ready') {
+                return null;
+            }
+
+            $before = (string) $locked->status;
+            $locked->status = 'out_for_delivery';
+            $locked->save();
+
+            OrderStatusHistory::query()->create([
+                'order_id' => $locked->getKey(),
+                'store_id' => (int) $locked->store_id,
+                'user_id' => $actor->getKey(),
+                'from_status' => $before,
+                'to_status' => 'out_for_delivery',
+                'note' => 'dispatch_assigned',
+            ]);
+
+            $audit->record(
+                'order.status_changed',
+                $actor,
+                $locked,
+                ['status' => $before],
+                [
+                    'status' => 'out_for_delivery',
+                    'source' => 'dispatch_assignment',
+                    'note' => 'dispatch_assigned',
+                ],
+                $request,
+            );
+
+            return $locked->fresh();
+        }, 3);
+
+        if ($updated instanceof Order) {
+            $notifier->orderStatusChanged($updated, 'ready', 'out_for_delivery');
+        }
     }
 
     private function orderCanBeDispatched(Order $order): bool
