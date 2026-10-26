@@ -2637,10 +2637,16 @@ final class OrderOperationsController extends Controller
 
     private function timelineAuditLabel(string $event): string
     {
+        if (str_ends_with($event, '.order_created')) {
+            return $this->msg('إنشاء الطلب', 'Order created');
+        }
+
         return match ($event) {
+            'dashboard.order_updated' => $this->msg('تعديل تفاصيل الطلب', 'Order details updated'),
             'order.customer_service_owner.changed' => $this->msg('تحديث مسؤول خدمة العملاء', 'Customer Service owner updated'),
             'order.dispatch.manual_assigned' => $this->msg('توجيه الطلب', 'Order routed'),
             'order.dispatch.manual_cleared' => $this->msg('سحب توجيه الطلب', 'Order routing cleared'),
+            'operations.order.driver_reminder_sent' => $this->msg('إرسال تذكير للسائق', 'Driver reminder sent'),
             'invoice.issued' => $this->msg('إصدار الفاتورة', 'Invoice issued'),
             'invoice.reissued' => $this->msg('إعادة إصدار الفاتورة', 'Invoice reissued'),
             'invoice.voided' => $this->msg('إلغاء الفاتورة', 'Invoice voided'),
