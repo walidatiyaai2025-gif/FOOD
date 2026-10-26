@@ -320,6 +320,12 @@ final class DashboardOperationalNotifier
             ],
         );
 
+        $this->lifecycle->customerOrderChanged($order, 'invoice_updated', [
+            'invoice_id' => (int) $invoice->getKey(),
+            'invoice_status' => (string) $invoice->status,
+            'invoice_event' => $event,
+        ]);
+
         if (in_array($event, ['issued', 'reissued'], true)) {
             $this->whatsAppTransactions->forOrder(
                 $order,
@@ -360,6 +366,12 @@ final class DashboardOperationalNotifier
                 'payment_status' => $to,
             ],
         );
+
+        $this->lifecycle->customerOrderChanged($order, 'payment_updated', [
+            'payment_id' => (int) $payment->getKey(),
+            'from_payment_status' => $from,
+            'payment_status' => $to,
+        ]);
 
         $transactionalEvent = TransactionalNotificationEngine::paymentEventForStatus($to);
         if ($transactionalEvent !== null) {
