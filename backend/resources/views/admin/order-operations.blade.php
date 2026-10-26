@@ -349,9 +349,15 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <?php endif; ?>
 
 <div class="order-tab-panel" role="tabpanel" data-order-panel="orders">
-@php($channelQuery=request()->except(['channel','store_id','driver_id','dispatch_status','exception','page','order']))
-@php($channelCodes=collect($availableChannels ?? [])->pluck('code'))
-@php($orderGridResetQuery=['channel'=>$selectedChannel] + ($selectedStoreId !== null ? ['store_id'=>$selectedStoreId] : []))
+@php
+    $channelQuery=request()->except(['channel','store_id','driver_id','dispatch_status','exception','page','order']);
+@endphp
+@php
+    $channelCodes=collect($availableChannels ?? [])->pluck('code');
+@endphp
+@php
+    $orderGridResetQuery=['channel'=>$selectedChannel] + ($selectedStoreId !== null ? ['store_id'=>$selectedStoreId] : []);
+@endphp
 @if(count($availableChannels ?? []) > 1)
 <nav class="status-tabs" aria-label="{{ $isAr ? 'قنوات الطلبات' : 'Order channels' }}" data-order-channel-tabs data-order-channel-selected="{{ $selectedChannel }}">
 @foreach($availableChannels as $channelOption)
@@ -360,8 +366,12 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </nav>
 @endif
 
-@php($tabQuery=request()->except(['status','page','order','edit','action_required']))
-@php($actionQuery=request()->except(['status','page','order','edit','action_required','dispatch_status','exception']))
+@php
+    $tabQuery=request()->except(['status','page','order','edit','action_required']);
+@endphp
+@php
+    $actionQuery=request()->except(['status','page','order','edit','action_required','dispatch_status','exception']);
+@endphp
 <nav class="status-tabs" aria-label="{{ __('order_operations.statuses') }}" data-order-status-tabs data-order-status-selected="{{ $selectedStatus ?? 'all' }}">
 <a class="status-tab"
    data-order-action-tab
@@ -397,15 +407,33 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </tr></thead><tbody>
 @if(count($rows))
 @foreach($rows as $row)
-@php($rowStatusState = strtolower((string) $row['status']))
-@php($rowDelivered = in_array($rowStatusState, ['delivered','completed'], true))
-@php($rowMergedStatus = $rowDelivered || $rowStatusState === 'cancelled')
-@php($rowActionRequired = !$rowMergedStatus && ($row['dispatch_status'] ?? '') === 'awaiting_dispatch')
-@php($rowExecutor = $row['dispatch_assignee'] ?? $row['driver'] ?? null)
-@php($rowWithDriver = !empty($row['has_active_driver']))
-@php($rowCurrentDriverId = (int)($row['driver_id'] ?? 0))
-@php($rowNeedsB2bDispatch = $row['channel']==='b2b' && $rowStatusState==='ready' && empty($row['dispatch_assignee_id']))
-@php($rowStatusVisualState = $row['status_visual_state'] ?? $rowStatusState)
+@php
+    $rowStatusState = strtolower((string) $row['status']);
+@endphp
+@php
+    $rowDelivered = in_array($rowStatusState, ['delivered','completed'], true);
+@endphp
+@php
+    $rowMergedStatus = $rowDelivered || $rowStatusState === 'cancelled';
+@endphp
+@php
+    $rowActionRequired = !$rowMergedStatus && ($row['dispatch_status'] ?? '') === 'awaiting_dispatch';
+@endphp
+@php
+    $rowExecutor = $row['dispatch_assignee'] ?? $row['driver'] ?? null;
+@endphp
+@php
+    $rowWithDriver = !empty($row['has_active_driver']);
+@endphp
+@php
+    $rowCurrentDriverId = (int)($row['driver_id'] ?? 0);
+@endphp
+@php
+    $rowNeedsB2bDispatch = $row['channel']==='b2b' && $rowStatusState==='ready' && empty($row['dispatch_assignee_id']);
+@endphp
+@php
+    $rowStatusVisualState = $row['status_visual_state'] ?? $rowStatusState;
+@endphp
 <tr class="order-grid-row {{ $rowActionRequired ? 'is-action-required' : '' }}" data-order-row="{{ $row['id'] }}" data-action-required="{{ $rowActionRequired ? '1' : '0' }}">
 <td>
     <div class="order-grid-primary">
@@ -426,7 +454,9 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     </div>
 </td>
 <td>
-    @php($rowPaid = strtolower((string)($row['payment_status'] ?? '')) === 'paid')
+    @php
+        $rowPaid = strtolower((string)($row['payment_status'] ?? '')) === 'paid';
+    @endphp
     <div class="order-financial">
         <strong class="{{ $rowPaid ? 'is-paid' : 'is-unpaid' }}">{{ number_format($row['total'],2) }} {{ $row['currency'] }}</strong>
         <small>{{ $businessLabel($row['payment_status']) }}@if($row['payment_provider']) · {{ strtoupper(str_replace(['_','-'],' ',(string)$row['payment_provider'])) }}@endif</small>
@@ -604,7 +634,9 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 @endif
 
 @if($row['channel']==='b2b' && $row['settlement'])
-@php($settlement=$row['settlement'])
+@php
+    $settlement=$row['settlement'];
+@endphp
 <div data-b2b-settlement-review style="display:grid;gap:5px;margin-top:8px;padding:9px;border-top:1px solid var(--foodex-border)">
 <strong>{{ $isAr ? 'مراجعة التسوية المالية' : 'Financial settlement review' }}</strong>
 <div>{{ $isAr ? 'رصيد العميل المتاح' : 'Customer credit balance' }}: <strong>{{ number_format((float)$settlement['customer_credit_balance'],3) }} {{ $settlement['currency'] }}</strong></div>
@@ -713,24 +745,44 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </div>
 
 @if($detail)
-@php($detailCloseQuery=request()->except(['order','edit']))
+@php
+    $detailCloseQuery=request()->except(['order','edit']);
+@endphp
 <dialog class="order-detail-drawer foodex-record-drawer" open aria-modal="true" aria-label="{{ __('order_operations.view_order') }}">
 <div class="order-detail-drawer-shell foodex-record-drawer-shell">
 <div class="order-detail-drawer-head foodex-record-drawer-header"><div><strong>{{ __('order_operations.view_order') }}</strong><div>{{ $detail['number'] }}</div></div><a class="order-detail-close foodex-record-drawer-close" href="{{ route('admin.operations.orders.index',$detailCloseQuery) }}" aria-label="{{ __('order_operations.detail.close') }}">×</a></div>
 <section class="detail-grid foodex-record-grid" data-order-actionable-detail>
-@php($detailHasMapAction = !empty($detail['delivery_address']['has_coordinates']))
-@php($detailHasInvoiceAction = !empty($detail['invoice_id']) && !empty($detail['can_view_invoice']))
-@php($detailHasDispatchAction = ($detail['dispatch_status'] ?? '')==='assigned' && !empty($detail['dispatch_assignee_id']) && !empty($detail['can_dispatch']))
-@php($detailHasEditAction = !empty($detail['can_edit']) && !empty($detail['edit_options']))
-@php($detailDriverProofs = collect($detail['delivery_evidence'] ?? [])->flatMap(fn($assignment) => $assignment['timeline'] ?? [])->filter(fn($event) => !empty($event['proof'])))
-@php($detailVanProofs = collect($detail['van_delivery_evidence'] ?? [])->flatMap(fn($assignment) => $assignment['timeline'] ?? [])->filter(fn($event) => !empty($event['proof'])))
-@php($detailVanExecutionProofs = collect($detail['van_events'] ?? [])->filter(fn($event) => !empty($event['proof_path'])))
-@php($detailHasAnyAction = $detailHasMapAction || $detailHasInvoiceAction || $detailHasDispatchAction || $detailHasEditAction || $detailDriverProofs->isNotEmpty() || $detailVanProofs->isNotEmpty() || $detailVanExecutionProofs->isNotEmpty())
+@php
+    $detailHasMapAction = !empty($detail['delivery_address']['has_coordinates']);
+@endphp
+@php
+    $detailHasInvoiceAction = !empty($detail['invoice_id']) && !empty($detail['can_view_invoice']);
+@endphp
+@php
+    $detailHasDispatchAction = ($detail['dispatch_status'] ?? '')==='assigned' && !empty($detail['dispatch_assignee_id']) && !empty($detail['can_dispatch']);
+@endphp
+@php
+    $detailHasEditAction = !empty($detail['can_edit']) && !empty($detail['edit_options']);
+@endphp
+@php
+    $detailDriverProofs = collect($detail['delivery_evidence'] ?? [])->flatMap(fn($assignment) => $assignment['timeline'] ?? [])->filter(fn($event) => !empty($event['proof']));
+@endphp
+@php
+    $detailVanProofs = collect($detail['van_delivery_evidence'] ?? [])->flatMap(fn($assignment) => $assignment['timeline'] ?? [])->filter(fn($event) => !empty($event['proof']));
+@endphp
+@php
+    $detailVanExecutionProofs = collect($detail['van_events'] ?? [])->filter(fn($event) => !empty($event['proof_path']));
+@endphp
+@php
+    $detailHasAnyAction = $detailHasMapAction || $detailHasInvoiceAction || $detailHasDispatchAction || $detailHasEditAction || $detailDriverProofs->isNotEmpty() || $detailVanProofs->isNotEmpty() || $detailVanExecutionProofs->isNotEmpty();
+@endphp
 
 @if($detailHasMapAction)
 <div class="foodex-card panel" data-order-detail-action-section="map">
 <h2>{{ $isAr ? 'عنوان التوصيل' : 'Delivery address' }}</h2>
-@php($delivery=$detail['delivery_address'])
+@php
+    $delivery=$detail['delivery_address'];
+@endphp
 <div class="timeline-item">
 <strong>{{ $delivery['formatted'] ?: __('order_operations.detail.saved_address') }}</strong>
 @if(!empty($delivery['recipient_name']))<div>{{ __('order_operations.detail.recipient') }}: {{ $delivery['recipient_name'] }}</div>@endif
@@ -777,7 +829,9 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 @endif
 
 @if(request('edit') && $detail['can_edit'] && $detail['edit_options'])
-@php($editOptions=$detail['edit_options'])
+@php
+    $editOptions=$detail['edit_options'];
+@endphp
 <div class="foodex-card panel" data-order-edit-panel>
 <h2>{{ $isAr ? 'تعديل الطلب' : 'Edit order' }} · {{ $detail['number'] }}</h2>
 <p>{{ $isAr ? 'يتم إعادة التسعير والتحقق من المخزون عند الحفظ. التعديل متاح للطلبات المعلقة غير المقفلة فقط.' : 'Saving re-prices and re-validates stock. Editing is limited to unlocked pending orders.' }}</p>
@@ -825,7 +879,9 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <label class="new-order-field"><span>{{ $isAr ? 'المنتج' : 'Product' }}</span>
 <input type="search" data-edit-product-search autocomplete="off" placeholder="{{ __('order_operations.lookup.search_product') }}">
 <select name="items[{{ $index }}][product_id]" data-edit-product required>
-@php($selectedProduct=$editOptions['selected_products'][(int)$item['product_id']] ?? null)
+@php
+    $selectedProduct=$editOptions['selected_products'][(int)$item['product_id']] ?? null;
+@endphp
 @if($selectedProduct)
 <option value="{{ $selectedProduct['id'] }}" selected>{{ $selectedProduct['meta'] }} · {{ $selectedProduct['label'] }}@if(($selectedProduct['active'] ?? true) === false) · {{ __('order_operations.lookup.selected_unavailable') }}@endif</option>
 @else
