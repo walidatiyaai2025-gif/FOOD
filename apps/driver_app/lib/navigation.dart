@@ -557,6 +557,13 @@ class _DriverHomePageState extends State<_DriverHomePage>
                 ],
               ),
               const SizedBox(height: 10),
+              _DriverPendingCard(
+                key: const Key('driver-home-pending-orders'),
+                label: context.tr('driver.home.pending_orders'),
+                value: _loading ? null : _count('assigned'),
+                onTap: _loading ? null : () => _openStatus('assigned'),
+              ),
+              const SizedBox(height: 10),
               if (_loadFailed)
                 Card(
                   child: ListTile(
@@ -742,6 +749,101 @@ class _DriverWorkloadChart extends StatelessWidget {
       ),
     );
   }
+}
+
+class _DriverPendingCard extends StatelessWidget {
+  const _DriverPendingCard({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  final String label;
+  final int? value;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: const Color(0xFFFFE9EC),
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: const Color(0xFFE11D48),
+                width: 1.4,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE11D48),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.notifications_active_rounded,
+                    color: Colors.white,
+                    size: 23,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF9F1239),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (value == null)
+                  const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      color: Color(0xFFE11D48),
+                    ),
+                  )
+                else
+                  Container(
+                    constraints: const BoxConstraints(minWidth: 42),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE11D48),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      value.toString(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+
 }
 
 class _DriverStatusCard extends StatelessWidget {
