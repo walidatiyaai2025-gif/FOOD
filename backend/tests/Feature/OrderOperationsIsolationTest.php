@@ -1342,3 +1342,4 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertSee('data-order-inline-dispatch', false)
             ->assertSee('#'.$order);
     }
+}
