@@ -215,7 +215,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('driver-home-driver-name')), findsOneWidget);
-    expect(find.byKey(const Key('driver-home-status-grid')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-pending-orders')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-workload-chart')), findsOneWidget);
     expect(find.text('توزيع التوصيلات'), findsOneWidget);
@@ -232,6 +231,16 @@ void main() {
     expect(pendingDecoration.border, isNotNull);
     expect(find.text('مقبول · 1'), findsOneWidget);
     expect(find.text('قناة العمل'), findsNothing);
+
+    final statusGrid = find.byKey(const Key('driver-home-status-grid'));
+    await tester.scrollUntilVisible(
+      statusGrid,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(statusGrid, findsOneWidget);
     expect(
         find.byKey(const Key('driver-home-status-accepted')), findsOneWidget);
     expect(
@@ -289,6 +298,8 @@ void main() {
 
     final pendingCard = find.byKey(const Key('driver-home-pending-orders'));
     expect(pendingCard, findsOneWidget);
+    await tester.ensureVisible(pendingCard);
+    await tester.pumpAndSettle();
     await tester.tap(pendingCard);
     await tester.pumpAndSettle();
 
@@ -315,11 +326,18 @@ void main() {
     final failedCard = find.byKey(const Key('driver-home-status-failed'));
     final pendingCard = find.byKey(const Key('driver-home-pending-orders'));
     expect(
-      find.descendant(of: failedCard, matching: find.text('0')),
+      find.descendant(of: pendingCard, matching: find.text('1')),
       findsOneWidget,
     );
+
+    await tester.scrollUntilVisible(
+      failedCard,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     expect(
-      find.descendant(of: pendingCard, matching: find.text('1')),
+      find.descendant(of: failedCard, matching: find.text('0')),
       findsOneWidget,
     );
 
@@ -347,6 +365,13 @@ void main() {
       find.descendant(of: failedCard, matching: find.text('1')),
       findsOneWidget,
     );
+
+    await tester.scrollUntilVisible(
+      pendingCard,
+      -180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     expect(
       find.descendant(of: pendingCard, matching: find.text('0')),
       findsOneWidget,
