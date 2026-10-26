@@ -52,7 +52,7 @@ final class CurrentMainPerformanceBaselineTest extends TestCase
             'dashboard',
             function (mixed $context): void {
                 $this->assertNull($context);
-                $this->get('/admin/b2b/dashboard')->assertOk();
+                $this->get('/admin')->assertOk();
             },
             'smoke',
         );
