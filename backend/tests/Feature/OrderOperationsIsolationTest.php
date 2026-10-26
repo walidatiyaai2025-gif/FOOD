@@ -570,6 +570,24 @@ class OrderOperationsIsolationTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $replacementDriverUser = User::query()->create([
+            'name' => 'Replacement Wholesale Driver',
+            'email' => 'ops-b2b-replacement-driver@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $replacementDriverUser->roles()->attach(Role::query()->where('code', 'B2B_DRIVER')->firstOrFail());
+        $replacementDriver = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $replacementDriverUser->id,
+            'store_id' => $store,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $admin = User::query()->create([
             'name' => 'Wholesale Dispatch Admin',
             'email' => 'ops-b2b-admin@example.test',
@@ -647,8 +665,65 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2b')
             ->assertOk()
-            ->assertSee('data-state="b2b_out_for_delivery"', false)
+            ->assertViewHas('rows', function (array $rows) use ($order): bool {
+                $row = collect($rows)->firstWhere('id', $order);
+
+                return is_array($row)
+                    && ($row['has_active_driver'] ?? false) === true
+                    && ($row['status_label'] ?? null) === 'Order with driver for delivery'
+                    && collect($row['available_statuses'] ?? [])->pluck('code')->values()->all() === ['cancelled'];
+            })
+            ->assertSee('data-state="driver_delivery"', false)
+            ->assertSee('Cancel order')
+            ->assertSee('Withdraw and transfer order to another driver')
+            ->assertSee('value="driver:'.$replacementDriver.'"', false)
             ->assertDontSee('data-b2b-ready-dispatch-alert', false);
+
+        $this->actingAs($admin)
+            ->patch("/admin/operations/orders/{$order}/dispatch", [
+                'assignee_type' => 'van',
+                'assignee_id' => 999999,
+                'reason' => 'Attempt Driver to Van transfer',
+            ])
+            ->assertStatus(409);
+
+        $this->actingAs($admin)
+            ->patch("/admin/operations/orders/{$order}/dispatch", [
+                'assignee_type' => 'driver',
+                'assignee_id' => $driver,
+                'reason' => 'Attempt same Driver transfer',
+            ])
+            ->assertStatus(422);
+
+        $this->actingAs($admin)
+            ->patch("/admin/operations/orders/{$order}/dispatch", [
+                'assignee_type' => 'driver',
+                'assignee_id' => $replacementDriver,
+                'reason' => 'Withdraw and transfer to another Driver',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('driver_assignments', [
+            'order_id' => $order,
+            'driver_id' => $driver,
+            'status' => 'reassigned',
+        ]);
+        $this->assertDatabaseHas('driver_assignments', [
+            'order_id' => $order,
+            'driver_id' => $replacementDriver,
+            'assignment_type' => 'b2b',
+            'status' => 'assigned',
+        ]);
+        $this->assertDatabaseHas('order_dispatch_states', [
+            'order_id' => $order,
+            'status' => 'assigned',
+            'current_assignee_type' => 'driver',
+            'current_assignee_id' => $replacementDriver,
+        ]);
+        $this->assertDatabaseHas('orders', [
+            'id' => $order,
+            'status' => 'out_for_delivery',
+        ]);
     }
 
     public function test_order_detail_renders_driver_assignment_timestamps_without_500(): void
