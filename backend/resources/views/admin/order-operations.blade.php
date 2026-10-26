@@ -68,7 +68,7 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-attention-chip{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:0 8px;border:1px solid var(--foodex-palette-fdba74);border-radius:999px;background:var(--foodex-palette-fff7ed);color:var(--foodex-palette-c2410c);font-size:.61rem;font-weight:900;white-space:nowrap;box-shadow:0 3px 10px rgba(234,88,12,.08)}
 .order-attention-chip::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--foodex-palette-f97316);box-shadow:0 0 0 3px rgba(249,115,22,.12)}
 .order-execution{display:grid;gap:5px;min-width:0}.ops-table tbody td.order-dispatch-cell-locked{background:var(--foodex-palette-f8fafc)!important;cursor:not-allowed}.order-execution.is-dispatch-locked{opacity:.42;filter:grayscale(.28)}.order-dispatch-lock-hint{font-size:.58rem;font-weight:800;color:var(--foodex-muted)}.order-execution strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-execution small{color:var(--foodex-muted);font-size:.62rem}
-.order-owner{display:grid;gap:3px}.order-owner strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-owner small{color:var(--foodex-muted);font-size:.61rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.order-owner{display:grid;gap:3px}.order-owner.is-complete{opacity:.38;filter:grayscale(.35);pointer-events:none;user-select:none}.ops-table tbody td.order-owner-cell.is-complete{background:var(--foodex-palette-f8fafc)!important}.order-owner strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-owner small{color:var(--foodex-muted);font-size:.61rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .order-financial{display:grid;gap:3px;min-width:0}.order-financial>strong{font-size:.69rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-financial>strong.is-paid{color:var(--foodex-palette-15803d)}.order-financial>strong.is-unpaid{color:var(--foodex-palette-be123c)}.order-financial small{color:var(--foodex-muted);font-size:.56rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .order-financial-actions{display:flex;align-items:center;gap:2px;margin-top:1px;flex-wrap:nowrap}.order-financial-action{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;min-width:19px;padding:0;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-green-dark);text-decoration:none;cursor:pointer;transition:transform .14s ease,border-color .14s ease,background .14s ease}.order-financial-action:hover{transform:translateY(-1px);border-color:var(--foodex-action-green);background:var(--foodex-palette-eaf7ef)}.order-financial-action.is-timeline{border-color:var(--foodex-palette-fda4af);background:var(--foodex-palette-fff1f2);color:var(--foodex-palette-be123c)}.order-financial-action.is-timeline:hover{border-color:var(--foodex-palette-be123c);background:var(--foodex-palette-ffe4e6)}.order-financial-action .foodex-svg-icon{width:11px;height:11px}
 .order-popup-dialog{width:min(920px,94vw);max-height:88vh;padding:0;border:0;border-radius:18px;background:var(--foodex-surface);color:var(--foodex-ink);box-shadow:0 24px 70px rgba(15,23,42,.26)}.order-popup-dialog::backdrop{background:rgba(15,23,42,.48);backdrop-filter:blur(2px)}.order-popup-shell{display:grid;grid-template-rows:auto minmax(0,1fr);max-height:88vh}.order-popup-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--foodex-border);background:var(--foodex-palette-f8fafc)}.order-popup-head strong{font-size:.9rem}.order-popup-close{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid var(--foodex-border);border-radius:999px;background:#fff;color:var(--foodex-ink);font-size:1.1rem;cursor:pointer}.order-popup-body{overflow:auto;padding:14px}.order-popup-loading{padding:30px;text-align:center;color:var(--foodex-muted);font-weight:800}.order-popup-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}.order-popup-summary>div,.order-popup-facts>div{display:grid;gap:3px;padding:9px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-palette-f8fafc)}.order-popup-summary small,.order-popup-facts span{font-size:.62rem;color:var(--foodex-muted)}.order-popup-summary strong.is-paid,.order-popup-facts strong.is-paid{color:var(--foodex-palette-15803d)}.order-popup-summary strong.is-unpaid,.order-popup-facts strong.is-unpaid{color:var(--foodex-palette-be123c)}.order-popup-section{margin-top:10px;padding:12px;border:1px solid var(--foodex-border);border-radius:14px}.order-popup-section h3{margin:0 0 10px;font-size:.82rem}.order-popup-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.order-popup-table-wrap{overflow:auto}.order-popup-table{width:100%;border-collapse:collapse;font-size:.7rem}.order-popup-table th,.order-popup-table td{padding:7px;border-bottom:1px solid var(--foodex-border);text-align:start}.order-popup-toolbar{display:flex;justify-content:flex-end;margin-bottom:8px}.order-print-header,.order-print-footer{display:none}.order-popup-timeline{display:grid;gap:0}.order-popup-timeline-item{position:relative;display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;padding:0 0 14px}.order-popup-timeline-item:not(:last-child)::before{content:"";position:absolute;top:12px;bottom:-1px;inset-inline-start:6px;width:2px;background:var(--foodex-palette-e2e8f0)}.order-popup-timeline-dot{position:relative;z-index:1;width:12px;height:12px;margin-top:3px;border:3px solid var(--foodex-palette-fff1f2);border-radius:999px;background:var(--foodex-palette-be123c)}.order-popup-timeline-item>div{display:grid;gap:3px}.order-popup-timeline-item strong{font-size:.72rem}.order-popup-timeline-item small{color:var(--foodex-muted)}.order-popup-timeline-item footer{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--foodex-muted);font-size:.59rem}
@@ -389,7 +389,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </tr></thead><tbody>
 @forelse($rows as $row)
 @php($rowStatusState = strtolower((string) $row['status']))
-@php($rowDelivered = $rowStatusState === 'delivered')
+@php($rowDelivered = in_array($rowStatusState, ['delivered','completed'], true))
 @php($rowActionRequired = !$rowDelivered && ($row['dispatch_status'] ?? '') === 'awaiting_dispatch')
 @php($rowExecutor = $row['dispatch_assignee'] ?? $row['driver'] ?? null)
 @php($rowWithDriver = !empty($row['has_active_driver']))
@@ -513,15 +513,15 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     </div>
 </td>
 @endif
-<td>
-    <div class="order-owner">
+<td class="order-owner-cell {{ $rowDelivered ? 'is-complete' : '' }}" @if($rowDelivered) aria-disabled="true" data-order-customer-service-dimmed @endif>
+    <div class="order-owner {{ $rowDelivered ? 'is-complete' : '' }}">
         @if($row['customer_service_owner'])
             <strong>{{ $row['customer_service_owner'] }}</strong>
             @if($row['customer_service_assignment_reason'])<small>{{ $businessLabel($row['customer_service_assignment_reason']) }}</small>@endif
         @else
             <span class="order-mini-chip">{{ __('order_operations.unassigned') }}</span>
         @endif
-        @if($canAssignCustomerService && $row['can_manage'])
+        @if(!$rowDelivered && $canAssignCustomerService && $row['can_manage'])
             <form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" class="order-inline-picker" data-order-inline-customer-service-owner>
                 @csrf @method('PATCH')
                 <select name="assigned_user_id" data-order-inline-picker-select data-initial-value="{{ (string)($row['customer_service_owner_id'] ?? '') }}" aria-label="{{ __('order_operations.customer_service_owner.assign_follow_up') }}">
@@ -548,7 +548,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </form>
 @endif
 
-@if($canAssignCustomerService && $row['can_manage'])
+@if(!$rowDelivered && $canAssignCustomerService && $row['can_manage'])
 <form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" data-order-customer-service-owner>@csrf @method('PATCH')
 <label style="display:grid;gap:4px">
 <span>{{ __('order_operations.customer_service_owner.assign_follow_up') }}</span>
