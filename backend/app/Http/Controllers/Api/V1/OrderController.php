@@ -208,6 +208,13 @@ class OrderController extends Controller
         $targetStatus = (string) $validated['status'];
         $note = isset($validated['note']) ? trim((string) $validated['note']) : null;
 
+        abort_if(
+            in_array(strtolower($previousStatus), ['delivered', 'completed'], true)
+                && $targetStatus === 'cancelled',
+            409,
+            'Delivered orders cannot be cancelled.',
+        );
+
         if (
             strtolower((string) $model->channel) === 'b2b'
             && $previousStatus === 'pending'
