@@ -2793,7 +2793,9 @@ final class OrderOperationsController extends Controller
             'invoice.reissued' => $this->msg('إعادة إصدار الفاتورة', 'Invoice reissued'),
             'invoice.voided' => $this->msg('إلغاء الفاتورة', 'Invoice voided'),
             'invoice.settled' => $this->msg('تسوية الفاتورة', 'Invoice settled'),
-            default => ucwords(str_replace(['.', '_'], ' ', $event)),
+            default => app()->getLocale() === 'ar'
+                ? 'تحديث على الطلب'
+                : ucwords(str_replace(['.', '_'], ' ', $event)),
         };
     }
 
