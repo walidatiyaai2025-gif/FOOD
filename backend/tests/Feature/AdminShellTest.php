@@ -76,7 +76,8 @@ class AdminShellTest extends TestCase
 
         $this->actingAs($user)
             ->get('/admin')
-            ->assertRedirect(route('admin.b2b.dashboard'));
+            ->assertOk()
+            ->assertSee('data-foodex-executive-overview', false);
 
         $this->actingAs($user)
             ->get('/admin/b2b/dashboard')
@@ -99,7 +100,8 @@ class AdminShellTest extends TestCase
 
         $this->actingAs($user)
             ->get('/admin')
-            ->assertRedirect(route('admin.b2b.dashboard'));
+            ->assertOk()
+            ->assertSee('data-foodex-executive-overview', false);
 
         foreach ([
             '/admin/b2b/dashboard',
