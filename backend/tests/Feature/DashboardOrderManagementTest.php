@@ -209,6 +209,17 @@ class DashboardOrderManagementTest extends TestCase
             'id' => $replacement->id,
             'status' => 'voided',
         ]);
+        $this->assertDatabaseHas('driver_assignments', [
+            'order_id' => $order->id,
+            'driver_id' => $driver,
+            'status' => 'cancelled',
+        ]);
+        $this->assertDatabaseHas('order_dispatch_states', [
+            'order_id' => $order->id,
+            'status' => 'cancelled',
+            'current_assignee_type' => null,
+            'current_assignee_id' => null,
+        ]);
     }
 
     public function test_b2b_dashboard_order_uses_approved_customer_tier_price_and_finalizes_on_assignment(): void
