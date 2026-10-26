@@ -26,6 +26,60 @@ final class OrderLifecycleNotificationService
         );
     }
 
+    public function customerOrderChanged(
+        Order $order,
+        string $change,
+        array $data = [],
+    ): void {
+        $change = trim(strtolower($change));
+        $copy = match ($change) {
+            'details_updated' => [
+                'title_ar' => 'تم تحديث تفاصيل طلبك '.DisplayNumber::reference($order->getKey()),
+                'title_en' => 'Order details updated '.DisplayNumber::reference($order->getKey()),
+                'body_ar' => 'تم تعديل بيانات الطلب. افتح الطلب لمراجعة آخر التفاصيل.',
+                'body_en' => 'Your order details were updated. Open the order to review the latest details.',
+            ],
+            'customer_service_updated' => [
+                'title_ar' => 'تحديث متابعة الطلب '.DisplayNumber::reference($order->getKey()),
+                'title_en' => 'Order follow-up updated '.DisplayNumber::reference($order->getKey()),
+                'body_ar' => 'تم تحديث متابعة طلبك بواسطة خدمة العملاء.',
+                'body_en' => 'Customer Service updated the follow-up on your order.',
+            ],
+            'invoice_updated' => [
+                'title_ar' => 'تحديث فاتورة الطلب '.DisplayNumber::reference($order->getKey()),
+                'title_en' => 'Order invoice updated '.DisplayNumber::reference($order->getKey()),
+                'body_ar' => 'تم تحديث فاتورة طلبك. افتح الطلب لمراجعة الفاتورة.',
+                'body_en' => 'Your order invoice was updated. Open the order to review the invoice.',
+            ],
+            'payment_updated' => [
+                'title_ar' => 'تحديث دفع الطلب '.DisplayNumber::reference($order->getKey()),
+                'title_en' => 'Order payment updated '.DisplayNumber::reference($order->getKey()),
+                'body_ar' => 'تم تحديث حالة الدفع الخاصة بطلبك.',
+                'body_en' => 'The payment status for your order was updated.',
+            ],
+            default => [
+                'title_ar' => 'تحديث الطلب '.DisplayNumber::reference($order->getKey()),
+                'title_en' => 'Order updated '.DisplayNumber::reference($order->getKey()),
+                'body_ar' => 'تم إجراء تحديث على طلبك. افتح الطلب لمراجعة آخر التفاصيل.',
+                'body_en' => 'Your order was updated. Open it to review the latest details.',
+            ],
+        };
+
+        $this->notifyCustomer(
+            $order,
+            'order.updated',
+            'customer-order-update:'.$order->getKey().':'.$change.':'.hash('sha256', json_encode($data, JSON_THROW_ON_ERROR).':'.(string) $order->updated_at),
+            $copy['title_ar'],
+            $copy['title_en'],
+            $copy['body_ar'],
+            $copy['body_en'],
+            [
+                'change' => $change,
+                ...$data,
+            ],
+        );
+    }
+
     public function orderStatusChanged(Order $order, string $from, string $to): void
     {
         if ($from === $to) {
@@ -392,6 +446,29 @@ final class OrderLifecycleNotificationService
                 'delivery_status' => 'assigned',
             ],
         );
+
+        $this->notifyCustomer(
+            $order,
+            $reassigned ? 'delivery.reassigned' : 'delivery.assigned',
+            'customer-van-assigned:'.$assignment->getKey(),
+            $reassigned
+                ? 'تم تغيير مركبة التوصيل '.DisplayNumber::reference($order->getKey())
+                : 'تم تعيين مركبة لتوصيل طلبك '.DisplayNumber::reference($order->getKey()),
+            $reassigned
+                ? 'Delivery vehicle changed '.DisplayNumber::reference($order->getKey())
+                : 'Delivery vehicle assigned '.DisplayNumber::reference($order->getKey()),
+            $reassigned
+                ? 'تم نقل طلبك إلى مركبة توصيل أخرى.'
+                : 'تم تعيين مركبة لتوصيل طلبك.',
+            $reassigned
+                ? 'Your order was moved to another delivery vehicle.'
+                : 'A delivery vehicle was assigned to your order.',
+            [
+                'order_van_assignment_id' => (int) $assignment->getKey(),
+                'van_id' => (int) $assignment->van_id,
+                'delivery_status' => 'assigned',
+            ],
+        );
     }
 
     public function vanAssignmentRevoked(
@@ -421,6 +498,24 @@ final class OrderLifecycleNotificationService
                 'access_revoked' => true,
             ],
         );
+
+        if ($reason === 'manual_unassigned') {
+            $this->notifyCustomer(
+                $order,
+                'delivery.unassigned',
+                'customer-van-unassigned:'.$assignment->getKey().':'.(string) $assignment->updated_at,
+                'تم سحب الطلب من مركبة التوصيل '.DisplayNumber::reference($order->getKey()),
+                'Order removed from delivery vehicle '.DisplayNumber::reference($order->getKey()),
+                'تم سحب طلبك من مركبة التوصيل الحالية وسيتم إشعارك عند إعادة توجيهه.',
+                'Your order was removed from the current delivery vehicle. You will be notified when it is reassigned.',
+                [
+                    'order_van_assignment_id' => (int) $assignment->getKey(),
+                    'van_id' => (int) $assignment->van_id,
+                    'delivery_status' => (string) $assignment->status,
+                    'reason' => $reason,
+                ],
+            );
+        }
     }
 
     private function notifyCustomer(
