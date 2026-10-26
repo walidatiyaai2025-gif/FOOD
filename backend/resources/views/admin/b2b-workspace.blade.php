@@ -557,13 +557,13 @@
           color:#fff!important;
         }
         .foodex-driver-premium-secondary{
-          border:1px solid #c7d8cc!important;
-          background:linear-gradient(180deg,#fff,#f4faf6)!important;
+          border:1px solid var(--foodex-border)!important;
+          background:var(--foodex-green-soft)!important;
           color:var(--foodex-green-dark)!important;
         }
         .foodex-driver-premium-btn.danger{
-          border:1px solid #f2c5c5!important;
-          background:linear-gradient(180deg,#fff7f7,var(--foodex-danger-soft))!important;
+          border:1px solid var(--foodex-palette-fecaca)!important;
+          background:var(--foodex-danger-soft)!important;
           color:var(--foodex-danger-text)!important;
         }
       </style>
