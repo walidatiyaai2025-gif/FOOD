@@ -383,6 +383,21 @@ class _DriverHomePageState extends State<_DriverHomePage>
             tooltip: context.tr('driver.refresh'),
             icon: const Icon(Icons.refresh_rounded),
           ),
+          if (widget.walletRoute != null)
+            IconButton(
+              key: const Key('driver-open-wallet'),
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(widget.walletRoute!),
+              tooltip: context.tr('driver.home.open_wallet'),
+              icon: const Icon(Icons.account_balance_wallet_outlined),
+            ),
+          IconButton(
+            key: const Key('driver-open-notifications'),
+            onPressed: () =>
+                Navigator.of(context).pushNamed(widget.notificationsRoute),
+            tooltip: context.tr('driver.notifications.title'),
+            icon: const Icon(Icons.notifications_none_rounded),
+          ),
           if (widget.onLogout != null)
             IconButton(
               key: const Key('driver-logout'),
@@ -399,147 +414,6 @@ class _DriverHomePageState extends State<_DriverHomePage>
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
             children: [
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: AlignmentDirectional.topStart,
-                    end: AlignmentDirectional.bottomEnd,
-                    colors: [FoodexBrand.greenDark, FoodexBrand.actionGreen],
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x24165D2D),
-                      blurRadius: 22,
-                      offset: Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: const Color(0x29FFFFFF),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(
-                            Icons.route_rounded,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                driverName.isEmpty
-                                    ? context.tr('driver.home.title')
-                                    : driverName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                context.tr('driver.home.subtitle'),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Color(0xFFE3F5E9),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: FilledButton.icon(
-                            key: const Key('driver-open-deliveries'),
-                            onPressed: () => Navigator.of(context)
-                                .pushNamed(widget.deliveriesRoute),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: FoodexBrand.greenDark,
-                              minimumSize: const Size(0, 48),
-                            ),
-                            icon: const Icon(Icons.route_rounded, size: 19),
-                            label: Text(
-                              context.tr('driver.home.open_deliveries'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            key: const Key('driver-open-notifications'),
-                            onPressed: () => Navigator.of(context)
-                                .pushNamed(widget.notificationsRoute),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.white54),
-                              minimumSize: const Size(0, 48),
-                            ),
-                            icon: const Icon(
-                              Icons.notifications_none_rounded,
-                              size: 19,
-                            ),
-                            label: Text(
-                              context.tr('driver.notifications.title'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (widget.walletRoute != null) ...[
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          key: const Key('driver-open-wallet'),
-                          onPressed: () => Navigator.of(context)
-                              .pushNamed(widget.walletRoute!),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.white54),
-                            minimumSize: const Size(0, 48),
-                          ),
-                          icon: const Icon(
-                            Icons.account_balance_wallet_outlined,
-                            size: 19,
-                          ),
-                          label: Text(
-                            context.tr('driver.home.open_wallet'),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
               Text(
                 context.tr('driver.home.status_summary'),
                 key: const Key('driver-home-status-summary-title'),
