@@ -56,7 +56,9 @@ class SalesOrderOperationsDashboardTest extends TestCase
             )
             ->assertSee('data-sales-operations-dashboard', false)
             ->assertSee('data-order-kpi-card', false)
-            ->assertSee('data-sales-exception="delayed"', false);
+            ->assertSee('data-sales-exception="delayed"', false)
+            ->assertDontSee('data-sales-exception="payment"', false)
+            ->assertDontSee('data-sales-exception="invoice"', false);
 
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2c&store_id='.$store.'&exception=payment')
