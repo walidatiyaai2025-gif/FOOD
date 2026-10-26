@@ -771,7 +771,7 @@ class _DriverPendingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: const Color(0xFFFFE9EC),
+        color: FoodexBrand.statusSurface('error'),
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
           onTap: onTap,
@@ -781,7 +781,7 @@ class _DriverPendingCard extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: const Color(0xFFE11D48),
+                color: FoodexBrand.red,
                 width: 1.4,
               ),
             ),
@@ -791,7 +791,7 @@ class _DriverPendingCard extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE11D48),
+                    color: FoodexBrand.red,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Icon(
@@ -831,7 +831,7 @@ class _DriverPendingCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE11D48),
+                      color: FoodexBrand.red,
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
