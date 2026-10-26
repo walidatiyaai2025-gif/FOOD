@@ -127,6 +127,10 @@ async function snapViewport(page, relativePath) {
 }
 
 async function login(page, channel, locale, email) {
+  // Stop authenticated pages from racing clearCookies() with their background
+  // polling requests and silently recreating the Laravel session cookie.
+  await page.goto('about:blank');
+  await page.context().clearCookies();
   await page.goto(`${baseUrl}/admin/${channel}/login?locale=${locale}`, { waitUntil: 'networkidle' });
   await page.fill('#email', email);
   await page.fill('#password', ['Evidence','123!'].join(''));
