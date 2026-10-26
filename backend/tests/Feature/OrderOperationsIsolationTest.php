@@ -672,10 +672,11 @@ class OrderOperationsIsolationTest extends TestCase
 
                 return is_array($row)
                     && ($row['has_active_driver'] ?? false) === true
-                    && ($row['status_label'] ?? null) === 'Order with driver for delivery'
+                    && ($row['status_label'] ?? null) === 'Order assigned to driver'
+                    && ($row['status_visual_state'] ?? null) === 'assigned'
                     && collect($row['available_statuses'] ?? [])->pluck('code')->values()->all() === ['cancelled'];
             })
-            ->assertSee('data-state="driver_delivery"', false)
+            ->assertSee('data-state="assigned"', false)
             ->assertSee('Cancel order')
             ->assertSee('Withdraw and transfer order to another driver')
             ->assertSee('value="driver:'.$replacementDriver.'"', false)
