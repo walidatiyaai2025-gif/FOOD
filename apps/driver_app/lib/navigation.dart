@@ -230,8 +230,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
       <int, DriverAssignment>{};
   final Map<int, String> _assignmentFingerprints = <int, String>{};
   final Map<int, DateTime> _recentPushAssignments = <int, DateTime>{};
-  final List<_DriverHomeUpdateEvent> _updateQueue =
-      <_DriverHomeUpdateEvent>[];
+  final List<_DriverHomeUpdateEvent> _updateQueue = <_DriverHomeUpdateEvent>[];
   bool _assignmentSnapshotInitialized = false;
   bool _updatePopupActive = false;
 
@@ -700,15 +699,28 @@ class _DriverHomePageState extends State<_DriverHomePage>
           builder: (context, constraints) {
             final compact = constraints.maxHeight < 610;
             final ultraCompact = constraints.maxHeight < 510;
-            final gap = ultraCompact ? 4.0 : compact ? 6.0 : 8.0;
+            final gap = ultraCompact
+                ? 4.0
+                : compact
+                    ? 6.0
+                    : 8.0;
             final horizontalPadding = ultraCompact ? 8.0 : 12.0;
             final columns = compact ? 3 : 2;
-            final chartHeight =
-                ultraCompact ? 96.0 : compact ? 118.0 : 160.0;
-            final pendingHeight =
-                ultraCompact ? 38.0 : compact ? 42.0 : 46.0;
-            final statusCardHeight =
-                ultraCompact ? 46.0 : compact ? 54.0 : 64.0;
+            final chartHeight = ultraCompact
+                ? 96.0
+                : compact
+                    ? 118.0
+                    : 160.0;
+            final pendingHeight = ultraCompact
+                ? 38.0
+                : compact
+                    ? 42.0
+                    : 46.0;
+            final statusCardHeight = ultraCompact
+                ? 46.0
+                : compact
+                    ? 54.0
+                    : 64.0;
             final statusRows = (_statuses.length / columns).ceil();
             final statusGridHeight =
                 (statusRows * statusCardHeight) + ((statusRows - 1) * gap);
@@ -729,7 +741,11 @@ class _DriverHomePageState extends State<_DriverHomePage>
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontSize: ultraCompact ? 14 : compact ? 15 : null,
+                          fontSize: ultraCompact
+                              ? 14
+                              : compact
+                                  ? 15
+                                  : null,
                           fontWeight: FontWeight.w900,
                         ),
                   ),
@@ -885,12 +901,20 @@ class _DriverWorkloadChart extends StatelessWidget {
     } else if (total == 0) {
       body = Text(context.tr('driver.home.analytics.empty'));
     } else {
-      final chartSize = ultraCompact ? 50.0 : compact ? 60.0 : 70.0;
+      final chartSize = ultraCompact
+          ? 50.0
+          : compact
+              ? 60.0
+              : 70.0;
       final chart = FoodexDonutChart(
         values: [for (final item in statuses) item.value.toDouble()],
         semanticLabel: semanticLabel,
         size: chartSize,
-        strokeWidth: ultraCompact ? 8 : compact ? 10 : 12,
+        strokeWidth: ultraCompact
+            ? 8
+            : compact
+                ? 10
+                : 12,
       );
       final legend = FoodexChartLegend(labels: labels);
 
@@ -898,7 +922,12 @@ class _DriverWorkloadChart extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           chart,
-          SizedBox(width: ultraCompact ? 8 : compact ? 10 : 14),
+          SizedBox(
+              width: ultraCompact
+                  ? 8
+                  : compact
+                      ? 10
+                      : 14),
           Expanded(child: legend),
         ],
       );
@@ -908,7 +937,11 @@ class _DriverWorkloadChart extends StatelessWidget {
       key: const Key('driver-home-workload-chart'),
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: EdgeInsets.all(ultraCompact ? 7 : compact ? 9 : 12),
+        padding: EdgeInsets.all(ultraCompact
+            ? 7
+            : compact
+                ? 9
+                : 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -916,7 +949,11 @@ class _DriverWorkloadChart extends StatelessWidget {
               children: [
                 Icon(
                   Icons.donut_large_rounded,
-                  size: ultraCompact ? 16 : compact ? 18 : 20,
+                  size: ultraCompact
+                      ? 16
+                      : compact
+                          ? 18
+                          : 20,
                   color: FoodexChartPalette.primaryDark,
                 ),
                 SizedBox(width: ultraCompact ? 5 : 8),
@@ -926,7 +963,11 @@ class _DriverWorkloadChart extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontSize: ultraCompact ? 11 : compact ? 12 : null,
+                          fontSize: ultraCompact
+                              ? 11
+                              : compact
+                                  ? 12
+                                  : null,
                           fontWeight: FontWeight.w900,
                         ),
                   ),
@@ -968,7 +1009,12 @@ class _DriverWorkloadChart extends StatelessWidget {
                 ],
               ),
             ],
-            SizedBox(height: ultraCompact ? 4 : compact ? 6 : 10),
+            SizedBox(
+                height: ultraCompact
+                    ? 4
+                    : compact
+                        ? 6
+                        : 10),
             Expanded(child: Center(child: body)),
           ],
         ),
@@ -1002,8 +1048,16 @@ class _DriverPendingCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           child: Container(
             padding: EdgeInsets.symmetric(
-              horizontal: ultraCompact ? 8 : compact ? 10 : 14,
-              vertical: ultraCompact ? 3 : compact ? 4 : 5,
+              horizontal: ultraCompact
+                  ? 8
+                  : compact
+                      ? 10
+                      : 14,
+              vertical: ultraCompact
+                  ? 3
+                  : compact
+                      ? 4
+                      : 5,
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
@@ -1015,8 +1069,16 @@ class _DriverPendingCard extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: ultraCompact ? 24 : compact ? 28 : 32,
-                  height: ultraCompact ? 24 : compact ? 28 : 32,
+                  width: ultraCompact
+                      ? 24
+                      : compact
+                          ? 28
+                          : 32,
+                  height: ultraCompact
+                      ? 24
+                      : compact
+                          ? 28
+                          : 32,
                   decoration: BoxDecoration(
                     color: FoodexBrand.red,
                     borderRadius: BorderRadius.circular(compact ? 10 : 14),
@@ -1024,10 +1086,19 @@ class _DriverPendingCard extends StatelessWidget {
                   child: Icon(
                     Icons.notifications_active_rounded,
                     color: Colors.white,
-                    size: ultraCompact ? 14 : compact ? 16 : 18,
+                    size: ultraCompact
+                        ? 14
+                        : compact
+                            ? 16
+                            : 18,
                   ),
                 ),
-                SizedBox(width: ultraCompact ? 6 : compact ? 8 : 10),
+                SizedBox(
+                    width: ultraCompact
+                        ? 6
+                        : compact
+                            ? 8
+                            : 10),
                 Expanded(
                   child: Text(
                     label,
@@ -1035,7 +1106,11 @@ class _DriverPendingCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: FoodexBrand.dangerText,
-                      fontSize: ultraCompact ? 10 : compact ? 11 : 13,
+                      fontSize: ultraCompact
+                          ? 10
+                          : compact
+                              ? 11
+                              : 13,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -1053,11 +1128,19 @@ class _DriverPendingCard extends StatelessWidget {
                 else
                   Container(
                     constraints: BoxConstraints(
-                      minWidth: ultraCompact ? 30 : compact ? 34 : 40,
+                      minWidth: ultraCompact
+                          ? 30
+                          : compact
+                              ? 34
+                              : 40,
                     ),
                     padding: EdgeInsets.symmetric(
                       horizontal: ultraCompact ? 7 : 9,
-                      vertical: ultraCompact ? 3 : compact ? 4 : 5,
+                      vertical: ultraCompact
+                          ? 3
+                          : compact
+                              ? 4
+                              : 5,
                     ),
                     decoration: BoxDecoration(
                       color: FoodexBrand.red,
@@ -1068,7 +1151,11 @@ class _DriverPendingCard extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: ultraCompact ? 14 : compact ? 16 : 19,
+                        fontSize: ultraCompact
+                            ? 14
+                            : compact
+                                ? 16
+                                : 19,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -1107,8 +1194,16 @@ class _DriverStatusCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           child: Container(
             padding: EdgeInsets.symmetric(
-              horizontal: ultraCompact ? 6 : compact ? 8 : 10,
-              vertical: ultraCompact ? 5 : compact ? 7 : 9,
+              horizontal: ultraCompact
+                  ? 6
+                  : compact
+                      ? 8
+                      : 10,
+              vertical: ultraCompact
+                  ? 5
+                  : compact
+                      ? 7
+                      : 9,
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
@@ -1117,8 +1212,16 @@ class _DriverStatusCard extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: ultraCompact ? 26 : compact ? 30 : 34,
-                  height: ultraCompact ? 26 : compact ? 30 : 34,
+                  width: ultraCompact
+                      ? 26
+                      : compact
+                          ? 30
+                          : 34,
+                  height: ultraCompact
+                      ? 26
+                      : compact
+                          ? 30
+                          : 34,
                   decoration: BoxDecoration(
                     color: FoodexBrand.greenSoft,
                     borderRadius: BorderRadius.circular(compact ? 9 : 12),
@@ -1126,17 +1229,30 @@ class _DriverStatusCard extends StatelessWidget {
                   child: Icon(
                     icon,
                     color: FoodexBrand.greenDark,
-                    size: ultraCompact ? 14 : compact ? 16 : 18,
+                    size: ultraCompact
+                        ? 14
+                        : compact
+                            ? 16
+                            : 18,
                   ),
                 ),
-                SizedBox(width: ultraCompact ? 5 : compact ? 6 : 8),
+                SizedBox(
+                    width: ultraCompact
+                        ? 5
+                        : compact
+                            ? 6
+                            : 8),
                 Expanded(
                   child: Text(
                     label,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: ultraCompact ? 9 : compact ? 10 : 11,
+                      fontSize: ultraCompact
+                          ? 9
+                          : compact
+                              ? 10
+                              : 11,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -1152,7 +1268,11 @@ class _DriverStatusCard extends StatelessWidget {
                   Text(
                     value.toString(),
                     style: TextStyle(
-                      fontSize: ultraCompact ? 14 : compact ? 16 : 19,
+                      fontSize: ultraCompact
+                          ? 14
+                          : compact
+                              ? 16
+                              : 19,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
