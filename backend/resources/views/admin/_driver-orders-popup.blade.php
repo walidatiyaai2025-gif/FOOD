@@ -1,6 +1,3 @@
-@php
-    use App\Support\DisplayNumber;
-@endphp
 <div data-driver-orders-content>
     <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:14px">
         <div>
@@ -30,7 +27,7 @@
             <tbody>
             @forelse($orders as $order)
                 <tr>
-                    <td><strong>{{ DisplayNumber::reference($order->id) }}</strong></td>
+                    <td><strong>{{ \App\Support\DisplayNumber::reference($order->id) }}</strong></td>
                     <td>{{ $order->store_name }}</td>
                     <td>{{ str_replace('_',' ',(string)$order->order_status) }}</td>
                     <td>{{ str_replace('_',' ',(string)$order->assignment_status) }}</td>
