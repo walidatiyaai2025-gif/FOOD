@@ -54,14 +54,22 @@ void main() {
 
     expect(alert.open.assignmentId, 42);
     expect(alert.open.orderId, 99);
-    expect(alert.eventKey, 'assignment:42');
+    expect(alert.eventKey, 'assignment:42|New order|Order 99 is ready');
 
     const orderOnly = DriverPushAlert(
       title: 'Order update',
       body: 'Updated',
       open: DriverPushOpen(orderId: 99),
     );
-    expect(orderOnly.eventKey, 'order:99');
+    expect(orderOnly.eventKey, 'order:99|Order update|Updated');
+
+    const explicit = DriverPushAlert(
+      title: 'Order update',
+      body: 'Updated again',
+      open: DriverPushOpen(assignmentId: 42, orderId: 99),
+      eventKeyOverride: 'driver-order-update:99:payment_updated:abc',
+    );
+    expect(explicit.eventKey, 'driver-order-update:99:payment_updated:abc');
   });
 
   test('foreground push identity prefers authoritative order id and falls back to assignment id', () {
