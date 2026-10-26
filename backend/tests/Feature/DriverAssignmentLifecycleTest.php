@@ -6,6 +6,7 @@ use App\Models\Address;
 use App\Models\Customer;
 use App\Models\DeliveryProof;
 use App\Models\Driver;
+use App\Models\DriverAssignment;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
