@@ -293,11 +293,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
 
       final newAssignments = _assignmentSnapshotInitialized
           ? nextAssignments
-              .where(
-                (row) =>
-                    row.status == 'assigned' &&
-                    !_seenAssignmentIds.contains(row.id),
-              )
+              .where((row) => !_seenAssignmentIds.contains(row.id))
               .toList(growable: false)
           : const <DriverAssignment>[];
 
