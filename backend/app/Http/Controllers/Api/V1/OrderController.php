@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
 use App\Models\DriverAssignment;
@@ -37,10 +36,10 @@ use Illuminate\Validation\ValidationException;
 class OrderController extends Controller
 {
     private const TRANSITIONS = [
-        'pending' => ['confirmed', 'cancelled'],
-        'confirmed' => ['preparing', 'cancelled'],
-        'preparing' => ['ready', 'cancelled'],
-        'ready' => ['out_for_delivery', 'cancelled'],
+        'pending' => ['cancelled'],
+        'confirmed' => ['cancelled'],
+        'preparing' => ['cancelled'],
+        'ready' => ['cancelled'],
         'out_for_delivery' => ['delivered', 'failed'],
         'failed' => ['out_for_delivery', 'cancelled'],
         'delivered' => [],
@@ -217,15 +216,6 @@ class OrderController extends Controller
             ]);
         }
 
-        if (
-            strtolower((string) $model->channel) === 'b2b'
-            && $previousStatus === 'pending'
-            && $targetStatus === 'confirmed'
-            && ($note === null || $note === '')
-        ) {
-            $note = 'customer_service_approved';
-        }
-
         /** @var Order $updated */
         $updated = DB::transaction(function () use (
             $model,
@@ -248,14 +238,6 @@ class OrderController extends Controller
                 409,
                 "Order cannot transition from {$currentStatus} to {$targetStatus}.",
             );
-
-            if (
-                strtolower((string) $locked->channel) === 'b2b'
-                && $currentStatus === 'pending'
-                && $targetStatus === 'confirmed'
-            ) {
-                $this->assertB2bPendingApprovalFinance($locked);
-            }
 
             if ($targetStatus === 'cancelled') {
                 app(OrderInventoryReservationService::class)->release($locked, $user);
@@ -308,12 +290,7 @@ class OrderController extends Controller
             $locked->status = $targetStatus;
             $locked->save();
 
-            // A dashboard-created pending order remains editable until it is accepted.
-            // Confirmation is the commercial finalization point; customer checkout invoices
-            // are already issued atomically by CheckoutController and this call is idempotent.
-            if ($targetStatus === 'confirmed') {
-                app(InvoiceService::class)->issueForOrder($locked, $user);
-            } elseif ($targetStatus === 'cancelled') {
+            if ($targetStatus === 'cancelled') {
                 app(InvoiceService::class)->voidForOrder(
                     $locked,
                     $user,
@@ -422,51 +399,6 @@ class OrderController extends Controller
                 ], JSON_THROW_ON_ERROR),
                 'occurred_at' => now(),
                 'created_at' => now(),
-            ]);
-        }
-    }
-
-    private function assertB2bPendingApprovalFinance(Order $order): void
-    {
-        if ((string) $order->payment_method !== 'account_credit') {
-            return;
-        }
-
-        $customer = B2bCustomer::query()->findOrFail((int) $order->b2b_customer_id);
-        $account = B2bAccount::query()
-            ->where('b2b_customer_id', $customer->getKey())
-            ->where('status', 'active')
-            ->lockForUpdate()
-            ->first();
-
-        if (! $account instanceof B2bAccount) {
-            throw ValidationException::withMessages([
-                'status' => ['The B2B account is no longer active and cannot be approved for account credit.'],
-            ]);
-        }
-
-        $finance = app(B2bAccountLedgerService::class)->summary(
-            $customer,
-            (int) $order->store_id,
-        );
-        $alreadyInLedger = Invoice::query()
-            ->where('order_id', $order->getKey())
-            ->whereIn('status', ['issued', 'reissued'])
-            ->exists();
-
-        if ($alreadyInLedger) {
-            if ((float) $finance['outstanding_receivable'] > (float) $finance['credit_limit'] + 0.0001) {
-                throw ValidationException::withMessages([
-                    'status' => ['Account credit exposure exceeds the current authoritative credit limit.'],
-                ]);
-            }
-
-            return;
-        }
-
-        if ((float) $order->grand_total > (float) $finance['purchasing_power'] + 0.0001) {
-            throw ValidationException::withMessages([
-                'status' => ['Account credit is insufficient for the authoritative order total at approval time.'],
             ]);
         }
     }
