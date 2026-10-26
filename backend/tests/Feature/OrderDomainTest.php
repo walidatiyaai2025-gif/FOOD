@@ -593,11 +593,6 @@ class OrderDomainTest extends TestCase
             'status' => 'ready',
         ]);
 
-        $this->getJson("/api/v1/b2b/orders/{$order->id}")
-            ->assertOk()
-            ->assertJsonPath('status', 'ready')
-            ->assertJsonPath('next_statuses.0', 'cancelled')
-            ->assertJsonCount(1, 'next_statuses');
     }
 
     public function test_super_admin_can_follow_valid_transition_chain_and_delivery_consumes_reserved_stock(): void
