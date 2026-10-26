@@ -82,6 +82,42 @@ void main() {
     expect(result.token, 'abc');
   });
 
+  test('HTTP auth derives B2B driver channel from backend scope', () async {
+    final client = MockClient((request) async {
+      expect(request.url.path, '/api/v1/auth/login');
+      return http.Response(
+        jsonEncode({
+          'token': 'b2b-token',
+          'user': {
+            'name': 'Wholesale Driver',
+            'email': 'b2b-driver@example.test',
+            'locale': 'ar',
+            'roles': ['B2B_DRIVER'],
+            'driver_scope': {
+              'driver_id': 27,
+              'channel': 'b2b',
+              'store_id': 1,
+            },
+          },
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    final repo = HttpDriverAuthRepository(
+      'https://foodex.example/',
+      client: client,
+    );
+
+    final result = await repo.login(
+      email: 'b2b-driver@example.test',
+      password: 'secret-password',
+    );
+    expect(result.channel, DriverChannel.b2b);
+    expect(result.storeId, 1);
+    expect(result.token, 'b2b-token');
+  });
+
   test(
       'HTTP assignment repository uses canonical list and transition endpoints',
       () async {
