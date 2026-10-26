@@ -230,9 +230,8 @@ return [
         'no_collections' => 'لا يوجد تحصيل بواسطة الفان محفوظ لهذا الطلب.',
     ],
     'lifecycle_labels' => [
-        'pending_confirmation' => 'قيد الانتظار وفي انتظار التأكيد',
-        'confirmed_awaiting_driver' => 'تم التأكيد وفي انتظار تعيين سائق',
-        'confirmed_awaiting_dispatch' => 'تم التأكيد وفي انتظار تعيين سائق أو فان',
+        'awaiting_driver_assignment' => 'طلب جديد · بانتظار تعيين سائق',
+        'awaiting_dispatch_assignment' => 'طلب جديد · بانتظار تعيين سائق أو فان',
         'assigned_driver' => 'تم تعيين الطلب لسائق',
         'assigned_van' => 'تم تعيين الطلب لفان',
         'driver_processing' => 'السائق يقوم بمعالجة الطلب',
