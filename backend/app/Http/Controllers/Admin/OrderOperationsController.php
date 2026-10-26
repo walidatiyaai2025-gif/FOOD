@@ -35,9 +35,11 @@ use App\Services\VanDeliveryEvidenceService;
 use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use App\Support\DisplayNumber;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -128,8 +130,22 @@ final class OrderOperationsController extends Controller
         $orderQuery = Order::query()
             ->where(fn ($query) => $this->applyOperationalScopes($query, $scopes))
             ->when($selectedStoreId !== null, fn ($query) => $query->where('store_id', $selectedStoreId))
-            ->when(isset($data['from']), fn ($query) => $query->whereDate('created_at', '>=', $data['from']))
-            ->when(isset($data['to']), fn ($query) => $query->whereDate('created_at', '<=', $data['to']))
+            ->when(
+                isset($data['from']),
+                fn ($query) => $query->where(
+                    'created_at',
+                    '>=',
+                    CarbonImmutable::parse((string) $data['from'], 'Asia/Kuwait')->startOfDay()->utc(),
+                ),
+            )
+            ->when(
+                isset($data['to']),
+                fn ($query) => $query->where(
+                    'created_at',
+                    '<=',
+                    CarbonImmutable::parse((string) $data['to'], 'Asia/Kuwait')->endOfDay()->utc(),
+                ),
+            )
             ->when(
                 isset($data['order_number']) && trim((string) $data['order_number']) !== '',
                 function ($query) use ($data): void {
@@ -210,6 +226,21 @@ final class OrderOperationsController extends Controller
         $selectedStatus = isset($data['status']) ? (string) $data['status'] : null;
         $orders = (clone $orderQuery)
             ->when($selectedStatus !== null, fn ($query) => $query->where('status', $selectedStatus))
+            ->select([
+                'id',
+                'store_id',
+                'b2b_customer_id',
+                'b2c_customer_id',
+                'order_number',
+                'channel',
+                'status',
+                'currency',
+                'grand_total',
+                'payment_method',
+                'commercial_locked_at',
+                'created_at',
+                'updated_at',
+            ])
             ->latest('id')
             ->paginate($perPage)
             ->withQueryString();
@@ -290,14 +321,38 @@ final class OrderOperationsController extends Controller
             || isset($data['exception'])
             || isset($data['order'])
         );
-        $dashboard = $dashboardVisible
-            ? $this->salesDashboard->build(
+        $dashboard = null;
+        if ($dashboardVisible) {
+            $dashboardLoader = fn (): array => $this->salesDashboard->build(
                 $scopes,
                 $selectedStoreId,
                 isset($data['from']) ? (string) $data['from'] : null,
                 isset($data['to']) ? (string) $data['to'] : null,
-            )
-            : null;
+            );
+
+            if (app()->environment('testing')) {
+                $dashboard = $dashboardLoader();
+            } else {
+                $normalizedScopes = [
+                    'b2b' => array_values(array_unique(array_map('intval', $scopes['b2b']))),
+                    'b2c' => array_values(array_unique(array_map('intval', $scopes['b2c']))),
+                ];
+                sort($normalizedScopes['b2b']);
+                sort($normalizedScopes['b2c']);
+                $dashboardCacheKey = 'admin.order-operations.dashboard.v3.'.sha1(json_encode([
+                    'scopes' => $normalizedScopes,
+                    'store_id' => $selectedStoreId,
+                    'from' => $data['from'] ?? null,
+                    'to' => $data['to'] ?? null,
+                ], JSON_THROW_ON_ERROR));
+
+                $dashboard = Cache::remember(
+                    $dashboardCacheKey,
+                    now()->addSeconds(20),
+                    $dashboardLoader,
+                );
+            }
+        }
 
         $dashboardBaseQuery = [];
         $dashboardKpis = [];
