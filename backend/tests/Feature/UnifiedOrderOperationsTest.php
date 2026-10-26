@@ -216,6 +216,11 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-b2b-ready-dispatch-alert', $view);
         $this->assertStringContainsString('order-ready-dispatch-alert', $view);
         $this->assertStringContainsString('b2b_out_for_delivery', $view);
+        $this->assertStringContainsString('driver_delivery', $view);
+        $this->assertStringContainsString('الطلب مع السائق للتوصيل', $view);
+        $this->assertStringContainsString('إلغاء الطلب', $view);
+        $this->assertStringContainsString('سحب وتحويل الطلب لسائق آخر', $view);
+        $this->assertStringContainsString('data-order-driver-transfer', $view);
         $this->assertStringContainsString('اختر سائق أو فان', $view);
         $this->assertStringContainsString('data-order-dispatch-locked', $view);
         $this->assertStringContainsString('is-dispatch-locked', $view);
