@@ -94,7 +94,7 @@ class CoreSchemaTest extends TestCase
                 'orders_ops_scope_created_idx',
                 'orders_ops_scope_status_created_idx',
             ],
-            'invoices' => ['invoices_customer_status_idx'],
+            'invoices' => ['invoices_customer_status_idx', 'invoices_order_status_id_idx'],
             'promotions' => ['promotions_store_active_idx'],
             'drivers' => ['drivers_type_active_available_idx'],
             'driver_assignments' => [
@@ -103,6 +103,7 @@ class CoreSchemaTest extends TestCase
             ],
             'order_dispatch_states' => ['order_dispatch_status_order_idx'],
             'order_status_history' => ['order_history_order_status_created_idx'],
+            'payments' => ['payments_order_id_id_idx'],
             'notifications' => ['notifications_user_read_idx'],
             'audit_logs' => ['audit_logs_user_created_idx'],
         ];
@@ -183,6 +184,14 @@ class CoreSchemaTest extends TestCase
         $this->assertContains(
             'driver_assignments_order_status_id_idx',
             array_column(Schema::getIndexes('driver_assignments'), 'name'),
+        );
+        $this->assertContains(
+            'payments_order_id_id_idx',
+            array_column(Schema::getIndexes('payments'), 'name'),
+        );
+        $this->assertContains(
+            'invoices_order_status_id_idx',
+            array_column(Schema::getIndexes('invoices'), 'name'),
         );
     }
 
