@@ -230,6 +230,7 @@ class AppTranslations extends InheritedWidget {
     'customer.order.tracking': 'التتبع',
     'customer.order.no_live_tracking':
         'يعرض فودكس هنا الحالة والتسلسل المؤكدين من النظام. موقع السائق والوقت المتوقع لا يظهران كبيانات حية إلا عند توفرهما من مصدر موثوق.',
+    'customer.order.driver': 'مندوب التوصيل',
     'customer.order.items': 'المنتجات',
     'customer.order.address': 'عنوان التوصيل',
     'customer.order.payment': 'الدفع',
@@ -988,6 +989,7 @@ class AppTranslations extends InheritedWidget {
     'customer.order.tracking': 'Tracking',
     'customer.order.no_live_tracking':
         'FOODEX shows authoritative order status and timeline here. Driver position and ETA are shown as live data only when an authoritative source provides them.',
+    'customer.order.driver': 'Delivery driver',
     'customer.order.items': 'Items',
     'customer.order.address': 'Delivery address',
     'customer.order.payment': 'Payment',
