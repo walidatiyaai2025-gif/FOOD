@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Models\DriverAssignment;
 use App\Models\Order;
-use App\Models\OrderDispatchState;
 use App\Models\OrderVanAssignment;
+use Illuminate\Support\Facades\DB;
 
 final class B2BVanFulfillmentMigrationAudit
 {
@@ -75,16 +75,16 @@ final class B2BVanFulfillmentMigrationAudit
                         ->map(fn ($id): int => (int) $id)
                         ->all();
 
-                    $dispatch = OrderDispatchState::query()
+                    $dispatch = DB::table('order_dispatch_states')
                         ->where('order_id', $order->id)
                         ->first(['status', 'current_assignee_type', 'current_assignee_id', 'routing_reason']);
 
                     $issues = [];
                     if ($channel === 'b2b') {
-                        $authorizedManualDriver = $dispatch->status === 'assigned'
-                            && $dispatch->current_assignee_type === FulfillmentActorPolicy::DRIVER
-                            && $dispatch->current_assignee_id !== null
-                            && $dispatch->routing_reason === 'customer_service_driver_assignment'
+                        $authorizedManualDriver = $dispatch?->status === 'assigned'
+                            && $dispatch?->current_assignee_type === FulfillmentActorPolicy::DRIVER
+                            && $dispatch?->current_assignee_id !== null
+                            && $dispatch?->routing_reason === 'customer_service_driver_assignment'
                             && $activeDriverIds !== [];
 
                         if ($activeDriverIds !== [] && ! $authorizedManualDriver) {
