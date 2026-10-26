@@ -200,7 +200,7 @@ class OrderDomainTest extends TestCase
         $this->getJson('/api/v1/b2b/orders?status=pending')
             ->assertOk()
             ->assertJsonPath('data.0.id', $pending->id)
-            ->assertJsonPath('data.0.next_statuses.0', 'confirmed');
+            ->assertJsonPath('data.0.next_statuses.0', 'cancelled');
     }
 
     public function test_b2b_order_detail_exposes_authoritative_customer_safe_delivery_timeline(): void
@@ -674,7 +674,7 @@ class OrderDomainTest extends TestCase
         ]);
     }
 
-    public function test_super_admin_can_follow_valid_transition_chain_and_delivery_consumes_reserved_stock(): void
+    public function test_super_admin_cannot_bypass_assignment_driven_delivery_lifecycle(): void
     {
         $order = $this->makeOrder(
             $this->b2cCustomer,
@@ -690,33 +690,25 @@ class OrderDomainTest extends TestCase
         foreach (['confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered'] as $status) {
             $this->postJson("/api/v1/orders/{$order->id}/status", [
                 'status' => $status,
-                'note' => 'Transition '.$status,
-            ])->assertOk()
-                ->assertJsonPath('status', $status);
+                'note' => 'Legacy manual transition '.$status,
+            ])->assertConflict();
         }
 
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'pending',
+        ]);
         $this->assertDatabaseHas('inventories', [
             'id' => $this->inventoryId,
-            'quantity' => 8,
-            'reserved_quantity' => 0,
+            'quantity' => 10,
+            'reserved_quantity' => 2,
         ]);
-        $this->assertDatabaseHas('stock_movements', [
+        $this->assertDatabaseMissing('stock_movements', [
             'inventory_id' => $this->inventoryId,
             'reference_type' => 'order',
             'reference_id' => $order->id,
             'type' => 'sale',
-            'quantity' => -2,
         ]);
-        $this->assertDatabaseHas('audit_logs', [
-            'event' => 'order.status_changed',
-            'auditable_type' => 'App\\Models\\Order',
-            'auditable_id' => $order->id,
-        ]);
-
-        $this->assertSame(
-            6,
-            OrderStatusHistory::query()->where('order_id', $order->id)->count(),
-        );
     }
 
     public function test_cancellation_releases_reserved_stock(): void
