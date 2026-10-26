@@ -683,7 +683,7 @@ final class OrderOperationsController extends Controller
         $model = $this->managedOrder($actor, $order, 'orders.manage');
         $orders->update($request, $actor, $model);
         $notifications->customerOrderChanged($model->fresh(), 'details_updated', [
-            'actor_user_id' => (int) $actor->getKey(),
+            'source' => 'dashboard',
         ]);
 
         return redirect()
@@ -1584,8 +1584,7 @@ final class OrderOperationsController extends Controller
         }, 3);
 
         $notifications->customerOrderChanged($model->fresh(), 'customer_service_updated', [
-            'assigned_user_id' => $assignedUserId,
-            'reason' => $reason === '' ? null : $reason,
+            'assigned' => $assignedUserId !== null,
         ]);
 
         return back()->with('status', $this->msg(
