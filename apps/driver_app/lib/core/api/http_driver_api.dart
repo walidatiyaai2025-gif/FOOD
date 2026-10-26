@@ -315,9 +315,10 @@ class HttpDriverAssignmentRepository
       orderId: (map['order_id'] as num?)?.toInt() ?? 0,
       storeId: (map['store_id'] as num?)?.toInt() ?? 0,
       channel: assignmentChannel,
-      reference:
-          (order['number'] ?? '#${(map['order_id'] as num?)?.toInt() ?? 0}')
-              .toString(),
+      reference: (order['display_number'] ??
+              order['number'] ??
+              '#${(map['order_id'] as num?)?.toInt() ?? 0}')
+          .toString(),
       status: (map['status'] ?? '').toString(),
       storeName: (store['name'] ?? '').toString(),
       orderStatus: (order['status'] ?? '').toString(),
