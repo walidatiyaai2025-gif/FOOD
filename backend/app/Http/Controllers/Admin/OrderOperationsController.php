@@ -1265,6 +1265,11 @@ final class OrderOperationsController extends Controller
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.view');
+        abort_unless(
+            $this->orderCanBeDispatched($model),
+            409,
+            'Order must be confirmed before dispatch.',
+        );
         $this->scope->assertStore(
             $actor,
             (int) $model->store_id,
@@ -1391,6 +1396,11 @@ final class OrderOperationsController extends Controller
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.view');
+        abort_unless(
+            $this->orderCanBeDispatched($model),
+            409,
+            'Order must be confirmed before dispatch.',
+        );
         $this->scope->assertStore(
             $actor,
             (int) $model->store_id,
@@ -1538,6 +1548,11 @@ final class OrderOperationsController extends Controller
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.manage');
+        abort_unless(
+            $this->orderCanBeDispatched($model),
+            409,
+            'Order must be confirmed before dispatch.',
+        );
         $this->scope->assertStore(
             $actor,
             (int) $model->store_id,
@@ -1584,6 +1599,11 @@ final class OrderOperationsController extends Controller
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.manage');
+        abort_unless(
+            $this->orderCanBeDispatched($model),
+            409,
+            'Order must be confirmed before dispatch.',
+        );
         $this->scope->assertStore(
             $actor,
             (int) $model->store_id,
@@ -2136,11 +2156,13 @@ final class OrderOperationsController extends Controller
                 ? null
                 : ((app()->getLocale() === 'ar' ? $dispatchTerritory->name_ar : $dispatchTerritory->name_en)
                     ?: $dispatchTerritory->code),
-            'can_dispatch' => in_array(
+            'can_dispatch_authorized' => $canDispatchAuthorized = in_array(
                 (int) $order->store_id,
                 $dispatchScopes[strtolower((string) $order->channel)] ?? [],
                 true,
             ),
+            'can_dispatch' => $canDispatchAuthorized && $this->orderCanBeDispatched($order),
+            'dispatch_locked_until_confirmation' => $canDispatchAuthorized && $status === 'pending',
         ];
     }
 
@@ -2511,6 +2533,15 @@ final class OrderOperationsController extends Controller
         $channels = $this->availableOperationalChannels($actor, 'orders.view');
 
         return (string) $channels[0]['code'];
+    }
+
+    private function orderCanBeDispatched(Order $order): bool
+    {
+        return in_array(
+            strtolower((string) $order->status),
+            ['confirmed', 'preparing', 'ready', 'out_for_delivery', 'failed'],
+            true,
+        );
     }
 
     private function actor(Request $request): User
