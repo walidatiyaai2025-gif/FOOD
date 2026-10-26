@@ -237,8 +237,7 @@ void main() {
     expect(statusGrid, findsOneWidget);
     expect(
         find.byKey(const Key('driver-home-status-accepted')), findsOneWidget);
-    expect(
-        find.byKey(const Key('driver-home-status-picked_up')), findsNothing);
+    expect(find.byKey(const Key('driver-home-status-picked_up')), findsNothing);
     expect(find.byKey(const Key('driver-home-status-out_for_delivery')),
         findsOneWidget);
     expect(find.byKey(const Key('driver-home-status-failed')), findsOneWidget);
@@ -372,8 +371,7 @@ void main() {
     );
   });
 
-  testWidgets(
-      'home shows a one-time popup when a new assigned order arrives',
+  testWidgets('home shows a one-time popup when a new assigned order arrives',
       (tester) async {
     final repo = _LiveStatusRepo();
     await tester.pumpWidget(
@@ -432,8 +430,7 @@ void main() {
     expect(find.byKey(const Key('driver-home-update-popup')), findsNothing);
   });
 
-  testWidgets(
-      'home popup reports a changed existing assignment',
+  testWidgets('home popup reports a changed existing assignment',
       (tester) async {
     final repo = _LiveStatusRepo();
     await tester.pumpWidget(
@@ -474,8 +471,7 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets(
-      'home popup reports when an assignment is removed',
+  testWidgets('home popup reports when an assignment is removed',
       (tester) async {
     final repo = _LiveStatusRepo();
     await tester.pumpWidget(
@@ -509,7 +505,8 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('driver home cards use the reduced-height layout', (tester) async {
+  testWidgets('driver home cards use the reduced-height layout',
+      (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -526,11 +523,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      tester.getSize(find.byKey(const Key('driver-home-workload-chart'))).height,
+      tester
+          .getSize(find.byKey(const Key('driver-home-workload-chart')))
+          .height,
       lessThanOrEqualTo(160),
     );
     expect(
-      tester.getSize(find.byKey(const Key('driver-home-pending-orders'))).height,
+      tester
+          .getSize(find.byKey(const Key('driver-home-pending-orders')))
+          .height,
       lessThanOrEqualTo(46),
     );
     expect(
