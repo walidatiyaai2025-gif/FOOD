@@ -173,6 +173,123 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertSee('data-order-edit', false);
     }
 
+    public function test_order_grid_business_status_follows_confirmation_and_driver_execution(): void
+    {
+        $store = $this->retailStore('UNIFIED-LIFECYCLE');
+        $admin = $this->retailAdmin($store, 'unified-lifecycle@example.test');
+        $customer = app(B2cCustomerService::class)->create($store, ['name' => 'Lifecycle Buyer']);
+
+        $order = (int) DB::table('orders')->insertGetId([
+            'store_id' => $store,
+            'customer_id' => (int) $customer->legacy_customer_id,
+            'b2c_customer_id' => (int) $customer->id,
+            'order_number' => 'UNIFIED-LIFECYCLE-1001',
+            'channel' => 'b2c',
+            'status' => 'pending',
+            'currency' => 'EGP',
+            'subtotal' => 30,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 30,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c')
+            ->assertOk()
+            ->assertViewHas('rows', fn (array $rows): bool =>
+                collect($rows)->firstWhere('id', $order)['status_label']
+                    === 'Pending and awaiting confirmation'
+            );
+
+        DB::table('orders')->where('id', $order)->update([
+            'status' => 'confirmed',
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c')
+            ->assertOk()
+            ->assertViewHas('rows', fn (array $rows): bool =>
+                collect($rows)->firstWhere('id', $order)['status_label']
+                    === 'Confirmed and awaiting driver assignment'
+            );
+
+        $driverUser = User::query()->create([
+            'name' => 'Lifecycle Driver',
+            'email' => 'unified-lifecycle-driver@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $driverUser->roles()->attach(Role::query()->where('code', 'B2C_DRIVER')->firstOrFail());
+        $driver = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $driverUser->id,
+            'store_id' => $store,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $assignment = (int) DB::table('driver_assignments')->insertGetId([
+            'driver_id' => $driver,
+            'order_id' => $order,
+            'store_id' => $store,
+            'assignment_type' => 'b2c',
+            'status' => 'assigned',
+            'assigned_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c')
+            ->assertOk()
+            ->assertViewHas('rows', function (array $rows) use ($order): bool {
+                $row = collect($rows)->firstWhere('id', $order);
+
+                return ($row['status_label'] ?? null) === 'Order assigned to driver'
+                    && ($row['status_visual_state'] ?? null) === 'assigned';
+            });
+
+        DB::table('driver_assignments')->where('id', $assignment)->update([
+            'status' => 'accepted',
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c')
+            ->assertOk()
+            ->assertViewHas('rows', function (array $rows) use ($order): bool {
+                $row = collect($rows)->firstWhere('id', $order);
+
+                return ($row['status_label'] ?? null) === 'Driver is processing the order'
+                    && ($row['status_visual_state'] ?? null) === 'processing';
+            });
+
+        DB::table('driver_assignments')->where('id', $assignment)->update([
+            'status' => 'delivered',
+            'completed_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('orders')->where('id', $order)->update([
+            'status' => 'delivered',
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c')
+            ->assertOk()
+            ->assertViewHas('rows', function (array $rows) use ($order): bool {
+                $row = collect($rows)->firstWhere('id', $order);
+
+                return ($row['status_label'] ?? null) === 'Order completed'
+                    && ($row['status_visual_state'] ?? null) === 'completed';
+            });
+    }
+
     public function test_order_popups_render_details_and_printable_timeline_without_page_navigation(): void
     {
         $store = $this->retailStore('UNIFIED-POPUPS');
@@ -210,14 +327,43 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertOk()
             ->assertSee('data-order-popup-content="details"', false)
             ->assertSee('Popup Buyer')
-            ->assertSee('25.00 EGP');
+            ->assertSee('25.00 EGP')
+            ->assertSee('FOODEX')
+            ->assertSee('Print type')
+            ->assertSee('Order details')
+            ->assertSee('Printed at')
+            ->assertSee('brand/foodex-economical-group.webp', false);
 
         $this->actingAs($admin)
             ->get("/admin/operations/orders/{$order}/popup/timeline")
             ->assertOk()
             ->assertSee('data-order-popup-content="timeline"', false)
-            ->assertSee('Print timeline')
-            ->assertSee('Order status changed');
+            ->assertSee('Print')
+            ->assertSee('Order status changed')
+            ->assertSee('Complete order timeline');
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+        DB::table('order_status_history')->insert([
+            'order_id' => $order,
+            'store_id' => $store,
+            'user_id' => $admin->id,
+            'from_status' => 'pending',
+            'to_status' => 'confirmed',
+            'note' => 'customer_service_approved',
+            'created_at' => now()->addSecond(),
+            'updated_at' => now()->addSecond(),
+        ]);
+
+        $this->actingAs($admin->fresh())
+            ->get("/admin/operations/orders/{$order}/popup/timeline")
+            ->assertOk()
+            ->assertSee('تايم لاين إجراءات الطلب')
+            ->assertSee('طباعة')
+            ->assertSee('تغيير حالة الطلب')
+            ->assertSee('قيد الانتظار')
+            ->assertSee('تم التأكيد')
+            ->assertDontSee('Order status changed')
+            ->assertDontSee('Complete order timeline');
     }
 
     public function test_order_operations_uses_compact_single_card_kpi_summary(): void
@@ -289,6 +435,10 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-order-timeline-icon', $view);
         $this->assertStringContainsString('order-financial-action is-timeline', $view);
         $this->assertStringContainsString('window.print()', $view);
+        $this->assertStringContainsString('data-order-print-time', $view);
+        $this->assertStringContainsString('order-print-header', $view);
+        $this->assertStringContainsString('order-print-footer', $view);
+        $this->assertStringContainsString("asset('brand/foodex-economical-group.webp')", file_get_contents(resource_path('views/admin/_order-operation-popup.blade.php')));
         $this->assertStringContainsString("<th>{{ \$isAr ? 'العميل' : 'Customer' }}</th>\n<th>{{ \$isAr ? 'الدفع والإجمالي' : 'Payment & total' }}</th>\n<th>{{ __('order_operations.columns.status') }}</th>", $view);
         $this->assertStringContainsString('سحب من السائق', $view);
         $this->assertStringContainsString('سحب من الفان', $view);
