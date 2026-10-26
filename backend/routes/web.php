@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\CommercialDashboardController;
 use App\Http\Controllers\Admin\Customer360Controller;
 use App\Http\Controllers\Admin\CustomerServiceWorkspaceController;
 use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
+use App\Http\Controllers\Admin\DriverOrdersController;
 use App\Http\Controllers\Admin\EnterpriseActionCenterController;
 use App\Http\Controllers\Admin\EnterpriseBiController;
 use App\Http\Controllers\Admin\EnterpriseBiScheduleController;
@@ -702,6 +703,7 @@ Route::prefix('admin')
         Route::patch('/b2c/orders/{order}', [B2cWorkspaceController::class, 'updateOrder'])->whereNumber('order')->name('b2c.orders.update');
         Route::post('/b2c/orders/{order}/status', [B2cWorkspaceController::class, 'transitionOrder'])->whereNumber('order')->name('b2c.orders.status');
         Route::post('/b2c/wholesale-purchases/{order}/available-for-sale', [B2cWorkspaceController::class, 'makeWholesalePurchaseAvailable'])->whereNumber('order')->name('b2c.wholesale-purchases.available-for-sale');
+        Route::get('/drivers/{driver}/orders', [DriverOrdersController::class, 'index'])->whereNumber('driver')->name('drivers.orders');
         Route::post('/b2c/drivers/assign', [B2cWorkspaceController::class, 'assignDriver'])->name('b2c.drivers.assign');
         Route::patch('/b2c/orders/{order}/driver', [B2cWorkspaceController::class, 'reassignDriver'])->whereNumber('order')->name('b2c.orders.driver.reassign');
         Route::delete('/b2c/orders/{order}/driver', [B2cWorkspaceController::class, 'unassignDriver'])->whereNumber('order')->name('b2c.orders.driver.unassign');
