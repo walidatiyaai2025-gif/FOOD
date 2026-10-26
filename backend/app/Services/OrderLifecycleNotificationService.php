@@ -65,10 +65,15 @@ final class OrderLifecycleNotificationService
             ],
         };
 
+        $changeFingerprint = hash(
+            'sha256',
+            json_encode($data, JSON_THROW_ON_ERROR).':'.(string) $order->updated_at,
+        );
+
         $this->notifyCustomer(
             $order,
             'order.updated',
-            'customer-order-update:'.$order->getKey().':'.$change.':'.hash('sha256', json_encode($data, JSON_THROW_ON_ERROR).':'.(string) $order->updated_at),
+            'customer-order-update:'.$order->getKey().':'.$change.':'.$changeFingerprint,
             $copy['title_ar'],
             $copy['title_en'],
             $copy['body_ar'],
@@ -78,6 +83,59 @@ final class OrderLifecycleNotificationService
                 ...$data,
             ],
         );
+
+        $assignment = $this->activeAssignment($order);
+        if ($assignment instanceof DriverAssignment
+            && $this->driverRuntimeOwnsOrder($order, (int) $assignment->driver_id)) {
+            $driverCopy = match ($change) {
+                'details_updated' => [
+                    'title_ar' => 'تم تحديث تفاصيل الطلب '.DisplayNumber::reference($order->getKey()),
+                    'title_en' => 'Order details updated '.DisplayNumber::reference($order->getKey()),
+                    'body_ar' => 'تم تعديل بيانات الطلب المسند إليك. افتح الطلب لمراجعة آخر التفاصيل.',
+                    'body_en' => 'Details changed for an order assigned to you. Open it to review the latest information.',
+                ],
+                'customer_service_updated' => [
+                    'title_ar' => 'تحديث خدمة العملاء للطلب '.DisplayNumber::reference($order->getKey()),
+                    'title_en' => 'Customer Service update '.DisplayNumber::reference($order->getKey()),
+                    'body_ar' => 'تم تحديث متابعة الطلب بواسطة خدمة العملاء.',
+                    'body_en' => 'Customer Service updated this assigned order.',
+                ],
+                'invoice_updated' => [
+                    'title_ar' => 'تم تحديث فاتورة الطلب '.DisplayNumber::reference($order->getKey()),
+                    'title_en' => 'Order invoice updated '.DisplayNumber::reference($order->getKey()),
+                    'body_ar' => 'تم تحديث فاتورة الطلب المسند إليك.',
+                    'body_en' => 'The invoice for your assigned order was updated.',
+                ],
+                'payment_updated' => [
+                    'title_ar' => 'تم تحديث دفع الطلب '.DisplayNumber::reference($order->getKey()),
+                    'title_en' => 'Order payment updated '.DisplayNumber::reference($order->getKey()),
+                    'body_ar' => 'تم تحديث حالة الدفع للطلب المسند إليك.',
+                    'body_en' => 'The payment status for your assigned order was updated.',
+                ],
+                default => [
+                    'title_ar' => 'تحديث على الطلب '.DisplayNumber::reference($order->getKey()),
+                    'title_en' => 'Assigned order updated '.DisplayNumber::reference($order->getKey()),
+                    'body_ar' => 'تم إجراء تعديل على الطلب المسند إليك. افتح الطلب لمراجعة التفاصيل.',
+                    'body_en' => 'An assigned order changed. Open it to review the latest details.',
+                ],
+            };
+
+            $this->notifyDriverUser(
+                $order,
+                (int) $assignment->driver_id,
+                'order.updated',
+                'driver-order-update:'.$order->getKey().':'.$change.':'.$changeFingerprint,
+                $driverCopy['title_ar'],
+                $driverCopy['title_en'],
+                $driverCopy['body_ar'],
+                $driverCopy['body_en'],
+                [
+                    'assignment_id' => (int) $assignment->getKey(),
+                    'change' => $change,
+                    ...$data,
+                ],
+            );
+        }
     }
 
     public function orderStatusChanged(Order $order, string $from, string $to): void
