@@ -109,7 +109,16 @@ class OrderLifecycleNotificationTest extends TestCase
             'type' => 'delivery.unassigned',
         ]);
 
-        Queue::assertPushed(DispatchPushNotification::class, 8);
+        $service->customerOrderChanged($order->fresh(), 'details_updated', [
+            'source' => 'dashboard',
+        ]);
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $customerUser->id,
+            'app' => 'customer',
+            'type' => 'order.updated',
+        ]);
+
+        Queue::assertPushed(DispatchPushNotification::class, 9);
     }
 
     public function test_driver_delivery_status_does_not_duplicate_customer_push_when_order_status_also_changes(): void
@@ -171,7 +180,15 @@ class OrderLifecycleNotificationTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $customerUser = User::query()->create([
+            'name' => 'Lifecycle B2B Customer',
+            'email' => 'lifecycle-b2b-customer@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
         $legacyCustomer = Customer::query()->create([
+            'user_id' => $customerUser->id,
             'type' => 'b2b',
             'name' => 'Lifecycle B2B Customer',
             'email' => 'lifecycle-b2b-customer@example.test',
@@ -274,6 +291,11 @@ class OrderLifecycleNotificationTest extends TestCase
             $assigned->data['deep_link'] ?? null,
         );
         $this->assertSame($order->id, (int) ($assigned->data['order_id'] ?? 0));
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $customerUser->id,
+            'app' => 'customer',
+            'type' => 'delivery.assigned',
+        ]);
 
         DB::table('order_status_history')->insert([
             'order_id' => $order->id,
@@ -307,7 +329,7 @@ class OrderLifecycleNotificationTest extends TestCase
             'type' => 'van.delivery.reassigned_away',
         ]);
 
-        Queue::assertPushed(DispatchPushNotification::class, 3);
+        Queue::assertPushed(DispatchPushNotification::class, 5);
     }
 
     public function test_manual_b2b_driver_dispatch_receives_driver_app_notifications(): void
