@@ -38,14 +38,13 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-tab-panel[data-order-panel="analytics"] .foodex-viz-header{margin-bottom:5px!important}
 .order-tab-panel[data-order-panel="analytics"] .foodex-module-chart-summary{margin:5px 0!important}
 .table-wrap{overflow:visible;border:1px solid var(--foodex-border);border-radius:16px;background:var(--foodex-surface);box-shadow:0 8px 22px rgba(15,23,42,.045)}
-.ops-table{width:100%;min-width:0;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:.74rem}
-.ops-table thead th{position:sticky;top:0;z-index:3;padding:9px 10px;background:var(--foodex-palette-f8fafc);color:var(--foodex-palette-64748b);font-size:.64rem;font-weight:900;border-bottom:1px solid var(--foodex-border);white-space:nowrap}
-.ops-table tbody td{padding:10px;vertical-align:middle;line-height:1.32;border-bottom:1px solid var(--foodex-palette-edf1f4);background:var(--foodex-surface);transition:background .16s ease}
-.ops-table tbody tr:last-child td{border-bottom:0}
+.ops-table{width:100%;min-width:0;table-layout:fixed;border-collapse:separate;border-spacing:0;border:0!important;font-size:.74rem}
+.ops-table thead th{position:sticky;top:0;z-index:3;padding:9px 10px;background:var(--foodex-palette-f8fafc);color:var(--foodex-palette-64748b);font-size:.64rem;font-weight:900;border:0!important;white-space:nowrap}
+.ops-table tbody td{padding:10px;vertical-align:middle;line-height:1.32;border:0!important;background:var(--foodex-surface);transition:background .16s ease}
 .ops-table tbody tr:hover td{background:var(--foodex-palette-f9fbfa)}
 .ops-table th:nth-child(1){width:7.5%}.ops-table th:nth-child(2){width:12.75%}.ops-table th:nth-child(3){width:7.5%}.ops-table th:nth-child(4){width:14.5%}.ops-table th:nth-child(5){width:27%}.ops-table th:nth-child(6){width:23.75%}.ops-table th:nth-child(7){width:7%}.ops-table th:nth-child(3),.ops-table td:nth-child(3){padding-inline:5px}
 .order-grid-row{--order-row-accent:var(--foodex-palette-cbd5e1)}
-.order-grid-row>td:first-child{border-inline-start:3px solid var(--order-row-accent)}
+.order-grid-row>td:first-child{border-inline-start:0!important}
 .order-grid-row.is-action-required{--order-row-accent:var(--foodex-palette-f59e0b)}
 .order-grid-row.is-action-required td{background:linear-gradient(90deg,rgba(245,158,11,.045),rgba(255,255,255,0) 38%)}
 .order-grid-row.is-action-required:hover td{background:linear-gradient(90deg,rgba(245,158,11,.085),rgba(249,251,250,.92) 42%)}
