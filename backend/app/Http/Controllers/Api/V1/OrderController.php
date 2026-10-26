@@ -242,7 +242,7 @@ class OrderController extends Controller
                 return $locked;
             }
 
-            $allowed = $this->availableTransitionsForOrder($locked);
+            $allowed = $this->availableTransitionsForOrder($locked, true);
             abort_unless(
                 in_array($targetStatus, $allowed, true),
                 409,
@@ -349,15 +349,19 @@ class OrderController extends Controller
     }
 
     /** @return list<string> */
-    private function availableTransitionsForOrder(Order $order): array
-    {
-        $hasActiveDriver = DriverAssignment::query()
-            ->where('order_id', $order->getKey())
-            ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
-            ->exists();
+    private function availableTransitionsForOrder(
+        Order $order,
+        bool $enforceManualDriverGate = false,
+    ): array {
+        if ($enforceManualDriverGate) {
+            $hasActiveDriver = DriverAssignment::query()
+                ->where('order_id', $order->getKey())
+                ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+                ->exists();
 
-        if ($hasActiveDriver) {
-            return ['cancelled'];
+            if ($hasActiveDriver) {
+                return ['cancelled'];
+            }
         }
 
         $transitions = self::allowedTransitions((string) $order->status);
