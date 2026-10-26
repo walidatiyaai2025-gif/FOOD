@@ -38,10 +38,32 @@ return new class extends Migration {
                 'driver_assignments_order_status_id_idx',
             );
         });
+
+        Schema::table('payments', function (Blueprint $table): void {
+            $table->index(
+                ['order_id', 'id'],
+                'payments_order_id_id_idx',
+            );
+        });
+
+        Schema::table('invoices', function (Blueprint $table): void {
+            $table->index(
+                ['order_id', 'status', 'id'],
+                'invoices_order_status_id_idx',
+            );
+        });
     }
 
     public function down(): void
     {
+        Schema::table('invoices', function (Blueprint $table): void {
+            $table->dropIndex('invoices_order_status_id_idx');
+        });
+
+        Schema::table('payments', function (Blueprint $table): void {
+            $table->dropIndex('payments_order_id_id_idx');
+        });
+
         Schema::table('driver_assignments', function (Blueprint $table): void {
             $table->dropIndex('driver_assignments_order_status_id_idx');
         });
