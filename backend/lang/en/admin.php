@@ -50,7 +50,7 @@ return [
         'marketing' => 'Marketing & Communications',
         'advertising' => 'Advertising',
         'finance' => 'Finance & Treasury',
-        'analytics' => 'Analytics & Reports',
+        'analytics' => 'Analytics',
         'applications' => 'Applications',
         'administration' => 'Administration',
     ],
