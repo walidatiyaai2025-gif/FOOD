@@ -62,10 +62,17 @@ final class OrderManualDispatchService
                 ->where('status', 'active')
                 ->lockForUpdate()
                 ->get()
-                ->each(fn (OrderVanAssignment $assignment) => $assignment->forceFill([
-                    'status' => 'reassigned',
-                    'ended_at' => now(),
-                ])->save());
+                ->each(function (OrderVanAssignment $assignment) use ($order): void {
+                    $assignment->forceFill([
+                        'status' => 'reassigned',
+                        'ended_at' => now(),
+                    ])->save();
+                    $this->notifications->vanAssignmentRevoked(
+                        $order,
+                        $assignment->fresh(),
+                        'manual_driver_override',
+                    );
+                });
 
             $before = $state->exists ? $state->toArray() : null;
             $state->fill([
