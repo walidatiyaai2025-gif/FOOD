@@ -276,8 +276,7 @@ void main() {
     expect(find.text('DONE-1'), findsNothing);
   });
 
-  testWidgets(
-      'pending orders card opens assigned deliveries only',
+  testWidgets('pending orders card opens assigned deliveries only',
       (tester) async {
     final repo = _StatusRepo();
     await tester.pumpWidget(
@@ -293,7 +292,8 @@ void main() {
     await tester.tap(pendingCard);
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('driver-active-status-filter')), findsOneWidget);
+    expect(
+        find.byKey(const Key('driver-active-status-filter')), findsOneWidget);
     expect(find.text('PENDING-1'), findsOneWidget);
     expect(find.text('ACCEPTED-1'), findsNothing);
     expect(find.text('OUT-1'), findsNothing);
