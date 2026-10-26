@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.113 - 2026-10-26
+- Converge Order Operations into the current unified execution workflow with compact inline state controls, manual Driver/Van dispatch, Driver reassignment, Customer Service ownership controls, dynamic details/invoice/timeline popups, print support and localized operational labels.
+- Preserve B2B automatic Van-first routing while allowing explicitly scoped manual B2B Driver dispatch; keep B2C Driver execution authoritative and enforce assignment ownership, cancellation and delivered/cancelled terminal-row behavior.
+- Expand customer and driver lifecycle notifications for assignment, reassignment, unassignment, status, invoice, payment and order-detail changes, with Driver App runtime support for manually assigned B2B work.
+- Improve New Order product/warehouse scoping, in-stock filtering, authoritative channel selection and operational row context without introducing a duplicate order surface.
+- Add the Driver Home red Pending orders card backed by live assigned work, with direct navigation to the assigned-only delivery filter and 15-second refresh parity.
+- Synchronize Customer, Driver and Van release identities to `1.0.113+113` because this release contains Driver mobile source changes; Dashboard, Setup, previews and all three APKs must be produced from the same canonical 1.0.113 source.
+- Production Dashboard `1.0.112` was already installed manually by the owner before repository convergence. It is recorded as an operational deployment checkpoint only; the next repository-generated release is intentionally `1.0.113`.
+
+## 1.0.112 - 2026-10-26
+- Record the owner-confirmed production Dashboard deployment of `1.0.112`, built and installed manually from the active local FOODEX working copy.
+- This checkpoint was not published as a canonical synchronized repository/GitHub release and did not advance the checked-in mobile identities.
+- Reserve `1.0.112` as already deployed in production so subsequent repository-generated release automation must advance to `1.0.113` rather than reuse 1.0.112.
+
 ## 1.0.111 - 2026-10-25
 - Make Assistant Intelligence Agent output Arabic-first for all user-facing generated text on the Arabic Dashboard, including executive opinion, priorities, recommendations, domain opinions and findings.
 - Preserve the structured Agent contract by keeping JSON keys and enum values schema-compatible while localizing only natural-language fields.
