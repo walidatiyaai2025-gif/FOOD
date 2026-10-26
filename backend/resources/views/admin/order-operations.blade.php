@@ -43,7 +43,7 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .ops-table tbody td{padding:10px;vertical-align:middle;line-height:1.32;border-bottom:1px solid var(--foodex-palette-edf1f4);background:var(--foodex-surface);transition:background .16s ease}
 .ops-table tbody tr:last-child td{border-bottom:0}
 .ops-table tbody tr:hover td{background:var(--foodex-palette-f9fbfa)}
-.ops-table th:nth-child(1){width:7.5%}.ops-table th:nth-child(2){width:12.75%}.ops-table th:nth-child(3){width:15%}.ops-table th:nth-child(4){width:14.5%}.ops-table th:nth-child(5){width:23.25%}.ops-table th:nth-child(6){width:20%}.ops-table th:nth-child(7){width:7%}
+.ops-table th:nth-child(1){width:7.5%}.ops-table th:nth-child(2){width:12.75%}.ops-table th:nth-child(3){width:7.5%}.ops-table th:nth-child(4){width:14.5%}.ops-table th:nth-child(5){width:27%}.ops-table th:nth-child(6){width:23.75%}.ops-table th:nth-child(7){width:7%}
 .order-grid-row{--order-row-accent:var(--foodex-palette-cbd5e1)}
 .order-grid-row>td:first-child{border-inline-start:3px solid var(--order-row-accent)}
 .order-grid-row.is-action-required{--order-row-accent:var(--foodex-palette-f59e0b)}
@@ -69,8 +69,11 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-attention-chip::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--foodex-palette-f97316);box-shadow:0 0 0 3px rgba(249,115,22,.12)}
 .order-execution{display:grid;gap:5px;min-width:0}.ops-table tbody td.order-dispatch-cell-locked{background:var(--foodex-palette-f8fafc)!important;cursor:not-allowed}.order-execution.is-dispatch-locked{opacity:.42;filter:grayscale(.28)}.order-dispatch-lock-hint{font-size:.58rem;font-weight:800;color:var(--foodex-muted)}.order-execution strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-execution small{color:var(--foodex-muted);font-size:.62rem}
 .order-owner{display:grid;gap:3px}.order-owner strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-owner small{color:var(--foodex-muted);font-size:.61rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.order-financial{display:grid;gap:4px}.order-financial>strong{font-size:.77rem;white-space:nowrap}.order-financial small{color:var(--foodex-muted);font-size:.61rem}
-.order-financial-actions{display:flex;align-items:center;gap:5px;margin-top:2px}.order-financial-action{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-green-dark);text-decoration:none;transition:transform .14s ease,border-color .14s ease,background .14s ease}.order-financial-action:hover{transform:translateY(-1px);border-color:var(--foodex-action-green);background:var(--foodex-palette-eaf7ef)}.order-financial-action .foodex-svg-icon{width:14px;height:14px}
+.order-financial{display:grid;gap:3px;min-width:0}.order-financial>strong{font-size:.69rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-financial>strong.is-paid{color:var(--foodex-palette-15803d)}.order-financial>strong.is-unpaid{color:var(--foodex-palette-be123c)}.order-financial small{color:var(--foodex-muted);font-size:.56rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.order-financial-actions{display:flex;align-items:center;gap:2px;margin-top:1px;flex-wrap:nowrap}.order-financial-action{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;min-width:22px;padding:0;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-green-dark);text-decoration:none;cursor:pointer;transition:transform .14s ease,border-color .14s ease,background .14s ease}.order-financial-action:hover{transform:translateY(-1px);border-color:var(--foodex-action-green);background:var(--foodex-palette-eaf7ef)}.order-financial-action.is-timeline{border-color:var(--foodex-palette-fda4af);background:var(--foodex-palette-fff1f2);color:var(--foodex-palette-be123c)}.order-financial-action.is-timeline:hover{border-color:var(--foodex-palette-be123c);background:var(--foodex-palette-ffe4e6)}.order-financial-action .foodex-svg-icon{width:12px;height:12px}
+.order-popup-dialog{width:min(920px,94vw);max-height:88vh;padding:0;border:0;border-radius:18px;background:var(--foodex-surface);color:var(--foodex-ink);box-shadow:0 24px 70px rgba(15,23,42,.26)}.order-popup-dialog::backdrop{background:rgba(15,23,42,.48);backdrop-filter:blur(2px)}.order-popup-shell{display:grid;grid-template-rows:auto minmax(0,1fr);max-height:88vh}.order-popup-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--foodex-border);background:var(--foodex-palette-f8fafc)}.order-popup-head strong{font-size:.9rem}.order-popup-close{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid var(--foodex-border);border-radius:999px;background:#fff;color:var(--foodex-ink);font-size:1.1rem;cursor:pointer}.order-popup-body{overflow:auto;padding:14px}.order-popup-loading{padding:30px;text-align:center;color:var(--foodex-muted);font-weight:800}.order-popup-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}.order-popup-summary>div,.order-popup-facts>div{display:grid;gap:3px;padding:9px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-palette-f8fafc)}.order-popup-summary small,.order-popup-facts span{font-size:.62rem;color:var(--foodex-muted)}.order-popup-summary strong.is-paid,.order-popup-facts strong.is-paid{color:var(--foodex-palette-15803d)}.order-popup-summary strong.is-unpaid,.order-popup-facts strong.is-unpaid{color:var(--foodex-palette-be123c)}.order-popup-section{margin-top:10px;padding:12px;border:1px solid var(--foodex-border);border-radius:14px}.order-popup-section h3{margin:0 0 10px;font-size:.82rem}.order-popup-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.order-popup-table-wrap{overflow:auto}.order-popup-table{width:100%;border-collapse:collapse;font-size:.7rem}.order-popup-table th,.order-popup-table td{padding:7px;border-bottom:1px solid var(--foodex-border);text-align:start}.order-popup-toolbar{display:flex;justify-content:flex-end;margin-bottom:8px}.order-popup-timeline{display:grid;gap:0}.order-popup-timeline-item{position:relative;display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;padding:0 0 14px}.order-popup-timeline-item:not(:last-child)::before{content:"";position:absolute;top:12px;bottom:-1px;inset-inline-start:6px;width:2px;background:var(--foodex-palette-e2e8f0)}.order-popup-timeline-dot{position:relative;z-index:1;width:12px;height:12px;margin-top:3px;border:3px solid var(--foodex-palette-fff1f2);border-radius:999px;background:var(--foodex-palette-be123c)}.order-popup-timeline-item>div{display:grid;gap:3px}.order-popup-timeline-item strong{font-size:.72rem}.order-popup-timeline-item small{color:var(--foodex-muted)}.order-popup-timeline-item footer{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--foodex-muted);font-size:.59rem}
+@media(max-width:760px){.order-popup-summary,.order-popup-facts{grid-template-columns:1fr 1fr}.order-popup-dialog{width:96vw}.order-popup-body{padding:10px}}
+@media print{body *{visibility:hidden!important}.order-popup-dialog[open],.order-popup-dialog[open] *{visibility:visible!important}.order-popup-dialog[open]{position:absolute!important;inset:0!important;width:100%!important;max-width:none!important;max-height:none!important;margin:0!important;border-radius:0!important;box-shadow:none!important}.order-popup-head,[data-no-print]{display:none!important}.order-popup-body{overflow:visible!important;padding:0!important}.order-popup-section{break-inside:avoid}.order-popup-timeline-item{break-inside:avoid}}
 .order-inline-unassign{margin-top:3px}.order-inline-unassign button{min-height:25px!important;height:25px!important;padding:0 9px!important;border:1px solid var(--foodex-palette-fda4af)!important;border-radius:999px!important;background:var(--foodex-palette-fff1f2)!important;color:var(--foodex-palette-be123c)!important;font-size:.6rem!important;font-weight:900!important;cursor:pointer}
 .order-grid-actions{text-align:center}
 .order-inline-status{display:grid;grid-template-columns:minmax(0,1fr) 27px;align-items:center;gap:5px;margin-top:3px;width:100%}.order-inline-status select{--status-bg:var(--foodex-palette-f1f5f9);--status-fg:var(--foodex-palette-475569);--status-border:var(--foodex-palette-cbd5e1);appearance:none;-webkit-appearance:none;min-width:0;width:100%;max-width:none;min-height:27px!important;height:27px!important;margin:0!important;padding:0 26px 0 9px!important;border:1px solid var(--status-border)!important;border-radius:999px!important;background-color:var(--status-bg)!important;color:var(--status-fg)!important;font-size:.63rem!important;font-weight:900!important;line-height:25px!important;box-sizing:border-box!important;box-shadow:none!important;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)!important;background-position:calc(100% - 13px) 11px,calc(100% - 9px) 11px!important;background-size:4px 4px,4px 4px!important;background-repeat:no-repeat!important}.order-inline-status select[data-state="pending"],.order-inline-status select[data-state="waiting"],.order-inline-status select[data-state="awaiting_dispatch"]{--status-bg:var(--foodex-palette-fff7ed);--status-fg:var(--foodex-palette-c2410c);--status-border:var(--foodex-palette-fdba74)}.order-inline-status select[data-state="confirmed"]{--status-bg:var(--foodex-palette-eff6ff);--status-fg:var(--foodex-palette-1d4ed8);--status-border:var(--foodex-palette-93c5fd)}.order-inline-status select[data-state="preparing"],.order-inline-status select[data-state="processing"]{--status-bg:var(--foodex-palette-f5f3ff);--status-fg:var(--foodex-palette-6d28d9);--status-border:var(--foodex-palette-c4b5fd)}.order-inline-status select[data-state="ready"]{--status-bg:var(--foodex-palette-ecfeff);--status-fg:var(--foodex-palette-0e7490);--status-border:var(--foodex-palette-67e8f9)}.order-inline-status select[data-state="out_for_delivery"],.order-inline-status select[data-state="on_the_way"],.order-inline-status select[data-state="assigned"]{--status-bg:var(--foodex-palette-eef2ff);--status-fg:var(--foodex-palette-4338ca);--status-border:var(--foodex-palette-a5b4fc)}.order-inline-status select[data-state="delivered"],.order-inline-status select[data-state="completed"],.order-inline-status select[data-state="paid"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}.order-inline-status select[data-state="cancelled"],.order-inline-status select[data-state="failed"],.order-inline-status select[data-state="delivery_failed"]{--status-bg:var(--foodex-palette-fff1f2);--status-fg:var(--foodex-palette-be123c);--status-border:var(--foodex-palette-fda4af)}.order-inline-status-submit{width:27px!important;height:27px!important;min-width:27px!important;min-height:27px!important;margin:0!important;padding:0!important;border:1px solid var(--foodex-action-green)!important;border-radius:999px!important;background:var(--foodex-action-green)!important;color:#fff!important;font-size:.72rem!important;font-weight:900!important;line-height:25px!important;box-shadow:none!important;cursor:pointer}.order-inline-status-note{grid-column:1/-1;min-width:0;width:100%;box-sizing:border-box;min-height:27px!important;height:27px!important;margin:0!important;padding:0 9px!important;border:1px solid var(--foodex-border)!important;border-radius:999px!important;font-size:.61rem!important;line-height:25px!important}.order-inline-status-note[hidden]{display:none!important}.order-inline-picker{display:grid;grid-template-columns:minmax(0,1fr) 27px;align-items:center;gap:5px;margin-top:3px;width:100%}.order-inline-picker select{appearance:none;-webkit-appearance:none;min-width:0;width:100%;min-height:27px!important;height:27px!important;margin:0!important;padding:0 26px 0 9px!important;border:1px solid var(--foodex-palette-cbd5e1)!important;border-radius:999px!important;background-color:var(--foodex-palette-f1f5f9)!important;color:var(--foodex-palette-475569)!important;font-size:.63rem!important;font-weight:900!important;line-height:25px!important;box-sizing:border-box!important;box-shadow:none!important;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)!important;background-position:calc(100% - 13px) 11px,calc(100% - 9px) 11px!important;background-size:4px 4px,4px 4px!important;background-repeat:no-repeat!important}.order-inline-picker button{width:27px!important;height:27px!important;min-width:27px!important;min-height:27px!important;margin:0!important;padding:0!important;border:1px solid var(--foodex-action-green)!important;border-radius:999px!important;background:var(--foodex-action-green)!important;color:#fff!important;font-size:.72rem!important;font-weight:900!important;line-height:25px!important;box-shadow:none!important;cursor:pointer}.order-inline-picker button:disabled{opacity:.45;cursor:not-allowed}.order-inline-picker-reason{grid-column:1/-1;min-width:0;width:100%;box-sizing:border-box;min-height:27px!important;height:27px!important;margin:0!important;padding:0 9px!important;border:1px solid var(--foodex-border)!important;border-radius:999px!important;font-size:.61rem!important;line-height:25px!important}.order-inline-picker-reason[hidden]{display:none!important}
@@ -411,14 +414,16 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     </div>
 </td>
 <td>
+    @php($rowPaid = strtolower((string)($row['payment_status'] ?? '')) === 'paid')
     <div class="order-financial">
-        <strong>{{ number_format($row['total'],2) }} {{ $row['currency'] }}</strong>
+        <strong class="{{ $rowPaid ? 'is-paid' : 'is-unpaid' }}">{{ number_format($row['total'],2) }} {{ $row['currency'] }}</strong>
         <small>{{ $businessLabel($row['payment_status']) }}@if($row['payment_provider']) · {{ strtoupper(str_replace(['_','-'],' ',(string)$row['payment_provider'])) }}@endif</small>
         <div class="order-financial-actions" data-order-financial-actions>
-            <a class="order-financial-action" href="{{ route('admin.operations.orders.index',array_merge(request()->except('edit'),['order'=>$row['id']])) }}" title="{{ $isAr ? 'تفاصيل الطلب' : 'Order details' }}" aria-label="{{ $isAr ? 'تفاصيل الطلب' : 'Order details' }}" data-order-details-icon>@include('admin._premium-icon',['name'=>'details'])</a>
+            <button class="order-financial-action" type="button" title="{{ $isAr ? 'تفاصيل الطلب' : 'Order details' }}" aria-label="{{ $isAr ? 'تفاصيل الطلب' : 'Order details' }}" data-order-details-icon data-order-popup data-order-popup-title="{{ $isAr ? 'تفاصيل الطلب' : 'Order details' }}" data-order-popup-url="{{ route('admin.operations.orders.popup',['order'=>$row['id'],'kind'=>'details']) }}">@include('admin._premium-icon',['name'=>'details'])</button>
             @if($row['invoice_id'] && $row['can_view_invoice'])
-                <a class="order-financial-action" href="{{ route('admin.invoices.show',$row['invoice_id']) }}" title="{{ $isAr ? 'الفاتورة' : 'Invoice' }}" aria-label="{{ $isAr ? 'الفاتورة' : 'Invoice' }}" data-order-invoice-icon>@include('admin._premium-icon',['name'=>'invoice'])</a>
+                <button class="order-financial-action" type="button" title="{{ $isAr ? 'الفاتورة' : 'Invoice' }}" aria-label="{{ $isAr ? 'الفاتورة' : 'Invoice' }}" data-order-invoice-icon data-order-popup data-order-popup-title="{{ $isAr ? 'الفاتورة' : 'Invoice' }}" data-order-popup-url="{{ route('admin.operations.orders.popup',['order'=>$row['id'],'kind'=>'invoice']) }}">@include('admin._premium-icon',['name'=>'invoice'])</button>
             @endif
+            <button class="order-financial-action is-timeline" type="button" title="{{ $isAr ? 'تايم لاين الطلب' : 'Order timeline' }}" aria-label="{{ $isAr ? 'تايم لاين الطلب' : 'Order timeline' }}" data-order-timeline-icon data-order-popup data-order-popup-title="{{ $isAr ? 'تايم لاين الطلب' : 'Order timeline' }}" data-order-popup-url="{{ route('admin.operations.orders.popup',['order'=>$row['id'],'kind'=>'timeline']) }}">@include('admin._premium-icon',['name'=>'timeline'])</button>
         </div>
     </div>
 </td>
@@ -851,6 +856,15 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </div>
 </dialog>
 @endif
+<dialog class="order-popup-dialog" data-order-popup-dialog aria-modal="true">
+    <div class="order-popup-shell">
+        <div class="order-popup-head" data-no-print>
+            <strong data-order-popup-title>{{ $isAr ? 'تفاصيل الطلب' : 'Order details' }}</strong>
+            <button type="button" class="order-popup-close" data-order-popup-close aria-label="{{ $isAr ? 'إغلاق' : 'Close' }}">×</button>
+        </div>
+        <div class="order-popup-body" data-order-popup-body><div class="order-popup-loading">{{ $isAr ? 'جاري التحميل…' : 'Loading…' }}</div></div>
+    </div>
+</dialog>
 </main>
 <aside class="sidebar">@include('admin._sidebar')</aside>
 </div>
@@ -1053,6 +1067,69 @@ document.querySelectorAll('.order-inline-picker').forEach(function(form){
     select.addEventListener('change',sync);
     sync();
 });
+</script>
+<script>
+(() => {
+    const dialog = document.querySelector('[data-order-popup-dialog]');
+    const body = dialog?.querySelector('[data-order-popup-body]');
+    const title = dialog?.querySelector('[data-order-popup-title]');
+    const close = dialog?.querySelector('[data-order-popup-close]');
+    if (!(dialog instanceof HTMLDialogElement) || !(body instanceof HTMLElement)) return;
+
+    let controller = null;
+    const loading = @json($isAr ? 'جاري التحميل…' : 'Loading…');
+    const failed = @json($isAr ? 'تعذر تحميل البيانات.' : 'Could not load data.');
+
+    const dismiss = () => {
+        controller?.abort();
+        controller = null;
+        dialog.close();
+    };
+
+    document.addEventListener('click', async (event) => {
+        const trigger = event.target.closest('[data-order-popup]');
+        if (trigger) {
+            event.preventDefault();
+            controller?.abort();
+            controller = new AbortController();
+            if (title) title.textContent = trigger.dataset.orderPopupTitle || '';
+            body.innerHTML = '<div class="order-popup-loading">' + loading + '</div>';
+            if (!dialog.open) dialog.showModal();
+
+            try {
+                const response = await fetch(trigger.dataset.orderPopupUrl, {
+                    headers: {'Accept':'text/html','X-Requested-With':'XMLHttpRequest'},
+                    signal: controller.signal,
+                });
+                if (!response.ok) throw new Error('popup-http-' + response.status);
+                body.innerHTML = await response.text();
+            } catch (error) {
+                if (error?.name !== 'AbortError') {
+                    body.innerHTML = '<div class="foodex-empty-state">' + failed + '</div>';
+                }
+            }
+            return;
+        }
+
+        if (event.target.closest('[data-order-popup-close]')) {
+            dismiss();
+            return;
+        }
+
+        if (event.target.closest('[data-order-popup-print]')) {
+            window.print();
+        }
+    });
+
+    close?.addEventListener('click', dismiss);
+    dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) dismiss();
+    });
+    dialog.addEventListener('cancel', (event) => {
+        event.preventDefault();
+        dismiss();
+    });
+})();
 </script>
 </body></html>
 @if($detail)
