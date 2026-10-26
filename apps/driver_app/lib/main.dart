@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'app.dart';
@@ -112,7 +113,7 @@ class _FoodexDriverBootstrapState extends State<_FoodexDriverBootstrap> {
     return FoodexDriverApp(
       pushService: _pushService,
       locationGateService: const GeolocatorDriverLocationGateService(),
-      versionPolicyClient: _versionPolicyClient,
+      versionPolicyClient: kDebugMode ? null : _versionPolicyClient,
       showPersistentFooter: _showPersistentFooter,
     );
   }
