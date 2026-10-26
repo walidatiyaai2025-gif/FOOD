@@ -68,9 +68,9 @@ class _FoodexDriverBootstrapState extends State<_FoodexDriverBootstrap> {
   bool _showPersistentFooter = true;
   late final HttpDriverVersionPolicyClient _versionPolicyClient =
       HttpDriverVersionPolicyClient(
-        baseUrl: FoodexEnvironment.apiBaseUrl,
-        platform: Platform.isIOS ? 'ios' : 'android',
-      );
+    baseUrl: FoodexEnvironment.apiBaseUrl,
+    platform: Platform.isIOS ? 'ios' : 'android',
+  );
 
   @override
   void initState() {
@@ -112,7 +112,8 @@ class _FoodexDriverBootstrapState extends State<_FoodexDriverBootstrap> {
   Widget build(BuildContext context) {
     return FoodexDriverApp(
       pushService: _pushService,
-      locationGateService: kDebugMode ? null : const GeolocatorDriverLocationGateService(),
+      locationGateService:
+          kDebugMode ? null : const GeolocatorDriverLocationGateService(),
       versionPolicyClient: kDebugMode ? null : _versionPolicyClient,
       showPersistentFooter: _showPersistentFooter,
     );
