@@ -489,10 +489,14 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             </small>
         @endif
         @if($row['can_manage'] && count($row['available_statuses']))
+            @php
+                $rowOnlyCancel = count($row['available_statuses']) === 1
+                    && (($row['available_statuses'][0]['code'] ?? '') === 'cancelled');
+            @endphp
             <form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}" class="order-inline-status" data-order-inline-status>
                 @csrf
                 <select name="status" required aria-label="{{ __('order_operations.next_status') }}" data-order-inline-status-select data-state="{{ $rowStatusState }}">
-                    <option value="">{{ $rowWithDriver ? ($isAr ? 'إلغاء الطلب' : 'Cancel order') : __('order_operations.choose_next_status') }}</option>
+                    <option value="">{{ $rowOnlyCancel ? ($isAr ? 'إلغاء الطلب' : 'Cancel order') : __('order_operations.choose_next_status') }}</option>
                     @foreach($row['available_statuses'] as $status)
                         <option value="{{ $status['code'] }}">{{ $status['label'] }}</option>
                     @endforeach
