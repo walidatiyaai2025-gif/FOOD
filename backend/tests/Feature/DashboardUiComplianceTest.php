@@ -261,18 +261,18 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('Cancel order', $view);
     }
 
-    public function test_order_management_grid_has_no_internal_cell_borders(): void
+    public function test_order_management_grid_has_internal_lines_and_borderless_status_controls(): void
     {
         $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
 
         $this->assertIsString($view);
-        $this->assertStringContainsString('.ops-table{width:100%;min-width:0;table-layout:fixed;border-collapse:separate;border-spacing:0;border:0!important;', $view);
-        $this->assertStringContainsString('.ops-table thead th{', $view);
-        $this->assertStringContainsString('border:0!important;white-space:nowrap', $view);
-        $this->assertStringContainsString('.ops-table tbody td{', $view);
-        $this->assertStringContainsString('line-height:1.32;border:0!important;', $view);
-        $this->assertStringContainsString('.order-grid-row>td:first-child{border-inline-start:0!important}', $view);
-        $this->assertStringNotContainsString('.ops-table tbody td{padding:10px;vertical-align:middle;line-height:1.32;border-bottom:', $view);
+        $this->assertStringContainsString('border-bottom:1px solid var(--foodex-border);border-inline-end:1px solid var(--foodex-border)', $view);
+        $this->assertStringContainsString('.ops-table th:last-child,.ops-table td:last-child{border-inline-end:0}', $view);
+        $this->assertStringContainsString('.ops-table tbody tr:last-child td{border-bottom:0}', $view);
+        $this->assertStringContainsString('.order-status-chip{', $view);
+        $this->assertStringContainsString('padding:0 9px;border:0!important;border-radius:999px', $view);
+        $this->assertStringContainsString('border:0!important;border-radius:999px!important;background-color:var(--status-bg)!important', $view);
+        $this->assertStringContainsString('.ops-table th:nth-child(1),.ops-table th:nth-child(2),.ops-table th:nth-child(3),.ops-table th:nth-child(4),.ops-table th:nth-child(5),.ops-table th:nth-child(6){width:16.666%}', $view);
     }
 
     public function test_order_operations_fits_small_laptop_viewport_without_store_or_channel_columns(): void
