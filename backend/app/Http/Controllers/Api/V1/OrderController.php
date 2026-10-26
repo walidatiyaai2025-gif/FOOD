@@ -10,8 +10,8 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderDispatchState;
 use App\Models\OrderItem;
-use App\Models\OrderVanAssignment;
 use App\Models\OrderStatusHistory;
+use App\Models\OrderVanAssignment;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\AuditLogger;
@@ -764,6 +764,7 @@ class OrderController extends Controller
             'created_at' => $order->created_at?->toAtomString(),
         ];
     }
+
     /**
      * @return array{id:int,name:string,phone:?string}|null
      */
@@ -810,5 +811,4 @@ class OrderController extends Controller
             'phone' => $phone === '' ? null : $phone,
         ];
     }
-
 }
