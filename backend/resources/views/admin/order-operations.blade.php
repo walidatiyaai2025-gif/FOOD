@@ -67,7 +67,7 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-owner{display:grid;gap:3px}.order-owner strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-owner small{color:var(--foodex-muted);font-size:.61rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .order-financial{display:grid;gap:4px}.order-financial>strong{font-size:.77rem;white-space:nowrap}.order-financial small{color:var(--foodex-muted);font-size:.61rem}
 .order-grid-actions{text-align:center}
-.order-inline-status{display:grid;grid-template-columns:minmax(0,1fr) 27px;align-items:center;gap:5px;margin-top:3px;width:100%}.order-inline-status select{--status-bg:var(--foodex-palette-f1f5f9);--status-fg:var(--foodex-palette-475569);--status-border:var(--foodex-palette-cbd5e1);appearance:none;-webkit-appearance:none;min-width:0;width:100%;max-width:none;min-height:27px!important;height:27px!important;margin:0!important;padding:0 26px 0 9px!important;border:1px solid var(--status-border)!important;border-radius:999px!important;background-color:var(--status-bg)!important;color:var(--status-fg)!important;font-size:.63rem!important;font-weight:900!important;line-height:25px!important;box-sizing:border-box!important;box-shadow:none!important;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)!important;background-position:calc(100% - 13px) 11px,calc(100% - 9px) 11px!important;background-size:4px 4px,4px 4px!important;background-repeat:no-repeat!important}.order-inline-status select[data-state="pending"],.order-inline-status select[data-state="waiting"],.order-inline-status select[data-state="awaiting_dispatch"]{--status-bg:var(--foodex-palette-fff7ed);--status-fg:var(--foodex-palette-c2410c);--status-border:var(--foodex-palette-fdba74)}.order-inline-status select[data-state="confirmed"]{--status-bg:var(--foodex-palette-eff6ff);--status-fg:var(--foodex-palette-1d4ed8);--status-border:var(--foodex-palette-93c5fd)}.order-inline-status select[data-state="preparing"],.order-inline-status select[data-state="processing"]{--status-bg:var(--foodex-palette-f5f3ff);--status-fg:var(--foodex-palette-6d28d9);--status-border:var(--foodex-palette-c4b5fd)}.order-inline-status select[data-state="ready"]{--status-bg:var(--foodex-palette-ecfeff);--status-fg:var(--foodex-palette-0e7490);--status-border:var(--foodex-palette-67e8f9)}.order-inline-status select[data-state="out_for_delivery"],.order-inline-status select[data-state="on_the_way"],.order-inline-status select[data-state="assigned"]{--status-bg:var(--foodex-palette-eef2ff);--status-fg:var(--foodex-palette-4338ca);--status-border:var(--foodex-palette-a5b4fc)}.order-inline-status select[data-state="delivered"],.order-inline-status select[data-state="completed"],.order-inline-status select[data-state="paid"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}.order-inline-status select[data-state="cancelled"],.order-inline-status select[data-state="failed"],.order-inline-status select[data-state="delivery_failed"]{--status-bg:var(--foodex-palette-fff1f2);--status-fg:var(--foodex-palette-be123c);--status-border:var(--foodex-palette-fda4af)}.order-inline-status-submit{width:27px!important;height:27px!important;min-width:27px!important;min-height:27px!important;margin:0!important;padding:0!important;border:1px solid var(--foodex-action-green)!important;border-radius:999px!important;background:var(--foodex-action-green)!important;color:#fff!important;font-size:.72rem!important;font-weight:900!important;line-height:25px!important;box-shadow:none!important;cursor:pointer}.order-inline-status-note{grid-column:1/-1;min-width:0;width:100%;box-sizing:border-box;min-height:27px!important;height:27px!important;margin:0!important;padding:0 9px!important;border:1px solid var(--foodex-border)!important;border-radius:999px!important;font-size:.61rem!important;line-height:25px!important}.order-inline-status-note[hidden]{display:none!important}
+.order-inline-status{display:grid;grid-template-columns:minmax(0,1fr) 27px;align-items:center;gap:5px;margin-top:3px;width:100%}.order-inline-status select{--status-bg:var(--foodex-palette-f1f5f9);--status-fg:var(--foodex-palette-475569);--status-border:var(--foodex-palette-cbd5e1);appearance:none;-webkit-appearance:none;min-width:0;width:100%;max-width:none;min-height:27px!important;height:27px!important;margin:0!important;padding:0 26px 0 9px!important;border:1px solid var(--status-border)!important;border-radius:999px!important;background-color:var(--status-bg)!important;color:var(--status-fg)!important;font-size:.63rem!important;font-weight:900!important;line-height:25px!important;box-sizing:border-box!important;box-shadow:none!important;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)!important;background-position:calc(100% - 13px) 11px,calc(100% - 9px) 11px!important;background-size:4px 4px,4px 4px!important;background-repeat:no-repeat!important}.order-inline-status select[data-state="pending"],.order-inline-status select[data-state="waiting"],.order-inline-status select[data-state="awaiting_dispatch"]{--status-bg:var(--foodex-palette-fff7ed);--status-fg:var(--foodex-palette-c2410c);--status-border:var(--foodex-palette-fdba74)}.order-inline-status select[data-state="confirmed"]{--status-bg:var(--foodex-palette-eff6ff);--status-fg:var(--foodex-palette-1d4ed8);--status-border:var(--foodex-palette-93c5fd)}.order-inline-status select[data-state="preparing"],.order-inline-status select[data-state="processing"]{--status-bg:var(--foodex-palette-f5f3ff);--status-fg:var(--foodex-palette-6d28d9);--status-border:var(--foodex-palette-c4b5fd)}.order-inline-status select[data-state="ready"]{--status-bg:var(--foodex-palette-ecfeff);--status-fg:var(--foodex-palette-0e7490);--status-border:var(--foodex-palette-67e8f9)}.order-inline-status select[data-state="out_for_delivery"],.order-inline-status select[data-state="on_the_way"],.order-inline-status select[data-state="assigned"]{--status-bg:var(--foodex-palette-eef2ff);--status-fg:var(--foodex-palette-4338ca);--status-border:var(--foodex-palette-a5b4fc)}.order-inline-status select[data-state="delivered"],.order-inline-status select[data-state="completed"],.order-inline-status select[data-state="paid"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}.order-inline-status select[data-state="cancelled"],.order-inline-status select[data-state="failed"],.order-inline-status select[data-state="delivery_failed"]{--status-bg:var(--foodex-palette-fff1f2);--status-fg:var(--foodex-palette-be123c);--status-border:var(--foodex-palette-fda4af)}.order-inline-status-submit{width:27px!important;height:27px!important;min-width:27px!important;min-height:27px!important;margin:0!important;padding:0!important;border:1px solid var(--foodex-action-green)!important;border-radius:999px!important;background:var(--foodex-action-green)!important;color:#fff!important;font-size:.72rem!important;font-weight:900!important;line-height:25px!important;box-shadow:none!important;cursor:pointer}.order-inline-status-note{grid-column:1/-1;min-width:0;width:100%;box-sizing:border-box;min-height:27px!important;height:27px!important;margin:0!important;padding:0 9px!important;border:1px solid var(--foodex-border)!important;border-radius:999px!important;font-size:.61rem!important;line-height:25px!important}.order-inline-status-note[hidden]{display:none!important}.order-inline-picker{display:grid;grid-template-columns:minmax(0,1fr) 27px;align-items:center;gap:5px;margin-top:3px;width:100%}.order-inline-picker select{appearance:none;-webkit-appearance:none;min-width:0;width:100%;min-height:27px!important;height:27px!important;margin:0!important;padding:0 26px 0 9px!important;border:1px solid var(--foodex-palette-cbd5e1)!important;border-radius:999px!important;background-color:var(--foodex-palette-f1f5f9)!important;color:var(--foodex-palette-475569)!important;font-size:.63rem!important;font-weight:900!important;line-height:25px!important;box-sizing:border-box!important;box-shadow:none!important;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)!important;background-position:calc(100% - 13px) 11px,calc(100% - 9px) 11px!important;background-size:4px 4px,4px 4px!important;background-repeat:no-repeat!important}.order-inline-picker button{width:27px!important;height:27px!important;min-width:27px!important;min-height:27px!important;margin:0!important;padding:0!important;border:1px solid var(--foodex-action-green)!important;border-radius:999px!important;background:var(--foodex-action-green)!important;color:#fff!important;font-size:.72rem!important;font-weight:900!important;line-height:25px!important;box-shadow:none!important;cursor:pointer}.order-inline-picker button:disabled{opacity:.45;cursor:not-allowed}.order-inline-picker-reason{grid-column:1/-1;min-width:0;width:100%;box-sizing:border-box;min-height:27px!important;height:27px!important;margin:0!important;padding:0 9px!important;border:1px solid var(--foodex-border)!important;border-radius:999px!important;font-size:.61rem!important;line-height:25px!important}.order-inline-picker-reason[hidden]{display:none!important}
 .status-tab{--status-tab-bg:#fff;--status-tab-fg:var(--foodex-ink);--status-tab-border:var(--foodex-border);border-color:var(--status-tab-border)!important;background:var(--status-tab-bg)!important;color:var(--status-tab-fg)!important}
 .status-tab[data-order-action-tab]{--status-tab-bg:var(--foodex-palette-fff7ed);--status-tab-fg:var(--foodex-palette-c2410c);--status-tab-border:var(--foodex-palette-fdba74)}
 .status-tab[data-order-status-tab="pending"]{--status-tab-bg:var(--foodex-palette-fff7ed);--status-tab-fg:var(--foodex-palette-c2410c);--status-tab-border:var(--foodex-palette-fed7aa)}
@@ -436,6 +436,28 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         @if($row['dispatch_territory'])
             <small>{{ $row['dispatch_territory'] }}</small>
         @endif
+        @if($row['can_dispatch'])
+            <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" class="order-inline-picker" data-order-inline-dispatch>
+                @csrf @method('PATCH')
+                <input type="hidden" name="assignee_type" value="{{ $row['channel']==='b2b' ? 'van' : 'driver' }}">
+                <select name="assignee_id" required data-order-inline-picker-select data-initial-value="{{ (string)($row['dispatch_assignee_id'] ?? '') }}" aria-label="{{ $row['channel']==='b2b' ? __('order_operations.dispatch.choose_van') : __('order_operations.dispatch.choose_driver') }}">
+                    <option value="">{{ $row['channel']==='b2b' ? __('order_operations.dispatch.choose_van') : __('order_operations.dispatch.choose_driver') }}</option>
+                    @if($row['channel']==='b2c')
+                        @foreach($drivers as $driver)
+                            @if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)===$row['channel'])
+                                <option value="{{ $driver->id }}" @selected((int)($row['dispatch_assignee_id'] ?? 0)===(int)$driver->id)>{{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
+                            @endif
+                        @endforeach
+                    @else
+                        @foreach($vans as $van)
+                            <option value="{{ $van->id }}" @selected((int)($row['dispatch_assignee_id'] ?? 0)===(int)$van->id)>{{ $van->code }}{{ $van->plate_number ? ' · '.$van->plate_number : '' }}</option>
+                        @endforeach
+                    @endif
+                </select>
+                <button type="submit" data-order-inline-picker-submit aria-label="{{ $isAr ? 'حفظ التوجيه' : 'Save dispatch' }}" title="{{ $isAr ? 'حفظ التوجيه' : 'Save dispatch' }}" disabled>✓</button>
+                <input class="order-inline-picker-reason" name="reason" maxlength="500" data-order-inline-picker-reason hidden placeholder="{{ __('order_operations.dispatch.reason_required') }}">
+            </form>
+        @endif
     </div>
 </td>
 <td>
@@ -445,6 +467,18 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             @if($row['customer_service_assignment_reason'])<small>{{ $businessLabel($row['customer_service_assignment_reason']) }}</small>@endif
         @else
             <span class="order-mini-chip">{{ __('order_operations.unassigned') }}</span>
+        @endif
+        @if($canAssignCustomerService && $row['can_manage'])
+            <form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" class="order-inline-picker" data-order-inline-customer-service-owner>
+                @csrf @method('PATCH')
+                <select name="assigned_user_id" data-order-inline-picker-select data-initial-value="{{ (string)($row['customer_service_owner_id'] ?? '') }}" aria-label="{{ __('order_operations.customer_service_owner.assign_follow_up') }}">
+                    <option value="">{{ __('order_operations.customer_service_owner.remove_owner') }}</option>
+                    @foreach($customerServiceAgents as $agent)
+                        <option value="{{ $agent->id }}" @selected((int)($row['customer_service_owner_id'] ?? 0)===(int)$agent->id)>{{ $agent->name }}</option>
+                    @endforeach
+                </select>
+                <button type="submit" data-order-inline-picker-submit aria-label="{{ __('order_operations.customer_service_owner.save') }}" title="{{ __('order_operations.customer_service_owner.save') }}" disabled>✓</button>
+            </form>
         @endif
     </div>
 </td>
@@ -1010,6 +1044,25 @@ document.querySelectorAll('[data-order-inline-status]').forEach(function(form){
         note.hidden=!rejecting;
         note.required=rejecting;
         if(!rejecting){note.value='';}
+    };
+    select.addEventListener('change',sync);
+    sync();
+});
+
+document.querySelectorAll('.order-inline-picker').forEach(function(form){
+    var select=form.querySelector('[data-order-inline-picker-select]');
+    var submit=form.querySelector('[data-order-inline-picker-submit]');
+    var reason=form.querySelector('[data-order-inline-picker-reason]');
+    if(!select||!submit){return;}
+    var initial=String(select.dataset.initialValue||'');
+    var sync=function(){
+        var changed=String(select.value)!==initial;
+        submit.disabled=!changed;
+        if(reason){
+            reason.hidden=!changed;
+            reason.required=changed;
+            if(!changed){reason.value='';}
+        }
     };
     select.addEventListener('change',sync);
     sync();
