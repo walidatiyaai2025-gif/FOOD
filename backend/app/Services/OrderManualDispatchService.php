@@ -30,7 +30,7 @@ final class OrderManualDispatchService
         string $reason,
     ): OrderDispatchState {
         $reason = $this->reason($reason);
-        $this->actors->assertOrderActor($order, FulfillmentActorPolicy::DRIVER);
+        $this->actors->assertManualDispatchActor($order, FulfillmentActorPolicy::DRIVER);
 
         if (
             (int) $driverAssignment->order_id !== (int) $order->id
@@ -106,7 +106,7 @@ final class OrderManualDispatchService
         Carbon|string|null $at = null,
     ): OrderDispatchState {
         $reason = $this->reason($reason);
-        $this->actors->assertOrderActor($order, FulfillmentActorPolicy::VAN);
+        $this->actors->assertManualDispatchActor($order, FulfillmentActorPolicy::VAN);
         $moment = $at instanceof Carbon ? $at : ($at === null ? now() : Carbon::parse($at));
 
         $van = Van::query()
