@@ -269,7 +269,7 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertIsString($view);
         $this->assertIsString($sidebar);
         $this->assertStringContainsString("@include('admin._sidebar',['sidebarDefaultCollapsed'=>true])", $view);
-        $this->assertStringContainsString("const defaultCollapsed = @json((bool)(\$sidebarDefaultCollapsed ?? false));", $sidebar);
+        $this->assertStringContainsString('const defaultCollapsed = @json((bool)($sidebarDefaultCollapsed ?? false));', $sidebar);
         $this->assertStringContainsString("setExpanded(compactMedia.matches || (!defaultCollapsed && localStorage.getItem(stateKey) === '1'), false);", $sidebar);
     }
 
