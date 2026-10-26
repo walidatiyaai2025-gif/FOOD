@@ -42,8 +42,8 @@ class UiRouteConvergenceRegistryTest(unittest.TestCase):
         registry = copy.deepcopy(self.registry)
         registry["surfaces"]["driver"]["functions"].append(
             {
-                "id": "driver.b2b.deliveries",
-                "route": "/driver/b2b/deliveries",
+                "id": "driver.b2b.unscoped",
+                "route": "/driver/b2b/unscoped",
                 "authority": "LegacyDriverPage",
             }
         )
@@ -51,7 +51,7 @@ class UiRouteConvergenceRegistryTest(unittest.TestCase):
         errors = convergence.validate(ROOT, registry)
 
         self.assertTrue(
-            any("forbidden B2B function" in error for error in errors),
+            any("unscoped B2B function" in error for error in errors),
             errors,
         )
 
