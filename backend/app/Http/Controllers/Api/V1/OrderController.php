@@ -40,7 +40,7 @@ class OrderController extends Controller
         'confirmed' => ['cancelled'],
         'preparing' => ['cancelled'],
         'ready' => ['cancelled'],
-        'out_for_delivery' => ['delivered', 'failed'],
+        'out_for_delivery' => ['delivered', 'failed', 'cancelled'],
         'failed' => ['out_for_delivery', 'cancelled'],
         'delivered' => [],
         'cancelled' => [],
