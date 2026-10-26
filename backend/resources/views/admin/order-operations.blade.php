@@ -66,7 +66,7 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-status-chip[data-state="cancelled"],.order-status-chip[data-state="failed"],.order-status-chip[data-state="delivery_failed"]{--status-bg:var(--foodex-palette-fff1f2);--status-fg:var(--foodex-palette-be123c);--status-border:var(--foodex-palette-fda4af)}
 .order-attention-chip{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:0 8px;border:1px solid var(--foodex-palette-fdba74);border-radius:999px;background:var(--foodex-palette-fff7ed);color:var(--foodex-palette-c2410c);font-size:.61rem;font-weight:900;white-space:nowrap;box-shadow:0 3px 10px rgba(234,88,12,.08)}
 .order-attention-chip::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--foodex-palette-f97316);box-shadow:0 0 0 3px rgba(249,115,22,.12)}
-.order-execution{display:grid;gap:5px;min-width:0}.ops-table tbody td.order-dispatch-cell-locked{background:var(--foodex-palette-f8fafc)!important;cursor:not-allowed}.order-execution.is-dispatch-locked{opacity:.42;filter:grayscale(.28)}.order-dispatch-lock-hint{font-size:.58rem;font-weight:800;color:var(--foodex-muted)}.order-execution strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-execution small{color:var(--foodex-muted);font-size:.62rem}
+.order-execution{display:grid;gap:5px;min-width:0}.ops-table tbody td.order-dispatch-lock-hint{font-size:.58rem;font-weight:800;color:var(--foodex-muted)}.order-execution strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-execution small{color:var(--foodex-muted);font-size:.62rem}
 .order-owner{display:grid;gap:3px}.order-owner.is-complete{opacity:.38;filter:grayscale(.35);pointer-events:none;user-select:none}.ops-table tbody td.order-owner-cell.is-complete{background:var(--foodex-palette-f8fafc)!important}.order-owner strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-owner small{color:var(--foodex-muted);font-size:.61rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .order-financial{display:grid;gap:3px;min-width:0}.order-financial>strong{font-size:.69rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-financial>strong.is-paid{color:var(--foodex-palette-15803d)}.order-financial>strong.is-unpaid{color:var(--foodex-palette-be123c)}.order-financial small{color:var(--foodex-muted);font-size:.56rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .order-financial-actions{display:flex;align-items:center;gap:2px;margin-top:1px;flex-wrap:nowrap}.order-financial-action{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;min-width:19px;padding:0;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-green-dark);text-decoration:none;cursor:pointer;transition:transform .14s ease,border-color .14s ease,background .14s ease}.order-financial-action:hover{transform:translateY(-1px);border-color:var(--foodex-action-green);background:var(--foodex-palette-eaf7ef)}.order-financial-action.is-timeline{border-color:var(--foodex-palette-fda4af);background:var(--foodex-palette-fff1f2);color:var(--foodex-palette-be123c)}.order-financial-action.is-timeline:hover{border-color:var(--foodex-palette-be123c);background:var(--foodex-palette-fff1f2)}.order-financial-action .foodex-svg-icon{width:11px;height:11px}
@@ -477,7 +477,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
             <span class="order-status-chip" data-state="{{ $rowStatusVisualState }}">{{ $row['status_label'] }}</span>
             @if($rowNeedsB2bDispatch)
-                <span class="order-ready-dispatch-alert" data-b2b-ready-dispatch-alert>{{ $isAr ? 'برجاء تعيين سائق' : 'Please assign a driver' }}</span>
+                <span class="order-ready-dispatch-alert" data-b2b-assignment-required-alert>{{ $isAr ? 'برجاء تعيين سائق' : 'Please assign a driver' }}</span>
             @endif
         </div>
         @if($rowDelivered)
@@ -507,8 +507,8 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     </div>
 </td>
 @if(!$rowMergedStatus)
-<td class="{{ ($row['dispatch_locked_until_confirmation'] ?? false) ? 'order-dispatch-cell-locked' : '' }}" @if($row['dispatch_locked_until_confirmation'] ?? false) title="{{ $isAr ? 'التوجيه متاح بعد تأكيد الطلب' : 'Dispatch is available after order confirmation' }}" @endif>
-    <div class="order-execution {{ ($row['dispatch_locked_until_confirmation'] ?? false) ? 'is-dispatch-locked' : '' }}" @if($row['dispatch_locked_until_confirmation'] ?? false) data-order-dispatch-locked aria-disabled="true" @endif>
+<td>
+    <div class="order-execution">
         @if($rowActionRequired)
             <span class="order-status-chip" data-state="awaiting_dispatch">{{ __('order_operations.dispatch.awaiting_queue') }}</span>
         @elseif($rowExecutor)
