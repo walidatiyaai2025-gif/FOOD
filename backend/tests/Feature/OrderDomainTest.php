@@ -576,6 +576,30 @@ class OrderDomainTest extends TestCase
         ]);
     }
 
+    public function test_b2b_ready_cannot_be_manually_moved_out_for_delivery_without_dispatch_assignment(): void
+    {
+        $order = $this->makeOrder($this->b2bCustomer, $this->b2bStoreId, 'b2b', 'ready');
+
+        $admin = $this->makeGlobalRoleUser('SUPER_ADMIN', 'b2b-ready-gate@example.test');
+        Sanctum::actingAs($admin);
+
+        $this->postJson("/api/v1/orders/{$order->id}/status", [
+            'status' => 'out_for_delivery',
+            'note' => 'Manual bypass attempt',
+        ])->assertConflict();
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'ready',
+        ]);
+
+        $this->getJson("/api/v1/b2b/orders/{$order->id}")
+            ->assertOk()
+            ->assertJsonPath('status', 'ready')
+            ->assertJsonPath('next_statuses.0', 'cancelled')
+            ->assertJsonCount(1, 'next_statuses');
+    }
+
     public function test_super_admin_can_follow_valid_transition_chain_and_delivery_consumes_reserved_stock(): void
     {
         $order = $this->makeOrder(
