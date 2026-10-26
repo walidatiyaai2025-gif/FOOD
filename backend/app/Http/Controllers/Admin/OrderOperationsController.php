@@ -1306,6 +1306,25 @@ final class OrderOperationsController extends Controller
         ]);
         $reason = trim((string) $data['reason']);
 
+        $currentDriverAssignment = DriverAssignment::query()
+            ->where('order_id', $model->getKey())
+            ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+            ->latest('id')
+            ->first();
+
+        if ($currentDriverAssignment instanceof DriverAssignment) {
+            abort_unless(
+                (string) $data['assignee_type'] === 'driver',
+                409,
+                'Orders already with a Driver can only be withdrawn and transferred to another Driver.',
+            );
+            abort_if(
+                (int) $data['assignee_id'] === (int) $currentDriverAssignment->driver_id,
+                422,
+                'Select another Driver to transfer this order.',
+            );
+        }
+
         if ((string) $data['assignee_type'] === 'driver') {
             $driverId = (int) $data['assignee_id'];
 
@@ -2124,11 +2143,16 @@ final class OrderOperationsController extends Controller
         }
 
         $status = (string) $order->status;
+        $hasActiveDriver = $assignment instanceof DriverAssignment;
         $availableStatuses = array_values(array_filter(
             OrderController::allowedTransitions($status),
             static fn (string $candidate): bool => in_array($candidate, $activeStatusCodes, true),
         ));
-        if ($channel === 'b2b' && $status === 'ready') {
+        if ($hasActiveDriver) {
+            $availableStatuses = in_array('cancelled', $activeStatusCodes, true)
+                ? ['cancelled']
+                : [];
+        } elseif ($channel === 'b2b' && $status === 'ready') {
             $availableStatuses = array_values(array_filter(
                 $availableStatuses,
                 static fn (string $candidate): bool => $candidate === 'cancelled',
@@ -2145,7 +2169,10 @@ final class OrderOperationsController extends Controller
             'source' => $source,
             'customer' => $customerName ?? '-',
             'status' => $status,
-            'status_label' => $statusLabels[$status] ?? $status,
+            'status_label' => $hasActiveDriver
+                ? $this->msg('الطلب مع السائق للتوصيل', 'Order with driver for delivery')
+                : ($statusLabels[$status] ?? $status),
+            'has_active_driver' => $hasActiveDriver,
             'available_statuses' => array_map(
                 static fn (string $candidate): array => [
                     'code' => $candidate,
