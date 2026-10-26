@@ -237,7 +237,7 @@ return [
         'assigned_van' => 'Order assigned to Van',
         'driver_processing' => 'Driver is processing the order',
         'van_processing' => 'Van is processing the order',
-        'completed' => 'Order completed',
+        'completed' => 'Order delivered to customer',
     ],
     'popup' => [
         'print' => 'Print',
@@ -296,6 +296,8 @@ return [
         'checkout' => 'Order created by customer',
         'dispatch_assigned' => 'Delivery assignee assigned',
         'customer_service_approved' => 'Order confirmed by Customer Service',
+        'dashboard_reverted_to_pending' => 'Order returned to pending',
+        'status_reverted_to_pending' => 'Invoice voided after returning order to pending',
         'manual_unassigned' => 'Routing manually cleared',
         'grid_manual_unassign' => 'Routing cleared from orders grid',
         'detail_manual_unassign' => 'Routing cleared from order details',
