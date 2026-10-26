@@ -201,6 +201,18 @@ class _DriverHomePage extends StatefulWidget {
   State<_DriverHomePage> createState() => _DriverHomePageState();
 }
 
+enum _DriverHomeUpdateKind { assigned, updated, removed }
+
+class _DriverHomeUpdateEvent {
+  const _DriverHomeUpdateEvent({
+    required this.kind,
+    required this.assignment,
+  });
+
+  final _DriverHomeUpdateKind kind;
+  final DriverAssignment assignment;
+}
+
 class _DriverHomePageState extends State<_DriverHomePage>
     with WidgetsBindingObserver {
   static const _summaryRefreshInterval = Duration(seconds: 5);
@@ -212,11 +224,16 @@ class _DriverHomePageState extends State<_DriverHomePage>
   bool _refreshPending = false;
   int _lifecycleEpoch = 0;
   Timer? _summaryRefreshTimer;
+  StreamSubscription<DriverPushAlert>? _homePushSubscription;
   List<DriverAssignment> _assignments = const [];
-  final Set<int> _seenAssignmentIds = <int>{};
-  final List<DriverAssignment> _newAssignmentQueue = <DriverAssignment>[];
+  final Map<int, DriverAssignment> _assignmentSnapshot =
+      <int, DriverAssignment>{};
+  final Map<int, String> _assignmentFingerprints = <int, String>{};
+  final Map<int, DateTime> _recentPushAssignments = <int, DateTime>{};
+  final List<_DriverHomeUpdateEvent> _updateQueue =
+      <_DriverHomeUpdateEvent>[];
   bool _assignmentSnapshotInitialized = false;
-  bool _newAssignmentPopupActive = false;
+  bool _updatePopupActive = false;
 
   static const _statuses = [
     ('accepted', Icons.verified_rounded),
@@ -230,6 +247,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _homePushSubscription = widget.pushAlerts?.listen(_recordPushAlert);
     unawaited(_loadSummary());
     _startLiveRefresh();
   }
@@ -237,8 +255,18 @@ class _DriverHomePageState extends State<_DriverHomePage>
   @override
   void dispose() {
     _stopLiveRefresh();
+    unawaited(_homePushSubscription?.cancel());
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DriverHomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.pushAlerts, widget.pushAlerts)) {
+      unawaited(_homePushSubscription?.cancel());
+      _homePushSubscription = widget.pushAlerts?.listen(_recordPushAlert);
+    }
   }
 
   @override
@@ -297,13 +325,56 @@ class _DriverHomePageState extends State<_DriverHomePage>
           )
           .toList(growable: false);
 
-      final newAssignments = _assignmentSnapshotInitialized
-          ? nextAssignments
-              .where((row) => !_seenAssignmentIds.contains(row.id))
-              .toList(growable: false)
-          : const <DriverAssignment>[];
+      final detectedUpdates = <_DriverHomeUpdateEvent>[];
+      if (_assignmentSnapshotInitialized) {
+        final nextIds = nextAssignments.map((row) => row.id).toSet();
 
-      _seenAssignmentIds.addAll(nextAssignments.map((row) => row.id));
+        for (final assignment in nextAssignments) {
+          final previous = _assignmentSnapshot[assignment.id];
+          if (previous == null) {
+            detectedUpdates.add(
+              _DriverHomeUpdateEvent(
+                kind: _DriverHomeUpdateKind.assigned,
+                assignment: assignment,
+              ),
+            );
+            continue;
+          }
+
+          final previousFingerprint = _assignmentFingerprints[assignment.id];
+          final nextFingerprint = _assignmentFingerprint(assignment);
+          if (previousFingerprint != nextFingerprint) {
+            detectedUpdates.add(
+              _DriverHomeUpdateEvent(
+                kind: _DriverHomeUpdateKind.updated,
+                assignment: assignment,
+              ),
+            );
+          }
+        }
+
+        for (final previous in _assignmentSnapshot.values) {
+          if (!nextIds.contains(previous.id)) {
+            detectedUpdates.add(
+              _DriverHomeUpdateEvent(
+                kind: _DriverHomeUpdateKind.removed,
+                assignment: previous,
+              ),
+            );
+          }
+        }
+      }
+
+      _assignmentSnapshot
+        ..clear()
+        ..addEntries(nextAssignments.map((row) => MapEntry(row.id, row)));
+      _assignmentFingerprints
+        ..clear()
+        ..addEntries(
+          nextAssignments.map(
+            (row) => MapEntry(row.id, _assignmentFingerprint(row)),
+          ),
+        );
       _assignmentSnapshotInitialized = true;
 
       setState(() {
@@ -313,8 +384,8 @@ class _DriverHomePageState extends State<_DriverHomePage>
         _showingStaleData = false;
       });
 
-      if (newAssignments.isNotEmpty && preview == null) {
-        _queueNewAssignments(newAssignments);
+      if (detectedUpdates.isNotEmpty && preview == null) {
+        _schedulePollingFallback(detectedUpdates);
       }
     } on DriverSessionExpiredException {
       widget.onSessionExpired?.call();
@@ -339,54 +410,159 @@ class _DriverHomePageState extends State<_DriverHomePage>
     }
   }
 
-  void _queueNewAssignments(List<DriverAssignment> assignments) {
-    if (!mounted || assignments.isEmpty) return;
-    _newAssignmentQueue.addAll(assignments);
-    unawaited(_showQueuedNewAssignments());
+  void _recordPushAlert(DriverPushAlert alert) {
+    final assignmentId = alert.open.assignmentId;
+    if (assignmentId != null) {
+      _recentPushAssignments[assignmentId] = DateTime.now();
+      return;
+    }
+
+    final orderId = alert.open.orderId;
+    if (orderId == null) return;
+    for (final assignment in _assignments) {
+      if (assignment.orderId == orderId) {
+        _recentPushAssignments[assignment.id] = DateTime.now();
+      }
+    }
   }
 
-  Future<void> _showQueuedNewAssignments() async {
-    if (_newAssignmentPopupActive || !mounted) return;
-    _newAssignmentPopupActive = true;
+  bool _wasRecentlyPushed(int assignmentId) {
+    final now = DateTime.now();
+    _recentPushAssignments.removeWhere(
+      (_, at) => now.difference(at) > const Duration(seconds: 12),
+    );
+    final at = _recentPushAssignments[assignmentId];
+    return at != null && now.difference(at) <= const Duration(seconds: 12);
+  }
+
+  void _schedulePollingFallback(List<_DriverHomeUpdateEvent> updates) {
+    Future<void>.delayed(const Duration(milliseconds: 1200), () {
+      if (!mounted) return;
+      final fallback = updates
+          .where((event) => !_wasRecentlyPushed(event.assignment.id))
+          .toList(growable: false);
+      if (fallback.isEmpty) return;
+      _updateQueue.addAll(fallback);
+      unawaited(_showQueuedUpdates());
+    });
+  }
+
+  String _assignmentFingerprint(DriverAssignment assignment) {
+    final settlement = assignment.settlement;
+    final invoice = assignment.invoice;
+    final items = assignment.items
+        .map(
+          (item) => [
+            item.name,
+            item.sku,
+            item.variant,
+            item.unit,
+            item.note,
+            item.quantity,
+            item.quantityConversionFactor,
+            item.packSize,
+            item.caseSize,
+            item.unitPrice,
+            item.lineTotal,
+          ].join('~'),
+        )
+        .join('||');
+
+    return [
+      assignment.status,
+      assignment.orderStatus,
+      assignment.storeName,
+      assignment.customerName,
+      assignment.customerPhone,
+      assignment.address,
+      assignment.navigationLatitude,
+      assignment.navigationLongitude,
+      assignment.currency,
+      assignment.grandTotal,
+      assignment.paymentMethod,
+      assignment.paymentStatus,
+      assignment.customerNote,
+      assignment.availableStatuses.join(','),
+      assignment.assignedAt,
+      assignment.completedAt,
+      assignment.createdAt,
+      settlement?.orderTotal,
+      settlement?.balanceApplied,
+      settlement?.paidAmount,
+      settlement?.remainingAmount,
+      settlement?.remainderMethod,
+      settlement?.paymentState,
+      settlement?.amountToCollectNow,
+      settlement?.invoiceOutstandingAmount,
+      invoice?.id,
+      invoice?.number,
+      invoice?.revision,
+      invoice?.status,
+      invoice?.grandTotal,
+      invoice?.paymentMethod,
+      invoice?.paymentStatus,
+      invoice?.outstandingAmount,
+      invoice?.issuedAt,
+      items,
+    ].join('|');
+  }
+
+  Future<void> _showQueuedUpdates() async {
+    if (_updatePopupActive || !mounted) return;
+    _updatePopupActive = true;
 
     try {
-      while (mounted && _newAssignmentQueue.isNotEmpty) {
-        final assignment = _newAssignmentQueue.removeAt(0);
+      while (mounted && _updateQueue.isNotEmpty) {
+        final event = _updateQueue.removeAt(0);
+        final assignment = event.assignment;
+        final removed = event.kind == _DriverHomeUpdateKind.removed;
+        final titleKey = switch (event.kind) {
+          _DriverHomeUpdateKind.assigned => 'driver.home.new_order_title',
+          _DriverHomeUpdateKind.updated => 'driver.home.order_updated_title',
+          _DriverHomeUpdateKind.removed => 'driver.home.order_removed_title',
+        };
+
         final openOrder = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            key: const Key('driver-new-order-popup'),
-            icon: const Icon(
-              Icons.notifications_active_rounded,
-              color: FoodexBrand.actionGreen,
+            key: const Key('driver-home-update-popup'),
+            icon: Icon(
+              removed
+                  ? Icons.assignment_return_outlined
+                  : Icons.notifications_active_rounded,
+              color: removed ? FoodexBrand.red : FoodexBrand.actionGreen,
               size: 34,
             ),
-            title: Text(context.tr('driver.home.new_order_title')),
+            title: Text(context.tr(titleKey)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
                   '${context.tr('driver.notifications.order_identity')} ${assignment.reference}',
-                  key: const Key('driver-new-order-reference'),
+                  key: const Key('driver-home-update-reference'),
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
-                if (assignment.customerName.trim().isNotEmpty) ...[
+                if (!removed) ...[
                   const SizedBox(height: 8),
-                  Text('${context.tr('driver.detail.customer')}: ${assignment.customerName.trim()}'),
-                ],
-                if (assignment.address.trim().isNotEmpty) ...[
-                  const SizedBox(height: 6),
                   Text(
-                    '${context.tr('driver.detail.address')}: ${assignment.address.trim()}',
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
+                    '${context.tr('driver.home.current_status')}: '
+                    '${context.tr('driver.status.${assignment.status}')}',
                   ),
                 ],
-                if (assignment.grandTotal > 0) ...[
-                  const SizedBox(height: 8),
+                if (assignment.customerName.trim().isNotEmpty) ...[
+                  const SizedBox(height: 6),
                   Text(
-                    '${context.tr('driver.detail.total')}: ${assignment.grandTotal.toStringAsFixed(2)} ${assignment.currency}',
+                    '${context.tr('driver.detail.customer')}: '
+                    '${assignment.customerName.trim()}',
+                  ),
+                ],
+                if (!removed && assignment.grandTotal > 0) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    '${context.tr('driver.detail.total')}: '
+                    '${assignment.grandTotal.toStringAsFixed(2)} '
+                    '${assignment.currency}',
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ],
@@ -394,16 +570,17 @@ class _DriverHomePageState extends State<_DriverHomePage>
             ),
             actions: [
               TextButton(
-                key: const Key('driver-new-order-dismiss'),
+                key: const Key('driver-home-update-dismiss'),
                 onPressed: () => Navigator.of(dialogContext).pop(false),
                 child: Text(context.tr('driver.dismiss')),
               ),
-              FilledButton.icon(
-                key: const Key('driver-new-order-open'),
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                icon: const Icon(Icons.open_in_new_rounded),
-                label: Text(context.tr('driver.notifications.open')),
-              ),
+              if (!removed)
+                FilledButton.icon(
+                  key: const Key('driver-home-update-open'),
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  icon: const Icon(Icons.open_in_new_rounded),
+                  label: Text(context.tr('driver.notifications.open')),
+                ),
             ],
           ),
         );
@@ -419,7 +596,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
         }
       }
     } finally {
-      _newAssignmentPopupActive = false;
+      _updatePopupActive = false;
     }
   }
 
