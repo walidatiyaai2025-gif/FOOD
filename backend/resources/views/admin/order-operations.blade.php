@@ -440,7 +440,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         @if($rowDelivered)
             <small class="order-delivered-time" data-order-delivered-time>
                 {{ $isAr ? 'وقت التسليم' : 'Delivered at' }}:
-                {{ $row['delivered_at'] ? IlluminateSupportCarbon::parse((string)$row['delivered_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i:s') : '—' }}
+                {{ $row['delivered_at'] ? \Illuminate\Support\Carbon::parse((string)$row['delivered_at'])->timezone('Asia/Kuwait')->format('Y-m-d H:i:s') : '—' }}
             </small>
         @endif
         @if($row['can_manage'] && count($row['available_statuses']))
