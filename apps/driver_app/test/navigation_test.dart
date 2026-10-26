@@ -225,7 +225,7 @@ void main() {
       findsOneWidget,
     );
     final pendingContainer = tester.widget<Container>(
-      find.descendant(of: pendingCard, matching: find.byType(Container)).at(1),
+      find.descendant(of: pendingCard, matching: find.byType(Container)).first,
     );
     final pendingDecoration = pendingContainer.decoration! as BoxDecoration;
     expect(pendingDecoration.border, isNotNull);
