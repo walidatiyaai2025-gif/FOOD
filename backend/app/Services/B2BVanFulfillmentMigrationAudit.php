@@ -81,10 +81,10 @@ final class B2BVanFulfillmentMigrationAudit
 
                     $issues = [];
                     if ($channel === 'b2b') {
-                        $authorizedManualDriver = $dispatch?->status === 'assigned'
-                            && $dispatch?->current_assignee_type === FulfillmentActorPolicy::DRIVER
-                            && $dispatch?->current_assignee_id !== null
-                            && $dispatch?->routing_reason === 'customer_service_driver_assignment'
+                        $authorizedManualDriver = $dispatch->status === 'assigned'
+                            && $dispatch->current_assignee_type === FulfillmentActorPolicy::DRIVER
+                            && $dispatch->current_assignee_id !== null
+                            && $dispatch->routing_reason === 'customer_service_driver_assignment'
                             && $activeDriverIds !== [];
 
                         if ($activeDriverIds !== [] && ! $authorizedManualDriver) {
