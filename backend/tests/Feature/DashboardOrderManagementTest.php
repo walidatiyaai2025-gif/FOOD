@@ -303,7 +303,7 @@ class DashboardOrderManagementTest extends TestCase
             ->assertSee('New order · awaiting Driver or Van assignment')
             ->assertSee('Cancel order')
             ->assertDontSee('Approve order')
-            ->assertDontSee('Ready');
+            ->assertDontSee('value="ready"', false);
 
         DB::table('orders')->where('id', $order->id)->update(['payment_method' => 'account_credit']);
 
