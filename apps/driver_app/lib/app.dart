@@ -129,6 +129,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
   final DriverBiometricAuthenticator _biometricAuthenticator =
       LocalAuthDriverBiometricAuthenticator();
 
+  // ignore: unused_field — release tooling reads this source identity contract.
   static const _appVersion = '1.0.113';
 
   String get _baseUrl => widget.apiBaseUrl ?? FoodexEnvironment.apiBaseUrl;
@@ -383,7 +384,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
         _driverNavigatorKey.currentContext ?? _messengerKey.currentContext;
     if (popupContext == null || !mounted) {
       final fallbackMessage =
-          alert.body.isEmpty ? alert.title : '${alert.title}\n${alert.body}';
+          alert.body.isEmpty ? alert.title : '${alert.title}\n${alert.body}'; // localization-gate: allow — server-localized push payload.
       _messengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(fallbackMessage)),
       );
