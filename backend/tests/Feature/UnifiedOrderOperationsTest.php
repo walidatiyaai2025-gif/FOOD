@@ -692,9 +692,10 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-order-inline-unassign', $view);
         $this->assertStringContainsString('data-order-actionable-detail', $view);
         $this->assertStringContainsString('data-order-detail-no-actions', $view);
-        $this->assertStringContainsString('.ops-table th:nth-child(1){width:8%}', $view);
-        $this->assertStringContainsString('.ops-table th:nth-child(2){width:14%}', $view);
-        $this->assertStringContainsString('.ops-table th:nth-child(3){width:8%}', $view);
+        $this->assertStringContainsString('.ops-table th:nth-child(1),.ops-table th:nth-child(2),.ops-table th:nth-child(3),.ops-table th:nth-child(4),.ops-table th:nth-child(5),.ops-table th:nth-child(6){width:16.666%}', $view);
+        $this->assertStringContainsString('border-bottom:1px solid var(--foodex-border);border-inline-end:1px solid var(--foodex-border)', $view);
+        $this->assertStringContainsString('.order-status-chip{', $view);
+        $this->assertStringContainsString('padding:0 9px;border:0!important;border-radius:999px', $view);
         $this->assertStringContainsString("class=\"{{ \$rowPaid ? 'is-paid' : 'is-unpaid' }}\"", $view);
         $this->assertStringContainsString('data-order-popup-dialog', $view);
         $this->assertStringContainsString('data-order-popup-url', $view);
