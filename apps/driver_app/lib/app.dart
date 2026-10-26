@@ -382,9 +382,8 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
     final popupContext =
         _driverNavigatorKey.currentContext ?? _messengerKey.currentContext;
     if (popupContext == null || !mounted) {
-      final fallbackMessage = alert.body.isEmpty
-          ? alert.title
-          : '${alert.title}\n${alert.body}';
+      final fallbackMessage =
+          alert.body.isEmpty ? alert.title : '${alert.title}\n${alert.body}';
       _messengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(fallbackMessage)),
       );
@@ -647,7 +646,6 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
             ),
     );
   }
-
 }
 
 class _DriverPreviewConfigurationError extends StatelessWidget {
