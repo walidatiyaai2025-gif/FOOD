@@ -64,7 +64,7 @@ $printTitle = __('order_operations.popup.'.$kind);
         <section class="order-popup-section">
             <h3>{{ __('order_operations.popup.items') }}</h3>
             <div class="order-popup-table-wrap">
-                <table class="order-popup-table">
+                <table class="order-popup-table" data-pagination-exempt="bounded-single-order-line-items">
                     <thead><tr><th>{{ __('order_operations.popup.item') }}</th><th>{{ __('order_operations.popup.quantity') }}</th><th>{{ __('order_operations.popup.total') }}</th></tr></thead>
                     <tbody>
                     @forelse($detail['items'] as $item)
@@ -89,7 +89,7 @@ $printTitle = __('order_operations.popup.'.$kind);
         <section class="order-popup-section">
             <h3>{{ __('order_operations.popup.invoice_lines') }}</h3>
             <div class="order-popup-table-wrap">
-                <table class="order-popup-table">
+                <table class="order-popup-table" data-pagination-exempt="bounded-single-order-invoice-lines">
                     <thead><tr><th>{{ __('order_operations.popup.item') }}</th><th>{{ __('order_operations.popup.quantity') }}</th><th>{{ __('order_operations.popup.unit_price') }}</th><th>{{ __('order_operations.popup.total') }}</th></tr></thead>
                     <tbody>
                     @forelse($detail['items'] as $item)
