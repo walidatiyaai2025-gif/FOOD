@@ -807,7 +807,7 @@ class _DriverPendingCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: Color(0xFF9F1239),
+                      color: FoodexBrand.dangerText,
                       fontSize: 14,
                       fontWeight: FontWeight.w900,
                     ),
@@ -820,7 +820,7 @@ class _DriverPendingCard extends StatelessWidget {
                     height: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.2,
-                      color: Color(0xFFE11D48),
+                      color: FoodexBrand.red,
                     ),
                   )
                 else
