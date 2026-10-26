@@ -929,6 +929,13 @@ class _CustomerOrderDetailsScreenState extends State<CustomerOrderDetailsScreen>
           title: context.tr('customer.order.tracking'),
           child: Text(context.tr('customer.order.no_live_tracking')),
         ),
+        if (order.driver != null) ...[
+          const SizedBox(height: 14),
+          _Section(
+            title: context.tr('customer.order.driver'),
+            child: _DriverSummary(driver: order.driver!),
+          ),
+        ],
         if (!widget.trackingOnly) ...[
           const SizedBox(height: 14),
           _Section(
@@ -949,6 +956,44 @@ class _CustomerOrderDetailsScreenState extends State<CustomerOrderDetailsScreen>
       ],
     );
   }
+}
+
+class _DriverSummary extends StatelessWidget {
+  const _DriverSummary({required this.driver});
+
+  final CustomerOrderDriver driver;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.delivery_dining_rounded,
+            color: CustomerUiColors.deepGreenStrong,
+          ),
+          const SizedBox(width: CustomerUiSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  driver.name,
+                  key: const ValueKey('customer-order-driver-name'),
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                if (driver.phone != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    driver.phone!,
+                    key: const ValueKey('customer-order-driver-phone'),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      );
 }
 
 class _OrderCard extends StatelessWidget {
