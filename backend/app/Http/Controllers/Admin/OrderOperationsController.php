@@ -2228,18 +2228,10 @@ final class OrderOperationsController extends Controller
                 : ($context->deliveredAt[$orderId] ?? null))
             : null;
         $hasActiveDriver = $assignment instanceof DriverAssignment;
-        $availableStatuses = array_values(array_filter(
-            OrderController::allowedTransitions($status),
-            static fn (string $candidate): bool => in_array($candidate, $activeStatusCodes, true),
-        ));
-        if (
-            $hasActiveDriver
-            || in_array($status, ['pending', 'confirmed', 'preparing', 'ready'], true)
-        ) {
-            $availableStatuses = in_array('cancelled', $activeStatusCodes, true)
+        $availableStatuses = ! in_array($status, ['delivered', 'cancelled'], true)
+            && in_array('cancelled', $activeStatusCodes, true)
                 ? ['cancelled']
                 : [];
-        }
 
         $displayStatus = $this->orderOperationsDisplayStatus(
             $order,
