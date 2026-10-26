@@ -137,7 +137,7 @@ class AdminShellTest extends TestCase
             ->assertOk()
             ->assertSee('Operations')
             ->assertSee('Catalog')
-            ->assertSee('Analytics & Reports')
+            ->assertSee('Analytics')
             ->assertSee('Administration')
             ->assertSee('data-nav-group="operations"', false)
             ->assertSee('Search navigation');
@@ -225,7 +225,7 @@ class AdminShellTest extends TestCase
         $this->actingAs($user)
             ->get('/admin')
             ->assertOk()
-            ->assertSee('Analytics & Reports')
+            ->assertSee('Analytics')
             ->assertDontSee('Users & Permissions')
             ->assertDontSee('Translation Center')
             ->assertDontSee('System Update');
