@@ -109,6 +109,45 @@ class B2BVanFulfillmentMigrationAuditTest extends TestCase
         $this->assertDatabaseHas('order_van_assignments', ['id' => $vanAssignment->id, 'status' => 'active']);
     }
 
+    public function test_authorized_manual_b2b_driver_dispatch_is_not_reported_as_legacy_contradiction(): void
+    {
+        [$order, $store] = $this->orderFixture('AUDIT-B2B-MANUAL-DRIVER', 'b2b');
+
+        $driverUser = User::factory()->create();
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $store->id,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+        DriverAssignment::query()->create([
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+            'store_id' => $store->id,
+            'assignment_type' => 'b2b',
+            'status' => 'assigned',
+            'assigned_at' => now(),
+        ]);
+        OrderDispatchState::query()->create([
+            'order_id' => $order->id,
+            'status' => 'assigned',
+            'routing_source' => 'manual_customer_service',
+            'routing_reason' => 'customer_service_driver_assignment',
+            'current_assignee_type' => 'driver',
+            'current_assignee_id' => $driver->id,
+            'decision_key' => hash('sha256', 'audit-b2b-manual-driver'),
+            'decided_at' => now(),
+        ]);
+
+        $report = app(B2BVanFulfillmentMigrationAudit::class)->report();
+
+        $this->assertSame(0, $report['counts']['b2b_active_driver']);
+        $this->assertSame(0, $report['counts']['b2b_dispatch_driver']);
+        $this->assertSame(0, $report['counts']['b2b_requires_van_routing']);
+        $this->assertSame(0, $report['counts']['contradictory_orders']);
+    }
+
     public function test_console_dry_run_emits_json_and_performs_no_writes(): void
     {
         $this->orderFixture('AUDIT-CMD', 'b2b');
