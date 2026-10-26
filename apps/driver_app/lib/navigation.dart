@@ -698,9 +698,18 @@ class _DriverHomePageState extends State<_DriverHomePage>
           builder: (context, constraints) {
             final compact = constraints.maxHeight < 610;
             final ultraCompact = constraints.maxHeight < 510;
-            final gap = ultraCompact ? 4.0 : compact ? 6.0 : 10.0;
+            final gap = ultraCompact ? 4.0 : compact ? 6.0 : 8.0;
             final horizontalPadding = ultraCompact ? 8.0 : 12.0;
             final columns = compact ? 3 : 2;
+            final chartHeight =
+                ultraCompact ? 86.0 : compact ? 100.0 : 112.0;
+            final pendingHeight =
+                ultraCompact ? 38.0 : compact ? 42.0 : 46.0;
+            final statusCardHeight =
+                ultraCompact ? 46.0 : compact ? 54.0 : 64.0;
+            final statusRows = (_statuses.length / columns).ceil();
+            final statusGridHeight =
+                (statusRows * statusCardHeight) + ((statusRows - 1) * gap);
 
             return Padding(
               padding: EdgeInsets.fromLTRB(
@@ -723,8 +732,8 @@ class _DriverHomePageState extends State<_DriverHomePage>
                         ),
                   ),
                   SizedBox(height: gap),
-                  Expanded(
-                    flex: compact ? 3 : 4,
+                  SizedBox(
+                    height: chartHeight,
                     child: _DriverWorkloadChart(
                       compact: compact,
                       ultraCompact: ultraCompact,
@@ -741,17 +750,20 @@ class _DriverHomePageState extends State<_DriverHomePage>
                     ),
                   ),
                   SizedBox(height: gap),
-                  _DriverPendingCard(
-                    key: const Key('driver-home-pending-orders'),
-                    compact: compact,
-                    ultraCompact: ultraCompact,
-                    label: context.tr('driver.home.pending_orders'),
-                    value: _loading ? null : _count('assigned'),
-                    onTap: _loading ? null : () => _openStatus('assigned'),
+                  SizedBox(
+                    height: pendingHeight,
+                    child: _DriverPendingCard(
+                      key: const Key('driver-home-pending-orders'),
+                      compact: compact,
+                      ultraCompact: ultraCompact,
+                      label: context.tr('driver.home.pending_orders'),
+                      value: _loading ? null : _count('assigned'),
+                      onTap: _loading ? null : () => _openStatus('assigned'),
+                    ),
                   ),
                   SizedBox(height: gap),
-                  Expanded(
-                    flex: compact ? 4 : 5,
+                  SizedBox(
+                    height: statusGridHeight,
                     child: _loadFailed
                         ? Card(
                             margin: EdgeInsets.zero,
@@ -787,8 +799,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
                             crossAxisCount: columns,
                             crossAxisSpacing: gap,
                             mainAxisSpacing: gap,
-                            childAspectRatio:
-                                ultraCompact ? 1.65 : compact ? 1.55 : 1.9,
+                            mainAxisExtent: statusCardHeight,
                             children: [
                               for (final status in _statuses)
                                 _DriverStatusCard(
@@ -808,6 +819,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
                             ],
                           ),
                   ),
+                  const Spacer(),
                 ],
               ),
             );
