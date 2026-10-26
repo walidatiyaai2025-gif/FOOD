@@ -60,6 +60,7 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-status-chip[data-state="ready"]{--status-bg:var(--foodex-palette-ecfeff);--status-fg:var(--foodex-palette-0e7490);--status-border:var(--foodex-palette-67e8f9)}
 .order-status-chip[data-state="out_for_delivery"],.order-status-chip[data-state="on_the_way"],.order-status-chip[data-state="assigned"]{--status-bg:var(--foodex-palette-eef2ff);--status-fg:var(--foodex-palette-4338ca);--status-border:var(--foodex-palette-a5b4fc)}
 .order-status-chip[data-state="b2b_out_for_delivery"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}
+.order-status-chip[data-state="driver_delivery"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}
 .order-ready-dispatch-alert{display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:0 9px;border:1px solid var(--foodex-palette-fda4af);border-radius:999px;background:var(--foodex-palette-fff1f2);color:var(--foodex-palette-be123c);font-size:.6rem;font-weight:900;white-space:nowrap;animation:orderReadyDispatchPulse 1s ease-in-out infinite}
 @keyframes orderReadyDispatchPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(190,18,60,.12)}50%{opacity:.38;box-shadow:0 0 0 4px rgba(190,18,60,.08)}}
 .order-status-chip[data-state="delivered"],.order-status-chip[data-state="completed"],.order-status-chip[data-state="paid"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}
@@ -384,8 +385,10 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 @php($rowActionRequired = ($row['dispatch_status'] ?? '') === 'awaiting_dispatch')
 @php($rowExecutor = $row['dispatch_assignee'] ?? $row['driver'] ?? null)
 @php($rowStatusState = strtolower((string) $row['status']))
+@php($rowWithDriver = !empty($row['has_active_driver']))
+@php($rowCurrentDriverId = (int)($row['driver_id'] ?? 0))
 @php($rowNeedsB2bDispatch = $row['channel']==='b2b' && $rowStatusState==='ready' && empty($row['dispatch_assignee_id']))
-@php($rowStatusVisualState = $row['channel']==='b2b' && $rowStatusState==='out_for_delivery' ? 'b2b_out_for_delivery' : $rowStatusState)
+@php($rowStatusVisualState = $rowWithDriver ? 'driver_delivery' : ($row['channel']==='b2b' && $rowStatusState==='out_for_delivery' ? 'b2b_out_for_delivery' : $rowStatusState))
 <tr class="order-grid-row {{ $rowActionRequired ? 'is-action-required' : '' }}" data-order-row="{{ $row['id'] }}" data-action-required="{{ $rowActionRequired ? '1' : '0' }}">
 <td>
     <div class="order-grid-primary">
@@ -417,7 +420,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             <form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}" class="order-inline-status" data-order-inline-status>
                 @csrf
                 <select name="status" required aria-label="{{ __('order_operations.next_status') }}" data-order-inline-status-select data-state="{{ $rowStatusState }}">
-                    <option value="">{{ __('order_operations.choose_next_status') }}</option>
+                    <option value="">{{ $rowWithDriver ? ($isAr ? 'إلغاء الطلب' : 'Cancel order') : __('order_operations.choose_next_status') }}</option>
                     @foreach($row['available_statuses'] as $status)
                         <option value="{{ $status['code'] }}">{{ $status['label'] }}</option>
                     @endforeach
@@ -447,25 +450,25 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             <small>{{ $row['dispatch_territory'] }}</small>
         @endif
         @if($row['can_dispatch_authorized'] ?? false)
-            @php($dispatchInitial = $row['dispatch_assignee_id'] ? (($row['dispatch_assignee_type'] ?: 'driver').':'.$row['dispatch_assignee_id']) : '')
+            @php($dispatchInitial = $rowWithDriver ? '' : ($row['dispatch_assignee_id'] ? (($row['dispatch_assignee_type'] ?: 'driver').':'.$row['dispatch_assignee_id']) : ''))
             <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" class="order-inline-picker" data-order-inline-dispatch @if(!$row['can_dispatch']) aria-disabled="true" @endif>
                 @csrf @method('PATCH')
-                <input type="hidden" name="assignee_type" value="{{ $row['dispatch_assignee_type'] ?: ($row['channel']==='b2b' ? '' : 'driver') }}" data-order-inline-assignee-type>
-                <input type="hidden" name="assignee_id" value="{{ (string)($row['dispatch_assignee_id'] ?? '') }}" data-order-inline-assignee-id>
-                <select name="dispatch_target" required data-order-inline-picker-select data-initial-value="{{ $dispatchInitial }}" aria-label="{{ $row['channel']==='b2b' ? ($isAr ? 'اختر سائق أو فان' : 'Choose Driver or Van') : __('order_operations.dispatch.choose_driver') }}" @disabled(!$row['can_dispatch'])>
-                    <option value="">{{ $row['channel']==='b2b' ? ($isAr ? 'اختر سائق أو فان' : 'Choose Driver or Van') : __('order_operations.dispatch.choose_driver') }}</option>
+                <input type="hidden" name="assignee_type" value="{{ $rowWithDriver ? 'driver' : ($row['dispatch_assignee_type'] ?: ($row['channel']==='b2b' ? '' : 'driver')) }}" data-order-inline-assignee-type>
+                <input type="hidden" name="assignee_id" value="{{ $rowWithDriver ? '' : (string)($row['dispatch_assignee_id'] ?? '') }}" data-order-inline-assignee-id>
+                <select name="dispatch_target" required data-order-inline-picker-select data-initial-value="{{ $dispatchInitial }}" aria-label="{{ $rowWithDriver ? ($isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver') : ($row['channel']==='b2b' ? ($isAr ? 'اختر سائق أو فان' : 'Choose Driver or Van') : __('order_operations.dispatch.choose_driver')) }}" @disabled(!$row['can_dispatch'])>
+                    <option value="">{{ $rowWithDriver ? ($isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver') : ($row['channel']==='b2b' ? ($isAr ? 'اختر سائق أو فان' : 'Choose Driver or Van') : __('order_operations.dispatch.choose_driver')) }}</option>
                     @foreach($drivers as $driver)
-                        @if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)===$row['channel'])
-                            <option value="driver:{{ $driver->id }}" @selected($dispatchInitial===('driver:'.$driver->id))>{{ $isAr ? 'سائق' : 'Driver' }} · {{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
+                        @if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)===$row['channel'] && (!$rowWithDriver || (int)$driver->id!==$rowCurrentDriverId))
+                            <option value="driver:{{ $driver->id }}" @selected(!$rowWithDriver && $dispatchInitial===('driver:'.$driver->id))>{{ $isAr ? 'سائق' : 'Driver' }} · {{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
                         @endif
                     @endforeach
-                    @if($row['channel']==='b2b')
+                    @if($row['channel']==='b2b' && !$rowWithDriver)
                         @foreach($vans as $van)
                             <option value="van:{{ $van->id }}" @selected($dispatchInitial===('van:'.$van->id))>{{ $isAr ? 'فان' : 'Van' }} · {{ $van->code }}{{ $van->plate_number ? ' · '.$van->plate_number : '' }}</option>
                         @endforeach
                     @endif
                 </select>
-                <button type="submit" data-order-inline-picker-submit aria-label="{{ $isAr ? 'حفظ التوجيه' : 'Save dispatch' }}" title="{{ $isAr ? 'حفظ التوجيه' : 'Save dispatch' }}" disabled>✓</button>
+                <button type="submit" data-order-inline-picker-submit aria-label="{{ $rowWithDriver ? ($isAr ? 'سحب وتحويل الطلب' : 'Withdraw and transfer order') : ($isAr ? 'حفظ التوجيه' : 'Save dispatch') }}" title="{{ $rowWithDriver ? ($isAr ? 'سحب وتحويل الطلب' : 'Withdraw and transfer order') : ($isAr ? 'حفظ التوجيه' : 'Save dispatch') }}" disabled>✓</button>
                 <input class="order-inline-picker-reason" name="reason" maxlength="500" data-order-inline-picker-reason hidden placeholder="{{ __('order_operations.dispatch.reason_required') }}">
             </form>
             @if($row['dispatch_locked_until_confirmation'] ?? false)
@@ -570,7 +573,21 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 @if($row['dispatch_status']==='awaiting_dispatch')
 <div class="dispatch-warning" data-order-dispatch-status>{{ __('order_operations.dispatch.warning') }}</div>
 @endif
-@if($row['channel']==='b2c')
+@if($rowWithDriver)
+<form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver data-order-driver-transfer>@csrf @method('PATCH')
+<input type="hidden" name="assignee_type" value="driver">
+<select name="assignee_id" required aria-label="{{ $isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver' }}">
+<option value="">{{ $isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver' }}</option>
+@foreach($drivers as $driver)
+@if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)===$row['channel'] && (int)$driver->id!==$rowCurrentDriverId)
+<option value="{{ $driver->id }}">{{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
+@endif
+@endforeach
+</select>
+<input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
+<button class="foodex-primary">{{ $isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw & transfer to another driver' }}</button>
+</form>
+@elseif($row['channel']==='b2c')
 <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver>@csrf @method('PATCH')
 <input type="hidden" name="assignee_type" value="driver">
 <select name="assignee_id" required aria-label="{{ __('order_operations.dispatch.choose_driver') }}">
@@ -584,8 +601,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
 <button class="foodex-primary">{{ $row['dispatch_status']==='assigned' ? __('order_operations.dispatch.reassign') : __('order_operations.dispatch.assign') }} · {{ __('order_operations.dispatch.driver') }}</button>
 </form>
-@endif
-@if($row['channel']==='b2b')
+@elseif($row['channel']==='b2b')
 <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver>@csrf @method('PATCH')
 <input type="hidden" name="assignee_type" value="driver">
 <select name="assignee_id" required aria-label="{{ __('order_operations.dispatch.choose_driver') }}">
@@ -609,7 +625,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <button class="foodex-primary">{{ $row['dispatch_status']==='assigned' ? __('order_operations.dispatch.reassign') : __('order_operations.dispatch.assign') }} · {{ __('order_operations.dispatch.van') }}</button>
 </form>
 @endif
-@if($row['dispatch_status']==='assigned')
+@if($row['dispatch_status']==='assigned' && !$rowWithDriver)
 <form method="post" action="{{ route('admin.operations.orders.dispatch.clear',$row['id']) }}" data-order-dispatch-clear>@csrf @method('DELETE')
 <input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
 <button type="submit">{{ __('order_operations.dispatch.unassign') }}</button>
@@ -620,7 +636,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 @if($row['can_manage'] && !($row['channel']==='b2b' && $row['status']==='pending'))
 @if(count($row['available_statuses']))
 <form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
-<select name="status" required aria-label="{{ __('order_operations.next_status') }}"><option value="">{{ __('order_operations.choose_next_status') }}</option>@foreach($row['available_statuses'] as $status)<option value="{{ $status['code'] }}">{{ $status['label'] }}</option>@endforeach</select>
+<select name="status" required aria-label="{{ __('order_operations.next_status') }}"><option value="">{{ $rowWithDriver ? ($isAr ? 'إلغاء الطلب' : 'Cancel order') : __('order_operations.choose_next_status') }}</option>@foreach($row['available_statuses'] as $status)<option value="{{ $status['code'] }}">{{ $status['label'] }}</option>@endforeach</select>
 <button class="foodex-primary">{{ __('order_operations.update_status') }}</button>
 </form>
 @else
