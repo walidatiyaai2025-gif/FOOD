@@ -3005,9 +3005,9 @@ final class OrderOperationsController extends Controller
                 $this->assertB2bAssignmentFinance($locked);
             }
 
-            app(InvoiceService::class)->issueForOrder($locked, $actor);
-
             $locked->forceFill(['status' => 'out_for_delivery'])->save();
+
+            app(InvoiceService::class)->issueForOrder($locked, $actor);
 
             OrderStatusHistory::query()->create([
                 'order_id' => $locked->getKey(),
