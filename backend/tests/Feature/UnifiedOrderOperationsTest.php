@@ -673,7 +673,7 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-order-inline-assignee-type', $view);
         $this->assertStringContainsString('data-order-inline-assignee-id', $view);
         $this->assertStringContainsString('data-b2b-assignment-required-alert', $view);
-        $this->assertStringContainsString('order-ready-dispatch-alert', $view);
+        $this->assertStringContainsString('order-assignment-required-alert', $view);
         $this->assertStringContainsString('b2b_out_for_delivery', $view);
         $this->assertStringContainsString("row['status_visual_state']", $view);
         $this->assertStringContainsString('إلغاء الطلب', $view);
