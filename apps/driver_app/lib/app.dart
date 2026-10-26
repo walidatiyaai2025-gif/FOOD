@@ -581,6 +581,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
             driverName: session.name,
             repository: assignments,
             notificationRepository: notifications,
+            pushAlerts: widget.pushService?.alerts,
             onSessionExpired: _sessionExpired,
             onLogout: () {
               _logout();
