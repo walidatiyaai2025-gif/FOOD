@@ -351,6 +351,15 @@ class OrderController extends Controller
     /** @return list<string> */
     private function availableTransitionsForOrder(Order $order): array
     {
+        $hasActiveDriver = DriverAssignment::query()
+            ->where('order_id', $order->getKey())
+            ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+            ->exists();
+
+        if ($hasActiveDriver) {
+            return ['cancelled'];
+        }
+
         $transitions = self::allowedTransitions((string) $order->status);
 
         if (
