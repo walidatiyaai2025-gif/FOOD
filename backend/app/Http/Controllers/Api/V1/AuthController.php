@@ -44,13 +44,21 @@ class AuthController extends Controller
 
         $app = $credentials['app'] ?? null;
         if ($app === 'driver') {
-            $driverExists = DB::table('drivers')
+            $driver = DB::table('drivers')
                 ->where('user_id', $user->id)
-                ->where('driver_type', 'b2c')
+                ->whereIn('driver_type', ['b2b', 'b2c'])
                 ->where('is_active', true)
-                ->exists();
-            $driverRole = $user->hasRole('B2C_DRIVER');
-            abort_unless($driverExists && $driverRole, 403, 'This account is not authorized for the Driver app.');
+                ->first(['driver_type']);
+            $driverChannel = strtolower((string) ($driver->driver_type ?? ''));
+            $driverRole = $driverChannel === 'b2b' ? 'B2B_DRIVER' : 'B2C_DRIVER';
+            abort_unless(
+                $driver !== null
+                    && in_array($driverChannel, ['b2b', 'b2c'], true)
+                    && $user->hasRole($driverRole)
+                    && $user->hasPermission('deliveries.'.$driverChannel.'.execute'),
+                403,
+                'This account is not authorized for the Driver app.',
+            );
         }
 
         if ($app === 'van') {
@@ -115,14 +123,20 @@ class AuthController extends Controller
         }
 
         if ($validated['app'] === 'driver') {
-            $driverExists = DB::table('drivers')
+            $driver = DB::table('drivers')
                 ->where('user_id', $user->id)
-                ->where('driver_type', 'b2c')
+                ->whereIn('driver_type', ['b2b', 'b2c'])
                 ->where('is_active', true)
-                ->exists();
-            $driverRole = $user->hasRole('B2C_DRIVER');
+                ->first(['driver_type']);
+            $driverChannel = strtolower((string) ($driver->driver_type ?? ''));
+            $driverRole = $driverChannel === 'b2b' ? 'B2B_DRIVER' : 'B2C_DRIVER';
 
-            if (! $driverExists || ! $driverRole) {
+            if (
+                $driver === null
+                || ! in_array($driverChannel, ['b2b', 'b2c'], true)
+                || ! $user->hasRole($driverRole)
+                || ! $user->hasPermission('deliveries.'.$driverChannel.'.execute')
+            ) {
                 throw ValidationException::withMessages([
                     'username' => ['This username is not authorized for the Driver app.'],
                 ]);
