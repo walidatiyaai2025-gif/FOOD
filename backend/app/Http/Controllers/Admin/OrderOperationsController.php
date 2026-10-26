@@ -2685,6 +2685,23 @@ final class OrderOperationsController extends Controller
             }
         }
 
+        foreach ($detail['delivery_evidence'] ?? [] as $assignmentEvidence) {
+            foreach ($assignmentEvidence['timeline'] ?? [] as $entry) {
+                $events->push([
+                    'kind' => 'driver_execution',
+                    'title' => $this->msg('تنفيذ السائق', 'Driver execution'),
+                    'summary' => trim((string) ($assignmentEvidence['driver_name'] ?? ''))
+                        .' · '.$this->operationBusinessLabel($entry['from_status'] ?? null)
+                        .' → '.$this->operationBusinessLabel($entry['to_status'] ?? null),
+                    'note' => $this->localizedOperationalValue(
+                        $entry['note'] ?? $entry['reason_code'] ?? null,
+                    ),
+                    'actor' => trim((string) ($assignmentEvidence['driver_name'] ?? '')),
+                    'created_at' => $entry['captured_at'] ?? null,
+                ]);
+            }
+        }
+
         foreach ($detail['van_assignments'] ?? [] as $entry) {
             $events->push([
                 'kind' => 'van',
