@@ -87,7 +87,7 @@ final class SalesOrderOperationsDashboardService
 
         $metrics = (clone $base)
             ->selectRaw(
-                "COUNT(*) as total_orders, ".
+                'COUNT(*) as total_orders, '.
                 "SUM(CASE WHEN orders.status NOT IN ('delivered','cancelled','refunded','failed') THEN 1 ELSE 0 END) as open_orders, ".
                 "SUM(CASE WHEN orders.status NOT IN ('delivered','cancelled','refunded','failed') AND orders.created_at <= ? THEN 1 ELSE 0 END) as delayed_orders, ".
                 "SUM(CASE WHEN orders.status IN ('cancelled','refunded') THEN 1 ELSE 0 END) as cancelled_refunded",
@@ -219,7 +219,7 @@ final class SalesOrderOperationsDashboardService
         $fulfillmentStats = $fulfillmentRows
             ->where('order_status_history.to_status', 'delivered')
             ->selectRaw(
-                "COUNT(*) as delivered_count, ".
+                'COUNT(*) as delivered_count, '.
                 "AVG({$safeDuration}) as average_minutes, ".
                 "SUM(CASE WHEN {$safeDuration} <= 60 THEN 1 ELSE 0 END) as under_60, ".
                 "SUM(CASE WHEN {$safeDuration} > 60 AND {$safeDuration} <= 120 THEN 1 ELSE 0 END) as bucket_60_120, ".
