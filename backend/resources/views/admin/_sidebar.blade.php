@@ -167,6 +167,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     const nav = shell.querySelector('[data-foodex-nav]');
     const search = shell.querySelector('[data-foodex-nav-search]');
     const stateKey = 'foodex.sidebar.expanded.{{ $user->id ?? 'guest' }}';
+    const defaultCollapsed = @json((bool)($sidebarDefaultCollapsed ?? false));
     const desktopToggleLabel = @json(__('admin.sidebar_toggle'));
     const mobileOpenLabel = @json(__('admin.sidebar_open'));
     const mobileCloseLabel = @json(__('admin.sidebar_close'));
@@ -197,7 +198,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
 
     const compactMedia = matchMedia('(max-width:1023px)');
     const mobileMedia = matchMedia('(max-width:767px)');
-    setExpanded(compactMedia.matches || localStorage.getItem(stateKey) === '1', false);
+    setExpanded(compactMedia.matches || (!defaultCollapsed && localStorage.getItem(stateKey) === '1'), false);
 
     const brand = shell.querySelector('.foodex-sidebar-brand');
     const bar = document.createElement('div');
