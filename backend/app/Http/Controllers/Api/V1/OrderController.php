@@ -242,7 +242,7 @@ class OrderController extends Controller
                 return $locked;
             }
 
-            $allowed = self::allowedTransitions($currentStatus);
+            $allowed = $this->availableTransitionsForOrder($locked);
             abort_unless(
                 in_array($targetStatus, $allowed, true),
                 409,
@@ -346,6 +346,24 @@ class OrderController extends Controller
         $dashboardNotifier->orderStatusChanged($fresh, $previousStatus, (string) $fresh->status);
 
         return response()->json($this->orderPayload($fresh));
+    }
+
+    /** @return list<string> */
+    private function availableTransitionsForOrder(Order $order): array
+    {
+        $transitions = self::allowedTransitions((string) $order->status);
+
+        if (
+            strtolower((string) $order->channel) === 'b2b'
+            && (string) $order->status === 'ready'
+        ) {
+            return array_values(array_filter(
+                $transitions,
+                static fn (string $status): bool => $status === 'cancelled',
+            ));
+        }
+
+        return $transitions;
     }
 
     private function reverseCheckoutSettlementEntries(Order $order, User $actor): void
@@ -564,7 +582,7 @@ class OrderController extends Controller
             'currency' => (string) $order->currency,
             'grand_total' => (float) $order->grand_total,
             'item_count' => (int) ($order->items_count ?? 0),
-            'next_statuses' => self::allowedTransitions((string) $order->status),
+            'next_statuses' => $this->availableTransitionsForOrder($order),
             'is_terminal' => in_array(
                 (string) $order->status,
                 ['delivered', 'cancelled'],
@@ -721,7 +739,7 @@ class OrderController extends Controller
             'grand_total' => (float) $order->grand_total,
             'payment_method' => $order->payment_method,
             'item_count' => count($items),
-            'next_statuses' => self::allowedTransitions((string) $order->status),
+            'next_statuses' => $this->availableTransitionsForOrder($order),
             'items' => $items,
             'status_history' => $history,
             'timeline' => $includeTimeline
