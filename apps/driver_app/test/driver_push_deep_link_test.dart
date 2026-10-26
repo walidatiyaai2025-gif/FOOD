@@ -228,9 +228,7 @@ void main() {
     expect(find.text('Payment updated'), findsOneWidget);
   });
 
-  testWidgets(
-      'revoked order-only alert cannot grant access',
-      (tester) async {
+  testWidgets('revoked order-only alert cannot grant access', (tester) async {
     final push = _PushHarness();
     addTearDown(push.dispose);
 
@@ -271,5 +269,4 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
-
 }
