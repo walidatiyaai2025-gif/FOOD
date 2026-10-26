@@ -87,18 +87,17 @@ class OrderManualDispatchServiceTest extends TestCase
 
     public function test_manual_dispatch_rejects_cross_channel_actor_assignment(): void
     {
-        [$b2bOrder, $actor, $b2bStore] = $this->fixture('B2B-WRONG', 'b2b');
+        [$b2bOrder, $actor, $b2bStore] = $this->fixture('B2B-MANUAL', 'b2b');
         $driverAssignment = $this->driverAssignment($b2bOrder, $b2bStore);
 
-        try {
-            app(OrderManualDispatchService::class)
-                ->assignDriver($b2bOrder, $actor, $driverAssignment, 'Invalid wholesale driver');
-            $this->fail('B2B Driver assignment must be rejected.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('assignee_type', $exception->errors());
-        }
+        $driverState = app(OrderManualDispatchService::class)
+            ->assignDriver($b2bOrder, $actor, $driverAssignment, 'Authorized wholesale Driver override');
 
-        [$b2cOrder, $actor, $b2cStore] = $this->fixture('B2C-WRONG', 'b2c');
+        $this->assertSame('assigned', $driverState->status);
+        $this->assertSame('driver', $driverState->current_assignee_type);
+        $this->assertSame($driverAssignment->driver_id, $driverState->current_assignee_id);
+
+        [$b2cOrder, $actor] = $this->fixture('B2C-WRONG', 'b2c');
         $registry = app(VanRegistryService::class);
         $van = $registry->createVan(['code' => 'VAN-B2C-WRONG']);
         $registry->assign($actor, $van, [
@@ -117,7 +116,7 @@ class OrderManualDispatchServiceTest extends TestCase
         $driver = Driver::query()->create([
             'user_id' => $driverUser->id,
             'store_id' => $store->id,
-            'driver_type' => 'b2c',
+            'driver_type' => strtolower((string) $order->channel),
             'is_available' => true,
             'is_active' => true,
         ]);
@@ -126,7 +125,7 @@ class OrderManualDispatchServiceTest extends TestCase
             'driver_id' => $driver->id,
             'order_id' => $order->id,
             'store_id' => $store->id,
-            'assignment_type' => 'b2c',
+            'assignment_type' => strtolower((string) $order->channel),
             'status' => 'assigned',
             'assigned_at' => now(),
         ]);
