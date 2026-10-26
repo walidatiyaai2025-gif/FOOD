@@ -50,7 +50,7 @@ return [
         'marketing' => 'التسويق والتواصل',
         'advertising' => 'الدعايا',
         'finance' => 'المالية والخزينة',
-        'analytics' => 'التحليلات والتقارير',
+        'analytics' => 'التحليلات',
         'applications' => 'التطبيقات',
         'administration' => 'الإدارة',
     ],
