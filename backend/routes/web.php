@@ -788,6 +788,10 @@ Route::prefix('admin')
         Route::patch('/operations/lookups/{type}/{lookup}', [SystemLookupController::class, 'update'])->whereNumber('lookup')->name('operations.lookups.update');
         Route::get('/operations/orders', [OrderOperationsController::class, 'index'])->name('operations.orders.index');
         Route::get('/operations/orders/new-order-feed', [OrderOperationsController::class, 'newOrderFeed'])->name('operations.orders.new-order-feed');
+        Route::get('/operations/orders/{order}/popup/{kind}', [OrderOperationsController::class, 'popup'])
+            ->whereNumber('order')
+            ->whereIn('kind', ['details', 'invoice', 'timeline'])
+            ->name('operations.orders.popup');
         Route::get('/operations/orders/van-assignments/{assignment}/proofs/{proof}', [OrderOperationsController::class, 'vanProof'])
             ->whereNumber('assignment')
             ->whereNumber('proof')
