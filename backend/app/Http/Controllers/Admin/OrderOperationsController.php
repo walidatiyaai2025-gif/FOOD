@@ -500,6 +500,50 @@ final class OrderOperationsController extends Controller
         ]);
     }
 
+    public function popup(
+        Request $request,
+        int $order,
+        string $kind,
+    ): View {
+        abort_unless(in_array($kind, ['details', 'invoice', 'timeline'], true), 404);
+
+        $actor = $this->actor($request);
+        $model = $this->managedOrder($actor, $order, 'orders.view');
+        $channel = strtolower((string) $model->channel);
+        $statusOptions = $this->orderStatusOptions();
+        $statusLabels = collect($statusOptions)
+            ->mapWithKeys(static fn (array $option): array => [
+                (string) $option['code'] => (string) $option['label'],
+            ])
+            ->all();
+
+        $detail = $this->detail(
+            $actor,
+            $model,
+            $statusLabels,
+            $this->activeOrderStatusCodes(),
+            $this->operationalScopes($actor, $channel, 'orders.dispatch'),
+            $this->operationalScopes($actor, $channel, 'orders.manage'),
+            $this->operationalScopes($actor, $channel, 'finance.view'),
+        );
+
+        if ($kind === 'invoice') {
+            abort_unless(
+                ! empty($detail['invoice_id']) && ! empty($detail['can_view_invoice']),
+                404,
+            );
+        }
+
+        return view('admin._order-operation-popup', [
+            'kind' => $kind,
+            'detail' => $detail,
+            'timeline' => $kind === 'timeline'
+                ? $this->orderTimeline($model, $detail)
+                : [],
+            'isAr' => app()->getLocale() === 'ar',
+        ]);
+    }
+
     public function vanProof(
         Request $request,
         int $assignment,
@@ -2460,6 +2504,149 @@ final class OrderOperationsController extends Controller
                 ? $this->vanDeliveryEvidence->order($actor, $order)
                 : [],
         ];
+    }
+
+    /** @return list<array<string,mixed>> */
+    private function orderTimeline(Order $order, array $detail): array
+    {
+        $events = collect();
+
+        foreach ($detail['history'] ?? [] as $entry) {
+            $events->push([
+                'kind' => 'status',
+                'title' => $this->msg(
+                    'تغيير حالة الطلب',
+                    'Order status changed',
+                ),
+                'summary' => trim((string) ($entry['from'] ?? '')).' → '.trim((string) ($entry['to'] ?? '')),
+                'note' => $entry['note'] ?? null,
+                'actor' => null,
+                'created_at' => $entry['created_at'] ?? null,
+            ]);
+        }
+
+        foreach ($detail['assignments'] ?? [] as $entry) {
+            $events->push([
+                'kind' => 'driver',
+                'title' => $this->msg('إجراء على السائق', 'Driver action'),
+                'summary' => trim((string) ($entry['driver'] ?? '')).' · '.trim((string) ($entry['status'] ?? '')),
+                'note' => null,
+                'actor' => null,
+                'created_at' => $entry['assigned_at'] ?? null,
+            ]);
+            if (! empty($entry['completed_at'])) {
+                $events->push([
+                    'kind' => 'driver',
+                    'title' => $this->msg('انتهاء إجراء السائق', 'Driver action completed'),
+                    'summary' => trim((string) ($entry['driver'] ?? '')).' · '.trim((string) ($entry['status'] ?? '')),
+                    'note' => null,
+                    'actor' => null,
+                    'created_at' => $entry['completed_at'],
+                ]);
+            }
+        }
+
+        foreach ($detail['van_assignments'] ?? [] as $entry) {
+            $events->push([
+                'kind' => 'van',
+                'title' => $this->msg('إجراء على الفان', 'Van action'),
+                'summary' => trim((string) ($entry['van'] ?? '')).' · '.trim((string) ($entry['status'] ?? '')),
+                'note' => $entry['reason'] ?? null,
+                'actor' => null,
+                'created_at' => $entry['assigned_at'] ?? null,
+            ]);
+            if (! empty($entry['ended_at'])) {
+                $events->push([
+                    'kind' => 'van',
+                    'title' => $this->msg('انتهاء إسناد الفان', 'Van assignment ended'),
+                    'summary' => trim((string) ($entry['van'] ?? '')).' · '.trim((string) ($entry['status'] ?? '')),
+                    'note' => $entry['reason'] ?? null,
+                    'actor' => null,
+                    'created_at' => $entry['ended_at'],
+                ]);
+            }
+        }
+
+        foreach ($detail['van_events'] ?? [] as $entry) {
+            $events->push([
+                'kind' => 'execution',
+                'title' => $this->msg('تنفيذ الفان', 'Van execution'),
+                'summary' => trim((string) ($entry['from_status'] ?? '')).' → '.trim((string) ($entry['to_status'] ?? '')),
+                'note' => $entry['note'] ?? $entry['reason_code'] ?? null,
+                'actor' => $entry['actor'] ?? null,
+                'created_at' => $entry['captured_at'] ?? null,
+            ]);
+        }
+
+        $invoiceIds = Invoice::query()
+            ->where('order_id', $order->getKey())
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+
+        $audits = AuditLog::query()
+            ->leftJoin('users', 'users.id', '=', 'audit_logs.user_id')
+            ->where(function ($query) use ($order, $invoiceIds): void {
+                $query->where(function ($orderAudit) use ($order): void {
+                    $orderAudit
+                        ->where('audit_logs.auditable_type', Order::class)
+                        ->where('audit_logs.auditable_id', $order->getKey());
+                });
+                if ($invoiceIds !== []) {
+                    $query->orWhere(function ($invoiceAudit) use ($invoiceIds): void {
+                        $invoiceAudit
+                            ->where('audit_logs.auditable_type', Invoice::class)
+                            ->whereIn('audit_logs.auditable_id', $invoiceIds);
+                    });
+                }
+            })
+            ->latest('audit_logs.id')
+            ->get([
+                'audit_logs.event',
+                'audit_logs.after',
+                'audit_logs.created_at',
+                'users.name as actor_name',
+            ]);
+
+        foreach ($audits as $audit) {
+            /** @var array<string,mixed> $after */
+            $after = $audit->getAttribute('after') ?? [];
+            $summaryParts = array_values(array_filter([
+                $after['status'] ?? null,
+                $after['routing_reason'] ?? null,
+                $after['reason'] ?? null,
+                $after['note'] ?? null,
+            ], static fn ($value): bool => is_scalar($value) && trim((string) $value) !== ''));
+
+            $events->push([
+                'kind' => 'audit',
+                'title' => $this->timelineAuditLabel((string) $audit->event),
+                'summary' => implode(' · ', array_map('strval', $summaryParts)),
+                'note' => null,
+                'actor' => trim((string) ($audit->actor_name ?? '')),
+                'created_at' => $audit->created_at,
+            ]);
+        }
+
+        return $events
+            ->filter(static fn (array $event): bool => ! empty($event['created_at']))
+            ->sortByDesc(static fn (array $event): string => (string) $event['created_at'])
+            ->values()
+            ->all();
+    }
+
+    private function timelineAuditLabel(string $event): string
+    {
+        return match ($event) {
+            'order.customer_service_owner.changed' => $this->msg('تحديث مسؤول خدمة العملاء', 'Customer Service owner updated'),
+            'order.dispatch.manual_assigned' => $this->msg('توجيه الطلب', 'Order routed'),
+            'order.dispatch.manual_cleared' => $this->msg('سحب توجيه الطلب', 'Order routing cleared'),
+            'invoice.issued' => $this->msg('إصدار الفاتورة', 'Invoice issued'),
+            'invoice.reissued' => $this->msg('إعادة إصدار الفاتورة', 'Invoice reissued'),
+            'invoice.voided' => $this->msg('إلغاء الفاتورة', 'Invoice voided'),
+            'invoice.settled' => $this->msg('تسوية الفاتورة', 'Invoice settled'),
+            default => ucwords(str_replace(['.', '_'], ' ', $event)),
+        };
     }
 
     /**
