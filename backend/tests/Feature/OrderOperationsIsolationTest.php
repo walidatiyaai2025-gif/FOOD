@@ -456,6 +456,27 @@ class OrderOperationsIsolationTest extends TestCase
             ->patch("/admin/operations/orders/{$order}/dispatch", [
                 'assignee_type' => 'driver',
                 'assignee_id' => $driver,
+                'reason' => 'Attempt before confirmation',
+            ])
+            ->assertStatus(409);
+
+        $this->assertDatabaseMissing('driver_assignments', [
+            'order_id' => $order,
+            'driver_id' => $driver,
+            'status' => 'assigned',
+        ]);
+
+        $this->actingAs($admin)
+            ->post("/admin/operations/orders/{$order}/status", [
+                'status' => 'confirmed',
+                'note' => 'Confirmed before dispatch',
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($admin)
+            ->patch("/admin/operations/orders/{$order}/dispatch", [
+                'assignee_type' => 'driver',
+                'assignee_id' => $driver,
                 'reason' => 'Customer Service assignment',
             ])
             ->assertRedirect();
@@ -585,8 +606,10 @@ class OrderOperationsIsolationTest extends TestCase
             ->get('/admin/operations/orders?channel=b2b')
             ->assertOk()
             ->assertSee('#'.$order)
-            ->assertSee('data-order-dispatch-workspace', false)
-            ->assertSee('data-order-dispatch-van', false)
+            ->assertSee('data-order-dispatch-locked', false)
+            ->assertSee('data-order-inline-dispatch', false)
+            ->assertDontSee('data-order-dispatch-workspace', false)
+            ->assertDontSee('data-order-dispatch-van', false)
             ->assertDontSee('data-order-dispatch-driver', false);
 
         $this->actingAs($super)
