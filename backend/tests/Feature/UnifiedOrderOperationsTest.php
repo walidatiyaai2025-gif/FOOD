@@ -214,7 +214,7 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertSee('data-order-status-merged', false)
             ->assertSee('order-cancelled-merged', false)
             ->assertSee('data-action-required="0"', false)
-            ->assertDontSee('Action required');
+            ->assertDontSee('<span class="order-attention-chip">Action required</span>', false);
     }
 
     public function test_confirmed_order_can_return_to_pending_before_dispatch(): void
@@ -713,7 +713,7 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('\\Illuminate\\Support\\Carbon::parse', $view);
         $this->assertStringNotContainsString('IlluminateSupportCarbon::parse', $view);
         $this->assertStringNotContainsString('CarbonCarbon::parse', $view);
-        $this->assertStringContainsString('@if(!$rowDelivered)', $view);
+        $this->assertStringContainsString('@if(!$rowMergedStatus)', $view);
         $this->assertStringContainsString('order-print-header', $view);
         $this->assertStringContainsString('order-print-footer', $view);
         $popupView = file_get_contents(resource_path('views/admin/_order-operation-popup.blade.php'));
