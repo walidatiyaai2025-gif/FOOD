@@ -945,7 +945,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 @foreach($detailVanExecutionProofs as $event)
 <div class="timeline-item">
 <strong>{{ $businessLabel($event['action']) }}</strong>
-<a class="foodex-primary" href="{{ asset('storage/'.ltrim((string)$event['proof_path'],'/')) }}" target="_blank" rel="noopener" data-van-proof-link>{{ __('order_operations.detail.van_proof') }}</a>
+<a class="foodex-primary" href="{{ route('admin.operations.orders.van-proofs.show',['assignment'=>$event['order_van_assignment_id'],'proof'=>$event['id']]) }}" target="_blank" rel="noopener" data-van-proof-link>{{ __('order_operations.detail.van_proof') }}</a>
 </div>
 @endforeach
 </div>
