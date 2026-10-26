@@ -108,25 +108,6 @@ final class SalesOrderOperationsDashboardService
         $this->applyScope($awaitingDispatchQuery, $scopes, $storeId, $fromUtc, $toUtc);
         $awaitingDispatch = $awaitingDispatchQuery->count('orders.id');
 
-        $paymentExceptions = (clone $base)
-            ->whereExists(function (Builder $query): void {
-                $query->selectRaw('1')
-                    ->from('payments')
-                    ->whereColumn('payments.order_id', 'orders.id')
-                    ->whereIn('payments.status', ['failed', 'voided']);
-            })
-            ->count('orders.id');
-
-        $invoiceExceptions = (clone $base)
-            ->where('orders.status', 'delivered')
-            ->whereNotExists(function (Builder $query): void {
-                $query->selectRaw('1')
-                    ->from('invoices')
-                    ->whereColumn('invoices.order_id', 'orders.id')
-                    ->whereNotIn('invoices.status', ['cancelled', 'void', 'voided']);
-            })
-            ->count('orders.id');
-
         $daily = (clone $base)
             ->selectRaw(
                 'DATE(orders.created_at) as day, COUNT(*) as orders_count, '.
@@ -312,8 +293,6 @@ final class SalesOrderOperationsDashboardService
                 'open_orders' => $openOrders,
                 'delayed_orders' => $delayedOrders,
                 'awaiting_dispatch' => $awaitingDispatch,
-                'payment_exceptions' => $paymentExceptions,
-                'invoice_exceptions' => $invoiceExceptions,
                 'cancelled_refunded' => $cancelledRefunded,
                 'open_within_sla_percent' => $openWithinSlaPercent,
                 'average_fulfillment_minutes' => $fulfillmentAverage,
