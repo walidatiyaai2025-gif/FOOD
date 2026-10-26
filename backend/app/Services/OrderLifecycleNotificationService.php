@@ -57,6 +57,45 @@ final class OrderLifecycleNotificationService
 
         $channel = strtolower((string) $order->channel);
         if ($channel === 'b2b') {
+            $dispatchAssigneeType = strtolower((string) DB::table('order_dispatch_states')
+                ->where('order_id', $order->getKey())
+                ->value('current_assignee_type'));
+
+            if ($dispatchAssigneeType === 'driver') {
+                $driverAssignment = $to === 'cancelled'
+                    ? $this->latestAssignment($order)
+                    : $this->activeAssignment($order);
+                if ($driverAssignment instanceof DriverAssignment) {
+                    $this->notifyDriverUser(
+                        $order,
+                        (int) $driverAssignment->driver_id,
+                        'order.status_changed',
+                        'driver-'.$eventKey,
+                        $to === 'cancelled'
+                            ? 'تم إلغاء الطلب '.DisplayNumber::reference($order->getKey())
+                            : 'تحديث الطلب '.DisplayNumber::reference($order->getKey()),
+                        $to === 'cancelled'
+                            ? 'Order cancelled '.DisplayNumber::reference($order->getKey())
+                            : 'Order update '.DisplayNumber::reference($order->getKey()),
+                        $to === 'cancelled'
+                            ? 'تم إلغاء الطلب ولم يعد متاحاً للتنفيذ.'
+                            : 'حالة الطلب الآن: '.$to,
+                        $to === 'cancelled'
+                            ? 'The order was cancelled and is no longer actionable.'
+                            : 'Order status is now: '.$to,
+                        [
+                            'assignment_id' => (int) $driverAssignment->getKey(),
+                            'from_status' => $from,
+                            'status' => $to,
+                            'to_status' => $to,
+                            'access_revoked' => $to === 'cancelled',
+                        ],
+                    );
+                }
+
+                return;
+            }
+
             $assignment = $to === 'cancelled'
                 ? $this->latestVanAssignment($order)
                 : $this->activeVanAssignment($order);
@@ -143,8 +182,10 @@ final class OrderLifecycleNotificationService
         Order $order,
         DriverAssignment $assignment,
         ?int $previousDriverId = null,
+        bool $manualB2bDispatch = false,
     ): void {
-        if (strtolower((string) $order->channel) !== 'b2c') {
+        $channel = strtolower((string) $order->channel);
+        if ($channel !== 'b2c' && ! ($channel === 'b2b' && $manualB2bDispatch)) {
             return;
         }
 
@@ -207,7 +248,7 @@ final class OrderLifecycleNotificationService
         DriverAssignment $assignment,
         ?string $reason = null,
     ): void {
-        if (strtolower((string) $order->channel) !== 'b2c') {
+        if (! $this->driverRuntimeOwnsOrder($order, (int) $assignment->driver_id)) {
             return;
         }
 
@@ -253,7 +294,7 @@ final class OrderLifecycleNotificationService
         string $to,
         ?string $note = null,
     ): void {
-        if (strtolower((string) $order->channel) !== 'b2c') {
+        if (! $this->driverRuntimeOwnsOrder($order, (int) $assignment->driver_id)) {
             return;
         }
 
@@ -411,6 +452,24 @@ final class OrderLifecycleNotificationService
         );
     }
 
+    private function driverRuntimeOwnsOrder(Order $order, int $driverId): bool
+    {
+        $channel = strtolower((string) $order->channel);
+        if ($channel === 'b2c') {
+            return true;
+        }
+        if ($channel !== 'b2b') {
+            return false;
+        }
+
+        return DB::table('order_dispatch_states')
+            ->where('order_id', $order->getKey())
+            ->where('status', 'assigned')
+            ->where('current_assignee_type', 'driver')
+            ->where('current_assignee_id', $driverId)
+            ->exists();
+    }
+
     private function notifyDriverUser(
         Order $order,
         int $driverId,
@@ -422,7 +481,8 @@ final class OrderLifecycleNotificationService
         string $bodyEn,
         array $extraData = [],
     ): void {
-        if (strtolower((string) $order->channel) !== 'b2c') {
+        $channel = strtolower((string) $order->channel);
+        if (! in_array($channel, ['b2b', 'b2c'], true)) {
             return;
         }
 
@@ -434,10 +494,6 @@ final class OrderLifecycleNotificationService
             return;
         }
 
-        $channel = strtolower((string) $order->channel);
-        if ($channel !== 'b2c') {
-            return;
-        }
         if (strtolower((string) $driver->driver_type) !== $channel) {
             return;
         }
