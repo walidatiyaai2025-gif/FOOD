@@ -335,12 +335,6 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.scrollUntilVisible(
-      failedCard,
-      180,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
     expect(
       find.descendant(of: failedCard, matching: find.text('0')),
       findsOneWidget,
