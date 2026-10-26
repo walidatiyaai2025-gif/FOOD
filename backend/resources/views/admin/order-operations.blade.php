@@ -63,7 +63,7 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-status-chip[data-state="cancelled"],.order-status-chip[data-state="failed"],.order-status-chip[data-state="delivery_failed"]{--status-bg:var(--foodex-palette-fff1f2);--status-fg:var(--foodex-palette-be123c);--status-border:var(--foodex-palette-fda4af)}
 .order-attention-chip{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:0 8px;border:1px solid var(--foodex-palette-fdba74);border-radius:999px;background:var(--foodex-palette-fff7ed);color:var(--foodex-palette-c2410c);font-size:.61rem;font-weight:900;white-space:nowrap;box-shadow:0 3px 10px rgba(234,88,12,.08)}
 .order-attention-chip::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--foodex-palette-f97316);box-shadow:0 0 0 3px rgba(249,115,22,.12)}
-.order-execution{display:grid;gap:5px;min-width:0}.order-execution strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-execution small{color:var(--foodex-muted);font-size:.62rem}
+.order-execution{display:grid;gap:5px;min-width:0}.order-execution.is-dispatch-locked{opacity:.42;filter:grayscale(.28)}.order-dispatch-lock-hint{font-size:.58rem;font-weight:800;color:var(--foodex-muted)}.order-execution strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-execution small{color:var(--foodex-muted);font-size:.62rem}
 .order-owner{display:grid;gap:3px}.order-owner strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-owner small{color:var(--foodex-muted);font-size:.61rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .order-financial{display:grid;gap:4px}.order-financial>strong{font-size:.77rem;white-space:nowrap}.order-financial small{color:var(--foodex-muted);font-size:.61rem}
 .order-grid-actions{text-align:center}
@@ -424,7 +424,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     </div>
 </td>
 <td>
-    <div class="order-execution">
+    <div class="order-execution {{ ($row['dispatch_locked_until_confirmation'] ?? false) ? 'is-dispatch-locked' : '' }}" @if($row['dispatch_locked_until_confirmation'] ?? false) data-order-dispatch-locked aria-disabled="true" @endif>
         @if($rowActionRequired)
             <span class="order-status-chip" data-state="awaiting_dispatch">{{ __('order_operations.dispatch.awaiting_queue') }}</span>
         @elseif($rowExecutor)
@@ -436,11 +436,11 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         @if($row['dispatch_territory'])
             <small>{{ $row['dispatch_territory'] }}</small>
         @endif
-        @if($row['can_dispatch'])
-            <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" class="order-inline-picker" data-order-inline-dispatch>
+        @if($row['can_dispatch_authorized'] ?? false)
+            <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" class="order-inline-picker" data-order-inline-dispatch @if(!$row['can_dispatch']) aria-disabled="true" @endif>
                 @csrf @method('PATCH')
                 <input type="hidden" name="assignee_type" value="{{ $row['channel']==='b2b' ? 'van' : 'driver' }}">
-                <select name="assignee_id" required data-order-inline-picker-select data-initial-value="{{ (string)($row['dispatch_assignee_id'] ?? '') }}" aria-label="{{ $row['channel']==='b2b' ? __('order_operations.dispatch.choose_van') : __('order_operations.dispatch.choose_driver') }}">
+                <select name="assignee_id" required data-order-inline-picker-select data-initial-value="{{ (string)($row['dispatch_assignee_id'] ?? '') }}" aria-label="{{ $row['channel']==='b2b' ? __('order_operations.dispatch.choose_van') : __('order_operations.dispatch.choose_driver') }}" @disabled(!$row['can_dispatch'])>
                     <option value="">{{ $row['channel']==='b2b' ? __('order_operations.dispatch.choose_van') : __('order_operations.dispatch.choose_driver') }}</option>
                     @if($row['channel']==='b2c')
                         @foreach($drivers as $driver)
@@ -457,6 +457,9 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
                 <button type="submit" data-order-inline-picker-submit aria-label="{{ $isAr ? 'حفظ التوجيه' : 'Save dispatch' }}" title="{{ $isAr ? 'حفظ التوجيه' : 'Save dispatch' }}" disabled>✓</button>
                 <input class="order-inline-picker-reason" name="reason" maxlength="500" data-order-inline-picker-reason hidden placeholder="{{ __('order_operations.dispatch.reason_required') }}">
             </form>
+            @if($row['dispatch_locked_until_confirmation'] ?? false)
+                <small class="order-dispatch-lock-hint">{{ $isAr ? 'متاح بعد تأكيد الطلب' : 'Available after order confirmation' }}</small>
+            @endif
         @endif
     </div>
 </td>
