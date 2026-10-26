@@ -421,12 +421,17 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     <div class="order-financial">
         <strong class="{{ $rowPaid ? 'is-paid' : 'is-unpaid' }}">{{ number_format($row['total'],2) }} {{ $row['currency'] }}</strong>
         <small>{{ $businessLabel($row['payment_status']) }}@if($row['payment_provider']) · {{ strtoupper(str_replace(['_','-'],' ',(string)$row['payment_provider'])) }}@endif</small>
+        @php
+            $detailsPopupKind = 'details';
+            $invoicePopupKind = 'invoice';
+            $timelinePopupKind = 'timeline';
+        @endphp
         <div class="order-financial-actions" data-order-financial-actions>
-            <button class="order-financial-action" type="button" title="{{ $isAr ? 'تفاصيل الطلب' : 'Order details' }}" aria-label="{{ $isAr ? 'تفاصيل الطلب' : 'Order details' }}" data-order-details-icon data-order-popup data-order-popup-title="{{ $isAr ? 'تفاصيل الطلب' : 'Order details' }}" data-order-popup-url="{{ route('admin.operations.orders.popup',['order'=>$row['id'],'kind'=>'details']) }}">@include('admin._premium-icon',['name'=>'details'])</button>
+            <button class="order-financial-action" type="button" title="{{ __('order_operations.popup.details') }}" aria-label="{{ __('order_operations.popup.details') }}" data-order-details-icon data-order-popup data-order-popup-title="{{ __('order_operations.popup.details') }}" data-order-popup-url="{{ route('admin.operations.orders.popup',['order'=>$row['id'],'kind'=>$detailsPopupKind]) }}">@include('admin._premium-icon',['name'=>$detailsPopupKind])</button>
             @if($row['invoice_id'] && $row['can_view_invoice'])
-                <button class="order-financial-action" type="button" title="{{ $isAr ? 'الفاتورة' : 'Invoice' }}" aria-label="{{ $isAr ? 'الفاتورة' : 'Invoice' }}" data-order-invoice-icon data-order-popup data-order-popup-title="{{ $isAr ? 'الفاتورة' : 'Invoice' }}" data-order-popup-url="{{ route('admin.operations.orders.popup',['order'=>$row['id'],'kind'=>'invoice']) }}">@include('admin._premium-icon',['name'=>'invoice'])</button>
+                <button class="order-financial-action" type="button" title="{{ __('order_operations.popup.invoice') }}" aria-label="{{ __('order_operations.popup.invoice') }}" data-order-invoice-icon data-order-popup data-order-popup-title="{{ __('order_operations.popup.invoice') }}" data-order-popup-url="{{ route('admin.operations.orders.popup',['order'=>$row['id'],'kind'=>$invoicePopupKind]) }}">@include('admin._premium-icon',['name'=>$invoicePopupKind])</button>
             @endif
-            <button class="order-financial-action is-timeline" type="button" title="{{ $isAr ? 'تايم لاين الطلب' : 'Order timeline' }}" aria-label="{{ $isAr ? 'تايم لاين الطلب' : 'Order timeline' }}" data-order-timeline-icon data-order-popup data-order-popup-title="{{ $isAr ? 'تايم لاين الطلب' : 'Order timeline' }}" data-order-popup-url="{{ route('admin.operations.orders.popup',['order'=>$row['id'],'kind'=>'timeline']) }}">@include('admin._premium-icon',['name'=>'timeline'])</button>
+            <button class="order-financial-action is-timeline" type="button" title="{{ __('order_operations.popup.timeline') }}" aria-label="{{ __('order_operations.popup.timeline') }}" data-order-timeline-icon data-order-popup data-order-popup-title="{{ __('order_operations.popup.timeline') }}" data-order-popup-url="{{ route('admin.operations.orders.popup',['order'=>$row['id'],'kind'=>$timelinePopupKind]) }}">@include('admin._premium-icon',['name'=>$timelinePopupKind])</button>
         </div>
     </div>
 </td>
@@ -479,10 +484,18 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             <small>{{ $row['dispatch_territory'] }}</small>
         @endif
         @if($row['can_dispatch_authorized'] ?? false)
-            @php($dispatchInitial = $rowWithDriver ? '' : ($row['dispatch_assignee_id'] ? (($row['dispatch_assignee_type'] ?: 'driver').':'.$row['dispatch_assignee_id']) : ''))
+            @php
+                $dispatchAssigneeTypeValue = $rowWithDriver
+                    ? 'driver'
+                    : ($row['dispatch_assignee_type'] ?: ($row['channel']==='b2b' ? '' : 'driver'));
+                $dispatchInitialType = $row['dispatch_assignee_type'] ?: 'driver';
+                $dispatchInitial = $rowWithDriver
+                    ? ''
+                    : ($row['dispatch_assignee_id'] ? ($dispatchInitialType.':'.$row['dispatch_assignee_id']) : '');
+            @endphp
             <form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" class="order-inline-picker" data-order-inline-dispatch @if(!$row['can_dispatch']) aria-disabled="true" @endif>
                 @csrf @method('PATCH')
-                <input type="hidden" name="assignee_type" value="{{ $rowWithDriver ? 'driver' : ($row['dispatch_assignee_type'] ?: ($row['channel']==='b2b' ? '' : 'driver')) }}" data-order-inline-assignee-type>
+                <input type="hidden" name="assignee_type" value="{{ $dispatchAssigneeTypeValue }}" data-order-inline-assignee-type>
                 <input type="hidden" name="assignee_id" value="{{ $rowWithDriver ? '' : (string)($row['dispatch_assignee_id'] ?? '') }}" data-order-inline-assignee-id>
                 <select name="dispatch_target" required data-order-inline-picker-select data-initial-value="{{ $dispatchInitial }}" aria-label="{{ $rowWithDriver ? ($isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver') : ($row['channel']==='b2b' ? ($isAr ? 'اختر سائق أو فان' : 'Choose Driver or Van') : __('order_operations.dispatch.choose_driver')) }}" @disabled(!$row['can_dispatch'])>
                     <option value="">{{ $rowWithDriver ? ($isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver') : ($row['channel']==='b2b' ? ($isAr ? 'اختر سائق أو فان' : 'Choose Driver or Van') : __('order_operations.dispatch.choose_driver')) }}</option>
