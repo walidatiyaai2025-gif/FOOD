@@ -100,10 +100,10 @@ class DashboardUiComplianceTest extends TestCase
         $orderFilters = file_get_contents(resource_path('views/admin/_order-operations-order-filters.blade.php'));
         $this->assertIsString($orderFilters);
         $this->assertStringContainsString('name="dispatch_status"', $orderFilters);
-        $this->assertStringContainsString('data-order-dispatch-status', $view);
-        $this->assertStringContainsString('data-order-dispatch-driver', $view);
-        $this->assertStringContainsString('data-order-dispatch-van', $view);
-        $this->assertStringContainsString('data-order-dispatch-clear', $view);
+        $this->assertStringContainsString('data-order-inline-status', $view);
+        $this->assertStringContainsString('data-order-inline-dispatch', $view);
+        $this->assertStringContainsString('data-order-inline-assignee-type', $view);
+        $this->assertStringContainsString('data-order-inline-unassign', $view);
         $this->assertStringContainsString('data-order-dispatch-detail', $view);
         $this->assertStringContainsString('data-order-dispatch-workspace', $view);
         $this->assertStringContainsString('data-order-inline-unassign', $view);
