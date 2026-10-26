@@ -69,19 +69,19 @@ $roleLabel = static function ($role): string {
 
         <div class="store-shell">
             <details class="foodex-card store-card store-accordion store-page-accordion" data-page-accordion="add-store" open>
-                <summary aria-label="{{ $ar?'فتح أو إغلاق إضافة متجر':'Expand or collapse Add Store' }}">
+                <summary aria-label="{{ __('store_channels.retail_store.expand_add') }}">
                     <div class="store-accordion-summary-main">
                         <div class="store-accordion-summary-text">
-                            <h2>{{ $ar?'إضافة متجر جديد':'Add a new store' }}</h2>
-                            <p>{{ $ar?'أنشئ المتجر من خلال خطوات مرتبة ومراجعة نهائية قبل الحفظ. لا يتم إنشاء أي سجل قبل التأكيد النهائي.':'Create the store through ordered steps with a final review. Nothing is persisted before final confirmation.' }}</p>
+                            <h2>{{ __('store_channels.retail_store.add_title') }}</h2>
+                            <p>{{ __('store_channels.retail_store.add_description') }}</p>
                         </div>
                     </div>
                     <span class="store-accordion-chevron" aria-hidden="true">⌄</span>
                 </summary>
                 <div class="store-accordion-body">
                     <div class="store-create-launch">
-                        <span class="muted">{{ $ar?'ابدأ معالج إنشاء متجر جديد ومراجعته قبل الحفظ.':'Start the guided store creation flow and review it before saving.' }}</span>
-                        <button class="foodex-action-primary" type="button" data-open-store-wizard>＋ {{ $ar?'إضافة متجر':'Add Store' }}</button>
+                        <span class="muted">{{ __('store_channels.retail_store.launch_hint') }}</span>
+                        <button class="foodex-action-primary" type="button" data-open-store-wizard>＋ {{ __('store_channels.retail_store.add_action') }}</button>
                     </div>
                 </div>
             </details>
@@ -257,11 +257,11 @@ $roleLabel = static function ($role): string {
 
             @include('admin._store-channel-operations',['storeChannelDashboard'=>$storeChannelDashboard])
             <details class="foodex-card store-card store-accordion store-page-accordion" data-page-accordion="stores">
-                <summary aria-label="{{ $ar?'فتح أو إغلاق قائمة المتاجر':'Expand or collapse store list' }}">
+                <summary aria-label="{{ __('store_channels.retail_store.expand_list') }}">
                     <div class="store-accordion-summary-main">
                         <div class="store-accordion-summary-text">
-                            <h2>{{ $ar?'متاجر التجزئة':'Retail Stores' }}</h2>
-                            <p>{{ $ar?'تعديل البيانات الأساسية وإدارة الأدوار والدخول إلى سياق المتجر.':'Edit core details, manage roles and enter the store context.' }}</p>
+                            <h2>{{ __('store_channels.retail_store.list_title') }}</h2>
+                            <p>{{ __('store_channels.retail_store.list_description') }}</p>
                         </div>
                     </div>
                     <span class="store-accordion-chevron" aria-hidden="true">⌄</span>
