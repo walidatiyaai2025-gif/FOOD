@@ -26,7 +26,7 @@ class AdminManagementEntryPointsTest extends TestCase
         $user->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
 
         $this->actingAs($user)
-            ->get('/admin')
+            ->get('/admin/b2b/dashboard')
             ->assertOk()
             ->assertSee(route('admin.administration.index'));
 
