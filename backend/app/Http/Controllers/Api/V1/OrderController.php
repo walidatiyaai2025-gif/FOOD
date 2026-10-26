@@ -341,19 +341,7 @@ class OrderController extends Controller
             }
         }
 
-        $transitions = self::allowedTransitions((string) $order->status);
-
-        if (
-            strtolower((string) $order->channel) === 'b2b'
-            && (string) $order->status === 'ready'
-        ) {
-            return array_values(array_filter(
-                $transitions,
-                static fn (string $status): bool => $status === 'cancelled',
-            ));
-        }
-
-        return $transitions;
+        return self::allowedTransitions((string) $order->status);
     }
 
     private function reverseCheckoutSettlementEntries(Order $order, User $actor): void
