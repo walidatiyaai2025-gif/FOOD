@@ -694,8 +694,8 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-order-inline-picker-reason-wrap hidden', $view);
         $this->assertStringContainsString('data-order-inline-cancellation-reason hidden', $view);
         $this->assertStringContainsString('data-order-saved-reason', $view);
-        $this->assertStringContainsString("if(reasonWrap){reasonWrap.hidden=!changed;}", $view);
-        $this->assertStringContainsString("if(reasonWrap){reasonWrap.hidden=!cancelling;}", $view);
+        $this->assertStringContainsString('if(reasonWrap){reasonWrap.hidden=!changed;}', $view);
+        $this->assertStringContainsString('if(reasonWrap){reasonWrap.hidden=!cancelling;}', $view);
         $this->assertStringContainsString('data-order-financial-actions', $view);
         $this->assertStringContainsString('data-order-details-icon', $view);
         $this->assertStringContainsString('data-order-invoice-icon', $view);
