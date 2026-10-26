@@ -175,7 +175,7 @@ final class OrderOperationsController extends Controller
 
         $statusBaseQuery = clone $orderQuery;
         $actionRequiredCount = (clone $statusBaseQuery)
-            ->whereNotIn('status', ['delivered', 'completed'])
+            ->whereNotIn('status', ['delivered', 'completed', 'cancelled'])
             ->whereExists(function ($dispatch): void {
                 $dispatch->selectRaw('1')
                     ->from('order_dispatch_states')
@@ -197,7 +197,7 @@ final class OrderOperationsController extends Controller
 
         if ($selectedActionRequired) {
             $orderQuery
-                ->whereNotIn('status', ['delivered', 'completed'])
+                ->whereNotIn('status', ['delivered', 'completed', 'cancelled'])
                 ->whereExists(function ($dispatch): void {
                 $dispatch->selectRaw('1')
                     ->from('order_dispatch_states')
