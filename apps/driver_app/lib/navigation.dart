@@ -24,9 +24,23 @@ abstract final class DriverRoutes {
   static const b2cDeliveries = '/driver/b2c/deliveries';
   static const b2cNotifications = '/driver/b2c/notifications';
   static const b2cWallet = '/driver/b2c/wallet';
+  static const b2bHome = '/driver/b2b/home';
+  static const b2bDeliveries = '/driver/b2b/deliveries';
+  static const b2bNotifications = '/driver/b2b/notifications';
+
+  static String home(DriverChannel channel) =>
+      channel == DriverChannel.b2b ? b2bHome : b2cHome;
+
+  static String deliveries(DriverChannel channel) =>
+      channel == DriverChannel.b2b ? b2bDeliveries : b2cDeliveries;
+
+  static String notifications(DriverChannel channel) =>
+      channel == DriverChannel.b2b ? b2bNotifications : b2cNotifications;
 
   static bool belongsTo(String route, DriverChannel channel) {
-    return channel == DriverChannel.b2c && route.startsWith('/driver/b2c/');
+    final prefix =
+        channel == DriverChannel.b2b ? '/driver/b2b/' : '/driver/b2c/';
+    return route.startsWith(prefix);
   }
 }
 
@@ -53,80 +67,80 @@ class DriverNavigator {
     final name = settings.name ?? DriverRoutes.root;
     DriverRuntimeInspector.instance.recordNavigation(name);
 
-    if (channel != DriverChannel.b2c) {
-      return _page(const _DriverRouteDenied(), settings);
-    }
-
     if (name == DriverRoutes.root) return _page(_homeFor(channel), settings);
 
     if (!DriverRoutes.belongsTo(name, channel)) {
       return _page(const _DriverRouteDenied(), settings);
     }
 
-    switch (name) {
-      case DriverRoutes.b2cHome:
-        return _page(_homeFor(channel), settings);
-      case DriverRoutes.b2cDeliveries:
-        final focusAssignmentId =
-            settings.arguments is int ? settings.arguments as int : null;
-        final initialAssignmentStatus =
-            settings.arguments is String ? settings.arguments as String : null;
-        return _page(
-          DriverJourneyRuntimePage(
-            channel: channel,
-            repository: repository,
-            onSessionExpired: onSessionExpired,
-            focusAssignmentId: focusAssignmentId,
-            initialAssignmentStatus: initialAssignmentStatus,
-            previewContext: previewContext,
-            homeRoute: DriverRoutes.b2cHome,
-            deliveriesRoute: DriverRoutes.b2cDeliveries,
-            notificationsRoute: DriverRoutes.b2cNotifications,
-          ),
-          settings,
-        );
-      case DriverRoutes.b2cWallet:
-        if (repository is! DriverWalletRepository) {
-          return _page(const _DriverRouteNotFound(), settings);
-        }
-        final walletRepository = repository as DriverWalletRepository;
-        return _page(DriverWalletPage(repository: walletRepository), settings);
-      case DriverRoutes.b2cNotifications:
-        final notifications = notificationRepository;
-        if (notifications == null) {
-          return _page(const _DriverRouteNotFound(), settings);
-        }
-        const deliveriesRoute = DriverRoutes.b2cDeliveries;
-        return _page(
-          Builder(
-            builder: (context) => DriverNotificationPage(
-              repository: notifications,
-              onSessionExpired: onSessionExpired,
-              homeRoute: DriverRoutes.b2cHome,
-              deliveriesRoute: deliveriesRoute,
-              notificationsRoute: DriverRoutes.b2cNotifications,
-              onOpenAssignment: (assignmentId) {
-                Navigator.of(context)
-                    .pushNamed(deliveriesRoute, arguments: assignmentId);
-              },
-            ),
-          ),
-          settings,
-        );
-      default:
-        return _page(const _DriverRouteNotFound(), settings);
+    final homeRoute = DriverRoutes.home(channel);
+    final deliveriesRoute = DriverRoutes.deliveries(channel);
+    final notificationsRoute = DriverRoutes.notifications(channel);
+
+    if (name == homeRoute) {
+      return _page(_homeFor(channel), settings);
     }
+    if (name == deliveriesRoute) {
+      final focusAssignmentId =
+          settings.arguments is int ? settings.arguments as int : null;
+      final initialAssignmentStatus =
+          settings.arguments is String ? settings.arguments as String : null;
+      return _page(
+        DriverJourneyRuntimePage(
+          channel: channel,
+          repository: repository,
+          onSessionExpired: onSessionExpired,
+          focusAssignmentId: focusAssignmentId,
+          initialAssignmentStatus: initialAssignmentStatus,
+          previewContext: previewContext,
+          homeRoute: homeRoute,
+          deliveriesRoute: deliveriesRoute,
+          notificationsRoute: notificationsRoute,
+        ),
+        settings,
+      );
+    }
+    if (name == notificationsRoute) {
+      final notifications = notificationRepository;
+      if (notifications == null) {
+        return _page(const _DriverRouteNotFound(), settings);
+      }
+      return _page(
+        Builder(
+          builder: (context) => DriverNotificationPage(
+            repository: notifications,
+            onSessionExpired: onSessionExpired,
+            homeRoute: homeRoute,
+            deliveriesRoute: deliveriesRoute,
+            notificationsRoute: notificationsRoute,
+            onOpenAssignment: (assignmentId) {
+              Navigator.of(context)
+                  .pushNamed(deliveriesRoute, arguments: assignmentId);
+            },
+          ),
+        ),
+        settings,
+      );
+    }
+    if (channel == DriverChannel.b2c && name == DriverRoutes.b2cWallet) {
+      if (repository is! DriverWalletRepository) {
+        return _page(const _DriverRouteNotFound(), settings);
+      }
+      final walletRepository = repository as DriverWalletRepository;
+      return _page(DriverWalletPage(repository: walletRepository), settings);
+    }
+
+    return _page(const _DriverRouteNotFound(), settings);
   }
 
   Widget _homeFor(DriverChannel channel) {
-    if (channel != DriverChannel.b2c) {
-      return const _DriverRouteDenied();
-    }
-    const home = DriverRoutes.b2cHome;
-    const deliveries = DriverRoutes.b2cDeliveries;
-    const notifications = DriverRoutes.b2cNotifications;
-    final wallet =
-        repository is DriverWalletRepository ? DriverRoutes.b2cWallet : null;
+    final home = DriverRoutes.home(channel);
+    final deliveries = DriverRoutes.deliveries(channel);
+    final notifications = DriverRoutes.notifications(channel);
+    final wallet = channel == DriverChannel.b2c &&
+            repository is DriverWalletRepository
+        ? DriverRoutes.b2cWallet
+        : null;
 
     return _DriverHomePage(
       homeRoute: home,
