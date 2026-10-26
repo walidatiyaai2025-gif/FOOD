@@ -8,6 +8,7 @@ import 'core/diagnostics/driver_runtime_inspector.dart';
 import 'core/localization/driver_translations.dart';
 import 'core/navigation/driver_shell.dart';
 import 'core/preview/driver_preview_context.dart';
+import 'core/push/firebase_push_service.dart';
 import 'core/theme/foodex_theme.dart';
 import 'features/notifications/driver_notification_page.dart';
 import 'features/delivery/driver_assignment_contract.dart';
@@ -55,6 +56,7 @@ class DriverNavigator {
     required this.repository,
     this.driverName = '',
     this.notificationRepository,
+    this.pushAlerts,
     this.onSessionExpired,
     this.onLogout,
     this.previewContext,
@@ -64,6 +66,7 @@ class DriverNavigator {
   final DriverAssignmentRepository repository;
   final String driverName;
   final DriverNotificationRepository? notificationRepository;
+  final Stream<DriverPushAlert>? pushAlerts;
   final VoidCallback? onSessionExpired;
   final VoidCallback? onLogout;
   final DriverPreviewContext? previewContext;
@@ -155,6 +158,7 @@ class DriverNavigator {
       walletRoute: wallet,
       channel: channel,
       repository: repository,
+      pushAlerts: pushAlerts,
       onSessionExpired: onSessionExpired,
       onLogout: onLogout,
       previewContext: previewContext,
@@ -175,6 +179,7 @@ class _DriverHomePage extends StatefulWidget {
     this.walletRoute,
     required this.channel,
     required this.repository,
+    this.pushAlerts,
     this.onSessionExpired,
     this.onLogout,
     this.previewContext,
@@ -187,6 +192,7 @@ class _DriverHomePage extends StatefulWidget {
   final String? walletRoute;
   final DriverChannel channel;
   final DriverAssignmentRepository repository;
+  final Stream<DriverPushAlert>? pushAlerts;
   final VoidCallback? onSessionExpired;
   final VoidCallback? onLogout;
   final DriverPreviewContext? previewContext;
