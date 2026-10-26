@@ -9,6 +9,7 @@ use App\Models\Notification;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -313,7 +314,9 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
             'note' => 'Called twice',
         ]);
 
+        $principalWholesaleStoreId = app(WholesalePrincipal::class)->storeId();
         [$b2bStoreId, $b2bOrder] = $this->order('b2b', 'WHOLESALE');
+        $this->assertNotSame($principalWholesaleStoreId, $b2bStoreId);
         $b2bOrder->forceFill(['status' => 'ready'])->save();
         $b2bAdmin = $this->admin('B2B_ADMIN', $b2bStoreId, 'b2b-journey-admin@example.test');
         [$b2bDriverUser, $b2bDriver] = $this->driver(
