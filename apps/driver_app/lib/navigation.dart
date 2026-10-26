@@ -511,74 +511,124 @@ class _DriverHomePageState extends State<_DriverHomePage>
         ],
       ),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadSummary,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-            children: [
-              Text(
-                context.tr('driver.home.status_summary'),
-                key: const Key('driver-home-status-summary-title'),
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w900),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxHeight < 610;
+            final ultraCompact = constraints.maxHeight < 510;
+            final gap = ultraCompact ? 4.0 : compact ? 6.0 : 10.0;
+            final horizontalPadding = ultraCompact ? 8.0 : 12.0;
+            final columns = compact ? 3 : 2;
+
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                gap,
+                horizontalPadding,
+                gap,
               ),
-              const SizedBox(height: 10),
-              _DriverWorkloadChart(
-                loading: _loading && _assignments.isEmpty,
-                failed: _loadFailed,
-                stale: _showingStaleData,
-                statuses: [
-                  for (final status in _statuses)
-                    _DriverWorkloadSlice(
-                      label: context.tr('driver.status.${status.$1}'),
-                      value: _count(status.$1),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              _DriverPendingCard(
-                key: const Key('driver-home-pending-orders'),
-                label: context.tr('driver.home.pending_orders'),
-                value: _loading ? null : _count('assigned'),
-                onTap: _loading ? null : () => _openStatus('assigned'),
-              ),
-              const SizedBox(height: 10),
-              if (_loadFailed)
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.cloud_off_rounded),
-                    title: Text(context.tr('driver.error')),
-                    trailing: TextButton(
-                      onPressed: _loadSummary,
-                      child: Text(context.tr('driver.retry')),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    context.tr('driver.home.status_summary'),
+                    key: const Key('driver-home-status-summary-title'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontSize: ultraCompact ? 14 : compact ? 15 : null,
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  SizedBox(height: gap),
+                  Expanded(
+                    flex: compact ? 3 : 4,
+                    child: _DriverWorkloadChart(
+                      compact: compact,
+                      ultraCompact: ultraCompact,
+                      loading: _loading && _assignments.isEmpty,
+                      failed: _loadFailed,
+                      stale: _showingStaleData,
+                      statuses: [
+                        for (final status in _statuses)
+                          _DriverWorkloadSlice(
+                            label: context.tr('driver.status.${status.$1}'),
+                            value: _count(status.$1),
+                          ),
+                      ],
                     ),
                   ),
-                )
-              else
-                GridView.count(
-                  key: const Key('driver-home-status-grid'),
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 1.9,
-                  children: [
-                    for (final status in _statuses)
-                      _DriverStatusCard(
-                        key: Key('driver-home-status-${status.$1}'),
-                        icon: status.$2,
-                        label: context.tr('driver.status.${status.$1}'),
-                        value: _loading ? null : _count(status.$1),
-                        onTap: _loading ? null : () => _openStatus(status.$1),
-                      ),
-                  ],
-                ),
-            ],
-          ),
+                  SizedBox(height: gap),
+                  _DriverPendingCard(
+                    key: const Key('driver-home-pending-orders'),
+                    compact: compact,
+                    ultraCompact: ultraCompact,
+                    label: context.tr('driver.home.pending_orders'),
+                    value: _loading ? null : _count('assigned'),
+                    onTap: _loading ? null : () => _openStatus('assigned'),
+                  ),
+                  SizedBox(height: gap),
+                  Expanded(
+                    flex: compact ? 4 : 5,
+                    child: _loadFailed
+                        ? Card(
+                            margin: EdgeInsets.zero,
+                            child: Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(compact ? 8 : 12),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.cloud_off_rounded),
+                                    SizedBox(width: ultraCompact ? 4 : 6),
+                                    Flexible(
+                                      child: Text(
+                                        context.tr('driver.error'),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    TextButton(
+                                      onPressed: _loadSummary,
+                                      child: Text(context.tr('driver.retry')),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )
+                        : GridView.count(
+                            key: const Key('driver-home-status-grid'),
+                            padding: EdgeInsets.zero,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisCount: columns,
+                            crossAxisSpacing: gap,
+                            mainAxisSpacing: gap,
+                            childAspectRatio:
+                                ultraCompact ? 1.65 : compact ? 1.55 : 1.9,
+                            children: [
+                              for (final status in _statuses)
+                                _DriverStatusCard(
+                                  key: Key(
+                                    'driver-home-status-${status.$1}',
+                                  ),
+                                  compact: compact,
+                                  ultraCompact: ultraCompact,
+                                  icon: status.$2,
+                                  label:
+                                      context.tr('driver.status.${status.$1}'),
+                                  value: _loading ? null : _count(status.$1),
+                                  onTap: _loading
+                                      ? null
+                                      : () => _openStatus(status.$1),
+                                ),
+                            ],
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
@@ -594,12 +644,16 @@ class _DriverWorkloadSlice {
 
 class _DriverWorkloadChart extends StatelessWidget {
   const _DriverWorkloadChart({
+    required this.compact,
+    required this.ultraCompact,
     required this.loading,
     required this.failed,
     required this.stale,
     required this.statuses,
   });
 
+  final bool compact;
+  final bool ultraCompact;
   final bool loading;
   final bool failed;
   final bool stale;
@@ -634,35 +688,22 @@ class _DriverWorkloadChart extends StatelessWidget {
     } else if (total == 0) {
       body = Text(context.tr('driver.home.analytics.empty'));
     } else {
+      final chartSize = ultraCompact ? 68.0 : compact ? 84.0 : 104.0;
       final chart = FoodexDonutChart(
         values: [for (final item in statuses) item.value.toDouble()],
         semanticLabel: semanticLabel,
-        size: 132,
-        strokeWidth: 19,
+        size: chartSize,
+        strokeWidth: ultraCompact ? 11 : compact ? 13 : 16,
       );
       final legend = FoodexChartLegend(labels: labels);
 
-      body = LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth < 430) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Align(alignment: Alignment.center, child: chart),
-                const SizedBox(height: 14),
-                legend,
-              ],
-            );
-          }
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              chart,
-              const SizedBox(width: 18),
-              Expanded(child: legend),
-            ],
-          );
-        },
+      body = Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          chart,
+          SizedBox(width: ultraCompact ? 8 : compact ? 10 : 14),
+          Expanded(child: legend),
+        ],
       );
     }
 
@@ -670,37 +711,43 @@ class _DriverWorkloadChart extends StatelessWidget {
       key: const Key('driver-home-workload-chart'),
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(ultraCompact ? 7 : compact ? 9 : 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.donut_large_rounded,
-                  size: 20,
+                  size: ultraCompact ? 16 : compact ? 18 : 20,
                   color: FoodexChartPalette.primaryDark,
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: ultraCompact ? 5 : 8),
                 Expanded(
                   child: Text(
                     context.tr('driver.home.analytics.title'),
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w900),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontSize: ultraCompact ? 11 : compact ? 12 : null,
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 5),
-            Text(
-              context.tr('driver.home.analytics.summary'),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: FoodexBrand.muted,
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
+            if (!compact) ...[
+              const SizedBox(height: 4),
+              Text(
+                context.tr('driver.home.analytics.summary'),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: FoodexBrand.muted,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
             if (stale) ...[
               const SizedBox(height: 8),
               Row(
@@ -711,7 +758,7 @@ class _DriverWorkloadChart extends StatelessWidget {
                     size: 17,
                     color: FoodexChartPalette.warning,
                   ),
-                  const SizedBox(width: 6),
+                  SizedBox(width: ultraCompact ? 3 : 5),
                   Expanded(
                     child: Text(
                       context.tr('driver.home.analytics.stale'),
@@ -724,8 +771,8 @@ class _DriverWorkloadChart extends StatelessWidget {
                 ],
               ),
             ],
-            const SizedBox(height: 14),
-            body,
+            SizedBox(height: ultraCompact ? 4 : compact ? 6 : 10),
+            Expanded(child: Center(child: body)),
           ],
         ),
       ),
@@ -736,11 +783,15 @@ class _DriverWorkloadChart extends StatelessWidget {
 class _DriverPendingCard extends StatelessWidget {
   const _DriverPendingCard({
     super.key,
+    required this.compact,
+    required this.ultraCompact,
     required this.label,
     required this.value,
     required this.onTap,
   });
 
+  final bool compact;
+  final bool ultraCompact;
   final String label;
   final int? value;
   final VoidCallback? onTap;
@@ -753,7 +804,10 @@ class _DriverPendingCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(18),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: EdgeInsets.symmetric(
+              horizontal: ultraCompact ? 8 : compact ? 10 : 14,
+              vertical: ultraCompact ? 6 : compact ? 8 : 12,
+            ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
@@ -764,19 +818,19 @@ class _DriverPendingCard extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: ultraCompact ? 30 : compact ? 34 : 40,
+                  height: ultraCompact ? 30 : compact ? 34 : 40,
                   decoration: BoxDecoration(
                     color: FoodexBrand.red,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(compact ? 10 : 14),
                   ),
                   child: const Icon(
                     Icons.notifications_active_rounded,
                     color: Colors.white,
-                    size: 23,
+                    size: ultraCompact ? 16 : compact ? 18 : 21,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: ultraCompact ? 6 : compact ? 8 : 10),
                 Expanded(
                   child: Text(
                     label,
@@ -784,7 +838,7 @@ class _DriverPendingCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: FoodexBrand.dangerText,
-                      fontSize: 14,
+                      fontSize: ultraCompact ? 10 : compact ? 11 : 13,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -801,10 +855,12 @@ class _DriverPendingCard extends StatelessWidget {
                   )
                 else
                   Container(
-                    constraints: const BoxConstraints(minWidth: 42),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
+                    constraints: BoxConstraints(
+                      minWidth: ultraCompact ? 30 : compact ? 34 : 40,
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: ultraCompact ? 7 : 9,
+                      vertical: ultraCompact ? 3 : compact ? 4 : 5,
                     ),
                     decoration: BoxDecoration(
                       color: FoodexBrand.red,
@@ -815,7 +871,7 @@ class _DriverPendingCard extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: ultraCompact ? 14 : compact ? 16 : 19,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -830,12 +886,16 @@ class _DriverPendingCard extends StatelessWidget {
 class _DriverStatusCard extends StatelessWidget {
   const _DriverStatusCard({
     super.key,
+    required this.compact,
+    required this.ultraCompact,
     required this.icon,
     required this.label,
     required this.value,
     required this.onTap,
   });
 
+  final bool compact;
+  final bool ultraCompact;
   final IconData icon;
   final String label;
   final int? value;
@@ -849,7 +909,10 @@ class _DriverStatusCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(18),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            padding: EdgeInsets.symmetric(
+              horizontal: ultraCompact ? 6 : compact ? 8 : 10,
+              vertical: ultraCompact ? 5 : compact ? 7 : 9,
+            ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: FoodexBrand.border),
@@ -857,22 +920,26 @@ class _DriverStatusCard extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 38,
-                  height: 38,
+                  width: ultraCompact ? 26 : compact ? 30 : 34,
+                  height: ultraCompact ? 26 : compact ? 30 : 34,
                   decoration: BoxDecoration(
                     color: FoodexBrand.greenSoft,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(compact ? 9 : 12),
                   ),
-                  child: Icon(icon, color: FoodexBrand.greenDark, size: 20),
+                  child: Icon(
+                    icon,
+                    color: FoodexBrand.greenDark,
+                    size: ultraCompact ? 14 : compact ? 16 : 18,
+                  ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: ultraCompact ? 5 : compact ? 6 : 8),
                 Expanded(
                   child: Text(
                     label,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: ultraCompact ? 9 : compact ? 10 : 11,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -888,7 +955,7 @@ class _DriverStatusCard extends StatelessWidget {
                   Text(
                     value.toString(),
                     style: const TextStyle(
-                      fontSize: 21,
+                      fontSize: ultraCompact ? 14 : compact ? 16 : 19,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
