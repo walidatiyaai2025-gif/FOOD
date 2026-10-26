@@ -35,7 +35,8 @@ class DriverOrdersController extends Controller
 
         $storeId = isset($validated['store_id']) ? (int) $validated['store_id'] : null;
         if ($storeId !== null) {
-            abort_unless(in_array($storeId, $storeIds, true), 404);
+            $allowedStoreLookup = array_fill_keys($storeIds, true);
+            abort_unless(isset($allowedStoreLookup[$storeId]), 404);
             $storeIds = [$storeId];
         }
 
