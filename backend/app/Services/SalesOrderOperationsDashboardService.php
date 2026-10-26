@@ -85,23 +85,28 @@ final class SalesOrderOperationsDashboardService
         $nowUtc = CarbonImmutable::now('UTC');
         $delayCutoff = $nowUtc->subHours(self::DELAY_HOURS);
 
-        $openOrders = (clone $base)
-            ->whereNotIn('orders.status', self::TERMINAL_STATUSES)
-            ->count('orders.id');
+        $metrics = (clone $base)
+            ->selectRaw(
+                "COUNT(*) as total_orders, ".
+                "SUM(CASE WHEN orders.status NOT IN ('delivered','cancelled','refunded','failed') THEN 1 ELSE 0 END) as open_orders, ".
+                "SUM(CASE WHEN orders.status NOT IN ('delivered','cancelled','refunded','failed') AND orders.created_at <= ? THEN 1 ELSE 0 END) as delayed_orders, ".
+                "SUM(CASE WHEN orders.status IN ('cancelled','refunded') THEN 1 ELSE 0 END) as cancelled_refunded",
+                [$delayCutoff],
+            )
+            ->first();
 
-        $delayedOrders = (clone $base)
-            ->whereNotIn('orders.status', self::TERMINAL_STATUSES)
-            ->where('orders.created_at', '<=', $delayCutoff)
-            ->count('orders.id');
+        $totalOrders = (int) ($metrics->total_orders ?? 0);
+        $openOrders = (int) ($metrics->open_orders ?? 0);
+        $delayedOrders = (int) ($metrics->delayed_orders ?? 0);
+        $cancelledRefunded = (int) ($metrics->cancelled_refunded ?? 0);
 
-        $awaitingDispatch = (clone $base)
-            ->whereExists(function (Builder $query): void {
-                $query->selectRaw('1')
-                    ->from('order_dispatch_states')
-                    ->whereColumn('order_dispatch_states.order_id', 'orders.id')
+        $awaitingDispatchQuery = DB::table('orders')
+            ->join('order_dispatch_states', function ($join): void {
+                $join->on('order_dispatch_states.order_id', '=', 'orders.id')
                     ->where('order_dispatch_states.status', 'awaiting_dispatch');
-            })
-            ->count('orders.id');
+            });
+        $this->applyScope($awaitingDispatchQuery, $scopes, $storeId, $fromUtc, $toUtc);
+        $awaitingDispatch = $awaitingDispatchQuery->count('orders.id');
 
         $paymentExceptions = (clone $base)
             ->whereExists(function (Builder $query): void {
@@ -120,10 +125,6 @@ final class SalesOrderOperationsDashboardService
                     ->whereColumn('invoices.order_id', 'orders.id')
                     ->whereNotIn('invoices.status', ['cancelled', 'void', 'voided']);
             })
-            ->count('orders.id');
-
-        $cancelledRefunded = (clone $base)
-            ->whereIn('orders.status', self::NON_REVENUE_STATUSES)
             ->count('orders.id');
 
         $daily = (clone $base)
@@ -232,23 +233,29 @@ final class SalesOrderOperationsDashboardService
         $fulfillmentRows = DB::table('order_status_history')
             ->join('orders', 'orders.id', '=', 'order_status_history.order_id');
         $this->applyScope($fulfillmentRows, $scopes, $storeId, $fromUtc, $toUtc);
-        $fulfillmentMinutes = $fulfillmentRows
+        $duration = $this->fulfillmentDurationExpression();
+        $safeDuration = "(CASE WHEN {$duration} < 0 THEN 0 ELSE {$duration} END)";
+        $fulfillmentStats = $fulfillmentRows
             ->where('order_status_history.to_status', 'delivered')
-            ->get(['orders.id', 'orders.created_at as ordered_at', 'order_status_history.created_at as delivered_at'])
-            ->map(static fn (object $row): float => max(
-                0,
-                CarbonImmutable::parse((string) $row->ordered_at, 'UTC')
-                    ->diffInMinutes(CarbonImmutable::parse((string) $row->delivered_at, 'UTC')),
-            ));
+            ->selectRaw(
+                "COUNT(*) as delivered_count, ".
+                "AVG({$safeDuration}) as average_minutes, ".
+                "SUM(CASE WHEN {$safeDuration} <= 60 THEN 1 ELSE 0 END) as under_60, ".
+                "SUM(CASE WHEN {$safeDuration} > 60 AND {$safeDuration} <= 120 THEN 1 ELSE 0 END) as bucket_60_120, ".
+                "SUM(CASE WHEN {$safeDuration} > 120 AND {$safeDuration} <= 240 THEN 1 ELSE 0 END) as bucket_120_240, ".
+                "SUM(CASE WHEN {$safeDuration} > 240 THEN 1 ELSE 0 END) as over_240"
+            )
+            ->first();
 
-        $fulfillmentAverage = $fulfillmentMinutes->isEmpty()
+        $deliveredCount = (int) ($fulfillmentStats->delivered_count ?? 0);
+        $fulfillmentAverage = $deliveredCount === 0
             ? null
-            : round((float) $fulfillmentMinutes->average(), 1);
+            : round((float) ($fulfillmentStats->average_minutes ?? 0), 1);
         $fulfillmentBreakdown = [
-            ['bucket' => 'under_60', 'count' => $fulfillmentMinutes->filter(fn (float $minutes): bool => $minutes <= 60)->count()],
-            ['bucket' => '60_120', 'count' => $fulfillmentMinutes->filter(fn (float $minutes): bool => $minutes > 60 && $minutes <= 120)->count()],
-            ['bucket' => '120_240', 'count' => $fulfillmentMinutes->filter(fn (float $minutes): bool => $minutes > 120 && $minutes <= 240)->count()],
-            ['bucket' => 'over_240', 'count' => $fulfillmentMinutes->filter(fn (float $minutes): bool => $minutes > 240)->count()],
+            ['bucket' => 'under_60', 'count' => (int) ($fulfillmentStats->under_60 ?? 0)],
+            ['bucket' => '60_120', 'count' => (int) ($fulfillmentStats->bucket_60_120 ?? 0)],
+            ['bucket' => '120_240', 'count' => (int) ($fulfillmentStats->bucket_120_240 ?? 0)],
+            ['bucket' => 'over_240', 'count' => (int) ($fulfillmentStats->over_240 ?? 0)],
         ];
 
         $topProducts = DB::table('order_items')
@@ -286,7 +293,6 @@ final class SalesOrderOperationsDashboardService
                 ->all();
         }
 
-        $totalOrders = (clone $base)->count('orders.id');
         $withinSla = max(0, $openOrders - $delayedOrders);
         $openWithinSlaPercent = $openOrders === 0 ? null : round(($withinSla / $openOrders) * 100, 1);
 
@@ -432,6 +438,16 @@ final class SalesOrderOperationsDashboardService
             })
             ->when($storeId !== null, fn (Builder $builder) => $builder->where('orders.store_id', $storeId))
             ->whereBetween('orders.created_at', [$fromUtc, $toUtc]);
+    }
+
+    private function fulfillmentDurationExpression(): string
+    {
+        return match (DB::getDriverName()) {
+            'sqlite' => '((julianday(order_status_history.created_at) - julianday(orders.created_at)) * 1440.0)',
+            'pgsql' => '(EXTRACT(EPOCH FROM (order_status_history.created_at - orders.created_at)) / 60.0)',
+            'sqlsrv' => 'DATEDIFF(minute, orders.created_at, order_status_history.created_at)',
+            default => 'TIMESTAMPDIFF(MINUTE, orders.created_at, order_status_history.created_at)',
+        };
     }
 
     /**
