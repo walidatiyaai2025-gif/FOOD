@@ -14,7 +14,8 @@ class _FakeGateService implements DriverLocationGateService {
   DriverLocationGateStatus status;
 
   @override
-  Future<DriverLocationGateStatus> check({bool requestPermission = false}) async =>
+  Future<DriverLocationGateStatus> check(
+          {bool requestPermission = false}) async =>
       status;
 
   @override
@@ -216,5 +217,4 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
-
 }
