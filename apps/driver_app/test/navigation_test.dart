@@ -233,13 +233,6 @@ void main() {
     expect(find.text('قناة العمل'), findsNothing);
 
     final statusGrid = find.byKey(const Key('driver-home-status-grid'));
-    await tester.scrollUntilVisible(
-      statusGrid,
-      180,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
     expect(statusGrid, findsOneWidget);
     expect(
         find.byKey(const Key('driver-home-status-accepted')), findsOneWidget);
@@ -252,13 +245,6 @@ void main() {
         find.byKey(const Key('driver-home-status-delivered')), findsOneWidget);
 
     final failedCard = find.byKey(const Key('driver-home-status-failed'));
-    await tester.scrollUntilVisible(
-      failedCard,
-      180,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
     final failedTapTarget = find.descendant(
       of: failedCard,
       matching: find.byType(InkWell),
@@ -309,6 +295,25 @@ void main() {
     expect(find.text('ACCEPTED-1'), findsNothing);
     expect(find.text('OUT-1'), findsNothing);
     expect(find.text('DONE-1'), findsNothing);
+  });
+
+  testWidgets('driver home status grid is fixed and non-scrollable',
+      (tester) async {
+    final repo = _StatusRepo();
+    await tester.pumpWidget(
+      FoodexDriverApp(
+        initialSession: session(DriverChannel.b2c),
+        assignmentRepositoryFactory: (_) => repo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final gridFinder = find.byKey(const Key('driver-home-status-grid'));
+    expect(gridFinder, findsOneWidget);
+    final grid = tester.widget<GridView>(gridFinder);
+    expect(grid.physics, isA<NeverScrollableScrollPhysics>());
+    expect(find.byKey(const Key('driver-home-pending-orders')), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-workload-chart')), findsOneWidget);
   });
 
   testWidgets(
@@ -366,12 +371,6 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.scrollUntilVisible(
-      pendingCard,
-      -180,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
     expect(
       find.descendant(of: pendingCard, matching: find.text('0')),
       findsOneWidget,
