@@ -3,18 +3,11 @@
     $statusRoute = $isB2bOrder ? 'admin.b2b.orders.status' : 'admin.b2c.orders.status';
     $updateRoute = $isB2bOrder ? 'admin.b2b.orders.update' : 'admin.b2c.orders.update';
     $quoteRoute = $isB2bOrder ? 'admin.b2b.orders.quote' : 'admin.b2c.orders.quote';
-    $driverRoute = $isB2bOrder ? 'admin.b2b.drivers.assign' : 'admin.b2c.drivers.assign';
-    $driverReassignRoute = $isB2bOrder ? 'admin.b2b.orders.driver.reassign' : 'admin.b2c.orders.driver.reassign';
-    $driverUnassignRoute = $isB2bOrder ? 'admin.b2b.orders.driver.unassign' : 'admin.b2c.orders.driver.unassign';
-    $statusTransitions = match ($row['status']) {
-        'pending' => ['confirmed','cancelled'],
-        'confirmed' => ['preparing','cancelled'],
-        'preparing' => ['ready','cancelled'],
-        'ready' => ['out_for_delivery','cancelled'],
-        'out_for_delivery' => ['delivered','failed'],
-        'failed' => ['out_for_delivery','cancelled'],
-        default => [],
-    };
+    $driverRoute = 'admin.operations.orders.dispatch';
+    $driverUnassignRoute = 'admin.operations.orders.dispatch.clear';
+    $statusTransitions = in_array($row['status'], ['delivered','cancelled'], true)
+        ? []
+        : ['cancelled'];
     $isArAction = app()->getLocale()==='ar';
     $stateLabels = [
         'pending'=>$isArAction?'قيد الانتظار':'Pending',
@@ -47,52 +40,26 @@
 @endphp
 
 <div id="order-{{ $row['_id'] }}" style="display:grid;gap:8px;min-width:260px">
-    @if($isB2bOrder && $row['status']==='pending')
-    <div class="workspace-inline-form" style="margin:0;display:grid;gap:10px;border-color:#f4c27a;background:#fffaf2">
-        <strong>{{ app()->getLocale()==='ar'?'قرار خدمة العملاء':'Customer Service approval' }}</strong>
-        <div class="muted">{{ app()->getLocale()==='ar'?'راجع تفاصيل الطلب والتسوية المالية قبل الاعتماد أو الرفض.':'Review order and settlement details before approving or rejecting.' }}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <form method="post" action="{{ route($statusRoute,['order'=>$row['_id']]) }}" style="margin:0">
-                @csrf
-                <input type="hidden" name="status" value="confirmed">
-                <input type="hidden" name="note" value="customer_service_approved">
-                <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'اعتماد الطلب':'Approve order' }}</button>
-            </form>
-            <form method="post" action="{{ route($statusRoute,['order'=>$row['_id']]) }}" style="margin:0;display:flex;gap:8px;flex-wrap:wrap">
-                @csrf
-                <input type="hidden" name="status" value="cancelled">
-                <input name="note" maxlength="1000" required placeholder="{{ app()->getLocale()==='ar'?'سبب الرفض (إلزامي)':'Rejection reason (required)' }}">
-                <button class="danger btn" type="submit">{{ app()->getLocale()==='ar'?'رفض الطلب':'Reject order' }}</button>
-            </form>
-        </div>
-    </div>
-    @elseif(count($statusTransitions))
+    @if(count($statusTransitions))
     <form method="post" action="{{ route($statusRoute,['order'=>$row['_id']]) }}" class="links module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
         @csrf
         @if(!$isB2bOrder)
             <input type="hidden" name="store_id" value="{{ $storeId }}">
             @if($supportAccess ?? false)<input type="hidden" name="support_access" value="1">@endif
         @endif
-        <select name="status" required>
-            @foreach($statusTransitions as $state)
-                <option value="{{ $state }}">{{ $stateLabels[$state] ?? $state }}</option>
-            @endforeach
-        </select>
-        <input name="note" maxlength="1000" placeholder="{{ app()->getLocale()==='ar'?'ملاحظة الحالة':'Status note' }}">
-        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تحديث الحالة':'Update status' }}</button>
+        <input type="hidden" name="status" value="cancelled">
+        <input name="note" maxlength="1000" @required($isB2bOrder && $row['status']==='pending') placeholder="{{ app()->getLocale()==='ar'?'سبب الإلغاء':'Cancellation reason' }}">
+        <button class="danger btn" type="submit">{{ app()->getLocale()==='ar'?'إلغاء الطلب':'Cancel order' }}</button>
     </form>
     @endif
 
-    @if((!$isB2bOrder || $row['status']!=='pending') && !in_array($row['status'],['delivered','cancelled'],true) && !empty($moduleData['drivers']))
+    @if(!in_array($row['status'],['delivered','cancelled'],true) && !empty($moduleData['drivers']))
         @if(empty($row['_assignment_id']))
-        <form method="post" action="{{ route($driverRoute) }}" class="links module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
-            @csrf
-            <input type="hidden" name="order_id" value="{{ $row['_id'] }}">
-            @if(!$isB2bOrder)
-                <input type="hidden" name="store_id" value="{{ $storeId }}">
-                @if($supportAccess ?? false)<input type="hidden" name="support_access" value="1">@endif
-            @endif
-            <select name="driver_id" required>
+        <form method="post" action="{{ route($driverRoute,['order'=>$row['_id']]) }}" class="links module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
+            @csrf @method('PATCH')
+            <input type="hidden" name="assignee_type" value="driver">
+            <input type="hidden" name="reason" value="workspace_driver_assignment">
+            <select name="assignee_id" required>
                 <option value="">{{ app()->getLocale()==='ar'?'تعيين سائق':'Assign driver' }}</option>
                 @foreach($moduleData['drivers'] as $driver)
                     @if($isB2bOrder || $driver['store_id']===$row['_store_id'])
@@ -105,13 +72,11 @@
         @else
         <div style="display:grid;gap:7px;padding:9px;border:1px solid var(--foodex-border);border-radius:10px;background:#fbfcfd">
             <strong>{{ app()->getLocale()==='ar'?'السائق الحالي':'Current driver' }}: {{ $row['driver'] }} · {{ $stateLabels[$row['assignment_status']] ?? $row['assignment_status'] }}</strong>
-            <form method="post" action="{{ route($driverReassignRoute,['order'=>$row['_id']]) }}" class="links module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
+            <form method="post" action="{{ route($driverRoute,['order'=>$row['_id']]) }}" class="links module-inline-form" style="margin:0;padding:0;border:0;background:transparent">
                 @csrf @method('PATCH')
-                @if(!$isB2bOrder)
-                    <input type="hidden" name="store_id" value="{{ $storeId }}">
-                    @if($supportAccess ?? false)<input type="hidden" name="support_access" value="1">@endif
-                @endif
-                <select name="driver_id" required>
+                <input type="hidden" name="assignee_type" value="driver">
+                <input type="hidden" name="reason" value="workspace_driver_reassignment">
+                <select name="assignee_id" required>
                     <option value="">{{ app()->getLocale()==='ar'?'إعادة تعيين إلى سائق':'Reassign to driver' }}</option>
                     @foreach($moduleData['drivers'] as $driver)
                         @if(($isB2bOrder || $driver['store_id']===$row['_store_id']) && $driver['id']!==($row['_driver_id'] ?? null))
