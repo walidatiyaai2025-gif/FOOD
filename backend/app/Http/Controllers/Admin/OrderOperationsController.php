@@ -25,6 +25,7 @@ use App\Services\DriverDeliveryEvidenceService;
 use App\Services\OperationalLookupService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
+use App\Services\InvoiceService;
 use App\Services\OrderLifecycleNotificationService;
 use App\Services\OrderManualDispatchService;
 use App\Services\OrderOperationsRowContext;
@@ -1342,6 +1343,80 @@ final class OrderOperationsController extends Controller
             'Ready B2B orders move to out for delivery only after Driver or Van assignment.',
         );
 
+        if ((string) $model->status === 'confirmed' && $targetStatus === 'pending') {
+            $fresh = DB::transaction(function () use ($model, $actor, $audit, $request): Order {
+                $locked = Order::query()
+                    ->whereKey($model->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                abort_unless(
+                    (string) $locked->status === 'confirmed',
+                    409,
+                    'Only a confirmed order can be returned to pending.',
+                );
+
+                $hasActiveDriver = DriverAssignment::query()
+                    ->where('order_id', $locked->getKey())
+                    ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+                    ->lockForUpdate()
+                    ->exists();
+                $hasActiveVan = OrderVanAssignment::query()
+                    ->where('order_id', $locked->getKey())
+                    ->whereNull('ended_at')
+                    ->whereNotIn('status', ['cancelled', 'delivered', 'failed', 'reassigned', 'unassigned'])
+                    ->lockForUpdate()
+                    ->exists();
+                $hasActiveDispatch = OrderDispatchState::query()
+                    ->where('order_id', $locked->getKey())
+                    ->where('status', 'assigned')
+                    ->whereNotNull('current_assignee_id')
+                    ->lockForUpdate()
+                    ->exists();
+
+                abort_if(
+                    $hasActiveDriver || $hasActiveVan || $hasActiveDispatch,
+                    409,
+                    'A dispatched order cannot be returned to pending.',
+                );
+
+                app(InvoiceService::class)->voidForOrder(
+                    $locked,
+                    $actor,
+                    'status_reverted_to_pending',
+                );
+
+                $locked->forceFill(['status' => 'pending'])->save();
+
+                OrderStatusHistory::query()->create([
+                    'order_id' => $locked->getKey(),
+                    'store_id' => (int) $locked->store_id,
+                    'user_id' => $actor->getKey(),
+                    'from_status' => 'confirmed',
+                    'to_status' => 'pending',
+                    'note' => 'dashboard_reverted_to_pending',
+                ]);
+
+                $audit->record(
+                    'order.status_changed',
+                    $actor,
+                    $locked,
+                    ['status' => 'confirmed'],
+                    ['status' => 'pending', 'note' => 'dashboard_reverted_to_pending'],
+                    $request,
+                );
+
+                return $locked->fresh();
+            }, 3);
+
+            $notifier->orderStatusChanged($fresh, 'confirmed', 'pending');
+
+            return back()->with('status', $this->msg(
+                'تم إعادة الطلب إلى قيد الانتظار.',
+                'Order returned to pending.',
+            ));
+        }
+
         $request->merge(['store_id' => (int) $model->store_id]);
 
         $orders->transition($request, $order, $audit, $notifier);
@@ -2273,6 +2348,17 @@ final class OrderOperationsController extends Controller
                 $availableStatuses,
                 static fn (string $candidate): bool => $candidate === 'cancelled',
             ));
+        } elseif (
+            $status === 'confirmed'
+            && ! (
+                $dispatch instanceof OrderDispatchState
+                && (string) $dispatch->status === 'assigned'
+                && $dispatch->current_assignee_id !== null
+            )
+            && in_array('pending', $activeStatusCodes, true)
+        ) {
+            $availableStatuses[] = 'pending';
+            $availableStatuses = array_values(array_unique($availableStatuses));
         }
 
         $displayStatus = $this->orderOperationsDisplayStatus(
