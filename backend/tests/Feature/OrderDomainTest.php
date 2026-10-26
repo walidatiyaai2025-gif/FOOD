@@ -576,6 +576,25 @@ class OrderDomainTest extends TestCase
         ]);
     }
 
+    public function test_new_orders_cannot_enter_confirmed_preparing_or_ready_manually(): void
+    {
+        $admin = $this->makeGlobalRoleUser('SUPER_ADMIN', 'removed-order-stages@example.test');
+
+        foreach (['confirmed', 'preparing', 'ready'] as $removedStatus) {
+            $order = $this->makeOrder($this->b2cCustomer, $this->b2cStoreId, 'b2c');
+
+            Sanctum::actingAs($admin);
+            $this->postJson("/api/v1/orders/{$order->id}/status", [
+                'status' => $removedStatus,
+            ])->assertConflict();
+
+            $this->assertDatabaseHas('orders', [
+                'id' => $order->id,
+                'status' => 'pending',
+            ]);
+        }
+    }
+
     public function test_b2b_ready_cannot_be_manually_moved_out_for_delivery_without_dispatch_assignment(): void
     {
         $order = $this->makeOrder($this->b2bCustomer, $this->b2bStoreId, 'b2b', 'ready');
@@ -779,26 +798,28 @@ class OrderDomainTest extends TestCase
         Sanctum::actingAs($storeAdmin);
 
         $this->postJson("/api/v1/orders/{$b2cOrder->id}/status", [
-            'status' => 'confirmed',
+            'status' => 'cancelled',
         ])->assertOk();
 
         $this->postJson("/api/v1/orders/{$otherB2cOrder->id}/status", [
-            'status' => 'confirmed',
+            'status' => 'cancelled',
         ])->assertForbidden();
 
         $this->postJson("/api/v1/orders/{$b2bOrder->id}/status", [
-            'status' => 'confirmed',
+            'status' => 'cancelled',
+            'note' => 'Not authorized for this wholesale order',
         ])->assertForbidden();
 
         $b2bAdmin = $this->makeGlobalRoleUser('B2B_ADMIN', 'b2b-admin-order@example.test');
         Sanctum::actingAs($b2bAdmin);
 
         $this->postJson("/api/v1/orders/{$b2bOrder->id}/status", [
-            'status' => 'confirmed',
+            'status' => 'cancelled',
+            'note' => 'Cancelled by wholesale operations',
         ])->assertOk();
 
         $this->postJson("/api/v1/orders/{$otherB2cOrder->id}/status", [
-            'status' => 'confirmed',
+            'status' => 'cancelled',
         ])->assertForbidden();
     }
 
