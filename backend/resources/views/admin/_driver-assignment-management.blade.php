@@ -8,7 +8,7 @@
         @foreach($moduleData['drivers'] as $driver)
             <button
                 type="button"
-                class="btn"
+                class="btn foodex-driver-premium-btn foodex-driver-premium-secondary"
                 data-driver-orders-open
                 data-url="{{ route('admin.drivers.orders',['driver'=>$driver['id'],'channel'=>$channel,'store_id'=>$driver['store_id'] ?? null]) }}"
             >{{ $driver['name'] }}</button>
@@ -69,14 +69,14 @@
                 @endphp
                 <tr>
                     <td><strong>{{ $assignment['order'] }}</strong></td>
-                    <td><button type="button" class="btn" data-driver-orders-open data-url="{{ route('admin.drivers.orders',['driver'=>$assignment['driver_id'],'channel'=>$channel,'store_id'=>$assignment['store_id']]) }}">{{ $assignment['driver'] }}</button></td>
+                    <td><button type="button" class="btn foodex-driver-premium-btn foodex-driver-premium-secondary" data-driver-orders-open data-url="{{ route('admin.drivers.orders',['driver'=>$assignment['driver_id'],'channel'=>$channel,'store_id'=>$assignment['store_id']]) }}">{{ $assignment['driver'] }}</button></td>
                     <td><span class="badge {{ $assignmentStatusClass }}">{{ $assignmentStatusLabel }}</span></td>
                     <td>{{ $assignment['assigned_at'] }}</td>
                     <td style="min-width:210px">
                         @if(!empty($assignment['proof']))
                             @if(!empty($assignment['proof']['file_path']) && !empty($assignment['proof']['id']))
                                 <a
-                                    class="btn"
+                                    class="btn foodex-driver-premium-btn foodex-driver-premium-secondary"
                                     href="{{ route('admin.driver-live-tracking.proofs.show', ['assignment' => $assignment['id'], 'proof' => $assignment['proof']['id']]) }}"
                                     target="_blank"
                                     rel="noopener"
@@ -118,7 +118,7 @@
                                         @endif
                                     @endforeach
                                 </select>
-                                <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إعادة تعيين':'Reassign' }}</button>
+                                <button class="foodex-primary foodex-driver-premium-btn" type="submit">{{ app()->getLocale()==='ar'?'إعادة تعيين':'Reassign' }}</button>
                             </form>
                             <form method="post" action="{{ route($unassignRoute,['order'=>$assignment['order_id']]) }}" style="margin:0" onsubmit="return confirm('{{ app()->getLocale()==='ar'?'سحب الطلب من السائق الحالي؟':'Unassign this order from the current driver?' }}')">
                                 @csrf @method('DELETE')
@@ -127,7 +127,7 @@
                                     @if($supportAccess ?? false)<input type="hidden" name="support_access" value="1">@endif
                                 @endif
                                 <input type="hidden" name="reason" value="manual_unassign">
-                                <button class="danger btn" type="submit">{{ app()->getLocale()==='ar'?'سحب الطلب':'Unassign' }}</button>
+                                <button class="danger btn foodex-driver-premium-btn" type="submit">{{ app()->getLocale()==='ar'?'سحب الطلب':'Unassign' }}</button>
                             </form>
                         </div>
                         @else
@@ -147,7 +147,7 @@
 <dialog id="driver-orders-dialog-{{ $channel }}" data-driver-orders-dialog style="width:min(980px,94vw);max-height:88vh;border:0;border-radius:16px;padding:0;box-shadow:0 24px 60px rgba(15,23,42,.22)">
     <div style="padding:14px 16px;border-bottom:1px solid var(--foodex-border);display:flex;justify-content:space-between;align-items:center;gap:12px">
         <strong>{{ app()->getLocale()==='ar'?'طلبات السائق':'Driver orders' }}</strong>
-        <button type="button" class="btn" data-driver-orders-close aria-label="{{ app()->getLocale()==='ar'?'إغلاق':'Close' }}">×</button>
+        <button type="button" class="btn foodex-driver-premium-btn foodex-driver-premium-secondary" data-driver-orders-close aria-label="{{ app()->getLocale()==='ar'?'إغلاق':'Close' }}">×</button>
     </div>
     <div data-driver-orders-body style="padding:16px;max-height:calc(88vh - 64px);overflow:auto"></div>
 </dialog>
