@@ -190,27 +190,65 @@ final class OrderOperationsController extends Controller
             $this->salesDashboard->applyExceptionFilter($orderQuery, $selectedException);
         }
 
+        $dashboardVisible = ! (
+            isset($data['order_number'])
+            || isset($data['status'])
+            || isset($data['driver_id'])
+            || isset($data['dispatch_status'])
+            || isset($data['exception'])
+            || isset($data['order'])
+        );
+
         $statusBaseQuery = clone $orderQuery;
-        $actionRequiredCount = (clone $statusBaseQuery)
-            ->whereNotIn('status', ['delivered', 'completed', 'cancelled'])
-            ->whereExists(function ($dispatch): void {
-                $dispatch->selectRaw('1')
-                    ->from('order_dispatch_states')
-                    ->whereColumn('order_dispatch_states.order_id', 'orders.id')
-                    ->where('order_dispatch_states.status', 'awaiting_dispatch');
-            })
-            ->count();
+        $summaryLoader = function () use ($statusBaseQuery): array {
+            $actionRequiredCount = (clone $statusBaseQuery)
+                ->whereNotIn('status', ['delivered', 'completed', 'cancelled'])
+                ->whereExists(function ($dispatch): void {
+                    $dispatch->selectRaw('1')
+                        ->from('order_dispatch_states')
+                        ->whereColumn('order_dispatch_states.order_id', 'orders.id')
+                        ->where('order_dispatch_states.status', 'awaiting_dispatch');
+                })
+                ->count();
+
+            $statusCounts = (clone $statusBaseQuery)
+                ->selectRaw('status, COUNT(*) as aggregate')
+                ->groupBy('status')
+                ->pluck('aggregate', 'status')
+                ->map(static fn ($count): int => (int) $count)
+                ->all();
+
+            return [
+                'action_required_count' => $actionRequiredCount,
+                'status_counts' => $statusCounts,
+            ];
+        };
+
+        if ($dashboardVisible && ! app()->environment('testing')) {
+            $normalizedSummaryScopes = [
+                'b2b' => array_values(array_unique(array_map('intval', $scopes['b2b']))),
+                'b2c' => array_values(array_unique(array_map('intval', $scopes['b2c']))),
+            ];
+            sort($normalizedSummaryScopes['b2b']);
+            sort($normalizedSummaryScopes['b2c']);
+            $summaryCacheKey = 'admin.order-operations.summary.v2.'.sha1(json_encode([
+                'scopes' => $normalizedSummaryScopes,
+                'store_id' => $selectedStoreId,
+                'from' => $data['from'] ?? null,
+                'to' => $data['to'] ?? null,
+            ], JSON_THROW_ON_ERROR));
+
+            $summary = Cache::remember($summaryCacheKey, now()->addSeconds(10), $summaryLoader);
+        } else {
+            $summary = $summaryLoader();
+        }
+
+        $actionRequiredCount = (int) $summary['action_required_count'];
+        $statusCounts = (array) $summary['status_counts'];
 
         if ($selectedActionRequired && ! $actionRequiredExplicit && $actionRequiredCount === 0) {
             $selectedActionRequired = false;
         }
-
-        $statusCounts = (clone $statusBaseQuery)
-            ->selectRaw('status, COUNT(*) as aggregate')
-            ->groupBy('status')
-            ->pluck('aggregate', 'status')
-            ->map(static fn ($count): int => (int) $count)
-            ->all();
 
         if ($selectedActionRequired) {
             $orderQuery
@@ -313,14 +351,6 @@ final class OrderOperationsController extends Controller
             ->distinct()
             ->get(['vans.id', 'vans.code', 'vans.plate_number']);
 
-        $dashboardVisible = ! (
-            isset($data['order_number'])
-            || isset($data['status'])
-            || isset($data['driver_id'])
-            || isset($data['dispatch_status'])
-            || isset($data['exception'])
-            || isset($data['order'])
-        );
         $dashboard = null;
         if ($dashboardVisible) {
             $dashboardLoader = fn (): array => $this->salesDashboard->build(
@@ -2062,25 +2092,6 @@ final class OrderOperationsController extends Controller
             $deliveredAt[(int) $history->order_id] = $history->created_at;
         }
 
-        $settlementRows = [];
-        foreach ($orders as $order) {
-            if (strtolower((string) $order->channel) !== 'b2b' || $order->b2b_customer_id === null) {
-                continue;
-            }
-
-            $orderId = (int) $order->getKey();
-            $invoice = $invoices[$orderId] ?? null;
-            $settlementRows[] = [
-                'order_id' => $orderId,
-                'customer_id' => (int) $order->b2b_customer_id,
-                'store_id' => (int) $order->store_id,
-                'invoice_id' => $invoice?->id === null ? null : (int) $invoice->id,
-                'invoice_status' => $invoice?->status === null ? null : (string) $invoice->status,
-                'invoice_total' => $invoice?->total === null ? null : (float) $invoice->total,
-                'payment_method' => is_string($order->payment_method) ? $order->payment_method : null,
-            ];
-        }
-
         return new OrderOperationsRowContext(
             assignments: $assignments,
             drivers: $drivers,
@@ -2095,7 +2106,7 @@ final class OrderOperationsController extends Controller
             issuedInvoiceOrders: $issuedInvoiceOrders,
             stores: $stores,
             sources: $sources,
-            settlements: $this->accountLedger->orderRowSettlements($settlementRows),
+            settlements: [],
             deliveredAt: $deliveredAt,
         );
     }
@@ -2227,38 +2238,6 @@ final class OrderOperationsController extends Controller
             && ($payment->status ?? null) !== 'paid'
             && $hasIssuedInvoice === false;
 
-        $settlement = $context?->settlements[$orderId] ?? null;
-        if ($context === null && $channel === 'b2b' && $order->b2b_customer_id !== null) {
-            $customer = B2bCustomer::query()->find((int) $order->b2b_customer_id);
-            if (
-                $customer instanceof B2bCustomer
-                && DB::table('b2b_accounts')
-                    ->where('b2b_customer_id', $customer->getKey())
-                    ->where('status', 'active')
-                    ->exists()
-            ) {
-                $finance = $this->accountLedger->summary($customer, (int) $order->store_id);
-                $invoiceOutstanding = null;
-                if ($invoice !== null && in_array((string) $invoice->status, ['issued', 'reissued'], true)) {
-                    $invoiceModel = Invoice::query()->find((int) $invoice->id);
-                    if ($invoiceModel instanceof Invoice) {
-                        $amounts = $this->accountLedger->invoiceAmounts($invoiceModel);
-                        $invoiceOutstanding = (float) $amounts['outstanding_amount'];
-                    }
-                }
-
-                $settlement = [
-                    'currency' => (string) ($finance['currency'] ?? $order->currency),
-                    'customer_credit_balance' => (float) ($finance['customer_credit_balance'] ?? 0),
-                    'aggregate_outstanding' => (float) ($finance['outstanding_receivable'] ?? 0),
-                    'credit_limit' => (float) ($finance['credit_limit'] ?? 0),
-                    'available_credit_line' => (float) ($finance['available_credit_line'] ?? 0),
-                    'invoice_outstanding' => $invoiceOutstanding,
-                    'remainder_method' => is_string($order->payment_method) ? $order->payment_method : null,
-                ];
-            }
-        }
-
         $store = $context === null
             ? DB::table('stores')->where('id', $order->store_id)->first(['id', 'name', 'code'])
             : ($context->stores[(int) $order->store_id] ?? null);
@@ -2337,7 +2316,6 @@ final class OrderOperationsController extends Controller
             'invoice_total' => $invoice?->total === null ? null : (float) $invoice->total,
             'invoice_currency' => $invoice?->currency,
             'can_view_invoice' => $canViewInvoice,
-            'settlement' => $settlement,
             'can_manage' => $canManage,
             'can_edit' => $canEdit,
             'customer_service_owner_id' => $customerServiceOwner?->id === null ? null : (int) $customerServiceOwner->id,
