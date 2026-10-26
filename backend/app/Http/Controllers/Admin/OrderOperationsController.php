@@ -493,7 +493,7 @@ final class OrderOperationsController extends Controller
             'selectedStoreId' => $selectedStoreId,
             'selectedChannel' => $operationalChannel,
             'availableChannels' => $availableChannels,
-            'newOrderWizard' => $this->newOrderWizard($actor),
+            'newOrderWizard' => $this->newOrderWizard($actor, $operationalChannel),
             'canAssignCustomerService' => $canAssignCustomerService,
             'customerServiceAgents' => $customerServiceAgents,
             'isAr' => app()->getLocale() === 'ar',
@@ -764,33 +764,37 @@ final class OrderOperationsController extends Controller
     }
 
     /** @return array{channels:list<array<string,mixed>>,payment_methods:list<array{code:string,label:string}>} */
-    private function newOrderWizard(User $actor): array
+    private function newOrderWizard(User $actor, string $channel): array
     {
+        abort_unless(in_array($channel, ['b2b', 'b2c'], true), 404);
+
         $channels = [];
-        $principalStoreId = app(WholesalePrincipal::class)->storeId();
-        $b2bStoreIds = array_values(array_filter(
-            $this->orderCreateStoreIds($actor, 'b2b'),
-            static fn (int $storeId): bool => $storeId === $principalStoreId,
-        ));
+        if ($channel === 'b2b') {
+            $principalStoreId = app(WholesalePrincipal::class)->storeId();
+            $b2bStoreIds = array_values(array_filter(
+                $this->orderCreateStoreIds($actor, 'b2b'),
+                static fn (int $storeId): bool => $storeId === $principalStoreId,
+            ));
 
-        if ($b2bStoreIds !== []) {
-            $channels[] = [
-                'code' => 'b2b',
-                'label' => $this->msg('الجملة', 'Wholesale'),
-                'stores' => [$this->newOrderStoreData('b2b', $principalStoreId)],
-            ];
-        }
-
-        $b2cStoreIds = $this->orderCreateStoreIds($actor, 'b2c');
-        if ($b2cStoreIds !== []) {
-            $channels[] = [
-                'code' => 'b2c',
-                'label' => $this->msg('التجزئة', 'Retail'),
-                'stores' => array_map(
-                    fn (int $storeId): array => $this->newOrderStoreData('b2c', $storeId),
-                    $b2cStoreIds,
-                ),
-            ];
+            if ($b2bStoreIds !== []) {
+                $channels[] = [
+                    'code' => 'b2b',
+                    'label' => $this->msg('الجملة', 'Wholesale'),
+                    'stores' => [$this->newOrderStoreData('b2b', $principalStoreId)],
+                ];
+            }
+        } else {
+            $b2cStoreIds = $this->orderCreateStoreIds($actor, 'b2c');
+            if ($b2cStoreIds !== []) {
+                $channels[] = [
+                    'code' => 'b2c',
+                    'label' => $this->msg('التجزئة', 'Retail'),
+                    'stores' => array_map(
+                        fn (int $storeId): array => $this->newOrderStoreData('b2c', $storeId),
+                        $b2cStoreIds,
+                    ),
+                ];
+            }
         }
 
         $configuredPaymentMethods = array_values(array_unique(array_map(
@@ -824,6 +828,7 @@ final class OrderOperationsController extends Controller
 
         return [
             'channels' => $channels,
+            'fixed_channel' => $channel,
             'payment_methods' => $paymentMethods,
         ];
     }
@@ -882,6 +887,7 @@ final class OrderOperationsController extends Controller
             'page' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'customer_id' => ['nullable', 'integer', 'min:1'],
             'selected_id' => ['nullable', 'integer', 'min:1'],
+            'warehouse_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $type = (string) $data['type'];
@@ -891,7 +897,14 @@ final class OrderOperationsController extends Controller
 
         $result = match ($type) {
             'customer' => $this->newOrderCustomerLookup($channel, $storeId, $query, $page, $selectedId),
-            'product' => $this->newOrderProductLookup($channel, $storeId, $query, $page, $selectedId),
+            'product' => $this->newOrderProductLookup(
+                $channel,
+                $storeId,
+                $query,
+                $page,
+                $selectedId,
+                isset($data['warehouse_id']) ? (int) $data['warehouse_id'] : null,
+            ),
             'address' => $this->newOrderAddressLookup(
                 $channel,
                 $storeId,
@@ -1011,16 +1024,33 @@ final class OrderOperationsController extends Controller
         string $query,
         int $page,
         ?int $selectedId = null,
+        ?int $warehouseId = null,
     ): array {
         $limit = 20;
         $offset = ($page - 1) * $limit;
         $needle = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $query).'%';
+
+        $availableStock = DB::table('inventories')
+            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+            ->where('warehouses.store_id', $storeId)
+            ->where('warehouses.is_active', true)
+            ->when(
+                $channel === 'b2b' && $warehouseId !== null,
+                fn ($scope) => $scope->where('warehouses.id', $warehouseId),
+            )
+            ->groupBy('inventories.product_id')
+            ->select('inventories.product_id')
+            ->selectRaw('SUM(inventories.quantity - inventories.reserved_quantity) as available_quantity')
+            ->havingRaw('SUM(inventories.quantity - inventories.reserved_quantity) > 0');
 
         $builder = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->join('store_products', function ($join): void {
                 $join->on('store_products.product_id', '=', 'products.id')
                     ->on('store_products.store_id', '=', 'catalogs.store_id');
+            })
+            ->joinSub($availableStock, 'available_stock', function ($join): void {
+                $join->on('available_stock.product_id', '=', 'products.id');
             })
             ->where('catalogs.store_id', $storeId)
             ->where('catalogs.channel', $channel)
@@ -1057,6 +1087,7 @@ final class OrderOperationsController extends Controller
                 'catalogs.is_active as catalog_active',
                 'store_products.is_active as store_product_active',
                 'store_products.price',
+                'available_stock.available_quantity',
             ]);
 
         $hasMore = $builder->count() > $limit;
@@ -1064,12 +1095,16 @@ final class OrderOperationsController extends Controller
             $sku = trim((string) $row->sku);
             $barcode = trim((string) ($row->barcode ?? ''));
             $meta = array_values(array_filter([$sku, $barcode], static fn (string $value): bool => $value !== ''));
+            $availableQuantity = max(0, (float) ($row->available_quantity ?? 0));
+            $meta[] = (app()->getLocale() === 'ar' ? 'المتاح' : 'Available').': '
+                .rtrim(rtrim(number_format($availableQuantity, 3, '.', ''), '0'), '.');
 
             return [
                 'id' => (int) $row->id,
                 'label' => (string) $row->name,
                 'meta' => implode(' · ', $meta),
                 'price' => $row->price === null ? null : (float) $row->price,
+                'available_quantity' => $availableQuantity,
                 'active' => (bool) $row->product_active && (bool) $row->catalog_active && (bool) $row->store_product_active,
             ];
         })->values()->all();
@@ -1740,7 +1775,7 @@ final class OrderOperationsController extends Controller
     private function listRowContext(array $orders): OrderOperationsRowContext
     {
         if ($orders === []) {
-            return new OrderOperationsRowContext([], [], [], [], [], [], [], [], [], [], [], [], [], []);
+            return new OrderOperationsRowContext([], [], [], [], [], [], [], [], [], [], [], [], [], [], []);
         }
 
         $orderIds = array_map(
@@ -1980,6 +2015,23 @@ final class OrderOperationsController extends Controller
                 : ($history->note === 'checkout' ? 'customer_checkout' : 'legacy');
         }
 
+        $deliveredAt = [];
+        foreach (
+            DB::table('order_status_history')
+                ->whereIn('order_id', $orderIds)
+                ->where('to_status', 'delivered')
+                ->whereIn('id', function ($query) use ($orderIds): void {
+                    $query->selectRaw('MAX(id)')
+                        ->from('order_status_history')
+                        ->whereIn('order_id', $orderIds)
+                        ->where('to_status', 'delivered')
+                        ->groupBy('order_id');
+                })
+                ->get(['order_id', 'created_at']) as $history
+        ) {
+            $deliveredAt[(int) $history->order_id] = $history->created_at;
+        }
+
         $settlementRows = [];
         foreach ($orders as $order) {
             if (strtolower((string) $order->channel) !== 'b2b' || $order->b2b_customer_id === null) {
@@ -2014,6 +2066,7 @@ final class OrderOperationsController extends Controller
             stores: $stores,
             sources: $sources,
             settlements: $this->accountLedger->orderRowSettlements($settlementRows),
+            deliveredAt: $deliveredAt,
         );
     }
 
@@ -2197,6 +2250,15 @@ final class OrderOperationsController extends Controller
         }
 
         $status = (string) $order->status;
+        $deliveredAt = $status === 'delivered'
+            ? ($context === null
+                ? DB::table('order_status_history')
+                    ->where('order_id', $orderId)
+                    ->where('to_status', 'delivered')
+                    ->latest('id')
+                    ->value('created_at')
+                : ($context->deliveredAt[$orderId] ?? null))
+            : null;
         $hasActiveDriver = $assignment instanceof DriverAssignment;
         $availableStatuses = array_values(array_filter(
             OrderController::allowedTransitions($status),
@@ -2244,6 +2306,7 @@ final class OrderOperationsController extends Controller
             'currency' => (string) $order->currency,
             'created_at' => $order->created_at,
             'updated_at' => $order->updated_at,
+            'delivered_at' => $deliveredAt,
             'payment_status' => $payment?->status,
             'payment_provider' => $payment?->provider,
             'payment_amount' => $payment?->amount === null ? null : (float) $payment->amount,
