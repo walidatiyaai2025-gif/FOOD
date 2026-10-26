@@ -249,6 +249,11 @@ final class B2BVanFulfillmentCutoverService
 
     private function reconcileB2B(B2BVanCutoverRun $run, Order $order, ?User $actor, Carbon $moment): void
     {
+        $dispatch = OrderDispatchState::query()
+            ->where('order_id', $order->getKey())
+            ->lockForUpdate()
+            ->first();
+
         $activeDrivers = DriverAssignment::query()
             ->where('order_id', $order->getKey())
             ->whereNotIn('status', self::TERMINAL_DRIVER_STATUSES)
@@ -256,7 +261,25 @@ final class B2BVanFulfillmentCutoverService
             ->lockForUpdate()
             ->get();
 
+        $manualDriverId = $dispatch instanceof OrderDispatchState
+            && $dispatch->status === 'assigned'
+            && $dispatch->current_assignee_type === FulfillmentActorPolicy::DRIVER
+            && $dispatch->current_assignee_id !== null
+            && $dispatch->routing_reason === 'customer_service_driver_assignment'
+                ? (int) $dispatch->current_assignee_id
+                : null;
+        $preserveManualDriver = $manualDriverId !== null
+            && $activeDrivers->contains(
+                fn (DriverAssignment $assignment): bool =>
+                    (int) $assignment->driver_id === $manualDriverId
+                    && strtolower((string) $assignment->assignment_type) === 'b2b',
+            );
+
         foreach ($activeDrivers as $assignment) {
+            if ($preserveManualDriver && (int) $assignment->driver_id === $manualDriverId) {
+                continue;
+            }
+
             $before = $assignment->toArray();
             $assignment->forceFill([
                 'status' => 'reassigned',
@@ -272,10 +295,9 @@ final class B2BVanFulfillmentCutoverService
             );
         }
 
-        $dispatch = OrderDispatchState::query()
-            ->where('order_id', $order->getKey())
-            ->lockForUpdate()
-            ->first();
+        if ($preserveManualDriver) {
+            return;
+        }
 
         if ($dispatch instanceof OrderDispatchState && $dispatch->current_assignee_type === FulfillmentActorPolicy::DRIVER) {
             $before = $dispatch->toArray();
