@@ -824,7 +824,7 @@ class _DriverPendingCard extends StatelessWidget {
                     color: FoodexBrand.red,
                     borderRadius: BorderRadius.circular(compact ? 10 : 14),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.notifications_active_rounded,
                     color: Colors.white,
                     size: ultraCompact ? 16 : compact ? 18 : 21,
@@ -836,7 +836,7 @@ class _DriverPendingCard extends StatelessWidget {
                     label,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: FoodexBrand.dangerText,
                       fontSize: ultraCompact ? 10 : compact ? 11 : 13,
                       fontWeight: FontWeight.w900,
@@ -869,7 +869,7 @@ class _DriverPendingCard extends StatelessWidget {
                     child: Text(
                       value.toString(),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: ultraCompact ? 14 : compact ? 16 : 19,
                         fontWeight: FontWeight.w900,
@@ -938,7 +938,7 @@ class _DriverStatusCard extends StatelessWidget {
                     label,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: ultraCompact ? 9 : compact ? 10 : 11,
                       fontWeight: FontWeight.w800,
                     ),
@@ -954,7 +954,7 @@ class _DriverStatusCard extends StatelessWidget {
                 else
                   Text(
                     value.toString(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: ultraCompact ? 14 : compact ? 16 : 19,
                       fontWeight: FontWeight.w900,
                     ),
