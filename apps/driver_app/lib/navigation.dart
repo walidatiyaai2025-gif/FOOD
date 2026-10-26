@@ -237,7 +237,6 @@ class _DriverHomePageState extends State<_DriverHomePage>
 
   static const _statuses = [
     ('accepted', Icons.verified_rounded),
-    ('picked_up', Icons.inventory_2_rounded),
     ('out_for_delivery', Icons.local_shipping_rounded),
     ('failed', Icons.report_problem_rounded),
     ('delivered', Icons.task_alt_rounded),
