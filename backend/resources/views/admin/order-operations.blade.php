@@ -42,7 +42,7 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .ops-table thead th{position:sticky;top:0;z-index:3;padding:9px 10px;background:var(--foodex-palette-f8fafc);color:var(--foodex-palette-64748b);font-size:.64rem;font-weight:900;border:0!important;white-space:nowrap}
 .ops-table tbody td{padding:10px;vertical-align:middle;line-height:1.32;border:0!important;background:var(--foodex-surface);transition:background .16s ease}
 .ops-table tbody tr:hover td{background:var(--foodex-palette-f9fbfa)}
-.ops-table th:nth-child(1){width:7.5%}.ops-table th:nth-child(2){width:12.75%}.ops-table th:nth-child(3){width:7.5%}.ops-table th:nth-child(4){width:14.5%}.ops-table th:nth-child(5){width:27%}.ops-table th:nth-child(6){width:23.75%}.ops-table th:nth-child(7){width:7%}.ops-table th:nth-child(3),.ops-table td:nth-child(3){padding-inline:5px}
+.ops-table th:nth-child(1){width:8%}.ops-table th:nth-child(2){width:14%}.ops-table th:nth-child(3){width:8%}.ops-table th:nth-child(4){width:16%}.ops-table th:nth-child(5){width:29%}.ops-table th:nth-child(6){width:25%}.ops-table th:nth-child(3),.ops-table td:nth-child(3){padding-inline:5px}
 .order-grid-row{--order-row-accent:var(--foodex-palette-cbd5e1)}
 .order-grid-row>td:first-child{border-inline-start:0!important}
 .order-grid-row.is-action-required{--order-row-accent:var(--foodex-palette-f59e0b)}
@@ -402,7 +402,6 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <th>{{ __('order_operations.columns.status') }}</th>
 <th>{{ $isAr ? 'التنفيذ والتوجيه' : 'Execution & routing' }}</th>
 <th>{{ __('order_operations.customer_service_owner.column') }}</th>
-<th>{{ __('order_operations.columns.actions') }}</th>
 </tr></thead><tbody>
 @if(count($rows))
 @foreach($rows as $row)
@@ -587,156 +586,10 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         @endif
     </div>
 </td>
-<td class="order-grid-actions">
-<details class="row-actions" data-order-row-actions>
-<summary aria-label="{{ __('order_operations.order_actions') }}">⋮</summary>
-<div class="row-action-menu">
-@if($row['can_edit'])
-<a data-order-edit href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id'],'edit'=>1])) }}">{{ $isAr ? 'تعديل الطلب' : 'Edit order' }}</a>
-@endif
-@if($row['channel']==='b2c' && $row['driver_id'] && $row['can_manage'])
-<form method="post" action="{{ route('admin.operations.orders.remind',$row['id']) }}" data-order-remind-driver>@csrf
-<button type="submit">{{ $isAr ? 'تذكير السائق' : 'Remind driver' }}</button>
-</form>
-@endif
-
-@if(!$rowDelivered && $canAssignCustomerService && $row['can_manage'])
-<form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" data-order-customer-service-owner>@csrf @method('PATCH')
-<label style="display:grid;gap:4px">
-<span>{{ __('order_operations.customer_service_owner.assign_follow_up') }}</span>
-<select name="assigned_user_id">
-<option value="">{{ __('order_operations.customer_service_owner.remove_owner') }}</option>
-@foreach($customerServiceAgents as $agent)
-<option value="{{ $agent->id }}" @selected((int)($row['customer_service_owner_id'] ?? 0)===(int)$agent->id)>{{ $agent->name }} · {{ $agent->roles->first()?->code==='CUSTOMER_SERVICE_SUPERVISOR' ? __('order_operations.customer_service_owner.supervisor') : __('order_operations.customer_service_owner.agent') }}</option>
-@endforeach
-</select>
-</label>
-<input name="reason" maxlength="500" placeholder="{{ __('order_operations.customer_service_owner.reason_placeholder') }}">
-<button class="foodex-primary" type="submit">{{ __('order_operations.customer_service_owner.save') }}</button>
-</form>
-@endif
-
-@if($row['channel']==='b2b' && $row['status']==='pending' && $row['can_manage'])
-<div data-b2b-customer-service-approval style="display:grid;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--foodex-border)">
-<strong>{{ $isAr ? 'قرار خدمة العملاء' : 'Customer Service approval' }}</strong>
-<form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
-<input type="hidden" name="status" value="confirmed">
-<input type="hidden" name="note" value="customer_service_approved">
-<button class="foodex-primary" type="submit">{{ $isAr ? 'اعتماد الطلب' : 'Approve order' }}</button>
-</form>
-<form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
-<input type="hidden" name="status" value="cancelled">
-<input name="note" maxlength="1000" required placeholder="{{ $isAr ? 'سبب الرفض (إلزامي)' : 'Rejection reason (required)' }}">
-<button class="danger btn" type="submit">{{ $isAr ? 'رفض الطلب' : 'Reject order' }}</button>
-</form>
-</div>
-@endif
-
-@if($row['channel']==='b2b' && $row['settlement'])
-@php
-    $settlement=$row['settlement'];
-@endphp
-<div data-b2b-settlement-review style="display:grid;gap:5px;margin-top:8px;padding:9px;border-top:1px solid var(--foodex-border)">
-<strong>{{ $isAr ? 'مراجعة التسوية المالية' : 'Financial settlement review' }}</strong>
-<div>{{ $isAr ? 'رصيد العميل المتاح' : 'Customer credit balance' }}: <strong>{{ number_format((float)$settlement['customer_credit_balance'],3) }} {{ $settlement['currency'] }}</strong></div>
-<div>{{ $isAr ? 'إجمالي المديونية الحالية' : 'Aggregate outstanding' }}: <strong>{{ number_format((float)$settlement['aggregate_outstanding'],3) }} {{ $settlement['currency'] }}</strong></div>
-<div>{{ $isAr ? 'حد الائتمان' : 'Credit limit' }}: <strong>{{ number_format((float)$settlement['credit_limit'],3) }} {{ $settlement['currency'] }}</strong></div>
-<div>{{ $isAr ? 'الحد المتاح' : 'Available credit line' }}: <strong>{{ number_format((float)$settlement['available_credit_line'],3) }} {{ $settlement['currency'] }}</strong></div>
-@if($settlement['invoice_outstanding']!==null)
-<div>{{ $isAr ? 'المتبقي على الفاتورة' : 'Invoice outstanding' }}: <strong>{{ number_format((float)$settlement['invoice_outstanding'],3) }} {{ $settlement['currency'] }}</strong></div>
-@endif
-</div>
-@endif
-
-@if($row['can_dispatch'])
-<div data-order-dispatch-workspace>
-@if($row['dispatch_status']==='awaiting_dispatch')
-<div class="dispatch-warning" data-order-dispatch-status>{{ __('order_operations.dispatch.warning') }}</div>
-@endif
-@if($rowWithDriver)
-<form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver data-order-driver-transfer>@csrf @method('PATCH')
-<input type="hidden" name="assignee_type" value="driver">
-<select name="assignee_id" required aria-label="{{ $isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver' }}">
-<option value="">{{ $isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver' }}</option>
-@foreach($drivers as $driver)
-@if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)===$row['channel'] && (int)$driver->id!==$rowCurrentDriverId)
-<option value="{{ $driver->id }}">{{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
-@endif
-@endforeach
-</select>
-<input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
-<button class="foodex-primary">{{ $isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw & transfer to another driver' }}</button>
-</form>
-@elseif($row['channel']==='b2c')
-<form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver>@csrf @method('PATCH')
-<input type="hidden" name="assignee_type" value="driver">
-<select name="assignee_id" required aria-label="{{ __('order_operations.dispatch.choose_driver') }}">
-<option value="">{{ __('order_operations.dispatch.choose_driver') }}</option>
-@foreach($drivers as $driver)
-@if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)===$row['channel'])
-<option value="{{ $driver->id }}">{{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
-@endif
-@endforeach
-</select>
-<input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
-<button class="foodex-primary">{{ $row['dispatch_status']==='assigned' ? __('order_operations.dispatch.reassign') : __('order_operations.dispatch.assign') }} · {{ __('order_operations.dispatch.driver') }}</button>
-</form>
-@elseif($row['channel']==='b2b')
-<form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver>@csrf @method('PATCH')
-<input type="hidden" name="assignee_type" value="driver">
-<select name="assignee_id" required aria-label="{{ __('order_operations.dispatch.choose_driver') }}">
-<option value="">{{ __('order_operations.dispatch.choose_driver') }}</option>
-@foreach($drivers as $driver)
-@if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)==='b2b')
-<option value="{{ $driver->id }}">{{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
-@endif
-@endforeach
-</select>
-<input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
-<button class="foodex-primary">{{ $row['dispatch_status']==='assigned' ? __('order_operations.dispatch.reassign') : __('order_operations.dispatch.assign') }} · {{ __('order_operations.dispatch.driver') }}</button>
-</form>
-<form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-van>@csrf @method('PATCH')
-<input type="hidden" name="assignee_type" value="van">
-<select name="assignee_id" required aria-label="{{ __('order_operations.dispatch.choose_van') }}">
-<option value="">{{ __('order_operations.dispatch.choose_van') }}</option>
-@foreach($vans as $van)
-<option value="{{ $van->id }}">{{ $van->code }}{{ $van->plate_number ? ' · '.$van->plate_number : '' }}</option>
-@endforeach
-</select>
-<input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
-<button class="foodex-primary">{{ $row['dispatch_status']==='assigned' ? __('order_operations.dispatch.reassign') : __('order_operations.dispatch.assign') }} · {{ __('order_operations.dispatch.van') }}</button>
-</form>
-@endif
-@if($row['dispatch_status']==='assigned' && !$rowWithDriver)
-<form method="post" action="{{ route('admin.operations.orders.dispatch.clear',$row['id']) }}" data-order-dispatch-clear>@csrf @method('DELETE')
-<input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
-<button type="submit">{{ __('order_operations.dispatch.unassign') }}</button>
-</form>
-@endif
-@endif
-</div>
-@if($row['can_manage'] && !($row['channel']==='b2b' && $row['status']==='pending'))
-@if(count($row['available_statuses']))
-<form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
-<select name="status" required aria-label="{{ __('order_operations.next_status') }}">
-<option value="">{{ $rowWithDriver ? ($isAr ? 'إلغاء الطلب' : 'Cancel order') : __('order_operations.choose_next_status') }}</option>
-@foreach($row['available_statuses'] as $status)
-<option value="{{ $status['code'] }}">{{ $status['label'] }}</option>
-@endforeach
-</select>
-<button class="foodex-primary">{{ __('order_operations.update_status') }}</button>
-</form>
-@else
-<span class="badge foodex-status-badge {{ $row['status'] }}" data-state="{{ strtolower((string) $row['status']) }}">{{ __('order_operations.terminal') }}</span>
-@endif
-@endif
-</div>
-</details>
-</td>
 </tr>
 @endforeach
 @else
-<tr><td colspan="7"><div class="foodex-empty-state">{{ __('order_operations.empty') }}</div></td></tr>
+<tr><td colspan="6"><div class="foodex-empty-state">{{ __('order_operations.empty') }}</div></td></tr>
 @endif
 </tbody></table>
 </section>
