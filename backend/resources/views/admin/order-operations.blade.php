@@ -60,7 +60,7 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-status-chip[data-state="out_for_delivery"],.order-status-chip[data-state="on_the_way"],.order-status-chip[data-state="assigned"]{--status-bg:var(--foodex-palette-eef2ff);--status-fg:var(--foodex-palette-4338ca);--status-border:var(--foodex-palette-a5b4fc)}
 .order-status-chip[data-state="b2b_out_for_delivery"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}
 .order-status-chip[data-state="driver_delivery"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}
-.order-ready-dispatch-alert{display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:0 9px;border:1px solid var(--foodex-palette-fda4af);border-radius:999px;background:var(--foodex-palette-fff1f2);color:var(--foodex-palette-be123c);font-size:.6rem;font-weight:900;white-space:nowrap;animation:orderReadyDispatchPulse 1s ease-in-out infinite}
+.order-assignment-required-alert{display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:0 9px;border:1px solid var(--foodex-palette-fda4af);border-radius:999px;background:var(--foodex-palette-fff1f2);color:var(--foodex-palette-be123c);font-size:.6rem;font-weight:900;white-space:nowrap;animation:orderReadyDispatchPulse 1s ease-in-out infinite}
 @keyframes orderReadyDispatchPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(190,18,60,.12)}50%{opacity:.38;box-shadow:0 0 0 4px rgba(190,18,60,.08)}}
 .order-status-chip[data-state="delivered"],.order-status-chip[data-state="completed"],.order-status-chip[data-state="paid"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}
 .order-status-chip[data-state="cancelled"],.order-status-chip[data-state="failed"],.order-status-chip[data-state="delivery_failed"]{--status-bg:var(--foodex-palette-fff1f2);--status-fg:var(--foodex-palette-be123c);--status-border:var(--foodex-palette-fda4af)}
@@ -427,7 +427,9 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     $rowCurrentDriverId = (int)($row['driver_id'] ?? 0);
 @endphp
 @php
-    $rowNeedsB2bDispatch = $row['channel']==='b2b' && $rowStatusState==='ready' && empty($row['dispatch_assignee_id']);
+    $rowNeedsB2bDispatch = $row['channel']==='b2b'
+        && in_array($rowStatusState, ['pending','confirmed','preparing','ready'], true)
+        && empty($row['dispatch_assignee_id']);
 @endphp
 @php
     $rowStatusVisualState = $row['status_visual_state'] ?? $rowStatusState;
@@ -477,7 +479,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
             <span class="order-status-chip" data-state="{{ $rowStatusVisualState }}">{{ $row['status_label'] }}</span>
             @if($rowNeedsB2bDispatch)
-                <span class="order-ready-dispatch-alert" data-b2b-assignment-required-alert>{{ $isAr ? 'برجاء تعيين سائق' : 'Please assign a driver' }}</span>
+                <span class="order-assignment-required-alert" data-b2b-assignment-required-alert>{{ $isAr ? 'برجاء تعيين سائق أو فان' : 'Please assign a Driver or Van' }}</span>
             @endif
         </div>
         @if($rowDelivered)
@@ -550,9 +552,6 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
                 <button type="submit" data-order-inline-picker-submit aria-label="{{ $rowWithDriver ? ($isAr ? 'سحب وتحويل الطلب' : 'Withdraw and transfer order') : ($isAr ? 'حفظ التوجيه' : 'Save dispatch') }}" title="{{ $rowWithDriver ? ($isAr ? 'سحب وتحويل الطلب' : 'Withdraw and transfer order') : ($isAr ? 'حفظ التوجيه' : 'Save dispatch') }}" disabled>✓</button>
                 <input class="order-inline-picker-reason" name="reason" maxlength="500" data-order-inline-picker-reason hidden placeholder="{{ __('order_operations.dispatch.reason_required') }}">
             </form>
-            @if($row['dispatch_locked_until_confirmation'] ?? false)
-                <small class="order-dispatch-lock-hint">{{ $isAr ? 'متاح بعد تأكيد الطلب' : 'Available after order confirmation' }}</small>
-            @endif
             @if(($row['dispatch_status'] ?? '')==='assigned' && !empty($row['dispatch_assignee_id']) && ($row['can_dispatch'] ?? false))
                 <form method="post" action="{{ route('admin.operations.orders.dispatch.clear',$row['id']) }}" class="order-inline-unassign" data-order-inline-unassign>
                     @csrf @method('DELETE')
