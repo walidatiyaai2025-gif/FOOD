@@ -509,9 +509,9 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
                 </select>
                 <button class="order-inline-status-submit" type="submit" aria-label="{{ __('order_operations.update_status') }}" title="{{ __('order_operations.update_status') }}">✓</button>
                 @if($row['channel']==='b2b' && $row['status']==='pending')
-                    <label class="order-inline-reason-wrap" data-order-inline-rejection-reason hidden>
+                    <label class="order-inline-reason-wrap" data-order-inline-cancellation-reason hidden>
                         <span>{{ $isAr ? 'السبب' : 'Reason' }}</span>
-                        <input class="order-inline-status-note" name="note" maxlength="1000" data-order-inline-rejection-note placeholder="{{ $isAr ? 'سبب الرفض (إلزامي عند الرفض)' : 'Rejection reason (required when rejecting)' }}">
+                        <input class="order-inline-status-note" name="note" maxlength="1000" data-order-inline-cancellation-note placeholder="{{ $isAr ? 'سبب الإلغاء (إلزامي عند الإلغاء)' : 'Cancellation reason (required when cancelling)' }}">
                     </label>
                 @endif
             </form>
@@ -1002,14 +1002,14 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <script>
 document.querySelectorAll('[data-order-inline-status]').forEach(function(form){
     var select=form.querySelector('[data-order-inline-status-select]');
-    var note=form.querySelector('[data-order-inline-rejection-note]');
-    var reasonWrap=form.querySelector('[data-order-inline-rejection-reason]');
+    var note=form.querySelector('[data-order-inline-cancellation-note]');
+    var reasonWrap=form.querySelector('[data-order-inline-cancellation-reason]');
     if(!select||!note){return;}
     var sync=function(){
-        var rejecting=select.value==='cancelled';
-        if(reasonWrap){reasonWrap.hidden=!rejecting;}
-        note.required=rejecting;
-        if(!rejecting){note.value='';}
+        var cancelling=select.value==='cancelled';
+        if(reasonWrap){reasonWrap.hidden=!cancelling;}
+        note.required=cancelling;
+        if(!cancelling){note.value='';}
     };
     select.addEventListener('change',sync);
     sync();
