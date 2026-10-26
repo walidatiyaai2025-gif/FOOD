@@ -203,7 +203,7 @@ void main() {
   });
 
   testWidgets(
-      'driver home shows five status cards and opens failed deliveries exactly',
+      'driver home shows four status cards and opens failed deliveries exactly',
       (tester) async {
     final repo = _StatusRepo();
     await tester.pumpWidget(
@@ -230,6 +230,7 @@ void main() {
     final pendingDecoration = pendingContainer.decoration! as BoxDecoration;
     expect(pendingDecoration.border, isNotNull);
     expect(find.text('مقبول · 1'), findsOneWidget);
+    expect(find.text('تم الاستلام · 1'), findsNothing);
     expect(find.text('قناة العمل'), findsNothing);
 
     final statusGrid = find.byKey(const Key('driver-home-status-grid'));
@@ -237,7 +238,7 @@ void main() {
     expect(
         find.byKey(const Key('driver-home-status-accepted')), findsOneWidget);
     expect(
-        find.byKey(const Key('driver-home-status-picked_up')), findsOneWidget);
+        find.byKey(const Key('driver-home-status-picked_up')), findsNothing);
     expect(find.byKey(const Key('driver-home-status-out_for_delivery')),
         findsOneWidget);
     expect(find.byKey(const Key('driver-home-status-failed')), findsOneWidget);
