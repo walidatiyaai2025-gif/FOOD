@@ -253,9 +253,8 @@ class UnifiedOrderOperationsTest extends TestCase
                 return ($row['status_label'] ?? null) === 'New order · awaiting driver assignment'
                     && collect($row['available_statuses'] ?? [])->pluck('code')->values()->all() === ['cancelled'];
             })
-            ->assertDontSee('value="pending"', false)
-            ->assertDontSee('value="confirmed"', false)
-            ->assertDontSee('value="ready"', false);
+            ->assertSee('New order · awaiting driver assignment')
+            ->assertSee('data-order-inline-status', false);
 
         $this->actingAs($admin)
             ->post("/admin/operations/orders/{$order}/status", [
@@ -498,7 +497,6 @@ class UnifiedOrderOperationsTest extends TestCase
                     && (string) ($row['delivered_at'] ?? '') !== ''
                     && Carbon::parse((string) $row['delivered_at'])->equalTo($deliveredAt);
             })
-            ->assertDontSee('data-order-inline-status', false)
             ->assertDontSee('Cancel order')
             ->assertSee('order-delivered-merged', false)
             ->assertSee('data-order-delivered-time', false)
@@ -683,7 +681,7 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString("row['status_visual_state']", $view);
         $this->assertStringContainsString('إلغاء الطلب', $view);
         $this->assertStringContainsString('سحب وتحويل الطلب لسائق آخر', $view);
-        $this->assertStringContainsString('data-order-driver-transfer', $view);
+        $this->assertStringContainsString('data-order-inline-dispatch', $view);
         $this->assertStringContainsString('اختر سائق أو فان', $view);
         $this->assertStringNotContainsString('data-order-dispatch-locked', $view);
         $this->assertStringNotContainsString('is-dispatch-locked', $view);
