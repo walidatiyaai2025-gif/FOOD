@@ -327,7 +327,7 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
             'driver_id' => $b2bDriver->id,
             'order_id' => $b2bOrder->id,
         ])->assertConflict()
-            ->assertSee('B2B orders are fulfilled by Van runtime.');
+            ->assertSee('B2B Driver assignment is available only through authorized manual Order Operations dispatch.');
 
         $this->assertDatabaseMissing('driver_assignments', [
             'driver_id' => $b2bDriver->id,
@@ -336,7 +336,8 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
 
         Sanctum::actingAs($b2bDriverUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments')
-            ->assertForbidden();
+            ->assertConflict()
+            ->assertSee('Wholesale drivers must belong to the principal Wholesale store.');
     }
 
     private function transition(int $assignmentId, string $status, string $key)
