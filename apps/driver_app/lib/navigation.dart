@@ -702,7 +702,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
             final horizontalPadding = ultraCompact ? 8.0 : 12.0;
             final columns = compact ? 3 : 2;
             final chartHeight =
-                ultraCompact ? 86.0 : compact ? 100.0 : 112.0;
+                ultraCompact ? 96.0 : compact ? 118.0 : 160.0;
             final pendingHeight =
                 ultraCompact ? 38.0 : compact ? 42.0 : 46.0;
             final statusCardHeight =
@@ -883,12 +883,12 @@ class _DriverWorkloadChart extends StatelessWidget {
     } else if (total == 0) {
       body = Text(context.tr('driver.home.analytics.empty'));
     } else {
-      final chartSize = ultraCompact ? 68.0 : compact ? 84.0 : 104.0;
+      final chartSize = ultraCompact ? 50.0 : compact ? 60.0 : 70.0;
       final chart = FoodexDonutChart(
         values: [for (final item in statuses) item.value.toDouble()],
         semanticLabel: semanticLabel,
         size: chartSize,
-        strokeWidth: ultraCompact ? 11 : compact ? 13 : 16,
+        strokeWidth: ultraCompact ? 8 : compact ? 10 : 12,
       );
       final legend = FoodexChartLegend(labels: labels);
 
