@@ -26,13 +26,14 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('setView([29.3759,47.9774]', $customer360);
     }
 
-    public function test_order_management_uses_compact_ellipsis_row_actions(): void
+    public function test_order_management_uses_inline_and_popup_actions_without_actions_column(): void
     {
         $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
 
         $this->assertIsString($view);
-        $this->assertStringContainsString('data-order-row-actions', $view);
-        $this->assertStringContainsString('>⋮</summary>', $view);
+        $this->assertStringNotContainsString('data-order-row-actions', $view);
+        $this->assertStringNotContainsString('<td class="order-grid-actions">', $view);
+        $this->assertStringNotContainsString("<th>{{ __('order_operations.columns.actions') }}</th>", $view);
         $this->assertStringContainsString("__('order_operations.view_order')", $view);
         $this->assertStringContainsString('<dialog class="order-detail-drawer foodex-record-drawer" open', $view);
         $this->assertStringContainsString('order-detail-drawer-shell foodex-record-drawer-shell', $view);
@@ -238,7 +239,7 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('<select name="store_id">', $filters);
         $this->assertStringNotContainsString("__('order_operations.columns.store')", $view);
         $this->assertStringNotContainsString("__('order_operations.columns.channel')", $view);
-        $this->assertStringContainsString('__(\'order_operations.columns.actions\')', $view);
+        $this->assertStringNotContainsString("<th>{{ __('order_operations.columns.actions') }}</th>", $view);
         $this->assertStringNotContainsString('$isAr?\'إدارة الطلبات\':\'Order Management\'', $view);
         $this->assertStringNotContainsString('$isAr?\'إجراءات الطلب\':\'Order actions\'', $view);
     }
@@ -265,7 +266,8 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('.ops-table{width:100%;min-width:0;table-layout:fixed', $view);
         $this->assertStringContainsString('@media(max-width:1500px) and (min-width:1001px)', $view);
         $this->assertStringContainsString('.table-wrap{overflow:visible', $view);
-        $this->assertStringContainsString('colspan="7"', $view);
+        $this->assertStringContainsString('colspan="6"', $view);
+        $this->assertStringNotContainsString('colspan="7"', $view);
         $this->assertStringNotContainsString('<th>{{ __(\'order_operations.columns.store\') }}</th>', $view);
         $this->assertStringNotContainsString('<th>{{ __(\'order_operations.columns.channel\') }}</th>', $view);
     }
