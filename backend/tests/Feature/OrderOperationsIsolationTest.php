@@ -559,6 +559,7 @@ class OrderOperationsIsolationTest extends TestCase
             'locale' => 'en',
             'is_active' => true,
         ]);
+        $driverUser->roles()->attach(Role::query()->where('code', 'B2B_DRIVER')->firstOrFail());
         $driver = (int) DB::table('drivers')->insertGetId([
             'user_id' => $driverUser->id,
             'store_id' => $store,
@@ -570,20 +571,19 @@ class OrderOperationsIsolationTest extends TestCase
         ]);
 
         $admin = User::query()->create([
-            'name' => 'Wholesale Admin Without Support Override',
+            'name' => 'Wholesale Dispatch Admin',
             'email' => 'ops-b2b-admin@example.test',
             'password' => 'password',
             'locale' => 'en',
             'is_active' => true,
         ]);
-        $adminRole = Role::query()->where('code', 'B2B_ADMIN')->firstOrFail();
-        $admin->roles()->attach($adminRole);
+        $admin->roles()->attach(Role::query()->where('code', 'B2B_ADMIN')->firstOrFail());
 
         $this->actingAs($admin)
             ->patch("/admin/operations/orders/{$order}/dispatch", [
                 'assignee_type' => 'driver',
                 'assignee_id' => $driver,
-                'reason' => 'Attempt without Customer Service override',
+                'reason' => 'Attempt before confirmation',
             ])
             ->assertStatus(409);
 
@@ -593,52 +593,62 @@ class OrderOperationsIsolationTest extends TestCase
             'status' => 'assigned',
         ]);
 
-        $super = User::query()->create([
-            'name' => 'Wholesale Customer Service Override',
-            'email' => 'ops-b2b-super@example.test',
-            'password' => 'password',
-            'locale' => 'en',
-            'is_active' => true,
+        DB::table('orders')->where('id', $order)->update([
+            'status' => 'ready',
+            'updated_at' => now(),
         ]);
-        $super->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
 
-        $this->actingAs($super)
+        $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2b')
             ->assertOk()
+            ->assertViewHas('rows', function (array $rows) use ($order): bool {
+                $row = collect($rows)->firstWhere('id', $order);
+
+                return is_array($row)
+                    && collect($row['available_statuses'] ?? [])->pluck('code')->values()->all() === ['cancelled'];
+            })
             ->assertSee('#'.$order)
-            ->assertSee('data-order-dispatch-locked', false)
-            ->assertSee('data-order-inline-dispatch', false)
-            ->assertDontSee('data-order-dispatch-workspace', false)
-            ->assertDontSee('data-order-dispatch-van', false)
-            ->assertDontSee('data-order-dispatch-driver', false);
+            ->assertSee('Please assign a driver')
+            ->assertSee('data-b2b-ready-dispatch-alert', false)
+            ->assertSee('value="driver:'.$driver.'"', false)
+            ->assertSee('data-order-dispatch-van', false);
 
-        $this->actingAs($super)
-            ->get('/admin/operations/orders?channel=b2b&order='.$order)
-            ->assertOk()
-            ->assertSee('data-b2b-van-operations', false)
-            ->assertSee('data-van-collection-timeline', false)
-            ->assertSee('No Van execution events are recorded for this order.')
-            ->assertSee('No Van collection is recorded for this order.');
-
-        $this->actingAs($super)
+        $this->actingAs($admin)
             ->patch("/admin/operations/orders/{$order}/dispatch", [
                 'assignee_type' => 'driver',
                 'assignee_id' => $driver,
-                'reason' => 'Approved by Customer Service',
+                'reason' => 'Ready wholesale Driver assignment',
             ])
-            ->assertStatus(409);
+            ->assertRedirect();
 
-        $this->assertDatabaseMissing('driver_assignments', [
+        $this->assertDatabaseHas('driver_assignments', [
             'order_id' => $order,
             'driver_id' => $driver,
+            'assignment_type' => 'b2b',
             'status' => 'assigned',
         ]);
-        $this->assertDatabaseMissing('order_dispatch_states', [
+        $this->assertDatabaseHas('order_dispatch_states', [
             'order_id' => $order,
             'status' => 'assigned',
             'current_assignee_type' => 'driver',
             'current_assignee_id' => $driver,
         ]);
+        $this->assertDatabaseHas('orders', [
+            'id' => $order,
+            'status' => 'out_for_delivery',
+        ]);
+        $this->assertDatabaseHas('order_status_history', [
+            'order_id' => $order,
+            'from_status' => 'ready',
+            'to_status' => 'out_for_delivery',
+            'note' => 'dispatch_assigned',
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2b')
+            ->assertOk()
+            ->assertSee('data-state="b2b_out_for_delivery"', false)
+            ->assertDontSee('data-b2b-ready-dispatch-alert', false);
     }
 
     public function test_order_detail_renders_driver_assignment_timestamps_without_500(): void
