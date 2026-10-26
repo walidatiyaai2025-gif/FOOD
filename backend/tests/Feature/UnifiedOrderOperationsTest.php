@@ -263,7 +263,7 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-b2b-ready-dispatch-alert', $view);
         $this->assertStringContainsString('order-ready-dispatch-alert', $view);
         $this->assertStringContainsString('b2b_out_for_delivery', $view);
-        $this->assertStringContainsString('driver_delivery', $view);
+        $this->assertStringContainsString("row['status_visual_state']", $view);
         $this->assertStringContainsString('إلغاء الطلب', $view);
         $this->assertStringContainsString('سحب وتحويل الطلب لسائق آخر', $view);
         $this->assertStringContainsString('data-order-driver-transfer', $view);
@@ -353,7 +353,11 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString("'awaiting_dispatch'", $controller);
         $this->assertStringContainsString("'actionRequiredCount' => \$actionRequiredCount", $controller);
         $this->assertStringContainsString("'selectedActionRequired' => \$selectedActionRequired", $controller);
-        $this->assertStringContainsString('الطلب مع السائق للتوصيل', $controller);
+        $this->assertStringContainsString('orderOperationsDisplayStatus(', $controller);
+        $this->assertStringContainsString("'status_visual_state' => \$displayStatus['state']", $controller);
+        $this->assertStringContainsString("lifecycle_labels.assigned_driver", $controller);
+        $this->assertStringContainsString("lifecycle_labels.driver_processing", $controller);
+        $this->assertStringContainsString("lifecycle_labels.completed", $controller);
         $this->assertStringContainsString("'has_active_driver' => \$hasActiveDriver", $controller);
         $this->assertStringContainsString('Orders already with a Driver can only be withdrawn and transferred to another Driver.', $controller);
         $this->assertStringContainsString("customerOrderChanged(\$model->fresh(), 'details_updated'", $controller);
