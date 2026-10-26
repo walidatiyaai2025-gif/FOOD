@@ -101,17 +101,26 @@ class DriverPushAlert {
     required this.title,
     required this.body,
     required this.open,
+    this.eventKeyOverride,
   });
 
   final String title;
   final String body;
   final DriverPushOpen open;
+  final String? eventKeyOverride;
 
   String get eventKey {
+    final explicit = eventKeyOverride?.trim();
+    if (explicit != null && explicit.isNotEmpty) return explicit;
+
     final assignmentId = open.assignmentId;
-    if (assignmentId != null) return 'assignment:$assignmentId';
+    if (assignmentId != null) {
+      return 'assignment:$assignmentId|$title|$body';
+    }
     final orderId = open.orderId;
-    if (orderId != null) return 'order:$orderId';
+    if (orderId != null) {
+      return 'order:$orderId|$title|$body';
+    }
     return 'message:$title|$body';
   }
 }
@@ -279,6 +288,7 @@ class DriverFirebasePushService implements DriverPushService {
             title: title,
             body: body,
             open: DriverFirebasePushService.openForData(message.data),
+            eventKeyOverride: message.data['event_key']?.toString(),
           ),
         );
       });
