@@ -197,7 +197,7 @@ class _DriverHomePage extends StatefulWidget {
 
 class _DriverHomePageState extends State<_DriverHomePage>
     with WidgetsBindingObserver {
-  static const _summaryRefreshInterval = Duration(seconds: 15);
+  static const _summaryRefreshInterval = Duration(seconds: 5);
 
   bool _loading = true;
   bool _loadFailed = false;
@@ -207,6 +207,10 @@ class _DriverHomePageState extends State<_DriverHomePage>
   int _lifecycleEpoch = 0;
   Timer? _summaryRefreshTimer;
   List<DriverAssignment> _assignments = const [];
+  final Set<int> _seenAssignmentIds = <int>{};
+  final List<DriverAssignment> _newAssignmentQueue = <DriverAssignment>[];
+  bool _assignmentSnapshotInitialized = false;
+  bool _newAssignmentPopupActive = false;
 
   static const _statuses = [
     ('accepted', Icons.verified_rounded),
@@ -275,22 +279,41 @@ class _DriverHomePageState extends State<_DriverHomePage>
       final rows = await widget.repository.list(widget.channel);
       if (!mounted || requestEpoch != _lifecycleEpoch) return;
       final preview = widget.previewContext;
+      final nextAssignments = rows
+          .where(
+            (row) =>
+                row.channel == widget.channel &&
+                (preview == null ||
+                    preview.allowsAssignment(
+                      assignmentChannel: row.channel,
+                      assignmentStoreId: row.storeId,
+                    )),
+          )
+          .toList(growable: false);
+
+      final newAssignments = _assignmentSnapshotInitialized
+          ? nextAssignments
+              .where(
+                (row) =>
+                    row.status == 'assigned' &&
+                    !_seenAssignmentIds.contains(row.id),
+              )
+              .toList(growable: false)
+          : const <DriverAssignment>[];
+
+      _seenAssignmentIds.addAll(nextAssignments.map((row) => row.id));
+      _assignmentSnapshotInitialized = true;
+
       setState(() {
-        _assignments = rows
-            .where(
-              (row) =>
-                  row.channel == widget.channel &&
-                  (preview == null ||
-                      preview.allowsAssignment(
-                        assignmentChannel: row.channel,
-                        assignmentStoreId: row.storeId,
-                      )),
-            )
-            .toList(growable: false);
+        _assignments = nextAssignments;
         _loading = false;
         _loadFailed = false;
         _showingStaleData = false;
       });
+
+      if (newAssignments.isNotEmpty && preview == null) {
+        _queueNewAssignments(newAssignments);
+      }
     } on DriverSessionExpiredException {
       widget.onSessionExpired?.call();
     } catch (_) {
@@ -311,6 +334,90 @@ class _DriverHomePageState extends State<_DriverHomePage>
         _refreshPending = false;
         unawaited(_loadSummary(showLoading: false));
       }
+    }
+  }
+
+  void _queueNewAssignments(List<DriverAssignment> assignments) {
+    if (!mounted || assignments.isEmpty) return;
+    _newAssignmentQueue.addAll(assignments);
+    unawaited(_showQueuedNewAssignments());
+  }
+
+  Future<void> _showQueuedNewAssignments() async {
+    if (_newAssignmentPopupActive || !mounted) return;
+    _newAssignmentPopupActive = true;
+
+    try {
+      while (mounted && _newAssignmentQueue.isNotEmpty) {
+        final assignment = _newAssignmentQueue.removeAt(0);
+        final openOrder = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            key: const Key('driver-new-order-popup'),
+            icon: const Icon(
+              Icons.notifications_active_rounded,
+              color: FoodexBrand.actionGreen,
+              size: 34,
+            ),
+            title: Text(context.tr('driver.home.new_order_title')),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  '\${context.tr('driver.notifications.order_identity')} \${assignment.reference}',
+                  key: const Key('driver-new-order-reference'),
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                if (assignment.customerName.trim().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('\${context.tr('driver.detail.customer')}: \${assignment.customerName.trim()}'),
+                ],
+                if (assignment.address.trim().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    '\${context.tr('driver.detail.address')}: \${assignment.address.trim()}',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+                if (assignment.grandTotal > 0) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    '\${context.tr('driver.detail.total')}: \${assignment.grandTotal.toStringAsFixed(2)} \${assignment.currency}',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                key: const Key('driver-new-order-dismiss'),
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(context.tr('driver.dismiss')),
+              ),
+              FilledButton.icon(
+                key: const Key('driver-new-order-open'),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                icon: const Icon(Icons.open_in_new_rounded),
+                label: Text(context.tr('driver.notifications.open')),
+              ),
+            ],
+          ),
+        );
+
+        if (openOrder == true && mounted) {
+          await Navigator.of(context).pushNamed(
+            widget.deliveriesRoute,
+            arguments: assignment.id,
+          );
+          if (mounted) {
+            await _loadSummary(showLoading: false);
+          }
+        }
+      }
+    } finally {
+      _newAssignmentPopupActive = false;
     }
   }
 
