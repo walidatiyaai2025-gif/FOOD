@@ -296,7 +296,7 @@ void main() {
 
     final rows = await repo.list(DriverChannel.b2b);
     expect(rows.single.channel, DriverChannel.b2b);
-    expect(rows.single.reference, '#119');
+    expect(rows.single.reference, 'B2B-119');
     await repo.transition(19, DriverChannel.b2b, 'accepted');
 
     expect(requests, [
