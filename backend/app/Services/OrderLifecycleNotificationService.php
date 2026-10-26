@@ -473,6 +473,44 @@ final class OrderLifecycleNotificationService
                 'delivery_status' => $to,
             ],
         );
+
+        $driverCopy = match ($to) {
+            'accepted' => [
+                'title_ar' => 'تم قبول الطلب '.DisplayNumber::reference($order->getKey()),
+                'title_en' => 'Order accepted '.DisplayNumber::reference($order->getKey()),
+                'body_ar' => 'تم تحديث حالة التوصيل إلى مقبول.',
+                'body_en' => 'Delivery status changed to accepted.',
+            ],
+            'picked_up' => [
+                'title_ar' => 'تم استلام الطلب للتوصيل '.DisplayNumber::reference($order->getKey()),
+                'title_en' => 'Order picked up '.DisplayNumber::reference($order->getKey()),
+                'body_ar' => 'تم تسجيل استلام الطلب وأصبح جاهزاً لبدء التوصيل.',
+                'body_en' => 'Pickup was recorded and the order is ready for delivery.',
+            ],
+            default => [
+                'title_ar' => 'تحديث حالة التوصيل '.DisplayNumber::reference($order->getKey()),
+                'title_en' => 'Delivery status update '.DisplayNumber::reference($order->getKey()),
+                'body_ar' => 'حالة التوصيل الآن: '.$to,
+                'body_en' => 'Delivery status is now: '.$to,
+            ],
+        };
+
+        $this->notifyDriverUser(
+            $order,
+            (int) $assignment->driver_id,
+            'delivery.status_changed',
+            'driver-'.$eventKey,
+            $driverCopy['title_ar'],
+            $driverCopy['title_en'],
+            $driverCopy['body_ar'],
+            $driverCopy['body_en'],
+            [
+                'assignment_id' => (int) $assignment->getKey(),
+                'driver_id' => (int) $assignment->driver_id,
+                'from_delivery_status' => $from,
+                'delivery_status' => $to,
+            ],
+        );
     }
 
     public function vanAssigned(
