@@ -18,7 +18,6 @@ import 'core/push/firebase_push_service.dart';
 import 'core/theme/foodex_theme.dart';
 import 'core/version/driver_version_policy_client.dart';
 import 'features/auth/driver_login.dart';
-import 'features/inspector/driver_inspector_panel.dart';
 import 'features/location/driver_location_gate.dart';
 import 'features/delivery/driver_assignment_contract.dart';
 import 'features/notifications/notification_feed.dart';
@@ -123,16 +122,12 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
   StreamSubscription<DriverPushAlert>? _pushAlertSubscription;
   final Set<String> _seenPushAlerts = <String>{};
   int? _lastPushAssignmentId;
-  bool _inspectorOpen = false;
-  String? _routeBeforeInspector;
   DriverLocationTrackingController? _locationTracking;
   bool _locationGateReady = false;
   bool _appInForeground = true;
   final DriverSessionStore _sessionStore = SecureDriverSessionStore();
   final DriverBiometricAuthenticator _biometricAuthenticator =
       LocalAuthDriverBiometricAuthenticator();
-
-  static const _appVersion = '1.0.113';
 
   String get _baseUrl => widget.apiBaseUrl ?? FoodexEnvironment.apiBaseUrl;
 
@@ -589,148 +584,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
         DriverTranslations(
           locale: widget.locale,
           overrides: _translations,
-          child: Builder(
-            builder: (translatedContext) => Stack(
-              fit: StackFit.expand,
-              children: [
-                child ?? const SizedBox.shrink(),
-                if (widget.showPersistentFooter)
-                  PositionedDirectional(
-                    start: 0,
-                    end: 0,
-                    bottom: 0,
-                    child: DecoratedBox(
-                      decoration: const BoxDecoration(
-                        color: FoodexBrand.surfaceMuted,
-                        border: Border(
-                          top: BorderSide(color: FoodexBrand.border),
-                        ),
-                      ),
-                      child: SafeArea(
-                        top: false,
-                        child: SizedBox(
-                          height: 38,
-                          child: Padding(
-                            padding: const EdgeInsetsDirectional.only(
-                              start: 12,
-                              end: 4,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    preview == null
-                                        ? '${translatedContext.tr('driver.version')} $_appVersion'
-                                        : _previewFooterLabel(
-                                            translatedContext,
-                                            preview,
-                                          ),
-                                    key: const Key('driver-app-version-footer'),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(translatedContext)
-                                        .textTheme
-                                        .labelSmall
-                                        ?.copyWith(
-                                          color: FoodexBrand.muted,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                  ),
-                                ),
-                                TextButton.icon(
-                                  key: const Key('driver-global-inspector'),
-                                  onPressed: () {
-                                    _routeBeforeInspector =
-                                        DriverRuntimeInspector
-                                                .instance.lastRoute ??
-                                            (_session == null
-                                                ? 'driver.login'
-                                                : widget.initialRoute);
-                                    DriverRuntimeInspector.instance
-                                        .recordNavigation('driver.inspector');
-                                    setState(() => _inspectorOpen = true);
-                                  },
-                                  icon: const Icon(
-                                    Icons.bug_report_outlined,
-                                    size: 16,
-                                  ),
-                                  label: Text(
-                                    translatedContext.tr(
-                                      'driver.inspector.open',
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                if (_session != null)
-                                  TextButton.icon(
-                                    key: const Key('driver-global-logout'),
-                                    onPressed: _logout,
-                                    icon: const Icon(
-                                      Icons.logout_rounded,
-                                      size: 16,
-                                    ),
-                                    label: Text(
-                                      translatedContext.tr('driver.logout'),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                if (!widget.showPersistentFooter)
-                  PositionedDirectional(
-                    end: 8,
-                    bottom: 8,
-                    child: SafeArea(
-                      top: false,
-                      child: Semantics(
-                        button: true,
-                        label: translatedContext.tr('driver.inspector.open'),
-                        child: IconButton.filledTonal(
-                          key: const Key('driver-floating-inspector'),
-                          onPressed: () {
-                            _routeBeforeInspector =
-                                DriverRuntimeInspector.instance.lastRoute ??
-                                    (_session == null
-                                        ? 'driver.login'
-                                        : widget.initialRoute);
-                            DriverRuntimeInspector.instance.recordNavigation(
-                              'driver.inspector',
-                            );
-                            setState(() => _inspectorOpen = true);
-                          },
-                          icon: const Icon(Icons.bug_report_outlined),
-                        ),
-                      ),
-                    ),
-                  ),
-                if (_inspectorOpen)
-                  Positioned.fill(
-                    child: DriverInspectorPanel(
-                      authenticated: _session != null,
-                      onClose: () {
-                        final route = _routeBeforeInspector;
-                        if (route != null) {
-                          DriverRuntimeInspector.instance.recordNavigation(
-                            route,
-                          );
-                        }
-                        setState(() {
-                          _inspectorOpen = false;
-                          _routeBeforeInspector = null;
-                        });
-                      },
-                    ),
-                  ),
-              ],
-            ),
-          ),
+          child: child ?? const SizedBox.shrink(),
         ),
       ),
       home: preview != null || widget.versionPolicyClient == null
@@ -743,22 +597,6 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
     );
   }
 
-  String _previewFooterLabel(
-    BuildContext context,
-    DriverPreviewContext preview,
-  ) {
-    final parts = <String>[
-      context.tr('driver.preview.safe'),
-      'B2C',
-      '${context.tr('driver.preview.store')} ${preview.storeId}',
-      if (preview.configurationRevision?.isNotEmpty == true)
-        '${context.tr('driver.preview.revision')} ${preview.configurationRevision}',
-      if (preview.runtimeVersion?.isNotEmpty == true)
-        '${context.tr('driver.preview.runtime')} ${preview.runtimeVersion}',
-      '${context.tr('driver.version')} $_appVersion',
-    ];
-    return parts.join(' · ');
-  }
 }
 
 class _DriverPreviewConfigurationError extends StatelessWidget {
