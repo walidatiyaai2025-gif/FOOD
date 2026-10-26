@@ -166,6 +166,9 @@ class UnifiedOrderOperationsTest extends TestCase
             ->get('/admin/operations/orders?channel=b2c')
             ->assertOk()
             ->assertSee('#'.$order)
+            ->assertSee('data-order-inline-status', false)
+            ->assertSee('data-order-inline-status-select', false)
+            ->assertSee('value="confirmed"', false)
             ->assertSee('data-order-row-actions', false)
             ->assertSee('data-order-edit', false);
     }
@@ -204,6 +207,10 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('order-grid-row', $view);
         $this->assertStringContainsString('order-attention-chip', $view);
         $this->assertStringContainsString('order-status-chip', $view);
+        $this->assertStringContainsString('data-order-inline-status', $view);
+        $this->assertStringContainsString('data-order-inline-status-select', $view);
+        $this->assertStringContainsString('data-order-inline-rejection-note', $view);
+        $this->assertStringContainsString('.order-inline-status{display:grid;', $view);
         $this->assertStringContainsString('colspan="7"', $view);
         $this->assertStringContainsString('position:sticky;top:0', $view);
         $this->assertStringContainsString('data-action-required="{{ $rowActionRequired ? \'1\' : \'0\' }}"', $view);
