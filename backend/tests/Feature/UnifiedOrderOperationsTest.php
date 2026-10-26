@@ -8,6 +8,7 @@ use App\Services\B2cCustomerService;
 use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -351,12 +352,10 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertOk();
 
         $items = collect($lookup->json('data.items'));
-        $this->assertTrue($items->contains(fn (array $item): bool =>
-            (int) $item['id'] === $availableProduct
+        $this->assertTrue($items->contains(fn (array $item): bool => (int) $item['id'] === $availableProduct
             && (float) $item['available_quantity'] === 5.0
         ));
-        $this->assertFalse($items->contains(fn (array $item): bool =>
-            (int) $item['id'] === $outOfStockProduct
+        $this->assertFalse($items->contains(fn (array $item): bool => (int) $item['id'] === $outOfStockProduct
         ));
     }
 
@@ -385,8 +384,7 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2c')
             ->assertOk()
-            ->assertViewHas('rows', fn (array $rows): bool =>
-                collect($rows)->firstWhere('id', $order)['status_label']
+            ->assertViewHas('rows', fn (array $rows): bool => collect($rows)->firstWhere('id', $order)['status_label']
                     === 'Pending and awaiting confirmation'
             );
 
@@ -398,8 +396,7 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2c')
             ->assertOk()
-            ->assertViewHas('rows', fn (array $rows): bool =>
-                collect($rows)->firstWhere('id', $order)['status_label']
+            ->assertViewHas('rows', fn (array $rows): bool => collect($rows)->firstWhere('id', $order)['status_label']
                     === 'Confirmed and awaiting driver assignment'
             );
 
@@ -493,7 +490,7 @@ class UnifiedOrderOperationsTest extends TestCase
                 return ($row['status_label'] ?? null) === 'Order delivered to customer'
                     && ($row['status_visual_state'] ?? null) === 'completed'
                     && (string) ($row['delivered_at'] ?? '') !== ''
-                    && \Illuminate\Support\Carbon::parse((string) $row['delivered_at'])->equalTo($deliveredAt);
+                    && Carbon::parse((string) $row['delivered_at'])->equalTo($deliveredAt);
             })
             ->assertSee('order-delivered-merged', false)
             ->assertSee('data-order-delivered-time', false)
@@ -794,9 +791,9 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString("'selectedActionRequired' => \$selectedActionRequired", $controller);
         $this->assertStringContainsString('orderOperationsDisplayStatus(', $controller);
         $this->assertStringContainsString("'status_visual_state' => \$displayStatus['state']", $controller);
-        $this->assertStringContainsString("lifecycle_labels.assigned_driver", $controller);
-        $this->assertStringContainsString("lifecycle_labels.driver_processing", $controller);
-        $this->assertStringContainsString("lifecycle_labels.completed", $controller);
+        $this->assertStringContainsString('lifecycle_labels.assigned_driver', $controller);
+        $this->assertStringContainsString('lifecycle_labels.driver_processing', $controller);
+        $this->assertStringContainsString('lifecycle_labels.completed', $controller);
         $this->assertStringContainsString("targetStatus === 'pending'", $controller);
         $this->assertStringContainsString("'dashboard_reverted_to_pending'", $controller);
         $this->assertStringContainsString("havingRaw('SUM(inventories.quantity - inventories.reserved_quantity) > 0')", $controller);
