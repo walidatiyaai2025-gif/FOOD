@@ -111,7 +111,7 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('data-order-detail-action-section="dispatch"', $view);
         $this->assertStringContainsString('data-van-proof-link', $view);
         $this->assertStringNotContainsString('data-van-collection-timeline', $view);
-        $this->assertStringContainsString("__('order_operations.dispatch.warning')", $view);
+        $this->assertStringContainsString('data-b2b-assignment-required-alert', $view);
         $this->assertStringNotContainsString('name="assignee_id" type="number"', $view);
 
         $this->assertStringContainsString('OrderDispatchState::query()', $controller);
