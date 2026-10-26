@@ -1072,7 +1072,7 @@ class DriverAssignmentLifecycleTest extends TestCase
                 'driver_id' => $driver->id,
                 'order_id' => $order->id,
             ])->assertConflict()
-                ->assertSee('B2B orders are fulfilled by Van runtime.');
+                ->assertSee('B2B Driver assignment is available only through authorized manual Order Operations dispatch.');
 
             $this->assertDatabaseMissing('driver_assignments', [
                 'driver_id' => $driver->id,
@@ -1107,8 +1107,40 @@ class DriverAssignmentLifecycleTest extends TestCase
 
         Sanctum::actingAs($driverUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments')
-            ->assertForbidden()
-            ->assertSee('Retail (B2C) drivers');
+            ->assertConflict()
+            ->assertSee('Wholesale drivers must belong to the principal Wholesale store.');
+    }
+
+    public function test_b2b_driver_runtime_accepts_principal_wholesale_assignment(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$storeId, $order] = $this->order('b2b');
+        $order->forceFill(['status' => 'out_for_delivery'])->save();
+
+        $driverUser = $this->roleUser('B2B_DRIVER', 'principal-b2b-driver@example.test');
+        $driver = Driver::query()->create([
+            'user_id' => $driverUser->id,
+            'store_id' => $storeId,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+        $assignment = DriverAssignment::query()->create([
+            'driver_id' => $driver->id,
+            'order_id' => $order->id,
+            'store_id' => $storeId,
+            'assignment_type' => 'b2b',
+            'status' => 'assigned',
+            'assigned_at' => now(),
+        ]);
+
+        Sanctum::actingAs($driverUser, ['app:driver']);
+        $this->getJson('/api/v1/driver/assignments?scope=active')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $assignment->id)
+            ->assertJsonPath('data.0.assignment_type', 'b2b')
+            ->assertJsonPath('data.0.order.status', 'out_for_delivery');
     }
 
     public function test_cross_channel_assignment_and_execution_are_denied(): void
