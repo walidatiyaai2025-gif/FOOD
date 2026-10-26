@@ -22,7 +22,7 @@
 .store-accordion-summary-text{min-width:0}
 .store-accordion-chevron{width:34px;height:34px;border-radius:999px;display:grid;place-items:center;border:1px solid var(--foodex-border);background:#fff;color:var(--foodex-green-dark);font-size:18px;font-weight:900;transition:transform .18s ease}
 .store-accordion[open] .store-accordion-chevron{transform:rotate(180deg)}
-.store-accordion-body{padding:var(--foodex-space-5);display:grid;gap:var(--foodex-space-4);border-top:1px solid var(--foodex-border)}
+.store-accordion-body{padding:var(--foodex-space-5);display:grid;gap:var(--foodex-space-4);border-top:1px solid var(--foodex-border)}.store-page-accordion{margin-top:0}.store-page-accordion>.store-accordion-body{background:#fff}.store-page-accordion summary h2,.store-page-accordion summary p{margin:0}.store-page-accordion summary p{margin-top:5px;color:var(--foodex-muted);font-size:.82rem}
 .store-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.store-assignments{display:grid;gap:8px}
 .store-assignment{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-control);background:#fbfcfd;flex-wrap:wrap}
 .store-inline-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.store-search{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
@@ -68,14 +68,23 @@ $roleLabel = static function ($role): string {
         </div>
 
         <div class="store-shell">
-            @include('admin._store-channel-operations',['storeChannelDashboard'=>$storeChannelDashboard])
-            <section class="foodex-card store-panel store-create-launch">
-                <div>
-                    <h2>{{ $ar?'إضافة متجر جديد':'Add a new store' }}</h2>
-                    <p>{{ $ar?'أنشئ المتجر من خلال خطوات مرتبة ومراجعة نهائية قبل الحفظ. لا يتم إنشاء أي سجل قبل التأكيد النهائي.':'Create the store through ordered steps with a final review. Nothing is persisted before final confirmation.' }}</p>
+            <details class="foodex-card store-card store-accordion store-page-accordion" data-page-accordion="add-store" open>
+                <summary aria-label="{{ $ar?'فتح أو إغلاق إضافة متجر':'Expand or collapse Add Store' }}">
+                    <div class="store-accordion-summary-main">
+                        <div class="store-accordion-summary-text">
+                            <h2>{{ $ar?'إضافة متجر جديد':'Add a new store' }}</h2>
+                            <p>{{ $ar?'أنشئ المتجر من خلال خطوات مرتبة ومراجعة نهائية قبل الحفظ. لا يتم إنشاء أي سجل قبل التأكيد النهائي.':'Create the store through ordered steps with a final review. Nothing is persisted before final confirmation.' }}</p>
+                        </div>
+                    </div>
+                    <span class="store-accordion-chevron" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="store-accordion-body">
+                    <div class="store-create-launch">
+                        <span class="muted">{{ $ar?'ابدأ معالج إنشاء متجر جديد ومراجعته قبل الحفظ.':'Start the guided store creation flow and review it before saving.' }}</span>
+                        <button class="foodex-action-primary" type="button" data-open-store-wizard>＋ {{ $ar?'إضافة متجر':'Add Store' }}</button>
+                    </div>
                 </div>
-                <button class="foodex-action-primary" type="button" data-open-store-wizard>＋ {{ $ar?'إضافة متجر':'Add Store' }}</button>
-            </section>
+            </details>
 
             <div class="store-create-modal" data-store-create-modal hidden>
                 <div class="store-create-dialog" role="dialog" aria-modal="true" aria-labelledby="store-create-title">
@@ -246,18 +255,25 @@ $roleLabel = static function ($role): string {
                 </div>
             </div>
 
-            <section class="foodex-card store-panel">
-                <div class="store-head">
-                    <div><h2>{{ $ar?'متاجر التجزئة':'Retail Stores' }}</h2><p>{{ $ar?'تعديل البيانات الأساسية وإدارة الأدوار والدخول إلى سياق المتجر.':'Edit core details, manage roles and enter the store context.' }}</p></div>
-                    <form method="get" class="store-search">
+            @include('admin._store-channel-operations',['storeChannelDashboard'=>$storeChannelDashboard])
+            <details class="foodex-card store-card store-accordion store-page-accordion" data-page-accordion="stores">
+                <summary aria-label="{{ $ar?'فتح أو إغلاق قائمة المتاجر':'Expand or collapse store list' }}">
+                    <div class="store-accordion-summary-main">
+                        <div class="store-accordion-summary-text">
+                            <h2>{{ $ar?'متاجر التجزئة':'Retail Stores' }}</h2>
+                            <p>{{ $ar?'تعديل البيانات الأساسية وإدارة الأدوار والدخول إلى سياق المتجر.':'Edit core details, manage roles and enter the store context.' }}</p>
+                        </div>
+                    </div>
+                    <span class="store-accordion-chevron" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="store-accordion-body">
+                    <div class="store-card-top"><form method="get" class="store-search">
                         <label>{{ $ar?'بحث بالاسم أو الكود':'Search name or code' }}<input name="q" value="{{ $search }}" placeholder="{{ $ar?'اكتب اسم المتجر أو الكود':'Store name or code' }}"></label>
                         <button class="foodex-action-primary foodex-filter-action" type="submit">{{ $ar?'بحث':'Search' }}</button>
-                    </form>
-                </div>
-
-                @forelse($stores as $store)
+                    </form></div>
+@forelse($stores as $store)
                     @php($isRestaurantProfile = $store->business_profile === 'RESTAURANT')
-                    <details class="foodex-card store-card store-accordion" data-store-accordion="{{ $store->id }}" @if($loop->first) open="open" @endif>
+                    <details class="foodex-card store-card store-accordion" data-store-accordion="{{ $store->id }}">
                         <summary aria-label="{{ $ar?'فتح أو إغلاق بيانات المتجر':'Expand or collapse store details' }}">
                             <div class="store-accordion-summary-main">
                                 @if($store->logo_path)
@@ -383,7 +399,8 @@ $roleLabel = static function ($role): string {
                 @endforelse
 
                 {{ $stores->links() }}
-            </section>
+                </div>
+            </details>
         </div>
     </main>
 </div>
@@ -587,6 +604,16 @@ $roleLabel = static function ($role): string {
                 submit.setAttribute('aria-busy', 'true');
             }
         }, {once:true});
+    });
+
+    const pageAccordions = [...document.querySelectorAll('[data-page-accordion]')];
+    pageAccordions.forEach((accordion) => {
+        accordion.addEventListener('toggle', () => {
+            if (!accordion.open) return;
+            pageAccordions.forEach((other) => {
+                if (other !== accordion) other.open = false;
+            });
+        });
     });
 
     const accordions = [...document.querySelectorAll('[data-store-accordion]')];
