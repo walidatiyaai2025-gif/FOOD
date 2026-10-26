@@ -10,6 +10,12 @@ class _StatusRepo implements DriverAssignmentRepository {
   @override
   Future<List<DriverAssignment>> list(DriverChannel channel) async => const [
         DriverAssignment(
+          id: 0,
+          channel: DriverChannel.b2c,
+          reference: 'PENDING-1',
+          status: 'assigned',
+        ),
+        DriverAssignment(
           id: 1,
           channel: DriverChannel.b2c,
           reference: 'ACCEPTED-1',
@@ -53,6 +59,12 @@ class _StatusRepo implements DriverAssignmentRepository {
 
 class _LiveStatusRepo implements DriverAssignmentRepository {
   List<DriverAssignment> rows = const [
+    DriverAssignment(
+      id: 9,
+      channel: DriverChannel.b2c,
+      reference: 'LIVE-PENDING',
+      status: 'assigned',
+    ),
     DriverAssignment(
       id: 10,
       channel: DriverChannel.b2c,
@@ -204,8 +216,20 @@ void main() {
 
     expect(find.byKey(const Key('driver-home-driver-name')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-status-grid')), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-pending-orders')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-workload-chart')), findsOneWidget);
     expect(find.text('توزيع التوصيلات'), findsOneWidget);
+    expect(find.text('الطلبات المعلقة'), findsOneWidget);
+    final pendingCard = find.byKey(const Key('driver-home-pending-orders'));
+    expect(
+      find.descendant(of: pendingCard, matching: find.text('1')),
+      findsOneWidget,
+    );
+    final pendingContainer = tester.widget<Container>(
+      find.descendant(of: pendingCard, matching: find.byType(Container)).at(1),
+    );
+    final pendingDecoration = pendingContainer.decoration! as BoxDecoration;
+    expect(pendingDecoration.border, isNotNull);
     expect(find.text('مقبول · 1'), findsOneWidget);
     expect(find.text('قناة العمل'), findsNothing);
     expect(
@@ -253,6 +277,30 @@ void main() {
   });
 
   testWidgets(
+      'pending orders card opens assigned deliveries only',
+      (tester) async {
+    final repo = _StatusRepo();
+    await tester.pumpWidget(
+      FoodexDriverApp(
+        initialSession: session(DriverChannel.b2c),
+        assignmentRepositoryFactory: (_) => repo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final pendingCard = find.byKey(const Key('driver-home-pending-orders'));
+    expect(pendingCard, findsOneWidget);
+    await tester.tap(pendingCard);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-active-status-filter')), findsOneWidget);
+    expect(find.text('PENDING-1'), findsOneWidget);
+    expect(find.text('ACCEPTED-1'), findsNothing);
+    expect(find.text('OUT-1'), findsNothing);
+    expect(find.text('DONE-1'), findsNothing);
+  });
+
+  testWidgets(
       'home status cards refresh from server data without manual refresh',
       (tester) async {
     final repo = _LiveStatusRepo();
@@ -265,8 +313,13 @@ void main() {
     await tester.pumpAndSettle();
 
     final failedCard = find.byKey(const Key('driver-home-status-failed'));
+    final pendingCard = find.byKey(const Key('driver-home-pending-orders'));
     expect(
       find.descendant(of: failedCard, matching: find.text('0')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: pendingCard, matching: find.text('1')),
       findsOneWidget,
     );
 
@@ -292,6 +345,10 @@ void main() {
     expect(repo.listCalls, greaterThan(callsBeforePoll));
     expect(
       find.descendant(of: failedCard, matching: find.text('1')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: pendingCard, matching: find.text('0')),
       findsOneWidget,
     );
   });
