@@ -141,10 +141,12 @@ class DashboardOrderManagementTest extends TestCase
         $order = DB::table('orders')->where('store_id', $storeA)->where('channel', 'b2c')->first();
         $this->assertNotNull($order);
 
-        $this->actingAs($adminA)->post('/admin/b2c/orders/'.$order->id.'/status', [
-            'store_id' => $storeA,
-            'status' => 'confirmed',
-            'note' => 'Approved',
+        $driver = $this->driver($storeA, 'b2c', 'invoice-driver-a@example.test');
+
+        $this->actingAs($adminA)->patch('/admin/operations/orders/'.$order->id.'/dispatch', [
+            'assignee_type' => 'driver',
+            'assignee_id' => $driver,
+            'reason' => 'Start retail fulfillment',
         ])->assertRedirect();
 
         $invoice = DB::table('invoices')->where('order_id', $order->id)->where('status', 'issued')->first();
@@ -200,7 +202,7 @@ class DashboardOrderManagementTest extends TestCase
         $this->actingAs($adminA)->post('/admin/b2c/orders/'.$order->id.'/status', [
             'store_id' => $storeA,
             'status' => 'cancelled',
-            'note' => 'Customer cancelled after confirmation',
+            'note' => 'Customer cancelled after assignment',
         ])->assertRedirect();
 
         $this->assertDatabaseHas('invoices', [
@@ -532,9 +534,12 @@ class DashboardOrderManagementTest extends TestCase
         $this->assertNotNull($order);
         $this->assertSame(2, DB::table('order_items')->where('order_id', $order->id)->count());
 
-        $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
-            'status' => 'confirmed',
-            'note' => 'Confirm multi-line Wholesale order',
+        $driver = $this->driver($store, 'b2b', 'multi-b2b-driver@example.test');
+
+        $this->actingAs($admin)->patch('/admin/operations/orders/'.$order->id.'/dispatch', [
+            'assignee_type' => 'driver',
+            'assignee_id' => $driver,
+            'reason' => 'Start multi-line wholesale fulfillment',
         ])->assertRedirect();
 
         $invoice = DB::table('invoices')->where('order_id', $order->id)->first();
@@ -1084,6 +1089,30 @@ class DashboardOrderManagementTest extends TestCase
         ]);
 
         return $user;
+    }
+
+    private function driver(int $storeId, string $channel, string $email): int
+    {
+        $user = User::query()->create([
+            'name' => strtoupper($channel).' Test Driver',
+            'email' => $email,
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+
+        $roleCode = $channel === 'b2b' ? 'B2B_DRIVER' : 'B2C_DRIVER';
+        $user->roles()->attach(Role::query()->where('code', $roleCode)->firstOrFail());
+
+        return (int) DB::table('drivers')->insertGetId([
+            'user_id' => $user->id,
+            'store_id' => $storeId,
+            'driver_type' => $channel,
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function globalAdmin(string $roleCode, string $email): User
