@@ -20,7 +20,7 @@ Automatic B2B routing never falls back to a Driver. If Smart Routing cannot sele
 7. Retry uses `POST /api/v1/van/orders/{order}/execution/retry` and returns the order to the server-authorized `out_for_delivery` state.
 8. COD collection uses the authoritative customer/invoice context, posts one idempotent collection and exposes its receipt.
 9. Wallet/remittance preserve custody provenance and idempotency.
-10. Live location/tracking resolves the active Van for B2B; it never substitutes Driver location.
+10. Live location/tracking resolves the currently assigned B2B execution actor: automatic/Van dispatch uses Van location, while an explicit manual Driver override uses that B2B Driver's location.
 
 ## Execution states
 
