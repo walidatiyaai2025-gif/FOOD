@@ -2566,6 +2566,7 @@ final class OrderOperationsController extends Controller
                 ->orderByDesc('order_van_execution_events.id')
                 ->get([
                     'order_van_execution_events.id',
+                    'order_van_execution_events.order_van_assignment_id',
                     'order_van_execution_events.action',
                     'order_van_execution_events.from_status',
                     'order_van_execution_events.to_status',
@@ -2578,6 +2579,7 @@ final class OrderOperationsController extends Controller
                 ])
                 ->map(static fn (object $event): array => [
                     'id' => (int) $event->id,
+                    'order_van_assignment_id' => (int) $event->order_van_assignment_id,
                     'action' => (string) $event->action,
                     'from_status' => (string) $event->from_status,
                     'to_status' => (string) $event->to_status,
