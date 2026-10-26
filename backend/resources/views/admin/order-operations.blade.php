@@ -456,12 +456,12 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
                     <option value="">{{ $row['channel']==='b2b' ? ($isAr ? 'اختر سائق أو فان' : 'Choose Driver or Van') : __('order_operations.dispatch.choose_driver') }}</option>
                     @foreach($drivers as $driver)
                         @if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)===$row['channel'])
-                            <option value="driver:{{ $driver->id }}" @selected($dispatchInitial==='driver:'.$driver->id)>{{ $isAr ? 'سائق' : 'Driver' }} · {{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
+                            <option value="driver:{{ $driver->id }}" @selected($dispatchInitial===('driver:'.$driver->id))>{{ $isAr ? 'سائق' : 'Driver' }} · {{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
                         @endif
                     @endforeach
                     @if($row['channel']==='b2b')
                         @foreach($vans as $van)
-                            <option value="van:{{ $van->id }}" @selected($dispatchInitial==='van:'.$van->id)>{{ $isAr ? 'فان' : 'Van' }} · {{ $van->code }}{{ $van->plate_number ? ' · '.$van->plate_number : '' }}</option>
+                            <option value="van:{{ $van->id }}" @selected($dispatchInitial===('van:'.$van->id))>{{ $isAr ? 'فان' : 'Van' }} · {{ $van->code }}{{ $van->plate_number ? ' · '.$van->plate_number : '' }}</option>
                         @endforeach
                     @endif
                 </select>
