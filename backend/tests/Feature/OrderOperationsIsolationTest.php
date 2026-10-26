@@ -670,7 +670,8 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertSee('Please assign a Driver or Van')
             ->assertSee('data-b2b-assignment-required-alert', false)
             ->assertSee('value="driver:'.$driver.'"', false)
-            ->assertSee('data-order-dispatch-van', false);
+            ->assertSee('data-order-inline-dispatch', false)
+            ->assertSee('Choose Driver or Van');
 
         $this->actingAs($admin)
             ->patch("/admin/operations/orders/{$order}/dispatch", [
