@@ -15,7 +15,8 @@ import '../diagnostics/driver_runtime_inspector.dart';
 const driverBundleId = 'com.fiftysolution.foodex.driver';
 const _driverPushChannelId = 'foodex_driver_high_priority';
 const _driverPushChannelName = 'FOODEX Driver';
-const _driverPushChannelDescription = 'FOODEX driver order and delivery alerts.';
+const _driverPushChannelDescription =
+    'FOODEX driver order and delivery alerts.';
 const _driverInstallIdPreferenceKey = 'foodex_driver_install_id_v1';
 
 Future<String> _loadOrCreateDriverInstallId() async {
@@ -66,9 +67,8 @@ Future<void> showDriverLocalNotification(RemoteMessage message) async {
   final title = message.notification?.title ??
       message.data['title']?.toString() ??
       'FOODEX Driver';
-  final body = message.notification?.body ??
-      message.data['body']?.toString() ??
-      '';
+  final body =
+      message.notification?.body ?? message.data['body']?.toString() ?? '';
 
   const details = NotificationDetails(
     android: AndroidNotificationDetails(
@@ -152,7 +152,11 @@ class DriverPushOpen {
 }
 
 class DriverFirebaseConfig {
-  const DriverFirebaseConfig({required this.apiKey, required this.appId, required this.messagingSenderId, required this.projectId});
+  const DriverFirebaseConfig(
+      {required this.apiKey,
+      required this.appId,
+      required this.messagingSenderId,
+      required this.projectId});
   final String apiKey;
   final String appId;
   final String messagingSenderId;
@@ -161,23 +165,29 @@ class DriverFirebaseConfig {
   static const fromEnvironment = DriverFirebaseConfig(
     apiKey: String.fromEnvironment('FOODEX_FIREBASE_API_KEY'),
     appId: String.fromEnvironment('FOODEX_FIREBASE_APP_ID'),
-    messagingSenderId: String.fromEnvironment('FOODEX_FIREBASE_MESSAGING_SENDER_ID'),
+    messagingSenderId:
+        String.fromEnvironment('FOODEX_FIREBASE_MESSAGING_SENDER_ID'),
     projectId: String.fromEnvironment('FOODEX_FIREBASE_PROJECT_ID'),
   );
 
-  bool get isConfigured => apiKey.isNotEmpty && appId.isNotEmpty && messagingSenderId.isNotEmpty && projectId.isNotEmpty;
+  bool get isConfigured =>
+      apiKey.isNotEmpty &&
+      appId.isNotEmpty &&
+      messagingSenderId.isNotEmpty &&
+      projectId.isNotEmpty;
 
   FirebaseOptions toOptions() => FirebaseOptions(
-    apiKey: apiKey,
-    appId: appId,
-    messagingSenderId: messagingSenderId,
-    projectId: projectId,
-    iosBundleId: Platform.isIOS ? driverBundleId : null,
-  );
+        apiKey: apiKey,
+        appId: appId,
+        messagingSenderId: messagingSenderId,
+        projectId: projectId,
+        iosBundleId: Platform.isIOS ? driverBundleId : null,
+      );
 }
 
 class DriverPushDeviceRegistry {
-  DriverPushDeviceRegistry({required this.baseUrl, http.Client? client}) : _client = DriverDiagnosticHttpClient(client ?? http.Client());
+  DriverPushDeviceRegistry({required this.baseUrl, http.Client? client})
+      : _client = DriverDiagnosticHttpClient(client ?? http.Client());
   final String baseUrl;
   final http.Client _client;
 
@@ -188,7 +198,11 @@ class DriverPushDeviceRegistry {
   }) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/push/devices'),
-      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Bearer $accessToken'},
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken'
+      },
       body: jsonEncode({
         'app': 'driver',
         'platform': Platform.isIOS ? 'ios' : 'android',
@@ -199,15 +213,20 @@ class DriverPushDeviceRegistry {
     );
     if (response.statusCode < 200 || response.statusCode >= 300) return null;
     final decoded = jsonDecode(response.body);
-    if (decoded is! Map<String, dynamic> || decoded['data'] is! Map) return null;
+    if (decoded is! Map<String, dynamic> || decoded['data'] is! Map)
+      return null;
     final data = Map<String, dynamic>.from(decoded['data'] as Map);
     return (data['id'] as num?)?.toInt();
   }
 
-  Future<void> revoke({required String accessToken, required int deviceId}) async {
+  Future<void> revoke(
+      {required String accessToken, required int deviceId}) async {
     await _client.delete(
       Uri.parse('$baseUrl/api/v1/push/devices/$deviceId'),
-      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $accessToken'},
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $accessToken'
+      },
     );
   }
 }
@@ -221,12 +240,15 @@ abstract interface class DriverPushService {
 }
 
 class DriverFirebasePushService implements DriverPushService {
-  DriverFirebasePushService._({required this.registry, required FirebaseMessaging? messaging}) : _messaging = messaging;
+  DriverFirebasePushService._(
+      {required this.registry, required FirebaseMessaging? messaging})
+      : _messaging = messaging;
   final DriverPushDeviceRegistry registry;
   final FirebaseMessaging? _messaging;
   final StreamController<DriverPushOpen> _opens =
       StreamController<DriverPushOpen>.broadcast();
-  final StreamController<DriverPushAlert> _alerts = StreamController<DriverPushAlert>.broadcast();
+  final StreamController<DriverPushAlert> _alerts =
+      StreamController<DriverPushAlert>.broadcast();
   StreamSubscription<String>? _tokenSubscription;
   StreamSubscription<RemoteMessage>? _openedSubscription;
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
@@ -241,9 +263,13 @@ class DriverFirebasePushService implements DriverPushService {
   Stream<DriverPushAlert> get alerts => _alerts.stream;
   bool get enabled => _messaging != null;
 
-  static Future<DriverFirebasePushService> bootstrap({DriverFirebaseConfig config = DriverFirebaseConfig.fromEnvironment, http.Client? client}) async {
-    final registry = DriverPushDeviceRegistry(baseUrl: FoodexEnvironment.apiBaseUrl, client: client);
-    if (!config.isConfigured && !Platform.isAndroid) return DriverFirebasePushService._(registry: registry, messaging: null);
+  static Future<DriverFirebasePushService> bootstrap(
+      {DriverFirebaseConfig config = DriverFirebaseConfig.fromEnvironment,
+      http.Client? client}) async {
+    final registry = DriverPushDeviceRegistry(
+        baseUrl: FoodexEnvironment.apiBaseUrl, client: client);
+    if (!config.isConfigured && !Platform.isAndroid)
+      return DriverFirebasePushService._(registry: registry, messaging: null);
     try {
       if (config.isConfigured) {
         await Firebase.initializeApp(options: config.toOptions());
@@ -252,11 +278,14 @@ class DriverFirebasePushService implements DriverPushService {
       }
       final messaging = FirebaseMessaging.instance;
       await messaging.requestPermission(alert: true, badge: true, sound: true);
-      await messaging.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
-      final service = DriverFirebasePushService._(registry: registry, messaging: messaging);
+      await messaging.setForegroundNotificationPresentationOptions(
+          alert: true, badge: true, sound: true);
+      final service =
+          DriverFirebasePushService._(registry: registry, messaging: messaging);
       await initializeDriverLocalNotifications(
         onTap: (response) {
-          final open = DriverFirebasePushService.openForPayload(response.payload);
+          final open =
+              DriverFirebasePushService.openForPayload(response.payload);
           if (open != null) service._opens.add(open);
         },
       );
@@ -270,10 +299,12 @@ class DriverFirebasePushService implements DriverPushService {
                   ? launchDetails?.notificationResponse?.payload
                   : null,
             );
-      service._openedSubscription = FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      service._openedSubscription =
+          FirebaseMessaging.onMessageOpenedApp.listen((message) {
         service._opens.add(DriverFirebasePushService.openForData(message.data));
       });
-      service._foregroundSubscription = FirebaseMessaging.onMessage.listen((message) {
+      service._foregroundSubscription =
+          FirebaseMessaging.onMessage.listen((message) {
         if (Platform.isAndroid) {
           showDriverLocalNotification(message);
         }
@@ -313,8 +344,7 @@ class DriverFirebasePushService implements DriverPushService {
   static DriverPushOpen openForData(Map<String, dynamic>? data) {
     if (data == null || data.isEmpty) return const DriverPushOpen();
 
-    final assignmentId =
-        int.tryParse((data['assignment_id'] ?? '').toString());
+    final assignmentId = int.tryParse((data['assignment_id'] ?? '').toString());
     final orderId = int.tryParse((data['order_id'] ?? '').toString());
     final revoked = const {'1', 'true', 'yes'}
         .contains((data['access_revoked'] ?? '').toString().toLowerCase());
@@ -367,15 +397,23 @@ class DriverFirebasePushService implements DriverPushService {
 
   @override
   Future<void> revokeSession() async {
-    final accessToken = _accessToken; final deviceId = _deviceId;
-    _accessToken = null; _deviceId = null;
-    await _tokenSubscription?.cancel(); _tokenSubscription = null;
+    final accessToken = _accessToken;
+    final deviceId = _deviceId;
+    _accessToken = null;
+    _deviceId = null;
+    await _tokenSubscription?.cancel();
+    _tokenSubscription = null;
     if (accessToken == null || deviceId == null) return;
-    try { await registry.revoke(accessToken: accessToken, deviceId: deviceId); } catch (_) {}
+    try {
+      await registry.revoke(accessToken: accessToken, deviceId: deviceId);
+    } catch (_) {}
   }
 
   Future<void> dispose() async {
-    await _tokenSubscription?.cancel(); await _openedSubscription?.cancel(); await _foregroundSubscription?.cancel();
-    await _opens.close(); await _alerts.close();
+    await _tokenSubscription?.cancel();
+    await _openedSubscription?.cancel();
+    await _foregroundSubscription?.cancel();
+    await _opens.close();
+    await _alerts.close();
   }
 }
