@@ -322,6 +322,50 @@ class UnifiedOrderOperationsTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $driverUser = User::query()->create([
+            'name' => 'Popup Driver',
+            'email' => 'unified-popup-driver@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $driverUser->roles()->attach(Role::query()->where('code', 'B2C_DRIVER')->firstOrFail());
+        $driver = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $driverUser->id,
+            'store_id' => $store,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $assignment = (int) DB::table('driver_assignments')->insertGetId([
+            'driver_id' => $driver,
+            'order_id' => $order,
+            'store_id' => $store,
+            'assignment_type' => 'b2c',
+            'status' => 'accepted',
+            'assigned_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('delivery_proofs')->insert([
+            'driver_assignment_id' => $assignment,
+            'order_id' => $order,
+            'idempotency_key' => 'popup-accepted-1',
+            'request_fingerprint' => hash('sha256', 'popup-accepted-1'),
+            'user_id' => $driverUser->id,
+            'proof_type' => 'status_note',
+            'from_status' => 'assigned',
+            'to_status' => 'accepted',
+            'file_path' => null,
+            'otp_hash' => null,
+            'note' => null,
+            'captured_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $this->actingAs($admin)
             ->get("/admin/operations/orders/{$order}/popup/details")
             ->assertOk()
@@ -340,6 +384,9 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertSee('data-order-popup-content="timeline"', false)
             ->assertSee('Print')
             ->assertSee('Order status changed')
+            ->assertSee('Driver execution')
+            ->assertSee('Assigned')
+            ->assertSee('Accepted')
             ->assertSee('Complete order timeline');
 
         $admin->forceFill(['locale' => 'ar'])->save();
@@ -362,6 +409,9 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertSee('تغيير حالة الطلب')
             ->assertSee('قيد الانتظار')
             ->assertSee('تم التأكيد')
+            ->assertSee('تنفيذ السائق')
+            ->assertSee('تم التعيين')
+            ->assertSee('مقبول')
             ->assertDontSee('Order status changed')
             ->assertDontSee('Complete order timeline');
     }
