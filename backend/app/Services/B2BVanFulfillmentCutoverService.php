@@ -270,8 +270,7 @@ final class B2BVanFulfillmentCutoverService
                 : null;
         $preserveManualDriver = $manualDriverId !== null
             && $activeDrivers->contains(
-                fn (DriverAssignment $assignment): bool =>
-                    (int) $assignment->driver_id === $manualDriverId
+                fn (DriverAssignment $assignment): bool => (int) $assignment->driver_id === $manualDriverId
                     && strtolower((string) $assignment->assignment_type) === 'b2b',
             );
 
