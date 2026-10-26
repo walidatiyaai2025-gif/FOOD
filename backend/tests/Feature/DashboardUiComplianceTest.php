@@ -244,6 +244,23 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('$isAr?\'إجراءات الطلب\':\'Order actions\'', $view);
     }
 
+    public function test_shared_order_actions_follow_assignment_first_workflow(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/_dashboard-order-actions.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringNotContainsString('Approve order', $view);
+        $this->assertStringNotContainsString('اعتماد الطلب', $view);
+        $this->assertStringNotContainsString('name="status" value="confirmed"', $view);
+        $this->assertStringNotContainsString("'pending' => ['confirmed','cancelled']", $view);
+        $this->assertStringContainsString("['cancelled']", $view);
+        $this->assertStringContainsString("'admin.operations.orders.dispatch'", $view);
+        $this->assertStringContainsString("'admin.operations.orders.dispatch.clear'", $view);
+        $this->assertStringContainsString('name="assignee_type" value="driver"', $view);
+        $this->assertStringContainsString('name="assignee_id"', $view);
+        $this->assertStringContainsString('Cancel order', $view);
+    }
+
     public function test_order_management_grid_has_no_internal_cell_borders(): void
     {
         $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
