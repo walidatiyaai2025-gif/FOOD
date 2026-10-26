@@ -668,7 +668,9 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('order-status-chip', $view);
         $this->assertStringContainsString('data-order-inline-status', $view);
         $this->assertStringContainsString('data-order-inline-status-select', $view);
-        $this->assertStringContainsString('data-order-inline-rejection-note', $view);
+        $this->assertStringContainsString('data-order-inline-cancellation-note', $view);
+        $this->assertStringContainsString('سبب الإلغاء (إلزامي عند الإلغاء)', $view);
+        $this->assertStringNotContainsString('سبب الرفض (إلزامي عند الرفض)', $view);
         $this->assertStringContainsString('data-order-inline-dispatch', $view);
         $this->assertStringContainsString('data-order-inline-assignee-type', $view);
         $this->assertStringContainsString('data-order-inline-assignee-id', $view);
@@ -687,10 +689,10 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-order-inline-picker-select', $view);
         $this->assertStringContainsString('data-order-inline-picker-reason', $view);
         $this->assertStringContainsString('data-order-inline-picker-reason-wrap hidden', $view);
-        $this->assertStringContainsString('data-order-inline-rejection-reason hidden', $view);
+        $this->assertStringContainsString('data-order-inline-cancellation-reason hidden', $view);
         $this->assertStringContainsString('data-order-saved-reason', $view);
         $this->assertStringContainsString("if(reasonWrap){reasonWrap.hidden=!changed;}", $view);
-        $this->assertStringContainsString("if(reasonWrap){reasonWrap.hidden=!rejecting;}", $view);
+        $this->assertStringContainsString("if(reasonWrap){reasonWrap.hidden=!cancelling;}", $view);
         $this->assertStringContainsString('data-order-financial-actions', $view);
         $this->assertStringContainsString('data-order-details-icon', $view);
         $this->assertStringContainsString('data-order-invoice-icon', $view);
