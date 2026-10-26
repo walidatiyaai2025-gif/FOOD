@@ -105,7 +105,7 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('data-order-inline-assignee-type', $view);
         $this->assertStringContainsString('data-order-inline-unassign', $view);
         $this->assertStringContainsString('data-order-dispatch-detail', $view);
-        $this->assertStringContainsString('data-order-dispatch-workspace', $view);
+        $this->assertStringContainsString('data-order-inline-picker-select', $view);
         $this->assertStringContainsString('data-order-inline-unassign', $view);
         $this->assertStringContainsString('data-order-detail-unassign', $view);
         $this->assertStringContainsString('data-order-detail-action-section="dispatch"', $view);
