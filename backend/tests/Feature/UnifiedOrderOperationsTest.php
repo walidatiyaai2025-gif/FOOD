@@ -173,6 +173,50 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertSee('data-order-edit', false);
     }
 
+    public function test_cancelled_order_merges_status_and_execution_and_never_requires_action(): void
+    {
+        $store = $this->retailStore('UNIFIED-CANCELLED-MERGE');
+        $admin = $this->retailAdmin($store, 'unified-cancelled-merge@example.test');
+        $customer = app(B2cCustomerService::class)->create($store, ['name' => 'Cancelled Buyer']);
+
+        $order = (int) DB::table('orders')->insertGetId([
+            'store_id' => $store,
+            'customer_id' => (int) $customer->legacy_customer_id,
+            'b2c_customer_id' => (int) $customer->id,
+            'order_number' => 'UNIFIED-CANCELLED-1001',
+            'channel' => 'b2c',
+            'status' => 'cancelled',
+            'currency' => 'EGP',
+            'subtotal' => 18,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 18,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('order_dispatch_states')->insert([
+            'order_id' => $order,
+            'status' => 'awaiting_dispatch',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c')
+            ->assertOk()
+            ->assertViewHas('actionRequiredCount', 0)
+            ->assertViewHas('rows', function (array $rows) use ($order): bool {
+                $row = collect($rows)->firstWhere('id', $order);
+
+                return ($row['status'] ?? null) === 'cancelled';
+            })
+            ->assertSee('data-order-status-merged', false)
+            ->assertSee('order-cancelled-merged', false)
+            ->assertSee('data-action-required="0"', false)
+            ->assertDontSee('Action required');
+    }
+
     public function test_confirmed_order_can_return_to_pending_before_dispatch(): void
     {
         $store = $this->retailStore('UNIFIED-REOPEN');
@@ -657,10 +701,15 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('window.print()', $view);
         $this->assertStringContainsString('data-order-print-time', $view);
         $this->assertStringContainsString('order-delivered-merged', $view);
+        $this->assertStringContainsString('order-cancelled-merged', $view);
+        $this->assertStringContainsString('order-status-merged', $view);
+        $this->assertStringContainsString('data-order-status-merged', $view);
+        $this->assertStringContainsString('justify-content:center;width:100%', $view);
         $this->assertStringContainsString('data-order-delivered-time', $view);
         $this->assertStringContainsString('data-order-customer-service-dimmed', $view);
         $this->assertStringContainsString('.order-owner.is-complete{opacity:.38', $view);
         $this->assertStringContainsString("in_array(\$rowStatusState, ['delivered','completed'], true)", $view);
+        $this->assertStringContainsString("\$rowMergedStatus = \$rowDelivered || \$rowStatusState === 'cancelled'", $view);
         $this->assertStringContainsString('\\Illuminate\\Support\\Carbon::parse', $view);
         $this->assertStringNotContainsString('IlluminateSupportCarbon::parse', $view);
         $this->assertStringNotContainsString('CarbonCarbon::parse', $view);
@@ -741,7 +790,7 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('usesCustomerServiceDashboardProfile($actor)', $controller);
         $this->assertStringContainsString("'awaiting_dispatch'", $controller);
         $this->assertStringContainsString("'actionRequiredCount' => \$actionRequiredCount", $controller);
-        $this->assertStringContainsString("whereNotIn('status', ['delivered', 'completed'])", $controller);
+        $this->assertStringContainsString("whereNotIn('status', ['delivered', 'completed', 'cancelled'])", $controller);
         $this->assertStringContainsString("'selectedActionRequired' => \$selectedActionRequired", $controller);
         $this->assertStringContainsString('orderOperationsDisplayStatus(', $controller);
         $this->assertStringContainsString("'status_visual_state' => \$displayStatus['state']", $controller);
