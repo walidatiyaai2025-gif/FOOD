@@ -1360,19 +1360,19 @@ final class OrderOperationsController extends Controller
                     ->where('order_id', $locked->getKey())
                     ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
                     ->lockForUpdate()
-                    ->exists();
+                    ->first(['id']) !== null;
                 $hasActiveVan = OrderVanAssignment::query()
                     ->where('order_id', $locked->getKey())
                     ->whereNull('ended_at')
                     ->whereNotIn('status', ['cancelled', 'delivered', 'failed', 'reassigned', 'unassigned'])
                     ->lockForUpdate()
-                    ->exists();
+                    ->first(['id']) !== null;
                 $hasActiveDispatch = OrderDispatchState::query()
                     ->where('order_id', $locked->getKey())
                     ->where('status', 'assigned')
                     ->whereNotNull('current_assignee_id')
                     ->lockForUpdate()
-                    ->exists();
+                    ->first(['id']) !== null;
 
                 abort_if(
                     $hasActiveDriver || $hasActiveVan || $hasActiveDispatch,
