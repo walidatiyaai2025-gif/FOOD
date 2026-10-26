@@ -164,8 +164,7 @@ class OrderLifecycleNotificationTest extends TestCase
         $this->assertCount(4, $driverNotifications);
         $this->assertTrue(
             $driverNotifications->every(
-                fn (Notification $notification): bool =>
-                    (int) ($notification->data['assignment_id'] ?? 0) === (int) $assignment->id
+                fn (Notification $notification): bool => (int) ($notification->data['assignment_id'] ?? 0) === (int) $assignment->id
                     && ! empty($notification->data['event_key'] ?? null),
             ),
         );
