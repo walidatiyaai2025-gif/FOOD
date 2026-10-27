@@ -370,7 +370,6 @@ final class CustomerServiceRoleClosureTest extends TestCase
         );
     }
 
-
     public function test_upgrade_repair_backfills_dispatch_permission_for_existing_customer_service_roles(): void
     {
         $permissionId = (int) DB::table('permissions')
