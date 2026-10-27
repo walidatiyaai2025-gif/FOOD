@@ -589,14 +589,16 @@ class _DriverHomePageState extends State<_DriverHomePage>
           ),
         );
 
-        if (openOrder == true && mounted) {
+        if (openOrder == true) {
+          if (!mounted) return;
+
           await Navigator.of(context).pushNamed(
             widget.deliveriesRoute,
             arguments: assignment.id,
           );
-          if (mounted) {
-            await _loadSummary(showLoading: false);
-          }
+          if (!mounted) return;
+
+          await _loadSummary(showLoading: false);
         }
       }
     } finally {
