@@ -25,10 +25,7 @@ final class RbacDatabaseReconciler
             throw new RuntimeException('Canonical permission catalog is empty.');
         }
 
-        $canonicalPermissionCodes = array_values(array_map(
-            static fn ($code): string => (string) $code,
-            array_keys($abilities),
-        ));
+        $canonicalPermissionCodes = array_keys($abilities);
 
         return DB::transaction(function () use ($abilities, $canonicalPermissionCodes): array {
             $now = now();
@@ -147,10 +144,7 @@ final class RbacDatabaseReconciler
             );
         }
 
-        $allPermissionCodes = array_values(array_map(
-            static fn ($code): string => (string) $code,
-            array_keys((array) config('permissions.abilities', [])),
-        ));
+        $allPermissionCodes = array_keys((array) config('permissions.abilities', []));
 
         foreach ($this->jobRoles->definitions() as $code => $definition) {
             $definitionPermissions = array_values(array_map(
