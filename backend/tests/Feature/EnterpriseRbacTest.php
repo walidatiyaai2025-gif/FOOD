@@ -281,6 +281,15 @@ class EnterpriseRbacTest extends TestCase
         $agentRole = Role::query()->where('code', 'CUSTOMER_SERVICE_AGENT')->firstOrFail();
         $dispatch = Permission::query()->where('code', 'orders.dispatch')->firstOrFail();
         $manage = Permission::query()->where('code', 'orders.manage')->firstOrFail();
+        $customRole = Role::query()->create([
+            'code' => 'CUSTOM_PERMISSION_ROLE',
+            'name' => 'Custom Permission Role',
+            'scope' => 'global',
+            'is_system' => false,
+            'is_active' => true,
+        ]);
+        $customPermission = Permission::query()->where('code', 'reports.view')->firstOrFail();
+        $customRole->permissions()->attach($customPermission->id);
 
         DB::table('permission_role')
             ->where('role_id', $agentRole->id)
@@ -322,10 +331,14 @@ class EnterpriseRbacTest extends TestCase
             'role_id' => $agentRole->id,
             'permission_id' => $dispatch->id,
         ]);
+        $this->assertDatabaseHas('permission_role', [
+            'role_id' => $customRole->id,
+            'permission_id' => $customPermission->id,
+        ]);
         $this->assertDatabaseHas('permissions', [
             'id' => $dispatch->id,
             'code' => 'orders.dispatch',
-            'name' => config('permissions.abilities.orders.dispatch'),
+            'name' => ((array) config('permissions.abilities'))['orders.dispatch'],
         ]);
         $this->assertDatabaseMissing('user_permission_overrides', [
             'user_id' => $target->id,
