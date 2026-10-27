@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Driver;
 use App\Models\User;
 use App\Services\CredentialAuthenticator;
+use App\Services\LoginAttemptThrottle;
 use App\Services\PlatformCustomerService;
 use App\Services\RetailMerchantIdentityService;
 use App\Services\VanRuntimeContextResolver;
@@ -20,6 +21,7 @@ class AuthController extends Controller
 {
     public function __construct(
         private readonly CredentialAuthenticator $credentials,
+        private readonly LoginAttemptThrottle $loginThrottle,
         private readonly PlatformCustomerService $platformCustomers,
         private readonly RetailMerchantIdentityService $retailMerchants,
         private readonly VanRuntimeContextResolver $vanContexts,
@@ -34,13 +36,20 @@ class AuthController extends Controller
             'van_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $user = $this->credentials->authenticate($credentials['email'], $credentials['password']);
+        $identifier = (string) $credentials['email'];
+        $this->loginThrottle->ensureAllowed($request, $identifier);
+
+        $user = $this->credentials->authenticate($identifier, $credentials['password']);
 
         if (! $user) {
+            $this->loginThrottle->hit($request, $identifier);
+
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are invalid.'],
             ]);
         }
+
+        $this->loginThrottle->clear($request, $identifier);
 
         $app = $credentials['app'] ?? null;
         if ($app === 'driver') {
