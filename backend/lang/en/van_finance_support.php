@@ -3,6 +3,8 @@
 return [
     'title' => 'Van Finance Support',
     'description' => 'Shared support view for Van wallets, collections, receipts and remittances. Data comes directly from the authoritative collection and custody ledger.',
+    'driver_unsettled_collections' => 'Total unsettled Driver collections',
+    'driver_unsettled_collections_help' => 'Collected amounts still held in Driver custody and not yet settled by Finance.',
     'operational_link' => 'Open operational finance',
     'tabs' => [
         'wallets' => 'Wallets',
