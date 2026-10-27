@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 final class RbacDatabaseReconciler
@@ -76,7 +77,7 @@ final class RbacDatabaseReconciler
      */
     private function cleanUserPermissionOverrides(array $canonicalPermissionCodes): int
     {
-        if (! DB::getSchemaBuilder()->hasTable('user_permission_overrides')) {
+        if (! Schema::hasTable('user_permission_overrides')) {
             return 0;
         }
 
