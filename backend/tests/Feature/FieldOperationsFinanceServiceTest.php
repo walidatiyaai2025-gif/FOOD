@@ -181,5 +181,4 @@ class FieldOperationsFinanceServiceTest extends TestCase
             ['currency' => 'KWD', 'amount' => 100.0],
         ], $finance['driver_unsettled_by_currency']);
     }
-
 }
