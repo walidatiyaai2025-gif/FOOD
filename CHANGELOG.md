@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.116 - 2026-10-27
+- Repair existing FOODEX installations where Customer Service Supervisor/Agent received `orders.dispatch` in configuration but the already-run historical permission migration did not backfill the `permission_role` pivot.
+- Add an idempotent upgrade migration that grants `orders.dispatch` to `CUSTOMER_SERVICE_MANAGER`, `CUSTOMER_SERVICE_SUPERVISOR` and `CUSTOMER_SERVICE_AGENT` on existing databases.
+- Restore the Driver/Van assignment dropdown in Order Management for authorized Customer Service roles after upgrade, without granting `orders.manage` or driver administration.
+- Add regression coverage for the stale existing-database upgrade path.
+- Publish as Dashboard/backend-only; mobile APK identities remain unchanged.
+
 ## 1.0.115 - 2026-10-27
 - Publish the requested Dashboard hotfix immediately after 1.0.114; operator shorthand is `1.0.114+1`, while the canonical installable updater target is `1.0.115` because FOODEX Dashboard updates accept only major.minor.patch versions.
 - Grant `orders.dispatch` to `CUSTOMER_SERVICE_SUPERVISOR` and `CUSTOMER_SERVICE_AGENT` so authorized Customer Service staff can assign, reassign and unassign Driver/Van execution directly from the unified Order Management grid.
