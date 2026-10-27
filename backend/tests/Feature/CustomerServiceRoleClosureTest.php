@@ -370,6 +370,57 @@ final class CustomerServiceRoleClosureTest extends TestCase
         );
     }
 
+
+    public function test_upgrade_repair_backfills_dispatch_permission_for_existing_customer_service_roles(): void
+    {
+        $permissionId = (int) DB::table('permissions')
+            ->where('code', 'orders.dispatch')
+            ->value('id');
+
+        $roleIds = DB::table('roles')
+            ->whereIn('code', [
+                'CUSTOMER_SERVICE_MANAGER',
+                'CUSTOMER_SERVICE_SUPERVISOR',
+                'CUSTOMER_SERVICE_AGENT',
+            ])
+            ->pluck('id', 'code');
+
+        DB::table('permission_role')
+            ->where('permission_id', $permissionId)
+            ->whereIn('role_id', $roleIds->values()->all())
+            ->delete();
+
+        foreach ($roleIds as $roleId) {
+            $this->assertDatabaseMissing('permission_role', [
+                'permission_id' => $permissionId,
+                'role_id' => (int) $roleId,
+            ]);
+        }
+
+        $migration = require database_path(
+            'migrations/2026_10_27_082000_backfill_customer_service_order_dispatch_permission.php'
+        );
+        $migration->up();
+
+        foreach ($roleIds as $roleId) {
+            $this->assertDatabaseHas('permission_role', [
+                'permission_id' => $permissionId,
+                'role_id' => (int) $roleId,
+            ]);
+        }
+
+        $principalStoreId = app(WholesalePrincipal::class)->storeId();
+        foreach (['CUSTOMER_SERVICE_SUPERVISOR', 'CUSTOMER_SERVICE_AGENT'] as $roleCode) {
+            $staff = $this->userWithRole($roleCode)->fresh();
+
+            $this->assertTrue($staff->hasPermission('orders.dispatch'));
+            $this->assertContains(
+                $principalStoreId,
+                app(OperationalTenantScope::class)->allowedStoreIds($staff, 'orders.dispatch', 'b2b'),
+            );
+        }
+    }
+
     public function test_agent_cannot_manage_customer_service_team(): void
     {
         $agent = $this->userWithRole('CUSTOMER_SERVICE_AGENT');
