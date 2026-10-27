@@ -5,8 +5,8 @@
   "target_version": "1.0.115",
   "minimum_current_version": "1.0.6",
   "source_base": "8d29f4cb664988b38e07d4b558dd8ead805c50aa",
-  "source_commit": "a155b6f0df331aa48ee10295a234b44a805915fa",
-  "sha256": "a156464707dc696559e17c3951b778eacd65d9377f1c352fb2ee9017569b9359",
+  "source_commit": "3e0cd06ff3cb1945ab2c8e197eb0255062eb61d7",
+  "sha256": "50559da28c316581ad8b3deeeb8bef1e1caa615972af4d0fb0b44d19dc42ec48",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/0001_01_01_000000_create_users_table.php",
@@ -233,8 +233,8 @@
   "dashboard_fields": {
     "target_version": "1.0.115",
     "minimum_current_version": "1.0.6",
-    "source_commit": "a155b6f0df331aa48ee10295a234b44a805915fa",
-    "sha256": "a156464707dc696559e17c3951b778eacd65d9377f1c352fb2ee9017569b9359",
+    "source_commit": "3e0cd06ff3cb1945ab2c8e197eb0255062eb61d7",
+    "sha256": "50559da28c316581ad8b3deeeb8bef1e1caa615972af4d0fb0b44d19dc42ec48",
     "contains_migrations": true,
     "release_notes": "FOODEX 1.0.115: Publish the requested Dashboard hotfix immediately after 1.0.114; operator shorthand is `1.0.114+1`, while the canonical installable updater target is `1.0.115` because FOODEX Dashboard updates accept only major.minor.patch versions. Grant `orders.dispatch` to `CUSTOMER_SERVICE_SUPERVISOR` and `CUSTOMER_SERVICE_AGENT` so authorized Customer Service staff can assign, reassign and unassign Driver/Van execution directly from the unified Order Management grid. Keep elevated order management and driver administration unchanged: Customer Service Supervisor/Agent do not receive `orders.manage`, live driver tracking, or driver-registry management. Add regression coverage for Customer Service dispatch permission and tenant/channel scope. Publish as Dashboard/backend-only; Customer, Driver and Van source identities remain `1.0.114+114` and mobile APKs are not rebuilt."
   }
