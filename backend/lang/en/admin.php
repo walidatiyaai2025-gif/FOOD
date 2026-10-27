@@ -730,6 +730,7 @@ return [
             'assigned_role_delete' => 'Remove all user assignments before deleting this role.',
             'cannot_grant_super_admin' => 'Only SUPER_ADMIN can grant the SUPER_ADMIN role.',
             'cannot_grant_higher' => 'You cannot grant permissions that are outside your own effective authority.',
+            'permission_missing' => 'One or more selected permissions do not exist.',
         ],
     ],
     'premium_nav' => [
