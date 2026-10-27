@@ -182,7 +182,7 @@ final class SecurityController extends Controller
                 $roleCodes = $managedUser->roles
                     ->where('is_active', true)
                     ->pluck('code')
-                    ->map('strval');
+                    ->map(static fn ($value): string => (string) $value);
                 $retailDomain = $roleCodes->contains(
                     static fn (string $code): bool => $code === 'B2C_DRIVER' || str_starts_with($code, 'RETAIL_'),
                 );
