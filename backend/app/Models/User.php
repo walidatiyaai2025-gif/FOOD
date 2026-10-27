@@ -84,7 +84,7 @@ class User extends Authenticatable
         }
 
         if (! $this->has_permission_overrides) {
-            return in_array($permissionCode, $this->inheritedPermissionCodes($storeId), true);
+            return $this->hasInheritedPermission($permissionCode, $storeId);
         }
 
         $storeEffect = $storeId === null
@@ -110,7 +110,55 @@ class User extends Authenticatable
             return $this->hasGlobalRoleContextForChannel((string) $this->storeChannel($storeId));
         }
 
-        return in_array($permissionCode, $this->inheritedPermissionCodes($storeId), true);
+        return $this->hasInheritedPermission($permissionCode, $storeId);
+    }
+
+    private function hasInheritedPermission(string $permissionCode, ?int $storeId = null): bool
+    {
+        $catalog = app(BuiltInJobRoleCatalog::class);
+
+        if ($storeId === null) {
+            return $this->roles()
+                ->where('roles.is_active', true)
+                ->where('roles.scope', 'global')
+                ->whereHas('permissions', fn ($query) => $query->where('code', $permissionCode))
+                ->get(['roles.id', 'roles.code'])
+                ->contains(fn (Role $role): bool => $catalog->roleContributesPermissions((string) $role->code, null));
+        }
+
+        $channel = $this->storeChannel($storeId);
+        if ($channel === null) {
+            return false;
+        }
+
+        if ($channel === 'b2c') {
+            $storeGrant = $this->storeRoleAssignments()
+                ->where('store_id', $storeId)
+                ->whereHas('role', fn ($query) => $query
+                    ->where('is_active', true)
+                    ->where('scope', 'store')
+                    ->whereHas('permissions', fn ($permissions) => $permissions->where('code', $permissionCode)))
+                ->with('role:id,code')
+                ->get()
+                ->contains(fn (UserStoreRole $assignment): bool => $catalog->roleContributesPermissions(
+                    (string) $assignment->role->code,
+                    $storeId,
+                ));
+
+            if ($storeGrant) {
+                return true;
+            }
+        }
+
+        $allowedGlobalRoles = array_values((array) config("admin.channels.{$channel}.global_roles", []));
+
+        return $this->roles()
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'global')
+            ->whereIn('roles.code', $allowedGlobalRoles)
+            ->whereHas('permissions', fn ($query) => $query->where('code', $permissionCode))
+            ->get(['roles.id', 'roles.code'])
+            ->contains(fn (Role $role): bool => $catalog->roleContributesPermissions((string) $role->code, null));
     }
 
     /** @return list<string> */
