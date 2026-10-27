@@ -199,6 +199,9 @@ final class RbacManager
                 DB::table('user_permission_overrides')
                     ->where('user_id', $target->getKey())
                     ->delete();
+                DB::table('users')
+                    ->where('id', $target->getKey())
+                    ->update(['has_permission_overrides' => false]);
             }
 
             if ($storeRoles !== []) {
@@ -346,6 +349,13 @@ final class RbacManager
             if ($rows !== []) {
                 DB::table('user_permission_overrides')->insert($rows);
             }
+
+            $hasOverrides = DB::table('user_permission_overrides')
+                ->where('user_id', $target->getKey())
+                ->exists();
+            DB::table('users')
+                ->where('id', $target->getKey())
+                ->update(['has_permission_overrides' => $hasOverrides]);
         });
 
         $fresh = $target->refresh();
