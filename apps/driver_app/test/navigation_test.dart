@@ -58,8 +58,7 @@ class _StatusRepo implements DriverAssignmentRepository {
   }) async {}
 }
 
-class _WalletStatusRepo extends _StatusRepo
-    implements DriverWalletRepository {
+class _WalletStatusRepo extends _StatusRepo implements DriverWalletRepository {
   @override
   Future<List<DriverWalletAccount>> wallet() async => const [
         DriverWalletAccount(
