@@ -98,21 +98,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(B2cCustomer::class, B2cCustomerPolicy::class);
         Order::observe(SmartOrderingLoyaltyOrderObserver::class);
 
-        RateLimiter::for('login', function (Request $request): array {
-            $identifier = Str::lower(trim((string) $request->input('email', '')));
-            if (filter_var($identifier, FILTER_VALIDATE_EMAIL) === false) {
-                $identifier = preg_replace('/[\s().-]+/', '', $identifier) ?? $identifier;
-                if (str_starts_with($identifier, '00')) {
-                    $identifier = '+'.substr($identifier, 2);
-                }
-            }
-
-            return [
-                // Keep an IP-wide abuse ceiling without letting normal multi-account
-                // administration behind one office/NAT lock every management identity.
-                Limit::perMinute(60)->by('login-ip:'.$request->ip()),
-                Limit::perMinute(5)->by('login:'.$identifier.'|'.$request->ip()),
-            ];
+        RateLimiter::for('login', function (Request $request): Limit {
+            // This middleware is only the coarse flood ceiling. Credential brute-force
+            // protection is enforced separately and counts failed attempts only, so
+            // valid login/logout switching never exhausts the lockout budget.
+            return Limit::perMinute(120)->by('login-ip:'.$request->ip());
         });
 
         RateLimiter::for('assistant', function (Request $request): Limit {
