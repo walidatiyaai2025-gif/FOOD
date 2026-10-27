@@ -16,6 +16,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 /**
  * @property bool $is_active
+ * @property bool $has_permission_overrides
  * @property Carbon|null $deactivated_at
  * @property Carbon|null $last_seen_at
  * @property-read Collection<int, Role> $roles
@@ -80,6 +81,10 @@ class User extends Authenticatable
     {
         if ($this->hasRole('SUPER_ADMIN')) {
             return true;
+        }
+
+        if (! $this->has_permission_overrides) {
+            return in_array($permissionCode, $this->inheritedPermissionCodes($storeId), true);
         }
 
         $storeEffect = $storeId === null
@@ -163,7 +168,12 @@ class User extends Authenticatable
             return array_keys((array) config('permissions.abilities', []));
         }
 
-        $codes = collect($this->inheritedPermissionCodes($storeId));
+        $inherited = $this->inheritedPermissionCodes($storeId);
+        if (! $this->has_permission_overrides) {
+            return $inherited;
+        }
+
+        $codes = collect($inherited);
         $overrides = $this->permissionOverrideEffects($storeId);
 
         foreach ($overrides as $code => $effect) {
@@ -189,6 +199,10 @@ class User extends Authenticatable
     /** @return array<string, 'allow'|'deny'> */
     public function permissionOverrideEffects(?int $storeId = null): array
     {
+        if (! $this->has_permission_overrides) {
+            return [];
+        }
+
         $scopeKeys = $storeId === null ? ['global'] : ['global', 'store:'.$storeId];
         $rows = DB::table('user_permission_overrides')
             ->join('permissions', 'permissions.id', '=', 'user_permission_overrides.permission_id')
@@ -223,6 +237,10 @@ class User extends Authenticatable
 
     private function permissionOverrideEffect(string $permissionCode, string $scopeKey): ?string
     {
+        if (! $this->has_permission_overrides) {
+            return null;
+        }
+
         $effect = DB::table('user_permission_overrides')
             ->join('permissions', 'permissions.id', '=', 'user_permission_overrides.permission_id')
             ->where('user_permission_overrides.user_id', $this->getKey())
@@ -359,6 +377,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'is_platform_customer' => 'boolean',
+            'has_permission_overrides' => 'boolean',
             'deactivated_at' => 'datetime',
             'last_seen_at' => 'datetime',
         ];
