@@ -856,6 +856,7 @@ backend/app/Services/LegacyStockLocationResolver.php
 backend/app/Services/LegacyStockReconciliationService.php
 backend/app/Services/LegacySupplierBrandMaterializerService.php
 backend/app/Services/LegacyVanInventoryHistoryMaterializerService.php
+backend/app/Services/LoginAttemptThrottle.php
 backend/app/Services/LookupScopeService.php
 backend/app/Services/ManagementReportService.php
 backend/app/Services/MarketingImageService.php
