@@ -326,6 +326,32 @@ class AuthFoundationTest extends TestCase
         ])->assertTooManyRequests();
     }
 
+    public function test_repeated_successful_api_login_logout_cycles_do_not_trigger_rate_limit(): void
+    {
+        $user = User::query()->create([
+            'name' => 'Repeated API Login User',
+            'email' => 'repeated-api-login-'.uniqid().'@example.test',
+            'password' => Hash::make('correct-password'),
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.64']);
+
+        for ($cycle = 0; $cycle < 8; $cycle++) {
+            $login = $this->postJson('/api/v1/auth/login', [
+                'email' => $user->email,
+                'password' => 'correct-password',
+            ])->assertOk();
+
+            $this->withToken((string) $login->json('token'))
+                ->postJson('/api/v1/auth/logout')
+                ->assertNoContent();
+
+            $this->app['auth']->forgetGuards();
+        }
+    }
+
     public function test_protected_identity_routes_require_authentication(): void
     {
         $this->getJson('/api/v1/profile')->assertUnauthorized();
