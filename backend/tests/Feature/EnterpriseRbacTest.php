@@ -386,6 +386,7 @@ class EnterpriseRbacTest extends TestCase
         $fresh = $target->fresh();
         $this->assertFalse($fresh->hasPermission('orders.dispatch'));
         $this->assertTrue($fresh->hasPermission('orders.manage'));
+        $this->assertTrue((bool) $fresh->has_permission_overrides);
         $this->assertTrue($role->permissions()->where('code', 'orders.dispatch')->exists());
         $this->assertFalse($role->permissions()->where('code', 'orders.manage')->exists());
         $this->assertDatabaseHas('user_permission_overrides', [
@@ -476,6 +477,7 @@ class EnterpriseRbacTest extends TestCase
         $fresh = $target->fresh();
         $this->assertTrue($fresh->hasRole('CUSTOMER_SERVICE_AGENT'));
         $this->assertFalse($fresh->hasPermission('orders.manage'));
+        $this->assertFalse((bool) $fresh->has_permission_overrides);
         $this->assertDatabaseMissing('user_permission_overrides', [
             'user_id' => $target->id,
         ]);
