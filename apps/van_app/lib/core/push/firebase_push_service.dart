@@ -180,8 +180,9 @@ class VanPushDeviceRegistry {
 
     if (response.statusCode < 200 || response.statusCode >= 300) return null;
     final decoded = jsonDecode(response.body);
-    if (decoded is! Map<String, dynamic> || decoded['data'] is! Map)
+    if (decoded is! Map<String, dynamic> || decoded['data'] is! Map) {
       return null;
+    }
     final data = Map<String, dynamic>.from(decoded['data'] as Map);
     return (data['id'] as num?)?.toInt();
   }
