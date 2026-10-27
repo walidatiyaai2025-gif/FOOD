@@ -25,7 +25,12 @@ final class RbacDatabaseReconciler
             throw new RuntimeException('Canonical permission catalog is empty.');
         }
 
-        return DB::transaction(function () use ($abilities): array {
+        $canonicalPermissionCodes = array_values(array_map(
+            static fn ($code): string => (string) $code,
+            array_keys($abilities),
+        ));
+
+        return DB::transaction(function () use ($abilities, $canonicalPermissionCodes): array {
             $now = now();
             $permissionRows = collect($abilities)
                 ->map(static fn (string $name, string $code): array => [
@@ -43,7 +48,11 @@ final class RbacDatabaseReconciler
                 ['name', 'updated_at'],
             );
 
-            $builtInCodes = $this->jobRoles->definitions()->keys()->all();
+            $builtInCodes = $this->jobRoles->definitions()
+                ->keys()
+                ->map(static fn ($code): string => (string) $code)
+                ->values()
+                ->all();
             $builtInRoleIds = DB::table('roles')
                 ->whereIn('code', $builtInCodes)
                 ->pluck('id')
@@ -59,9 +68,9 @@ final class RbacDatabaseReconciler
             }
 
             $catalog = $this->jobRoles->reconcile();
-            $overridesRemoved = $this->cleanUserPermissionOverrides(array_keys($abilities));
+            $overridesRemoved = $this->cleanUserPermissionOverrides($canonicalPermissionCodes);
 
-            $this->assertCanonicalIntegrity(array_keys($abilities));
+            $this->assertCanonicalIntegrity($canonicalPermissionCodes);
 
             return [
                 'permissions' => count($permissionRows),
@@ -138,12 +147,19 @@ final class RbacDatabaseReconciler
             );
         }
 
-        $allPermissionCodes = array_keys((array) config('permissions.abilities', []));
+        $allPermissionCodes = array_values(array_map(
+            static fn ($code): string => (string) $code,
+            array_keys((array) config('permissions.abilities', [])),
+        ));
 
         foreach ($this->jobRoles->definitions() as $code => $definition) {
-            $expected = $definition['permissions'] === ['*']
+            $definitionPermissions = array_values(array_map(
+                static fn ($permission): string => (string) $permission,
+                (array) ($definition['permissions'] ?? []),
+            ));
+            $expected = $definitionPermissions === ['*']
                 ? $allPermissionCodes
-                : array_values($definition['permissions']);
+                : $definitionPermissions;
             sort($expected);
 
             $actual = DB::table('permission_role')
