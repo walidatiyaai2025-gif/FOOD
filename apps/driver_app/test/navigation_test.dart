@@ -4,6 +4,7 @@ import 'package:foodex_driver_app/app.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
 import 'package:foodex_driver_app/core/navigation/driver_shell.dart';
 import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
+import 'package:foodex_driver_app/features/wallet/driver_wallet_contract.dart';
 import 'package:foodex_driver_app/navigation.dart';
 
 class _StatusRepo implements DriverAssignmentRepository {
@@ -55,6 +56,56 @@ class _StatusRepo implements DriverAssignmentRepository {
     String? note,
     String? failureReason,
   }) async {}
+}
+
+class _WalletStatusRepo extends _StatusRepo
+    implements DriverWalletRepository {
+  @override
+  Future<List<DriverWalletAccount>> wallet() async => const [
+        DriverWalletAccount(
+          id: 81,
+          currency: 'KWD',
+          status: 'active',
+          custodyBalance: 42.75,
+          availableToRemit: 30,
+        ),
+      ];
+
+  @override
+  Future<DriverCollectionResult> collect(
+    int assignmentId, {
+    required double amount,
+    required String idempotencyKey,
+  }) async =>
+      DriverCollectionResult(
+        receipt: const DriverCollectionReceipt(
+          id: 1,
+          amount: 1,
+          currency: 'KWD',
+          status: 'posted',
+          createdAt: '2026-10-27T00:00:00Z',
+        ),
+        remainingAmount: 0,
+        currency: 'KWD',
+      );
+
+  @override
+  Future<DriverRemittance> submitRemittance({
+    required int collectionAccountId,
+    required double amount,
+    required String method,
+    String? reference,
+    String? note,
+    required String idempotencyKey,
+  }) async =>
+      DriverRemittance(
+        id: 1,
+        amount: amount,
+        currency: 'KWD',
+        method: method,
+        status: 'pending',
+        createdAt: '2026-10-27T00:00:00Z',
+      );
 }
 
 class _LiveStatusRepo implements DriverAssignmentRepository {
@@ -529,7 +580,7 @@ void main() {
       tester
           .getSize(find.byKey(const Key('driver-home-workload-chart')))
           .height,
-      lessThanOrEqualTo(160),
+      closeTo(192, 0.01),
     );
     expect(
       tester
@@ -543,6 +594,42 @@ void main() {
           .height,
       lessThanOrEqualTo(64),
     );
+  });
+
+  testWidgets(
+      'home shows authoritative unsettled collections and a 20 percent taller workload card',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      FoodexDriverApp(
+        initialSession: session(DriverChannel.b2c),
+        assignmentRepositoryFactory: (_) => _WalletStatusRepo(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .getSize(find.byKey(const Key('driver-home-workload-chart')))
+          .height,
+      closeTo(192, 0.01),
+    );
+    expect(
+      find.byKey(const Key('driver-home-unsettled-collections')),
+      findsOneWidget,
+    );
+    expect(find.text('إجمالي التحصيلات غير المسوّاة'), findsOneWidget);
+    expect(
+      find.byKey(const Key('driver-home-unsettled-collections-value')),
+      findsOneWidget,
+    );
+    expect(find.text('42.750 KWD'), findsOneWidget);
   });
 
   testWidgets(
