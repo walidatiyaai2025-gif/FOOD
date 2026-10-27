@@ -27,6 +27,7 @@ final class FieldOperationsFinanceService
             'reconciliation' => $this->remittances($storeIds, $q, $status, $perPage, true),
             default => $this->wallets($storeIds, $q, $status, $perPage),
         };
+        $driverUnsettledByCurrency = $this->driverUnsettledByCurrency($storeIds);
 
         return [
             'tab' => $tab,
@@ -41,7 +42,43 @@ final class FieldOperationsFinanceService
                 'total' => $paginator->total(),
             ],
             'status_options' => $this->statusOptions($tab),
+            'driver_unsettled_by_currency' => $driverUnsettledByCurrency,
         ];
+    }
+
+    /**
+     * @param  list<int>  $storeIds
+     * @return list<array{currency:string,amount:float}>
+     */
+    private function driverUnsettledByCurrency(array $storeIds): array
+    {
+        if ($storeIds === []) {
+            return [];
+        }
+
+        return DB::table('custody_ledger_entries')
+            ->join(
+                'collection_accounts',
+                'collection_accounts.id',
+                '=',
+                'custody_ledger_entries.collection_account_id',
+            )
+            ->where('collection_accounts.actor_type', 'driver')
+            ->whereIn('collection_accounts.store_id', $storeIds)
+            ->groupBy('collection_accounts.currency')
+            ->orderBy('collection_accounts.currency')
+            ->selectRaw(
+                'collection_accounts.currency as currency, '.
+                'COALESCE(SUM(custody_ledger_entries.amount), 0) as amount',
+            )
+            ->get()
+            ->map(static fn (object $row): array => [
+                'currency' => strtoupper((string) $row->currency),
+                'amount' => round((float) $row->amount, 3),
+            ])
+            ->filter(static fn (array $row): bool => abs($row['amount']) > 0.0005)
+            ->values()
+            ->all();
     }
 
     /** @param  list<int>  $storeIds */
