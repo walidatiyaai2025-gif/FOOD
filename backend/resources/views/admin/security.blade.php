@@ -105,6 +105,57 @@ $roleLabel = static function ($role): string {
     'globalRoleAvailability' => $globalRoleAvailability,
     'storeRoleAvailabilityByStore' => $storeRoleAvailabilityByStore,
 ])
+<details class="card" data-user-permission-overrides>
+<summary>
+    {{ __('security_permissions.user_permissions_title') }}
+    <span class="badge">{{ __('security_permissions.user_permissions_override_count', ['count' => (int) $permissionOverrideCountsByUser->get($managedUser->id, 0)]) }}</span>
+</summary>
+<div class="security-modal-stack">
+    <div class="note">{{ __('security_permissions.user_permissions_description') }}</div>
+    @if($managedUser->roles->contains(fn($role) => $role->code === 'SUPER_ADMIN'))
+        <div class="note">{{ __('security_permissions.user_permissions_super_admin_locked') }}</div>
+    @else
+        @if($managedUser->roles->where('is_active', true)->isNotEmpty())
+        <form method="post" action="{{ route('admin.security.users.permissions', $managedUser) }}" data-impact-form>
+            @csrf
+            @method('put')
+            <input type="hidden" name="scope_type" value="global">
+            <h3>{{ __('security_permissions.user_permissions_global') }}</h3>
+            @include('admin._security-permission-picker', [
+                'selectedPermissionIds' => $effectivePermissionIdsByUser->get($managedUser->id, []),
+                'permissionGroups' => $permissionGroups,
+                'permissionLabels' => $permissionLabels,
+                'permissionGroupLabels' => $permissionGroupLabels,
+                'privilegedPermissionCodes' => $privilegedPermissionCodes,
+                'permissionBoundaryNote' => __('security_permissions.user_permissions_description'),
+                'showPermissionScopeRule' => false,
+            ])
+            <button class="btn primary" type="submit">{{ __('security_permissions.user_permissions_save') }}</button>
+        </form>
+        @endif
+
+        @foreach($managedUser->storeRoleAssignments->pluck('store')->filter()->unique('id') as $permissionStore)
+        <form method="post" action="{{ route('admin.security.users.permissions', $managedUser) }}" data-impact-form>
+            @csrf
+            @method('put')
+            <input type="hidden" name="scope_type" value="store">
+            <input type="hidden" name="store_id" value="{{ $permissionStore->id }}">
+            <h3>{{ __('security_permissions.user_permissions_store', ['store' => $permissionStore->name]) }}</h3>
+            @include('admin._security-permission-picker', [
+                'selectedPermissionIds' => ($effectiveStorePermissionIdsByUser->get($managedUser->id, [])[$permissionStore->id] ?? []),
+                'permissionGroups' => $userPermissionGroupsByStore->get((int) $permissionStore->id, collect()),
+                'permissionLabels' => $userPermissionLabels,
+                'permissionGroupLabels' => $userPermissionGroupLabels,
+                'privilegedPermissionCodes' => $privilegedPermissionCodes,
+                'permissionBoundaryNote' => __('security_permissions.user_permissions_description'),
+                'showPermissionScopeRule' => false,
+            ])
+            <button class="btn primary" type="submit">{{ __('security_permissions.user_permissions_save') }}</button>
+        </form>
+        @endforeach
+    @endif
+</div>
+</details>
 @if($mfaByUser->has($managedUser->id))
 <form method="post" action="{{ route('admin.security.users.mfa.reset',$managedUser) }}" onsubmit="return confirm('{{ __('security_governance.mfa_admin.reset_confirm') }}')">@csrf @method('delete')<button class="btn danger" type="submit">{{ __('security_governance.mfa_admin.reset') }}</button></form>
 @endif
