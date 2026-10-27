@@ -250,7 +250,9 @@ class _DriverHomePageState extends State<_DriverHomePage>
     WidgetsBinding.instance.addObserver(this);
     _homePushSubscription = widget.pushAlerts?.listen(_recordPushAlert);
     unawaited(_loadSummary());
-    _startLiveRefresh();
+    if (widget.previewContext == null) {
+      _startLiveRefresh();
+    }
   }
 
   @override
@@ -277,7 +279,9 @@ class _DriverHomePageState extends State<_DriverHomePage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(_loadSummary(showLoading: false));
-      _startLiveRefresh();
+      if (widget.previewContext == null) {
+        _startLiveRefresh();
+      }
       return;
     }
 
