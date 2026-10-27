@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.0.116 - 2026-10-27
+- Follow-up hardening: reconcile built-in RBAC after Dashboard upgrades and add audited per-user allow/deny permission overrides without mutating assigned roles.
 - Repair existing FOODEX installations where Customer Service Supervisor/Agent received `orders.dispatch` in configuration but the already-run historical permission migration did not backfill the `permission_role` pivot.
 - Add an idempotent upgrade migration that grants `orders.dispatch` to `CUSTOMER_SERVICE_MANAGER`, `CUSTOMER_SERVICE_SUPERVISOR` and `CUSTOMER_SERVICE_AGENT` on existing databases.
 - Restore the Driver/Van assignment dropdown in Order Management for authorized Customer Service roles after upgrade, without granting `orders.manage` or driver administration.
