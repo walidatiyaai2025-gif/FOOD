@@ -270,11 +270,14 @@ final class DriverCollectionController extends Controller
     /** @return array<string,mixed> */
     private function walletSummary(CollectionAccount $account, CollectionCustodyService $custody): array
     {
+        $custodyBalance = round($custody->custodyBalance($account), 3);
+
         return [
             'id' => (int) $account->getKey(),
             'currency' => (string) $account->currency,
             'status' => (string) $account->status,
-            'custody_balance' => round($custody->custodyBalance($account), 3),
+            'custody_balance' => $custodyBalance,
+            'unsettled_collections' => $custodyBalance,
             'available_to_remit' => round($custody->availableToRemit($account), 3),
         ];
     }
