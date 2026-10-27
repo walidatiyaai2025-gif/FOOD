@@ -68,6 +68,16 @@ final class SystemAdministrationCompletionTest extends TestCase
         $this->assertStringContainsString('$this->runtime->healthCheck()', $snapshot);
     }
 
+    public function test_dashboard_updater_reconciles_builtin_roles_after_rebuilding_new_config_cache(): void
+    {
+        $runtime = file_get_contents(app_path('Domain/Updater/LaravelUpdateRuntime.php'));
+
+        $this->assertIsString($runtime);
+        $this->assertStringContainsString('config:cache', $runtime);
+        $this->assertStringContainsString('$this->reconcileBuiltInJobRoles();', $runtime);
+        $this->assertStringContainsString('Database\\\\Seeders\\\\BuiltInJobRoleSeeder', $runtime);
+    }
+
     public function test_failed_job_runtime_store_and_exports_are_redacted_by_contract(): void
     {
         $migration = file_get_contents(database_path('migrations/2026_10_17_121000_create_failed_jobs_runtime_store.php'));
