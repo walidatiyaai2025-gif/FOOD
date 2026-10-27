@@ -126,6 +126,17 @@ final class RbacManager
             ->map(static fn ($assignment): string => ((int) $assignment->role_id).':'.((int) $assignment->store_id))
             ->all();
 
+        $newGlobalRoleIds = collect($globalRoleIds)->map('intval')->sort()->values()->all();
+        $existingGlobalRoleIds = collect($currentGlobalRoleIds)->map('intval')->sort()->values()->all();
+        $newStorePairs = collect($storeRoles)
+            ->map(static fn (array $assignment): string => ((int) $assignment['role_id']).':'.((int) $assignment['store_id']))
+            ->sort()
+            ->values()
+            ->all();
+        $existingStorePairs = collect($currentStorePairs)->sort()->values()->all();
+        $assignmentsChanged = $newGlobalRoleIds !== $existingGlobalRoleIds
+            || $newStorePairs !== $existingStorePairs;
+
         $this->jobRoles->assertAssignmentsAvailable(
             $globalRoles->values(),
             array_map(
@@ -151,9 +162,15 @@ final class RbacManager
 
         $before = $this->userSnapshot($target);
 
-        DB::transaction(function () use ($target, $globalRoleIds, $storeRoles): void {
+        DB::transaction(function () use ($target, $globalRoleIds, $storeRoles, $assignmentsChanged): void {
             $target->roles()->sync($globalRoleIds);
             $target->storeRoleAssignments()->delete();
+
+            if ($assignmentsChanged) {
+                DB::table('user_permission_overrides')
+                    ->where('user_id', $target->getKey())
+                    ->delete();
+            }
 
             if ($storeRoles !== []) {
                 $now = now();
@@ -172,6 +189,141 @@ final class RbacManager
 
         $fresh = $target->refresh()->load(['roles', 'storeRoleAssignments.role', 'storeRoleAssignments.store']);
         $this->audit->record('user.roles_changed', $actor, $fresh, $before, $this->userSnapshot($fresh), $request);
+
+        return $fresh;
+    }
+
+    /**
+     * @param  list<int>  $selectedPermissionIds
+     */
+    public function replaceUserPermissions(
+        User $actor,
+        User $target,
+        array $selectedPermissionIds,
+        string $scopeType,
+        ?int $storeId,
+        Request $request,
+    ): User {
+        if ($target->hasRole('SUPER_ADMIN')) {
+            throw ValidationException::withMessages([
+                'permission_ids' => [__('security_permissions.super_admin_permissions_protected')],
+            ]);
+        }
+
+        if (! in_array($scopeType, ['global', 'store'], true)) {
+            throw ValidationException::withMessages([
+                'scope_type' => [__('security_permissions.user_permission_scope_invalid')],
+            ]);
+        }
+
+        if ($scopeType === 'global') {
+            $storeId = null;
+            if (! $target->roles()
+                ->where('roles.is_active', true)
+                ->where('roles.scope', 'global')
+                ->exists()) {
+                throw ValidationException::withMessages([
+                    'permission_ids' => [__('security_permissions.user_permission_role_required')],
+                ]);
+            }
+        } else {
+            if ($storeId === null || ! $this->userHasStorePermissionContext($target, $storeId)) {
+                throw ValidationException::withMessages([
+                    'store_id' => [__('security_permissions.user_permission_store_scope_invalid')],
+                ]);
+            }
+        }
+
+        $selectedPermissionIds = array_values(array_unique(array_map('intval', $selectedPermissionIds)));
+        $selectedPermissions = Permission::query()
+            ->whereIn('id', $selectedPermissionIds)
+            ->get(['id', 'code'])
+            ->keyBy('id');
+
+        if ($selectedPermissions->count() !== count($selectedPermissionIds)) {
+            throw ValidationException::withMessages([
+                'permission_ids' => [__('admin.security.errors.permission_missing')],
+            ]);
+        }
+
+        $this->assertUserPermissionDomain(
+            $target,
+            $scopeType,
+            $selectedPermissions->pluck('code')->map('strval')->values()->all(),
+        );
+
+        $actorCodes = $actor->hasRole('SUPER_ADMIN')
+            ? collect(array_keys((array) config('permissions.abilities', [])))
+            : collect($actor->effectivePermissionCodes($storeId));
+
+        $manageablePermissions = Permission::query()
+            ->whereIn('code', $actorCodes->all())
+            ->get(['id', 'code'])
+            ->keyBy('id');
+
+        $outsideAuthority = $selectedPermissions->keys()->diff($manageablePermissions->keys());
+        if ($outsideAuthority->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'permission_ids' => [__('admin.security.errors.cannot_grant_higher')],
+            ]);
+        }
+
+        $scopeKey = $scopeType === 'global' ? 'global' : 'store:'.$storeId;
+        $baselineCodes = collect($target->inheritedPermissionCodes($storeId));
+        $selectedIdSet = collect($selectedPermissionIds)->flip();
+        $before = $this->userSnapshot($target);
+
+        DB::transaction(function () use (
+            $target,
+            $manageablePermissions,
+            $selectedIdSet,
+            $baselineCodes,
+            $scopeKey,
+            $scopeType,
+            $storeId,
+        ): void {
+            DB::table('user_permission_overrides')
+                ->where('user_id', $target->getKey())
+                ->where('scope_key', $scopeKey)
+                ->whereIn('permission_id', $manageablePermissions->keys()->all())
+                ->delete();
+
+            $rows = [];
+            $now = now();
+
+            foreach ($manageablePermissions as $permission) {
+                $selected = $selectedIdSet->has((int) $permission->id);
+                $inherited = $baselineCodes->contains((string) $permission->code);
+
+                if ($selected === $inherited) {
+                    continue;
+                }
+
+                $rows[] = [
+                    'user_id' => $target->getKey(),
+                    'permission_id' => (int) $permission->id,
+                    'scope_key' => $scopeKey,
+                    'store_id' => $scopeType === 'store' ? $storeId : null,
+                    'effect' => $selected ? 'allow' : 'deny',
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            if ($rows !== []) {
+                DB::table('user_permission_overrides')->insert($rows);
+            }
+        });
+
+        $fresh = $target->refresh();
+        $this->audit->record(
+            'user.permissions_changed',
+            $actor,
+            $fresh,
+            $before,
+            $this->userSnapshot($fresh),
+            $request,
+        );
 
         return $fresh;
     }
@@ -328,6 +480,62 @@ final class RbacManager
         }
     }
 
+    /** @param list<string> $permissionCodes */
+    private function assertUserPermissionDomain(User $target, string $scopeType, array $permissionCodes): void
+    {
+        $globalRoleCodes = $target->roles()
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'global')
+            ->pluck('roles.code')
+            ->map('strval')
+            ->all();
+
+        $retailDomain = $scopeType === 'store'
+            || collect($globalRoleCodes)->contains(
+                static fn (string $code): bool => $code === 'B2C_DRIVER' || str_starts_with($code, 'RETAIL_'),
+            );
+        $wholesaleDomain = $scopeType === 'global'
+            && collect($globalRoleCodes)->contains(
+                static fn (string $code): bool => $code !== 'B2C_DRIVER' && ! str_starts_with($code, 'RETAIL_'),
+            );
+
+        $forbidden = collect($permissionCodes)->filter(function (string $code) use ($retailDomain, $wholesaleDomain): bool {
+            $allowedByRetail = $retailDomain && ! $this->permissionCrossesRetailBoundary($code);
+            $allowedByWholesale = $wholesaleDomain
+                && ! str_starts_with($code, 'drivers.b2c.')
+                && ! str_starts_with($code, 'deliveries.b2c.');
+
+            return ! $allowedByRetail && ! $allowedByWholesale;
+        });
+
+        if ($forbidden->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'permission_ids' => [__('security_permissions.user_permission_domain_invalid')],
+            ]);
+        }
+    }
+
+    private function permissionCrossesRetailBoundary(string $code): bool
+    {
+        return str_starts_with($code, 'b2b.')
+            || str_starts_with($code, 'drivers.b2b.')
+            || str_starts_with($code, 'deliveries.b2b.')
+            || in_array($code, [
+                'platform.manage',
+                'security.view',
+                'roles.manage',
+                'users.view',
+                'users.roles.manage',
+                'users.status.manage',
+                'translations.manage',
+                'system.update',
+                'demo_data.manage',
+                'mobile_settings.manage',
+                'push_settings.manage',
+                'push_settings.test',
+            ], true);
+    }
+
     /** @param list<int> $permissionIds */
     private function assertRolePermissionDomain(string $roleCode, string $scope, array $permissionIds): void
     {
@@ -339,24 +547,7 @@ final class RbacManager
         $retailRole = $scope === 'store' || $roleCode === 'B2C_DRIVER' || str_starts_with($roleCode, 'RETAIL_');
 
         if ($retailRole) {
-            $forbidden = $codes->filter(static fn (string $code): bool => str_starts_with($code, 'b2b.')
-                || str_starts_with($code, 'drivers.b2b.')
-                || str_starts_with($code, 'deliveries.b2b.')
-                || in_array($code, [
-                    'platform.manage',
-                    'security.view',
-                    'roles.manage',
-                    'users.view',
-                    'users.roles.manage',
-                    'users.status.manage',
-                    'translations.manage',
-                    'system.update',
-                    'demo_data.manage',
-                    'mobile_settings.manage',
-                    'push_settings.manage',
-                    'push_settings.test',
-                ], true)
-            );
+            $forbidden = $codes->filter(fn (string $code): bool => $this->permissionCrossesRetailBoundary($code));
         } else {
             $forbidden = $codes->filter(static fn (string $code): bool => str_starts_with($code, 'drivers.b2c.')
                 || str_starts_with($code, 'deliveries.b2c.')
@@ -385,6 +576,37 @@ final class RbacManager
         }
     }
 
+    private function userHasStorePermissionContext(User $user, int $storeId): bool
+    {
+        $channel = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $storeId)
+            ->where('stores.is_active', true)
+            ->value('store_types.code');
+
+        if (! is_string($channel) || $channel === '') {
+            return false;
+        }
+
+        $channel = strtolower($channel);
+        if ($channel === 'b2c' && $user->storeRoleAssignments()
+            ->where('store_id', $storeId)
+            ->whereHas('role', fn ($query) => $query
+                ->where('is_active', true)
+                ->where('scope', 'store'))
+            ->exists()) {
+            return true;
+        }
+
+        $allowedGlobalRoles = array_values((array) config("admin.channels.{$channel}.global_roles", []));
+
+        return $allowedGlobalRoles !== [] && $user->roles()
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'global')
+            ->whereIn('roles.code', $allowedGlobalRoles)
+            ->exists();
+    }
+
     /** @return array<string, mixed> */
     private function userSnapshot(User $user): array
     {
@@ -403,6 +625,22 @@ final class RbacManager
                 ])
                 ->sortBy(static fn (array $assignment): string => sprintf('%020d:%s', $assignment['store_id'], $assignment['role']))
                 ->values()
+                ->all(),
+            'permission_overrides' => DB::table('user_permission_overrides')
+                ->join('permissions', 'permissions.id', '=', 'user_permission_overrides.permission_id')
+                ->where('user_permission_overrides.user_id', $user->getKey())
+                ->orderBy('user_permission_overrides.scope_key')
+                ->orderBy('permissions.code')
+                ->get([
+                    'permissions.code',
+                    'user_permission_overrides.scope_key',
+                    'user_permission_overrides.effect',
+                ])
+                ->map(static fn ($row): array => [
+                    'code' => (string) $row->code,
+                    'scope' => (string) $row->scope_key,
+                    'effect' => (string) $row->effect,
+                ])
                 ->all(),
         ];
     }
