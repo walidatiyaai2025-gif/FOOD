@@ -159,8 +159,11 @@ void main() {
     expect(find.text('STORE-41'), findsOneWidget);
     expect(find.text('STORE-42'), findsNothing);
     expect(find.text('WHOLESALE'), findsNothing);
-    expect(find.textContaining('Safe preview'), findsOneWidget);
-    expect(find.textContaining('draft-17'), findsOneWidget);
+    expect(find.byKey(const Key('driver-shell')), findsOneWidget);
+    expect(
+      find.byKey(const Key('driver-preview-configuration-invalid')),
+      findsNothing,
+    );
   });
 
   testWidgets(
