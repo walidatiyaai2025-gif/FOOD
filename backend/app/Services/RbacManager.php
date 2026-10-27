@@ -229,6 +229,12 @@ final class RbacManager
             ]);
         }
 
+        $this->assertUserPermissionDomain(
+            $target,
+            $scopeType,
+            $selectedPermissions->pluck('code')->map('strval')->values()->all(),
+        );
+
         $actorCodes = $actor->hasRole('SUPER_ADMIN')
             ? collect(array_keys((array) config('permissions.abilities', [])))
             : collect($actor->effectivePermissionCodes($storeId));
@@ -457,6 +463,62 @@ final class RbacManager
         }
     }
 
+    /** @param list<string> $permissionCodes */
+    private function assertUserPermissionDomain(User $target, string $scopeType, array $permissionCodes): void
+    {
+        $globalRoleCodes = $target->roles()
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'global')
+            ->pluck('roles.code')
+            ->map('strval')
+            ->all();
+
+        $retailDomain = $scopeType === 'store'
+            || collect($globalRoleCodes)->contains(
+                static fn (string $code): bool => $code === 'B2C_DRIVER' || str_starts_with($code, 'RETAIL_'),
+            );
+        $wholesaleDomain = $scopeType === 'global'
+            && collect($globalRoleCodes)->contains(
+                static fn (string $code): bool => $code !== 'B2C_DRIVER' && ! str_starts_with($code, 'RETAIL_'),
+            );
+
+        $forbidden = collect($permissionCodes)->filter(function (string $code) use ($retailDomain, $wholesaleDomain): bool {
+            $allowedByRetail = $retailDomain && ! $this->permissionCrossesRetailBoundary($code);
+            $allowedByWholesale = $wholesaleDomain
+                && ! str_starts_with($code, 'drivers.b2c.')
+                && ! str_starts_with($code, 'deliveries.b2c.');
+
+            return ! $allowedByRetail && ! $allowedByWholesale;
+        });
+
+        if ($forbidden->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'permission_ids' => [__('security_permissions.user_permission_domain_invalid')],
+            ]);
+        }
+    }
+
+    private function permissionCrossesRetailBoundary(string $code): bool
+    {
+        return str_starts_with($code, 'b2b.')
+            || str_starts_with($code, 'drivers.b2b.')
+            || str_starts_with($code, 'deliveries.b2b.')
+            || in_array($code, [
+                'platform.manage',
+                'security.view',
+                'roles.manage',
+                'users.view',
+                'users.roles.manage',
+                'users.status.manage',
+                'translations.manage',
+                'system.update',
+                'demo_data.manage',
+                'mobile_settings.manage',
+                'push_settings.manage',
+                'push_settings.test',
+            ], true);
+    }
+
     /** @param list<int> $permissionIds */
     private function assertRolePermissionDomain(string $roleCode, string $scope, array $permissionIds): void
     {
@@ -468,24 +530,7 @@ final class RbacManager
         $retailRole = $scope === 'store' || $roleCode === 'B2C_DRIVER' || str_starts_with($roleCode, 'RETAIL_');
 
         if ($retailRole) {
-            $forbidden = $codes->filter(static fn (string $code): bool => str_starts_with($code, 'b2b.')
-                || str_starts_with($code, 'drivers.b2b.')
-                || str_starts_with($code, 'deliveries.b2b.')
-                || in_array($code, [
-                    'platform.manage',
-                    'security.view',
-                    'roles.manage',
-                    'users.view',
-                    'users.roles.manage',
-                    'users.status.manage',
-                    'translations.manage',
-                    'system.update',
-                    'demo_data.manage',
-                    'mobile_settings.manage',
-                    'push_settings.manage',
-                    'push_settings.test',
-                ], true)
-            );
+            $forbidden = $codes->filter(fn (string $code): bool => $this->permissionCrossesRetailBoundary($code));
         } else {
             $forbidden = $codes->filter(static fn (string $code): bool => str_starts_with($code, 'drivers.b2c.')
                 || str_starts_with($code, 'deliveries.b2c.')
