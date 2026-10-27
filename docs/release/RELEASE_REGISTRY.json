@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.95",
+  "current_version": "1.0.113",
   "releases": [
     {
       "version": "1.0.40",
@@ -314,6 +314,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "ab7eba23f4a7e1eb3f0eca1a18b3356d835d6cc14528f6f1e22178741ef7e824",
       "note": "FOODEX 1.0.95 synchronized release registered with the latest generated distribution from source af349101a6a570ac7027f5d79753cb77d59858ed. Dashboard update is directly deployable over 1.0.90; Customer, Driver and Van artifacts are synchronized at 1.0.95 build 96."
+    },
+    {
+      "version": "1.0.113",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.113.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "35b5f017042b723b52455dc7d0a1007861c850a507fb5d62339e6dbd630ba564",
+      "note": "FOODEX 1.0.113 synchronized release from source 229969a3c0e797ad81a8ee0f56c170d6303f85d0. Registry backfill restores the published Dashboard update boundary required by the subsequent 1.0.114 release."
     }
   ]
 }
