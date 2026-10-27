@@ -10,6 +10,7 @@ use App\Services\AdminSessionRegistry;
 use App\Services\AdminWhatsAppOtpService;
 use App\Services\AuditLogger;
 use App\Services\CredentialAuthenticator;
+use App\Services\LoginAttemptThrottle;
 use App\Support\AdminNavigation;
 use App\Support\B2cWorkspaceLandingResolver;
 use Illuminate\Contracts\View\View;
@@ -29,6 +30,7 @@ class AdminLoginController extends Controller
         private readonly AdminNavigation $navigation,
         private readonly B2cWorkspaceLandingResolver $workspaceLanding,
         private readonly CredentialAuthenticator $credentials,
+        private readonly LoginAttemptThrottle $loginThrottle,
         private readonly AuditLogger $audit,
         private readonly AdminSecurityPolicy $securityPolicy,
         private readonly AdminSessionRegistry $securitySessions,
@@ -90,9 +92,13 @@ class AdminLoginController extends Controller
                 ]);
             }
 
+            $this->loginThrottle->ensureAllowed($request, $identifier);
+
             $user = $this->credentials->authenticate($identifier, (string) $data['password']);
 
             if ($user === null) {
+                $this->loginThrottle->hit($request, $identifier);
+
                 Log::notice('Management login denied', [
                     'channel' => $channel,
                     'reason' => 'invalid_or_inactive_credentials',
@@ -103,6 +109,8 @@ class AdminLoginController extends Controller
                     'email' => [__('admin_login.invalid_credentials')],
                 ]);
             }
+
+            $this->loginThrottle->clear($request, $identifier);
 
             return $this->completeLogin($request, $user, $channel, $locale, 'password');
         }
