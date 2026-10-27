@@ -126,8 +126,8 @@ final class RbacManager
             ->map(static fn ($assignment): string => ((int) $assignment->role_id).':'.((int) $assignment->store_id))
             ->all();
 
-        $newGlobalRoleIds = collect($globalRoleIds)->map('intval')->sort()->values()->all();
-        $existingGlobalRoleIds = collect($currentGlobalRoleIds)->map('intval')->sort()->values()->all();
+        $newGlobalRoleIds = collect($globalRoleIds)->map(static fn ($value): int => (int) $value)->sort()->values()->all();
+        $existingGlobalRoleIds = collect($currentGlobalRoleIds)->map(static fn ($value): int => (int) $value)->sort()->values()->all();
         $newStorePairs = collect($storeRoles)
             ->map(static fn (array $assignment): string => ((int) $assignment['role_id']).':'.((int) $assignment['store_id']))
             ->sort()
@@ -249,7 +249,7 @@ final class RbacManager
         $this->assertUserPermissionDomain(
             $target,
             $scopeType,
-            $selectedPermissions->pluck('code')->map('strval')->values()->all(),
+            $selectedPermissions->pluck('code')->map(static fn ($value): string => (string) $value)->values()->all(),
         );
 
         $actorCodes = $actor->hasRole('SUPER_ADMIN')
@@ -487,7 +487,7 @@ final class RbacManager
             ->where('roles.is_active', true)
             ->where('roles.scope', 'global')
             ->pluck('roles.code')
-            ->map('strval')
+            ->map(static fn ($value): string => (string) $value)
             ->all();
 
         $retailDomain = $scopeType === 'store'
