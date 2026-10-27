@@ -369,6 +369,9 @@ void main() {
       find.descendant(of: pendingCard, matching: find.text('0')),
       findsOneWidget,
     );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
   });
 
   testWidgets('home shows a one-time popup when a new assigned order arrives',
