@@ -569,9 +569,14 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    CustomerDataModeController.instance.setBackgrounded(
-      state != AppLifecycleState.resumed,
-    );
+    final resumed = state == AppLifecycleState.resumed;
+    CustomerDataModeController.instance.setBackgrounded(!resumed);
+    if (resumed) {
+      _bindPushSession();
+      if (!_session.isAuthenticated) {
+        unawaited(widget.pushService?.bindGuest());
+      }
+    }
   }
 
   @override
