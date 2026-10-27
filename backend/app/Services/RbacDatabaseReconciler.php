@@ -123,7 +123,32 @@ final class RbacDatabaseReconciler
             }
         }
 
+        $this->reconcileUserOverrideMarkers();
+
         return $removed;
+    }
+
+    private function reconcileUserOverrideMarkers(): void
+    {
+        if (! Schema::hasColumn('users', 'has_permission_overrides')) {
+            return;
+        }
+
+        DB::table('users')
+            ->where('has_permission_overrides', true)
+            ->update(['has_permission_overrides' => false]);
+
+        $userIds = DB::table('user_permission_overrides')
+            ->distinct()
+            ->pluck('user_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+
+        if ($userIds !== []) {
+            DB::table('users')
+                ->whereIn('id', $userIds)
+                ->update(['has_permission_overrides' => true]);
+        }
     }
 
     /**
