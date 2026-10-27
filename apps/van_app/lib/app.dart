@@ -68,7 +68,8 @@ class FoodexVanApp extends StatefulWidget {
   State<FoodexVanApp> createState() => _FoodexVanAppState();
 }
 
-class _FoodexVanAppState extends State<FoodexVanApp> {
+class _FoodexVanAppState extends State<FoodexVanApp>
+    with WidgetsBindingObserver {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final GlobalKey<ScaffoldMessengerState> _messengerKey =
       GlobalKey<ScaffoldMessengerState>();
@@ -85,6 +86,7 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _authRepository =
         widget.authRepository ?? HttpVanAuthRepository(FoodexEnvironment.apiBaseUrl);
     _sessionStore = widget.sessionStore ?? SecureVanSessionStore();
@@ -290,7 +292,17 @@ class _FoodexVanAppState extends State<FoodexVanApp> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    final session = _session;
+    if (session != null && session.canUseVan) {
+      unawaited(widget.pushService?.bindSession(session.token));
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _disposeLocationTracking();
     unawaited(_pushAlertSubscription?.cancel());
     unawaited(widget.pushService?.dispose());
