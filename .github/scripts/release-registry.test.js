@@ -12,6 +12,7 @@ const {
   compareVersions,
   validateRegistry,
   validationVersionForCandidate,
+  isDashboardUpdateCandidateBranch,
 } = require('./release-registry.js');
 
 function fixture(version = '1.0.40') {
@@ -151,6 +152,21 @@ test('unpublished PR candidate may advance VERSION while published registry stay
 
   assert.equal(validationVersion, '1.0.57');
   assert.doesNotThrow(() => validateRegistry(root, registry, validationVersion));
+});
+
+test('dashboard update PR head is recognized when base is main', () => {
+  assert.equal(
+    isDashboardUpdateCandidateBranch('main', '2425/merge', 'release/1.0.115-update'),
+    true,
+  );
+  assert.equal(
+    isDashboardUpdateCandidateBranch('release/1.0.115-update', 'main', ''),
+    true,
+  );
+  assert.equal(
+    isDashboardUpdateCandidateBranch('main', '2425/merge', 'fix/2425-something'),
+    false,
+  );
 });
 
 test('dashboard-only candidate may defer stale generated artifact validation until release workflow', () => {

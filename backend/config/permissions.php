@@ -171,11 +171,11 @@ return [
         'CUSTOMER_SERVICE_AGENT' => [
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply',
             'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
-            'stores.view', 'customers.view', 'orders.view', 'orders.create',
+            'stores.view', 'customers.view', 'orders.view', 'orders.create', 'orders.dispatch',
         ],
         'CUSTOMER_SERVICE_SUPERVISOR' => [
             'stores.view', 'customers.view', 'customers.edit', 'customers.manage',
-            'orders.view', 'orders.create',
+            'orders.view', 'orders.create', 'orders.dispatch',
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage',
             'inventory.view', 'inventory.adjust', 'inventory.manage',
             'promotions.view', 'promotions.manage',

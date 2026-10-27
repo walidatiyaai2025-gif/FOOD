@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.115 - 2026-10-27
+- Publish the requested Dashboard hotfix immediately after 1.0.114; operator shorthand is `1.0.114+1`, while the canonical installable updater target is `1.0.115` because FOODEX Dashboard updates accept only major.minor.patch versions.
+- Grant `orders.dispatch` to `CUSTOMER_SERVICE_SUPERVISOR` and `CUSTOMER_SERVICE_AGENT` so authorized Customer Service staff can assign, reassign and unassign Driver/Van execution directly from the unified Order Management grid.
+- Keep elevated order management and driver administration unchanged: Customer Service Supervisor/Agent do not receive `orders.manage`, live driver tracking, or driver-registry management.
+- Add regression coverage for Customer Service dispatch permission and tenant/channel scope.
+- Publish as Dashboard/backend-only; Customer, Driver and Van source identities remain `1.0.114+114` and mobile APKs are not rebuilt.
+
 ## 1.0.114 - 2026-10-27
 - Harden Customer, Driver and Van Firebase device registration so reinstall, FCM token rotation, transient backend/Firebase failure and app resume cannot silently leave an authenticated runtime without a registered push device.
 - Add bounded push-registration retry/backoff across all three mobile apps while preserving explicit logout revocation, app/user/channel authorization and token-refresh reconciliation.
