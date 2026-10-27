@@ -105,6 +105,24 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(120)->by('login-ip:'.$request->ip());
         });
 
+        RateLimiter::for('registration', function (Request $request): array {
+            $identifier = Str::lower(trim((string) $request->input('email', '')));
+
+            return [
+                Limit::perMinute(60)->by('registration-ip:'.$request->ip()),
+                Limit::perMinute(5)->by('registration:'.$identifier.'|'.$request->ip()),
+            ];
+        });
+
+        RateLimiter::for('mobile-trial-login', function (Request $request): array {
+            $identifier = Str::lower(trim((string) $request->input('username', '')));
+
+            return [
+                Limit::perMinute(60)->by('mobile-trial-login-ip:'.$request->ip()),
+                Limit::perMinute(5)->by('mobile-trial-login:'.$identifier.'|'.$request->ip()),
+            ];
+        });
+
         RateLimiter::for('assistant', function (Request $request): Limit {
             $userId = $request->user()?->getAuthIdentifier();
             $key = $userId === null ? 'assistant:ip:'.$request->ip() : 'assistant:user:'.$userId;
