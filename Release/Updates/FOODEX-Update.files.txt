@@ -407,6 +407,7 @@ backend/app/Http/Controllers/Admin/CouponManagementController.php
 backend/app/Http/Controllers/Admin/Customer360Controller.php
 backend/app/Http/Controllers/Admin/CustomerServiceWorkspaceController.php
 backend/app/Http/Controllers/Admin/DriverLiveTrackingDashboardController.php
+backend/app/Http/Controllers/Admin/DriverOrdersController.php
 backend/app/Http/Controllers/Admin/EnterpriseActionCenterController.php
 backend/app/Http/Controllers/Admin/EnterpriseBiController.php
 backend/app/Http/Controllers/Admin/EnterpriseBiScheduleController.php
@@ -1410,6 +1411,7 @@ backend/database/migrations/2026_10_22_020500_add_driver_current_locations_recei
 backend/database/migrations/2026_10_23_121700_add_public_wholesale_web_landing_defaults.php
 backend/database/migrations/2026_10_24_000100_separate_wholesale_web_storefront.php
 backend/database/migrations/2026_10_25_065500_create_assistant_analysis_pipeline.php
+backend/database/migrations/2026_10_26_223000_optimize_order_operations_dashboard_indexes.php
 backend/database/seeders/BuiltInJobRoleSeeder.php
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
@@ -1693,6 +1695,7 @@ backend/resources/views/admin/_dashboard-order-create.blade.php
 backend/resources/views/admin/_driver-assignment-management.blade.php
 backend/resources/views/admin/_driver-live-map-scripts.blade.php
 backend/resources/views/admin/_driver-live-map.blade.php
+backend/resources/views/admin/_driver-orders-popup.blade.php
 backend/resources/views/admin/_engagement-destination-builder.blade.php
 backend/resources/views/admin/_engagement-destination-script.blade.php
 backend/resources/views/admin/_enterprise-bi-overview.blade.php
