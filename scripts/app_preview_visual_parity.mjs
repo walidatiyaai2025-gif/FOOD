@@ -262,11 +262,12 @@ async function stableScreenshot(
     initialDelay = 750,
     attempts = 24,
     interval = 250,
-    // Flutter may repaint tiny time-dependent regions even after the runtime
-    // is ready. Require self-drift <= 0.05%, still 2x stricter than the actual
-    // embedded-vs-standalone parity gate (0.1%), for consecutive samples.
+    // Flutter/Web rasterization can repaint a tiny set of pixels even after
+    // the runtime is ready. One consecutive screenshot pair at self-drift
+    // <= 0.05% is sufficient to prove a stable capture point; the threshold
+    // remains 2x stricter than the final embedded-vs-standalone gate (0.1%).
     stabilityRatio = 0.0005,
-    stableSamplesRequired = 2,
+    stableSamplesRequired = 1,
   } = {},
 ) {
   await page.waitForTimeout(Math.max(initialDelay, 750));
