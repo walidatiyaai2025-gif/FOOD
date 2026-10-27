@@ -325,6 +325,40 @@ class EnterpriseRbacTest extends TestCase
         ]);
     }
 
+    public function test_allow_override_cannot_outlive_its_active_global_role_domain(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN');
+        $target = $this->userWithGlobalRole('CUSTOMER_SERVICE_SUPERVISOR');
+        $ordersManage = Permission::query()->where('code', 'orders.manage')->firstOrFail();
+        $role = Role::query()->where('code', 'CUSTOMER_SERVICE_SUPERVISOR')->firstOrFail();
+
+        $selected = Permission::query()
+            ->whereIn('code', $target->inheritedPermissionCodes())
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->push((int) $ordersManage->id)
+            ->unique()
+            ->values()
+            ->all();
+
+        app(RbacManager::class)->replaceUserPermissions(
+            $admin,
+            $target,
+            $selected,
+            'global',
+            null,
+            Request::create('/test-permissions', 'PUT'),
+        );
+
+        $this->assertTrue($target->fresh()->hasPermission('orders.manage'));
+
+        $role->forceFill(['is_active' => false])->save();
+
+        $fresh = $target->fresh();
+        $this->assertFalse($fresh->hasPermission('orders.manage'));
+        $this->assertNotContains('orders.manage', $fresh->effectivePermissionCodes());
+    }
+
     public function test_changing_user_role_resets_individual_permission_overrides(): void
     {
         $admin = $this->userWithGlobalRole('SUPER_ADMIN');
