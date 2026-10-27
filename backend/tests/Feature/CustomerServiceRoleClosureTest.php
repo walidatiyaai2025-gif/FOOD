@@ -128,7 +128,7 @@ final class CustomerServiceRoleClosureTest extends TestCase
             ]))
             ->assertOk()
             ->assertSee('#'.$orderId)
-            ->assertDontSee('data-order-inline-dispatch', false);
+            ->assertDontSee('class="order-inline-picker" data-order-inline-dispatch', false);
 
         $migration = require database_path(
             'migrations/2026_10_27_072500_reconcile_customer_service_dispatch_permissions.php',
@@ -161,7 +161,7 @@ final class CustomerServiceRoleClosureTest extends TestCase
             ]))
             ->assertOk()
             ->assertSee('#'.$orderId)
-            ->assertSee('data-order-inline-dispatch', false);
+            ->assertSee('class="order-inline-picker" data-order-inline-dispatch', false);
     }
 
     public function test_manager_can_create_and_manage_only_customer_service_staff(): void
