@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.95",
+  "current_version": "1.0.115",
   "releases": [
     {
       "version": "1.0.40",
@@ -314,6 +314,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "ab7eba23f4a7e1eb3f0eca1a18b3356d835d6cc14528f6f1e22178741ef7e824",
       "note": "FOODEX 1.0.95 synchronized release registered with the latest generated distribution from source af349101a6a570ac7027f5d79753cb77d59858ed. Dashboard update is directly deployable over 1.0.90; Customer, Driver and Van artifacts are synchronized at 1.0.95 build 96."
+    },
+    {
+      "version": "1.0.115",
+      "state": "published",
+      "registration": "registry-repair",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.115.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "50559da28c316581ad8b3deeeb8bef1e1caa615972af4d0fb0b44d19dc42ec48",
+      "note": "FOODEX 1.0.115 Dashboard-only hotfix registered from the exact update artifacts merged via PR #2425. The package target is 1.0.115, source 3e0cd06ff3cb1945ab2c8e197eb0255062eb61d7, SHA-256 50559da28c316581ad8b3deeeb8bef1e1caa615972af4d0fb0b44d19dc42ec48; Customer/Driver/Van source identities remain 1.0.114+114."
     }
   ]
 }
