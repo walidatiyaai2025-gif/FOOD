@@ -437,6 +437,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
       }
       return;
     }
+    final walletRepository = repository as DriverWalletRepository;
 
     final now = DateTime.now();
     final lastRefresh = _lastWalletRefreshAt;
@@ -449,7 +450,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
 
     _walletRefreshInFlight = true;
     try {
-      final accounts = await repository.wallet();
+      final accounts = await walletRepository.wallet();
       if (!mounted) return;
       setState(() {
         _walletAccounts = accounts;
