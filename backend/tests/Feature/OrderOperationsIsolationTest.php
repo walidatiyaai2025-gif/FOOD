@@ -542,7 +542,7 @@ class OrderOperationsIsolationTest extends TestCase
                     && ($row['status_visual_state'] ?? null) === 'pending';
             })
             ->assertSee('#'.$order)
-            ->assertSee('This order requires a Customer Service dispatch decision.');
+            ->assertSee('Awaiting dispatch');
     }
 
     public function test_pending_wholesale_order_assigns_driver_without_confirm_or_ready_steps(): void
