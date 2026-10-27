@@ -53,11 +53,16 @@ final class CustomerServiceRoleClosureTest extends TestCase
             $this->assertTrue($staff->hasPermission('orders.view'));
             $this->assertFalse($staff->hasPermission('drivers.tracking.view'));
             $this->assertTrue($staff->hasPermission('orders.create'));
+            $this->assertTrue($staff->hasPermission('orders.dispatch'));
             $this->assertFalse($staff->hasPermission('orders.manage'));
             $this->assertFalse($staff->hasPermission('customer_service.team.manage'));
             $this->assertContains(
                 $principalStoreId,
                 app(OperationalTenantScope::class)->allowedStoreIds($staff, 'orders.create', 'b2b'),
+            );
+            $this->assertContains(
+                $principalStoreId,
+                app(OperationalTenantScope::class)->allowedStoreIds($staff, 'orders.dispatch', 'b2b'),
             );
         }
 
