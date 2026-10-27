@@ -273,6 +273,12 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             throw new RuntimeException('Application caches could not be rebuilt.');
         }
 
+        // Built-in role definitions are configuration-authoritative, while live
+        // authorization reads the persisted permission_role matrix. Reconcile in
+        // a fresh PHP process only after config:cache so upgrades cannot finish
+        // with new role definitions but stale database grants.
+        $this->reconcileBuiltInJobRoles();
+
         $this->ensurePublicStorageLink();
         $this->scheduler->provisionCron();
     }
@@ -622,6 +628,25 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         if (! is_dir($path) && ! @mkdir($path, 0750, true) && ! is_dir($path)) {
             throw new RuntimeException('Required updater directory could not be prepared.');
         }
+    }
+
+    private function reconcileBuiltInJobRoles(): void
+    {
+        $php = (string) config('foodex.scheduler_php_binary', PHP_BINDIR.'/php');
+        $artisan = base_path('artisan');
+
+        if ($php === '' || ! is_file($artisan)) {
+            throw new RuntimeException('Built-in role reconciliation runtime is unavailable.');
+        }
+
+        $this->runProcess([
+            $php,
+            $artisan,
+            'db:seed',
+            '--class=Database\\Seeders\\BuiltInJobRoleSeeder',
+            '--force',
+            '--no-interaction',
+        ]);
     }
 
     private function ensurePublicStorageLink(): void

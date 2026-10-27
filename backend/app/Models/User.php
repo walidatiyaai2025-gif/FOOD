@@ -16,6 +16,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 /**
  * @property bool $is_active
+ * @property bool $has_permission_overrides
  * @property Carbon|null $deactivated_at
  * @property Carbon|null $last_seen_at
  * @property-read Collection<int, Role> $roles
@@ -82,6 +83,38 @@ class User extends Authenticatable
             return true;
         }
 
+        if (! $this->has_permission_overrides) {
+            return $this->hasInheritedPermission($permissionCode, $storeId);
+        }
+
+        $storeEffect = $storeId === null
+            ? null
+            : $this->permissionOverrideEffect($permissionCode, 'store:'.$storeId);
+        if ($storeEffect !== null) {
+            return $storeEffect === 'allow' && $this->hasPermissionScopeContext($storeId);
+        }
+
+        $globalEffect = $this->permissionOverrideEffect($permissionCode, 'global');
+        if ($globalEffect === 'deny') {
+            return false;
+        }
+        if ($globalEffect === 'allow') {
+            if (! $this->permissionFitsActiveGlobalRoleDomain($permissionCode)) {
+                return false;
+            }
+
+            if ($storeId === null) {
+                return true;
+            }
+
+            return $this->hasGlobalRoleContextForChannel((string) $this->storeChannel($storeId));
+        }
+
+        return $this->hasInheritedPermission($permissionCode, $storeId);
+    }
+
+    private function hasInheritedPermission(string $permissionCode, ?int $storeId = null): bool
+    {
         $catalog = app(BuiltInJobRoleCatalog::class);
 
         if ($storeId === null) {
@@ -129,7 +162,7 @@ class User extends Authenticatable
     }
 
     /** @return list<string> */
-    public function effectivePermissionCodes(?int $storeId = null): array
+    public function inheritedPermissionCodes(?int $storeId = null): array
     {
         if ($this->hasRole('SUPER_ADMIN')) {
             return array_keys((array) config('permissions.abilities', []));
@@ -169,11 +202,182 @@ class User extends Authenticatable
         }
 
         return $codes
-            ->filter(fn ($code): bool => is_string($code) && $code !== '')
+            ->filter(fn (string $code): bool => $code !== '')
             ->unique()
             ->sort()
             ->values()
             ->all();
+    }
+
+    /** @return list<string> */
+    public function effectivePermissionCodes(?int $storeId = null): array
+    {
+        if ($this->hasRole('SUPER_ADMIN')) {
+            return array_keys((array) config('permissions.abilities', []));
+        }
+
+        $inherited = $this->inheritedPermissionCodes($storeId);
+        if (! $this->has_permission_overrides) {
+            return $inherited;
+        }
+
+        $codes = collect($inherited);
+        $overrides = $this->permissionOverrideEffects($storeId);
+
+        foreach ($overrides as $code => $effect) {
+            if ($effect === 'deny') {
+                $codes = $codes->reject(fn ($candidate): bool => $candidate === $code);
+
+                continue;
+            }
+
+            if ($storeId === null || $this->hasPermissionScopeContext($storeId)) {
+                $codes->push($code);
+            }
+        }
+
+        return $codes
+            ->filter(fn (string $code): bool => $code !== '')
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    /** @return array<string, 'allow'|'deny'> */
+    public function permissionOverrideEffects(?int $storeId = null): array
+    {
+        if (! $this->has_permission_overrides) {
+            return [];
+        }
+
+        $scopeKeys = $storeId === null ? ['global'] : ['global', 'store:'.$storeId];
+        $rows = DB::table('user_permission_overrides')
+            ->join('permissions', 'permissions.id', '=', 'user_permission_overrides.permission_id')
+            ->where('user_permission_overrides.user_id', $this->getKey())
+            ->whereIn('user_permission_overrides.scope_key', $scopeKeys)
+            ->orderByRaw("CASE WHEN user_permission_overrides.scope_key = 'global' THEN 0 ELSE 1 END")
+            ->get([
+                'permissions.code',
+                'user_permission_overrides.effect',
+                'user_permission_overrides.scope_key',
+            ]);
+
+        $effects = [];
+        $globalContext = $storeId === null
+            || $this->hasGlobalRoleContextForChannel((string) $this->storeChannel($storeId));
+
+        foreach ($rows as $row) {
+            if (! is_string($row->code) || ! in_array($row->effect, ['allow', 'deny'], true)) {
+                continue;
+            }
+            if ($row->scope_key === 'global'
+                && $row->effect === 'allow'
+                && (! $globalContext || ! $this->permissionFitsActiveGlobalRoleDomain((string) $row->code))) {
+                continue;
+            }
+
+            $effects[$row->code] = $row->effect;
+        }
+
+        return $effects;
+    }
+
+    private function permissionOverrideEffect(string $permissionCode, string $scopeKey): ?string
+    {
+        if (! $this->has_permission_overrides) {
+            return null;
+        }
+
+        $effect = DB::table('user_permission_overrides')
+            ->join('permissions', 'permissions.id', '=', 'user_permission_overrides.permission_id')
+            ->where('user_permission_overrides.user_id', $this->getKey())
+            ->where('user_permission_overrides.scope_key', $scopeKey)
+            ->where('permissions.code', $permissionCode)
+            ->value('user_permission_overrides.effect');
+
+        return is_string($effect) && in_array($effect, ['allow', 'deny'], true) ? $effect : null;
+    }
+
+    private function permissionFitsActiveGlobalRoleDomain(string $permissionCode): bool
+    {
+        $roleCodes = $this->roles()
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'global')
+            ->pluck('roles.code')
+            ->map(static fn ($value): string => (string) $value);
+
+        $retailDomain = $roleCodes->contains(
+            static fn (string $code): bool => $code === 'B2C_DRIVER' || str_starts_with($code, 'RETAIL_'),
+        );
+        $wholesaleDomain = $roleCodes->contains(
+            static fn (string $code): bool => $code !== 'B2C_DRIVER' && ! str_starts_with($code, 'RETAIL_'),
+        );
+
+        $allowedByRetail = $retailDomain && ! $this->permissionCrossesRetailBoundary($permissionCode);
+        $allowedByWholesale = $wholesaleDomain
+            && ! str_starts_with($permissionCode, 'drivers.b2c.')
+            && ! str_starts_with($permissionCode, 'deliveries.b2c.');
+
+        return $allowedByRetail || $allowedByWholesale;
+    }
+
+    private function permissionCrossesRetailBoundary(string $code): bool
+    {
+        return str_starts_with($code, 'b2b.')
+            || str_starts_with($code, 'drivers.b2b.')
+            || str_starts_with($code, 'deliveries.b2b.')
+            || in_array($code, [
+                'platform.manage',
+                'security.view',
+                'roles.manage',
+                'users.view',
+                'users.roles.manage',
+                'users.status.manage',
+                'translations.manage',
+                'system.update',
+                'demo_data.manage',
+                'mobile_settings.manage',
+                'push_settings.manage',
+                'push_settings.test',
+            ], true);
+    }
+
+    private function hasPermissionScopeContext(int $storeId): bool
+    {
+        $channel = $this->storeChannel($storeId);
+        if ($channel === null) {
+            return false;
+        }
+
+        if ($channel === 'b2c' && $this->storeRoleAssignments()
+            ->where('store_id', $storeId)
+            ->whereHas('role', fn ($query) => $query
+                ->where('is_active', true)
+                ->where('scope', 'store'))
+            ->exists()) {
+            return true;
+        }
+
+        return $this->hasGlobalRoleContextForChannel($channel);
+    }
+
+    private function hasGlobalRoleContextForChannel(string $channel): bool
+    {
+        if ($channel === '') {
+            return false;
+        }
+
+        $allowedGlobalRoles = array_values((array) config("admin.channels.{$channel}.global_roles", []));
+        if ($allowedGlobalRoles === []) {
+            return false;
+        }
+
+        return $this->roles()
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'global')
+            ->whereIn('roles.code', $allowedGlobalRoles)
+            ->exists();
     }
 
     private function storeChannel(int $storeId): ?string
@@ -221,6 +425,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'is_platform_customer' => 'boolean',
+            'has_permission_overrides' => 'boolean',
             'deactivated_at' => 'datetime',
             'last_seen_at' => 'datetime',
         ];

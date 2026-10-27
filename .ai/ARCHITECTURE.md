@@ -57,6 +57,10 @@ When changing shared contracts:
 4. authorize live records behind deep links/notifications;
 5. add app-specific regression coverage where behavior differs.
 
+## RBAC authority
+
+Built-in FOODEX roles and canonical permissions are configuration-authoritative. Security mutations must reconcile the built-in role/permission database state before and after the mutation, preserve custom roles and valid scoped user overrides, and record reconciliation audit evidence. Per-user overrides are scoped allow/deny exceptions on top of the assigned role baseline; they do not mutate shared roles and must respect store/channel/domain boundaries.
+
 ## Data and finance
 
 MySQL/MariaDB is authoritative persistent storage. Redis is cache/queue infrastructure, not the sole source of durable business truth.

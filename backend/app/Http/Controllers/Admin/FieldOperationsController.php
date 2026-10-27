@@ -25,6 +25,7 @@ use App\Services\FieldOperationsFinanceService;
 use App\Services\FleetLocationService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderLiveTrackingService;
+use App\Services\RbacDatabaseReconciler;
 use App\Services\RoutingPolicyService;
 use App\Services\TerritoryService;
 use App\Services\VanCustomerCollectionContextService;
@@ -55,6 +56,7 @@ final class FieldOperationsController extends Controller
         private readonly AuditLogger $audit,
         private readonly RoutingPolicyService $routing,
         private readonly CollectionCustodyService $custody,
+        private readonly RbacDatabaseReconciler $rbacDatabase,
     ) {
         // Constructor promotion defines the complete immutable service dependencies.
     }
@@ -438,25 +440,7 @@ final class FieldOperationsController extends Controller
             }
 
             if ($operatorUserId !== null) {
-                $operator = User::query()->findOrFail((int) $operatorUserId);
-                $vanRole = $this->ensureVanOperatorRole();
-                $beforeAccess = $operator->hasPermission('van.login');
-                if ((bool) $data['allow_van_app']) {
-                    $operator->roles()->syncWithoutDetaching([$vanRole->id]);
-                } else {
-                    $operator->roles()->detach($vanRole->id);
-                }
-                $operator->unsetRelation('roles');
-                $afterAccess = $operator->hasPermission('van.login');
-                $this->audit->record('van.runtime_access.updated', $user, $operator, [
-                    'van_login' => $beforeAccess,
-                    'van_id' => (int) $van->id,
-                    'assignment_id' => (int) $assignment->id,
-                ], [
-                    'van_login' => $afterAccess,
-                    'van_id' => (int) $van->id,
-                    'assignment_id' => (int) $assignment->id,
-                ]);
+                $this->applyAssignmentVanAccess($user, $assignment, (bool) $data['allow_van_app']);
             }
         }
 
@@ -1365,6 +1349,8 @@ final class FieldOperationsController extends Controller
 
     private function applyAssignmentVanAccess(User $actor, VanAssignment $assignment, bool $allow): void
     {
+        $this->rbacDatabase->reconcile();
+
         $operatorUserId = null;
         if ($assignment->driver_id !== null) {
             $operatorUserId = DB::table('drivers')->where('id', $assignment->driver_id)->value('user_id');
@@ -1393,6 +1379,10 @@ final class FieldOperationsController extends Controller
 
         $operator->unsetRelation('roles');
         $afterAccess = $operator->hasPermission('van.login');
+        $summary = $this->rbacDatabase->reconcile();
+        $operator->unsetRelation('roles');
+        $afterAccess = $operator->hasPermission('van.login');
+
         $this->audit->record('van.runtime_access.updated', $actor, $operator, [
             'van_login' => $beforeAccess,
             'van_id' => (int) $assignment->van_id,
@@ -1401,6 +1391,10 @@ final class FieldOperationsController extends Controller
             'van_login' => $afterAccess,
             'van_id' => (int) $assignment->van_id,
             'assignment_id' => (int) $assignment->id,
+        ]);
+        $this->audit->record('rbac.database_reconciled', $actor, $operator, null, [
+            'trigger' => 'van.runtime_access.updated',
+            ...$summary,
         ]);
     }
 

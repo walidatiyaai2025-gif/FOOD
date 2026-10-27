@@ -1,5 +1,8 @@
 @php
 $selectedPermissionIds = $selectedPermissionIds ?? [];
+$permissionInputName = $permissionInputName ?? 'permission_ids';
+$permissionBoundaryNote = $permissionBoundaryNote ?? __('security_permissions.grant_boundary_note');
+$showPermissionScopeRule = $showPermissionScopeRule ?? true;
 @endphp
 <div class="permission-picker" data-permission-picker data-impact-form
      data-impact-added="{{ __('security_permissions.impact_added') }}"
@@ -10,8 +13,10 @@ $selectedPermissionIds = $selectedPermissionIds ?? [];
         <span class="muted">{{ __('security_permissions.search_permissions') }}</span>
         <input type="search" data-list-search placeholder="{{ __('security_permissions.search_permissions') }}" autocomplete="off">
     </label>
-    <div class="note">{{ __('security_permissions.grant_boundary_note') }}</div>
-    <div class="note">{{ __('security_permissions.scope_rule') }}</div>
+    <div class="note">{{ $permissionBoundaryNote }}</div>
+    @if($showPermissionScopeRule)
+        <div class="note">{{ __('security_permissions.scope_rule') }}</div>
+    @endif
 
     <div class="permissions" data-search-container>
         @foreach($permissionGroups as $module => $group)
@@ -29,7 +34,7 @@ $selectedPermissionIds = $selectedPermissionIds ?? [];
                     @endphp
                     <label class="permission-option" data-search-item data-search-text="{{ $label }} {{ $permission->code }}">
                         <input type="checkbox"
-                               name="permission_ids[]"
+                               name="{{ $permissionInputName }}[]"
                                value="{{ $permission->id }}"
                                @checked($isChecked)
                                data-original-checked="{{ $isChecked ? '1' : '0' }}"
