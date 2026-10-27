@@ -829,8 +829,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
                 : compact
                     ? 54.0
                     : 62.0;
-            final showUnsettledCollections =
-                widget.walletRoute != null &&
+            final showUnsettledCollections = widget.walletRoute != null &&
                 widget.repository is DriverWalletRepository;
             final statusRows = (_statuses.length / columns).ceil();
             final statusGridHeight =
