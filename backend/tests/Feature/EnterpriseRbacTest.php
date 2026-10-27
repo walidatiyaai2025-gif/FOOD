@@ -347,7 +347,7 @@ class EnterpriseRbacTest extends TestCase
 
         $selected = Permission::query()
             ->whereIn('code', $target->fresh()->inheritedPermissionCodes($storeA))
-            ->whereKeyNot($catalogManage->id)
+            ->where('id', '!=', $catalogManage->id)
             ->pluck('id')
             ->map(static fn ($id): int => (int) $id)
             ->all();
