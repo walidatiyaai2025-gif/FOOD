@@ -117,5 +117,16 @@ return [
     'protected_assignments' => 'This user has one or more assignments outside your grant authority. The assignment editor is locked to prevent accidental privilege loss.',
     'super_admin_permissions_protected' => 'SUPER_ADMIN permissions are protected and remain the complete platform permission set.',
     'scope_rule' => 'Changing role scope may make some permissions invalid. The server validates the final permission set before saving.',
+    'user_permissions_title' => 'Individual user permissions',
+    'user_permissions_description' => 'The role remains the baseline. Checked permissions are the user’s final access for this scope; saving creates only the required allow/deny overrides.',
+    'user_permissions_global' => 'Global user permissions',
+    'user_permissions_store' => 'Store user permissions · :store',
+    'user_permissions_save' => 'Save user permissions',
+    'user_permissions_saved' => 'Individual user permissions were saved.',
+    'user_permissions_override_count' => ':count individual overrides',
+    'user_permission_scope_invalid' => 'The selected user permission scope is invalid.',
+    'user_permission_role_required' => 'Assign at least one active global role before managing global user permissions.',
+    'user_permission_store_scope_invalid' => 'The user does not have an active authorization context for the selected store.',
+    'user_permissions_super_admin_locked' => 'SUPER_ADMIN access is protected and cannot be narrowed or extended with individual overrides.',
 ];
 
