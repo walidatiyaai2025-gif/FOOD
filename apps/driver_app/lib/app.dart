@@ -186,6 +186,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
     _locationTracking?.setAppInForeground(foreground);
     if (foreground) {
       DriverRuntimeInspector.instance.notifyConnectivityRecovered();
+      _bindPushSession();
     }
   }
 
