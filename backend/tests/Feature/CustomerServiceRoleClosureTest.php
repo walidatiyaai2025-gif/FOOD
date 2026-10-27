@@ -6,6 +6,7 @@ use App\Models\PlatformCustomer;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\B2bCustomerService;
+use App\Services\BuiltInJobRoleCatalog;
 use App\Services\CustomerServiceCaseManager;
 use App\Services\OperationalTenantScope;
 use App\Services\PlatformCustomerService;
@@ -418,6 +419,32 @@ final class CustomerServiceRoleClosureTest extends TestCase
                 app(OperationalTenantScope::class)->allowedStoreIds($staff, 'orders.dispatch', 'b2b'),
             );
         }
+    }
+
+    public function test_builtin_role_reconcile_restores_customer_service_dispatch_grants(): void
+    {
+        $permissionId = (int) DB::table('permissions')
+            ->where('code', 'orders.dispatch')
+            ->value('id');
+        $role = Role::query()
+            ->where('code', 'CUSTOMER_SERVICE_SUPERVISOR')
+            ->firstOrFail();
+        $user = $this->userWithRole('CUSTOMER_SERVICE_SUPERVISOR');
+
+        DB::table('permission_role')
+            ->where('permission_id', $permissionId)
+            ->where('role_id', $role->id)
+            ->delete();
+
+        $this->assertFalse($user->fresh()->hasPermission('orders.dispatch'));
+
+        app(BuiltInJobRoleCatalog::class)->reconcile();
+
+        $this->assertTrue($user->fresh()->hasPermission('orders.dispatch'));
+        $this->assertDatabaseHas('permission_role', [
+            'permission_id' => $permissionId,
+            'role_id' => $role->id,
+        ]);
     }
 
     public function test_agent_cannot_manage_customer_service_team(): void
