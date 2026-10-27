@@ -149,7 +149,7 @@ class User extends Authenticatable
         }
 
         return $codes
-            ->filter(fn ($code): bool => is_string($code) && $code !== '')
+            ->filter(fn (string $code): bool => $code !== '')
             ->unique()
             ->sort()
             ->values()
@@ -173,10 +173,8 @@ class User extends Authenticatable
                 continue;
             }
 
-            if ($effect === 'allow') {
-                if ($storeId === null || $this->hasPermissionScopeContext($storeId)) {
-                    $codes->push($code);
-                }
+            if ($storeId === null || $this->hasPermissionScopeContext($storeId)) {
+                $codes->push($code);
             }
         }
 
