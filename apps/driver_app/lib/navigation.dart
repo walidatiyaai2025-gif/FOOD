@@ -511,6 +511,9 @@ class _DriverHomePageState extends State<_DriverHomePage>
 
     try {
       while (mounted && _updateQueue.isNotEmpty) {
+        if (!mounted) break;
+
+        final popupContext = context;
         final event = _updateQueue.removeAt(0);
         final assignment = event.assignment;
         final removed = event.kind == _DriverHomeUpdateKind.removed;
@@ -521,7 +524,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
         };
 
         final openOrder = await showDialog<bool>(
-          context: context,
+          context: popupContext,
           builder: (dialogContext) => AlertDialog(
             key: const Key('driver-home-update-popup'),
             icon: Icon(
@@ -531,13 +534,13 @@ class _DriverHomePageState extends State<_DriverHomePage>
               color: removed ? FoodexBrand.red : FoodexBrand.actionGreen,
               size: 34,
             ),
-            title: Text(context.tr(titleKey)),
+            title: Text(dialogContext.tr(titleKey)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  '${context.tr('driver.notifications.order_identity')} ${assignment.reference}',
+                  '${dialogContext.tr('driver.notifications.order_identity')} ${assignment.reference}',
                   key: const Key('driver-home-update-reference'),
                   maxLines: 1,
                   softWrap: false,
@@ -547,21 +550,21 @@ class _DriverHomePageState extends State<_DriverHomePage>
                 if (!removed) ...[
                   const SizedBox(height: 8),
                   Text(
-                    '${context.tr('driver.home.current_status')}: '
-                    '${context.tr('driver.status.${assignment.status}')}',
+                    '${dialogContext.tr('driver.home.current_status')}: '
+                    '${dialogContext.tr('driver.status.${assignment.status}')}',
                   ),
                 ],
                 if (assignment.customerName.trim().isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(
-                    '${context.tr('driver.detail.customer')}: '
+                    '${dialogContext.tr('driver.detail.customer')}: '
                     '${assignment.customerName.trim()}',
                   ),
                 ],
                 if (!removed && assignment.grandTotal > 0) ...[
                   const SizedBox(height: 6),
                   Text(
-                    '${context.tr('driver.detail.total')}: '
+                    '${dialogContext.tr('driver.detail.total')}: '
                     '${assignment.grandTotal.toStringAsFixed(2)} '
                     '${assignment.currency}',
                     style: const TextStyle(fontWeight: FontWeight.w800),
@@ -573,14 +576,14 @@ class _DriverHomePageState extends State<_DriverHomePage>
               TextButton(
                 key: const Key('driver-home-update-dismiss'),
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(context.tr('driver.dismiss')),
+                child: Text(dialogContext.tr('driver.dismiss')),
               ),
               if (!removed)
                 FilledButton.icon(
                   key: const Key('driver-home-update-open'),
                   onPressed: () => Navigator.of(dialogContext).pop(true),
                   icon: const Icon(Icons.open_in_new_rounded),
-                  label: Text(context.tr('driver.notifications.open')),
+                  label: Text(dialogContext.tr('driver.notifications.open')),
                 ),
             ],
           ),
