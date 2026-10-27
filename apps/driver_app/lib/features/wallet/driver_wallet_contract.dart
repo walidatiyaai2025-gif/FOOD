@@ -86,8 +86,7 @@ class DriverWalletAccount {
         currency: (json['currency'] ?? '').toString(),
         status: (json['status'] ?? '').toString(),
         custodyBalance: (json['custody_balance'] as num?)?.toDouble() ?? 0,
-        availableToRemit:
-            (json['available_to_remit'] as num?)?.toDouble() ?? 0,
+        availableToRemit: (json['available_to_remit'] as num?)?.toDouble() ?? 0,
         unsettledCollections:
             (json['unsettled_collections'] as num?)?.toDouble(),
         transactions: (json['transactions'] as List? ?? const [])
