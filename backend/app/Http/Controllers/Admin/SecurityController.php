@@ -159,10 +159,63 @@ final class SecurityController extends Controller
         )->all();
         $userPermissionIdsByCode = $userPermissions->pluck('id', 'code');
 
+        $permissionCrossesRetailBoundary = static fn (string $code): bool => str_starts_with($code, 'b2b.')
+            || str_starts_with($code, 'drivers.b2b.')
+            || str_starts_with($code, 'deliveries.b2b.')
+            || in_array($code, [
+                'platform.manage',
+                'security.view',
+                'roles.manage',
+                'users.view',
+                'users.roles.manage',
+                'users.status.manage',
+                'translations.manage',
+                'system.update',
+                'demo_data.manage',
+                'mobile_settings.manage',
+                'push_settings.manage',
+                'push_settings.test',
+            ], true);
+
+        $userGlobalPermissionGroupsByUser = $users->getCollection()->mapWithKeys(
+            function (User $managedUser) use ($permissions, $permissionCrossesRetailBoundary): array {
+                $roleCodes = $managedUser->roles
+                    ->where('is_active', true)
+                    ->pluck('code')
+                    ->map('strval');
+                $retailDomain = $roleCodes->contains(
+                    static fn (string $code): bool => $code === 'B2C_DRIVER' || str_starts_with($code, 'RETAIL_'),
+                );
+                $wholesaleDomain = $roleCodes->contains(
+                    static fn (string $code): bool => $code !== 'B2C_DRIVER' && ! str_starts_with($code, 'RETAIL_'),
+                );
+
+                $groups = $permissions
+                    ->filter(function (Permission $permission) use (
+                        $retailDomain,
+                        $wholesaleDomain,
+                        $permissionCrossesRetailBoundary,
+                    ): bool {
+                        $code = (string) $permission->code;
+                        $allowedByRetail = $retailDomain && ! $permissionCrossesRetailBoundary($code);
+                        $allowedByWholesale = $wholesaleDomain
+                            && ! str_starts_with($code, 'drivers.b2c.')
+                            && ! str_starts_with($code, 'deliveries.b2c.');
+
+                        return $allowedByRetail || $allowedByWholesale;
+                    })
+                    ->values()
+                    ->groupBy(static fn (Permission $permission): string => Str::before($permission->code, '.'));
+
+                return [(int) $managedUser->id => $groups];
+            },
+        );
+
         $userPermissionGroupsByStore = $stores->mapWithKeys(function (Store $store) use (
             $isSuperAdmin,
             $actor,
             $userPermissions,
+            $permissionCrossesRetailBoundary,
         ): array {
             $allowedCodes = $isSuperAdmin
                 ? null
@@ -172,6 +225,8 @@ final class SecurityController extends Controller
                 ->when(! $isSuperAdmin, fn ($items) => $items
                     ->filter(fn (Permission $permission): bool => $allowedCodes?->contains($permission->code) === true)
                     ->values())
+                ->filter(fn (Permission $permission): bool => ! $permissionCrossesRetailBoundary((string) $permission->code))
+                ->values()
                 ->groupBy(static fn (Permission $permission): string => Str::before($permission->code, '.'));
 
             return [(int) $store->id => $groups];
@@ -368,6 +423,7 @@ final class SecurityController extends Controller
             'userPermissionLabels' => $userPermissionLabels,
             'userPermissionGroupLabels' => $userPermissionGroupLabels,
             'userPermissionGroupsByStore' => $userPermissionGroupsByStore,
+            'userGlobalPermissionGroupsByUser' => $userGlobalPermissionGroupsByUser,
             'editableRoleIds' => $editableRoleIds,
             'roleOutsideGrantAuthorityIds' => $roleOutsideGrantAuthorityIds,
             'privilegedPermissionCodes' => [
