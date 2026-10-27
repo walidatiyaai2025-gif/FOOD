@@ -2,11 +2,11 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.116",
+  "target_version": "1.0.117",
   "minimum_current_version": "1.0.6",
   "source_base": "8d29f4cb664988b38e07d4b558dd8ead805c50aa",
-  "source_commit": "87fc6845f46418830bdf08c72d4fe6cbd2a14797",
-  "sha256": "e0a3316a71b79835d04a013064830d73383c46f10457cfe084c8a146e7994c8a",
+  "source_commit": "fb1ee71e552db859307d35333abe5df4a8f568a5",
+  "sha256": "cdfce8be94d958e9a8882c052d935d9280986f54b3dd833d2102d35548752768",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/0001_01_01_000000_create_users_table.php",
@@ -221,22 +221,23 @@
     "backend/database/migrations/2026_10_24_000100_separate_wholesale_web_storefront.php",
     "backend/database/migrations/2026_10_25_065500_create_assistant_analysis_pipeline.php",
     "backend/database/migrations/2026_10_26_223000_optimize_order_operations_dashboard_indexes.php",
-    "backend/database/migrations/2026_10_27_082000_backfill_customer_service_order_dispatch_permission.php"
+    "backend/database/migrations/2026_10_27_082000_backfill_customer_service_order_dispatch_permission.php",
+    "backend/database/migrations/2026_10_27_170000_repair_customer_service_dispatch_role_metadata.php"
   ],
   "delta": {
-    "file_count": 1972,
-    "source_file_count": 1853,
+    "file_count": 1973,
+    "source_file_count": 1854,
     "files_manifest": "FOODEX-Update.files.txt"
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "FOODEX 1.0.116: Repair existing FOODEX installations where Customer Service Supervisor/Agent received `orders.dispatch` in configuration but the already-run historical permission migration did not backfill the `permission_role` pivot. Add an idempotent upgrade migration that grants `orders.dispatch` to `CUSTOMER_SERVICE_MANAGER`, `CUSTOMER_SERVICE_SUPERVISOR` and `CUSTOMER_SERVICE_AGENT` on existing databases. Restore the Driver/Van assignment dropdown in Order Management for authorized Customer Service roles after upgrade, without granting `orders.manage` or driver administration. Add regression coverage for the stale existing-database upgrade path. Publish as Dashboard/backend-only; mobile APK identities remain unchanged.",
+  "release_notes": "FOODEX 1.0.117: Repair upgraded installations where Customer Service Manager/Supervisor/Agent still resolve without effective Driver/Van dispatch authorization despite the 1.0.116 permission backfill. Normalize the canonical Customer Service built-in role metadata to global, active system roles during upgrade and persist `orders.dispatch` idempotently so the unified Order Management grid exposes assignment on the authoritative B2B store scope. Harden future Dashboard updates by reconciling built-in RBAC from the newly cached release configuration in a fresh PHP process after cache rebuild, preventing configuration/database permission drift. Add regression coverage for stale role metadata, missing dispatch pivots, effective operational scope and updater reconciliation. Publish as Dashboard/backend-only; Customer, Driver and Van mobile identities remain unchanged.",
   "dashboard_fields": {
-    "target_version": "1.0.116",
+    "target_version": "1.0.117",
     "minimum_current_version": "1.0.6",
-    "source_commit": "87fc6845f46418830bdf08c72d4fe6cbd2a14797",
-    "sha256": "e0a3316a71b79835d04a013064830d73383c46f10457cfe084c8a146e7994c8a",
+    "source_commit": "fb1ee71e552db859307d35333abe5df4a8f568a5",
+    "sha256": "cdfce8be94d958e9a8882c052d935d9280986f54b3dd833d2102d35548752768",
     "contains_migrations": true,
-    "release_notes": "FOODEX 1.0.116: Repair existing FOODEX installations where Customer Service Supervisor/Agent received `orders.dispatch` in configuration but the already-run historical permission migration did not backfill the `permission_role` pivot. Add an idempotent upgrade migration that grants `orders.dispatch` to `CUSTOMER_SERVICE_MANAGER`, `CUSTOMER_SERVICE_SUPERVISOR` and `CUSTOMER_SERVICE_AGENT` on existing databases. Restore the Driver/Van assignment dropdown in Order Management for authorized Customer Service roles after upgrade, without granting `orders.manage` or driver administration. Add regression coverage for the stale existing-database upgrade path. Publish as Dashboard/backend-only; mobile APK identities remain unchanged."
+    "release_notes": "FOODEX 1.0.117: Repair upgraded installations where Customer Service Manager/Supervisor/Agent still resolve without effective Driver/Van dispatch authorization despite the 1.0.116 permission backfill. Normalize the canonical Customer Service built-in role metadata to global, active system roles during upgrade and persist `orders.dispatch` idempotently so the unified Order Management grid exposes assignment on the authoritative B2B store scope. Harden future Dashboard updates by reconciling built-in RBAC from the newly cached release configuration in a fresh PHP process after cache rebuild, preventing configuration/database permission drift. Add regression coverage for stale role metadata, missing dispatch pivots, effective operational scope and updater reconciliation. Publish as Dashboard/backend-only; Customer, Driver and Van mobile identities remain unchanged."
   }
 }
