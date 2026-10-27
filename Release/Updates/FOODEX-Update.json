@@ -2,11 +2,11 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.114",
-  "minimum_current_version": "1.0.113",
-  "source_base": "f102e58a7969277d15f211951d3e7b422e77b4cf",
-  "source_commit": "13bf6b36c2813d93af6f982ddcc68f2f3e677ab6",
-  "sha256": "4081b43e367131242e19ffe51a495561cea0d30cccd028c847aa5540edcff738",
+  "target_version": "1.0.117",
+  "minimum_current_version": "1.0.114",
+  "source_base": "13bf6b36c2813d93af6f982ddcc68f2f3e677ab6",
+  "source_commit": "bd2a04629eb77610fe527e126c94e87ee1c4d06e",
+  "sha256": "f3eb213e8cb05ad9b41fbac7e7e5a00882021db4e0854bbc8436dffbd648b72d",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/0001_01_01_000000_create_users_table.php",
@@ -220,22 +220,25 @@
     "backend/database/migrations/2026_10_23_121700_add_public_wholesale_web_landing_defaults.php",
     "backend/database/migrations/2026_10_24_000100_separate_wholesale_web_storefront.php",
     "backend/database/migrations/2026_10_25_065500_create_assistant_analysis_pipeline.php",
-    "backend/database/migrations/2026_10_26_223000_optimize_order_operations_dashboard_indexes.php"
+    "backend/database/migrations/2026_10_26_223000_optimize_order_operations_dashboard_indexes.php",
+    "backend/database/migrations/2026_10_27_082000_backfill_customer_service_order_dispatch_permission.php",
+    "backend/database/migrations/2026_10_27_170000_repair_customer_service_dispatch_role_metadata.php",
+    "backend/database/migrations/2026_10_27_171000_create_user_permission_overrides.php"
   ],
   "delta": {
-    "file_count": 1967,
-    "source_file_count": 1850,
+    "file_count": 1971,
+    "source_file_count": 1854,
     "files_manifest": "FOODEX-Update.files.txt"
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Harden Customer, Driver and Van Firebase device registration so reinstall, FCM token rotation, transient backend/Firebase failure and app resume cannot silently leave an authenticated runtime without a registered push device. Add bounded push-registration retry/backoff across all three mobile apps while preserving explicit logout revocation, app/user/channel authorization and token-refresh reconciliation. Increase the Driver Home delivery workload distribution card height by exactly 20% without reintroducing Home scrolling. Add a full-width Driver Home unsettled-collections card backed by the authoritative custody wallet, showing amounts collected by the Driver and not yet settled by Finance. Expose the same unsettled Driver custody amount explicitly through the Driver wallet API and summarize it by currency on Dashboard Finance Support from the canonical custody ledger. Synchronize Dashboard, Customer, Driver and Van release identities at `1.0.114` / `1.0.114+114`; all deployable artifacts must be generated from one final release source.",
+  "release_notes": "Synchronize Dashboard, Customer, Driver and Van release identities from the final post-merge main source; Customer, Driver and Van are now `1.0.117+117`. Complete the Customer Service dispatch upgrade repair so authorized Customer Service Manager/Supervisor/Agent roles receive the canonical `orders.dispatch` capability on existing databases without elevated order-management or driver-administration access. Add per-user permission allow/deny overrides on top of role defaults, including protected SUPER_ADMIN behavior, store/global scope enforcement, auditability and automatic reset when role assignments change. Reconcile canonical RBAC database state before/after permission mutations so stale built-in role, permission and override data self-heals during administration and upgrades. Preserve the baseline permission-query path for users without individual overrides, keeping WMS query budgets unchanged while enabling override-aware authorization only where needed. Build the Dashboard update, Setup package and all three mobile APKs from the same final 1.0.117 source lineage and validate them through the canonical Release Factory.",
   "dashboard_fields": {
-    "target_version": "1.0.114",
-    "minimum_current_version": "1.0.113",
-    "source_commit": "13bf6b36c2813d93af6f982ddcc68f2f3e677ab6",
-    "sha256": "4081b43e367131242e19ffe51a495561cea0d30cccd028c847aa5540edcff738",
+    "target_version": "1.0.117",
+    "minimum_current_version": "1.0.114",
+    "source_commit": "bd2a04629eb77610fe527e126c94e87ee1c4d06e",
+    "sha256": "f3eb213e8cb05ad9b41fbac7e7e5a00882021db4e0854bbc8436dffbd648b72d",
     "contains_migrations": true,
-    "release_notes": "Harden Customer, Driver and Van Firebase device registration so reinstall, FCM token rotation, transient backend/Firebase failure and app resume cannot silently leave an authenticated runtime without a registered push device. Add bounded push-registration retry/backoff across all three mobile apps while preserving explicit logout revocation, app/user/channel authorization and token-refresh reconciliation. Increase the Driver Home delivery workload distribution card height by exactly 20% without reintroducing Home scrolling. Add a full-width Driver Home unsettled-collections card backed by the authoritative custody wallet, showing amounts collected by the Driver and not yet settled by Finance. Expose the same unsettled Driver custody amount explicitly through the Driver wallet API and summarize it by currency on Dashboard Finance Support from the canonical custody ledger. Synchronize Dashboard, Customer, Driver and Van release identities at `1.0.114` / `1.0.114+114`; all deployable artifacts must be generated from one final release source."
+    "release_notes": "Synchronize Dashboard, Customer, Driver and Van release identities from the final post-merge main source; Customer, Driver and Van are now `1.0.117+117`. Complete the Customer Service dispatch upgrade repair so authorized Customer Service Manager/Supervisor/Agent roles receive the canonical `orders.dispatch` capability on existing databases without elevated order-management or driver-administration access. Add per-user permission allow/deny overrides on top of role defaults, including protected SUPER_ADMIN behavior, store/global scope enforcement, auditability and automatic reset when role assignments change. Reconcile canonical RBAC database state before/after permission mutations so stale built-in role, permission and override data self-heals during administration and upgrades. Preserve the baseline permission-query path for users without individual overrides, keeping WMS query budgets unchanged while enabling override-aware authorization only where needed. Build the Dashboard update, Setup package and all three mobile APKs from the same final 1.0.117 source lineage and validate them through the canonical Release Factory."
   }
 }

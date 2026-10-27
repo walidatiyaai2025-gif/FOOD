@@ -883,6 +883,7 @@ backend/app/Services/ProductionLaunchPreflight.php
 backend/app/Services/ProductionLaunchReport.php
 backend/app/Services/PushDeliveryService.php
 backend/app/Services/README.md
+backend/app/Services/RbacDatabaseReconciler.php
 backend/app/Services/RbacManager.php
 backend/app/Services/ReportExportService.php
 backend/app/Services/RestaurantWholesalePurchaseService.php
@@ -1413,6 +1414,9 @@ backend/database/migrations/2026_10_23_121700_add_public_wholesale_web_landing_d
 backend/database/migrations/2026_10_24_000100_separate_wholesale_web_storefront.php
 backend/database/migrations/2026_10_25_065500_create_assistant_analysis_pipeline.php
 backend/database/migrations/2026_10_26_223000_optimize_order_operations_dashboard_indexes.php
+backend/database/migrations/2026_10_27_082000_backfill_customer_service_order_dispatch_permission.php
+backend/database/migrations/2026_10_27_170000_repair_customer_service_dispatch_role_metadata.php
+backend/database/migrations/2026_10_27_171000_create_user_permission_overrides.php
 backend/database/seeders/BuiltInJobRoleSeeder.php
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
