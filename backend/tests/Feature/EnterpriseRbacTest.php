@@ -274,6 +274,76 @@ class EnterpriseRbacTest extends TestCase
         $this->assertFalse($target->fresh()->hasPermission('catalog.manage', $otherStoreId));
     }
 
+    public function test_any_permission_change_fully_reconciles_stale_builtin_rbac_database_state(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN');
+        $target = $this->userWithGlobalRole('CUSTOMER_SERVICE_SUPERVISOR');
+        $agentRole = Role::query()->where('code', 'CUSTOMER_SERVICE_AGENT')->firstOrFail();
+        $dispatch = Permission::query()->where('code', 'orders.dispatch')->firstOrFail();
+        $manage = Permission::query()->where('code', 'orders.manage')->firstOrFail();
+
+        DB::table('permission_role')
+            ->where('role_id', $agentRole->id)
+            ->where('permission_id', $dispatch->id)
+            ->delete();
+
+        DB::table('permissions')
+            ->where('id', $dispatch->id)
+            ->update(['name' => 'STALE LEGACY PERMISSION NAME']);
+
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $target->id,
+            'permission_id' => $manage->id,
+            'scope_key' => 'legacy-broken-scope',
+            'store_id' => null,
+            'effect' => 'legacy',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $selected = Permission::query()
+            ->whereIn('code', $target->inheritedPermissionCodes())
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->push((int) $manage->id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $this->actingAs($admin)
+            ->put(route('admin.security.users.permissions', $target), [
+                'scope_type' => 'global',
+                'permission_ids' => $selected,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('permission_role', [
+            'role_id' => $agentRole->id,
+            'permission_id' => $dispatch->id,
+        ]);
+        $this->assertDatabaseHas('permissions', [
+            'id' => $dispatch->id,
+            'code' => 'orders.dispatch',
+            'name' => config('permissions.abilities.orders.dispatch'),
+        ]);
+        $this->assertDatabaseMissing('user_permission_overrides', [
+            'user_id' => $target->id,
+            'scope_key' => 'legacy-broken-scope',
+        ]);
+        $this->assertDatabaseHas('user_permission_overrides', [
+            'user_id' => $target->id,
+            'permission_id' => $manage->id,
+            'scope_key' => 'global',
+            'effect' => 'allow',
+        ]);
+        $this->assertTrue($target->fresh()->hasPermission('orders.manage'));
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'rbac.database_reconciled',
+            'user_id' => $admin->id,
+        ]);
+    }
+
     public function test_super_admin_can_customize_final_user_permissions_without_mutating_role(): void
     {
         $admin = $this->userWithGlobalRole('SUPER_ADMIN');
