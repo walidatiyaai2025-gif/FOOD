@@ -179,7 +179,7 @@ class User extends Authenticatable
         }
 
         return $codes
-            ->filter(fn ($code): bool => is_string($code) && $code !== '')
+            ->filter(fn (string $code): bool => $code !== '')
             ->unique()
             ->sort()
             ->values()
