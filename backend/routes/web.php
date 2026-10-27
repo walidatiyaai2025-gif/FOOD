@@ -873,6 +873,7 @@ Route::prefix('admin')
         Route::post('/security/users', [SecurityController::class, 'storeUser'])->middleware('throttle:20,1')->name('security.users.store');
         Route::patch('/security/users/{user}/status', [SecurityController::class, 'updateUserStatus'])->name('security.users.status');
         Route::put('/security/users/{user}/roles', [SecurityController::class, 'updateUserRoles'])->name('security.users.roles');
+        Route::put('/security/users/{user}/permissions', [SecurityController::class, 'updateUserPermissions'])->name('security.users.permissions');
         Route::delete('/security/users/{user}/mfa', [SecurityController::class, 'resetUserMfa'])->middleware('throttle:20,1')->name('security.users.mfa.reset');
         Route::post('/security/users/{user}/sso-identities', [SecurityController::class, 'storeSsoIdentity'])->middleware('throttle:20,1')->name('security.users.sso.store');
         Route::delete('/security/sso-identities/{identity}', [SecurityController::class, 'destroySsoIdentity'])->middleware('throttle:20,1')->name('security.users.sso.destroy');
