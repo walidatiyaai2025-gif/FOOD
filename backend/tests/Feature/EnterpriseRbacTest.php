@@ -274,6 +274,233 @@ class EnterpriseRbacTest extends TestCase
         $this->assertFalse($target->fresh()->hasPermission('catalog.manage', $otherStoreId));
     }
 
+    public function test_super_admin_can_customize_final_user_permissions_without_mutating_role(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN');
+        $target = $this->userWithGlobalRole('CUSTOMER_SERVICE_SUPERVISOR');
+        $dispatch = Permission::query()->where('code', 'orders.dispatch')->firstOrFail();
+        $manage = Permission::query()->where('code', 'orders.manage')->firstOrFail();
+        $role = Role::query()->where('code', 'CUSTOMER_SERVICE_SUPERVISOR')->firstOrFail();
+
+        $selected = Permission::query()
+            ->whereIn('code', $target->inheritedPermissionCodes())
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->reject(fn (int $id): bool => $id === (int) $dispatch->id)
+            ->push((int) $manage->id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $this->actingAs($admin)
+            ->put(route('admin.security.users.permissions', $target), [
+                'scope_type' => 'global',
+                'permission_ids' => $selected,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $fresh = $target->fresh();
+        $this->assertFalse($fresh->hasPermission('orders.dispatch'));
+        $this->assertTrue($fresh->hasPermission('orders.manage'));
+        $this->assertTrue($role->permissions()->where('code', 'orders.dispatch')->exists());
+        $this->assertFalse($role->permissions()->where('code', 'orders.manage')->exists());
+        $this->assertDatabaseHas('user_permission_overrides', [
+            'user_id' => $target->id,
+            'permission_id' => $dispatch->id,
+            'scope_key' => 'global',
+            'effect' => 'deny',
+        ]);
+        $this->assertDatabaseHas('user_permission_overrides', [
+            'user_id' => $target->id,
+            'permission_id' => $manage->id,
+            'scope_key' => 'global',
+            'effect' => 'allow',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'user.permissions_changed',
+            'user_id' => $admin->id,
+            'auditable_type' => User::class,
+            'auditable_id' => $target->id,
+        ]);
+    }
+
+    public function test_changing_user_role_resets_individual_permission_overrides(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN');
+        $target = $this->userWithGlobalRole('CUSTOMER_SERVICE_SUPERVISOR');
+        $ordersManage = Permission::query()->where('code', 'orders.manage')->firstOrFail();
+        $agentRole = Role::query()->where('code', 'CUSTOMER_SERVICE_AGENT')->firstOrFail();
+
+        app(RbacManager::class)->replaceUserPermissions(
+            $admin,
+            $target,
+            [$ordersManage->id],
+            'global',
+            null,
+            Request::create('/test-permissions', 'PUT'),
+        );
+
+        $this->assertDatabaseHas('user_permission_overrides', [
+            'user_id' => $target->id,
+            'permission_id' => $ordersManage->id,
+            'scope_key' => 'global',
+            'effect' => 'allow',
+        ]);
+
+        app(RbacManager::class)->replaceUserRoles(
+            $admin,
+            $target,
+            [(int) $agentRole->id],
+            [],
+            Request::create('/test-roles', 'PUT'),
+        );
+
+        $fresh = $target->fresh();
+        $this->assertTrue($fresh->hasRole('CUSTOMER_SERVICE_AGENT'));
+        $this->assertFalse($fresh->hasPermission('orders.manage'));
+        $this->assertDatabaseMissing('user_permission_overrides', [
+            'user_id' => $target->id,
+        ]);
+    }
+
+    public function test_store_permission_override_is_isolated_to_selected_store(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN');
+        $target = User::factory()->create(['is_active' => true]);
+        $storeA = $this->createB2cStore('RBAC-OVERRIDE-A');
+        $storeB = $this->createB2cStore('RBAC-OVERRIDE-B');
+        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        $catalogManage = Permission::query()->where('code', 'catalog.manage')->firstOrFail();
+
+        app(RbacManager::class)->replaceUserRoles(
+            $admin,
+            $target,
+            [],
+            [
+                ['store_id' => $storeA, 'role_id' => (int) $role->id],
+                ['store_id' => $storeB, 'role_id' => (int) $role->id],
+            ],
+            Request::create('/test', 'PUT'),
+        );
+
+        $selected = Permission::query()
+            ->whereIn('code', $target->fresh()->inheritedPermissionCodes($storeA))
+            ->where('id', '!=', $catalogManage->id)
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+
+        $this->actingAs($admin)
+            ->put(route('admin.security.users.permissions', $target), [
+                'scope_type' => 'store',
+                'store_id' => $storeA,
+                'permission_ids' => $selected,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $fresh = $target->fresh();
+        $this->assertFalse($fresh->hasPermission('catalog.manage', $storeA));
+        $this->assertTrue($fresh->hasPermission('catalog.manage', $storeB));
+        $this->assertDatabaseHas('user_permission_overrides', [
+            'user_id' => $target->id,
+            'permission_id' => $catalogManage->id,
+            'scope_key' => 'store:'.$storeA,
+            'store_id' => $storeA,
+            'effect' => 'deny',
+        ]);
+        $this->assertDatabaseMissing('user_permission_overrides', [
+            'user_id' => $target->id,
+            'permission_id' => $catalogManage->id,
+            'scope_key' => 'store:'.$storeB,
+        ]);
+    }
+
+    public function test_retail_user_override_rejects_platform_permission_outside_role_domain(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN');
+        $target = User::factory()->create(['is_active' => true]);
+        $storeId = $this->createB2cStore('RBAC-DOMAIN-GUARD');
+        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        $systemUpdate = Permission::query()->where('code', 'system.update')->firstOrFail();
+
+        app(RbacManager::class)->replaceUserRoles(
+            $admin,
+            $target,
+            [],
+            [['store_id' => $storeId, 'role_id' => (int) $role->id]],
+            Request::create('/test', 'PUT'),
+        );
+
+        $this->actingAs($admin)
+            ->from('/admin/security?section=users')
+            ->put(route('admin.security.users.permissions', $target), [
+                'scope_type' => 'store',
+                'store_id' => $storeId,
+                'permission_ids' => [$systemUpdate->id],
+            ])
+            ->assertRedirect('/admin/security?section=users')
+            ->assertSessionHasErrors('permission_ids');
+
+        $this->assertFalse($target->fresh()->hasPermission('system.update', $storeId));
+        $this->assertDatabaseMissing('user_permission_overrides', [
+            'user_id' => $target->id,
+            'permission_id' => $systemUpdate->id,
+            'scope_key' => 'store:'.$storeId,
+        ]);
+    }
+
+    public function test_delegated_security_operator_cannot_add_user_permission_above_own_authority(): void
+    {
+        $operator = User::factory()->create(['is_active' => true]);
+        $operatorRole = Role::query()->create([
+            'code' => 'USER_PERMISSION_OPERATOR',
+            'name' => 'User Permission Operator',
+            'scope' => 'global',
+            'is_system' => false,
+            'is_active' => true,
+        ]);
+        $operatorRole->permissions()->attach([
+            Permission::query()->where('code', 'security.view')->value('id'),
+            Permission::query()->where('code', 'users.roles.manage')->value('id'),
+        ]);
+        $operator->roles()->attach($operatorRole);
+
+        $target = $this->userWithGlobalRole('CUSTOMER_SERVICE_AGENT');
+        $platformManage = Permission::query()->where('code', 'platform.manage')->firstOrFail();
+
+        $this->actingAs($operator)
+            ->from('/admin/security?section=users')
+            ->put(route('admin.security.users.permissions', $target), [
+                'scope_type' => 'global',
+                'permission_ids' => [$platformManage->id],
+            ])
+            ->assertRedirect('/admin/security?section=users')
+            ->assertSessionHasErrors('permission_ids');
+
+        $this->assertFalse($target->fresh()->hasPermission('platform.manage'));
+        $this->assertDatabaseMissing('user_permission_overrides', [
+            'user_id' => $target->id,
+            'permission_id' => $platformManage->id,
+        ]);
+    }
+
+    public function test_security_users_surface_exposes_individual_permission_editor(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN', 'en');
+        $target = $this->userWithGlobalRole('CUSTOMER_SERVICE_SUPERVISOR', 'en');
+
+        $this->actingAs($admin)
+            ->get('/admin/security?section=users&q='.urlencode($target->email))
+            ->assertOk()
+            ->assertSee('Individual user permissions')
+            ->assertSee('Global user permissions')
+            ->assertSee('orders.dispatch')
+            ->assertSee('data-user-permission-overrides', false)
+            ->assertSee(route('admin.security.users.permissions', $target), false);
+    }
+
     public function test_delegated_operator_cannot_grant_permissions_above_own_authority(): void
     {
         $operator = User::factory()->create(['is_active' => true]);
