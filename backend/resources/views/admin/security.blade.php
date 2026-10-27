@@ -123,7 +123,7 @@ $roleLabel = static function ($role): string {
             <h3>{{ __('security_permissions.user_permissions_global') }}</h3>
             @include('admin._security-permission-picker', [
                 'selectedPermissionIds' => $effectivePermissionIdsByUser->get($managedUser->id, []),
-                'permissionGroups' => $permissionGroups,
+                'permissionGroups' => $userGlobalPermissionGroupsByUser->get((int) $managedUser->id, collect()),
                 'permissionLabels' => $permissionLabels,
                 'permissionGroupLabels' => $permissionGroupLabels,
                 'privilegedPermissionCodes' => $privilegedPermissionCodes,
