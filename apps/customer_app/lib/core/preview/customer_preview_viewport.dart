@@ -34,7 +34,10 @@ class CustomerPreviewViewport extends StatelessWidget {
         textScaler: TextScaler.linear(bootstrap.textScale),
         disableAnimations: true,
       ),
-      child: child,
+      child: TickerMode(
+        enabled: false,
+        child: child,
+      ),
     );
   }
 }
