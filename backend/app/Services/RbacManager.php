@@ -14,7 +14,34 @@ final class RbacManager
     public function __construct(
         private readonly AuditLogger $audit,
         private readonly BuiltInJobRoleCatalog $jobRoles,
+        private readonly RbacDatabaseReconciler $databaseReconciler,
     ) {}
+
+    private function preparePermissionMutation(): void
+    {
+        $this->databaseReconciler->reconcile();
+    }
+
+    private function finalizePermissionMutation(
+        User $actor,
+        mixed $target,
+        string $trigger,
+        Request $request,
+    ): void {
+        $summary = $this->databaseReconciler->reconcile();
+
+        $this->audit->record(
+            'rbac.database_reconciled',
+            $actor,
+            $target,
+            null,
+            [
+                'trigger' => $trigger,
+                ...$summary,
+            ],
+            $request,
+        );
+    }
 
     public function setUserActive(User $actor, User $target, bool $active, ?string $reason, Request $request): User
     {
@@ -52,6 +79,8 @@ final class RbacManager
      */
     public function replaceUserRoles(User $actor, User $target, array $globalRoleIds, array $storeRoles, Request $request): User
     {
+        $this->preparePermissionMutation();
+
         $globalRoleIds = array_values(array_unique(array_map('intval', $globalRoleIds)));
         $storeRoles = collect($storeRoles)
             ->map(static fn (array $assignment): array => [
@@ -188,6 +217,8 @@ final class RbacManager
         });
 
         $fresh = $target->refresh()->load(['roles', 'storeRoleAssignments.role', 'storeRoleAssignments.store']);
+        $this->finalizePermissionMutation($actor, $fresh, 'user.roles_changed', $request);
+        $fresh = $target->refresh()->load(['roles', 'storeRoleAssignments.role', 'storeRoleAssignments.store']);
         $this->audit->record('user.roles_changed', $actor, $fresh, $before, $this->userSnapshot($fresh), $request);
 
         return $fresh;
@@ -204,6 +235,8 @@ final class RbacManager
         ?int $storeId,
         Request $request,
     ): User {
+        $this->preparePermissionMutation();
+
         if ($target->hasRole('SUPER_ADMIN')) {
             throw ValidationException::withMessages([
                 'permission_ids' => [__('security_permissions.super_admin_permissions_protected')],
@@ -316,6 +349,8 @@ final class RbacManager
         });
 
         $fresh = $target->refresh();
+        $this->finalizePermissionMutation($actor, $fresh, 'user.permissions_changed', $request);
+        $fresh = $target->refresh();
         $this->audit->record(
             'user.permissions_changed',
             $actor,
@@ -331,6 +366,8 @@ final class RbacManager
     /** @param  array{name:string,description:?string,scope:string,is_active:bool,permission_ids:list<int>}  $values */
     public function createRole(User $actor, string $code, array $values, Request $request): Role
     {
+        $this->preparePermissionMutation();
+
         $this->assertSupportedScope($values['scope']);
         $this->assertRolePermissionDomain($code, $values['scope'], $values['permission_ids']);
         $this->assertActorCanGrantPermissions($actor, $values['permission_ids']);
@@ -350,6 +387,8 @@ final class RbacManager
         });
 
         $fresh = $role->refresh()->load('permissions');
+        $this->finalizePermissionMutation($actor, $fresh, 'role.created', $request);
+        $fresh = $role->refresh()->load('permissions');
         $this->audit->record('role.created', $actor, $fresh, null, $this->roleSnapshot($fresh), $request);
 
         return $fresh;
@@ -358,6 +397,8 @@ final class RbacManager
     /** @param  array{name:string,description:?string,scope:string,is_active:bool,permission_ids:list<int>}  $values */
     public function updateRole(User $actor, Role $role, array $values, Request $request): Role
     {
+        $this->preparePermissionMutation();
+
         if ($this->jobRoles->isBuiltIn((string) $role->code)) {
             throw ValidationException::withMessages([
                 'role' => [__('job_roles.errors.canonical_locked')],
@@ -398,6 +439,8 @@ final class RbacManager
         });
 
         $fresh = $role->refresh()->load('permissions');
+        $this->finalizePermissionMutation($actor, $fresh, 'role.updated', $request);
+        $fresh = $role->refresh()->load('permissions');
         $this->audit->record('role.updated', $actor, $fresh, $before, $this->roleSnapshot($fresh), $request);
 
         return $fresh;
@@ -418,6 +461,8 @@ final class RbacManager
 
     public function deleteRole(User $actor, Role $role, Request $request): void
     {
+        $this->preparePermissionMutation();
+
         if ($role->is_system) {
             throw ValidationException::withMessages(['role' => [__('admin.security.errors.system_delete')]]);
         }
@@ -429,6 +474,7 @@ final class RbacManager
         $before = $this->roleSnapshot($role->load('permissions'));
         $this->audit->record('role.deleted', $actor, $role, $before, null, $request);
         $role->delete();
+        $this->finalizePermissionMutation($actor, null, 'role.deleted', $request);
     }
 
     public function isLastActiveSuperAdmin(User $target): bool
