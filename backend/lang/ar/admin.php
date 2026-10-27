@@ -724,6 +724,7 @@ return [
             'system_delete' => 'لا يمكن حذف الأدوار الأساسية.', 'assigned_role_delete' => 'أزل كل إسنادات المستخدمين قبل حذف الدور.',
             'cannot_grant_super_admin' => 'فقط مالك المنصة يمكنه منح دور مالك المنصة.',
             'cannot_grant_higher' => 'لا يمكنك منح صلاحيات أعلى من صلاحياتك الفعلية.',
+            'permission_missing' => 'صلاحية واحدة أو أكثر غير موجودة.',
         ],
     ],
     'premium_nav' => [
