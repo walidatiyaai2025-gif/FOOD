@@ -77,6 +77,94 @@ final class CustomerServiceRoleClosureTest extends TestCase
         );
     }
 
+
+    public function test_upgrade_reconciles_customer_service_dispatch_permission_and_restores_grid_dropdown(): void
+    {
+        $agent = $this->userWithRole('CUSTOMER_SERVICE_AGENT');
+        $storeId = app(WholesalePrincipal::class)->storeId();
+        $customer = app(B2bCustomerService::class)->create(['name' => 'Dispatch Upgrade Customer']);
+        $orderId = (int) DB::table('orders')->insertGetId([
+            'store_id' => $storeId,
+            'customer_id' => (int) $customer->legacy_customer_id,
+            'b2b_customer_id' => (int) $customer->getKey(),
+            'order_number' => 'CS-DISPATCH-UPGRADE-1001',
+            'channel' => 'b2b',
+            'status' => 'pending',
+            'currency' => 'KWD',
+            'subtotal' => 10,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 10,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $permissionId = (int) DB::table('permissions')
+            ->where('code', 'orders.dispatch')
+            ->value('id');
+        $roleIds = DB::table('roles')
+            ->whereIn('code', [
+                'CUSTOMER_SERVICE_MANAGER',
+                'CUSTOMER_SERVICE_SUPERVISOR',
+                'CUSTOMER_SERVICE_AGENT',
+            ])
+            ->pluck('id');
+
+        DB::table('permission_role')
+            ->where('permission_id', $permissionId)
+            ->whereIn('role_id', $roleIds)
+            ->delete();
+
+        $agent = $agent->fresh();
+        $this->assertFalse($agent->hasPermission('orders.dispatch'));
+        $this->assertSame(
+            [],
+            app(OperationalTenantScope::class)->allowedStoreIds($agent, 'orders.dispatch', 'b2b'),
+        );
+
+        $this->actingAs($agent)
+            ->get(route('admin.operations.orders.index', [
+                'channel' => 'b2b',
+                'action_required' => 0,
+            ]))
+            ->assertOk()
+            ->assertSee('#'.$orderId)
+            ->assertDontSee('data-order-inline-dispatch', false);
+
+        $migration = require database_path(
+            'migrations/2026_10_27_072500_reconcile_customer_service_dispatch_permissions.php',
+        );
+        $migration->up();
+
+        $agent = $agent->fresh();
+        $this->assertTrue($agent->hasPermission('orders.dispatch'));
+        $this->assertContains(
+            $storeId,
+            app(OperationalTenantScope::class)->allowedStoreIds($agent, 'orders.dispatch', 'b2b'),
+        );
+
+        foreach ([
+            'CUSTOMER_SERVICE_MANAGER',
+            'CUSTOMER_SERVICE_SUPERVISOR',
+            'CUSTOMER_SERVICE_AGENT',
+        ] as $roleCode) {
+            $roleId = (int) DB::table('roles')->where('code', $roleCode)->value('id');
+            $this->assertDatabaseHas('permission_role', [
+                'permission_id' => $permissionId,
+                'role_id' => $roleId,
+            ]);
+        }
+
+        $this->actingAs($agent)
+            ->get(route('admin.operations.orders.index', [
+                'channel' => 'b2b',
+                'action_required' => 0,
+            ]))
+            ->assertOk()
+            ->assertSee('#'.$orderId)
+            ->assertSee('data-order-inline-dispatch', false);
+    }
+
     public function test_manager_can_create_and_manage_only_customer_service_staff(): void
     {
         $manager = $this->userWithRole('CUSTOMER_SERVICE_MANAGER');
