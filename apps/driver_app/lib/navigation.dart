@@ -450,8 +450,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
         return;
       }
 
-      final pending =
-          List<_DriverHomeUpdateEvent>.of(_pendingPollingFallback);
+      final pending = List<_DriverHomeUpdateEvent>.of(_pendingPollingFallback);
       _pendingPollingFallback.clear();
 
       final fallback = pending
