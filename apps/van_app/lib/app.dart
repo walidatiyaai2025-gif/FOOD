@@ -87,8 +87,8 @@ class _FoodexVanAppState extends State<FoodexVanApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _authRepository =
-        widget.authRepository ?? HttpVanAuthRepository(FoodexEnvironment.apiBaseUrl);
+    _authRepository = widget.authRepository ??
+        HttpVanAuthRepository(FoodexEnvironment.apiBaseUrl);
     _sessionStore = widget.sessionStore ?? SecureVanSessionStore();
     _authPreferenceStore =
         widget.authPreferenceStore ?? SecureVanAuthPreferenceStore();
@@ -241,7 +241,8 @@ class _FoodexVanAppState extends State<FoodexVanApp>
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('${alert.title}: ${alert.body}'), // localization-gate: allow — server-localized notification copy.
+          content: Text(
+              '${alert.title}: ${alert.body}'), // localization-gate: allow — server-localized notification copy.
           action: alert.canOpenB2bOrder
               ? SnackBarAction(
                   label: widget.locale.languageCode == 'ar' ? 'فتح' : 'Open',
@@ -265,8 +266,7 @@ class _FoodexVanAppState extends State<FoodexVanApp>
         FoodexEnvironment.apiBaseUrl,
         session.token,
       );
-      final repository =
-          widget.orderRepository ?? HttpVanOrderRepository(api);
+      final repository = widget.orderRepository ?? HttpVanOrderRepository(api);
       final walletRepository =
           widget.walletRepository ?? HttpVanWalletRepository(api);
       navigator.push<void>(
@@ -342,8 +342,8 @@ class _FoodexVanAppState extends State<FoodexVanApp>
                       FoodexEnvironment.apiBaseUrl,
                       _session!.token,
                     );
-                    final walletRepository = widget.walletRepository ??
-                        HttpVanWalletRepository(api);
+                    final walletRepository =
+                        widget.walletRepository ?? HttpVanWalletRepository(api);
                     return VanFoundationScreen(
                       session: _session!,
                       onLogout: _logout,
