@@ -36,6 +36,9 @@ class DriverTranslations extends InheritedWidget {
     'driver.home.analytics.summary':
         'توزيع التوصيلات المسندة حسب الحالة. اضغط على بطاقة الحالة بالأسفل لفتح القائمة المفلترة مباشرة.',
     'driver.home.analytics.semantic': 'توزيع التوصيلات الحالية حسب الحالة',
+    'driver.home.unsettled_collections': 'إجمالي التحصيلات غير المسوّاة',
+    'driver.home.unsettled_collections_help':
+        'المبلغ المحصل الموجود في عهدتك ولم تعتمد المالية تسويته بعد.',
     'driver.home.analytics.loading': 'جارٍ تحميل توزيع التوصيلات...',
     'driver.home.analytics.empty': 'لا توجد توصيلات مسندة لعرض توزيعها الآن.',
     'driver.home.analytics.error':
@@ -316,6 +319,9 @@ class DriverTranslations extends InheritedWidget {
     'driver.home.analytics.summary':
         'Assigned deliveries by status. Tap a status card below to open that exact filtered list.',
     'driver.home.analytics.semantic': 'Current delivery workload by status',
+    'driver.home.unsettled_collections': 'Unsettled collections total',
+    'driver.home.unsettled_collections_help':
+        'Collected amount still in your custody and not yet settled by Finance.',
     'driver.home.analytics.loading': 'Loading delivery workload...',
     'driver.home.analytics.empty':
         'There are no assigned deliveries to chart right now.',

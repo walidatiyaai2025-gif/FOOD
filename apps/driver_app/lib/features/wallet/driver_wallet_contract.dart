@@ -64,6 +64,7 @@ class DriverWalletAccount {
     required this.status,
     required this.custodyBalance,
     required this.availableToRemit,
+    this.unsettledCollections,
     this.transactions = const [],
     this.remittances = const [],
   });
@@ -73,6 +74,9 @@ class DriverWalletAccount {
   final String status;
   final double custodyBalance;
   final double availableToRemit;
+  final double? unsettledCollections;
+  double get unsettledCollectionsBalance =>
+      unsettledCollections ?? custodyBalance;
   final List<DriverCollectionReceipt> transactions;
   final List<DriverRemittance> remittances;
 
@@ -82,8 +86,9 @@ class DriverWalletAccount {
         currency: (json['currency'] ?? '').toString(),
         status: (json['status'] ?? '').toString(),
         custodyBalance: (json['custody_balance'] as num?)?.toDouble() ?? 0,
-        availableToRemit:
-            (json['available_to_remit'] as num?)?.toDouble() ?? 0,
+        availableToRemit: (json['available_to_remit'] as num?)?.toDouble() ?? 0,
+        unsettledCollections:
+            (json['unsettled_collections'] as num?)?.toDouble(),
         transactions: (json['transactions'] as List? ?? const [])
             .whereType<Map>()
             .map((row) => DriverCollectionReceipt.fromJson(

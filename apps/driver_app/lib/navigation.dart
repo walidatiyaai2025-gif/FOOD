@@ -227,6 +227,12 @@ class _DriverHomePageState extends State<_DriverHomePage>
   Timer? _pollingFallbackTimer;
   StreamSubscription<DriverPushAlert>? _homePushSubscription;
   List<DriverAssignment> _assignments = const [];
+  List<DriverWalletAccount> _walletAccounts = const [];
+  bool _walletLoading = true;
+  bool _walletLoadFailed = false;
+  bool _walletRefreshInFlight = false;
+  DateTime? _lastWalletRefreshAt;
+  static const _walletRefreshInterval = Duration(seconds: 15);
   final Map<int, DriverAssignment> _assignmentSnapshot =
       <int, DriverAssignment>{};
   final Map<int, String> _assignmentFingerprints = <int, String>{};
@@ -250,6 +256,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
     WidgetsBinding.instance.addObserver(this);
     _homePushSubscription = widget.pushAlerts?.listen(_recordPushAlert);
     unawaited(_loadSummary());
+    unawaited(_loadWalletSummary(force: true));
     if (widget.previewContext == null) {
       _startLiveRefresh();
     }
@@ -279,6 +286,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(_loadSummary(showLoading: false));
+      unawaited(_loadWalletSummary(force: true));
       if (widget.previewContext == null) {
         _startLiveRefresh();
       }
@@ -292,7 +300,10 @@ class _DriverHomePageState extends State<_DriverHomePage>
     _summaryRefreshTimer?.cancel();
     _summaryRefreshTimer = Timer.periodic(
       _summaryRefreshInterval,
-      (_) => unawaited(_loadSummary(showLoading: false)),
+      (_) {
+        unawaited(_loadSummary(showLoading: false));
+        unawaited(_loadWalletSummary());
+      },
     );
   }
 
@@ -416,6 +427,69 @@ class _DriverHomePageState extends State<_DriverHomePage>
         unawaited(_loadSummary(showLoading: false));
       }
     }
+  }
+
+  Future<void> _loadWalletSummary({bool force = false}) async {
+    final repository = widget.repository;
+    if (repository is! DriverWalletRepository) {
+      if (mounted && _walletLoading) {
+        setState(() => _walletLoading = false);
+      }
+      return;
+    }
+    final walletRepository = repository as DriverWalletRepository;
+
+    final now = DateTime.now();
+    final lastRefresh = _lastWalletRefreshAt;
+    if (!force &&
+        lastRefresh != null &&
+        now.difference(lastRefresh) < _walletRefreshInterval) {
+      return;
+    }
+    if (_walletRefreshInFlight) return;
+
+    _walletRefreshInFlight = true;
+    try {
+      final accounts = await walletRepository.wallet();
+      if (!mounted) return;
+      setState(() {
+        _walletAccounts = accounts;
+        _walletLoading = false;
+        _walletLoadFailed = false;
+        _lastWalletRefreshAt = DateTime.now();
+      });
+    } on DriverSessionExpiredException {
+      widget.onSessionExpired?.call();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _walletLoading = false;
+        _walletLoadFailed = true;
+      });
+    } finally {
+      _walletRefreshInFlight = false;
+    }
+  }
+
+  String _unsettledCollectionsValue() {
+    final totals = <String, double>{};
+    for (final account in _walletAccounts) {
+      final currency = account.currency.trim().toUpperCase();
+      if (currency.isEmpty) continue;
+      totals.update(
+        currency,
+        (value) => value + account.unsettledCollectionsBalance,
+        ifAbsent: () => account.unsettledCollectionsBalance,
+      );
+    }
+    final entries = totals.entries
+        .where((entry) => entry.value.abs() > 0.0005)
+        .toList(growable: false)
+      ..sort((a, b) => a.key.compareTo(b.key));
+    if (entries.isEmpty) return '0.000';
+    return entries
+        .map((entry) => '${entry.value.toStringAsFixed(3)} ${entry.key}')
+        .join(' · ');
   }
 
   void _recordPushAlert(DriverPushAlert alert) {
@@ -735,11 +809,12 @@ class _DriverHomePageState extends State<_DriverHomePage>
                     : 8.0;
             final horizontalPadding = ultraCompact ? 8.0 : 12.0;
             final columns = compact ? 3 : 2;
-            final chartHeight = ultraCompact
+            final baseChartHeight = ultraCompact
                 ? 96.0
                 : compact
                     ? 118.0
                     : 160.0;
+            final chartHeight = baseChartHeight * 1.20;
             final pendingHeight = ultraCompact
                 ? 38.0
                 : compact
@@ -750,6 +825,13 @@ class _DriverHomePageState extends State<_DriverHomePage>
                 : compact
                     ? 54.0
                     : 64.0;
+            final unsettledCardHeight = ultraCompact
+                ? 48.0
+                : compact
+                    ? 54.0
+                    : 62.0;
+            final showUnsettledCollections = widget.walletRoute != null &&
+                widget.repository is DriverWalletRepository;
             final statusRows = (_statuses.length / columns).ceil();
             final statusGridHeight =
                 (statusRows * statusCardHeight) + ((statusRows - 1) * gap);
@@ -867,6 +949,21 @@ class _DriverHomePageState extends State<_DriverHomePage>
                           ),
                   ),
                   const Spacer(),
+                  if (showUnsettledCollections) ...[
+                    SizedBox(height: gap),
+                    SizedBox(
+                      height: unsettledCardHeight,
+                      child: _DriverUnsettledCollectionsCard(
+                        loading: _walletLoading && _walletAccounts.isEmpty,
+                        failed: _walletLoadFailed && _walletAccounts.isEmpty,
+                        value: _unsettledCollectionsValue(),
+                        onTap: widget.walletRoute == null
+                            ? null
+                            : () => Navigator.of(context)
+                                .pushNamed(widget.walletRoute!),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             );
@@ -875,6 +972,83 @@ class _DriverHomePageState extends State<_DriverHomePage>
       ),
     );
   }
+}
+
+class _DriverUnsettledCollectionsCard extends StatelessWidget {
+  const _DriverUnsettledCollectionsCard({
+    required this.loading,
+    required this.failed,
+    required this.value,
+    required this.onTap,
+  });
+
+  final bool loading;
+  final bool failed;
+  final String value;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => Card(
+        key: const Key('driver-home-unsettled-collections'),
+        margin: EdgeInsets.zero,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.account_balance_wallet_rounded,
+                  color: FoodexBrand.actionGreen,
+                  size: 23,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr('driver.home.unsettled_collections'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      Text(
+                        context.tr('driver.home.unsettled_collections_help'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: FoodexBrand.muted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                if (loading)
+                  const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.1),
+                  )
+                else
+                  Text(
+                    failed ? '—' : value,
+                    key: const Key('driver-home-unsettled-collections-value'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: FoodexBrand.greenDark,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 class _DriverWorkloadSlice {

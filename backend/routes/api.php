@@ -98,11 +98,11 @@ Route::prefix('v1')->group(function (): void {
     ]);
 
     Route::post('/auth/register', [AuthController::class, 'register'])
-        ->middleware('throttle:login');
+        ->middleware('throttle:registration');
     Route::post('/auth/login', [AuthController::class, 'login'])
         ->middleware('throttle:login');
     Route::post('/auth/mobile-trial', [AuthController::class, 'mobileTrialLogin'])
-        ->middleware('throttle:login');
+        ->middleware('throttle:mobile-trial-login');
 
     Route::get('/marketplace', [StorefrontController::class, 'marketplace']);
     Route::get('/platform/storefront', [PlatformMarketplaceController::class, 'home']);

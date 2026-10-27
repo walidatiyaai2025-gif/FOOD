@@ -159,6 +159,43 @@ class AdminWebLoginTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_repeated_successful_login_logout_across_management_user_types_does_not_trigger_429(): void
+    {
+        $b2bUser = $this->userWithGlobalRole('B2B_ADMIN', 'en');
+
+        $storeId = $this->createB2cStore();
+        $b2cUser = User::query()->create([
+            'name' => 'B2C Repeated Login Admin',
+            'email' => 'b2c-repeated-login-'.uniqid().'@example.test',
+            'password' => 'correct-password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $this->assignStoreRole($b2cUser, $storeId, 'B2C_STORE_ADMIN');
+
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.63']);
+
+        for ($cycle = 0; $cycle < 12; $cycle++) {
+            $isB2b = $cycle % 2 === 0;
+            $user = $isB2b ? $b2bUser : $b2cUser;
+            $channel = $isB2b ? 'b2b' : 'b2c';
+            $target = $isB2b ? route('admin.b2b.dashboard') : route('admin.b2c.dashboard');
+
+            $this->post("/admin/{$channel}/login", [
+                'email' => $user->email,
+                'password' => 'correct-password',
+                'locale' => 'en',
+            ])->assertRedirect($target);
+
+            $this->assertAuthenticatedAs($user);
+
+            $this->post('/admin/logout')
+                ->assertRedirect(route('admin.b2c.login'));
+
+            $this->assertGuest();
+        }
+    }
+
     public function test_failed_post_auth_session_completion_clears_the_authenticated_state(): void
     {
         $user = $this->userWithGlobalRole('B2B_ADMIN', 'en');

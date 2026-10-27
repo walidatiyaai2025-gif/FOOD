@@ -291,10 +291,23 @@ class CustomerFirebasePushService {
   StreamSubscription<String>? _tokenSubscription;
   StreamSubscription<RemoteMessage>? _openedSubscription;
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
+  Timer? _registrationRetryTimer;
   String? _accessToken;
   int? _deviceId;
   Future<String>? _installIdFuture;
   String? _pendingRoute;
+  bool _registrationInFlight = false;
+  int _registrationRetryAttempt = 0;
+
+  static const _registrationRetryDelays = <Duration>[
+    Duration(seconds: 1),
+    Duration(seconds: 3),
+    Duration(seconds: 10),
+    Duration(seconds: 30),
+    Duration(minutes: 1),
+    Duration(minutes: 2),
+    Duration(minutes: 5),
+  ];
 
   Stream<String> get routes => _routes.stream;
   Stream<FoodexPushAlert> get alerts => _alerts.stream;
@@ -455,114 +468,134 @@ class CustomerFirebasePushService {
       _installIdFuture ??= _loadOrCreateCustomerInstallId();
 
   Future<void> bindGuest() async {
+    _accessToken = null;
     _deviceId = null;
+    _registrationRetryAttempt = 0;
     final messaging = _messaging;
     if (messaging == null) return;
 
-    final installId = await _installId();
-    final token = await messaging.getToken();
-    CustomerDiagnostics.instance.record(
-      'push_token_state',
-      {
-        'mode': 'guest',
-        'available': token != null && token.isNotEmpty,
-      },
-    );
-    if (token != null && token.isNotEmpty) {
-      final deviceId = await registry.registerGuest(
-        firebaseToken: token,
-        installId: installId,
-      );
-      CustomerDiagnostics.instance.record(
-        'push_device_registration',
-        {
-          'mode': 'guest',
-          'registered': deviceId != null,
-          if (deviceId != null) 'device_id': deviceId,
-        },
-      );
-    }
-
-    await _tokenSubscription?.cancel();
-    _tokenSubscription = messaging.onTokenRefresh.listen((newToken) async {
-      try {
-        final currentAccessToken = _accessToken;
-        if (currentAccessToken == null || currentAccessToken.isEmpty) {
-          await registry.registerGuest(
-            firebaseToken: newToken,
-            installId: installId,
-          );
-          return;
-        }
-
-        await registry.register(
-          accessToken: currentAccessToken,
-          firebaseToken: newToken,
-          installId: installId,
-        );
-      } catch (error) {
-        CustomerDiagnostics.instance.record(
-          'push_token_refresh_failure',
-          {'mode': 'guest', 'error': error.toString()},
-        );
-      }
-    });
+    await _subscribeTokenRefresh();
+    _registrationRetryTimer?.cancel();
+    _registrationRetryTimer = null;
+    await _attemptRegistration();
   }
 
   Future<void> bindSession(String accessToken) async {
-    _accessToken = accessToken;
+    final normalized = accessToken.trim();
+    if (normalized.isEmpty) return;
+
+    final sessionChanged = _accessToken != normalized;
+    _accessToken = normalized;
+    if (sessionChanged) {
+      _registrationRetryAttempt = 0;
+      _deviceId = null;
+    }
+
     final messaging = _messaging;
     if (messaging == null) return;
 
-    final installId = await _installId();
-    final token = await messaging.getToken();
-    CustomerDiagnostics.instance.record(
-      'push_token_state',
-      {
-        'mode': 'session',
-        'available': token != null && token.isNotEmpty,
-      },
-    );
-    if (token != null && token.isNotEmpty) {
-      _deviceId = await registry.register(
-        accessToken: accessToken,
-        firebaseToken: token,
-        installId: installId,
+    await _subscribeTokenRefresh();
+    _registrationRetryTimer?.cancel();
+    _registrationRetryTimer = null;
+    await _attemptRegistration();
+  }
+
+  Future<void> _subscribeTokenRefresh() async {
+    final messaging = _messaging;
+    if (messaging == null) return;
+
+    await _tokenSubscription?.cancel();
+    _tokenSubscription = messaging.onTokenRefresh.listen((newToken) {
+      unawaited(_attemptRegistration(firebaseToken: newToken));
+    });
+  }
+
+  Future<void> _attemptRegistration({String? firebaseToken}) async {
+    if (_registrationInFlight) return;
+
+    final messaging = _messaging;
+    if (messaging == null) return;
+
+    _registrationInFlight = true;
+    final currentAccessToken = _accessToken;
+    final mode = currentAccessToken == null || currentAccessToken.isEmpty
+        ? 'guest'
+        : 'session';
+
+    try {
+      final token = firebaseToken ?? await messaging.getToken();
+      CustomerDiagnostics.instance.record(
+        'push_token_state',
+        {
+          'mode': mode,
+          'available': token != null && token.trim().isNotEmpty,
+        },
       );
+      if (token == null || token.trim().isEmpty) {
+        _scheduleRegistrationRetry();
+        return;
+      }
+
+      final installId = await _installId();
+      final deviceId = currentAccessToken == null || currentAccessToken.isEmpty
+          ? await registry.registerGuest(
+              firebaseToken: token,
+              installId: installId,
+            )
+          : await registry.register(
+              accessToken: currentAccessToken,
+              firebaseToken: token,
+              installId: installId,
+            );
+
       CustomerDiagnostics.instance.record(
         'push_device_registration',
         {
-          'mode': 'session',
-          'registered': _deviceId != null,
-          if (_deviceId != null) 'device_id': _deviceId,
+          'mode': mode,
+          'registered': deviceId != null,
+          if (deviceId != null) 'device_id': deviceId,
+          'retry_attempt': _registrationRetryAttempt,
         },
       );
-    }
 
-    await _tokenSubscription?.cancel();
-    _tokenSubscription = messaging.onTokenRefresh.listen((newToken) async {
-      try {
-        final currentToken = _accessToken;
-        if (currentToken == null || currentToken.isEmpty) {
-          await registry.registerGuest(
-            firebaseToken: newToken,
-            installId: installId,
-          );
-          return;
-        }
-
-        _deviceId = await registry.register(
-          accessToken: currentToken,
-          firebaseToken: newToken,
-          installId: installId,
-        );
-      } catch (error) {
-        CustomerDiagnostics.instance.record(
-          'push_token_refresh_failure',
-          {'mode': 'session', 'error': error.toString()},
-        );
+      if (deviceId == null) {
+        _scheduleRegistrationRetry();
+        return;
       }
-    });
+
+      _deviceId = deviceId;
+      _registrationRetryAttempt = 0;
+      _registrationRetryTimer?.cancel();
+      _registrationRetryTimer = null;
+    } catch (error) {
+      CustomerDiagnostics.instance.record(
+        'push_device_registration_retry',
+        {
+          'mode': mode,
+          'retry_attempt': _registrationRetryAttempt,
+          'error': error.toString(),
+        },
+      );
+      _scheduleRegistrationRetry();
+    } finally {
+      _registrationInFlight = false;
+    }
+  }
+
+  void _scheduleRegistrationRetry() {
+    if (_messaging == null) return;
+
+    _registrationRetryTimer?.cancel();
+    final index = min(
+      _registrationRetryAttempt,
+      _registrationRetryDelays.length - 1,
+    );
+    final delay = _registrationRetryDelays[index];
+    _registrationRetryAttempt += 1;
+    _registrationRetryTimer = Timer(
+      delay,
+      () => unawaited(_attemptRegistration()),
+    );
   }
 
   Future<void> revokeSession() async {
@@ -570,6 +603,9 @@ class CustomerFirebasePushService {
     final deviceId = _deviceId;
     _accessToken = null;
     _deviceId = null;
+    _registrationRetryAttempt = 0;
+    _registrationRetryTimer?.cancel();
+    _registrationRetryTimer = null;
 
     await _tokenSubscription?.cancel();
     _tokenSubscription = null;
@@ -593,6 +629,8 @@ class CustomerFirebasePushService {
   }
 
   Future<void> dispose() async {
+    _registrationRetryTimer?.cancel();
+    _registrationRetryTimer = null;
     await _tokenSubscription?.cancel();
     await _openedSubscription?.cancel();
     await _foregroundSubscription?.cancel();

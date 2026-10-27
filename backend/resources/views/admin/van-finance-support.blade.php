@@ -24,12 +24,13 @@ html[dir=ltr] .sidebar{grid-column:1;border-inline-start:0;border-inline-end:1px
 html[dir=ltr] .main{grid-column:2}
 .header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px}.header h1{margin:3px 0 7px}.muted{color:var(--foodex-muted)}
 .card{background:#fff;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);box-shadow:var(--foodex-shadow-sm);padding:16px}
+.unsettled-summary{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:14px;border-color:var(--foodex-border);background:var(--foodex-green-soft)}.unsettled-summary-copy{min-width:0}.unsettled-summary-copy strong{display:block;font-size:1.05rem}.unsettled-summary-copy span{display:block;margin-top:4px;color:var(--foodex-muted);font-size:.86rem}.unsettled-summary-values{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}.unsettled-summary-value{padding:8px 12px;border-radius:12px;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-weight:900;white-space:nowrap}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tabs a{padding:9px 12px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;text-decoration:none;color:var(--foodex-ink);font-weight:800}.tabs a.active{background:var(--foodex-action-green);border-color:var(--foodex-action-green);color:#fff}
 .filters{display:grid;grid-template-columns:minmax(220px,2fr) minmax(160px,1fr) 110px auto;gap:10px;align-items:end;margin-bottom:14px}.filters label{display:grid;gap:5px;font-weight:700}.filters input,.filters select{width:100%;min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;padding:9px 11px;background:#fff}.filters button{min-height:42px;border:1px solid var(--foodex-green);border-radius:10px;padding:0 16px;background:var(--foodex-action-green);color:#fff;font-weight:800}
 .table-wrap{overflow:auto}.finance-table{width:100%;border-collapse:collapse;min-width:920px}.finance-table th,.finance-table td{text-align:start;padding:10px;border-bottom:1px solid var(--foodex-border);white-space:nowrap}.finance-table th{font-size:.78rem;color:var(--foodex-muted);background:#fbfcfd}.state{display:inline-flex;padding:4px 8px;border-radius:999px;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-weight:800;font-size:.78rem}.empty{padding:28px;text-align:center;color:var(--foodex-muted)}
 .footer{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:14px;flex-wrap:wrap}.footer .links{display:flex;gap:10px;align-items:center}.footer a{color:var(--foodex-green-dark);font-weight:800}.action{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 13px;border-radius:10px;background:#fff;color:var(--foodex-green-dark);border:1px solid #b9dfc5;text-decoration:none;font-weight:800}
 @media(max-width:1023px){.foodex-admin-layout,html[dir=ltr] .foodex-admin-layout{grid-template-columns:1fr}.sidebar,.main,html[dir=ltr] .sidebar,html[dir=ltr] .main{grid-column:1}.sidebar{grid-row:1;border-inline:0;border-bottom:1px solid var(--foodex-border)}.main{grid-row:2}.filters{grid-template-columns:1fr 1fr}}
-@media(max-width:680px){.header{flex-direction:column}.filters{grid-template-columns:1fr}.main{padding:14px}}
+@media(max-width:680px){.header{flex-direction:column}.filters{grid-template-columns:1fr}.main{padding:14px}.unsettled-summary{align-items:flex-start;flex-direction:column}.unsettled-summary-values{justify-content:flex-start}}
 </style>
 </head>
 <body>
@@ -42,6 +43,20 @@ html[dir=ltr] .main{grid-column:2}
 <div><span class="foodex-subtitle">FOODEX · {{ __('admin.administration_hub.van') }}</span><h1>{{ __('van_finance_support.title') }}</h1><p class="muted">{{ __('van_finance_support.description') }}</p></div>
 <a class="action" href="{{ route('admin.field-operations.finance') }}">{{ __('van_finance_support.operational_link') }}</a>
 </div>
+
+<section class="card unsettled-summary" data-driver-unsettled-collections>
+<div class="unsettled-summary-copy">
+<strong>{{ __('van_finance_support.driver_unsettled_collections') }}</strong>
+<span>{{ __('van_finance_support.driver_unsettled_collections_help') }}</span>
+</div>
+<div class="unsettled-summary-values">
+@forelse(($finance['driver_unsettled_by_currency'] ?? []) as $balance)
+<span class="unsettled-summary-value">{{ AppSupportDisplayNumber::money((float)$balance['amount'], (string)$balance['currency']) }} {{ $balance['currency'] }}</span>
+@empty
+<span class="unsettled-summary-value">0.000</span>
+@endforelse
+</div>
+</section>
 
 <section class="card">
 <nav class="tabs" aria-label="{{ __('van_finance_support.title') }}">

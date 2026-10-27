@@ -12,6 +12,7 @@ class PlatformAnalyticsRolloutContractTest extends TestCase
         $customer = file_get_contents(base_path('../apps/customer_app/lib/features/b2b/b2b_journey_screen.dart'));
         $customerAnalytics = file_get_contents(base_path('../apps/customer_app/lib/features/store_analytics/store_analytics_screen.dart'));
         $driver = file_get_contents(base_path('../apps/driver_app/lib/navigation.dart'));
+        $financeSupport = file_get_contents(resource_path('views/admin/van-finance-support.blade.php'));
         $vanDashboard = file_get_contents(base_path('../apps/van_app/lib/features/foundation/van_dashboard_page.dart'));
         $vanOrders = file_get_contents(base_path('../apps/van_app/lib/features/orders/van_orders_page.dart'));
         $vanRoutes = file_get_contents(base_path('../apps/van_app/lib/features/visits/van_routes_page.dart'));
@@ -28,6 +29,10 @@ class PlatformAnalyticsRolloutContractTest extends TestCase
         $this->assertStringContainsString('_DriverWorkloadChart', $driver);
         $this->assertStringContainsString('FoodexDonutChart(', $driver);
         $this->assertStringContainsString('driver-home-workload-chart', $driver);
+        $this->assertStringContainsString('baseChartHeight * 1.20', $driver);
+        $this->assertStringContainsString('driver-home-unsettled-collections', $driver);
+        $this->assertStringContainsString('unsettledCollectionsBalance', $driver);
+        $this->assertStringContainsString('data-driver-unsettled-collections', $financeSupport);
 
         $this->assertStringContainsString('FoodexBarChart(', $vanDashboard);
         $this->assertStringContainsString('FoodexDonutChart(', $vanOrders);

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.114 - 2026-10-27
+- Harden Customer, Driver and Van Firebase device registration so reinstall, FCM token rotation, transient backend/Firebase failure and app resume cannot silently leave an authenticated runtime without a registered push device.
+- Add bounded push-registration retry/backoff across all three mobile apps while preserving explicit logout revocation, app/user/channel authorization and token-refresh reconciliation.
+- Increase the Driver Home delivery workload distribution card height by exactly 20% without reintroducing Home scrolling.
+- Add a full-width Driver Home unsettled-collections card backed by the authoritative custody wallet, showing amounts collected by the Driver and not yet settled by Finance.
+- Expose the same unsettled Driver custody amount explicitly through the Driver wallet API and summarize it by currency on Dashboard Finance Support from the canonical custody ledger.
+- Synchronize Dashboard, Customer, Driver and Van release identities at `1.0.114` / `1.0.114+114`; all deployable artifacts must be generated from one final release source.
+
+
 ## 1.0.113 - 2026-10-26
 - Converge Order Operations into the current unified execution workflow with compact inline state controls, manual Driver/Van dispatch, Driver reassignment, Customer Service ownership controls, dynamic details/invoice/timeline popups, print support and localized operational labels.
 - Preserve B2B automatic Van-first routing while allowing explicitly scoped manual B2B Driver dispatch; keep B2C Driver execution authoritative and enforce assignment ownership, cancellation and delivered/cancelled terminal-row behavior.
