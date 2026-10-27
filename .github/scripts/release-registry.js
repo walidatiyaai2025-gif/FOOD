@@ -177,6 +177,12 @@ function validationVersionForCandidate(repoVersion, registry, baseRegistry) {
   return baseRegistry.current_version;
 }
 
+function isDashboardUpdateCandidateBranch(baseBranch = '', refName = '', headRef = '') {
+  return [baseBranch, refName, headRef].some(
+    (branch) => /^release\/.*-update$/.test(branch || ''),
+  );
+}
+
 function registryFromGit(root, ref) {
   try {
     const raw = execFileSync(
@@ -202,11 +208,13 @@ function runValidate(root) {
   );
   const baseBranch = process.env.GITHUB_BASE_REF || '';
   const refName = process.env.GITHUB_REF_NAME || '';
+  const headRef = process.env.GITHUB_HEAD_REF || '';
   const isReleaseBranchValidation =
     baseBranch.startsWith('release/')
-    || refName.startsWith('release/');
+    || refName.startsWith('release/')
+    || headRef.startsWith('release/');
   const isDashboardUpdateCandidate =
-    /^release\/.*-update$/.test(baseBranch)
+    isDashboardUpdateCandidateBranch(baseBranch, refName, headRef)
     && validationVersion !== repoVersion;
 
   const result = validateRegistry(root, registry, validationVersion, {
@@ -266,4 +274,5 @@ module.exports = {
   parseVersion,
   validateRegistry,
   validationVersionForCandidate,
+  isDashboardUpdateCandidateBranch,
 };
