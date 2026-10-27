@@ -378,6 +378,40 @@ class EnterpriseRbacTest extends TestCase
         ]);
     }
 
+    public function test_retail_user_override_rejects_platform_permission_outside_role_domain(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN');
+        $target = User::factory()->create(['is_active' => true]);
+        $storeId = $this->createB2cStore('RBAC-DOMAIN-GUARD');
+        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        $systemUpdate = Permission::query()->where('code', 'system.update')->firstOrFail();
+
+        app(RbacManager::class)->replaceUserRoles(
+            $admin,
+            $target,
+            [],
+            [['store_id' => $storeId, 'role_id' => (int) $role->id]],
+            Request::create('/test', 'PUT'),
+        );
+
+        $this->actingAs($admin)
+            ->from('/admin/security?section=users')
+            ->put(route('admin.security.users.permissions', $target), [
+                'scope_type' => 'store',
+                'store_id' => $storeId,
+                'permission_ids' => [$systemUpdate->id],
+            ])
+            ->assertRedirect('/admin/security?section=users')
+            ->assertSessionHasErrors('permission_ids');
+
+        $this->assertFalse($target->fresh()->hasPermission('system.update', $storeId));
+        $this->assertDatabaseMissing('user_permission_overrides', [
+            'user_id' => $target->id,
+            'permission_id' => $systemUpdate->id,
+            'scope_key' => 'store:'.$storeId,
+        ]);
+    }
+
     public function test_delegated_security_operator_cannot_add_user_permission_above_own_authority(): void
     {
         $operator = User::factory()->create(['is_active' => true]);
