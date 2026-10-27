@@ -224,6 +224,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
   bool _refreshPending = false;
   int _lifecycleEpoch = 0;
   Timer? _summaryRefreshTimer;
+  Timer? _pollingFallbackTimer;
   StreamSubscription<DriverPushAlert>? _homePushSubscription;
   List<DriverAssignment> _assignments = const [];
   final Map<int, DriverAssignment> _assignmentSnapshot =
@@ -231,6 +232,8 @@ class _DriverHomePageState extends State<_DriverHomePage>
   final Map<int, String> _assignmentFingerprints = <int, String>{};
   final Map<int, DateTime> _recentPushAssignments = <int, DateTime>{};
   final List<_DriverHomeUpdateEvent> _updateQueue = <_DriverHomeUpdateEvent>[];
+  final List<_DriverHomeUpdateEvent> _pendingPollingFallback =
+      <_DriverHomeUpdateEvent>[];
   bool _assignmentSnapshotInitialized = false;
   bool _updatePopupActive = false;
 
@@ -253,6 +256,9 @@ class _DriverHomePageState extends State<_DriverHomePage>
   @override
   void dispose() {
     _stopLiveRefresh();
+    _pollingFallbackTimer?.cancel();
+    _pollingFallbackTimer = null;
+    _pendingPollingFallback.clear();
     unawaited(_homePushSubscription?.cancel());
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -434,12 +440,25 @@ class _DriverHomePageState extends State<_DriverHomePage>
   }
 
   void _schedulePollingFallback(List<_DriverHomeUpdateEvent> updates) {
-    Future<void>.delayed(const Duration(milliseconds: 1200), () {
-      if (!mounted) return;
-      final fallback = updates
+    _pendingPollingFallback.addAll(updates);
+    if (_pollingFallbackTimer?.isActive ?? false) return;
+
+    _pollingFallbackTimer = Timer(const Duration(milliseconds: 1200), () {
+      _pollingFallbackTimer = null;
+      if (!mounted) {
+        _pendingPollingFallback.clear();
+        return;
+      }
+
+      final pending =
+          List<_DriverHomeUpdateEvent>.of(_pendingPollingFallback);
+      _pendingPollingFallback.clear();
+
+      final fallback = pending
           .where((event) => !_wasRecentlyPushed(event.assignment.id))
           .toList(growable: false);
       if (fallback.isEmpty) return;
+
       _updateQueue.addAll(fallback);
       unawaited(_showQueuedUpdates());
     });
