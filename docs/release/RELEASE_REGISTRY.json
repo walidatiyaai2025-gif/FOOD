@@ -265,7 +265,7 @@
       "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "5c8a4f63f133ff4cd0e8f333adf3676f61d31ab217417cc84b7fae3ba1d66c44",
-      "note": "FOODEX 1.0.74 synchronized release for completed Customer VNext #1323 and Mobile Smart Store Analytics #1354–#1359. Dashboard update is directly deployable over 1.0.73; Customer/Driver/Van source identities are synchronized at 1.0.74+74. Production Launch/reset safeguards remain fail-closed."
+      "note": "FOODEX 1.0.74 synchronized release for completed Customer VNext #1323 and Mobile Smart Store Analytics #1354\u2013#1359. Dashboard update is directly deployable over 1.0.73; Customer/Driver/Van source identities are synchronized at 1.0.74+74. Production Launch/reset safeguards remain fail-closed."
     },
     {
       "version": "1.0.75",
