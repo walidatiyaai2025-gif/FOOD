@@ -514,6 +514,8 @@ class _DriverHomePageState extends State<_DriverHomePage>
         if (!mounted) break;
 
         final popupContext = context;
+        if (!popupContext.mounted) break;
+
         final event = _updateQueue.removeAt(0);
         final assignment = event.assignment;
         final removed = event.kind == _DriverHomeUpdateKind.removed;
