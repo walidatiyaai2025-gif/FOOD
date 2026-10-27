@@ -176,6 +176,135 @@ final class RbacManager
         return $fresh;
     }
 
+    /**
+     * @param  list<int>  $selectedPermissionIds
+     */
+    public function replaceUserPermissions(
+        User $actor,
+        User $target,
+        array $selectedPermissionIds,
+        string $scopeType,
+        ?int $storeId,
+        Request $request,
+    ): User {
+        if ($target->hasRole('SUPER_ADMIN')) {
+            throw ValidationException::withMessages([
+                'permission_ids' => [__('security_permissions.super_admin_permissions_protected')],
+            ]);
+        }
+
+        if (! in_array($scopeType, ['global', 'store'], true)) {
+            throw ValidationException::withMessages([
+                'scope_type' => [__('security_permissions.user_permission_scope_invalid')],
+            ]);
+        }
+
+        if ($scopeType === 'global') {
+            $storeId = null;
+            if (! $target->roles()
+                ->where('roles.is_active', true)
+                ->where('roles.scope', 'global')
+                ->exists()) {
+                throw ValidationException::withMessages([
+                    'permission_ids' => [__('security_permissions.user_permission_role_required')],
+                ]);
+            }
+        } else {
+            if ($storeId === null || ! $this->userHasStorePermissionContext($target, $storeId)) {
+                throw ValidationException::withMessages([
+                    'store_id' => [__('security_permissions.user_permission_store_scope_invalid')],
+                ]);
+            }
+        }
+
+        $selectedPermissionIds = array_values(array_unique(array_map('intval', $selectedPermissionIds)));
+        $selectedPermissions = Permission::query()
+            ->whereIn('id', $selectedPermissionIds)
+            ->get(['id', 'code'])
+            ->keyBy('id');
+
+        if ($selectedPermissions->count() !== count($selectedPermissionIds)) {
+            throw ValidationException::withMessages([
+                'permission_ids' => [__('admin.security.errors.permission_missing')],
+            ]);
+        }
+
+        $actorCodes = $actor->hasRole('SUPER_ADMIN')
+            ? collect(array_keys((array) config('permissions.abilities', [])))
+            : collect($actor->effectivePermissionCodes($storeId));
+
+        $manageablePermissions = Permission::query()
+            ->whereIn('code', $actorCodes->all())
+            ->get(['id', 'code'])
+            ->keyBy('id');
+
+        $outsideAuthority = $selectedPermissions->keys()->diff($manageablePermissions->keys());
+        if ($outsideAuthority->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'permission_ids' => [__('admin.security.errors.cannot_grant_higher')],
+            ]);
+        }
+
+        $scopeKey = $scopeType === 'global' ? 'global' : 'store:'.$storeId;
+        $baselineCodes = collect($target->inheritedPermissionCodes($storeId));
+        $selectedIdSet = collect($selectedPermissionIds)->flip();
+        $before = $this->userSnapshot($target);
+
+        DB::transaction(function () use (
+            $target,
+            $manageablePermissions,
+            $selectedIdSet,
+            $baselineCodes,
+            $scopeKey,
+            $scopeType,
+            $storeId,
+        ): void {
+            DB::table('user_permission_overrides')
+                ->where('user_id', $target->getKey())
+                ->where('scope_key', $scopeKey)
+                ->whereIn('permission_id', $manageablePermissions->keys()->all())
+                ->delete();
+
+            $rows = [];
+            $now = now();
+
+            foreach ($manageablePermissions as $permission) {
+                $selected = $selectedIdSet->has((int) $permission->id);
+                $inherited = $baselineCodes->contains((string) $permission->code);
+
+                if ($selected === $inherited) {
+                    continue;
+                }
+
+                $rows[] = [
+                    'user_id' => $target->getKey(),
+                    'permission_id' => (int) $permission->id,
+                    'scope_key' => $scopeKey,
+                    'store_id' => $scopeType === 'store' ? $storeId : null,
+                    'effect' => $selected ? 'allow' : 'deny',
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            if ($rows !== []) {
+                DB::table('user_permission_overrides')->insert($rows);
+            }
+        });
+
+        $fresh = $target->refresh();
+        $this->audit->record(
+            'user.permissions_changed',
+            $actor,
+            $fresh,
+            $before,
+            $this->userSnapshot($fresh),
+            $request,
+        );
+
+        return $fresh;
+    }
+
     /** @param  array{name:string,description:?string,scope:string,is_active:bool,permission_ids:list<int>}  $values */
     public function createRole(User $actor, string $code, array $values, Request $request): Role
     {
@@ -385,6 +514,37 @@ final class RbacManager
         }
     }
 
+    private function userHasStorePermissionContext(User $user, int $storeId): bool
+    {
+        $channel = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $storeId)
+            ->where('stores.is_active', true)
+            ->value('store_types.code');
+
+        if (! is_string($channel) || $channel === '') {
+            return false;
+        }
+
+        $channel = strtolower($channel);
+        if ($channel === 'b2c' && $user->storeRoleAssignments()
+            ->where('store_id', $storeId)
+            ->whereHas('role', fn ($query) => $query
+                ->where('is_active', true)
+                ->where('scope', 'store'))
+            ->exists()) {
+            return true;
+        }
+
+        $allowedGlobalRoles = array_values((array) config("admin.channels.{$channel}.global_roles", []));
+
+        return $allowedGlobalRoles !== [] && $user->roles()
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'global')
+            ->whereIn('roles.code', $allowedGlobalRoles)
+            ->exists();
+    }
+
     /** @return array<string, mixed> */
     private function userSnapshot(User $user): array
     {
@@ -403,6 +563,22 @@ final class RbacManager
                 ])
                 ->sortBy(static fn (array $assignment): string => sprintf('%020d:%s', $assignment['store_id'], $assignment['role']))
                 ->values()
+                ->all(),
+            'permission_overrides' => DB::table('user_permission_overrides')
+                ->join('permissions', 'permissions.id', '=', 'user_permission_overrides.permission_id')
+                ->where('user_permission_overrides.user_id', $user->getKey())
+                ->orderBy('user_permission_overrides.scope_key')
+                ->orderBy('permissions.code')
+                ->get([
+                    'permissions.code',
+                    'user_permission_overrides.scope_key',
+                    'user_permission_overrides.effect',
+                ])
+                ->map(static fn ($row): array => [
+                    'code' => (string) $row->code,
+                    'scope' => (string) $row->scope_key,
+                    'effect' => (string) $row->effect,
+                ])
                 ->all(),
         ];
     }
