@@ -213,10 +213,23 @@ class VanFirebasePushService {
   StreamSubscription<String>? _tokenSubscription;
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
   StreamSubscription<RemoteMessage>? _openedSubscription;
+  Timer? _registrationRetryTimer;
   VanPushAlert? _pendingOpenAlert;
   String? _accessToken;
   int? _deviceId;
   Future<String>? _installIdFuture;
+  bool _registrationInFlight = false;
+  int _registrationRetryAttempt = 0;
+
+  static const _registrationRetryDelays = <Duration>[
+    Duration(seconds: 1),
+    Duration(seconds: 3),
+    Duration(seconds: 10),
+    Duration(seconds: 30),
+    Duration(minutes: 1),
+    Duration(minutes: 2),
+    Duration(minutes: 5),
+  ];
 
   Stream<VanPushAlert> get alerts => _alerts.stream;
   bool get enabled => _messaging != null;
@@ -325,36 +338,85 @@ class VanFirebasePushService {
       _installIdFuture ??= _loadOrCreateVanInstallId();
 
   Future<void> bindSession(String accessToken) async {
-    _accessToken = accessToken;
+    final normalized = accessToken.trim();
+    if (normalized.isEmpty) return;
+
+    final sessionChanged = _accessToken != normalized;
+    _accessToken = normalized;
+    if (sessionChanged) {
+      _registrationRetryAttempt = 0;
+      _deviceId = null;
+    }
+
     final messaging = _messaging;
     if (messaging == null) return;
 
-    final installId = await _installId();
-    final token = await messaging.getToken();
-    if (token != null && token.isNotEmpty) {
-      _deviceId = await registry.register(
-        accessToken: accessToken,
-        firebaseToken: token,
-        installId: installId,
-      );
-    }
-
     await _tokenSubscription?.cancel();
-    _tokenSubscription = messaging.onTokenRefresh.listen((newToken) async {
-      final currentToken = _accessToken;
-      if (currentToken == null || currentToken.isEmpty) return;
-      _deviceId = await registry.register(
-        accessToken: currentToken,
-        firebaseToken: newToken,
-        installId: installId,
-      );
+    _tokenSubscription = messaging.onTokenRefresh.listen((newToken) {
+      unawaited(_attemptRegistration(firebaseToken: newToken));
     });
 
+    _registrationRetryTimer?.cancel();
+    _registrationRetryTimer = null;
+    await _attemptRegistration();
+
     final pending = _pendingOpenAlert;
-    if (pending != null && _accessToken == accessToken) {
+    if (pending != null && _accessToken == normalized) {
       _pendingOpenAlert = null;
       _alerts.add(pending);
     }
+  }
+
+  Future<void> _attemptRegistration({String? firebaseToken}) async {
+    if (_registrationInFlight) return;
+
+    final accessToken = _accessToken;
+    final messaging = _messaging;
+    if (accessToken == null || accessToken.isEmpty || messaging == null) return;
+
+    _registrationInFlight = true;
+    try {
+      final token = firebaseToken ?? await messaging.getToken();
+      if (token == null || token.trim().isEmpty) {
+        _scheduleRegistrationRetry();
+        return;
+      }
+
+      final deviceId = await registry.register(
+        accessToken: accessToken,
+        firebaseToken: token,
+        installId: await _installId(),
+      );
+      if (deviceId == null) {
+        _scheduleRegistrationRetry();
+        return;
+      }
+
+      _deviceId = deviceId;
+      _registrationRetryAttempt = 0;
+      _registrationRetryTimer?.cancel();
+      _registrationRetryTimer = null;
+    } catch (_) {
+      _scheduleRegistrationRetry();
+    } finally {
+      _registrationInFlight = false;
+    }
+  }
+
+  void _scheduleRegistrationRetry() {
+    if (_accessToken == null || _messaging == null) return;
+
+    _registrationRetryTimer?.cancel();
+    final index = min(
+      _registrationRetryAttempt,
+      _registrationRetryDelays.length - 1,
+    );
+    final delay = _registrationRetryDelays[index];
+    _registrationRetryAttempt += 1;
+    _registrationRetryTimer = Timer(
+      delay,
+      () => unawaited(_attemptRegistration()),
+    );
   }
 
   Future<void> revokeSession() async {
@@ -362,6 +424,9 @@ class VanFirebasePushService {
     final deviceId = _deviceId;
     _accessToken = null;
     _deviceId = null;
+    _registrationRetryAttempt = 0;
+    _registrationRetryTimer?.cancel();
+    _registrationRetryTimer = null;
     await _tokenSubscription?.cancel();
     _tokenSubscription = null;
 
@@ -377,6 +442,8 @@ class VanFirebasePushService {
   }
 
   Future<void> dispose() async {
+    _registrationRetryTimer?.cancel();
+    _registrationRetryTimer = null;
     await _tokenSubscription?.cancel();
     await _foregroundSubscription?.cancel();
     await _openedSubscription?.cancel();
