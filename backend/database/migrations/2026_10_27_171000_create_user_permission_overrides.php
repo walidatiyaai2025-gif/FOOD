@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::table('users', function (Blueprint $table): void {
+            $table->boolean('has_permission_overrides')->default(false);
+        });
+
         Schema::create('user_permission_overrides', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
@@ -31,5 +35,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('user_permission_overrides');
+
+        Schema::table('users', function (Blueprint $table): void {
+            $table->dropColumn('has_permission_overrides');
+        });
     }
 };
