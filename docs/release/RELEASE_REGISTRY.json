@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.116",
+  "current_version": "1.0.117",
   "releases": [
     {
       "version": "1.0.40",
@@ -338,6 +338,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "e0a3316a71b79835d04a013064830d73383c46f10457cfe084c8a146e7994c8a",
       "note": "FOODEX 1.0.116 Dashboard-only Customer Service dispatch authorization repair registered from the exact update artifacts merged via PR #2434. The package target is 1.0.116 with SHA-256 e0a3316a71b79835d04a013064830d73383c46f10457cfe084c8a146e7994c8a; Customer/Driver/Van mobile identities remain unchanged."
+    },
+    {
+      "version": "1.0.117",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.117.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "f3eb213e8cb05ad9b41fbac7e7e5a00882021db4e0854bbc8436dffbd648b72d",
+      "note": "FOODEX 1.0.117 synchronized release published by canonical Release Factory from source bd2a04629eb77610fe527e126c94e87ee1c4d06e. Dashboard cumulative update supports installations from 1.0.114 and later, including registered 1.0.115 and 1.0.116. Customer/Driver/Van synchronized at 1.0.117+117."
     }
   ]
 }

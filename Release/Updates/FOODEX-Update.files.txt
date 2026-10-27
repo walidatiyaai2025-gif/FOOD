@@ -883,6 +883,7 @@ backend/app/Services/ProductionLaunchPreflight.php
 backend/app/Services/ProductionLaunchReport.php
 backend/app/Services/PushDeliveryService.php
 backend/app/Services/README.md
+backend/app/Services/RbacDatabaseReconciler.php
 backend/app/Services/RbacManager.php
 backend/app/Services/ReportExportService.php
 backend/app/Services/RestaurantWholesalePurchaseService.php
@@ -1414,6 +1415,8 @@ backend/database/migrations/2026_10_24_000100_separate_wholesale_web_storefront.
 backend/database/migrations/2026_10_25_065500_create_assistant_analysis_pipeline.php
 backend/database/migrations/2026_10_26_223000_optimize_order_operations_dashboard_indexes.php
 backend/database/migrations/2026_10_27_082000_backfill_customer_service_order_dispatch_permission.php
+backend/database/migrations/2026_10_27_170000_repair_customer_service_dispatch_role_metadata.php
+backend/database/migrations/2026_10_27_171000_create_user_permission_overrides.php
 backend/database/seeders/BuiltInJobRoleSeeder.php
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
@@ -1599,7 +1602,6 @@ backend/public/demo/products/tomato.svg
 backend/public/images/smart-ordering/menu-media-placeholder.svg
 backend/public/index.php
 backend/public/js/smart-ordering-storefront.js
-backend/public/preview/customer/.last_build_id
 backend/public/preview/customer/PREVIEW_RUNTIME.md
 backend/public/preview/customer/assets/AssetManifest.bin
 backend/public/preview/customer/assets/AssetManifest.bin.json
@@ -1647,7 +1649,6 @@ backend/public/preview/customer/flutter_service_worker.js
 backend/public/preview/customer/index.html
 backend/public/preview/customer/main.dart.js
 backend/public/preview/customer/version.json
-backend/public/preview/driver/.last_build_id
 backend/public/preview/driver/assets/AssetManifest.bin
 backend/public/preview/driver/assets/AssetManifest.bin.json
 backend/public/preview/driver/assets/FontManifest.json
@@ -1882,7 +1883,6 @@ demo/products/olive-oil.svg
 demo/products/pasta.svg
 demo/products/rice.svg
 demo/products/tomato.svg
-preview/customer/.last_build_id
 preview/customer/PREVIEW_RUNTIME.md
 preview/customer/assets/AssetManifest.bin
 preview/customer/assets/AssetManifest.bin.json
@@ -1930,7 +1930,6 @@ preview/customer/flutter_service_worker.js
 preview/customer/index.html
 preview/customer/main.dart.js
 preview/customer/version.json
-preview/driver/.last_build_id
 preview/driver/assets/AssetManifest.bin
 preview/driver/assets/AssetManifest.bin.json
 preview/driver/assets/FontManifest.json

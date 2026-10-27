@@ -2,11 +2,11 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.116",
-  "minimum_current_version": "1.0.6",
-  "source_base": "8d29f4cb664988b38e07d4b558dd8ead805c50aa",
-  "source_commit": "87fc6845f46418830bdf08c72d4fe6cbd2a14797",
-  "sha256": "e0a3316a71b79835d04a013064830d73383c46f10457cfe084c8a146e7994c8a",
+  "target_version": "1.0.117",
+  "minimum_current_version": "1.0.114",
+  "source_base": "13bf6b36c2813d93af6f982ddcc68f2f3e677ab6",
+  "source_commit": "bd2a04629eb77610fe527e126c94e87ee1c4d06e",
+  "sha256": "f3eb213e8cb05ad9b41fbac7e7e5a00882021db4e0854bbc8436dffbd648b72d",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/0001_01_01_000000_create_users_table.php",
@@ -221,22 +221,24 @@
     "backend/database/migrations/2026_10_24_000100_separate_wholesale_web_storefront.php",
     "backend/database/migrations/2026_10_25_065500_create_assistant_analysis_pipeline.php",
     "backend/database/migrations/2026_10_26_223000_optimize_order_operations_dashboard_indexes.php",
-    "backend/database/migrations/2026_10_27_082000_backfill_customer_service_order_dispatch_permission.php"
+    "backend/database/migrations/2026_10_27_082000_backfill_customer_service_order_dispatch_permission.php",
+    "backend/database/migrations/2026_10_27_170000_repair_customer_service_dispatch_role_metadata.php",
+    "backend/database/migrations/2026_10_27_171000_create_user_permission_overrides.php"
   ],
   "delta": {
-    "file_count": 1972,
-    "source_file_count": 1853,
+    "file_count": 1971,
+    "source_file_count": 1854,
     "files_manifest": "FOODEX-Update.files.txt"
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "FOODEX 1.0.116: Repair existing FOODEX installations where Customer Service Supervisor/Agent received `orders.dispatch` in configuration but the already-run historical permission migration did not backfill the `permission_role` pivot. Add an idempotent upgrade migration that grants `orders.dispatch` to `CUSTOMER_SERVICE_MANAGER`, `CUSTOMER_SERVICE_SUPERVISOR` and `CUSTOMER_SERVICE_AGENT` on existing databases. Restore the Driver/Van assignment dropdown in Order Management for authorized Customer Service roles after upgrade, without granting `orders.manage` or driver administration. Add regression coverage for the stale existing-database upgrade path. Publish as Dashboard/backend-only; mobile APK identities remain unchanged.",
+  "release_notes": "Synchronize Dashboard, Customer, Driver and Van release identities from the final post-merge main source; Customer, Driver and Van are now `1.0.117+117`. Complete the Customer Service dispatch upgrade repair so authorized Customer Service Manager/Supervisor/Agent roles receive the canonical `orders.dispatch` capability on existing databases without elevated order-management or driver-administration access. Add per-user permission allow/deny overrides on top of role defaults, including protected SUPER_ADMIN behavior, store/global scope enforcement, auditability and automatic reset when role assignments change. Reconcile canonical RBAC database state before/after permission mutations so stale built-in role, permission and override data self-heals during administration and upgrades. Preserve the baseline permission-query path for users without individual overrides, keeping WMS query budgets unchanged while enabling override-aware authorization only where needed. Build the Dashboard update, Setup package and all three mobile APKs from the same final 1.0.117 source lineage and validate them through the canonical Release Factory.",
   "dashboard_fields": {
-    "target_version": "1.0.116",
-    "minimum_current_version": "1.0.6",
-    "source_commit": "87fc6845f46418830bdf08c72d4fe6cbd2a14797",
-    "sha256": "e0a3316a71b79835d04a013064830d73383c46f10457cfe084c8a146e7994c8a",
+    "target_version": "1.0.117",
+    "minimum_current_version": "1.0.114",
+    "source_commit": "bd2a04629eb77610fe527e126c94e87ee1c4d06e",
+    "sha256": "f3eb213e8cb05ad9b41fbac7e7e5a00882021db4e0854bbc8436dffbd648b72d",
     "contains_migrations": true,
-    "release_notes": "FOODEX 1.0.116: Repair existing FOODEX installations where Customer Service Supervisor/Agent received `orders.dispatch` in configuration but the already-run historical permission migration did not backfill the `permission_role` pivot. Add an idempotent upgrade migration that grants `orders.dispatch` to `CUSTOMER_SERVICE_MANAGER`, `CUSTOMER_SERVICE_SUPERVISOR` and `CUSTOMER_SERVICE_AGENT` on existing databases. Restore the Driver/Van assignment dropdown in Order Management for authorized Customer Service roles after upgrade, without granting `orders.manage` or driver administration. Add regression coverage for the stale existing-database upgrade path. Publish as Dashboard/backend-only; mobile APK identities remain unchanged."
+    "release_notes": "Synchronize Dashboard, Customer, Driver and Van release identities from the final post-merge main source; Customer, Driver and Van are now `1.0.117+117`. Complete the Customer Service dispatch upgrade repair so authorized Customer Service Manager/Supervisor/Agent roles receive the canonical `orders.dispatch` capability on existing databases without elevated order-management or driver-administration access. Add per-user permission allow/deny overrides on top of role defaults, including protected SUPER_ADMIN behavior, store/global scope enforcement, auditability and automatic reset when role assignments change. Reconcile canonical RBAC database state before/after permission mutations so stale built-in role, permission and override data self-heals during administration and upgrades. Preserve the baseline permission-query path for users without individual overrides, keeping WMS query budgets unchanged while enabling override-aware authorization only where needed. Build the Dashboard update, Setup package and all three mobile APKs from the same final 1.0.117 source lineage and validate them through the canonical Release Factory."
   }
 }
