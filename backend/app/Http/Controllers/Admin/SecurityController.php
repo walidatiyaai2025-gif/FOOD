@@ -122,6 +122,116 @@ final class SecurityController extends Controller
             ],
         )->all();
 
+        $userGrantablePermissionCodes = $isSuperAdmin
+            ? null
+            : $stores->reduce(
+                fn ($codes, Store $store) => $codes->merge($actor->effectivePermissionCodes((int) $store->id)),
+                collect($actor->effectivePermissionCodes()),
+            )->unique()->values();
+
+        $userPermissions = Permission::query()
+            ->orderBy('code')
+            ->get()
+            ->when(! $isSuperAdmin, fn ($items) => $items
+                ->filter(fn (Permission $permission): bool => $userGrantablePermissionCodes?->contains($permission->code) === true)
+                ->values());
+        $userPermissionGroups = $userPermissions->groupBy(
+            static fn (Permission $permission): string => Str::before($permission->code, '.'),
+        );
+        $userPermissionLabels = $userPermissions->mapWithKeys(function (Permission $permission) use (
+            $groupTranslations,
+            $actionTranslations,
+        ): array {
+            $modulePath = Str::beforeLast($permission->code, '.');
+            $rootModule = Str::before($permission->code, '.');
+            $action = Str::afterLast($permission->code, '.');
+            $moduleLabel = $groupTranslations[$modulePath]
+                ?? $groupTranslations[$rootModule]
+                ?? Str::headline(str_replace('_', ' ', $modulePath));
+            $actionLabel = $actionTranslations[$action] ?? Str::headline(str_replace('_', ' ', $action));
+
+            return [(int) $permission->id => $moduleLabel.' — '.$actionLabel];
+        });
+        $userPermissionGroupLabels = $userPermissionGroups->keys()->mapWithKeys(
+            fn (string $module): array => [
+                $module => $groupTranslations[$module] ?? Str::headline(str_replace('_', ' ', $module)),
+            ],
+        )->all();
+        $userPermissionIdsByCode = $userPermissions->pluck('id', 'code');
+
+        $permissionCrossesRetailBoundary = static fn (string $code): bool => str_starts_with($code, 'b2b.')
+            || str_starts_with($code, 'drivers.b2b.')
+            || str_starts_with($code, 'deliveries.b2b.')
+            || in_array($code, [
+                'platform.manage',
+                'security.view',
+                'roles.manage',
+                'users.view',
+                'users.roles.manage',
+                'users.status.manage',
+                'translations.manage',
+                'system.update',
+                'demo_data.manage',
+                'mobile_settings.manage',
+                'push_settings.manage',
+                'push_settings.test',
+            ], true);
+
+        $userGlobalPermissionGroupsByUser = $users->getCollection()->mapWithKeys(
+            function (User $managedUser) use ($permissions, $permissionCrossesRetailBoundary): array {
+                $roleCodes = $managedUser->roles
+                    ->where('is_active', true)
+                    ->pluck('code')
+                    ->map('strval');
+                $retailDomain = $roleCodes->contains(
+                    static fn (string $code): bool => $code === 'B2C_DRIVER' || str_starts_with($code, 'RETAIL_'),
+                );
+                $wholesaleDomain = $roleCodes->contains(
+                    static fn (string $code): bool => $code !== 'B2C_DRIVER' && ! str_starts_with($code, 'RETAIL_'),
+                );
+
+                $groups = $permissions
+                    ->filter(function (Permission $permission) use (
+                        $retailDomain,
+                        $wholesaleDomain,
+                        $permissionCrossesRetailBoundary,
+                    ): bool {
+                        $code = (string) $permission->code;
+                        $allowedByRetail = $retailDomain && ! $permissionCrossesRetailBoundary($code);
+                        $allowedByWholesale = $wholesaleDomain
+                            && ! str_starts_with($code, 'drivers.b2c.')
+                            && ! str_starts_with($code, 'deliveries.b2c.');
+
+                        return $allowedByRetail || $allowedByWholesale;
+                    })
+                    ->values()
+                    ->groupBy(static fn (Permission $permission): string => Str::before($permission->code, '.'));
+
+                return [(int) $managedUser->id => $groups];
+            },
+        );
+
+        $userPermissionGroupsByStore = $stores->mapWithKeys(function (Store $store) use (
+            $isSuperAdmin,
+            $actor,
+            $userPermissions,
+            $permissionCrossesRetailBoundary,
+        ): array {
+            $allowedCodes = $isSuperAdmin
+                ? null
+                : collect($actor->effectivePermissionCodes((int) $store->id));
+
+            $groups = $userPermissions
+                ->when(! $isSuperAdmin, fn ($items) => $items
+                    ->filter(fn (Permission $permission): bool => $allowedCodes?->contains($permission->code) === true)
+                    ->values())
+                ->filter(fn (Permission $permission): bool => ! $permissionCrossesRetailBoundary((string) $permission->code))
+                ->values()
+                ->groupBy(static fn (Permission $permission): string => Str::before($permission->code, '.'));
+
+            return [(int) $store->id => $groups];
+        });
+
         $globalCandidates = $roles->where('scope', 'global')->where('is_active', true)->values();
         $storeCandidates = $roles->where('scope', 'store')->where('is_active', true)->values();
 
@@ -252,6 +362,42 @@ final class SecurityController extends Controller
             ->mapWithKeys(fn (User $managedUser): array => [
                 (int) $managedUser->id => $managedUser->effectivePermissionCodes(),
             ]);
+        $effectivePermissionIdsByUser = $users->getCollection()
+            ->mapWithKeys(function (User $managedUser) use ($userPermissionIdsByCode): array {
+                $ids = collect($managedUser->effectivePermissionCodes())
+                    ->map(fn (string $code) => $userPermissionIdsByCode->get($code))
+                    ->filter()
+                    ->map(static fn ($id): int => (int) $id)
+                    ->values()
+                    ->all();
+
+                return [(int) $managedUser->id => $ids];
+            });
+        $effectiveStorePermissionIdsByUser = $users->getCollection()
+            ->mapWithKeys(function (User $managedUser) use ($userPermissionIdsByCode): array {
+                $storeMap = $managedUser->storeRoleAssignments
+                    ->pluck('store_id')
+                    ->unique()
+                    ->mapWithKeys(function ($storeId) use ($managedUser, $userPermissionIdsByCode): array {
+                        $ids = collect($managedUser->effectivePermissionCodes((int) $storeId))
+                            ->map(fn (string $code) => $userPermissionIdsByCode->get($code))
+                            ->filter()
+                            ->map(static fn ($id): int => (int) $id)
+                            ->values()
+                            ->all();
+
+                        return [(int) $storeId => $ids];
+                    })
+                    ->all();
+
+                return [(int) $managedUser->id => $storeMap];
+            });
+        $permissionOverrideCountsByUser = DB::table('user_permission_overrides')
+            ->whereIn('user_id', $users->getCollection()->pluck('id'))
+            ->selectRaw('user_id, COUNT(*) as aggregate')
+            ->groupBy('user_id')
+            ->pluck('aggregate', 'user_id')
+            ->map(static fn ($count): int => (int) $count);
         $securitySessions = AdminSecuritySession::query()
             ->with('user:id,name,email')
             ->whereNull('revoked_at')
@@ -273,6 +419,11 @@ final class SecurityController extends Controller
             'permissionGroups' => $permissionGroups,
             'permissionLabels' => $permissionLabels,
             'permissionGroupLabels' => $permissionGroupLabels,
+            'userPermissionGroups' => $userPermissionGroups,
+            'userPermissionLabels' => $userPermissionLabels,
+            'userPermissionGroupLabels' => $userPermissionGroupLabels,
+            'userPermissionGroupsByStore' => $userPermissionGroupsByStore,
+            'userGlobalPermissionGroupsByUser' => $userGlobalPermissionGroupsByUser,
             'editableRoleIds' => $editableRoleIds,
             'roleOutsideGrantAuthorityIds' => $roleOutsideGrantAuthorityIds,
             'privilegedPermissionCodes' => [
@@ -294,6 +445,9 @@ final class SecurityController extends Controller
             'mfaByUser' => $mfaByUser,
             'ssoByUser' => $ssoByUser,
             'effectivePermissionsByUser' => $effectivePermissionsByUser,
+            'effectivePermissionIdsByUser' => $effectivePermissionIdsByUser,
+            'effectiveStorePermissionIdsByUser' => $effectiveStorePermissionIdsByUser,
+            'permissionOverrideCountsByUser' => $permissionOverrideCountsByUser,
             'securitySessions' => $securitySessions,
             'currentSecuritySessionHash' => hash('sha256', $request->session()->getId().'|'.$actor->id),
             'auditRows' => $audit['rows'],
@@ -480,6 +634,28 @@ final class SecurityController extends Controller
         );
 
         return back()->with('status', __('admin.security.user_roles_saved'));
+    }
+
+    public function updateUserPermissions(Request $request, User $user, RbacManager $rbac): RedirectResponse
+    {
+        Gate::authorize('users.roles.manage');
+        $validated = $request->validate([
+            'scope_type' => ['required', Rule::in(['global', 'store'])],
+            'store_id' => ['nullable', 'integer', 'exists:stores,id'],
+            'permission_ids' => ['nullable', 'array'],
+            'permission_ids.*' => ['integer', 'exists:permissions,id'],
+        ]);
+
+        $rbac->replaceUserPermissions(
+            $this->actor($request),
+            $user,
+            array_map('intval', $validated['permission_ids'] ?? []),
+            (string) $validated['scope_type'],
+            isset($validated['store_id']) ? (int) $validated['store_id'] : null,
+            $request,
+        );
+
+        return back()->with('status', __('security_permissions.user_permissions_saved'));
     }
 
     public function resetUserMfa(
