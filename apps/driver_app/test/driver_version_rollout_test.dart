@@ -504,6 +504,10 @@ void main() {
     expect(client.calls, 0);
     expect(find.byKey(const Key('driver-version-error')), findsNothing);
     expect(find.byKey(const Key('driver-version-blocking')), findsNothing);
-    expect(find.textContaining('Safe preview'), findsOneWidget);
+    expect(find.byKey(const Key('driver-shell')), findsOneWidget);
+    expect(
+      find.byKey(const Key('driver-preview-configuration-invalid')),
+      findsNothing,
+    );
   });
 }
