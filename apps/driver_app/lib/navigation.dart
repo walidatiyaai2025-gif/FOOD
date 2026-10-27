@@ -477,8 +477,8 @@ class _DriverHomePageState extends State<_DriverHomePage>
       if (currency.isEmpty) continue;
       totals.update(
         currency,
-        (value) => value + account.custodyBalance,
-        ifAbsent: () => account.custodyBalance,
+        (value) => value + account.unsettledCollectionsBalance,
+        ifAbsent: () => account.unsettledCollectionsBalance,
       );
     }
     final entries = totals.entries
