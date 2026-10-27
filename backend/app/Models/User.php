@@ -94,6 +94,10 @@ class User extends Authenticatable
             return false;
         }
         if ($globalEffect === 'allow') {
+            if (! $this->permissionFitsActiveGlobalRoleDomain($permissionCode)) {
+                return false;
+            }
+
             if ($storeId === null) {
                 return true;
             }
@@ -207,10 +211,9 @@ class User extends Authenticatable
             if (! is_string($row->code) || ! in_array($row->effect, ['allow', 'deny'], true)) {
                 continue;
             }
-            if ($storeId !== null
-                && $row->scope_key === 'global'
+            if ($row->scope_key === 'global'
                 && $row->effect === 'allow'
-                && ! $globalContext) {
+                && (! $globalContext || ! $this->permissionFitsActiveGlobalRoleDomain((string) $row->code))) {
                 continue;
             }
 
@@ -230,6 +233,50 @@ class User extends Authenticatable
             ->value('user_permission_overrides.effect');
 
         return is_string($effect) && in_array($effect, ['allow', 'deny'], true) ? $effect : null;
+    }
+
+    private function permissionFitsActiveGlobalRoleDomain(string $permissionCode): bool
+    {
+        $roleCodes = $this->roles()
+            ->where('roles.is_active', true)
+            ->where('roles.scope', 'global')
+            ->pluck('roles.code')
+            ->map(static fn ($value): string => (string) $value);
+
+        $retailDomain = $roleCodes->contains(
+            static fn (string $code): bool => $code === 'B2C_DRIVER' || str_starts_with($code, 'RETAIL_'),
+        );
+        $wholesaleDomain = $roleCodes->contains(
+            static fn (string $code): bool => $code !== 'B2C_DRIVER' && ! str_starts_with($code, 'RETAIL_'),
+        );
+
+        $allowedByRetail = $retailDomain && ! $this->permissionCrossesRetailBoundary($permissionCode);
+        $allowedByWholesale = $wholesaleDomain
+            && ! str_starts_with($permissionCode, 'drivers.b2c.')
+            && ! str_starts_with($permissionCode, 'deliveries.b2c.');
+
+        return $allowedByRetail || $allowedByWholesale;
+    }
+
+    private function permissionCrossesRetailBoundary(string $code): bool
+    {
+        return str_starts_with($code, 'b2b.')
+            || str_starts_with($code, 'drivers.b2b.')
+            || str_starts_with($code, 'deliveries.b2b.')
+            || in_array($code, [
+                'platform.manage',
+                'security.view',
+                'roles.manage',
+                'users.view',
+                'users.roles.manage',
+                'users.status.manage',
+                'translations.manage',
+                'system.update',
+                'demo_data.manage',
+                'mobile_settings.manage',
+                'push_settings.manage',
+                'push_settings.test',
+            ], true);
     }
 
     private function hasPermissionScopeContext(int $storeId): bool
