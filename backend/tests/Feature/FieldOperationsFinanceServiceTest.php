@@ -108,4 +108,78 @@ class FieldOperationsFinanceServiceTest extends TestCase
         $this->assertSame('RCPT-41', $remittances['rows'][0]['reference']);
         $this->assertSame(0, (int) $remittances['rows'][0]['has_exception']);
     }
+
+    public function test_driver_unsettled_collection_summary_uses_authoritative_custody_and_store_scope(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+
+        $typeId = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId,
+            'code' => 'OPS-DRIVER-FIN-1',
+            'name' => 'Driver Finance Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $otherStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId,
+            'code' => 'OPS-DRIVER-FIN-2',
+            'name' => 'Other Driver Finance Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $actor = User::factory()->create();
+
+        $kwd = CollectionAccount::query()->create([
+            'actor_type' => 'driver',
+            'actor_id' => 501,
+            'store_id' => $storeId,
+            'currency' => 'KWD',
+            'status' => 'active',
+        ]);
+        $egp = CollectionAccount::query()->create([
+            'actor_type' => 'driver',
+            'actor_id' => 502,
+            'store_id' => $storeId,
+            'currency' => 'EGP',
+            'status' => 'active',
+        ]);
+        $outside = CollectionAccount::query()->create([
+            'actor_type' => 'driver',
+            'actor_id' => 503,
+            'store_id' => $otherStoreId,
+            'currency' => 'KWD',
+            'status' => 'active',
+        ]);
+
+        foreach ([
+            [$kwd, 'collection', 120.0, 'KWD', 9101],
+            [$kwd, 'approved_remittance', -20.0, 'KWD', 9102],
+            [$egp, 'collection', 50.0, 'EGP', 9103],
+            [$outside, 'collection', 999.0, 'KWD', 9104],
+        ] as [$account, $type, $amount, $currency, $reference]) {
+            CustodyLedgerEntry::query()->create([
+                'collection_account_id' => $account->id,
+                'entry_type' => $type,
+                'amount' => $amount,
+                'currency' => $currency,
+                'reference_type' => 'test',
+                'reference_id' => $reference,
+                'created_by' => $actor->id,
+            ]);
+        }
+
+        $finance = app(FieldOperationsFinanceService::class)->viewModel([$storeId], [
+            'ops_tab' => 'wallets',
+            'ops_per_page' => 10,
+        ]);
+
+        $this->assertSame([
+            ['currency' => 'EGP', 'amount' => 50.0],
+            ['currency' => 'KWD', 'amount' => 100.0],
+        ], $finance['driver_unsettled_by_currency']);
+    }
+
 }
