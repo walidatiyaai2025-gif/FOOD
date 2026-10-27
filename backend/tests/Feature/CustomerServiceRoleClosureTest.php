@@ -77,7 +77,6 @@ final class CustomerServiceRoleClosureTest extends TestCase
         );
     }
 
-
     public function test_upgrade_reconciles_customer_service_dispatch_permission_and_restores_grid_dropdown(): void
     {
         $agent = $this->userWithRole('CUSTOMER_SERVICE_AGENT');
