@@ -70,12 +70,17 @@ class AdminShellTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_super_admin_stays_on_platform_control_plane_until_explicit_retail_inspection(): void
+    public function test_super_admin_lands_directly_on_b2b_dashboard_until_explicit_retail_inspection(): void
     {
         $user = $this->userWithGlobalRole('SUPER_ADMIN');
 
         $this->actingAs($user)
             ->get('/admin')
+            ->assertOk()
+            ->assertSee('data-foodex-executive-overview', false);
+
+        $this->actingAs($user)
+            ->get('/admin/b2b/dashboard')
             ->assertOk()
             ->assertSee('إدارة الجملة')
             ->assertDontSee('href="'.route('admin.b2c.dashboard').'"', false)
@@ -93,8 +98,12 @@ class AdminShellTest extends TestCase
 
         $this->assertDatabaseCount('stores', 0);
 
+        $this->actingAs($user)
+            ->get('/admin')
+            ->assertOk()
+            ->assertSee('data-foodex-executive-overview', false);
+
         foreach ([
-            '/admin',
             '/admin/b2b/dashboard',
             '/admin/b2b/clients',
             '/admin/b2b/products',
@@ -126,11 +135,11 @@ class AdminShellTest extends TestCase
         $user = $this->userWithGlobalRole('SUPER_ADMIN', 'en');
 
         $this->actingAs($user)
-            ->get('/admin')
+            ->get('/admin/b2b/dashboard')
             ->assertOk()
             ->assertSee('Operations')
             ->assertSee('Catalog')
-            ->assertSee('Analytics & Reports')
+            ->assertSee('Analytics')
             ->assertSee('Administration')
             ->assertSee('data-nav-group="operations"', false)
             ->assertSee('Search navigation');
@@ -161,7 +170,7 @@ class AdminShellTest extends TestCase
 
     public function test_shared_shell_exposes_foodex_brand_contract(): void
     {
-        $user = $this->userWithGlobalRole('SUPER_ADMIN', 'en');
+        $user = $this->userWithGlobalRole('B2B_ADMIN', 'en');
 
         $this->actingAs($user)
             ->get('/admin')
@@ -218,7 +227,7 @@ class AdminShellTest extends TestCase
         $this->actingAs($user)
             ->get('/admin')
             ->assertOk()
-            ->assertSee('Analytics & Reports')
+            ->assertSee('Analytics')
             ->assertDontSee('Users & Permissions')
             ->assertDontSee('Translation Center')
             ->assertDontSee('System Update');

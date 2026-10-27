@@ -32,8 +32,12 @@ class CustomerPreviewViewport extends StatelessWidget {
         viewPadding: safeArea,
         viewInsets: EdgeInsets.only(bottom: bootstrap.viewInsetBottom),
         textScaler: TextScaler.linear(bootstrap.textScale),
+        disableAnimations: true,
       ),
-      child: child,
+      child: TickerMode(
+        enabled: false,
+        child: child,
+      ),
     );
   }
 }

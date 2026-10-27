@@ -17,6 +17,10 @@
 - Expanded order/customer/driver lifecycle notification coverage.
 - New Order channel, warehouse and in-stock product scoping improvements.
 - Driver App support for manually assigned B2B deliveries.
+- Driver Home live refresh every 5 seconds with foreground popups for new assignments and subsequent assignment/order changes.
+- Driver lifecycle push coverage for assignment, reassignment, unassignment, status, order-detail, Customer Service, invoice and payment changes with per-event deduplication.
+- Compact no-scroll Driver Home fitted above bottom navigation, reduced card heights, notification action in the header, legacy footer/diagnostics chrome removed, and the `picked_up` status card hidden while preserving the underlying workflow state.
+- Debug-only local development bypass for Driver version/location gates and Van location tracking; production/release enforcement remains unchanged.
 - Driver Home red Pending orders card showing current `assigned` workload and opening the assigned-only delivery list.
 - Existing Customer and Van product behavior is carried forward, but their release identities are rebuilt at 1.0.113 to preserve synchronized release provenance.
 

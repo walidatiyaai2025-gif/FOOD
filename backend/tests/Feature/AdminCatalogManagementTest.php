@@ -28,9 +28,13 @@ class AdminCatalogManagementTest extends TestCase
 
         $this->actingAs($user)->get('/admin')
             ->assertOk()
+            ->assertSee('data-foodex-executive-overview', false);
+
+        $this->actingAs($user)->get('/admin/b2b/dashboard')
+            ->assertOk()
             ->assertSee('dir="rtl"', false)
-            ->assertSee('.shell{direction:ltr;', false)
-            ->assertSee('.shell-sidebar{grid-column:2;grid-row:1;direction:rtl;', false);
+            ->assertSee('.layout{direction:ltr;', false)
+            ->assertSee('.sidebar{grid-column:2;grid-row:1;direction:rtl;', false);
     }
 
     public function test_super_admin_can_manage_categories_and_products_from_web_ui(): void

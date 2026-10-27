@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Controller;
 use App\Jobs\DispatchPushNotification;
 use App\Models\AuditLog;
+use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\DriverAssignment;
 use App\Models\Invoice;
@@ -34,9 +35,11 @@ use App\Services\VanDeliveryEvidenceService;
 use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use App\Support\DisplayNumber;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -127,8 +130,22 @@ final class OrderOperationsController extends Controller
         $orderQuery = Order::query()
             ->where(fn ($query) => $this->applyOperationalScopes($query, $scopes))
             ->when($selectedStoreId !== null, fn ($query) => $query->where('store_id', $selectedStoreId))
-            ->when(isset($data['from']), fn ($query) => $query->whereDate('created_at', '>=', $data['from']))
-            ->when(isset($data['to']), fn ($query) => $query->whereDate('created_at', '<=', $data['to']))
+            ->when(
+                isset($data['from']),
+                fn ($query) => $query->where(
+                    'created_at',
+                    '>=',
+                    CarbonImmutable::parse((string) $data['from'], 'Asia/Kuwait')->startOfDay()->utc(),
+                ),
+            )
+            ->when(
+                isset($data['to']),
+                fn ($query) => $query->where(
+                    'created_at',
+                    '<=',
+                    CarbonImmutable::parse((string) $data['to'], 'Asia/Kuwait')->endOfDay()->utc(),
+                ),
+            )
             ->when(
                 isset($data['order_number']) && trim((string) $data['order_number']) !== '',
                 function ($query) use ($data): void {
@@ -173,27 +190,65 @@ final class OrderOperationsController extends Controller
             $this->salesDashboard->applyExceptionFilter($orderQuery, $selectedException);
         }
 
+        $dashboardVisible = ! (
+            isset($data['order_number'])
+            || isset($data['status'])
+            || isset($data['driver_id'])
+            || isset($data['dispatch_status'])
+            || isset($data['exception'])
+            || isset($data['order'])
+        );
+
         $statusBaseQuery = clone $orderQuery;
-        $actionRequiredCount = (clone $statusBaseQuery)
-            ->whereNotIn('status', ['delivered', 'completed', 'cancelled'])
-            ->whereExists(function ($dispatch): void {
-                $dispatch->selectRaw('1')
-                    ->from('order_dispatch_states')
-                    ->whereColumn('order_dispatch_states.order_id', 'orders.id')
-                    ->where('order_dispatch_states.status', 'awaiting_dispatch');
-            })
-            ->count();
+        $summaryLoader = function () use ($statusBaseQuery): array {
+            $actionRequiredCount = (clone $statusBaseQuery)
+                ->whereNotIn('status', ['delivered', 'completed', 'cancelled'])
+                ->whereExists(function ($dispatch): void {
+                    $dispatch->selectRaw('1')
+                        ->from('order_dispatch_states')
+                        ->whereColumn('order_dispatch_states.order_id', 'orders.id')
+                        ->where('order_dispatch_states.status', 'awaiting_dispatch');
+                })
+                ->count();
+
+            $statusCounts = (clone $statusBaseQuery)
+                ->selectRaw('status, COUNT(*) as aggregate')
+                ->groupBy('status')
+                ->pluck('aggregate', 'status')
+                ->map(static fn ($count): int => (int) $count)
+                ->all();
+
+            return [
+                'action_required_count' => $actionRequiredCount,
+                'status_counts' => $statusCounts,
+            ];
+        };
+
+        if ($dashboardVisible && ! app()->environment('testing')) {
+            $normalizedSummaryScopes = [
+                'b2b' => array_values(array_unique(array_map('intval', $scopes['b2b']))),
+                'b2c' => array_values(array_unique(array_map('intval', $scopes['b2c']))),
+            ];
+            sort($normalizedSummaryScopes['b2b']);
+            sort($normalizedSummaryScopes['b2c']);
+            $summaryCacheKey = 'admin.order-operations.summary.v2.'.sha1(json_encode([
+                'scopes' => $normalizedSummaryScopes,
+                'store_id' => $selectedStoreId,
+                'from' => $data['from'] ?? null,
+                'to' => $data['to'] ?? null,
+            ], JSON_THROW_ON_ERROR));
+
+            $summary = Cache::remember($summaryCacheKey, now()->addSeconds(10), $summaryLoader);
+        } else {
+            $summary = $summaryLoader();
+        }
+
+        $actionRequiredCount = (int) $summary['action_required_count'];
+        $statusCounts = (array) $summary['status_counts'];
 
         if ($selectedActionRequired && ! $actionRequiredExplicit && $actionRequiredCount === 0) {
             $selectedActionRequired = false;
         }
-
-        $statusCounts = (clone $statusBaseQuery)
-            ->selectRaw('status, COUNT(*) as aggregate')
-            ->groupBy('status')
-            ->pluck('aggregate', 'status')
-            ->map(static fn ($count): int => (int) $count)
-            ->all();
 
         if ($selectedActionRequired) {
             $orderQuery
@@ -209,6 +264,21 @@ final class OrderOperationsController extends Controller
         $selectedStatus = isset($data['status']) ? (string) $data['status'] : null;
         $orders = (clone $orderQuery)
             ->when($selectedStatus !== null, fn ($query) => $query->where('status', $selectedStatus))
+            ->select([
+                'id',
+                'store_id',
+                'b2b_customer_id',
+                'b2c_customer_id',
+                'order_number',
+                'channel',
+                'status',
+                'currency',
+                'grand_total',
+                'payment_method',
+                'commercial_locked_at',
+                'created_at',
+                'updated_at',
+            ])
             ->latest('id')
             ->paginate($perPage)
             ->withQueryString();
@@ -281,22 +351,38 @@ final class OrderOperationsController extends Controller
             ->distinct()
             ->get(['vans.id', 'vans.code', 'vans.plate_number']);
 
-        $dashboardVisible = ! (
-            isset($data['order_number'])
-            || isset($data['status'])
-            || isset($data['driver_id'])
-            || isset($data['dispatch_status'])
-            || isset($data['exception'])
-            || isset($data['order'])
-        );
-        $dashboard = $dashboardVisible
-            ? $this->salesDashboard->build(
+        $dashboard = null;
+        if ($dashboardVisible) {
+            $dashboardLoader = fn (): array => $this->salesDashboard->build(
                 $scopes,
                 $selectedStoreId,
                 isset($data['from']) ? (string) $data['from'] : null,
                 isset($data['to']) ? (string) $data['to'] : null,
-            )
-            : null;
+            );
+
+            if (app()->environment('testing')) {
+                $dashboard = $dashboardLoader();
+            } else {
+                $normalizedScopes = [
+                    'b2b' => array_values(array_unique(array_map('intval', $scopes['b2b']))),
+                    'b2c' => array_values(array_unique(array_map('intval', $scopes['b2c']))),
+                ];
+                sort($normalizedScopes['b2b']);
+                sort($normalizedScopes['b2c']);
+                $dashboardCacheKey = 'admin.order-operations.dashboard.v3.'.sha1(json_encode([
+                    'scopes' => $normalizedScopes,
+                    'store_id' => $selectedStoreId,
+                    'from' => $data['from'] ?? null,
+                    'to' => $data['to'] ?? null,
+                ], JSON_THROW_ON_ERROR));
+
+                $dashboard = Cache::remember(
+                    $dashboardCacheKey,
+                    now()->addSeconds(20),
+                    $dashboardLoader,
+                );
+            }
+        }
 
         $dashboardBaseQuery = [];
         $dashboardKpis = [];
@@ -304,7 +390,7 @@ final class OrderOperationsController extends Controller
         $dailyMax = 1;
         $statusMax = 1;
 
-        if ($dashboardVisible && is_array($dashboard)) {
+        if ($dashboardVisible) {
             $dashboardBaseQuery = [
                 'channel' => $operationalChannel,
                 'from' => $dashboard['period']['from'],
@@ -382,28 +468,6 @@ final class OrderOperationsController extends Controller
                     'decimals' => 0,
                     'status' => ['label' => __('order_operations.dashboard.exceptions.awaiting_dispatch'), 'state' => $dashboard['kpis']['awaiting_dispatch'] > 0 ? 'warning' : 'success'],
                     'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'awaiting_dispatch'])),
-                ],
-                [
-                    'key' => 'payment_exceptions',
-                    'icon' => 'revenue',
-                    'tone' => 'cyan',
-                    'label' => __('order_operations.dashboard.kpis.payment_exceptions'),
-                    'value' => number_format((int) $dashboard['kpis']['payment_exceptions']),
-                    'raw' => (float) $dashboard['kpis']['payment_exceptions'],
-                    'decimals' => 0,
-                    'status' => ['label' => __('order_operations.dashboard.exceptions.payment'), 'state' => $dashboard['kpis']['payment_exceptions'] > 0 ? 'danger' : 'success'],
-                    'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'payment'])),
-                ],
-                [
-                    'key' => 'invoice_exceptions',
-                    'icon' => 'content',
-                    'tone' => 'rose',
-                    'label' => __('order_operations.dashboard.kpis.invoice_exceptions'),
-                    'value' => number_format((int) $dashboard['kpis']['invoice_exceptions']),
-                    'raw' => (float) $dashboard['kpis']['invoice_exceptions'],
-                    'decimals' => 0,
-                    'status' => ['label' => __('order_operations.dashboard.exceptions.invoice'), 'state' => $dashboard['kpis']['invoice_exceptions'] > 0 ? 'danger' : 'success'],
-                    'drilldown_url' => route('admin.operations.orders.index', array_merge($dashboardBaseQuery, ['exception' => 'invoice'])),
                 ],
                 [
                     'key' => 'fulfillment_minutes',
@@ -1339,102 +1403,21 @@ final class OrderOperationsController extends Controller
         $targetStatus = (string) $validated['status'];
 
         abort_if(
-            strtolower((string) $model->channel) === 'b2b'
-                && (string) $model->status === 'ready'
-                && $targetStatus === 'out_for_delivery',
+            in_array(strtolower((string) $model->status), ['delivered', 'completed'], true)
+                && $targetStatus === 'cancelled',
             409,
-            'Ready B2B orders move to out for delivery only after Driver or Van assignment.',
+            'Delivered orders cannot be cancelled.',
         );
 
-        if ((string) $model->status === 'confirmed' && $targetStatus === 'pending') {
-            $fresh = DB::transaction(function () use ($model, $actor, $audit, $request): Order {
-                $locked = Order::query()
-                    ->whereKey($model->getKey())
-                    ->lockForUpdate()
-                    ->firstOrFail();
-
-                abort_unless(
-                    (string) $locked->status === 'confirmed',
-                    409,
-                    'Only a confirmed order can be returned to pending.',
-                );
-
-                $hasActiveDriver = DriverAssignment::query()
-                    ->where('order_id', $locked->getKey())
-                    ->whereNotIn('status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
-                    ->lockForUpdate()
-                    ->first(['id']) !== null;
-                $hasActiveVan = OrderVanAssignment::query()
-                    ->where('order_id', $locked->getKey())
-                    ->whereNull('ended_at')
-                    ->whereNotIn('status', ['cancelled', 'delivered', 'failed', 'reassigned', 'unassigned'])
-                    ->lockForUpdate()
-                    ->first(['id']) !== null;
-                $hasActiveDispatch = OrderDispatchState::query()
-                    ->where('order_id', $locked->getKey())
-                    ->where('status', 'assigned')
-                    ->whereNotNull('current_assignee_id')
-                    ->lockForUpdate()
-                    ->first(['id']) !== null;
-
-                abort_if(
-                    $hasActiveDriver || $hasActiveVan || $hasActiveDispatch,
-                    409,
-                    'A dispatched order cannot be returned to pending.',
-                );
-
-                app(InvoiceService::class)->voidForOrder(
-                    $locked,
-                    $actor,
-                    'status_reverted_to_pending',
-                );
-
-                $locked->forceFill(['status' => 'pending'])->save();
-
-                OrderStatusHistory::query()->create([
-                    'order_id' => $locked->getKey(),
-                    'store_id' => (int) $locked->store_id,
-                    'user_id' => $actor->getKey(),
-                    'from_status' => 'confirmed',
-                    'to_status' => 'pending',
-                    'note' => 'dashboard_reverted_to_pending',
-                ]);
-
-                $audit->record(
-                    'order.status_changed',
-                    $actor,
-                    $locked,
-                    ['status' => 'confirmed'],
-                    ['status' => 'pending', 'note' => 'dashboard_reverted_to_pending'],
-                    $request,
-                );
-
-                return $locked->fresh();
-            }, 3);
-
-            $notifier->orderStatusChanged($fresh, 'confirmed', 'pending');
-
-            return back()->with('status', $this->msg(
-                'تم إعادة الطلب إلى قيد الانتظار.',
-                'Order returned to pending.',
-            ));
-        }
+        abort_if(
+            in_array($targetStatus, ['confirmed', 'preparing', 'ready'], true),
+            409,
+            'Confirmation and preparation steps are automatic when fulfillment is assigned.',
+        );
 
         $request->merge(['store_id' => (int) $model->store_id]);
 
         $orders->transition($request, $order, $audit, $notifier);
-
-        if (
-            strtolower((string) $model->channel) === 'b2b'
-            && $targetStatus === 'ready'
-            && OrderDispatchState::query()
-                ->where('order_id', $model->getKey())
-                ->where('status', 'assigned')
-                ->whereNotNull('current_assignee_id')
-                ->exists()
-        ) {
-            $this->markReadyOrderOutForDelivery($model, $actor, $audit, $notifier, $request);
-        }
 
         return back()->with('status', $this->msg('تم تحديث حالة الطلب.', 'Order status updated.'));
     }
@@ -1452,7 +1435,7 @@ final class OrderOperationsController extends Controller
         abort_unless(
             $this->orderCanBeDispatched($model),
             409,
-            'Order must be confirmed before dispatch.',
+            'Order is not available for fulfillment assignment.',
         );
         $this->scope->assertStore(
             $actor,
@@ -1510,6 +1493,7 @@ final class OrderOperationsController extends Controller
 
                 if ($active instanceof DriverAssignment && (int) $active->driver_id === $driverId) {
                     $dispatch->assignDriver($model, $actor, $active, $reason);
+                    $this->activateAssignedOrder($model, $actor, $audit, $notifier, $request);
 
                     return;
                 }
@@ -1531,9 +1515,8 @@ final class OrderOperationsController extends Controller
                     ->first();
                 abort_unless($assignment instanceof DriverAssignment, 409, 'Driver assignment was not persisted.');
                 $dispatch->assignDriver($model, $actor, $assignment, $reason);
+                $this->activateAssignedOrder($model, $actor, $audit, $notifier, $request);
             });
-
-            $this->markReadyOrderOutForDelivery($model, $actor, $audit, $notifier, $request);
 
             return back()->with('status', $this->msg(
                 'تم توجيه الطلب إلى السائق.',
@@ -1583,9 +1566,8 @@ final class OrderOperationsController extends Controller
             }
 
             $dispatch->assignVan($model, $actor, $vanId, $reason);
+            $this->activateAssignedOrder($model, $actor, $audit, $notifier, $request);
         });
-
-        $this->markReadyOrderOutForDelivery($model, $actor, $audit, $notifier, $request);
 
         return back()->with('status', $this->msg(
             'تم توجيه الطلب إلى الفان.',
@@ -1606,7 +1588,7 @@ final class OrderOperationsController extends Controller
         abort_unless(
             $this->orderCanBeDispatched($model),
             409,
-            'Order must be confirmed before dispatch.',
+            'Order is not available for fulfillment assignment.',
         );
         $this->scope->assertStore(
             $actor,
@@ -1763,7 +1745,7 @@ final class OrderOperationsController extends Controller
         abort_unless(
             $this->orderCanBeDispatched($model),
             409,
-            'Order must be confirmed before dispatch.',
+            'Order is not available for fulfillment assignment.',
         );
         $this->scope->assertStore(
             $actor,
@@ -1814,7 +1796,7 @@ final class OrderOperationsController extends Controller
         abort_unless(
             $this->orderCanBeDispatched($model),
             409,
-            'Order must be confirmed before dispatch.',
+            'Order is not available for fulfillment assignment.',
         );
         $this->scope->assertStore(
             $actor,
@@ -2110,25 +2092,6 @@ final class OrderOperationsController extends Controller
             $deliveredAt[(int) $history->order_id] = $history->created_at;
         }
 
-        $settlementRows = [];
-        foreach ($orders as $order) {
-            if (strtolower((string) $order->channel) !== 'b2b' || $order->b2b_customer_id === null) {
-                continue;
-            }
-
-            $orderId = (int) $order->getKey();
-            $invoice = $invoices[$orderId] ?? null;
-            $settlementRows[] = [
-                'order_id' => $orderId,
-                'customer_id' => (int) $order->b2b_customer_id,
-                'store_id' => (int) $order->store_id,
-                'invoice_id' => $invoice?->id === null ? null : (int) $invoice->id,
-                'invoice_status' => $invoice?->status === null ? null : (string) $invoice->status,
-                'invoice_total' => $invoice?->total === null ? null : (float) $invoice->total,
-                'payment_method' => is_string($order->payment_method) ? $order->payment_method : null,
-            ];
-        }
-
         return new OrderOperationsRowContext(
             assignments: $assignments,
             drivers: $drivers,
@@ -2143,7 +2106,7 @@ final class OrderOperationsController extends Controller
             issuedInvoiceOrders: $issuedInvoiceOrders,
             stores: $stores,
             sources: $sources,
-            settlements: $this->accountLedger->orderRowSettlements($settlementRows),
+            settlements: [],
             deliveredAt: $deliveredAt,
         );
     }
@@ -2275,38 +2238,6 @@ final class OrderOperationsController extends Controller
             && ($payment->status ?? null) !== 'paid'
             && $hasIssuedInvoice === false;
 
-        $settlement = $context?->settlements[$orderId] ?? null;
-        if ($context === null && $channel === 'b2b' && $order->b2b_customer_id !== null) {
-            $customer = B2bCustomer::query()->find((int) $order->b2b_customer_id);
-            if (
-                $customer instanceof B2bCustomer
-                && DB::table('b2b_accounts')
-                    ->where('b2b_customer_id', $customer->getKey())
-                    ->where('status', 'active')
-                    ->exists()
-            ) {
-                $finance = $this->accountLedger->summary($customer, (int) $order->store_id);
-                $invoiceOutstanding = null;
-                if ($invoice !== null && in_array((string) $invoice->status, ['issued', 'reissued'], true)) {
-                    $invoiceModel = Invoice::query()->find((int) $invoice->id);
-                    if ($invoiceModel instanceof Invoice) {
-                        $amounts = $this->accountLedger->invoiceAmounts($invoiceModel);
-                        $invoiceOutstanding = (float) $amounts['outstanding_amount'];
-                    }
-                }
-
-                $settlement = [
-                    'currency' => (string) ($finance['currency'] ?? $order->currency),
-                    'customer_credit_balance' => (float) ($finance['customer_credit_balance'] ?? 0),
-                    'aggregate_outstanding' => (float) ($finance['outstanding_receivable'] ?? 0),
-                    'credit_limit' => (float) ($finance['credit_limit'] ?? 0),
-                    'available_credit_line' => (float) ($finance['available_credit_line'] ?? 0),
-                    'invoice_outstanding' => $invoiceOutstanding,
-                    'remainder_method' => is_string($order->payment_method) ? $order->payment_method : null,
-                ];
-            }
-        }
-
         $store = $context === null
             ? DB::table('stores')->where('id', $order->store_id)->first(['id', 'name', 'code'])
             : ($context->stores[(int) $order->store_id] ?? null);
@@ -2338,31 +2269,10 @@ final class OrderOperationsController extends Controller
                 : ($context->deliveredAt[$orderId] ?? null))
             : null;
         $hasActiveDriver = $assignment instanceof DriverAssignment;
-        $availableStatuses = array_values(array_filter(
-            OrderController::allowedTransitions($status),
-            static fn (string $candidate): bool => in_array($candidate, $activeStatusCodes, true),
-        ));
-        if ($hasActiveDriver) {
-            $availableStatuses = in_array('cancelled', $activeStatusCodes, true)
+        $availableStatuses = ! in_array($status, ['delivered', 'completed', 'cancelled'], true)
+            && in_array('cancelled', $activeStatusCodes, true)
                 ? ['cancelled']
                 : [];
-        } elseif ($channel === 'b2b' && $status === 'ready') {
-            $availableStatuses = array_values(array_filter(
-                $availableStatuses,
-                static fn (string $candidate): bool => $candidate === 'cancelled',
-            ));
-        } elseif (
-            $status === 'confirmed'
-            && ! (
-                $dispatch instanceof OrderDispatchState
-                && (string) $dispatch->status === 'assigned'
-                && $dispatch->current_assignee_id !== null
-            )
-            && in_array('pending', $activeStatusCodes, true)
-        ) {
-            $availableStatuses[] = 'pending';
-            $availableStatuses = array_values(array_unique($availableStatuses));
-        }
 
         $displayStatus = $this->orderOperationsDisplayStatus(
             $order,
@@ -2406,7 +2316,6 @@ final class OrderOperationsController extends Controller
             'invoice_total' => $invoice?->total === null ? null : (float) $invoice->total,
             'invoice_currency' => $invoice?->currency,
             'can_view_invoice' => $canViewInvoice,
-            'settlement' => $settlement,
             'can_manage' => $canManage,
             'can_edit' => $canEdit,
             'customer_service_owner_id' => $customerServiceOwner?->id === null ? null : (int) $customerServiceOwner->id,
@@ -2433,7 +2342,6 @@ final class OrderOperationsController extends Controller
                 true,
             ),
             'can_dispatch' => $canDispatchAuthorized && $this->orderCanBeDispatched($order),
-            'dispatch_locked_until_confirmation' => $canDispatchAuthorized && $status === 'pending',
         ];
     }
 
@@ -2731,19 +2639,24 @@ final class OrderOperationsController extends Controller
             ];
         }
 
-        if ($status === 'pending') {
+        if (
+            $dispatch instanceof OrderDispatchState
+            && (string) $dispatch->status === 'awaiting_dispatch'
+        ) {
             return [
-                'label' => __('order_operations.lifecycle_labels.pending_confirmation'),
+                'label' => strtolower((string) $order->channel) === 'b2b'
+                    ? __('order_operations.lifecycle_labels.awaiting_dispatch_assignment')
+                    : __('order_operations.lifecycle_labels.awaiting_driver_assignment'),
                 'state' => 'pending',
             ];
         }
 
-        if (in_array($status, ['confirmed', 'preparing', 'ready'], true)) {
+        if (in_array($status, ['pending', 'confirmed', 'preparing', 'ready'], true)) {
             return [
                 'label' => strtolower((string) $order->channel) === 'b2b'
-                    ? __('order_operations.lifecycle_labels.confirmed_awaiting_dispatch')
-                    : __('order_operations.lifecycle_labels.confirmed_awaiting_driver'),
-                'state' => 'confirmed',
+                    ? __('order_operations.lifecycle_labels.awaiting_dispatch_assignment')
+                    : __('order_operations.lifecycle_labels.awaiting_driver_assignment'),
+                'state' => 'pending',
             ];
         }
 
@@ -3016,7 +2929,14 @@ final class OrderOperationsController extends Controller
             ];
         }
 
-        return $options;
+        return array_values(array_filter(
+            $options,
+            static fn (array $option): bool => ! in_array(
+                (string) $option['code'],
+                ['confirmed', 'preparing', 'ready'],
+                true,
+            ),
+        ));
     }
 
     /** @return list<string> */
@@ -3112,22 +3032,34 @@ final class OrderOperationsController extends Controller
         return (string) $channels[0]['code'];
     }
 
-    private function markReadyOrderOutForDelivery(
+    private function activateAssignedOrder(
         Order $order,
         User $actor,
         AuditLogger $audit,
         DashboardOperationalNotifier $notifier,
         Request $request,
     ): void {
-        $updated = DB::transaction(function () use ($order, $actor, $audit, $request): ?Order {
+        $result = DB::transaction(function () use ($order, $actor, $audit, $request): ?array {
             $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
-            if ((string) $locked->status !== 'ready') {
+            $before = strtolower((string) $locked->status);
+
+            if ($before === 'out_for_delivery') {
                 return null;
             }
 
-            $before = (string) $locked->status;
-            $locked->status = 'out_for_delivery';
-            $locked->save();
+            abort_unless(
+                in_array($before, ['pending', 'confirmed', 'preparing', 'ready', 'failed'], true),
+                409,
+                'Order is not available for fulfillment assignment.',
+            );
+
+            if ($before === 'pending' && strtolower((string) $locked->channel) === 'b2b') {
+                $this->assertB2bAssignmentFinance($locked);
+            }
+
+            $locked->forceFill(['status' => 'out_for_delivery'])->save();
+
+            app(InvoiceService::class)->issueForOrder($locked, $actor);
 
             OrderStatusHistory::query()->create([
                 'order_id' => $locked->getKey(),
@@ -3135,7 +3067,7 @@ final class OrderOperationsController extends Controller
                 'user_id' => $actor->getKey(),
                 'from_status' => $before,
                 'to_status' => 'out_for_delivery',
-                'note' => 'dispatch_assigned',
+                'note' => 'fulfillment_assigned_auto_finalized',
             ]);
 
             $audit->record(
@@ -3145,25 +3077,65 @@ final class OrderOperationsController extends Controller
                 ['status' => $before],
                 [
                     'status' => 'out_for_delivery',
-                    'source' => 'dispatch_assignment',
-                    'note' => 'dispatch_assigned',
+                    'source' => 'fulfillment_assignment',
+                    'note' => 'fulfillment_assigned_auto_finalized',
                 ],
                 $request,
             );
 
-            return $locked->fresh();
+            return ['order' => $locked->fresh(), 'from' => $before];
         }, 3);
 
-        if ($updated instanceof Order) {
-            $notifier->orderStatusChanged($updated, 'ready', 'out_for_delivery');
+        if (is_array($result) && ($result['order'] ?? null) instanceof Order) {
+            $notifier->orderStatusChanged($result['order'], (string) $result['from'], 'out_for_delivery');
         }
+    }
+
+    private function assertB2bAssignmentFinance(Order $order): void
+    {
+        if ((string) $order->payment_method !== 'account_credit') {
+            return;
+        }
+
+        $customer = B2bCustomer::query()->findOrFail((int) $order->b2b_customer_id);
+        $account = B2bAccount::query()
+            ->where('b2b_customer_id', $customer->getKey())
+            ->where('status', 'active')
+            ->lockForUpdate()
+            ->first();
+
+        if (! $account instanceof B2bAccount) {
+            abort(409, 'The B2B account is no longer active and cannot be assigned for account credit.');
+        }
+
+        $finance = $this->accountLedger->summary($customer, (int) $order->store_id);
+        $alreadyInLedger = Invoice::query()
+            ->where('order_id', $order->getKey())
+            ->whereIn('status', ['issued', 'reissued'])
+            ->exists();
+
+        if ($alreadyInLedger) {
+            abort_if(
+                (float) $finance['outstanding_receivable'] > (float) $finance['credit_limit'] + 0.0001,
+                409,
+                'Account credit exposure exceeds the current authoritative credit limit.',
+            );
+
+            return;
+        }
+
+        abort_if(
+            (float) $order->grand_total > (float) $finance['purchasing_power'] + 0.0001,
+            409,
+            'Account credit is insufficient for the authoritative order total at assignment time.',
+        );
     }
 
     private function orderCanBeDispatched(Order $order): bool
     {
         return in_array(
             strtolower((string) $order->status),
-            ['confirmed', 'preparing', 'ready', 'out_for_delivery', 'failed'],
+            ['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'failed'],
             true,
         );
     }

@@ -6,12 +6,12 @@
 @include('admin._brand-components')
 <style>
 body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-height:100vh}.main{padding:28px}.sidebar{padding:18px;border-inline-start:1px solid var(--foodex-border)}
-.order-kpi-card{position:relative;display:grid;grid-template-columns:repeat(10,minmax(132px,1fr));min-width:0;margin:6px 0;overflow-x:auto;overflow-y:hidden;border:1px solid var(--foodex-border);border-radius:18px;background:var(--foodex-surface);box-shadow:0 8px 26px rgba(15,23,42,.055);scrollbar-width:thin}
-.order-kpi-card::before{content:"";position:absolute;inset-inline:0;top:0;height:4px;background:linear-gradient(90deg,var(--foodex-palette-158a3a) 0%,var(--foodex-palette-2563eb) 18%,var(--foodex-palette-7c3aed) 34%,var(--foodex-palette-ea580c) 50%,var(--foodex-palette-dc2626) 66%,var(--foodex-palette-0891b2) 82%,var(--foodex-palette-be123c) 100%);background-size:180% 100%;animation:orderKpiEdge 7.5s linear infinite}
-.order-kpi-item{--order-kpi-accent:var(--foodex-palette-158a3a);--order-kpi-soft:var(--foodex-palette-eaf7ef);position:relative;min-width:132px;min-height:112px;display:grid;grid-template-rows:auto 1fr;gap:7px;padding:16px 12px 12px;text-decoration:none;color:inherit;border-inline-end:1px solid var(--foodex-border);transition:background .16s ease,transform .16s ease}
+.order-kpi-card{position:relative;display:grid;grid-template-columns:repeat(auto-fit,minmax(clamp(118px,9vw,150px),1fr));grid-auto-rows:minmax(118px,auto);align-items:stretch;min-width:0;margin:6px 0;overflow:hidden;border:1px solid var(--foodex-border);border-radius:18px;background:var(--foodex-surface);box-shadow:0 8px 26px rgba(15,23,42,.055)}
+.order-kpi-card::before{content:"";position:absolute;z-index:2;inset-inline:0;top:0;height:4px;background:linear-gradient(90deg,var(--foodex-palette-158a3a) 0%,var(--foodex-palette-2563eb) 18%,var(--foodex-palette-7c3aed) 34%,var(--foodex-palette-ea580c) 50%,var(--foodex-palette-dc2626) 66%,var(--foodex-palette-0891b2) 82%,var(--foodex-palette-be123c) 100%);background-size:180% 100%;animation:orderKpiEdge 7.5s linear infinite}
+.order-kpi-item{--order-kpi-accent:var(--foodex-palette-158a3a);--order-kpi-soft:var(--foodex-palette-eaf7ef);position:relative;min-width:0;min-height:118px;height:100%;box-sizing:border-box;display:grid;grid-template-rows:auto minmax(0,1fr);align-content:stretch;gap:clamp(5px,.55vw,8px);padding:clamp(13px,1.1vw,17px) clamp(9px,.9vw,13px) clamp(11px,.9vw,14px);text-decoration:none;color:inherit;border-inline-end:1px solid var(--foodex-border);border-bottom:1px solid var(--foodex-border);overflow:hidden;transition:background .16s ease,transform .16s ease}
 .order-kpi-item:last-child{border-inline-end:0}.order-kpi-item:hover{background:color-mix(in srgb,var(--order-kpi-soft) 58%,#fff);transform:translateY(-1px)}
-.order-kpi-head{display:flex;align-items:center;gap:8px;min-width:0}.order-kpi-icon{width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;border-radius:10px;background:var(--order-kpi-soft);color:var(--order-kpi-accent)}.order-kpi-icon .foodex-svg-icon{width:17px;height:17px}
-.order-kpi-label{min-width:0;color:var(--foodex-muted);font-size:.63rem;font-weight:800;line-height:1.35}.order-kpi-value{align-self:center;display:block;width:100%;max-width:100%;font-size:1.22rem;line-height:1.12;color:var(--foodex-ink);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:visible;text-overflow:clip}
+.order-kpi-head{display:flex;align-items:flex-start;gap:clamp(5px,.55vw,8px);min-width:0}.order-kpi-icon{width:clamp(27px,2vw,32px);height:clamp(27px,2vw,32px);flex:0 0 clamp(27px,2vw,32px);display:grid;place-items:center;border-radius:10px;background:var(--order-kpi-soft);color:var(--order-kpi-accent)}.order-kpi-icon .foodex-svg-icon{width:clamp(14px,1.15vw,17px);height:clamp(14px,1.15vw,17px)}
+.order-kpi-label{min-width:0;max-width:100%;color:var(--foodex-muted);font-size:clamp(.58rem,.58vw,.72rem);font-weight:800;line-height:1.3;white-space:normal;overflow-wrap:anywhere;word-break:normal}.order-kpi-value{align-self:center;display:block;min-width:0;width:100%;max-width:100%;font-size:clamp(.82rem,1.12vw,1.22rem);line-height:1.16;color:var(--foodex-ink);font-variant-numeric:tabular-nums;white-space:normal;overflow-wrap:anywhere;word-break:normal}
 .order-kpi-state{position:absolute;inset-inline-end:10px;bottom:10px;width:7px;height:7px;border-radius:999px;background:var(--foodex-border)}.order-kpi-state[data-state="success"]{background:var(--foodex-palette-16a34a)}.order-kpi-state[data-state="warning"]{background:var(--foodex-palette-ea580c)}.order-kpi-state[data-state="danger"],.order-kpi-state[data-state="error"]{background:var(--foodex-palette-dc2626)}
 .order-kpi-item[data-tone="green"]{--order-kpi-accent:var(--foodex-palette-158a3a);--order-kpi-soft:var(--foodex-palette-eaf7ef)}.order-kpi-item[data-tone="blue"]{--order-kpi-accent:var(--foodex-palette-2563eb);--order-kpi-soft:var(--foodex-palette-eff6ff)}.order-kpi-item[data-tone="violet"]{--order-kpi-accent:var(--foodex-palette-7c3aed);--order-kpi-soft:var(--foodex-palette-f5f3ff)}.order-kpi-item[data-tone="orange"]{--order-kpi-accent:var(--foodex-palette-ea580c);--order-kpi-soft:var(--foodex-palette-fff7ed)}.order-kpi-item[data-tone="red"]{--order-kpi-accent:var(--foodex-palette-dc2626);--order-kpi-soft:var(--foodex-palette-fef2f2)}.order-kpi-item[data-tone="amber"]{--order-kpi-accent:var(--foodex-palette-b45309);--order-kpi-soft:var(--foodex-palette-fffbeb)}.order-kpi-item[data-tone="cyan"]{--order-kpi-accent:var(--foodex-palette-0e7490);--order-kpi-soft:var(--foodex-palette-ecfeff)}.order-kpi-item[data-tone="rose"]{--order-kpi-accent:var(--foodex-palette-be123c);--order-kpi-soft:var(--foodex-palette-fff1f2)}
 @keyframes orderKpiEdge{from{background-position:0 0}to{background-position:180% 0}}
@@ -33,19 +33,22 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-analytics-subtab:hover{transform:translateY(-1px);border-color:var(--foodex-palette-bfd5c6);color:var(--foodex-green-dark)}
 .order-analytics-subtab[aria-selected="true"]{border-color:var(--foodex-palette-146c36);background:var(--foodex-palette-eaf7ef);color:var(--foodex-palette-146c36);box-shadow:inset 0 0 0 1px rgba(20,108,54,.08)}
 [data-analytics-group][hidden]{display:none!important}
-.foodex-module-panels,.sales-ops-chart-grid{gap:6px!important;margin:0!important}
-.order-tab-panel[data-order-panel="analytics"] .foodex-viz-card{padding:10px!important}
-.order-tab-panel[data-order-panel="analytics"] .foodex-viz-header{margin-bottom:5px!important}
+.foodex-module-panels,.sales-ops-chart-grid{gap:6px!important;margin:0!important;align-items:stretch}
+.order-tab-panel[data-order-panel="analytics"] .foodex-viz-card{min-width:0;height:100%;box-sizing:border-box;padding:10px!important;overflow:hidden}
+.order-tab-panel[data-order-panel="analytics"] .foodex-viz-header{min-width:0;margin-bottom:5px!important}
+.order-tab-panel[data-order-panel="analytics"] .foodex-viz-header>div{min-width:0}
+.order-tab-panel[data-order-panel="analytics"] .foodex-viz-title{font-size:clamp(.78rem,.82vw,1rem);line-height:1.25;overflow-wrap:anywhere}
+.order-tab-panel[data-order-panel="analytics"] .foodex-viz-subtitle{font-size:clamp(.61rem,.64vw,.76rem);line-height:1.35;overflow-wrap:anywhere}
 .order-tab-panel[data-order-panel="analytics"] .foodex-module-chart-summary{margin:5px 0!important}
 .table-wrap{overflow:visible;border:1px solid var(--foodex-border);border-radius:16px;background:var(--foodex-surface);box-shadow:0 8px 22px rgba(15,23,42,.045)}
-.ops-table{width:100%;min-width:0;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:.74rem}
-.ops-table thead th{position:sticky;top:0;z-index:3;padding:9px 10px;background:var(--foodex-palette-f8fafc);color:var(--foodex-palette-64748b);font-size:.64rem;font-weight:900;border-bottom:1px solid var(--foodex-border);white-space:nowrap}
-.ops-table tbody td{padding:10px;vertical-align:middle;line-height:1.32;border-bottom:1px solid var(--foodex-palette-edf1f4);background:var(--foodex-surface);transition:background .16s ease}
-.ops-table tbody tr:last-child td{border-bottom:0}
+.ops-table{width:100%;min-width:0;table-layout:fixed;border-collapse:separate;border-spacing:0;border:0!important;font-size:.74rem}
+.ops-table thead th{position:sticky;top:0;z-index:3;padding:9px 10px;background:var(--foodex-palette-f8fafc);color:var(--foodex-palette-64748b);font-size:.64rem;font-weight:900;border:0;border-bottom:1px solid var(--foodex-border);border-inline-end:1px solid var(--foodex-border);white-space:nowrap}
+.ops-table tbody td{padding:10px;vertical-align:middle;line-height:1.32;border:0;border-bottom:1px solid var(--foodex-border);border-inline-end:1px solid var(--foodex-border);background:var(--foodex-surface);transition:background .16s ease}
+.ops-table th:last-child,.ops-table td:last-child{border-inline-end:0}.ops-table tbody tr:last-child td{border-bottom:0}
 .ops-table tbody tr:hover td{background:var(--foodex-palette-f9fbfa)}
-.ops-table th:nth-child(1){width:7.5%}.ops-table th:nth-child(2){width:12.75%}.ops-table th:nth-child(3){width:7.5%}.ops-table th:nth-child(4){width:14.5%}.ops-table th:nth-child(5){width:27%}.ops-table th:nth-child(6){width:23.75%}.ops-table th:nth-child(7){width:7%}.ops-table th:nth-child(3),.ops-table td:nth-child(3){padding-inline:5px}
+.ops-table th:nth-child(1),.ops-table th:nth-child(2),.ops-table th:nth-child(3),.ops-table th:nth-child(4),.ops-table th:nth-child(5),.ops-table th:nth-child(6){width:16.666%}.ops-table th:nth-child(3),.ops-table td:nth-child(3){padding-inline:8px}
 .order-grid-row{--order-row-accent:var(--foodex-palette-cbd5e1)}
-.order-grid-row>td:first-child{border-inline-start:3px solid var(--order-row-accent)}
+.order-grid-row>td:first-child{border-inline-start:0}
 .order-grid-row.is-action-required{--order-row-accent:var(--foodex-palette-f59e0b)}
 .order-grid-row.is-action-required td{background:linear-gradient(90deg,rgba(245,158,11,.045),rgba(255,255,255,0) 38%)}
 .order-grid-row.is-action-required:hover td{background:linear-gradient(90deg,rgba(245,158,11,.085),rgba(249,251,250,.92) 42%)}
@@ -53,7 +56,7 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-grid-title{font-weight:900;color:var(--foodex-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .order-grid-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;color:var(--foodex-muted);font-size:.63rem}
 .order-mini-chip{display:inline-flex;align-items:center;min-height:20px;padding:0 7px;border-radius:999px;background:var(--foodex-palette-f1f5f9);color:var(--foodex-palette-475569);font-size:.59rem;font-weight:800;white-space:nowrap}
-.order-status-chip{--status-bg:var(--foodex-palette-f1f5f9);--status-fg:var(--foodex-palette-475569);--status-border:var(--foodex-palette-cbd5e1);display:inline-flex;align-items:center;justify-content:center;min-height:27px;padding:0 9px;border:1px solid var(--status-border);border-radius:999px;background:var(--status-bg);color:var(--status-fg);font-size:.63rem;font-weight:900;white-space:nowrap}
+.order-status-chip{--status-bg:var(--foodex-palette-f1f5f9);--status-fg:var(--foodex-palette-475569);display:inline-flex;align-items:center;justify-content:center;min-height:27px;padding:0 9px;border:0!important;border-radius:999px;background:var(--status-bg);color:var(--status-fg);font-size:.63rem;font-weight:900;white-space:nowrap}
 .order-status-chip[data-state="pending"],.order-status-chip[data-state="waiting"],.order-status-chip[data-state="awaiting_dispatch"]{--status-bg:var(--foodex-palette-fff7ed);--status-fg:var(--foodex-palette-c2410c);--status-border:var(--foodex-palette-fdba74)}
 .order-status-chip[data-state="confirmed"]{--status-bg:var(--foodex-palette-eff6ff);--status-fg:var(--foodex-palette-1d4ed8);--status-border:var(--foodex-palette-93c5fd)}
 .order-status-chip[data-state="preparing"],.order-status-chip[data-state="processing"]{--status-bg:var(--foodex-palette-f5f3ff);--status-fg:var(--foodex-palette-6d28d9);--status-border:var(--foodex-palette-c4b5fd)}
@@ -61,23 +64,23 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .order-status-chip[data-state="out_for_delivery"],.order-status-chip[data-state="on_the_way"],.order-status-chip[data-state="assigned"]{--status-bg:var(--foodex-palette-eef2ff);--status-fg:var(--foodex-palette-4338ca);--status-border:var(--foodex-palette-a5b4fc)}
 .order-status-chip[data-state="b2b_out_for_delivery"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}
 .order-status-chip[data-state="driver_delivery"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}
-.order-ready-dispatch-alert{display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:0 9px;border:1px solid var(--foodex-palette-fda4af);border-radius:999px;background:var(--foodex-palette-fff1f2);color:var(--foodex-palette-be123c);font-size:.6rem;font-weight:900;white-space:nowrap;animation:orderReadyDispatchPulse 1s ease-in-out infinite}
+.order-assignment-required-alert{display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:0 9px;border:1px solid var(--foodex-palette-fda4af);border-radius:999px;background:var(--foodex-palette-fff1f2);color:var(--foodex-palette-be123c);font-size:.6rem;font-weight:900;white-space:nowrap;animation:orderReadyDispatchPulse 1s ease-in-out infinite}
 @keyframes orderReadyDispatchPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(190,18,60,.12)}50%{opacity:.38;box-shadow:0 0 0 4px rgba(190,18,60,.08)}}
 .order-status-chip[data-state="delivered"],.order-status-chip[data-state="completed"],.order-status-chip[data-state="paid"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}
 .order-status-chip[data-state="cancelled"],.order-status-chip[data-state="failed"],.order-status-chip[data-state="delivery_failed"]{--status-bg:var(--foodex-palette-fff1f2);--status-fg:var(--foodex-palette-be123c);--status-border:var(--foodex-palette-fda4af)}
 .order-attention-chip{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:0 8px;border:1px solid var(--foodex-palette-fdba74);border-radius:999px;background:var(--foodex-palette-fff7ed);color:var(--foodex-palette-c2410c);font-size:.61rem;font-weight:900;white-space:nowrap;box-shadow:0 3px 10px rgba(234,88,12,.08)}
 .order-attention-chip::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--foodex-palette-f97316);box-shadow:0 0 0 3px rgba(249,115,22,.12)}
-.order-execution{display:grid;gap:5px;min-width:0}.ops-table tbody td.order-dispatch-cell-locked{background:var(--foodex-palette-f8fafc)!important;cursor:not-allowed}.order-execution.is-dispatch-locked{opacity:.42;filter:grayscale(.28)}.order-dispatch-lock-hint{font-size:.58rem;font-weight:800;color:var(--foodex-muted)}.order-execution strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-execution small{color:var(--foodex-muted);font-size:.62rem}
+.order-execution{display:grid;gap:5px;min-width:0}.ops-table tbody td.order-dispatch-lock-hint{font-size:.58rem;font-weight:800;color:var(--foodex-muted)}.order-execution strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-execution small{color:var(--foodex-muted);font-size:.62rem}
 .order-owner{display:grid;gap:3px}.order-owner.is-complete{opacity:.38;filter:grayscale(.35);pointer-events:none;user-select:none}.ops-table tbody td.order-owner-cell.is-complete{background:var(--foodex-palette-f8fafc)!important}.order-owner strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-owner small{color:var(--foodex-muted);font-size:.61rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .order-financial{display:grid;gap:3px;min-width:0}.order-financial>strong{font-size:.69rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.order-financial>strong.is-paid{color:var(--foodex-palette-15803d)}.order-financial>strong.is-unpaid{color:var(--foodex-palette-be123c)}.order-financial small{color:var(--foodex-muted);font-size:.56rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .order-financial-actions{display:flex;align-items:center;gap:2px;margin-top:1px;flex-wrap:nowrap}.order-financial-action{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;min-width:19px;padding:0;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-green-dark);text-decoration:none;cursor:pointer;transition:transform .14s ease,border-color .14s ease,background .14s ease}.order-financial-action:hover{transform:translateY(-1px);border-color:var(--foodex-action-green);background:var(--foodex-palette-eaf7ef)}.order-financial-action.is-timeline{border-color:var(--foodex-palette-fda4af);background:var(--foodex-palette-fff1f2);color:var(--foodex-palette-be123c)}.order-financial-action.is-timeline:hover{border-color:var(--foodex-palette-be123c);background:var(--foodex-palette-fff1f2)}.order-financial-action .foodex-svg-icon{width:11px;height:11px}
 .order-popup-dialog{width:min(920px,94vw);max-height:88vh;padding:0;border:0;border-radius:18px;background:var(--foodex-surface);color:var(--foodex-ink);box-shadow:0 24px 70px rgba(15,23,42,.26)}.order-popup-dialog::backdrop{background:rgba(15,23,42,.48);backdrop-filter:blur(2px)}.order-popup-shell{display:grid;grid-template-rows:auto minmax(0,1fr);max-height:88vh}.order-popup-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--foodex-border);background:var(--foodex-palette-f8fafc)}.order-popup-head strong{font-size:.9rem}.order-popup-close{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid var(--foodex-border);border-radius:999px;background:#fff;color:var(--foodex-ink);font-size:1.1rem;cursor:pointer}.order-popup-body{overflow:auto;padding:14px}.order-popup-loading{padding:30px;text-align:center;color:var(--foodex-muted);font-weight:800}.order-popup-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}.order-popup-summary>div,.order-popup-facts>div{display:grid;gap:3px;padding:9px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-palette-f8fafc)}.order-popup-summary small,.order-popup-facts span{font-size:.62rem;color:var(--foodex-muted)}.order-popup-summary strong.is-paid,.order-popup-facts strong.is-paid{color:var(--foodex-palette-15803d)}.order-popup-summary strong.is-unpaid,.order-popup-facts strong.is-unpaid{color:var(--foodex-palette-be123c)}.order-popup-section{margin-top:10px;padding:12px;border:1px solid var(--foodex-border);border-radius:14px}.order-popup-section h3{margin:0 0 10px;font-size:.82rem}.order-popup-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.order-popup-table-wrap{overflow:auto}.order-popup-table{width:100%;border-collapse:collapse;font-size:.7rem}.order-popup-table th,.order-popup-table td{padding:7px;border-bottom:1px solid var(--foodex-border);text-align:start}.order-popup-toolbar{display:flex;justify-content:flex-end;margin-bottom:8px}.order-print-header,.order-print-footer{display:none}.order-popup-timeline{display:grid;gap:0}.order-popup-timeline-item{position:relative;display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;padding:0 0 14px}.order-popup-timeline-item:not(:last-child)::before{content:"";position:absolute;top:12px;bottom:-1px;inset-inline-start:6px;width:2px;background:var(--foodex-palette-e2e8f0)}.order-popup-timeline-dot{position:relative;z-index:1;width:12px;height:12px;margin-top:3px;border:3px solid var(--foodex-palette-fff1f2);border-radius:999px;background:var(--foodex-palette-be123c)}.order-popup-timeline-item>div{display:grid;gap:3px}.order-popup-timeline-item strong{font-size:.72rem}.order-popup-timeline-item small{color:var(--foodex-muted)}.order-popup-timeline-item footer{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--foodex-muted);font-size:.59rem}
 @media(max-width:760px){.order-popup-summary,.order-popup-facts{grid-template-columns:1fr 1fr}.order-popup-dialog{width:96vw}.order-popup-body{padding:10px}}
 @media print{@page{margin:18mm 14mm 22mm}body *{visibility:hidden!important}.order-popup-dialog[open],.order-popup-dialog[open] *{visibility:visible!important}.order-popup-dialog[open]{position:absolute!important;inset:0!important;width:100%!important;max-width:none!important;max-height:none!important;margin:0!important;border-radius:0!important;box-shadow:none!important}.order-popup-head,[data-no-print]{display:none!important}.order-popup-body{overflow:visible!important;padding:0!important}.order-print-header{display:grid!important;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;direction:ltr;padding:0 0 10px;margin-bottom:12px;border-bottom:2px solid var(--foodex-green)}.order-print-brand{grid-column:3;justify-self:end;display:flex!important;align-items:center;gap:8px;direction:ltr}.order-print-brand img{width:76px;height:52px;object-fit:contain}.order-print-brand strong{font-size:16px;color:var(--foodex-green-dark)}.order-print-type{grid-column:2;text-align:center}.order-print-type small{display:block;color:var(--foodex-muted);font-size:10px}.order-print-type strong{display:block;font-size:16px;margin-top:2px}.order-print-footer{display:flex!important;position:fixed;left:14mm;right:14mm;bottom:7mm;align-items:center;justify-content:center;gap:8px;padding-top:6px;border-top:1px solid var(--foodex-border);color:var(--foodex-muted);font-size:9px;background:#fff}.order-popup-section{break-inside:avoid}.order-popup-timeline-item{break-inside:avoid}}
-.order-inline-unassign{margin-top:3px}.order-inline-unassign button{min-height:25px!important;height:25px!important;padding:0 9px!important;border:1px solid var(--foodex-palette-fda4af)!important;border-radius:999px!important;background:var(--foodex-palette-fff1f2)!important;color:var(--foodex-palette-be123c)!important;font-size:.6rem!important;font-weight:900!important;cursor:pointer}
+.order-executor-line{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}.order-executor-line>strong{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.order-inline-unassign{display:inline-flex;align-items:center;margin:0}.order-inline-unassign button{min-height:25px!important;height:25px!important;padding:0 9px!important;border:1px solid var(--foodex-palette-fda4af)!important;border-radius:999px!important;background:var(--foodex-palette-fff1f2)!important;color:var(--foodex-palette-be123c)!important;font-size:.6rem!important;font-weight:900!important;white-space:nowrap;cursor:pointer}
 .order-status-merged{text-align:center!important;vertical-align:middle!important}.order-status-merged .order-grid-primary{min-height:42px;align-content:center;justify-items:center;text-align:center}.order-status-merged .order-grid-primary>div:first-child{justify-content:center;width:100%}.order-delivered-merged{background:rgba(22,163,74,.035)}.order-cancelled-merged{background:rgba(190,18,60,.025)}.order-delivered-time{display:block;margin-top:4px;color:var(--foodex-muted);font-size:.6rem;font-weight:800;text-align:center}
 .order-grid-actions{text-align:center}
-.order-inline-status{display:grid;grid-template-columns:minmax(0,1fr) 27px;align-items:center;gap:5px;margin-top:3px;width:100%}.order-inline-status select{--status-bg:var(--foodex-palette-f1f5f9);--status-fg:var(--foodex-palette-475569);--status-border:var(--foodex-palette-cbd5e1);appearance:none;-webkit-appearance:none;min-width:0;width:100%;max-width:none;min-height:27px!important;height:27px!important;margin:0!important;padding:0 26px 0 9px!important;border:1px solid var(--status-border)!important;border-radius:999px!important;background-color:var(--status-bg)!important;color:var(--status-fg)!important;font-size:.63rem!important;font-weight:900!important;line-height:25px!important;box-sizing:border-box!important;box-shadow:none!important;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)!important;background-position:calc(100% - 13px) 11px,calc(100% - 9px) 11px!important;background-size:4px 4px,4px 4px!important;background-repeat:no-repeat!important}.order-inline-status select[data-state="pending"],.order-inline-status select[data-state="waiting"],.order-inline-status select[data-state="awaiting_dispatch"]{--status-bg:var(--foodex-palette-fff7ed);--status-fg:var(--foodex-palette-c2410c);--status-border:var(--foodex-palette-fdba74)}.order-inline-status select[data-state="confirmed"]{--status-bg:var(--foodex-palette-eff6ff);--status-fg:var(--foodex-palette-1d4ed8);--status-border:var(--foodex-palette-93c5fd)}.order-inline-status select[data-state="preparing"],.order-inline-status select[data-state="processing"]{--status-bg:var(--foodex-palette-f5f3ff);--status-fg:var(--foodex-palette-6d28d9);--status-border:var(--foodex-palette-c4b5fd)}.order-inline-status select[data-state="ready"]{--status-bg:var(--foodex-palette-ecfeff);--status-fg:var(--foodex-palette-0e7490);--status-border:var(--foodex-palette-67e8f9)}.order-inline-status select[data-state="out_for_delivery"],.order-inline-status select[data-state="on_the_way"],.order-inline-status select[data-state="assigned"]{--status-bg:var(--foodex-palette-eef2ff);--status-fg:var(--foodex-palette-4338ca);--status-border:var(--foodex-palette-a5b4fc)}.order-inline-status select[data-state="delivered"],.order-inline-status select[data-state="completed"],.order-inline-status select[data-state="paid"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}.order-inline-status select[data-state="cancelled"],.order-inline-status select[data-state="failed"],.order-inline-status select[data-state="delivery_failed"]{--status-bg:var(--foodex-palette-fff1f2);--status-fg:var(--foodex-palette-be123c);--status-border:var(--foodex-palette-fda4af)}.order-inline-status-submit{width:27px!important;height:27px!important;min-width:27px!important;min-height:27px!important;margin:0!important;padding:0!important;border:1px solid var(--foodex-action-green)!important;border-radius:999px!important;background:var(--foodex-action-green)!important;color:#fff!important;font-size:.72rem!important;font-weight:900!important;line-height:25px!important;box-shadow:none!important;cursor:pointer}.order-inline-status-note{grid-column:1/-1;min-width:0;width:100%;box-sizing:border-box;min-height:27px!important;height:27px!important;margin:0!important;padding:0 9px!important;border:1px solid var(--foodex-border)!important;border-radius:999px!important;font-size:.61rem!important;line-height:25px!important}.order-inline-status-note[hidden]{display:none!important}.order-inline-picker{display:grid;grid-template-columns:minmax(0,1fr) 27px;align-items:center;gap:5px;margin-top:3px;width:100%}.order-inline-picker select{appearance:none;-webkit-appearance:none;min-width:0;width:100%;min-height:27px!important;height:27px!important;margin:0!important;padding:0 26px 0 9px!important;border:1px solid var(--foodex-palette-cbd5e1)!important;border-radius:999px!important;background-color:var(--foodex-palette-f1f5f9)!important;color:var(--foodex-palette-475569)!important;font-size:.63rem!important;font-weight:900!important;line-height:25px!important;box-sizing:border-box!important;box-shadow:none!important;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)!important;background-position:calc(100% - 13px) 11px,calc(100% - 9px) 11px!important;background-size:4px 4px,4px 4px!important;background-repeat:no-repeat!important}.order-inline-picker button{width:27px!important;height:27px!important;min-width:27px!important;min-height:27px!important;margin:0!important;padding:0!important;border:1px solid var(--foodex-action-green)!important;border-radius:999px!important;background:var(--foodex-action-green)!important;color:#fff!important;font-size:.72rem!important;font-weight:900!important;line-height:25px!important;box-shadow:none!important;cursor:pointer}.order-inline-picker button:disabled{opacity:.45;cursor:not-allowed}.order-inline-picker-reason{grid-column:1/-1;min-width:0;width:100%;box-sizing:border-box;min-height:27px!important;height:27px!important;margin:0!important;padding:0 9px!important;border:1px solid var(--foodex-border)!important;border-radius:999px!important;font-size:.61rem!important;line-height:25px!important}.order-inline-picker-reason[hidden]{display:none!important}
+.order-inline-status{display:grid;grid-template-columns:minmax(0,1fr) 27px;align-items:center;gap:5px;margin-top:3px;width:100%}.order-inline-status select{--status-bg:var(--foodex-palette-f1f5f9);--status-fg:var(--foodex-palette-475569);--status-border:var(--foodex-palette-cbd5e1);appearance:none;-webkit-appearance:none;min-width:0;width:100%;max-width:none;min-height:27px!important;height:27px!important;margin:0!important;padding:0 26px 0 9px!important;border:0!important;border-radius:999px!important;background-color:var(--status-bg)!important;color:var(--status-fg)!important;font-size:.63rem!important;font-weight:900!important;line-height:25px!important;box-sizing:border-box!important;box-shadow:none!important;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)!important;background-position:calc(100% - 13px) 11px,calc(100% - 9px) 11px!important;background-size:4px 4px,4px 4px!important;background-repeat:no-repeat!important}.order-inline-status select[data-state="pending"],.order-inline-status select[data-state="waiting"],.order-inline-status select[data-state="awaiting_dispatch"]{--status-bg:var(--foodex-palette-fff7ed);--status-fg:var(--foodex-palette-c2410c);--status-border:var(--foodex-palette-fdba74)}.order-inline-status select[data-state="confirmed"]{--status-bg:var(--foodex-palette-eff6ff);--status-fg:var(--foodex-palette-1d4ed8);--status-border:var(--foodex-palette-93c5fd)}.order-inline-status select[data-state="preparing"],.order-inline-status select[data-state="processing"]{--status-bg:var(--foodex-palette-f5f3ff);--status-fg:var(--foodex-palette-6d28d9);--status-border:var(--foodex-palette-c4b5fd)}.order-inline-status select[data-state="ready"]{--status-bg:var(--foodex-palette-ecfeff);--status-fg:var(--foodex-palette-0e7490);--status-border:var(--foodex-palette-67e8f9)}.order-inline-status select[data-state="out_for_delivery"],.order-inline-status select[data-state="on_the_way"],.order-inline-status select[data-state="assigned"]{--status-bg:var(--foodex-palette-eef2ff);--status-fg:var(--foodex-palette-4338ca);--status-border:var(--foodex-palette-a5b4fc)}.order-inline-status select[data-state="delivered"],.order-inline-status select[data-state="completed"],.order-inline-status select[data-state="paid"]{--status-bg:var(--foodex-palette-ecfdf5);--status-fg:var(--foodex-palette-15803d);--status-border:var(--foodex-palette-86efac)}.order-inline-status select[data-state="cancelled"],.order-inline-status select[data-state="failed"],.order-inline-status select[data-state="delivery_failed"]{--status-bg:var(--foodex-palette-fff1f2);--status-fg:var(--foodex-palette-be123c);--status-border:var(--foodex-palette-fda4af)}.order-inline-status-submit{width:27px!important;height:27px!important;min-width:27px!important;min-height:27px!important;margin:0!important;padding:0!important;border:1px solid var(--foodex-action-green)!important;border-radius:999px!important;background:var(--foodex-action-green)!important;color:#fff!important;font-size:.72rem!important;font-weight:900!important;line-height:25px!important;box-shadow:none!important;cursor:pointer}.order-inline-status-note{grid-column:1/-1;min-width:0;width:100%;box-sizing:border-box;min-height:27px!important;height:27px!important;margin:0!important;padding:0 9px!important;border:1px solid var(--foodex-border)!important;border-radius:999px!important;font-size:.61rem!important;line-height:25px!important}.order-inline-status-note[hidden]{display:none!important}.order-inline-picker{display:grid;grid-template-columns:minmax(0,1fr) 27px;align-items:center;gap:5px;margin-top:3px;width:100%}.order-inline-picker select{appearance:none;-webkit-appearance:none;min-width:0;width:100%;min-height:27px!important;height:27px!important;margin:0!important;padding:0 26px 0 9px!important;border:1px solid var(--foodex-palette-cbd5e1)!important;border-radius:999px!important;background-color:var(--foodex-palette-f1f5f9)!important;color:var(--foodex-palette-475569)!important;font-size:.63rem!important;font-weight:900!important;line-height:25px!important;box-sizing:border-box!important;box-shadow:none!important;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)!important;background-position:calc(100% - 13px) 11px,calc(100% - 9px) 11px!important;background-size:4px 4px,4px 4px!important;background-repeat:no-repeat!important}.order-inline-picker button{width:27px!important;height:27px!important;min-width:27px!important;min-height:27px!important;margin:0!important;padding:0!important;border:1px solid var(--foodex-action-green)!important;border-radius:999px!important;background:var(--foodex-action-green)!important;color:#fff!important;font-size:.72rem!important;font-weight:900!important;line-height:25px!important;box-shadow:none!important;cursor:pointer}.order-inline-picker button:disabled{opacity:.45;cursor:not-allowed}.order-inline-reason-wrap{grid-column:1/-1;display:grid;gap:4px;min-width:0}.order-inline-reason-wrap[hidden]{display:none!important}.order-inline-reason-wrap>span{color:var(--foodex-muted);font-size:.58rem;font-weight:800}.order-inline-picker-reason{min-width:0;width:100%;box-sizing:border-box;min-height:27px!important;height:27px!important;margin:0!important;padding:0 9px!important;border:1px solid var(--foodex-border)!important;border-radius:999px!important;font-size:.61rem!important;line-height:25px!important}
 .status-tab{--status-tab-bg:#fff;--status-tab-fg:var(--foodex-ink);--status-tab-border:var(--foodex-border);border-color:var(--status-tab-border)!important;background:var(--status-tab-bg)!important;color:var(--status-tab-fg)!important}
 .status-tab[data-order-action-tab]{--status-tab-bg:var(--foodex-palette-fff7ed);--status-tab-fg:var(--foodex-palette-c2410c);--status-tab-border:var(--foodex-palette-fdba74)}
 .status-tab[data-order-status-tab="pending"]{--status-tab-bg:var(--foodex-palette-fff7ed);--status-tab-fg:var(--foodex-palette-c2410c);--status-tab-border:var(--foodex-palette-fed7aa)}
@@ -94,8 +97,9 @@ body{margin:0}.shell{display:grid;grid-template-columns:minmax(0,1fr) 240px;min-
 .sales-ops-bar-link:nth-child(8n+1){--order-chart-color:var(--foodex-palette-158a3a);--order-chart-color-2:var(--foodex-palette-22c55e)}.sales-ops-bar-link:nth-child(8n+2){--order-chart-color:var(--foodex-palette-2563eb);--order-chart-color-2:var(--foodex-palette-38bdf8)}.sales-ops-bar-link:nth-child(8n+3){--order-chart-color:var(--foodex-palette-7c3aed);--order-chart-color-2:var(--foodex-palette-c084fc)}.sales-ops-bar-link:nth-child(8n+4){--order-chart-color:var(--foodex-palette-ea580c);--order-chart-color-2:var(--foodex-palette-facc15)}.sales-ops-bar-link:nth-child(8n+5){--order-chart-color:var(--foodex-palette-dc2626);--order-chart-color-2:var(--foodex-palette-fb7185)}.sales-ops-bar-link:nth-child(8n+6){--order-chart-color:var(--foodex-palette-0891b2);--order-chart-color-2:var(--foodex-palette-2dd4bf)}.sales-ops-bar-link:nth-child(8n+7){--order-chart-color:var(--foodex-palette-be123c);--order-chart-color-2:var(--foodex-palette-f472b6)}.sales-ops-bar-link:nth-child(8n+8){--order-chart-color:var(--foodex-palette-ca8a04);--order-chart-color-2:var(--foodex-palette-fdba74)}
 .order-tab-panel.charts-animate .sales-ops-bar-link{animation:orderChartGrow 1.65s cubic-bezier(.16,.84,.22,1) forwards}
 .order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(2){animation-delay:.08s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(3){animation-delay:.16s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(4){animation-delay:.24s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(5){animation-delay:.32s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(6){animation-delay:.40s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(7){animation-delay:.48s}.order-tab-panel.charts-animate .sales-ops-bar-link:nth-child(8){animation-delay:.56s}
-.sales-ops-exceptions,.sales-ops-simple-list,.sales-ops-ranked-bars{display:grid;gap:5px}
-.sales-ops-exceptions a,.sales-ops-simple-list a,.sales-ops-simple-list>div,.sales-ops-ranked-bars a{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 9px;border:1px solid var(--foodex-border);border-radius:9px;color:inherit;text-decoration:none}
+.sales-ops-exceptions{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));grid-auto-rows:1fr;gap:5px;align-items:stretch}.sales-ops-simple-list,.sales-ops-ranked-bars{display:grid;gap:5px}
+.sales-ops-exceptions a,.sales-ops-simple-list a,.sales-ops-simple-list>div,.sales-ops-ranked-bars a{min-width:0;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:clamp(5px,.55vw,8px);align-items:center;padding:clamp(7px,.65vw,9px);border:1px solid var(--foodex-border);border-radius:9px;color:inherit;text-decoration:none;overflow:hidden}
+.sales-ops-exceptions a{height:100%;min-height:48px}.sales-ops-exceptions a span,.sales-ops-simple-list span,.sales-ops-ranked-bars span{min-width:0;font-size:clamp(.62rem,.65vw,.78rem);line-height:1.3;overflow-wrap:anywhere}.sales-ops-exceptions a strong,.sales-ops-simple-list strong,.sales-ops-ranked-bars strong{font-size:clamp(.68rem,.72vw,.84rem);white-space:nowrap}
 .sales-ops-ranked-bars a{grid-template-columns:minmax(90px,.8fr) minmax(100px,2fr) auto;--order-rank-color:var(--foodex-palette-158a3a);--order-rank-color-2:var(--foodex-palette-38bdf8)}
 .sales-ops-ranked-bars a:nth-child(8n+1){--order-rank-color:var(--foodex-palette-158a3a);--order-rank-color-2:var(--foodex-palette-22c55e)}.sales-ops-ranked-bars a:nth-child(8n+2){--order-rank-color:var(--foodex-palette-2563eb);--order-rank-color-2:var(--foodex-palette-38bdf8)}.sales-ops-ranked-bars a:nth-child(8n+3){--order-rank-color:var(--foodex-palette-7c3aed);--order-rank-color-2:var(--foodex-palette-c084fc)}.sales-ops-ranked-bars a:nth-child(8n+4){--order-rank-color:var(--foodex-palette-ea580c);--order-rank-color-2:var(--foodex-palette-facc15)}.sales-ops-ranked-bars a:nth-child(8n+5){--order-rank-color:var(--foodex-palette-dc2626);--order-rank-color-2:var(--foodex-palette-fb7185)}.sales-ops-ranked-bars a:nth-child(8n+6){--order-rank-color:var(--foodex-palette-0891b2);--order-rank-color-2:var(--foodex-palette-2dd4bf)}.sales-ops-ranked-bars a:nth-child(8n+7){--order-rank-color:var(--foodex-palette-be123c);--order-rank-color-2:var(--foodex-palette-f472b6)}.sales-ops-ranked-bars a:nth-child(8n+8){--order-rank-color:var(--foodex-palette-ca8a04);--order-rank-color-2:var(--foodex-palette-fdba74)}
 .sales-ops-ranked-bars i{display:block;height:9px;border-radius:999px;background:linear-gradient(90deg,var(--foodex-palette-f8fafc),var(--foodex-palette-e2e8f0));overflow:hidden}
@@ -109,9 +113,10 @@ html[dir="rtl"] .sales-ops-ranked-bars b{transform-origin:right center}html[dir=
 @keyframes orderChartCardIn{0%{opacity:.35;transform:translateY(5px)}100%{opacity:1;transform:translateY(0)}}
 @media(max-width:1500px) and (min-width:1001px){.shell{grid-template-columns:minmax(0,1fr) 210px}.main{padding:16px 14px}.sidebar{padding:14px}.filters{grid-template-columns:repeat(3,minmax(0,1fr));padding:12px;gap:8px}.ops-table{font-size:.72rem}.ops-table th,.ops-table td{padding:7px 4px}.dispatch-warning{padding:5px 6px}.dispatch-meta{font-size:.7rem}.row-actions summary{width:30px;height:30px;font-size:18px}.row-action-menu{width:280px}}
 @media(max-width:1180px){.order-workspace-bar{align-items:center}.order-workspace-tabs{flex:1 1 auto}.order-workspace-filter-slot{flex:0 0 auto}}
-@media(max-width:1000px){.shell{grid-template-columns:1fr}.sidebar{grid-row:1}.main{grid-row:2;padding:16px}.filters{grid-template-columns:1fr 1fr}.table-wrap{overflow-x:auto}.ops-table{min-width:980px;table-layout:auto}.sales-ops-chart-grid{grid-template-columns:1fr}}
-@media(max-width:700px){.order-workspace-bar{gap:5px}.order-workspace-tab{min-height:36px;padding-inline:11px}.order-workspace-tabs,.order-analytics-tabs{gap:4px}.order-analytics-subtab{min-height:32px;padding-inline:10px}}
+@media(max-width:1000px){.shell{grid-template-columns:1fr}.sidebar{grid-row:1}.main{grid-row:2;padding:16px}.filters{grid-template-columns:1fr 1fr}.table-wrap{overflow-x:auto}.ops-table{min-width:980px;table-layout:auto}.sales-ops-chart-grid{grid-template-columns:1fr}.order-kpi-card{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}}
+@media(max-width:700px){.order-workspace-bar{gap:5px}.order-workspace-tab{min-height:36px;padding-inline:11px}.order-workspace-tabs,.order-analytics-tabs{gap:4px}.order-analytics-subtab{min-height:32px;padding-inline:10px}.order-kpi-card{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(108px,auto)}.order-kpi-item{min-height:108px}.sales-ops-exceptions{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.filters{grid-template-columns:1fr}.sales-ops-ranked-bars a{grid-template-columns:1fr auto}.sales-ops-ranked-bars i{grid-column:1/-1}}
+@media(max-width:380px){.order-kpi-card,.sales-ops-exceptions{grid-template-columns:1fr}.order-kpi-item{min-height:102px}}
 @media(prefers-reduced-motion:reduce){.order-kpi-card::before,.order-tab-panel.charts-animate .sales-ops-bar-link,.order-tab-panel.charts-animate .sales-ops-ranked-bars b,.order-tab-panel.charts-animate [data-foodex-module-chart]{animation:none}.order-kpi-item,.order-workspace-tab,.order-analytics-subtab{transition:none}.order-kpi-item:hover,.order-workspace-tab:hover,.order-analytics-subtab:hover{transform:none}.sales-ops-bar-link{transform:none;opacity:1}.sales-ops-ranked-bars b{transform:none}}
 </style>
 </head>
@@ -403,7 +408,6 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <th>{{ __('order_operations.columns.status') }}</th>
 <th>{{ $isAr ? 'التنفيذ والتوجيه' : 'Execution & routing' }}</th>
 <th>{{ __('order_operations.customer_service_owner.column') }}</th>
-<th>{{ __('order_operations.columns.actions') }}</th>
 </tr></thead><tbody>
 @if(count($rows))
 @foreach($rows as $row)
@@ -429,7 +433,9 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     $rowCurrentDriverId = (int)($row['driver_id'] ?? 0);
 @endphp
 @php
-    $rowNeedsB2bDispatch = $row['channel']==='b2b' && $rowStatusState==='ready' && empty($row['dispatch_assignee_id']);
+    $rowNeedsB2bDispatch = $row['channel']==='b2b'
+        && in_array($rowStatusState, ['pending','confirmed','preparing','ready'], true)
+        && empty($row['dispatch_assignee_id']);
 @endphp
 @php
     $rowStatusVisualState = $row['status_visual_state'] ?? $rowStatusState;
@@ -479,7 +485,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
             <span class="order-status-chip" data-state="{{ $rowStatusVisualState }}">{{ $row['status_label'] }}</span>
             @if($rowNeedsB2bDispatch)
-                <span class="order-ready-dispatch-alert" data-b2b-ready-dispatch-alert>{{ $isAr ? 'برجاء تعيين سائق' : 'Please assign a driver' }}</span>
+                <span class="order-assignment-required-alert" data-b2b-assignment-required-alert>{{ $isAr ? 'برجاء تعيين سائق أو فان' : 'Please assign a Driver or Van' }}</span>
             @endif
         </div>
         @if($rowDelivered)
@@ -489,17 +495,24 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             </small>
         @endif
         @if($row['can_manage'] && count($row['available_statuses']))
+            @php
+                $rowOnlyCancel = count($row['available_statuses']) === 1
+                    && (($row['available_statuses'][0]['code'] ?? '') === 'cancelled');
+            @endphp
             <form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}" class="order-inline-status" data-order-inline-status>
                 @csrf
                 <select name="status" required aria-label="{{ __('order_operations.next_status') }}" data-order-inline-status-select data-state="{{ $rowStatusState }}">
-                    <option value="">{{ $rowWithDriver ? ($isAr ? 'إلغاء الطلب' : 'Cancel order') : __('order_operations.choose_next_status') }}</option>
+                    <option value="">{{ $rowOnlyCancel ? ($isAr ? 'إلغاء الطلب' : 'Cancel order') : __('order_operations.choose_next_status') }}</option>
                     @foreach($row['available_statuses'] as $status)
                         <option value="{{ $status['code'] }}">{{ $status['label'] }}</option>
                     @endforeach
                 </select>
                 <button class="order-inline-status-submit" type="submit" aria-label="{{ __('order_operations.update_status') }}" title="{{ __('order_operations.update_status') }}">✓</button>
                 @if($row['channel']==='b2b' && $row['status']==='pending')
-                    <input class="order-inline-status-note" name="note" maxlength="1000" data-order-inline-rejection-note hidden placeholder="{{ $isAr ? 'سبب الرفض (إلزامي عند الرفض)' : 'Rejection reason (required when rejecting)' }}">
+                    <label class="order-inline-reason-wrap" data-order-inline-cancellation-reason hidden>
+                        <span>{{ $isAr ? 'السبب' : 'Reason' }}</span>
+                        <input class="order-inline-status-note" name="note" maxlength="1000" data-order-inline-cancellation-note placeholder="{{ $isAr ? 'سبب الإلغاء (إلزامي عند الإلغاء)' : 'Cancellation reason (required when cancelling)' }}">
+                    </label>
                 @endif
             </form>
         @endif
@@ -509,12 +522,21 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     </div>
 </td>
 @if(!$rowMergedStatus)
-<td class="{{ ($row['dispatch_locked_until_confirmation'] ?? false) ? 'order-dispatch-cell-locked' : '' }}" @if($row['dispatch_locked_until_confirmation'] ?? false) title="{{ $isAr ? 'التوجيه متاح بعد تأكيد الطلب' : 'Dispatch is available after order confirmation' }}" @endif>
-    <div class="order-execution {{ ($row['dispatch_locked_until_confirmation'] ?? false) ? 'is-dispatch-locked' : '' }}" @if($row['dispatch_locked_until_confirmation'] ?? false) data-order-dispatch-locked aria-disabled="true" @endif>
+<td>
+    <div class="order-execution">
         @if($rowActionRequired)
             <span class="order-status-chip" data-state="awaiting_dispatch">{{ __('order_operations.dispatch.awaiting_queue') }}</span>
         @elseif($rowExecutor)
-            <strong>{{ $rowExecutor }}</strong>
+            <div class="order-executor-line" data-order-executor-line>
+                <strong>{{ $rowExecutor }}</strong>
+                @if(($row['dispatch_status'] ?? '')==='assigned' && !empty($row['dispatch_assignee_id']) && ($row['can_dispatch'] ?? false))
+                    <form method="post" action="{{ route('admin.operations.orders.dispatch.clear',$row['id']) }}" class="order-inline-unassign" data-order-inline-unassign>
+                        @csrf @method('DELETE')
+                        <input type="hidden" name="reason" value="grid_manual_unassign">
+                        <button type="submit">{{ $isAr ? (($row['dispatch_assignee_type'] ?? '')==='van' ? 'سحب من الفان' : 'سحب من السائق') : (($row['dispatch_assignee_type'] ?? '')==='van' ? 'Pull from Van' : 'Pull from driver') }}</button>
+                    </form>
+                @endif
+            </div>
             <small>{{ $businessLabel($row['dispatch_assignee_type'] ?: ($row['assignment_status'] ? 'driver' : 'unassigned')) }}</small>
         @else
             <span class="order-mini-chip">{{ __('order_operations.unassigned') }}</span>
@@ -550,18 +572,11 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
                     @endif
                 </select>
                 <button type="submit" data-order-inline-picker-submit aria-label="{{ $rowWithDriver ? ($isAr ? 'سحب وتحويل الطلب' : 'Withdraw and transfer order') : ($isAr ? 'حفظ التوجيه' : 'Save dispatch') }}" title="{{ $rowWithDriver ? ($isAr ? 'سحب وتحويل الطلب' : 'Withdraw and transfer order') : ($isAr ? 'حفظ التوجيه' : 'Save dispatch') }}" disabled>✓</button>
-                <input class="order-inline-picker-reason" name="reason" maxlength="500" data-order-inline-picker-reason hidden placeholder="{{ __('order_operations.dispatch.reason_required') }}">
+                <label class="order-inline-reason-wrap" data-order-inline-picker-reason-wrap hidden>
+                    <span>{{ $isAr ? 'السبب' : 'Reason' }}</span>
+                    <input class="order-inline-picker-reason" name="reason" maxlength="500" data-order-inline-picker-reason placeholder="{{ __('order_operations.dispatch.reason_required') }}">
+                </label>
             </form>
-            @if($row['dispatch_locked_until_confirmation'] ?? false)
-                <small class="order-dispatch-lock-hint">{{ $isAr ? 'متاح بعد تأكيد الطلب' : 'Available after order confirmation' }}</small>
-            @endif
-            @if(($row['dispatch_status'] ?? '')==='assigned' && !empty($row['dispatch_assignee_id']) && ($row['can_dispatch'] ?? false))
-                <form method="post" action="{{ route('admin.operations.orders.dispatch.clear',$row['id']) }}" class="order-inline-unassign" data-order-inline-unassign>
-                    @csrf @method('DELETE')
-                    <input type="hidden" name="reason" value="grid_manual_unassign">
-                    <button type="submit">{{ $isAr ? (($row['dispatch_assignee_type'] ?? '')==='van' ? 'سحب من الفان' : 'سحب من السائق') : (($row['dispatch_assignee_type'] ?? '')==='van' ? 'Pull from Van' : 'Pull from driver') }}</button>
-                </form>
-            @endif
         @endif
     </div>
 </td>
@@ -570,7 +585,9 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     <div class="order-owner {{ $rowDelivered ? 'is-complete' : '' }}">
         @if($row['customer_service_owner'])
             <strong>{{ $row['customer_service_owner'] }}</strong>
-            @if($row['customer_service_assignment_reason'])<small>{{ $businessLabel($row['customer_service_assignment_reason']) }}</small>@endif
+            @if(trim((string)($row['customer_service_assignment_reason'] ?? '')) !== '')
+                <small data-order-saved-reason>{{ $businessLabel($row['customer_service_assignment_reason']) }}</small>
+            @endif
         @else
             <span class="order-mini-chip">{{ __('order_operations.unassigned') }}</span>
         @endif
@@ -588,156 +605,10 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         @endif
     </div>
 </td>
-<td class="order-grid-actions">
-<details class="row-actions" data-order-row-actions>
-<summary aria-label="{{ __('order_operations.order_actions') }}">⋮</summary>
-<div class="row-action-menu">
-@if($row['can_edit'])
-<a data-order-edit href="{{ route('admin.operations.orders.index',array_merge(request()->query(),['order'=>$row['id'],'edit'=>1])) }}">{{ $isAr ? 'تعديل الطلب' : 'Edit order' }}</a>
-@endif
-@if($row['channel']==='b2c' && $row['driver_id'] && $row['can_manage'])
-<form method="post" action="{{ route('admin.operations.orders.remind',$row['id']) }}" data-order-remind-driver>@csrf
-<button type="submit">{{ $isAr ? 'تذكير السائق' : 'Remind driver' }}</button>
-</form>
-@endif
-
-@if(!$rowDelivered && $canAssignCustomerService && $row['can_manage'])
-<form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" data-order-customer-service-owner>@csrf @method('PATCH')
-<label style="display:grid;gap:4px">
-<span>{{ __('order_operations.customer_service_owner.assign_follow_up') }}</span>
-<select name="assigned_user_id">
-<option value="">{{ __('order_operations.customer_service_owner.remove_owner') }}</option>
-@foreach($customerServiceAgents as $agent)
-<option value="{{ $agent->id }}" @selected((int)($row['customer_service_owner_id'] ?? 0)===(int)$agent->id)>{{ $agent->name }} · {{ $agent->roles->first()?->code==='CUSTOMER_SERVICE_SUPERVISOR' ? __('order_operations.customer_service_owner.supervisor') : __('order_operations.customer_service_owner.agent') }}</option>
-@endforeach
-</select>
-</label>
-<input name="reason" maxlength="500" placeholder="{{ __('order_operations.customer_service_owner.reason_placeholder') }}">
-<button class="foodex-primary" type="submit">{{ __('order_operations.customer_service_owner.save') }}</button>
-</form>
-@endif
-
-@if($row['channel']==='b2b' && $row['status']==='pending' && $row['can_manage'])
-<div data-b2b-customer-service-approval style="display:grid;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--foodex-border)">
-<strong>{{ $isAr ? 'قرار خدمة العملاء' : 'Customer Service approval' }}</strong>
-<form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
-<input type="hidden" name="status" value="confirmed">
-<input type="hidden" name="note" value="customer_service_approved">
-<button class="foodex-primary" type="submit">{{ $isAr ? 'اعتماد الطلب' : 'Approve order' }}</button>
-</form>
-<form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
-<input type="hidden" name="status" value="cancelled">
-<input name="note" maxlength="1000" required placeholder="{{ $isAr ? 'سبب الرفض (إلزامي)' : 'Rejection reason (required)' }}">
-<button class="danger btn" type="submit">{{ $isAr ? 'رفض الطلب' : 'Reject order' }}</button>
-</form>
-</div>
-@endif
-
-@if($row['channel']==='b2b' && $row['settlement'])
-@php
-    $settlement=$row['settlement'];
-@endphp
-<div data-b2b-settlement-review style="display:grid;gap:5px;margin-top:8px;padding:9px;border-top:1px solid var(--foodex-border)">
-<strong>{{ $isAr ? 'مراجعة التسوية المالية' : 'Financial settlement review' }}</strong>
-<div>{{ $isAr ? 'رصيد العميل المتاح' : 'Customer credit balance' }}: <strong>{{ number_format((float)$settlement['customer_credit_balance'],3) }} {{ $settlement['currency'] }}</strong></div>
-<div>{{ $isAr ? 'إجمالي المديونية الحالية' : 'Aggregate outstanding' }}: <strong>{{ number_format((float)$settlement['aggregate_outstanding'],3) }} {{ $settlement['currency'] }}</strong></div>
-<div>{{ $isAr ? 'حد الائتمان' : 'Credit limit' }}: <strong>{{ number_format((float)$settlement['credit_limit'],3) }} {{ $settlement['currency'] }}</strong></div>
-<div>{{ $isAr ? 'الحد المتاح' : 'Available credit line' }}: <strong>{{ number_format((float)$settlement['available_credit_line'],3) }} {{ $settlement['currency'] }}</strong></div>
-@if($settlement['invoice_outstanding']!==null)
-<div>{{ $isAr ? 'المتبقي على الفاتورة' : 'Invoice outstanding' }}: <strong>{{ number_format((float)$settlement['invoice_outstanding'],3) }} {{ $settlement['currency'] }}</strong></div>
-@endif
-</div>
-@endif
-
-@if($row['can_dispatch'])
-<div data-order-dispatch-workspace>
-@if($row['dispatch_status']==='awaiting_dispatch')
-<div class="dispatch-warning" data-order-dispatch-status>{{ __('order_operations.dispatch.warning') }}</div>
-@endif
-@if($rowWithDriver)
-<form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver data-order-driver-transfer>@csrf @method('PATCH')
-<input type="hidden" name="assignee_type" value="driver">
-<select name="assignee_id" required aria-label="{{ $isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver' }}">
-<option value="">{{ $isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver' }}</option>
-@foreach($drivers as $driver)
-@if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)===$row['channel'] && (int)$driver->id!==$rowCurrentDriverId)
-<option value="{{ $driver->id }}">{{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
-@endif
-@endforeach
-</select>
-<input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
-<button class="foodex-primary">{{ $isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw & transfer to another driver' }}</button>
-</form>
-@elseif($row['channel']==='b2c')
-<form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver>@csrf @method('PATCH')
-<input type="hidden" name="assignee_type" value="driver">
-<select name="assignee_id" required aria-label="{{ __('order_operations.dispatch.choose_driver') }}">
-<option value="">{{ __('order_operations.dispatch.choose_driver') }}</option>
-@foreach($drivers as $driver)
-@if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)===$row['channel'])
-<option value="{{ $driver->id }}">{{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
-@endif
-@endforeach
-</select>
-<input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
-<button class="foodex-primary">{{ $row['dispatch_status']==='assigned' ? __('order_operations.dispatch.reassign') : __('order_operations.dispatch.assign') }} · {{ __('order_operations.dispatch.driver') }}</button>
-</form>
-@elseif($row['channel']==='b2b')
-<form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-driver>@csrf @method('PATCH')
-<input type="hidden" name="assignee_type" value="driver">
-<select name="assignee_id" required aria-label="{{ __('order_operations.dispatch.choose_driver') }}">
-<option value="">{{ __('order_operations.dispatch.choose_driver') }}</option>
-@foreach($drivers as $driver)
-@if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)==='b2b')
-<option value="{{ $driver->id }}">{{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
-@endif
-@endforeach
-</select>
-<input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
-<button class="foodex-primary">{{ $row['dispatch_status']==='assigned' ? __('order_operations.dispatch.reassign') : __('order_operations.dispatch.assign') }} · {{ __('order_operations.dispatch.driver') }}</button>
-</form>
-<form method="post" action="{{ route('admin.operations.orders.dispatch',$row['id']) }}" data-order-dispatch-van>@csrf @method('PATCH')
-<input type="hidden" name="assignee_type" value="van">
-<select name="assignee_id" required aria-label="{{ __('order_operations.dispatch.choose_van') }}">
-<option value="">{{ __('order_operations.dispatch.choose_van') }}</option>
-@foreach($vans as $van)
-<option value="{{ $van->id }}">{{ $van->code }}{{ $van->plate_number ? ' · '.$van->plate_number : '' }}</option>
-@endforeach
-</select>
-<input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
-<button class="foodex-primary">{{ $row['dispatch_status']==='assigned' ? __('order_operations.dispatch.reassign') : __('order_operations.dispatch.assign') }} · {{ __('order_operations.dispatch.van') }}</button>
-</form>
-@endif
-@if($row['dispatch_status']==='assigned' && !$rowWithDriver)
-<form method="post" action="{{ route('admin.operations.orders.dispatch.clear',$row['id']) }}" data-order-dispatch-clear>@csrf @method('DELETE')
-<input name="reason" required maxlength="500" placeholder="{{ __('order_operations.dispatch.reason_required') }}">
-<button type="submit">{{ __('order_operations.dispatch.unassign') }}</button>
-</form>
-@endif
-@endif
-</div>
-@if($row['can_manage'] && !($row['channel']==='b2b' && $row['status']==='pending'))
-@if(count($row['available_statuses']))
-<form method="post" action="{{ route('admin.operations.orders.transition',$row['id']) }}">@csrf
-<select name="status" required aria-label="{{ __('order_operations.next_status') }}">
-<option value="">{{ $rowWithDriver ? ($isAr ? 'إلغاء الطلب' : 'Cancel order') : __('order_operations.choose_next_status') }}</option>
-@foreach($row['available_statuses'] as $status)
-<option value="{{ $status['code'] }}">{{ $status['label'] }}</option>
-@endforeach
-</select>
-<button class="foodex-primary">{{ __('order_operations.update_status') }}</button>
-</form>
-@else
-<span class="badge foodex-status-badge {{ $row['status'] }}" data-state="{{ strtolower((string) $row['status']) }}">{{ __('order_operations.terminal') }}</span>
-@endif
-@endif
-</div>
-</details>
-</td>
 </tr>
 @endforeach
 @else
-<tr><td colspan="7"><div class="foodex-empty-state">{{ __('order_operations.empty') }}</div></td></tr>
+<tr><td colspan="6"><div class="foodex-empty-state">{{ __('order_operations.empty') }}</div></td></tr>
 @endif
 </tbody></table>
 </section>
@@ -969,7 +840,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     </div>
 </dialog>
 </main>
-<aside class="sidebar">@include('admin._sidebar')</aside>
+<aside class="sidebar">@include('admin._sidebar',['sidebarDefaultCollapsed'=>true])</aside> {{-- localization-gate: allow Blade include expression --}}
 </div>
 <script>
 (() => {
@@ -1131,13 +1002,14 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <script>
 document.querySelectorAll('[data-order-inline-status]').forEach(function(form){
     var select=form.querySelector('[data-order-inline-status-select]');
-    var note=form.querySelector('[data-order-inline-rejection-note]');
+    var note=form.querySelector('[data-order-inline-cancellation-note]');
+    var reasonWrap=form.querySelector('[data-order-inline-cancellation-reason]');
     if(!select||!note){return;}
     var sync=function(){
-        var rejecting=select.value==='cancelled';
-        note.hidden=!rejecting;
-        note.required=rejecting;
-        if(!rejecting){note.value='';}
+        var cancelling=select.value==='cancelled';
+        if(reasonWrap){reasonWrap.hidden=!cancelling;}
+        note.required=cancelling;
+        if(!cancelling){note.value='';}
     };
     select.addEventListener('change',sync);
     sync();
@@ -1147,6 +1019,7 @@ document.querySelectorAll('.order-inline-picker').forEach(function(form){
     var select=form.querySelector('[data-order-inline-picker-select]');
     var submit=form.querySelector('[data-order-inline-picker-submit]');
     var reason=form.querySelector('[data-order-inline-picker-reason]');
+    var reasonWrap=form.querySelector('[data-order-inline-picker-reason-wrap]');
     if(!select||!submit){return;}
     var initial=String(select.dataset.initialValue||'');
     var sync=function(){
@@ -1162,7 +1035,7 @@ document.querySelectorAll('.order-inline-picker').forEach(function(form){
         }
         submit.disabled=!changed;
         if(reason){
-            reason.hidden=!changed;
+            if(reasonWrap){reasonWrap.hidden=!changed;}
             reason.required=changed;
             if(!changed){reason.value='';}
         }

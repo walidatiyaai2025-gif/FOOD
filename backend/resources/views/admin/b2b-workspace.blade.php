@@ -526,13 +526,56 @@
       </div>
       @endif
 
+      @if($module==='drivers')
+      <style id="foodex-b2b-drivers-premium-actions">
+        .foodex-driver-premium-btn{
+          min-height:44px;
+          padding:0 16px;
+          border-radius:12px!important;
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          gap:8px;
+          font-weight:800!important;
+          letter-spacing:.01em;
+          text-decoration:none;
+          cursor:pointer;
+          box-shadow:0 4px 12px rgba(15,23,42,.08);
+          transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease,background .16s ease;
+        }
+        .foodex-driver-premium-btn:hover{
+          transform:translateY(-1px);
+          box-shadow:0 8px 20px rgba(15,23,42,.12);
+        }
+        .foodex-driver-premium-btn:active{
+          transform:translateY(0);
+          box-shadow:0 3px 9px rgba(15,23,42,.09);
+        }
+        .foodex-driver-premium-btn.foodex-primary{
+          border:1px solid var(--foodex-action-green)!important;
+          background:linear-gradient(180deg,var(--foodex-action-green),var(--foodex-green-dark))!important;
+          color:#fff!important;
+        }
+        .foodex-driver-premium-secondary{
+          border:1px solid var(--foodex-border)!important;
+          background:var(--foodex-green-soft)!important;
+          color:var(--foodex-green-dark)!important;
+        }
+        .foodex-driver-premium-btn.danger{
+          border:1px solid var(--foodex-palette-fecaca)!important;
+          background:var(--foodex-danger-soft)!important;
+          color:var(--foodex-danger-text)!important;
+        }
+      </style>
+      @endif
+
       @if($module==='drivers' && $user->hasPermission('drivers.b2b.manage'))
       <form method="post" action="{{ route('admin.b2b.drivers.store') }}" class="links workspace-inline-form">
         @csrf
         <input name="name" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'اسم السائق':'Driver name' }}">
         <input name="email" type="email" required maxlength="255" placeholder="{{ app()->getLocale()==='ar'?'البريد':'Email' }}">
         <input name="password" type="password" required minlength="8" placeholder="{{ app()->getLocale()==='ar'?'كلمة المرور':'Password' }}">
-        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إنشاء سائق جملة':'Create wholesale driver' }}</button>
+        <button class="foodex-primary foodex-driver-premium-btn" type="submit">{{ app()->getLocale()==='ar'?'إنشاء سائق جملة':'Create wholesale driver' }}</button>
       </form>
       @endif
 
@@ -548,7 +591,7 @@
               @csrf @method('patch')
               <input name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="{{ app()->getLocale()==='ar'?'كلمة المرور الجديدة':'New password' }}">
               <input name="password_confirmation" type="password" required minlength="8" autocomplete="new-password" placeholder="{{ app()->getLocale()==='ar'?'تأكيد كلمة المرور':'Confirm password' }}">
-              <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'إعادة تعيين كلمة المرور':'Reset password' }}</button>
+              <button class="foodex-primary foodex-driver-premium-btn" type="submit">{{ app()->getLocale()==='ar'?'إعادة تعيين كلمة المرور':'Reset password' }}</button>
             </form>
           </details>
           @endforeach
@@ -581,7 +624,7 @@
         @csrf
         <select name="driver_id" required><option value="">{{ app()->getLocale()==='ar'?'اختر السائق':'Select driver' }}</option>@foreach($moduleData['drivers'] as $driver)<option value="{{ $driver['id'] }}">{{ $driver['name'] }}</option>@endforeach</select>
         <select name="order_id" required><option value="">{{ app()->getLocale()==='ar'?'اختر الطلب':'Select order' }}</option>@foreach($moduleData['orders'] as $order)<option value="{{ $order['id'] }}">{{ $order['number'] }}</option>@endforeach</select>
-        <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'تعيين السائق':'Assign driver' }}</button>
+        <button class="foodex-primary foodex-driver-premium-btn" type="submit">{{ app()->getLocale()==='ar'?'تعيين السائق':'Assign driver' }}</button>
       </form>
       @endif
       @if($module==='drivers' && $user->hasPermission('drivers.b2b.manage'))

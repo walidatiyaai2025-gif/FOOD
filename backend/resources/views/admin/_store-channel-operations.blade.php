@@ -11,7 +11,7 @@
     $maxAvailability = max(1, (int) collect($charts['availability'] ?? [])->max('value'));
 @endphp
 <style>
-.store-ops-dashboard{display:grid;gap:var(--foodex-space-4)}
+.store-ops-dashboard{display:grid;gap:var(--foodex-space-4)}.store-ops-accordion{margin-top:0}.store-ops-accordion-body{align-content:start}.store-ops-accordion .store-head{margin:0}
 .store-ops-filter{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.store-ops-filter label{display:grid;gap:6px;font-weight:700}
 .store-ops-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .store-ops-kpi{padding:16px;display:grid;gap:6px}.store-ops-kpi small{color:var(--foodex-muted)}.store-ops-kpi strong{font-size:1.35rem}
@@ -28,11 +28,18 @@
 </style>
 
 <section class="store-ops-dashboard foodex-module-overview" aria-labelledby="store-ops-title">
-    <section class="foodex-card store-panel">
+    <details class="foodex-card store-card store-accordion store-ops-accordion" data-page-accordion="operations">
+    <summary aria-label="{{ app()->getLocale()==='ar'?'فتح أو إغلاق القسم':'Expand or collapse section' }}">
+        <div class="store-accordion-summary-main">
+            <div class="store-accordion-summary-text"><h3>{{ __('store_channels.title') }}</h3></div>
+        </div>
+        <span class="store-accordion-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="store-accordion-body store-ops-accordion-body">
         <div class="store-head">
             <div>
                 <span class="foodex-subtitle">FOODEX · {{ __('store_channels.title') }}</span>
-                <h2 id="store-ops-title">{{ __('store_channels.title') }}</h2>
+                
                 <p>{{ __('store_channels.subtitle') }}</p>
             </div>
             <form method="get" class="store-ops-filter">
@@ -64,10 +71,19 @@
                 </div>
             @endforeach
         </div>
-    </section>
+    
+    </div>
+</details>
 
-    <section class="foodex-card store-panel">
-        <h3>{{ __('store_channels.sections.channels') }}</h3>
+    <details class="foodex-card store-card store-accordion store-ops-accordion" data-page-accordion="operations">
+    <summary aria-label="{{ app()->getLocale()==='ar'?'فتح أو إغلاق القسم':'Expand or collapse section' }}">
+        <div class="store-accordion-summary-main">
+            <div class="store-accordion-summary-text"><h3>{{ __('store_channels.sections.channels') }}</h3></div>
+        </div>
+        <span class="store-accordion-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="store-accordion-body store-ops-accordion-body">
+        
         <div class="store-ops-channel-grid">
             @forelse($storeChannelDashboard['channels'] ?? [] as $channel)
                 <div class="store-ops-channel">
@@ -79,11 +95,20 @@
                 <div class="foodex-empty-state">{{ __('store_channels.labels.no_data') }}</div>
             @endforelse
         </div>
-    </section>
+    
+    </div>
+</details>
 
     <div class="store-ops-grid">
-        <section class="foodex-card store-ops-chart" data-pagination-exempt="bounded-store-performance">
-            <h3>{{ __('store_channels.sections.performance') }}</h3>
+        <details class="foodex-card store-card store-accordion store-ops-accordion" data-page-accordion="operations" data-pagination-exempt="bounded-store-performance">
+    <summary aria-label="{{ app()->getLocale()==='ar'?'فتح أو إغلاق القسم':'Expand or collapse section' }}">
+        <div class="store-accordion-summary-main">
+            <div class="store-accordion-summary-text"><h3>{{ __('store_channels.sections.performance') }}</h3></div>
+        </div>
+        <span class="store-accordion-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="store-accordion-body store-ops-accordion-body">
+            
             @forelse(array_slice($charts['store_performance'] ?? [],0,8) as $row)
                 <div class="store-ops-bar-row">
                     <span>{{ $row['store'] }}</span>
@@ -94,10 +119,19 @@
             <table class="foodex-table"><thead><tr><th>{{ __('store_channels.labels.store') }}</th><th>{{ __('store_channels.labels.orders') }}</th><th>{{ __('store_channels.labels.revenue') }}</th></tr></thead><tbody>
             @foreach(array_slice($charts['store_performance'] ?? [],0,8) as $row)<tr><td>{{ $row['store'] }}</td><td>{{ $row['orders'] }}</td><td>{{ number_format($row['revenue'],3) }} {{ $row['currency'] ?? '' }}</td></tr>@endforeach
             </tbody></table>
-        </section>
+        
+    </div>
+</details>
 
-        <section class="foodex-card store-ops-chart" data-pagination-exempt="bounded-channel-performance">
-            <h3>{{ __('store_channels.sections.channels') }} · {{ __('store_channels.sections.performance') }}</h3>
+        <details class="foodex-card store-card store-accordion store-ops-accordion" data-page-accordion="operations" data-pagination-exempt="bounded-channel-performance">
+    <summary aria-label="{{ app()->getLocale()==='ar'?'فتح أو إغلاق القسم':'Expand or collapse section' }}">
+        <div class="store-accordion-summary-main">
+            <div class="store-accordion-summary-text"><h3>{{ __('store_channels.sections.channels') }} · {{ __('store_channels.sections.performance') }}</h3></div>
+        </div>
+        <span class="store-accordion-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="store-accordion-body store-ops-accordion-body">
+            
             @forelse($charts['channel_performance'] ?? [] as $row)
                 <div class="store-ops-bar-row">
                     <span>{{ __('store_channels.order_channels.'.$row['channel']) }}</span>
@@ -105,10 +139,19 @@
                     <strong>{{ number_format($row['revenue'],3) }} {{ $row['currency'] ?? '' }}</strong>
                 </div>
             @empty <div class="foodex-empty-state">{{ __('store_channels.labels.no_data') }}</div> @endforelse
-        </section>
+        
+    </div>
+</details>
 
-        <section class="foodex-card store-ops-chart">
-            <h3>{{ __('store_channels.sections.health') }}</h3>
+        <details class="foodex-card store-card store-accordion store-ops-accordion" data-page-accordion="operations">
+    <summary aria-label="{{ app()->getLocale()==='ar'?'فتح أو إغلاق القسم':'Expand or collapse section' }}">
+        <div class="store-accordion-summary-main">
+            <div class="store-accordion-summary-text"><h3>{{ __('store_channels.sections.health') }}</h3></div>
+        </div>
+        <span class="store-accordion-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="store-accordion-body store-ops-accordion-body">
+            
             @forelse($charts['health_distribution'] ?? [] as $row)
                 <div class="store-ops-bar-row">
                     <span>{{ __('store_channels.states.'.$row['label']) }}</span>
@@ -116,10 +159,19 @@
                     <strong>{{ $row['value'] }}</strong>
                 </div>
             @empty <div class="foodex-empty-state">{{ __('store_channels.labels.no_data') }}</div> @endforelse
-        </section>
+        
+    </div>
+</details>
 
-        <section class="foodex-card store-ops-chart">
-            <h3>{{ __('store_channels.sections.availability') }}</h3>
+        <details class="foodex-card store-card store-accordion store-ops-accordion" data-page-accordion="operations">
+    <summary aria-label="{{ app()->getLocale()==='ar'?'فتح أو إغلاق القسم':'Expand or collapse section' }}">
+        <div class="store-accordion-summary-main">
+            <div class="store-accordion-summary-text"><h3>{{ __('store_channels.sections.availability') }}</h3></div>
+        </div>
+        <span class="store-accordion-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="store-accordion-body store-ops-accordion-body">
+            
             @forelse(array_slice($charts['availability'] ?? [],0,8) as $row)
                 <div class="store-ops-bar-row">
                     <span>{{ $row['label'] }}</span>
@@ -127,11 +179,20 @@
                     <strong>{{ $row['value'] }}</strong>
                 </div>
             @empty <div class="foodex-empty-state">{{ __('store_channels.labels.no_data') }}</div> @endforelse
-        </section>
+        
+    </div>
+</details>
     </div>
 
-    <section class="foodex-card store-panel">
-        <h3>{{ __('store_channels.sections.reports') }}</h3>
+    <details class="foodex-card store-card store-accordion store-ops-accordion" data-page-accordion="operations">
+    <summary aria-label="{{ app()->getLocale()==='ar'?'فتح أو إغلاق القسم':'Expand or collapse section' }}">
+        <div class="store-accordion-summary-main">
+            <div class="store-accordion-summary-text"><h3>{{ __('store_channels.sections.reports') }}</h3></div>
+        </div>
+        <span class="store-accordion-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="store-accordion-body store-ops-accordion-body">
+        
         <div class="store-ops-report-grid">
             @foreach($storeChannelDashboard['reports'] ?? [] as $report)
                 <div class="store-ops-report">
@@ -150,5 +211,7 @@
                 <a class="foodex-action-secondary button secondary" href="{{ route('admin.erp.bi') }}">{{ __('store_channels.labels.scheduled') }}</a>
             @endif
         </div>
-    </section>
+    
+    </div>
+</details>
 </section>

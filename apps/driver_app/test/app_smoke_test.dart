@@ -3,7 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/app.dart';
 
 void main() {
-  testWidgets('driver bootstrap is Arabic-first, RTL and uses configured production API',
+  testWidgets(
+      'driver bootstrap is Arabic-first, RTL and uses configured production API',
       (tester) async {
     await tester.pumpWidget(const FoodexDriverApp());
 
@@ -11,7 +12,7 @@ void main() {
     expect(find.byKey(const Key('driver-config-missing')), findsNothing);
     expect(find.byKey(const Key('driver-login-email')), findsOneWidget);
     expect(find.byKey(const Key('driver-login-password')), findsOneWidget);
-    expect(find.byKey(const Key('driver-app-version-footer')), findsOneWidget);
+    expect(find.byKey(const Key('driver-app-version-footer')), findsNothing);
     expect(find.byType(MaterialApp), findsOneWidget);
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
@@ -29,7 +30,8 @@ void main() {
     expect(directionality.textDirection, TextDirection.rtl);
   });
 
-  testWidgets('driver login requires normal email and password credentials', (tester) async {
+  testWidgets('driver login requires normal email and password credentials',
+      (tester) async {
     await tester.pumpWidget(const FoodexDriverApp());
 
     expect(find.byKey(const Key('driver-login-email')), findsOneWidget);
@@ -55,14 +57,12 @@ void main() {
     );
     expect(directionality.textDirection, TextDirection.ltr);
   });
-  testWidgets('dashboard can remove persistent driver footer while diagnostics remain reachable',
+  testWidgets('driver chrome omits the legacy footer and floating diagnostics',
       (tester) async {
-    await tester.pumpWidget(
-      const FoodexDriverApp(showPersistentFooter: false),
-    );
+    await tester.pumpWidget(const FoodexDriverApp());
 
     expect(find.byKey(const Key('driver-app-version-footer')), findsNothing);
-    expect(find.byKey(const Key('driver-floating-inspector')), findsOneWidget);
+    expect(find.byKey(const Key('driver-floating-inspector')), findsNothing);
+    expect(find.byKey(const Key('driver-global-logout')), findsNothing);
   });
-
 }

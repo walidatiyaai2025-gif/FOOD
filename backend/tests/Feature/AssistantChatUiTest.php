@@ -27,7 +27,7 @@ class AssistantChatUiTest extends TestCase
         $user = $this->userWithGlobalRole('SUPER_ADMIN');
 
         $this->actingAs($user)
-            ->get('/admin')
+            ->get('/admin/b2b/dashboard')
             ->assertOk()
             ->assertDontSee('data-foodex-assistant', false)
             ->assertDontSee('assets/admin/assistant-chat.js', false);
@@ -40,7 +40,7 @@ class AssistantChatUiTest extends TestCase
         $user = $this->userWithGlobalRole('SUPER_ADMIN', 'en');
 
         $this->actingAs($user)
-            ->get('/admin')
+            ->get('/admin/b2b/dashboard')
             ->assertOk()
             ->assertSee('data-foodex-assistant', false)
             ->assertSee('data-assistant-open', false)

@@ -26,13 +26,14 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringNotContainsString('setView([29.3759,47.9774]', $customer360);
     }
 
-    public function test_order_management_uses_compact_ellipsis_row_actions(): void
+    public function test_order_management_uses_inline_and_popup_actions_without_actions_column(): void
     {
         $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
 
         $this->assertIsString($view);
-        $this->assertStringContainsString('data-order-row-actions', $view);
-        $this->assertStringContainsString('>⋮</summary>', $view);
+        $this->assertStringNotContainsString('data-order-row-actions', $view);
+        $this->assertStringNotContainsString('<td class="order-grid-actions">', $view);
+        $this->assertStringNotContainsString("<th>{{ __('order_operations.columns.actions') }}</th>", $view);
         $this->assertStringContainsString("__('order_operations.view_order')", $view);
         $this->assertStringContainsString('<dialog class="order-detail-drawer foodex-record-drawer" open', $view);
         $this->assertStringContainsString('order-detail-drawer-shell foodex-record-drawer-shell', $view);
@@ -99,18 +100,18 @@ class DashboardUiComplianceTest extends TestCase
         $orderFilters = file_get_contents(resource_path('views/admin/_order-operations-order-filters.blade.php'));
         $this->assertIsString($orderFilters);
         $this->assertStringContainsString('name="dispatch_status"', $orderFilters);
-        $this->assertStringContainsString('data-order-dispatch-status', $view);
-        $this->assertStringContainsString('data-order-dispatch-driver', $view);
-        $this->assertStringContainsString('data-order-dispatch-van', $view);
-        $this->assertStringContainsString('data-order-dispatch-clear', $view);
+        $this->assertStringContainsString('data-order-inline-status', $view);
+        $this->assertStringContainsString('data-order-inline-dispatch', $view);
+        $this->assertStringContainsString('data-order-inline-assignee-type', $view);
+        $this->assertStringContainsString('data-order-inline-unassign', $view);
         $this->assertStringContainsString('data-order-dispatch-detail', $view);
-        $this->assertStringContainsString('data-order-dispatch-workspace', $view);
+        $this->assertStringContainsString('data-order-inline-picker-select', $view);
         $this->assertStringContainsString('data-order-inline-unassign', $view);
         $this->assertStringContainsString('data-order-detail-unassign', $view);
         $this->assertStringContainsString('data-order-detail-action-section="dispatch"', $view);
         $this->assertStringContainsString('data-van-proof-link', $view);
         $this->assertStringNotContainsString('data-van-collection-timeline', $view);
-        $this->assertStringContainsString("__('order_operations.dispatch.warning')", $view);
+        $this->assertStringContainsString('data-b2b-assignment-required-alert', $view);
         $this->assertStringNotContainsString('name="assignee_id" type="number"', $view);
 
         $this->assertStringContainsString('OrderDispatchState::query()', $controller);
@@ -238,9 +239,52 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('<select name="store_id">', $filters);
         $this->assertStringNotContainsString("__('order_operations.columns.store')", $view);
         $this->assertStringNotContainsString("__('order_operations.columns.channel')", $view);
-        $this->assertStringContainsString('__(\'order_operations.columns.actions\')', $view);
+        $this->assertStringNotContainsString("<th>{{ __('order_operations.columns.actions') }}</th>", $view);
         $this->assertStringNotContainsString('$isAr?\'إدارة الطلبات\':\'Order Management\'', $view);
         $this->assertStringNotContainsString('$isAr?\'إجراءات الطلب\':\'Order actions\'', $view);
+    }
+
+    public function test_shared_order_actions_follow_assignment_first_workflow(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/_dashboard-order-actions.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringNotContainsString('Approve order', $view);
+        $this->assertStringNotContainsString('اعتماد الطلب', $view);
+        $this->assertStringNotContainsString('name="status" value="confirmed"', $view);
+        $this->assertStringNotContainsString("'pending' => ['confirmed','cancelled']", $view);
+        $this->assertStringContainsString("['cancelled']", $view);
+        $this->assertStringContainsString("'admin.operations.orders.dispatch'", $view);
+        $this->assertStringContainsString("'admin.operations.orders.dispatch.clear'", $view);
+        $this->assertStringContainsString('name="assignee_type" value="driver"', $view);
+        $this->assertStringContainsString('name="assignee_id"', $view);
+        $this->assertStringContainsString('Cancel order', $view);
+    }
+
+    public function test_order_operations_opens_with_sidebar_collapsed_by_default(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
+        $sidebar = file_get_contents(resource_path('views/admin/_sidebar.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertIsString($sidebar);
+        $this->assertStringContainsString("@include('admin._sidebar',['sidebarDefaultCollapsed'=>true])", $view);
+        $this->assertStringContainsString('const defaultCollapsed = @json((bool)($sidebarDefaultCollapsed ?? false));', $sidebar);
+        $this->assertStringContainsString("setExpanded(compactMedia.matches || (!defaultCollapsed && localStorage.getItem(stateKey) === '1'), false);", $sidebar);
+    }
+
+    public function test_order_management_grid_has_internal_lines_and_borderless_status_controls(): void
+    {
+        $view = file_get_contents(resource_path('views/admin/order-operations.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('border-bottom:1px solid var(--foodex-border);border-inline-end:1px solid var(--foodex-border)', $view);
+        $this->assertStringContainsString('.ops-table th:last-child,.ops-table td:last-child{border-inline-end:0}', $view);
+        $this->assertStringContainsString('.ops-table tbody tr:last-child td{border-bottom:0}', $view);
+        $this->assertStringContainsString('.order-status-chip{', $view);
+        $this->assertStringContainsString('padding:0 9px;border:0!important;border-radius:999px', $view);
+        $this->assertStringContainsString('border:0!important;border-radius:999px!important;background-color:var(--status-bg)!important', $view);
+        $this->assertStringContainsString('.ops-table th:nth-child(1),.ops-table th:nth-child(2),.ops-table th:nth-child(3),.ops-table th:nth-child(4),.ops-table th:nth-child(5),.ops-table th:nth-child(6){width:16.666%}', $view);
     }
 
     public function test_order_operations_fits_small_laptop_viewport_without_store_or_channel_columns(): void
@@ -251,7 +295,8 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('.ops-table{width:100%;min-width:0;table-layout:fixed', $view);
         $this->assertStringContainsString('@media(max-width:1500px) and (min-width:1001px)', $view);
         $this->assertStringContainsString('.table-wrap{overflow:visible', $view);
-        $this->assertStringContainsString('colspan="7"', $view);
+        $this->assertStringContainsString('colspan="6"', $view);
+        $this->assertStringNotContainsString('colspan="7"', $view);
         $this->assertStringNotContainsString('<th>{{ __(\'order_operations.columns.store\') }}</th>', $view);
         $this->assertStringNotContainsString('<th>{{ __(\'order_operations.columns.channel\') }}</th>', $view);
     }

@@ -877,7 +877,7 @@ class AssistantSettingsTest extends TestCase
             ->assertStatus(503);
 
         $this->actingAs($user)
-            ->get('/admin')
+            ->get('/admin/b2b/dashboard')
             ->assertOk()
             ->assertDontSee('data-foodex-assistant', false);
     }

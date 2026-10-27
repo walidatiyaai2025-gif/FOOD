@@ -8,6 +8,7 @@ import 'core/diagnostics/driver_runtime_inspector.dart';
 import 'core/localization/driver_translations.dart';
 import 'core/navigation/driver_shell.dart';
 import 'core/preview/driver_preview_context.dart';
+import 'core/push/firebase_push_service.dart';
 import 'core/theme/foodex_theme.dart';
 import 'features/notifications/driver_notification_page.dart';
 import 'features/delivery/driver_assignment_contract.dart';
@@ -55,6 +56,7 @@ class DriverNavigator {
     required this.repository,
     this.driverName = '',
     this.notificationRepository,
+    this.pushAlerts,
     this.onSessionExpired,
     this.onLogout,
     this.previewContext,
@@ -64,6 +66,7 @@ class DriverNavigator {
   final DriverAssignmentRepository repository;
   final String driverName;
   final DriverNotificationRepository? notificationRepository;
+  final Stream<DriverPushAlert>? pushAlerts;
   final VoidCallback? onSessionExpired;
   final VoidCallback? onLogout;
   final DriverPreviewContext? previewContext;
@@ -155,6 +158,7 @@ class DriverNavigator {
       walletRoute: wallet,
       channel: channel,
       repository: repository,
+      pushAlerts: pushAlerts,
       onSessionExpired: onSessionExpired,
       onLogout: onLogout,
       previewContext: previewContext,
@@ -175,6 +179,7 @@ class _DriverHomePage extends StatefulWidget {
     this.walletRoute,
     required this.channel,
     required this.repository,
+    this.pushAlerts,
     this.onSessionExpired,
     this.onLogout,
     this.previewContext,
@@ -187,6 +192,7 @@ class _DriverHomePage extends StatefulWidget {
   final String? walletRoute;
   final DriverChannel channel;
   final DriverAssignmentRepository repository;
+  final Stream<DriverPushAlert>? pushAlerts;
   final VoidCallback? onSessionExpired;
   final VoidCallback? onLogout;
   final DriverPreviewContext? previewContext;
@@ -195,9 +201,21 @@ class _DriverHomePage extends StatefulWidget {
   State<_DriverHomePage> createState() => _DriverHomePageState();
 }
 
+enum _DriverHomeUpdateKind { assigned, updated, removed }
+
+class _DriverHomeUpdateEvent {
+  const _DriverHomeUpdateEvent({
+    required this.kind,
+    required this.assignment,
+  });
+
+  final _DriverHomeUpdateKind kind;
+  final DriverAssignment assignment;
+}
+
 class _DriverHomePageState extends State<_DriverHomePage>
     with WidgetsBindingObserver {
-  static const _summaryRefreshInterval = Duration(seconds: 15);
+  static const _summaryRefreshInterval = Duration(seconds: 5);
 
   bool _loading = true;
   bool _loadFailed = false;
@@ -206,11 +224,21 @@ class _DriverHomePageState extends State<_DriverHomePage>
   bool _refreshPending = false;
   int _lifecycleEpoch = 0;
   Timer? _summaryRefreshTimer;
+  Timer? _pollingFallbackTimer;
+  StreamSubscription<DriverPushAlert>? _homePushSubscription;
   List<DriverAssignment> _assignments = const [];
+  final Map<int, DriverAssignment> _assignmentSnapshot =
+      <int, DriverAssignment>{};
+  final Map<int, String> _assignmentFingerprints = <int, String>{};
+  final Map<int, DateTime> _recentPushAssignments = <int, DateTime>{};
+  final List<_DriverHomeUpdateEvent> _updateQueue = <_DriverHomeUpdateEvent>[];
+  final List<_DriverHomeUpdateEvent> _pendingPollingFallback =
+      <_DriverHomeUpdateEvent>[];
+  bool _assignmentSnapshotInitialized = false;
+  bool _updatePopupActive = false;
 
   static const _statuses = [
     ('accepted', Icons.verified_rounded),
-    ('picked_up', Icons.inventory_2_rounded),
     ('out_for_delivery', Icons.local_shipping_rounded),
     ('failed', Icons.report_problem_rounded),
     ('delivered', Icons.task_alt_rounded),
@@ -220,22 +248,40 @@ class _DriverHomePageState extends State<_DriverHomePage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _homePushSubscription = widget.pushAlerts?.listen(_recordPushAlert);
     unawaited(_loadSummary());
-    _startLiveRefresh();
+    if (widget.previewContext == null) {
+      _startLiveRefresh();
+    }
   }
 
   @override
   void dispose() {
     _stopLiveRefresh();
+    _pollingFallbackTimer?.cancel();
+    _pollingFallbackTimer = null;
+    _pendingPollingFallback.clear();
+    unawaited(_homePushSubscription?.cancel());
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DriverHomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.pushAlerts, widget.pushAlerts)) {
+      unawaited(_homePushSubscription?.cancel());
+      _homePushSubscription = widget.pushAlerts?.listen(_recordPushAlert);
+    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(_loadSummary(showLoading: false));
-      _startLiveRefresh();
+      if (widget.previewContext == null) {
+        _startLiveRefresh();
+      }
       return;
     }
 
@@ -275,22 +321,80 @@ class _DriverHomePageState extends State<_DriverHomePage>
       final rows = await widget.repository.list(widget.channel);
       if (!mounted || requestEpoch != _lifecycleEpoch) return;
       final preview = widget.previewContext;
+      final nextAssignments = rows
+          .where(
+            (row) =>
+                row.channel == widget.channel &&
+                (preview == null ||
+                    preview.allowsAssignment(
+                      assignmentChannel: row.channel,
+                      assignmentStoreId: row.storeId,
+                    )),
+          )
+          .toList(growable: false);
+
+      final detectedUpdates = <_DriverHomeUpdateEvent>[];
+      if (_assignmentSnapshotInitialized) {
+        final nextIds = nextAssignments.map((row) => row.id).toSet();
+
+        for (final assignment in nextAssignments) {
+          final previous = _assignmentSnapshot[assignment.id];
+          if (previous == null) {
+            detectedUpdates.add(
+              _DriverHomeUpdateEvent(
+                kind: _DriverHomeUpdateKind.assigned,
+                assignment: assignment,
+              ),
+            );
+            continue;
+          }
+
+          final previousFingerprint = _assignmentFingerprints[assignment.id];
+          final nextFingerprint = _assignmentFingerprint(assignment);
+          if (previousFingerprint != nextFingerprint) {
+            detectedUpdates.add(
+              _DriverHomeUpdateEvent(
+                kind: _DriverHomeUpdateKind.updated,
+                assignment: assignment,
+              ),
+            );
+          }
+        }
+
+        for (final previous in _assignmentSnapshot.values) {
+          if (!nextIds.contains(previous.id)) {
+            detectedUpdates.add(
+              _DriverHomeUpdateEvent(
+                kind: _DriverHomeUpdateKind.removed,
+                assignment: previous,
+              ),
+            );
+          }
+        }
+      }
+
+      _assignmentSnapshot
+        ..clear()
+        ..addEntries(nextAssignments.map((row) => MapEntry(row.id, row)));
+      _assignmentFingerprints
+        ..clear()
+        ..addEntries(
+          nextAssignments.map(
+            (row) => MapEntry(row.id, _assignmentFingerprint(row)),
+          ),
+        );
+      _assignmentSnapshotInitialized = true;
+
       setState(() {
-        _assignments = rows
-            .where(
-              (row) =>
-                  row.channel == widget.channel &&
-                  (preview == null ||
-                      preview.allowsAssignment(
-                        assignmentChannel: row.channel,
-                        assignmentStoreId: row.storeId,
-                      )),
-            )
-            .toList(growable: false);
+        _assignments = nextAssignments;
         _loading = false;
         _loadFailed = false;
         _showingStaleData = false;
       });
+
+      if (detectedUpdates.isNotEmpty && preview == null) {
+        _schedulePollingFallback(detectedUpdates);
+      }
     } on DriverSessionExpiredException {
       widget.onSessionExpired?.call();
     } catch (_) {
@@ -311,6 +415,218 @@ class _DriverHomePageState extends State<_DriverHomePage>
         _refreshPending = false;
         unawaited(_loadSummary(showLoading: false));
       }
+    }
+  }
+
+  void _recordPushAlert(DriverPushAlert alert) {
+    final assignmentId = alert.open.assignmentId;
+    if (assignmentId != null) {
+      _recentPushAssignments[assignmentId] = DateTime.now();
+      return;
+    }
+
+    final orderId = alert.open.orderId;
+    if (orderId == null) return;
+    for (final assignment in _assignments) {
+      if (assignment.orderId == orderId) {
+        _recentPushAssignments[assignment.id] = DateTime.now();
+      }
+    }
+  }
+
+  bool _wasRecentlyPushed(int assignmentId) {
+    final now = DateTime.now();
+    _recentPushAssignments.removeWhere(
+      (_, at) => now.difference(at) > const Duration(seconds: 12),
+    );
+    final at = _recentPushAssignments[assignmentId];
+    return at != null && now.difference(at) <= const Duration(seconds: 12);
+  }
+
+  void _schedulePollingFallback(List<_DriverHomeUpdateEvent> updates) {
+    _pendingPollingFallback.addAll(updates);
+    if (_pollingFallbackTimer?.isActive ?? false) return;
+
+    _pollingFallbackTimer = Timer(const Duration(milliseconds: 1200), () {
+      _pollingFallbackTimer = null;
+      if (!mounted) {
+        _pendingPollingFallback.clear();
+        return;
+      }
+
+      final pending = List<_DriverHomeUpdateEvent>.of(_pendingPollingFallback);
+      _pendingPollingFallback.clear();
+
+      final fallback = pending
+          .where((event) => !_wasRecentlyPushed(event.assignment.id))
+          .toList(growable: false);
+      if (fallback.isEmpty) return;
+
+      _updateQueue.addAll(fallback);
+      unawaited(_showQueuedUpdates());
+    });
+  }
+
+  String _assignmentFingerprint(DriverAssignment assignment) {
+    final settlement = assignment.settlement;
+    final invoice = assignment.invoice;
+    final items = assignment.items
+        .map(
+          (item) => [
+            item.name,
+            item.sku,
+            item.variant,
+            item.unit,
+            item.note,
+            item.quantity,
+            item.quantityConversionFactor,
+            item.packSize,
+            item.caseSize,
+            item.unitPrice,
+            item.lineTotal,
+          ].join('~'),
+        )
+        .join('||');
+
+    return [
+      assignment.status,
+      assignment.orderStatus,
+      assignment.storeName,
+      assignment.customerName,
+      assignment.customerPhone,
+      assignment.address,
+      assignment.navigationLatitude,
+      assignment.navigationLongitude,
+      assignment.currency,
+      assignment.grandTotal,
+      assignment.paymentMethod,
+      assignment.paymentStatus,
+      assignment.customerNote,
+      assignment.availableStatuses.join(','),
+      assignment.assignedAt,
+      assignment.completedAt,
+      assignment.createdAt,
+      settlement?.orderTotal,
+      settlement?.balanceApplied,
+      settlement?.paidAmount,
+      settlement?.remainingAmount,
+      settlement?.remainderMethod,
+      settlement?.paymentState,
+      settlement?.amountToCollectNow,
+      settlement?.invoiceOutstandingAmount,
+      invoice?.id,
+      invoice?.number,
+      invoice?.revision,
+      invoice?.status,
+      invoice?.grandTotal,
+      invoice?.paymentMethod,
+      invoice?.paymentStatus,
+      invoice?.outstandingAmount,
+      invoice?.issuedAt,
+      items,
+    ].join('|');
+  }
+
+  Future<void> _showQueuedUpdates() async {
+    if (_updatePopupActive || !mounted) return;
+    _updatePopupActive = true;
+
+    try {
+      while (mounted && _updateQueue.isNotEmpty) {
+        if (!mounted) break;
+
+        final popupContext = context;
+        if (!popupContext.mounted) break;
+
+        final event = _updateQueue.removeAt(0);
+        final assignment = event.assignment;
+        final removed = event.kind == _DriverHomeUpdateKind.removed;
+        final titleKey = switch (event.kind) {
+          _DriverHomeUpdateKind.assigned => 'driver.home.new_order_title',
+          _DriverHomeUpdateKind.updated => 'driver.home.order_updated_title',
+          _DriverHomeUpdateKind.removed => 'driver.home.order_removed_title',
+        };
+
+        final openOrder = await showDialog<bool>(
+          context: popupContext,
+          builder: (dialogContext) => AlertDialog(
+            key: const Key('driver-home-update-popup'),
+            icon: Icon(
+              removed
+                  ? Icons.assignment_return_outlined
+                  : Icons.notifications_active_rounded,
+              color: removed ? FoodexBrand.red : FoodexBrand.actionGreen,
+              size: 34,
+            ),
+            title: Text(dialogContext.tr(titleKey)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  '${dialogContext.tr('driver.notifications.order_identity')} ${assignment.reference}',
+                  key: const Key('driver-home-update-reference'),
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                if (!removed) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    '${dialogContext.tr('driver.home.current_status')}: '
+                    '${dialogContext.tr('driver.status.${assignment.status}')}',
+                  ),
+                ],
+                if (assignment.customerName.trim().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    '${dialogContext.tr('driver.detail.customer')}: '
+                    '${assignment.customerName.trim()}',
+                  ),
+                ],
+                if (!removed && assignment.grandTotal > 0) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    '${dialogContext.tr('driver.detail.total')}: '
+                    '${assignment.grandTotal.toStringAsFixed(2)} '
+                    '${assignment.currency}',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                key: const Key('driver-home-update-dismiss'),
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(dialogContext.tr('driver.dismiss')),
+              ),
+              if (!removed)
+                FilledButton.icon(
+                  key: const Key('driver-home-update-open'),
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  icon: const Icon(Icons.open_in_new_rounded),
+                  label: Text(dialogContext.tr('driver.notifications.open')),
+                ),
+            ],
+          ),
+        );
+
+        if (openOrder == true) {
+          if (!mounted) return;
+
+          await Navigator.of(context).pushNamed(
+            widget.deliveriesRoute,
+            arguments: assignment.id,
+          );
+          if (!mounted) return;
+
+          await _loadSummary(showLoading: false);
+        }
+      }
+    } finally {
+      _updatePopupActive = false;
     }
   }
 
@@ -383,6 +699,21 @@ class _DriverHomePageState extends State<_DriverHomePage>
             tooltip: context.tr('driver.refresh'),
             icon: const Icon(Icons.refresh_rounded),
           ),
+          if (widget.walletRoute != null)
+            IconButton(
+              key: const Key('driver-open-wallet'),
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(widget.walletRoute!),
+              tooltip: context.tr('driver.home.open_wallet'),
+              icon: const Icon(Icons.account_balance_wallet_outlined),
+            ),
+          IconButton(
+            key: const Key('driver-open-notifications'),
+            onPressed: () =>
+                Navigator.of(context).pushNamed(widget.notificationsRoute),
+            tooltip: context.tr('driver.notifications.title'),
+            icon: const Icon(Icons.notifications_none_rounded),
+          ),
           if (widget.onLogout != null)
             IconButton(
               key: const Key('driver-logout'),
@@ -393,215 +724,153 @@ class _DriverHomePageState extends State<_DriverHomePage>
         ],
       ),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadSummary,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-            children: [
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: AlignmentDirectional.topStart,
-                    end: AlignmentDirectional.bottomEnd,
-                    colors: [FoodexBrand.greenDark, FoodexBrand.actionGreen],
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x24165D2D),
-                      blurRadius: 22,
-                      offset: Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: const Color(0x29FFFFFF),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(
-                            Icons.route_rounded,
-                            color: Colors.white,
-                          ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxHeight < 610;
+            final ultraCompact = constraints.maxHeight < 510;
+            final gap = ultraCompact
+                ? 4.0
+                : compact
+                    ? 6.0
+                    : 8.0;
+            final horizontalPadding = ultraCompact ? 8.0 : 12.0;
+            final columns = compact ? 3 : 2;
+            final chartHeight = ultraCompact
+                ? 96.0
+                : compact
+                    ? 118.0
+                    : 160.0;
+            final pendingHeight = ultraCompact
+                ? 38.0
+                : compact
+                    ? 42.0
+                    : 46.0;
+            final statusCardHeight = ultraCompact
+                ? 46.0
+                : compact
+                    ? 54.0
+                    : 64.0;
+            final statusRows = (_statuses.length / columns).ceil();
+            final statusGridHeight =
+                (statusRows * statusCardHeight) + ((statusRows - 1) * gap);
+
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                gap,
+                horizontalPadding,
+                gap,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    context.tr('driver.home.status_summary'),
+                    key: const Key('driver-home-status-summary-title'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontSize: ultraCompact
+                              ? 14
+                              : compact
+                                  ? 15
+                                  : null,
+                          fontWeight: FontWeight.w900,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                  ),
+                  SizedBox(height: gap),
+                  SizedBox(
+                    height: chartHeight,
+                    child: _DriverWorkloadChart(
+                      compact: compact,
+                      ultraCompact: ultraCompact,
+                      loading: _loading && _assignments.isEmpty,
+                      failed: _loadFailed,
+                      stale: _showingStaleData,
+                      statuses: [
+                        for (final status in _statuses)
+                          _DriverWorkloadSlice(
+                            label: context.tr('driver.status.${status.$1}'),
+                            value: _count(status.$1),
+                          ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: gap),
+                  SizedBox(
+                    height: pendingHeight,
+                    child: _DriverPendingCard(
+                      key: const Key('driver-home-pending-orders'),
+                      compact: compact,
+                      ultraCompact: ultraCompact,
+                      label: context.tr('driver.home.pending_orders'),
+                      value: _loading ? null : _count('assigned'),
+                      onTap: _loading ? null : () => _openStatus('assigned'),
+                    ),
+                  ),
+                  SizedBox(height: gap),
+                  SizedBox(
+                    height: statusGridHeight,
+                    child: _loadFailed
+                        ? Card(
+                            margin: EdgeInsets.zero,
+                            child: Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(compact ? 8 : 12),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.cloud_off_rounded),
+                                    SizedBox(width: ultraCompact ? 4 : 6),
+                                    Flexible(
+                                      child: Text(
+                                        context.tr('driver.error'),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    TextButton(
+                                      onPressed: _loadSummary,
+                                      child: Text(context.tr('driver.retry')),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )
+                        : GridView.count(
+                            key: const Key('driver-home-status-grid'),
+                            padding: EdgeInsets.zero,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisCount: columns,
+                            crossAxisSpacing: gap,
+                            mainAxisSpacing: gap,
+                            mainAxisExtent: statusCardHeight,
                             children: [
-                              Text(
-                                driverName.isEmpty
-                                    ? context.tr('driver.home.title')
-                                    : driverName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w900,
+                              for (final status in _statuses)
+                                _DriverStatusCard(
+                                  key: Key(
+                                    'driver-home-status-${status.$1}',
+                                  ),
+                                  compact: compact,
+                                  ultraCompact: ultraCompact,
+                                  icon: status.$2,
+                                  label:
+                                      context.tr('driver.status.${status.$1}'),
+                                  value: _loading ? null : _count(status.$1),
+                                  onTap: _loading
+                                      ? null
+                                      : () => _openStatus(status.$1),
                                 ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                context.tr('driver.home.subtitle'),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Color(0xFFE3F5E9),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
                             ],
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: FilledButton.icon(
-                            key: const Key('driver-open-deliveries'),
-                            onPressed: () => Navigator.of(context)
-                                .pushNamed(widget.deliveriesRoute),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: FoodexBrand.greenDark,
-                              minimumSize: const Size(0, 48),
-                            ),
-                            icon: const Icon(Icons.route_rounded, size: 19),
-                            label: Text(
-                              context.tr('driver.home.open_deliveries'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            key: const Key('driver-open-notifications'),
-                            onPressed: () => Navigator.of(context)
-                                .pushNamed(widget.notificationsRoute),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.white54),
-                              minimumSize: const Size(0, 48),
-                            ),
-                            icon: const Icon(
-                              Icons.notifications_none_rounded,
-                              size: 19,
-                            ),
-                            label: Text(
-                              context.tr('driver.notifications.title'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (widget.walletRoute != null) ...[
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          key: const Key('driver-open-wallet'),
-                          onPressed: () => Navigator.of(context)
-                              .pushNamed(widget.walletRoute!),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.white54),
-                            minimumSize: const Size(0, 48),
-                          ),
-                          icon: const Icon(
-                            Icons.account_balance_wallet_outlined,
-                            size: 19,
-                          ),
-                          label: Text(
-                            context.tr('driver.home.open_wallet'),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                context.tr('driver.home.status_summary'),
-                key: const Key('driver-home-status-summary-title'),
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 10),
-              _DriverWorkloadChart(
-                loading: _loading && _assignments.isEmpty,
-                failed: _loadFailed,
-                stale: _showingStaleData,
-                statuses: [
-                  for (final status in _statuses)
-                    _DriverWorkloadSlice(
-                      label: context.tr('driver.status.${status.$1}'),
-                      value: _count(status.$1),
-                    ),
+                  ),
+                  const Spacer(),
                 ],
               ),
-              const SizedBox(height: 10),
-              _DriverPendingCard(
-                key: const Key('driver-home-pending-orders'),
-                label: context.tr('driver.home.pending_orders'),
-                value: _loading ? null : _count('assigned'),
-                onTap: _loading ? null : () => _openStatus('assigned'),
-              ),
-              const SizedBox(height: 10),
-              if (_loadFailed)
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.cloud_off_rounded),
-                    title: Text(context.tr('driver.error')),
-                    trailing: TextButton(
-                      onPressed: _loadSummary,
-                      child: Text(context.tr('driver.retry')),
-                    ),
-                  ),
-                )
-              else
-                GridView.count(
-                  key: const Key('driver-home-status-grid'),
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 1.9,
-                  children: [
-                    for (final status in _statuses)
-                      _DriverStatusCard(
-                        key: Key('driver-home-status-${status.$1}'),
-                        icon: status.$2,
-                        label: context.tr('driver.status.${status.$1}'),
-                        value: _loading ? null : _count(status.$1),
-                        onTap: _loading ? null : () => _openStatus(status.$1),
-                      ),
-                  ],
-                ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -617,12 +886,16 @@ class _DriverWorkloadSlice {
 
 class _DriverWorkloadChart extends StatelessWidget {
   const _DriverWorkloadChart({
+    required this.compact,
+    required this.ultraCompact,
     required this.loading,
     required this.failed,
     required this.stale,
     required this.statuses,
   });
 
+  final bool compact;
+  final bool ultraCompact;
   final bool loading;
   final bool failed;
   final bool stale;
@@ -657,35 +930,35 @@ class _DriverWorkloadChart extends StatelessWidget {
     } else if (total == 0) {
       body = Text(context.tr('driver.home.analytics.empty'));
     } else {
+      final chartSize = ultraCompact
+          ? 50.0
+          : compact
+              ? 60.0
+              : 70.0;
       final chart = FoodexDonutChart(
         values: [for (final item in statuses) item.value.toDouble()],
         semanticLabel: semanticLabel,
-        size: 132,
-        strokeWidth: 19,
+        size: chartSize,
+        strokeWidth: ultraCompact
+            ? 8
+            : compact
+                ? 10
+                : 12,
       );
       final legend = FoodexChartLegend(labels: labels);
 
-      body = LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth < 430) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Align(alignment: Alignment.center, child: chart),
-                const SizedBox(height: 14),
-                legend,
-              ],
-            );
-          }
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              chart,
-              const SizedBox(width: 18),
-              Expanded(child: legend),
-            ],
-          );
-        },
+      body = Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          chart,
+          SizedBox(
+              width: ultraCompact
+                  ? 8
+                  : compact
+                      ? 10
+                      : 14),
+          Expanded(child: legend),
+        ],
       );
     }
 
@@ -693,37 +966,55 @@ class _DriverWorkloadChart extends StatelessWidget {
       key: const Key('driver-home-workload-chart'),
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(ultraCompact
+            ? 7
+            : compact
+                ? 9
+                : 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.donut_large_rounded,
-                  size: 20,
+                  size: ultraCompact
+                      ? 16
+                      : compact
+                          ? 18
+                          : 20,
                   color: FoodexChartPalette.primaryDark,
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: ultraCompact ? 5 : 8),
                 Expanded(
                   child: Text(
                     context.tr('driver.home.analytics.title'),
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w900),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontSize: ultraCompact
+                              ? 11
+                              : compact
+                                  ? 12
+                                  : null,
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 5),
-            Text(
-              context.tr('driver.home.analytics.summary'),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: FoodexBrand.muted,
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
+            if (!compact) ...[
+              const SizedBox(height: 4),
+              Text(
+                context.tr('driver.home.analytics.summary'),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: FoodexBrand.muted,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
             if (stale) ...[
               const SizedBox(height: 8),
               Row(
@@ -734,7 +1025,7 @@ class _DriverWorkloadChart extends StatelessWidget {
                     size: 17,
                     color: FoodexChartPalette.warning,
                   ),
-                  const SizedBox(width: 6),
+                  SizedBox(width: ultraCompact ? 3 : 5),
                   Expanded(
                     child: Text(
                       context.tr('driver.home.analytics.stale'),
@@ -747,8 +1038,13 @@ class _DriverWorkloadChart extends StatelessWidget {
                 ],
               ),
             ],
-            const SizedBox(height: 14),
-            body,
+            SizedBox(
+                height: ultraCompact
+                    ? 4
+                    : compact
+                        ? 6
+                        : 10),
+            Expanded(child: Center(child: body)),
           ],
         ),
       ),
@@ -759,11 +1055,15 @@ class _DriverWorkloadChart extends StatelessWidget {
 class _DriverPendingCard extends StatelessWidget {
   const _DriverPendingCard({
     super.key,
+    required this.compact,
+    required this.ultraCompact,
     required this.label,
     required this.value,
     required this.onTap,
   });
 
+  final bool compact;
+  final bool ultraCompact;
   final String label;
   final int? value;
   final VoidCallback? onTap;
@@ -776,7 +1076,18 @@ class _DriverPendingCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(18),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: EdgeInsets.symmetric(
+              horizontal: ultraCompact
+                  ? 8
+                  : compact
+                      ? 10
+                      : 14,
+              vertical: ultraCompact
+                  ? 3
+                  : compact
+                      ? 4
+                      : 5,
+            ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
@@ -787,27 +1098,48 @@ class _DriverPendingCard extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: ultraCompact
+                      ? 24
+                      : compact
+                          ? 28
+                          : 32,
+                  height: ultraCompact
+                      ? 24
+                      : compact
+                          ? 28
+                          : 32,
                   decoration: BoxDecoration(
                     color: FoodexBrand.red,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(compact ? 10 : 14),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.notifications_active_rounded,
                     color: Colors.white,
-                    size: 23,
+                    size: ultraCompact
+                        ? 14
+                        : compact
+                            ? 16
+                            : 18,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(
+                    width: ultraCompact
+                        ? 6
+                        : compact
+                            ? 8
+                            : 10),
                 Expanded(
                   child: Text(
                     label,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: FoodexBrand.dangerText,
-                      fontSize: 14,
+                      fontSize: ultraCompact
+                          ? 10
+                          : compact
+                              ? 11
+                              : 13,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -824,10 +1156,20 @@ class _DriverPendingCard extends StatelessWidget {
                   )
                 else
                   Container(
-                    constraints: const BoxConstraints(minWidth: 42),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
+                    constraints: BoxConstraints(
+                      minWidth: ultraCompact
+                          ? 30
+                          : compact
+                              ? 34
+                              : 40,
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: ultraCompact ? 7 : 9,
+                      vertical: ultraCompact
+                          ? 3
+                          : compact
+                              ? 4
+                              : 5,
                     ),
                     decoration: BoxDecoration(
                       color: FoodexBrand.red,
@@ -836,9 +1178,13 @@ class _DriverPendingCard extends StatelessWidget {
                     child: Text(
                       value.toString(),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: ultraCompact
+                            ? 14
+                            : compact
+                                ? 16
+                                : 19,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -853,12 +1199,16 @@ class _DriverPendingCard extends StatelessWidget {
 class _DriverStatusCard extends StatelessWidget {
   const _DriverStatusCard({
     super.key,
+    required this.compact,
+    required this.ultraCompact,
     required this.icon,
     required this.label,
     required this.value,
     required this.onTap,
   });
 
+  final bool compact;
+  final bool ultraCompact;
   final IconData icon;
   final String label;
   final int? value;
@@ -872,7 +1222,18 @@ class _DriverStatusCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(18),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            padding: EdgeInsets.symmetric(
+              horizontal: ultraCompact
+                  ? 6
+                  : compact
+                      ? 8
+                      : 10,
+              vertical: ultraCompact
+                  ? 5
+                  : compact
+                      ? 7
+                      : 9,
+            ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: FoodexBrand.border),
@@ -880,22 +1241,47 @@ class _DriverStatusCard extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 38,
-                  height: 38,
+                  width: ultraCompact
+                      ? 26
+                      : compact
+                          ? 30
+                          : 34,
+                  height: ultraCompact
+                      ? 26
+                      : compact
+                          ? 30
+                          : 34,
                   decoration: BoxDecoration(
                     color: FoodexBrand.greenSoft,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(compact ? 9 : 12),
                   ),
-                  child: Icon(icon, color: FoodexBrand.greenDark, size: 20),
+                  child: Icon(
+                    icon,
+                    color: FoodexBrand.greenDark,
+                    size: ultraCompact
+                        ? 14
+                        : compact
+                            ? 16
+                            : 18,
+                  ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(
+                    width: ultraCompact
+                        ? 5
+                        : compact
+                            ? 6
+                            : 8),
                 Expanded(
                   child: Text(
                     label,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
+                    style: TextStyle(
+                      fontSize: ultraCompact
+                          ? 9
+                          : compact
+                              ? 10
+                              : 11,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -910,8 +1296,12 @@ class _DriverStatusCard extends StatelessWidget {
                 else
                   Text(
                     value.toString(),
-                    style: const TextStyle(
-                      fontSize: 21,
+                    style: TextStyle(
+                      fontSize: ultraCompact
+                          ? 14
+                          : compact
+                              ? 16
+                              : 19,
                       fontWeight: FontWeight.w900,
                     ),
                   ),

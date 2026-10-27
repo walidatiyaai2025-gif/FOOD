@@ -228,6 +228,25 @@ class CustomerOrderSummary {
   }
 }
 
+class CustomerOrderDriver {
+  const CustomerOrderDriver({
+    required this.id,
+    required this.name,
+    required this.phone,
+  });
+
+  final int id;
+  final String name;
+  final String? phone;
+
+  factory CustomerOrderDriver.fromJson(Map<String, dynamic> json) =>
+      CustomerOrderDriver(
+        id: _int(json['id']),
+        name: json['name']?.toString() ?? '',
+        phone: _nullableText(json['phone']),
+      );
+}
+
 class CustomerOrderDetails {
   const CustomerOrderDetails({
     required this.summary,
@@ -240,6 +259,7 @@ class CustomerOrderDetails {
     required this.history,
     required this.payment,
     required this.requestedDeliveryDate,
+    this.driver,
     this.collectionReceipts = const <CustomerCollectionReceipt>[],
   });
 
@@ -253,6 +273,7 @@ class CustomerOrderDetails {
   final List<CustomerOrderHistoryEntry> history;
   final CustomerOrderPayment? payment;
   final String? requestedDeliveryDate;
+  final CustomerOrderDriver? driver;
   final List<CustomerCollectionReceipt> collectionReceipts;
 
   factory CustomerOrderDetails.fromJson(Map<String, dynamic> json) {
@@ -305,6 +326,11 @@ class CustomerOrderDetails {
             )
           : null,
       requestedDeliveryDate: _nullableText(json['requested_delivery_date']),
+      driver: json['driver'] is Map
+          ? CustomerOrderDriver.fromJson(
+              Map<String, dynamic>.from(json['driver'] as Map),
+            )
+          : null,
       collectionReceipts: collectionReceipts,
     );
   }

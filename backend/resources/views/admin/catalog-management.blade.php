@@ -59,16 +59,18 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 .catalog-filter-chip{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-weight:800}
 .catalog-category-results{display:grid;gap:10px;min-width:0}
 .catalog-table-card{padding:0;overflow:visible}
-.catalog-products-table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;min-width:1380px}
+.catalog-products-table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;min-width:1480px}
 .catalog-products-table th{padding:11px 12px;background:#f8fafc;color:var(--foodex-muted);font-size:.78rem;font-weight:800;border-bottom:1px solid var(--foodex-border);white-space:nowrap}
+.catalog-products-table th:first-child,.catalog-products-table td:first-child{width:380px}
 .catalog-products-table td{padding:9px 12px;border-bottom:1px solid var(--foodex-border);vertical-align:middle;font-size:.88rem}
 .catalog-products-table tbody tr:last-child td{border-bottom:0}
 .catalog-products-table tbody tr:hover{background:#fbfdfc}
 .catalog-product-cell{display:flex;align-items:center;gap:10px;min-width:0}
 .catalog-product-thumb{width:44px;height:44px;min-width:44px;border-radius:9px;object-fit:cover;border:1px solid var(--foodex-border);background:#fff}
 .catalog-product-thumb-placeholder{width:44px;height:44px;min-width:44px;border-radius:9px;border:1px dashed var(--foodex-border);display:grid;place-items:center;color:var(--foodex-muted);font-size:.72rem;background:#fff}
-.catalog-product-copy{min-width:0}
-.catalog-product-name{font-weight:800;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35;overflow-wrap:anywhere}
+.catalog-product-copy{min-width:0;flex:1}
+.catalog-product-name{font-weight:800;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35;overflow-wrap:normal;word-break:normal}
+.catalog-product-name-input{display:block;width:100%;min-width:260px;min-height:40px;height:auto;resize:none;overflow:hidden;white-space:pre-wrap;overflow-wrap:normal;word-break:normal;line-height:1.35}
 .catalog-product-sub{color:var(--foodex-muted);font-size:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 .catalog-stock{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .catalog-stock-dot{width:7px;height:7px;border-radius:50%;background:var(--foodex-green)}
@@ -160,7 +162,6 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 <th><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'stock','product_dir'=>($productFilters['sort']==='stock' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'المخزون':'Stock' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='stock' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
 <th>{{ app()->getLocale()==='ar'?'حد المخزون المنخفض':'Low stock' }}</th>
 <th>{{ app()->getLocale()==='ar'?'عرض في التطبيق':'Show in app' }}</th>
-<th class="catalog-col-sku"><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'sku','product_dir'=>($productFilters['sort']==='sku' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'رمز المنتج':'SKU' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='sku' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
 <th class="catalog-col-brand"><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'brand','product_dir'=>($productFilters['sort']==='brand' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'العلامة التجارية':'Brand' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='brand' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
 <th>{{ app()->getLocale()==='ar'?'الوحدة':'Unit' }}</th>
 <th><a class="catalog-sort-link" href="{{ route('admin.catalog.index', array_merge(request()->except('product_page'), ['tab'=>'products','product_sort'=>'status','product_dir'=>($productFilters['sort']==='status' && $productFilters['dir']==='asc')?'desc':'asc'])) }}">{{ app()->getLocale()==='ar'?'الحالة':'Status' }} <span class="catalog-sort-arrow">{{ $productFilters['sort']==='status' ? ($productFilters['dir']==='asc'?'▲':'▼') : '↕' }}</span></a></th>
@@ -197,7 +198,7 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 <form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">@csrf @method('PATCH')
 <input type="hidden" name="field" value="name">
 @if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif
-<input class="catalog-inline-input" name="value" value="{{ $p->name }}" required maxlength="255" aria-label="{{ app()->getLocale()==='ar'?'اسم المنتج':'Product name' }}">
+<textarea class="catalog-inline-input catalog-product-name-input" name="value" rows="1" required maxlength="255" data-catalog-product-name-editor aria-label="{{ app()->getLocale()==='ar'?'اسم المنتج':'Product name' }}">{{ $p->name }}</textarea>
 <button class="catalog-inline-save" type="submit" aria-label="{{ app()->getLocale()==='ar'?'حفظ الاسم':'Save name' }}">✓</button>
 </form>
 <form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form" style="margin-top:4px">@csrf @method('PATCH')
@@ -253,7 +254,6 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 </td>
 <td data-label="{{ app()->getLocale()==='ar'?'حد المخزون المنخفض':'Low stock' }}"><form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">@csrf @method('PATCH')<input type="hidden" name="field" value="low_stock_threshold">@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif<input class="catalog-inline-input" type="number" min="0" step=".001" name="value" value="{{ (float)$p->low_stock_threshold }}"><button class="catalog-inline-save" type="submit">✓</button></form></td>
 <td data-label="{{ app()->getLocale()==='ar'?'عرض في التطبيق':'Show in app' }}"><form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">@csrf @method('PATCH')<input type="hidden" name="field" value="app_visible"><input type="hidden" name="value" value="{{ $appVisible?0:1 }}">@if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif<button type="submit" class="catalog-inline-toggle {{ $appVisible?'on':'off' }}">{{ $appVisible?(app()->getLocale()==='ar'?'ظاهر':'Visible'):(app()->getLocale()==='ar'?'مخفي':'Hidden') }}</button></form></td>
-<td class="catalog-col-sku" data-label="{{ app()->getLocale()==='ar'?'رمز المنتج':'SKU' }}">{{ $p->sku }}</td>
 <td class="catalog-col-brand" data-label="{{ app()->getLocale()==='ar'?'العلامة التجارية':'Brand' }}">
 <form method="post" action="{{ route('admin.catalog.products.inline',$p->id) }}" class="catalog-inline-form">
 @csrf @method('PATCH')
@@ -562,6 +562,15 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
         const store = form.querySelector('[data-catalog-store-context]');
         syncCatalogScope(form);
         store?.addEventListener('change', () => syncCatalogScope(form));
+    });
+
+    const resizeProductNameEditor = (editor) => {
+        editor.style.height = 'auto';
+        editor.style.height = editor.scrollHeight + 'px';
+    };
+    document.querySelectorAll('[data-catalog-product-name-editor]').forEach((editor) => {
+        resizeProductNameEditor(editor);
+        editor.addEventListener('input', () => resizeProductNameEditor(editor));
     });
 
     document.querySelectorAll('[data-grid-image-input]').forEach((input) => {

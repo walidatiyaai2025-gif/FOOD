@@ -32,7 +32,8 @@ void main() {
     expect(intent?.orderId, 91);
     expect(intent?.context, isNull);
     expect(
-      CustomerOrderNotificationIntent.fromData({'store_id': 7, 'channel': 'b2c'}),
+      CustomerOrderNotificationIntent.fromData(
+          {'store_id': 7, 'channel': 'b2c'}),
       isNull,
     );
   });
@@ -48,6 +49,7 @@ void main() {
       'currency': 'KWD',
       'grand_total': 12.5,
       'delivery_address': {'area': 'Bayan', 'street': '1'},
+      'driver': {'id': 12, 'name': 'Nasser', 'phone': '+96550000012'},
       'status_history': [
         {
           'id': 1,
@@ -60,6 +62,9 @@ void main() {
     });
 
     expect(details.deliveryAddress?['area'], 'Bayan');
+    expect(details.driver?.id, 12);
+    expect(details.driver?.name, 'Nasser');
+    expect(details.driver?.phone, '+96550000012');
     expect(details.history.single.fromStatus, 'pending');
     expect(details.history.single.toStatus, 'confirmed');
   });

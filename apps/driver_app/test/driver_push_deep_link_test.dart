@@ -169,8 +169,66 @@ void main() {
   });
 
   testWidgets(
-      'revoked order-only alert cannot grant access',
+      'different lifecycle events for the same assignment each show a popup',
       (tester) async {
+    final push = _PushHarness();
+    addTearDown(push.dispose);
+
+    await tester.pumpWidget(
+      FoodexDriverApp(
+        locale: const Locale('en'),
+        initialSession: const DriverSession(
+          token: 'driver-token',
+          name: 'Driver One',
+          email: 'driver@example.test',
+          locale: 'en',
+          channel: DriverChannel.b2c,
+        ),
+        assignmentRepositoryFactory: (_) => const _Assignments(),
+        pushService: push,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    push.emitAlert(
+      const DriverPushAlert(
+        title: 'Order status updated',
+        body: 'Status changed to accepted',
+        open: DriverPushOpen(assignmentId: 42, orderId: 99),
+        eventKeyOverride: 'delivery-status:42:assigned:accepted:1',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('driver-lifecycle-update-popup')),
+      findsOneWidget,
+    );
+    expect(find.text('Order status updated'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const Key('driver-lifecycle-update-dismiss')),
+    );
+    await tester.pumpAndSettle();
+
+    push.emitAlert(
+      const DriverPushAlert(
+        title: 'Payment updated',
+        body: 'Payment status changed',
+        open: DriverPushOpen(assignmentId: 42, orderId: 99),
+        eventKeyOverride: 'driver-order-update:99:payment_updated:2',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('driver-lifecycle-update-popup')),
+      findsOneWidget,
+    );
+    expect(find.text('Payment updated'), findsOneWidget);
+  });
+
+  testWidgets('revoked order-only alert cannot grant access', (tester) async {
     final push = _PushHarness();
     addTearDown(push.dispose);
 
@@ -211,5 +269,4 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
-
 }

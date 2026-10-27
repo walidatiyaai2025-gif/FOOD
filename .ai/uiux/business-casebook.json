@@ -56,9 +56,9 @@
       ],
       "source_markers": {
         "backend/resources/views/admin/order-operations.blade.php": [
-          "data-order-row-actions",
-          "data-order-dispatch-driver",
-          "data-order-dispatch-van",
+          "data-order-inline-status",
+          "data-order-inline-dispatch",
+          "data-order-inline-assignee-type",
           "available_statuses"
         ]
       },

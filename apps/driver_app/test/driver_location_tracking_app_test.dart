@@ -14,7 +14,8 @@ class _FakeGateService implements DriverLocationGateService {
   DriverLocationGateStatus status;
 
   @override
-  Future<DriverLocationGateStatus> check({bool requestPermission = false}) async =>
+  Future<DriverLocationGateStatus> check(
+          {bool requestPermission = false}) async =>
       status;
 
   @override
@@ -114,7 +115,7 @@ void main() {
 
     expect(tracking.gateStates.last, isTrue);
 
-    await tester.tap(find.byKey(const Key('driver-global-logout')));
+    await tester.tap(find.byKey(const Key('driver-logout')));
     await tester.pump();
 
     expect(tracking.stops, greaterThanOrEqualTo(1));
@@ -212,9 +213,8 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const Key('driver-location-gate')), findsNothing);
-    expect(find.byKey(const Key('driver-app-version-footer')), findsOneWidget);
+    expect(find.byKey(const Key('driver-app-version-footer')), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
-
 }

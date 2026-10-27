@@ -3,14 +3,15 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
 use App\Models\DriverAssignment;
 use App\Models\Invoice;
 use App\Models\Order;
+use App\Models\OrderDispatchState;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
+use App\Models\OrderVanAssignment;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\AuditLogger;
@@ -23,6 +24,7 @@ use App\Services\InvoiceService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderInventoryReservationService;
+use App\Services\OrderLifecycleNotificationService;
 use App\Services\OrderLiveTrackingService;
 use App\Services\PlatformCustomerService;
 use App\Support\DisplayNumber;
@@ -37,11 +39,11 @@ use Illuminate\Validation\ValidationException;
 class OrderController extends Controller
 {
     private const TRANSITIONS = [
-        'pending' => ['confirmed', 'cancelled'],
-        'confirmed' => ['preparing', 'cancelled'],
-        'preparing' => ['ready', 'cancelled'],
-        'ready' => ['out_for_delivery', 'cancelled'],
-        'out_for_delivery' => ['delivered', 'failed'],
+        'pending' => ['cancelled'],
+        'confirmed' => ['cancelled'],
+        'preparing' => ['cancelled'],
+        'ready' => ['cancelled'],
+        'out_for_delivery' => ['delivered', 'failed', 'cancelled'],
         'failed' => ['out_for_delivery', 'cancelled'],
         'delivered' => [],
         'cancelled' => [],
@@ -206,6 +208,13 @@ class OrderController extends Controller
         $targetStatus = (string) $validated['status'];
         $note = isset($validated['note']) ? trim((string) $validated['note']) : null;
 
+        abort_if(
+            in_array(strtolower($previousStatus), ['delivered', 'completed'], true)
+                && $targetStatus === 'cancelled',
+            409,
+            'Delivered orders cannot be cancelled.',
+        );
+
         if (
             strtolower((string) $model->channel) === 'b2b'
             && $previousStatus === 'pending'
@@ -215,15 +224,6 @@ class OrderController extends Controller
             throw ValidationException::withMessages([
                 'note' => ['A rejection reason is required for a pending B2B order.'],
             ]);
-        }
-
-        if (
-            strtolower((string) $model->channel) === 'b2b'
-            && $previousStatus === 'pending'
-            && $targetStatus === 'confirmed'
-            && ($note === null || $note === '')
-        ) {
-            $note = 'customer_service_approved';
         }
 
         /** @var Order $updated */
@@ -248,14 +248,6 @@ class OrderController extends Controller
                 409,
                 "Order cannot transition from {$currentStatus} to {$targetStatus}.",
             );
-
-            if (
-                strtolower((string) $locked->channel) === 'b2b'
-                && $currentStatus === 'pending'
-                && $targetStatus === 'confirmed'
-            ) {
-                $this->assertB2bPendingApprovalFinance($locked);
-            }
 
             if ($targetStatus === 'cancelled') {
                 app(OrderInventoryReservationService::class)->release($locked, $user);
@@ -296,6 +288,39 @@ class OrderController extends Controller
                         $request,
                     );
                 }
+
+                OrderVanAssignment::query()
+                    ->where('order_id', $locked->getKey())
+                    ->where('status', 'active')
+                    ->lockForUpdate()
+                    ->get()
+                    ->each(function (OrderVanAssignment $vanAssignment) use ($locked): void {
+                        $vanAssignment->forceFill([
+                            'status' => 'cancelled',
+                            'ended_at' => now(),
+                        ])->save();
+
+                        app(OrderLifecycleNotificationService::class)->vanAssignmentRevoked(
+                            $locked,
+                            $vanAssignment->fresh(),
+                            'order_cancelled',
+                        );
+                    });
+
+                $dispatchState = OrderDispatchState::query()
+                    ->where('order_id', $locked->getKey())
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($dispatchState instanceof OrderDispatchState) {
+                    $dispatchState->forceFill([
+                        'status' => 'cancelled',
+                        'routing_reason' => 'order_cancelled',
+                        'current_assignee_type' => null,
+                        'current_assignee_id' => null,
+                        'decided_at' => now(),
+                    ])->save();
+                }
             } elseif ($targetStatus === 'delivered') {
                 app(OrderInventoryReservationService::class)->consume($locked, $user);
                 DB::table('commercial_quota_reservations')
@@ -308,12 +333,7 @@ class OrderController extends Controller
             $locked->status = $targetStatus;
             $locked->save();
 
-            // A dashboard-created pending order remains editable until it is accepted.
-            // Confirmation is the commercial finalization point; customer checkout invoices
-            // are already issued atomically by CheckoutController and this call is idempotent.
-            if ($targetStatus === 'confirmed') {
-                app(InvoiceService::class)->issueForOrder($locked, $user);
-            } elseif ($targetStatus === 'cancelled') {
+            if ($targetStatus === 'cancelled') {
                 app(InvoiceService::class)->voidForOrder(
                     $locked,
                     $user,
@@ -364,19 +384,7 @@ class OrderController extends Controller
             }
         }
 
-        $transitions = self::allowedTransitions((string) $order->status);
-
-        if (
-            strtolower((string) $order->channel) === 'b2b'
-            && (string) $order->status === 'ready'
-        ) {
-            return array_values(array_filter(
-                $transitions,
-                static fn (string $status): bool => $status === 'cancelled',
-            ));
-        }
-
-        return $transitions;
+        return self::allowedTransitions((string) $order->status);
     }
 
     private function reverseCheckoutSettlementEntries(Order $order, User $actor): void
@@ -422,51 +430,6 @@ class OrderController extends Controller
                 ], JSON_THROW_ON_ERROR),
                 'occurred_at' => now(),
                 'created_at' => now(),
-            ]);
-        }
-    }
-
-    private function assertB2bPendingApprovalFinance(Order $order): void
-    {
-        if ((string) $order->payment_method !== 'account_credit') {
-            return;
-        }
-
-        $customer = B2bCustomer::query()->findOrFail((int) $order->b2b_customer_id);
-        $account = B2bAccount::query()
-            ->where('b2b_customer_id', $customer->getKey())
-            ->where('status', 'active')
-            ->lockForUpdate()
-            ->first();
-
-        if (! $account instanceof B2bAccount) {
-            throw ValidationException::withMessages([
-                'status' => ['The B2B account is no longer active and cannot be approved for account credit.'],
-            ]);
-        }
-
-        $finance = app(B2bAccountLedgerService::class)->summary(
-            $customer,
-            (int) $order->store_id,
-        );
-        $alreadyInLedger = Invoice::query()
-            ->where('order_id', $order->getKey())
-            ->whereIn('status', ['issued', 'reissued'])
-            ->exists();
-
-        if ($alreadyInLedger) {
-            if ((float) $finance['outstanding_receivable'] > (float) $finance['credit_limit'] + 0.0001) {
-                throw ValidationException::withMessages([
-                    'status' => ['Account credit exposure exceeds the current authoritative credit limit.'],
-                ]);
-            }
-
-            return;
-        }
-
-        if ((float) $order->grand_total > (float) $finance['purchasing_power'] + 0.0001) {
-            throw ValidationException::withMessages([
-                'status' => ['Account credit is insufficient for the authoritative order total at approval time.'],
             ]);
         }
     }
@@ -719,6 +682,7 @@ class OrderController extends Controller
             : [];
 
         $tracking = $includeTimeline ? app(OrderLiveTrackingService::class)->forOrder($order) : null;
+        $driver = $this->customerVisibleDriver($order);
 
         $deliveryAddress = app(OrderDeliveryAddressSnapshotService::class)->payload($order);
 
@@ -788,6 +752,7 @@ class OrderController extends Controller
             ] : null,
             'collection_receipts' => $collectionReceipts,
             'tracking' => $tracking,
+            'driver' => $driver,
             'allowed_actions' => [
                 'view_invoice' => $invoice instanceof Invoice,
                 'view_map' => (bool) ($deliveryAddress['has_coordinates'] ?? false),
@@ -797,6 +762,53 @@ class OrderController extends Controller
             ],
             'is_terminal' => in_array((string) $order->status, ['delivered', 'failed', 'cancelled'], true),
             'created_at' => $order->created_at?->toAtomString(),
+        ];
+    }
+
+    /**
+     * @return array{id:int,name:string,phone:?string}|null
+     */
+    private function customerVisibleDriver(Order $order): ?array
+    {
+        $query = DB::table('driver_assignments')
+            ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
+            ->join('users', 'users.id', '=', 'drivers.user_id')
+            ->where('driver_assignments.order_id', $order->getKey());
+
+        if (strtolower((string) $order->status) === 'delivered') {
+            $query->whereNotIn('driver_assignments.status', [
+                'unassigned',
+                'reassigned',
+                'cancelled',
+                'failed',
+            ]);
+        } else {
+            $query->whereIn('driver_assignments.status', [
+                'assigned',
+                'accepted',
+                'picked_up',
+                'out_for_delivery',
+            ]);
+        }
+
+        $driver = $query
+            ->orderByDesc('driver_assignments.id')
+            ->first([
+                'drivers.id',
+                'users.name',
+                'users.phone_e164',
+            ]);
+
+        if ($driver === null) {
+            return null;
+        }
+
+        $phone = trim((string) ($driver->phone_e164 ?? ''));
+
+        return [
+            'id' => (int) $driver->id,
+            'name' => (string) $driver->name,
+            'phone' => $phone === '' ? null : $phone,
         ];
     }
 }

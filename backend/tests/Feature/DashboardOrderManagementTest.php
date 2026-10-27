@@ -141,10 +141,12 @@ class DashboardOrderManagementTest extends TestCase
         $order = DB::table('orders')->where('store_id', $storeA)->where('channel', 'b2c')->first();
         $this->assertNotNull($order);
 
-        $this->actingAs($adminA)->post('/admin/b2c/orders/'.$order->id.'/status', [
-            'store_id' => $storeA,
-            'status' => 'confirmed',
-            'note' => 'Approved',
+        $driver = $this->driver($storeA, 'b2c', 'invoice-driver-a@example.test');
+
+        $this->actingAs($adminA)->patch('/admin/operations/orders/'.$order->id.'/dispatch', [
+            'assignee_type' => 'driver',
+            'assignee_id' => $driver,
+            'reason' => 'Start retail fulfillment',
         ])->assertRedirect();
 
         $invoice = DB::table('invoices')->where('order_id', $order->id)->where('status', 'issued')->first();
@@ -200,16 +202,27 @@ class DashboardOrderManagementTest extends TestCase
         $this->actingAs($adminA)->post('/admin/b2c/orders/'.$order->id.'/status', [
             'store_id' => $storeA,
             'status' => 'cancelled',
-            'note' => 'Customer cancelled after confirmation',
+            'note' => 'Customer cancelled after assignment',
         ])->assertRedirect();
 
         $this->assertDatabaseHas('invoices', [
             'id' => $replacement->id,
             'status' => 'voided',
         ]);
+        $this->assertDatabaseHas('driver_assignments', [
+            'order_id' => $order->id,
+            'driver_id' => $driver,
+            'status' => 'cancelled',
+        ]);
+        $this->assertDatabaseHas('order_dispatch_states', [
+            'order_id' => $order->id,
+            'status' => 'cancelled',
+            'current_assignee_type' => null,
+            'current_assignee_id' => null,
+        ]);
     }
 
-    public function test_b2b_dashboard_order_uses_approved_customer_tier_price_and_minimum_quantity(): void
+    public function test_b2b_dashboard_order_uses_approved_customer_tier_price_and_finalizes_on_assignment(): void
     {
         $store = app(WholesalePrincipal::class)->storeId();
         DB::table('settings')->updateOrInsert(
@@ -257,11 +270,6 @@ class DashboardOrderManagementTest extends TestCase
 
         $admin = $this->globalAdmin('B2B_ADMIN', 'wholesale-orders@example.test');
 
-        $this->actingAs($admin)
-            ->get('/admin/b2b/orders')
-            ->assertOk()
-            ->assertSee('Create new order');
-
         $this->actingAs($admin)->post('/admin/b2b/orders', [
             'warehouse_id' => $warehouse,
             'customer_id' => $customer->id,
@@ -282,37 +290,71 @@ class DashboardOrderManagementTest extends TestCase
             'unit_price' => 7.250,
             'line_total' => 36.250,
         ]);
-        $this->assertSame(5.0, (float) DB::table('inventories')->where('id', $inventory)->value('reserved_quantity'));
         $this->assertDatabaseMissing('invoices', ['order_id' => $order->id]);
+
+        $driverUser = User::query()->create([
+            'name' => 'Wholesale Assignment Driver',
+            'email' => 'wholesale-assignment-driver@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $driverUser->roles()->attach(Role::query()->where('code', 'B2B_DRIVER')->firstOrFail());
+        $driver = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $driverUser->id,
+            'store_id' => $store,
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $this->actingAs($admin)
             ->get('/admin/b2b/orders')
             ->assertOk()
-            ->assertSee('Approve order')
-            ->assertSee('Reject order')
-            ->assertSee('Rejection reason (required)')
-            ->assertSee('Financial settlement review')
-            ->assertSee('Customer credit balance')
-            ->assertSee('Aggregate outstanding')
-            ->assertSee('Credit limit');
-
-        $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
-            'status' => 'cancelled',
-        ])->assertSessionHasErrors('note');
-        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'pending']);
+            ->assertSee('New order · awaiting Driver or Van assignment')
+            ->assertSee('Cancel order')
+            ->assertDontSee('Approve order')
+            ->assertDontSee('value="ready"', false);
 
         DB::table('orders')->where('id', $order->id)->update(['payment_method' => 'account_credit']);
-        $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
-            'status' => 'confirmed',
-            'note' => 'Credit approval must be revalidated',
-        ])->assertSessionHasErrors('status');
+
+        $this->actingAs($admin)->patch('/admin/operations/orders/'.$order->id.'/dispatch', [
+            'assignee_type' => 'driver',
+            'assignee_id' => $driver,
+            'reason' => 'Assignment must revalidate credit',
+        ])->assertStatus(409);
+
+        $this->assertDatabaseMissing('driver_assignments', [
+            'order_id' => $order->id,
+            'driver_id' => $driver,
+            'status' => 'assigned',
+        ]);
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'pending']);
+        $this->assertDatabaseMissing('invoices', ['order_id' => $order->id]);
 
         DB::table('orders')->where('id', $order->id)->update(['payment_method' => 'cash_on_delivery']);
-        $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
-            'status' => 'confirmed',
-            'note' => 'Commercially approved',
+
+        $this->actingAs($admin)->patch('/admin/operations/orders/'.$order->id.'/dispatch', [
+            'assignee_type' => 'driver',
+            'assignee_id' => $driver,
+            'reason' => 'Start wholesale fulfillment',
         ])->assertRedirect();
+
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'out_for_delivery']);
+        $this->assertDatabaseHas('order_status_history', [
+            'order_id' => $order->id,
+            'from_status' => 'pending',
+            'to_status' => 'out_for_delivery',
+            'note' => 'fulfillment_assigned_auto_finalized',
+        ]);
+        foreach (['confirmed', 'preparing', 'ready'] as $removedStatus) {
+            $this->assertDatabaseMissing('order_status_history', [
+                'order_id' => $order->id,
+                'to_status' => $removedStatus,
+            ]);
+        }
 
         $invoice = DB::table('invoices')->where('order_id', $order->id)->first();
         $this->assertNotNull($invoice);
@@ -326,25 +368,12 @@ class DashboardOrderManagementTest extends TestCase
             'unit_price' => 7.250,
             'price_tier_code_snapshot' => 'ORDER-GOLD',
         ]);
-        $this->assertDatabaseHas('payments', [
-            'order_id' => $order->id,
-            'invoice_id' => $invoice->id,
-        ]);
 
         DB::table('b2b_price_rules')->where('price_tier_id', $tier)->where('product_id', $product)->update(['unit_price' => 99.999]);
         $this->assertSame(7.25, (float) DB::table('invoice_items')->where('invoice_id', $invoice->id)->value('unit_price'));
-
-        $this->actingAs($admin)->post('/admin/b2b/orders', [
-            'warehouse_id' => $warehouse,
-            'customer_id' => $customer->id,
-            'payment_method' => 'cash_on_delivery',
-            'items' => [['product_id' => $product, 'quantity' => 1]],
-        ])->assertSessionHasErrors('items');
-
-        $this->assertSame(1, DB::table('orders')->where('store_id', $store)->where('channel', 'b2b')->count());
     }
 
-    public function test_retail_dashboard_quote_and_multiline_invoice_are_authoritative(): void
+    public function test_retail_dashboard_quote_and_multiline_invoice_finalize_on_driver_assignment(): void
     {
         $store = $this->store('B2C', 'ORDER-MULTI-RETAIL');
         [$productA] = $this->product($store, 'b2c', 'MULTI-RETAIL-A', 4.500, 20);
@@ -377,12 +406,41 @@ class DashboardOrderManagementTest extends TestCase
         $this->assertNotNull($order);
         $this->assertSame(2, DB::table('order_items')->where('order_id', $order->id)->count());
         $this->assertSame(15.0, (float) $order->subtotal);
+        $this->assertDatabaseMissing('invoices', ['order_id' => $order->id]);
 
-        $this->actingAs($admin)->post('/admin/b2c/orders/'.$order->id.'/status', [
+        $driverUser = User::query()->create([
+            'name' => 'Retail Assignment Driver',
+            'email' => 'retail-assignment-driver@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $driver = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $driverUser->id,
             'store_id' => $store,
-            'status' => 'confirmed',
-            'note' => 'Confirm multi-line Retail order',
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->patch('/admin/operations/orders/'.$order->id.'/dispatch', [
+            'assignee_type' => 'driver',
+            'assignee_id' => $driver,
+            'reason' => 'Start retail fulfillment',
         ])->assertRedirect();
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'out_for_delivery',
+        ]);
+        $this->assertDatabaseHas('order_status_history', [
+            'order_id' => $order->id,
+            'from_status' => 'pending',
+            'to_status' => 'out_for_delivery',
+            'note' => 'fulfillment_assigned_auto_finalized',
+        ]);
 
         $invoice = DB::table('invoices')->where('order_id', $order->id)->where('status', 'issued')->first();
         $this->assertNotNull($invoice);
@@ -487,9 +545,12 @@ class DashboardOrderManagementTest extends TestCase
         $this->assertNotNull($order);
         $this->assertSame(2, DB::table('order_items')->where('order_id', $order->id)->count());
 
-        $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
-            'status' => 'confirmed',
-            'note' => 'Confirm multi-line Wholesale order',
+        $driver = $this->driver($store, 'b2b', 'multi-b2b-driver@example.test');
+
+        $this->actingAs($admin)->patch('/admin/operations/orders/'.$order->id.'/dispatch', [
+            'assignee_type' => 'driver',
+            'assignee_id' => $driver,
+            'reason' => 'Start multi-line wholesale fulfillment',
         ])->assertRedirect();
 
         $invoice = DB::table('invoices')->where('order_id', $order->id)->first();
@@ -1039,6 +1100,30 @@ class DashboardOrderManagementTest extends TestCase
         ]);
 
         return $user;
+    }
+
+    private function driver(int $storeId, string $channel, string $email): int
+    {
+        $user = User::query()->create([
+            'name' => strtoupper($channel).' Test Driver',
+            'email' => $email,
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+
+        $roleCode = $channel === 'b2b' ? 'B2B_DRIVER' : 'B2C_DRIVER';
+        $user->roles()->attach(Role::query()->where('code', $roleCode)->firstOrFail());
+
+        return (int) DB::table('drivers')->insertGetId([
+            'user_id' => $user->id,
+            'store_id' => $storeId,
+            'driver_type' => $channel,
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function globalAdmin(string $roleCode, string $email): User

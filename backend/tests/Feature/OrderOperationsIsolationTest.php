@@ -425,7 +425,7 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_dashboard_dispatch_assigns_driver_and_clear_returns_order_to_pending_queue(): void
+    public function test_dashboard_dispatch_assigns_new_order_and_clear_returns_order_to_dispatch_queue(): void
     {
         $store = $this->store('OPS-DISPATCH');
         $admin = $this->storeAdmin($store, 'ops-dispatch-admin@example.test');
@@ -458,28 +458,7 @@ class OrderOperationsIsolationTest extends TestCase
             ->patch("/admin/operations/orders/{$order}/dispatch", [
                 'assignee_type' => 'driver',
                 'assignee_id' => $driver,
-                'reason' => 'Attempt before confirmation',
-            ])
-            ->assertStatus(409);
-
-        $this->assertDatabaseMissing('driver_assignments', [
-            'order_id' => $order,
-            'driver_id' => $driver,
-            'status' => 'assigned',
-        ]);
-
-        $this->actingAs($admin)
-            ->post("/admin/operations/orders/{$order}/status", [
-                'status' => 'confirmed',
-                'note' => 'Confirmed before dispatch',
-            ])
-            ->assertRedirect();
-
-        $this->actingAs($admin)
-            ->patch("/admin/operations/orders/{$order}/dispatch", [
-                'assignee_type' => 'driver',
-                'assignee_id' => $driver,
-                'reason' => 'Customer Service assignment',
+                'reason' => 'Assign new order',
             ])
             ->assertRedirect();
 
@@ -496,14 +475,41 @@ class OrderOperationsIsolationTest extends TestCase
             'current_assignee_type' => 'driver',
             'current_assignee_id' => $driver,
         ]);
+        $this->assertDatabaseHas('orders', [
+            'id' => $order,
+            'status' => 'out_for_delivery',
+        ]);
+        $this->assertDatabaseHas('order_status_history', [
+            'order_id' => $order,
+            'from_status' => 'pending',
+            'to_status' => 'out_for_delivery',
+            'note' => 'fulfillment_assigned_auto_finalized',
+        ]);
+        $this->assertDatabaseMissing('order_status_history', [
+            'order_id' => $order,
+            'to_status' => 'confirmed',
+        ]);
+        $this->assertDatabaseMissing('order_status_history', [
+            'order_id' => $order,
+            'to_status' => 'preparing',
+        ]);
+        $this->assertDatabaseMissing('order_status_history', [
+            'order_id' => $order,
+            'to_status' => 'ready',
+        ]);
+        $this->assertDatabaseHas('invoices', [
+            'order_id' => $order,
+            'status' => 'issued',
+        ]);
 
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2c&dispatch_status=assigned')
             ->assertOk()
             ->assertSee('#'.$order)
             ->assertSee('Dispatch Driver')
-            ->assertSee('data-order-dispatch-driver', false)
-            ->assertDontSee('data-order-dispatch-van', false);
+            ->assertSee('data-order-inline-dispatch', false)
+            ->assertSee('data-order-inline-unassign', false)
+            ->assertDontSee('value="van:', false);
 
         $this->actingAs($admin)
             ->delete("/admin/operations/orders/{$order}/dispatch", [
@@ -528,16 +534,56 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2c&dispatch_status=awaiting_dispatch')
             ->assertOk()
+            ->assertViewHas('rows', function (array $rows) use ($order): bool {
+                $row = collect($rows)->firstWhere('id', $order);
+
+                return is_array($row)
+                    && ($row['status_label'] ?? null) === 'New order · awaiting driver assignment'
+                    && ($row['status_visual_state'] ?? null) === 'pending';
+            })
             ->assertSee('#'.$order)
-            ->assertSee('This order requires a Customer Service dispatch decision.');
+            ->assertSee('Awaiting dispatch');
     }
 
-    public function test_pending_wholesale_dispatch_never_allows_driver_even_with_customer_service_override(): void
+    public function test_pending_wholesale_order_assigns_driver_without_confirm_or_ready_steps(): void
     {
         $store = app(WholesalePrincipal::class)->storeId();
         $customer = app(B2bCustomerService::class)->create([
             'name' => 'Pending Wholesale Dispatch Buyer',
         ]);
+
+        $catalog = (int) DB::table('catalogs')->insertGetId([
+            'store_id' => $store,
+            'channel' => 'b2b',
+            'code' => 'cat-ops-b2b-pending',
+            'name' => 'Pending Wholesale Catalog',
+            'is_active' => true,
+            'is_migration_quarantine' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $unit = (int) DB::table('units')->insertGetId([
+            'scope' => 'global',
+            'scope_key' => 'global',
+            'code' => 'EA-OPS-B2B-PENDING',
+            'name' => 'Each',
+            'name_ar' => 'قطعة',
+            'name_en' => 'Each',
+            'decimal_places' => 0,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $product = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $catalog,
+            'unit_id' => $unit,
+            'sku' => 'OPS-B2B-PENDING-SKU',
+            'name' => 'Pending Wholesale Item',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $order = (int) DB::table('orders')->insertGetId([
             'store_id' => $store,
             'customer_id' => (int) $customer->legacy_customer_id,
@@ -550,6 +596,18 @@ class OrderOperationsIsolationTest extends TestCase
             'discount_total' => 0,
             'delivery_total' => 0,
             'grand_total' => 20,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('order_items')->insert([
+            'order_id' => $order,
+            'product_id' => $product,
+            'sku_snapshot' => 'OPS-B2B-PENDING-SKU',
+            'name_snapshot' => 'Pending Wholesale Item',
+            'quantity' => 1,
+            'unit_price' => 20,
+            'line_total' => 20,
+            'currency' => 'KWD',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -600,25 +658,6 @@ class OrderOperationsIsolationTest extends TestCase
         $admin->roles()->attach(Role::query()->where('code', 'B2B_ADMIN')->firstOrFail());
 
         $this->actingAs($admin)
-            ->patch("/admin/operations/orders/{$order}/dispatch", [
-                'assignee_type' => 'driver',
-                'assignee_id' => $driver,
-                'reason' => 'Attempt before confirmation',
-            ])
-            ->assertStatus(409);
-
-        $this->assertDatabaseMissing('driver_assignments', [
-            'order_id' => $order,
-            'driver_id' => $driver,
-            'status' => 'assigned',
-        ]);
-
-        DB::table('orders')->where('id', $order)->update([
-            'status' => 'ready',
-            'updated_at' => now(),
-        ]);
-
-        $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2b')
             ->assertOk()
             ->assertViewHas('rows', function (array $rows) use ($order): bool {
@@ -628,16 +667,18 @@ class OrderOperationsIsolationTest extends TestCase
                     && collect($row['available_statuses'] ?? [])->pluck('code')->values()->all() === ['cancelled'];
             })
             ->assertSee('#'.$order)
-            ->assertSee('Please assign a driver')
-            ->assertSee('data-b2b-ready-dispatch-alert', false)
+            ->assertSee('New order · awaiting Driver or Van assignment')
+            ->assertSee('Please assign a Driver or Van')
+            ->assertSee('data-b2b-assignment-required-alert', false)
             ->assertSee('value="driver:'.$driver.'"', false)
-            ->assertSee('data-order-dispatch-van', false);
+            ->assertSee('data-order-inline-dispatch', false)
+            ->assertSee('Choose Driver or Van');
 
         $this->actingAs($admin)
             ->patch("/admin/operations/orders/{$order}/dispatch", [
                 'assignee_type' => 'driver',
                 'assignee_id' => $driver,
-                'reason' => 'Ready wholesale Driver assignment',
+                'reason' => 'New wholesale Driver assignment',
             ])
             ->assertRedirect();
 
@@ -659,9 +700,19 @@ class OrderOperationsIsolationTest extends TestCase
         ]);
         $this->assertDatabaseHas('order_status_history', [
             'order_id' => $order,
-            'from_status' => 'ready',
+            'from_status' => 'pending',
             'to_status' => 'out_for_delivery',
-            'note' => 'dispatch_assigned',
+            'note' => 'fulfillment_assigned_auto_finalized',
+        ]);
+        foreach (['confirmed', 'preparing', 'ready'] as $removedStatus) {
+            $this->assertDatabaseMissing('order_status_history', [
+                'order_id' => $order,
+                'to_status' => $removedStatus,
+            ]);
+        }
+        $this->assertDatabaseHas('invoices', [
+            'order_id' => $order,
+            'status' => 'issued',
         ]);
 
         $this->actingAs($admin)
@@ -678,9 +729,8 @@ class OrderOperationsIsolationTest extends TestCase
             })
             ->assertSee('data-state="assigned"', false)
             ->assertSee('Cancel order')
-            ->assertSee('Withdraw and transfer order to another driver')
             ->assertSee('value="driver:'.$replacementDriver.'"', false)
-            ->assertDontSee('data-b2b-ready-dispatch-alert', false);
+            ->assertDontSee('data-b2b-assignment-required-alert', false);
 
         $this->actingAs($admin)
             ->patch("/admin/operations/orders/{$order}/dispatch", [
@@ -716,12 +766,6 @@ class OrderOperationsIsolationTest extends TestCase
             'driver_id' => $replacementDriver,
             'assignment_type' => 'b2b',
             'status' => 'assigned',
-        ]);
-        $this->assertDatabaseHas('order_dispatch_states', [
-            'order_id' => $order,
-            'status' => 'assigned',
-            'current_assignee_type' => 'driver',
-            'current_assignee_id' => $replacementDriver,
         ]);
         $this->assertDatabaseHas('orders', [
             'id' => $order,
@@ -899,7 +943,7 @@ class OrderOperationsIsolationTest extends TestCase
         );
     }
 
-    public function test_dashboard_status_transition_notifies_the_order_customer(): void
+    public function test_dashboard_assignment_notifies_customer_of_execution_start(): void
     {
         Queue::fake();
 
@@ -927,10 +971,28 @@ class OrderOperationsIsolationTest extends TestCase
             'OPS-CUSTOMER-PUSH-1001',
         );
 
+        $driverUser = User::query()->create([
+            'name' => 'Push Driver',
+            'email' => 'ops-customer-push-driver@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $driver = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $driverUser->id,
+            'store_id' => $store,
+            'driver_type' => 'b2c',
+            'is_available' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $this->actingAs($admin)
-            ->post("/admin/operations/orders/{$order}/status", [
-                'status' => 'confirmed',
-                'note' => 'Confirmed by dashboard',
+            ->patch("/admin/operations/orders/{$order}/dispatch", [
+                'assignee_type' => 'driver',
+                'assignee_id' => $driver,
+                'reason' => 'Start execution',
             ])
             ->assertRedirect();
 
@@ -945,7 +1007,7 @@ class OrderOperationsIsolationTest extends TestCase
         $this->assertSame('both', $notification->channel);
         $data = json_decode((string) $notification->data, true, 512, JSON_THROW_ON_ERROR);
         $this->assertSame($order, (int) $data['order_id']);
-        $this->assertSame('confirmed', $data['status']);
+        $this->assertSame('out_for_delivery', $data['status']);
         $this->assertSame('pending', $data['from_status']);
 
         Queue::assertPushed(
@@ -1061,7 +1123,7 @@ class OrderOperationsIsolationTest extends TestCase
         $this->assertArrayHasKey('state_version', $driverData);
     }
 
-    public function test_retail_admin_cannot_operate_foreign_order_but_can_transition_own_order(): void
+    public function test_retail_admin_cannot_operate_foreign_order_but_can_cancel_own_new_order(): void
     {
         $mine = $this->store('OPS-ACTION-MINE');
         $foreign = $this->store('OPS-ACTION-FOREIGN');
@@ -1074,22 +1136,23 @@ class OrderOperationsIsolationTest extends TestCase
         $foreignOrder = $this->order($foreign, (int) $foreignCustomer->legacy_customer_id, (int) $foreignCustomer->id, 'OPS-ACTION-2001');
 
         $this->actingAs($admin)
-            ->post("/admin/operations/orders/{$foreignOrder}/status", ['status' => 'confirmed'])
+            ->post("/admin/operations/orders/{$foreignOrder}/status", ['status' => 'cancelled'])
             ->assertNotFound();
 
         $this->assertDatabaseHas('orders', ['id' => $foreignOrder, 'status' => 'pending']);
 
         $this->actingAs($admin)
             ->post("/admin/operations/orders/{$mineOrder}/status", [
-                'status' => 'confirmed',
-                'note' => 'Confirmed by operations',
+                'status' => 'cancelled',
+                'note' => 'Cancelled by operations',
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas('orders', ['id' => $mineOrder, 'status' => 'confirmed']);
+        $this->assertDatabaseHas('orders', ['id' => $mineOrder, 'status' => 'cancelled']);
         $this->assertDatabaseHas('order_status_history', [
             'order_id' => $mineOrder,
-            'to_status' => 'confirmed',
+            'from_status' => 'pending',
+            'to_status' => 'cancelled',
         ]);
     }
 
@@ -1142,7 +1205,7 @@ class OrderOperationsIsolationTest extends TestCase
                 $row = collect($rows)->firstWhere('id', $pendingOrder);
                 $codes = collect($row['available_statuses'] ?? [])->pluck('code')->all();
 
-                return $codes === ['confirmed', 'cancelled'];
+                return $codes === ['cancelled'];
             })
             ->assertSee('data-order-status-tabs', false)
             ->assertSee('data-order-status-tab="pending"', false)
@@ -1252,7 +1315,7 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertViewIs('admin.order-operations');
     }
 
-    public function test_pending_retail_order_exposes_contextual_three_dot_edit_action(): void
+    public function test_pending_retail_order_hides_actions_column_and_exposes_assignment_workflow(): void
     {
         $store = $this->store('OPS-CONTEXT-ACTIONS');
         $admin = $this->storeAdmin($store, 'ops-context-actions@example.test');
@@ -1267,8 +1330,15 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/operations/orders?channel=b2c')
             ->assertOk()
-            ->assertSee('data-order-row-actions', false)
-            ->assertSee('data-order-edit', false)
+            ->assertViewHas('rows', function (array $rows) use ($order): bool {
+                $row = collect($rows)->firstWhere('id', $order);
+
+                return is_array($row)
+                    && collect($row['available_statuses'] ?? [])->pluck('code')->values()->all() === ['cancelled'];
+            })
+            ->assertDontSee('data-order-row-actions', false)
+            ->assertDontSee('data-order-edit', false)
+            ->assertSee('data-order-inline-dispatch', false)
             ->assertSee('#'.$order);
     }
 

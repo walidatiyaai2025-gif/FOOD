@@ -141,7 +141,7 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_pending_order_actions_are_compact_and_edit_is_inside_ellipsis_menu(): void
+    public function test_pending_order_exposes_cancel_and_assignment_without_actions_column(): void
     {
         $store = $this->retailStore('UNIFIED-ACTIONS');
         $admin = $this->retailAdmin($store, 'unified-actions@example.test');
@@ -169,9 +169,13 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertSee('#'.$order)
             ->assertSee('data-order-inline-status', false)
             ->assertSee('data-order-inline-status-select', false)
-            ->assertSee('value="confirmed"', false)
-            ->assertSee('data-order-row-actions', false)
-            ->assertSee('data-order-edit', false);
+            ->assertSee('value="cancelled"', false)
+            ->assertDontSee('value="confirmed"', false)
+            ->assertDontSee('value="preparing"', false)
+            ->assertDontSee('value="ready"', false)
+            ->assertSee('data-order-inline-dispatch', false)
+            ->assertDontSee('data-order-row-actions', false)
+            ->assertDontSee('data-order-edit', false);
     }
 
     public function test_cancelled_order_merges_status_and_execution_and_never_requires_action(): void
@@ -218,7 +222,7 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertDontSee('<span class="order-attention-chip">Action required</span>', false);
     }
 
-    public function test_confirmed_order_can_return_to_pending_before_dispatch(): void
+    public function test_legacy_confirmed_order_is_normalized_to_assignment_queue_and_cannot_reopen(): void
     {
         $store = $this->retailStore('UNIFIED-REOPEN');
         $admin = $this->retailAdmin($store, 'unified-reopen@example.test');
@@ -246,27 +250,21 @@ class UnifiedOrderOperationsTest extends TestCase
             ->assertViewHas('rows', function (array $rows) use ($order): bool {
                 $row = collect($rows)->firstWhere('id', $order);
 
-                return collect($row['available_statuses'] ?? [])
-                    ->pluck('code')
-                    ->contains('pending');
+                return ($row['status_label'] ?? null) === 'New order · awaiting driver assignment'
+                    && collect($row['available_statuses'] ?? [])->pluck('code')->values()->all() === ['cancelled'];
             })
-            ->assertSee('value="pending"', false);
+            ->assertSee('New order · awaiting driver assignment')
+            ->assertSee('data-order-inline-status', false);
 
         $this->actingAs($admin)
             ->post("/admin/operations/orders/{$order}/status", [
                 'status' => 'pending',
             ])
-            ->assertRedirect();
+            ->assertStatus(409);
 
         $this->assertDatabaseHas('orders', [
             'id' => $order,
-            'status' => 'pending',
-        ]);
-        $this->assertDatabaseHas('order_status_history', [
-            'order_id' => $order,
-            'from_status' => 'confirmed',
-            'to_status' => 'pending',
-            'note' => 'dashboard_reverted_to_pending',
+            'status' => 'confirmed',
         ]);
     }
 
@@ -359,7 +357,7 @@ class UnifiedOrderOperationsTest extends TestCase
         ));
     }
 
-    public function test_order_grid_business_status_follows_confirmation_and_driver_execution(): void
+    public function test_order_grid_business_status_skips_confirmation_and_follows_driver_execution(): void
     {
         $store = $this->retailStore('UNIFIED-LIFECYCLE');
         $admin = $this->retailAdmin($store, 'unified-lifecycle@example.test');
@@ -385,9 +383,11 @@ class UnifiedOrderOperationsTest extends TestCase
             ->get('/admin/operations/orders?channel=b2c')
             ->assertOk()
             ->assertViewHas('rows', fn (array $rows): bool => collect($rows)->firstWhere('id', $order)['status_label']
-                    === 'Pending and awaiting confirmation'
+                    === 'New order · awaiting driver assignment'
             );
 
+        // Legacy pre-dispatch rows are rendered as the same assignment queue instead of
+        // re-exposing Confirmed / Preparing / Ready as business workflow stages.
         DB::table('orders')->where('id', $order)->update([
             'status' => 'confirmed',
             'updated_at' => now(),
@@ -397,7 +397,7 @@ class UnifiedOrderOperationsTest extends TestCase
             ->get('/admin/operations/orders?channel=b2c')
             ->assertOk()
             ->assertViewHas('rows', fn (array $rows): bool => collect($rows)->firstWhere('id', $order)['status_label']
-                    === 'Confirmed and awaiting driver assignment'
+                    === 'New order · awaiting driver assignment'
             );
 
         $driverUser = User::query()->create([
@@ -425,6 +425,10 @@ class UnifiedOrderOperationsTest extends TestCase
             'status' => 'assigned',
             'assigned_at' => now(),
             'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('orders')->where('id', $order)->update([
+            'status' => 'out_for_delivery',
             'updated_at' => now(),
         ]);
 
@@ -489,9 +493,11 @@ class UnifiedOrderOperationsTest extends TestCase
 
                 return ($row['status_label'] ?? null) === 'Order delivered to customer'
                     && ($row['status_visual_state'] ?? null) === 'completed'
+                    && ($row['available_statuses'] ?? []) === []
                     && (string) ($row['delivered_at'] ?? '') !== ''
                     && Carbon::parse((string) $row['delivered_at'])->equalTo($deliveredAt);
             })
+            ->assertDontSee('Cancel order')
             ->assertSee('order-delivered-merged', false)
             ->assertSee('data-order-delivered-time', false)
             ->assertSee('data-order-customer-service-dimmed', false)
@@ -663,33 +669,44 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('order-status-chip', $view);
         $this->assertStringContainsString('data-order-inline-status', $view);
         $this->assertStringContainsString('data-order-inline-status-select', $view);
-        $this->assertStringContainsString('data-order-inline-rejection-note', $view);
+        $this->assertStringContainsString('data-order-inline-cancellation-note', $view);
+        $this->assertStringContainsString('سبب الإلغاء (إلزامي عند الإلغاء)', $view);
+        $this->assertStringNotContainsString('سبب الرفض (إلزامي عند الرفض)', $view);
         $this->assertStringContainsString('data-order-inline-dispatch', $view);
         $this->assertStringContainsString('data-order-inline-assignee-type', $view);
         $this->assertStringContainsString('data-order-inline-assignee-id', $view);
-        $this->assertStringContainsString('data-b2b-ready-dispatch-alert', $view);
-        $this->assertStringContainsString('order-ready-dispatch-alert', $view);
+        $this->assertStringContainsString('data-b2b-assignment-required-alert', $view);
+        $this->assertStringContainsString('order-assignment-required-alert', $view);
         $this->assertStringContainsString('b2b_out_for_delivery', $view);
         $this->assertStringContainsString("row['status_visual_state']", $view);
         $this->assertStringContainsString('إلغاء الطلب', $view);
         $this->assertStringContainsString('سحب وتحويل الطلب لسائق آخر', $view);
-        $this->assertStringContainsString('data-order-driver-transfer', $view);
+        $this->assertStringContainsString('data-order-inline-dispatch', $view);
         $this->assertStringContainsString('اختر سائق أو فان', $view);
-        $this->assertStringContainsString('data-order-dispatch-locked', $view);
-        $this->assertStringContainsString('is-dispatch-locked', $view);
-        $this->assertStringContainsString('Available after order confirmation', $view);
+        $this->assertStringNotContainsString('data-order-dispatch-locked', $view);
+        $this->assertStringNotContainsString('is-dispatch-locked', $view);
+        $this->assertStringNotContainsString('Available after order confirmation', $view);
         $this->assertStringContainsString('data-order-inline-customer-service-owner', $view);
         $this->assertStringContainsString('data-order-inline-picker-select', $view);
         $this->assertStringContainsString('data-order-inline-picker-reason', $view);
+        $this->assertStringContainsString('data-order-inline-picker-reason-wrap hidden', $view);
+        $this->assertStringContainsString('data-order-inline-cancellation-reason hidden', $view);
+        $this->assertStringContainsString('data-order-saved-reason', $view);
+        $this->assertStringContainsString('if(reasonWrap){reasonWrap.hidden=!changed;}', $view);
+        $this->assertStringContainsString('if(reasonWrap){reasonWrap.hidden=!cancelling;}', $view);
         $this->assertStringContainsString('data-order-financial-actions', $view);
         $this->assertStringContainsString('data-order-details-icon', $view);
         $this->assertStringContainsString('data-order-invoice-icon', $view);
+        $this->assertStringContainsString('data-order-executor-line', $view);
+        $this->assertStringContainsString('class="order-executor-line" data-order-executor-line', $view);
         $this->assertStringContainsString('data-order-inline-unassign', $view);
+        $this->assertStringContainsString('.order-executor-line{display:flex;align-items:center;gap:6px;', $view);
         $this->assertStringContainsString('data-order-actionable-detail', $view);
         $this->assertStringContainsString('data-order-detail-no-actions', $view);
-        $this->assertStringContainsString('.ops-table th:nth-child(1){width:7.5%}', $view);
-        $this->assertStringContainsString('.ops-table th:nth-child(2){width:12.75%}', $view);
-        $this->assertStringContainsString('.ops-table th:nth-child(3){width:7.5%}', $view);
+        $this->assertStringContainsString('.ops-table th:nth-child(1),.ops-table th:nth-child(2),.ops-table th:nth-child(3),.ops-table th:nth-child(4),.ops-table th:nth-child(5),.ops-table th:nth-child(6){width:16.666%}', $view);
+        $this->assertStringContainsString('border-bottom:1px solid var(--foodex-border);border-inline-end:1px solid var(--foodex-border)', $view);
+        $this->assertStringContainsString('.order-status-chip{', $view);
+        $this->assertStringContainsString('padding:0 9px;border:0!important;border-radius:999px', $view);
         $this->assertStringContainsString("class=\"{{ \$rowPaid ? 'is-paid' : 'is-unpaid' }}\"", $view);
         $this->assertStringContainsString('data-order-popup-dialog', $view);
         $this->assertStringContainsString('data-order-popup-url', $view);
@@ -729,7 +746,8 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('سحب من الفان', $view);
         $this->assertStringContainsString('.order-inline-status{display:grid;', $view);
         $this->assertStringContainsString('.order-inline-picker{display:grid;', $view);
-        $this->assertStringContainsString('colspan="7"', $view);
+        $this->assertStringContainsString('colspan="6"', $view);
+        $this->assertStringNotContainsString('colspan="7"', $view);
         $this->assertStringContainsString('position:sticky;top:0', $view);
         $this->assertStringContainsString('data-action-required="{{ $rowActionRequired ? \'1\' : \'0\' }}"', $view);
         $this->assertStringContainsString("@include('admin._order-operations-header-filters')", $view);
@@ -765,6 +783,14 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('class="order-kpi-icon"', $view);
         $this->assertStringContainsString('data-tone="{{ $metric[\'tone\'] }}"', $view);
         $this->assertStringContainsString('.order-kpi-card::before{content:""', $view);
+        $this->assertStringContainsString('grid-template-columns:repeat(auto-fit,minmax(clamp(118px,9vw,150px),1fr))', $view);
+        $this->assertStringContainsString('grid-auto-rows:minmax(118px,auto)', $view);
+        $this->assertStringContainsString('height:100%;box-sizing:border-box', $view);
+        $this->assertStringContainsString('font-size:clamp(.58rem,.58vw,.72rem)', $view);
+        $this->assertStringContainsString('font-size:clamp(.82rem,1.12vw,1.22rem)', $view);
+        $this->assertStringContainsString('.order-kpi-card{grid-template-columns:repeat(2,minmax(0,1fr))', $view);
+        $this->assertStringContainsString('.sales-ops-exceptions{grid-template-columns:repeat(2,minmax(0,1fr))', $view);
+        $this->assertStringNotContainsString('grid-template-columns:repeat(10,minmax(132px,1fr))', $view);
         $this->assertStringContainsString('@keyframes orderKpiEdge', $view);
         $this->assertStringContainsString("@include('admin._premium-icon',['name'=>\$metric['icon']])", $view);
         $this->assertStringNotContainsString("@include('admin._module-dashboard-kpi', ['metric' => \$metric])", $view);
@@ -794,8 +820,12 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('lifecycle_labels.assigned_driver', $controller);
         $this->assertStringContainsString('lifecycle_labels.driver_processing', $controller);
         $this->assertStringContainsString('lifecycle_labels.completed', $controller);
-        $this->assertStringContainsString("targetStatus === 'pending'", $controller);
-        $this->assertStringContainsString("'dashboard_reverted_to_pending'", $controller);
+        $this->assertStringContainsString("in_array(\$targetStatus, ['confirmed', 'preparing', 'ready'], true)", $controller);
+        $this->assertStringContainsString('activateAssignedOrder(', $controller);
+        $this->assertStringContainsString("'note' => 'fulfillment_assigned_auto_finalized'", $controller);
+        $this->assertStringNotContainsString("'dashboard_reverted_to_pending'", $controller);
+        $this->assertStringNotContainsString("'key' => 'payment_exceptions'", $controller);
+        $this->assertStringNotContainsString("'key' => 'invoice_exceptions'", $controller);
         $this->assertStringContainsString("havingRaw('SUM(inventories.quantity - inventories.reserved_quantity) > 0')", $controller);
         $this->assertStringContainsString("'fixed_channel' => \$channel", $controller);
         $this->assertStringContainsString("'delivered_at' => \$deliveredAt", $controller);

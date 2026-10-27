@@ -230,9 +230,8 @@ return [
         'no_collections' => 'No Van collection is recorded for this order.',
     ],
     'lifecycle_labels' => [
-        'pending_confirmation' => 'Pending and awaiting confirmation',
-        'confirmed_awaiting_driver' => 'Confirmed and awaiting driver assignment',
-        'confirmed_awaiting_dispatch' => 'Confirmed and awaiting Driver or Van assignment',
+        'awaiting_driver_assignment' => 'New order · awaiting driver assignment',
+        'awaiting_dispatch_assignment' => 'New order · awaiting Driver or Van assignment',
         'assigned_driver' => 'Order assigned to driver',
         'assigned_van' => 'Order assigned to Van',
         'driver_processing' => 'Driver is processing the order',

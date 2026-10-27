@@ -5,7 +5,9 @@
 - Preserve B2B automatic Van-first routing while allowing explicitly scoped manual B2B Driver dispatch; keep B2C Driver execution authoritative and enforce assignment ownership, cancellation and delivered/cancelled terminal-row behavior.
 - Expand customer and driver lifecycle notifications for assignment, reassignment, unassignment, status, invoice, payment and order-detail changes, with Driver App runtime support for manually assigned B2B work.
 - Improve New Order product/warehouse scoping, in-stock filtering, authoritative channel selection and operational row context without introducing a duplicate order surface.
-- Add the Driver Home red Pending orders card backed by live assigned work, with direct navigation to the assigned-only delivery filter and 15-second refresh parity.
+- Add the Driver Home red Pending orders card backed by live assigned work, with direct navigation to the assigned-only delivery filter, 5-second live refresh, lifecycle popups, and push-event deduplication.
+- Make Driver Home compact and non-scrollable above bottom navigation, reduce card heights, move notifications to the header, remove legacy footer/diagnostics chrome, and hide the `picked_up` Home card without changing the delivery workflow state.
+- Keep local development fast with Debug-only Driver version/location bypass and Van location-tracking bypass while leaving Release/Production enforcement unchanged.
 - Synchronize Customer, Driver and Van release identities to `1.0.113+113` because this release contains Driver mobile source changes; Dashboard, Setup, previews and all three APKs must be produced from the same canonical 1.0.113 source.
 - Production Dashboard `1.0.112` was already installed manually by the owner before repository convergence. It is recorded as an operational deployment checkpoint only; the next repository-generated release is intentionally `1.0.113`.
 

@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use App\Domain\Assistant\Intelligence\AssistantIntelligenceAuthorization;
 use App\Domain\SmartOrdering\SmartOrderingEnterpriseEntitlementBridge;
 use App\Domain\WhatsApp\RuntimePolicy;
 use App\Enterprise\Entitlements\EntitlementScope;
@@ -69,7 +68,6 @@ class AdminNavigation
         $isSuperAdmin = $this->isSuperAdmin($user);
         $canAccessPlatformErp = $this->canAccessPlatformErp($user);
         $canAccessPlatformNavigation = $canAccessPlatformErp;
-        $canUseAssistantIntelligence = app(AssistantIntelligenceAuthorization::class)->canUse($user);
         $useCustomerServiceDashboardProfile = $this->usesCustomerServiceDashboardProfile($user);
 
         // Business-first order: enter a channel, define stores/catalog/accounts, execute operations,
@@ -175,8 +173,6 @@ class AdminNavigation
                 $canAccessPlatformNavigation ? $this->routeItemScoped($user, 'treasury_master', 'treasury.nav_title', 'admin.treasury.master.index', 'finance.view') : null,
             ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
-                $canAccessPlatformNavigation ? $this->whatsAppSupervisorItem($user) : null,
-                $canUseAssistantIntelligence ? $this->routeItem($user, 'ai_analytics', 'assistant_intelligence.analysis.nav', 'admin.assistant-intelligence.index', 'assistant.use') : null,
                 $this->routeItem($user, 'reports_center', 'reports.title', 'admin.reports.index', 'reports.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'reports', 'admin.b2c_workspace.modules.reports', 'reports.view'),
                 $this->module($user, $channels, 'b2b', 'finance', 'admin.b2b_workspace.modules.finance', 'finance.view'),
@@ -648,22 +644,6 @@ class AdminNavigation
             'whatsapp.campaigns.nav_title',
             'admin.whatsapp-campaigns.index',
             'whatsapp.campaigns.view',
-        );
-    }
-
-    /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
-    private function whatsAppSupervisorItem(User $user): ?array
-    {
-        if (! app(RuntimePolicy::class)->allowsAgentInbox()) {
-            return null;
-        }
-
-        return $this->routeItemScoped(
-            $user,
-            'whatsapp_supervisor',
-            'whatsapp_supervisor.nav_title',
-            'admin.whatsapp-supervisor.index',
-            'whatsapp.customer_service.supervise',
         );
     }
 

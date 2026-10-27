@@ -36,7 +36,7 @@ class SystemUpdateAuthorizationTest extends TestCase
             ->assertSee('Validated update package');
 
         $this->actingAs($user)
-            ->get('/admin')
+            ->get('/admin/b2b/dashboard')
             ->assertOk()
             ->assertSee('href="'.route('admin.administration.index').'"', false)
             ->assertDontSee('href="'.route('admin.system-update.index').'"', false);

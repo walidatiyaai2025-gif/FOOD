@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'app.dart';
@@ -12,13 +13,16 @@ Future<void> main() async {
   runApp(
     FoodexVanApp(
       pushService: pushService,
-      locationTrackingFactory: (session) {
-        final api = VanApiClient(FoodexEnvironment.apiBaseUrl, session.token);
-        return VanLocationTrackingController(
-          source: const GeolocatorVanLocationSource(),
-          heartbeatClient: HttpVanLocationHeartbeatClient(api),
-        );
-      },
+      locationTrackingFactory: kDebugMode
+          ? null
+          : (session) {
+              final api =
+                  VanApiClient(FoodexEnvironment.apiBaseUrl, session.token);
+              return VanLocationTrackingController(
+                source: const GeolocatorVanLocationSource(),
+                heartbeatClient: HttpVanLocationHeartbeatClient(api),
+              );
+            },
     ),
   );
 }

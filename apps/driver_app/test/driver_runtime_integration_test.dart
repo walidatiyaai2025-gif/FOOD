@@ -370,10 +370,10 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('driver-login-submit')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('driver-open-deliveries')), findsOneWidget);
+    expect(find.byKey(const Key('driver-shell-deliveries')), findsOneWidget);
     expect(find.byKey(const Key('driver-route-denied')), findsNothing);
 
-    await tester.tap(find.byKey(const Key('driver-open-deliveries')));
+    await tester.tap(find.byKey(const Key('driver-shell-deliveries')));
     await tester.pumpAndSettle();
     expect(find.text('#41'), findsOneWidget);
     expect(find.byKey(const Key('driver-route-denied')), findsNothing);

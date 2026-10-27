@@ -441,8 +441,13 @@ class B2bAdminWorkspaceTest extends TestCase
 
         $this->actingAs($admin)->post('/admin/b2b/orders/'.$order->id.'/status', [
             'status' => 'confirmed',
-            'note' => 'Customer Service approved',
-        ])->assertRedirect()->assertSessionHasNoErrors();
+            'note' => 'Legacy confirmation attempt',
+        ])->assertConflict();
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'pending',
+        ]);
 
         $this->actingAs($admin)->post('/admin/b2b/drivers/assign', [
             'driver_id' => $driver->id,
@@ -507,7 +512,7 @@ class B2bAdminWorkspaceTest extends TestCase
         ]);
         $admin = $this->user('B2B_ADMIN', 'en');
 
-        $this->actingAs($admin)->post("/admin/b2b/orders/{$order}/status", ['status' => 'confirmed'])->assertNotFound();
+        $this->actingAs($admin)->post("/admin/b2b/orders/{$order}/status", ['status' => 'cancelled', 'note' => 'Cross-channel reject'])->assertNotFound();
     }
 
     public function test_b2b_reports_and_settings_are_principal_scoped(): void

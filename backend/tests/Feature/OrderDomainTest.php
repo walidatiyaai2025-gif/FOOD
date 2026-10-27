@@ -200,7 +200,7 @@ class OrderDomainTest extends TestCase
         $this->getJson('/api/v1/b2b/orders?status=pending')
             ->assertOk()
             ->assertJsonPath('data.0.id', $pending->id)
-            ->assertJsonPath('data.0.next_statuses.0', 'confirmed');
+            ->assertJsonPath('data.0.next_statuses.0', 'cancelled');
     }
 
     public function test_b2b_order_detail_exposes_authoritative_customer_safe_delivery_timeline(): void
@@ -576,6 +576,25 @@ class OrderDomainTest extends TestCase
         ]);
     }
 
+    public function test_new_orders_cannot_enter_confirmed_preparing_or_ready_manually(): void
+    {
+        $admin = $this->makeGlobalRoleUser('SUPER_ADMIN', 'removed-order-stages@example.test');
+
+        foreach (['confirmed', 'preparing', 'ready'] as $removedStatus) {
+            $order = $this->makeOrder($this->b2cCustomer, $this->b2cStoreId, 'b2c');
+
+            Sanctum::actingAs($admin);
+            $this->postJson("/api/v1/orders/{$order->id}/status", [
+                'status' => $removedStatus,
+            ])->assertConflict();
+
+            $this->assertDatabaseHas('orders', [
+                'id' => $order->id,
+                'status' => 'pending',
+            ]);
+        }
+    }
+
     public function test_b2b_ready_cannot_be_manually_moved_out_for_delivery_without_dispatch_assignment(): void
     {
         $order = $this->makeOrder($this->b2bCustomer, $this->b2bStoreId, 'b2b', 'ready');
@@ -655,7 +674,7 @@ class OrderDomainTest extends TestCase
         ]);
     }
 
-    public function test_super_admin_can_follow_valid_transition_chain_and_delivery_consumes_reserved_stock(): void
+    public function test_super_admin_cannot_bypass_assignment_driven_delivery_lifecycle(): void
     {
         $order = $this->makeOrder(
             $this->b2cCustomer,
@@ -671,33 +690,25 @@ class OrderDomainTest extends TestCase
         foreach (['confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered'] as $status) {
             $this->postJson("/api/v1/orders/{$order->id}/status", [
                 'status' => $status,
-                'note' => 'Transition '.$status,
-            ])->assertOk()
-                ->assertJsonPath('status', $status);
+                'note' => 'Legacy manual transition '.$status,
+            ])->assertConflict();
         }
 
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'pending',
+        ]);
         $this->assertDatabaseHas('inventories', [
             'id' => $this->inventoryId,
-            'quantity' => 8,
-            'reserved_quantity' => 0,
+            'quantity' => 10,
+            'reserved_quantity' => 2,
         ]);
-        $this->assertDatabaseHas('stock_movements', [
+        $this->assertDatabaseMissing('stock_movements', [
             'inventory_id' => $this->inventoryId,
             'reference_type' => 'order',
             'reference_id' => $order->id,
             'type' => 'sale',
-            'quantity' => -2,
         ]);
-        $this->assertDatabaseHas('audit_logs', [
-            'event' => 'order.status_changed',
-            'auditable_type' => 'App\\Models\\Order',
-            'auditable_id' => $order->id,
-        ]);
-
-        $this->assertSame(
-            6,
-            OrderStatusHistory::query()->where('order_id', $order->id)->count(),
-        );
     }
 
     public function test_cancellation_releases_reserved_stock(): void
@@ -779,30 +790,132 @@ class OrderDomainTest extends TestCase
         Sanctum::actingAs($storeAdmin);
 
         $this->postJson("/api/v1/orders/{$b2cOrder->id}/status", [
-            'status' => 'confirmed',
+            'status' => 'cancelled',
         ])->assertOk();
 
         $this->postJson("/api/v1/orders/{$otherB2cOrder->id}/status", [
-            'status' => 'confirmed',
+            'status' => 'cancelled',
         ])->assertForbidden();
 
         $this->postJson("/api/v1/orders/{$b2bOrder->id}/status", [
-            'status' => 'confirmed',
+            'status' => 'cancelled',
+            'note' => 'Not authorized for this wholesale order',
         ])->assertForbidden();
 
         $b2bAdmin = $this->makeGlobalRoleUser('B2B_ADMIN', 'b2b-admin-order@example.test');
         Sanctum::actingAs($b2bAdmin);
 
         $this->postJson("/api/v1/orders/{$b2bOrder->id}/status", [
-            'status' => 'confirmed',
+            'status' => 'cancelled',
+            'note' => 'Cancelled by wholesale operations',
         ])->assertOk();
 
         $this->postJson("/api/v1/orders/{$otherB2cOrder->id}/status", [
-            'status' => 'confirmed',
+            'status' => 'cancelled',
         ])->assertForbidden();
     }
 
     /** @return array{0: User, 1: Customer} */
+    public function test_delivered_order_cannot_be_cancelled(): void
+    {
+        $order = $this->makeOrder(
+            $this->b2cCustomer,
+            $this->b2cStoreId,
+            'b2c',
+            'delivered',
+        );
+
+        $admin = $this->makeGlobalRoleUser('SUPER_ADMIN', 'delivered-no-cancel@example.test');
+        Sanctum::actingAs($admin);
+
+        $this->postJson("/api/v1/orders/{$order->id}/status", [
+            'status' => 'cancelled',
+            'note' => 'Attempt cancellation after delivery',
+        ])->assertConflict();
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'delivered',
+        ]);
+        $this->assertDatabaseMissing('order_status_history', [
+            'order_id' => $order->id,
+            'from_status' => 'delivered',
+            'to_status' => 'cancelled',
+        ]);
+    }
+
+    public function test_cancelling_assigned_b2b_order_closes_van_and_dispatch_state(): void
+    {
+        $order = $this->makeOrder(
+            $this->b2bCustomer,
+            $this->b2bStoreId,
+            'b2b',
+            'out_for_delivery',
+        );
+
+        $vanId = (int) DB::table('vans')->insertGetId([
+            'public_id' => '00000000-0000-0000-0000-000000000090',
+            'code' => 'VAN-CANCEL-90',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $vanAssignmentId = (int) DB::table('order_van_assignments')->insertGetId([
+            'order_id' => $order->id,
+            'van_id' => $vanId,
+            'status' => 'active',
+            'source' => 'manual_customer_service',
+            'reason' => 'customer_service_van_assignment',
+            'decision_key' => hash('sha256', 'cancel-van-'.$order->id),
+            'assigned_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('order_dispatch_states')->insert([
+            'order_id' => $order->id,
+            'status' => 'assigned',
+            'routing_source' => 'manual_customer_service',
+            'routing_reason' => 'customer_service_van_assignment',
+            'current_assignee_type' => 'van',
+            'current_assignee_id' => $vanId,
+            'decision_key' => hash('sha256', 'cancel-dispatch-'.$order->id),
+            'decided_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $admin = $this->makeGlobalRoleUser('SUPER_ADMIN', 'cancel-van-order@example.test');
+        Sanctum::actingAs($admin);
+
+        $this->postJson("/api/v1/orders/{$order->id}/status", [
+            'status' => 'cancelled',
+            'note' => 'Cancel assigned wholesale order',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'cancelled',
+        ]);
+        $this->assertDatabaseHas('order_van_assignments', [
+            'id' => $vanAssignmentId,
+            'order_id' => $order->id,
+            'van_id' => $vanId,
+            'status' => 'cancelled',
+        ]);
+        $this->assertNotNull(
+            DB::table('order_van_assignments')->where('id', $vanAssignmentId)->value('ended_at'),
+        );
+        $this->assertDatabaseHas('order_dispatch_states', [
+            'order_id' => $order->id,
+            'status' => 'cancelled',
+            'routing_reason' => 'order_cancelled',
+            'current_assignee_type' => null,
+            'current_assignee_id' => null,
+        ]);
+    }
+
     private function makeCustomer(string $type, string $email): array
     {
         $user = User::query()->create([

@@ -134,7 +134,8 @@ void main() {
     client.close();
   });
 
-  test('HTTP policy failures are classified with safe request metadata', () async {
+  test('HTTP policy failures are classified with safe request metadata',
+      () async {
     for (final status in [404, 503]) {
       final inspector = DriverRuntimeInspector(maxEvents: 10);
       final client = HttpDriverVersionPolicyClient(
@@ -316,7 +317,8 @@ void main() {
       }),
     );
 
-    await expectLater(client.fetch(), throwsA(isA<DriverVersionPolicyException>()));
+    await expectLater(
+        client.fetch(), throwsA(isA<DriverVersionPolicyException>()));
     final policy = await client.fetch();
 
     expect(policy.status, AppUpdateStatus.current);
@@ -327,7 +329,8 @@ void main() {
     client.close();
   });
 
-  testWidgets('forced and unsupported policies block runtime and open store URL',
+  testWidgets(
+      'forced and unsupported policies block runtime and open store URL',
       (tester) async {
     for (final status in [
       AppUpdateStatus.forced,
@@ -408,7 +411,6 @@ void main() {
     expect(client.calls, 2);
     expect(find.byKey(const Key('runtime')), findsOneWidget);
   });
-
 
   testWidgets('Arabic blocking update surface is RTL and localized',
       (tester) async {
@@ -504,6 +506,10 @@ void main() {
     expect(client.calls, 0);
     expect(find.byKey(const Key('driver-version-error')), findsNothing);
     expect(find.byKey(const Key('driver-version-blocking')), findsNothing);
-    expect(find.textContaining('Safe preview'), findsOneWidget);
+    expect(find.byKey(const Key('driver-shell')), findsOneWidget);
+    expect(
+      find.byKey(const Key('driver-preview-configuration-invalid')),
+      findsNothing,
+    );
   });
 }

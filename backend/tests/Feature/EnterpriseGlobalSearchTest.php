@@ -130,7 +130,7 @@ final class EnterpriseGlobalSearchTest extends TestCase
 
     public function test_dashboard_shell_exposes_bilingual_debounced_global_search(): void
     {
-        $admin = $this->globalUser('SUPER_ADMIN', 'global-search-ui@example.test');
+        $admin = $this->globalUser('B2B_ADMIN', 'global-search-ui@example.test');
 
         $response = $this->actingAs($admin)
             ->get(route('admin.index'))
