@@ -10,6 +10,7 @@ use App\Models\DriverAssignment;
 use App\Models\Remittance;
 use App\Models\User;
 use App\Services\CollectionCustodyService;
+use App\Services\DriverCollectionReportService;
 use App\Services\DriverOrderService;
 use App\Services\DriverTenantScope;
 use Illuminate\Http\JsonResponse;
@@ -104,7 +105,7 @@ final class DriverCollectionController extends Controller
         ], 201);
     }
 
-    public function wallet(Request $request, CollectionCustodyService $custody): JsonResponse
+    public function wallet(Request $request, CollectionCustodyService $custody, DriverCollectionReportService $reports): JsonResponse
     {
         [, $driver] = $this->driverContext($request);
 
@@ -116,7 +117,7 @@ final class DriverCollectionController extends Controller
             ->get();
 
         return response()->json([
-            'data' => $accounts->map(function (CollectionAccount $account) use ($custody): array {
+            'data' => $accounts->map(function (CollectionAccount $account) use ($custody, $reports): array {
                 $transactions = CollectionTransaction::query()
                     ->where('collection_account_id', $account->getKey())
                     ->latest('id')
@@ -145,6 +146,7 @@ final class DriverCollectionController extends Controller
 
                 return [
                     ...$this->walletSummary($account, $custody),
+                    ...$reports->forAccount($account),
                     'transactions' => $transactions,
                     'remittances' => $remittances,
                 ];

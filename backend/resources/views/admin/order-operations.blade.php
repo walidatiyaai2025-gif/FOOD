@@ -461,10 +461,24 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 </td>
 <td>
     @php
-        $rowPaid = strtolower((string)($row['payment_status'] ?? '')) === 'paid';
+        $collectionState = (string)($row['collection_payment_state'] ?? 'unpaid');
+        $rowPaid = $collectionState === 'fully_settled';
+        $collectionColor = match ($collectionState) {
+            'fully_settled' => 'var(--foodex-green-dark)',
+            'partially_settled' => 'var(--foodex-orange)',
+            default => 'var(--foodex-danger-text)',
+        };
+        $collectionLabel = match ($collectionState) {
+            'fully_settled' => $isAr ? 'مدفوع بالكامل' : 'Fully paid',
+            'partially_settled' => $isAr ? 'مدفوع جزئياً' : 'Partially paid',
+            default => $isAr ? 'غير مدفوع' : 'Unpaid',
+        };
     @endphp
     <div class="order-financial">
         <strong class="{{ $rowPaid ? 'is-paid' : 'is-unpaid' }}">{{ number_format($row['total'],2) }} {{ $row['currency'] }}</strong>
+        <small data-order-collection-state="{{ $collectionState }}" style="color:{{ $collectionColor }};font-weight:800">{{ $collectionLabel }}</small>
+        <small data-order-collected="{{ $row['id'] }}">{{ $isAr ? 'المحصّل' : 'Collected' }}: {{ number_format((float)$row['collection_paid_amount'],3) }} {{ $row['currency'] }}</small>
+        <small data-order-remaining="{{ $row['id'] }}">{{ $isAr ? 'المتبقي' : 'Remaining' }}: {{ number_format((float)$row['collection_remaining_amount'],3) }} {{ $row['currency'] }}</small>
         <small>{{ $businessLabel($row['payment_status']) }}@if($row['payment_provider']) · {{ strtoupper(str_replace(['_','-'],' ',(string)$row['payment_provider'])) }}@endif</small>
         @php
             $detailsPopupKind = 'details';

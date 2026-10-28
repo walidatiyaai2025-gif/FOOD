@@ -101,6 +101,8 @@ class CustomerOrderSummary {
     this.appliedCustomerCreditAmount,
     this.remainderMethod,
     this.fullySettled,
+    this.paidAmount,
+    this.paymentState,
   });
 
   final int id;
@@ -135,6 +137,12 @@ class CustomerOrderSummary {
 
   /// Explicit fully-settled flag when supplied by the finance contract.
   final bool? fullySettled;
+
+  /// Amount already paid from the authoritative order/invoice settlement.
+  final double? paidAmount;
+
+  /// Explicit ledger payment state: unpaid, partially_settled or fully_settled.
+  final String? paymentState;
 
   CustomerOrderContext get context =>
       CustomerOrderContext(storeId: storeId, channel: channel);
@@ -224,6 +232,13 @@ class CustomerOrderSummary {
       appliedCustomerCreditAmount: appliedCustomerCreditAmount,
       remainderMethod: remainderMethod?.toLowerCase(),
       fullySettled: fullySettled,
+      paidAmount: _firstNullableDouble(<Object?>[
+        settlement['paid_amount'],
+        invoice['paid_amount'],
+      ]),
+      paymentState: _firstNullableText(<Object?>[
+        settlement['payment_state'],
+      ])?.toLowerCase(),
     );
   }
 }
@@ -275,6 +290,16 @@ class CustomerOrderDetails {
   final String? requestedDeliveryDate;
   final CustomerOrderDriver? driver;
   final List<CustomerCollectionReceipt> collectionReceipts;
+
+  /// Customer-facing timeline must not repeat a milestone reported by two
+  /// separate status producers (for example proof + order status history).
+  List<CustomerOrderHistoryEntry> get uniqueHistory {
+    final seen = <String>{};
+    return history.where((entry) {
+      final status = entry.toStatus.trim().toLowerCase();
+      return status.isNotEmpty && seen.add(status);
+    }).toList(growable: false);
+  }
 
   factory CustomerOrderDetails.fromJson(Map<String, dynamic> json) {
     final items = json['items'] is List

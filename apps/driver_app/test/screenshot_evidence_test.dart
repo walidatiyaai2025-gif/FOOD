@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +13,8 @@ import 'package:foodex_driver_app/core/push/firebase_push_service.dart';
 import 'package:foodex_driver_app/core/theme/foodex_theme.dart';
 import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
 import 'package:foodex_driver_app/features/notifications/notification_feed.dart';
+import 'package:foodex_driver_app/features/wallet/driver_wallet_contract.dart';
+import 'package:foodex_driver_app/features/wallet/driver_wallet_page.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +40,61 @@ void main() {
           locale: locale,
         ),
         '01_Mobile/Driver_B2C/01_driver_login__default__$localeCode.png',
+      );
+    });
+
+    testWidgets('capture driver collected wallet and order details $localeCode',
+        (tester) async {
+      await _setup(tester);
+      final key = GlobalKey();
+      final theme = FoodexTheme.light(fontFamily: _evidenceFontFamily);
+      await tester.pumpWidget(
+        RepaintBoundary(
+          key: key,
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            locale: locale,
+            supportedLocales: const [Locale('ar'), Locale('en')],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            theme: theme.copyWith(
+              appBarTheme: theme.appBarTheme.copyWith(
+                titleTextStyle: theme.appBarTheme.titleTextStyle?.copyWith(
+                  fontFamily: _evidenceFontFamily,
+                ),
+              ),
+            ),
+            home: const DriverWalletPage(
+              repository: _EvidenceCollectedWallet(),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+
+      final summary = find.byKey(const Key('driver-collected-summary-6'));
+      await tester.ensureVisible(summary);
+      await tester.pump();
+      expect(summary, findsOneWidget);
+      await _writeBoundary(
+        tester,
+        key,
+        '01_Mobile/Driver_B2C/10_driver_collected_summary__partial__$localeCode.png',
+      );
+
+      await tester.tap(summary);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+      expect(
+          find.byKey(const Key('driver-collected-order-123')), findsOneWidget);
+      await _writeBoundary(
+        tester,
+        key,
+        '01_Mobile/Driver_B2C/11_driver_collected_orders__partial__$localeCode.png',
       );
     });
 
@@ -288,6 +346,54 @@ Future<void> _writeBoundary(
       throw StateError('Screenshot is unexpectedly small: $relativePath');
     }
   });
+}
+
+class _EvidenceCollectedWallet implements DriverWalletRepository {
+  const _EvidenceCollectedWallet();
+
+  @override
+  Future<List<DriverWalletAccount>> wallet() async => const [
+        DriverWalletAccount(
+          id: 6,
+          currency: 'KWD',
+          status: 'active',
+          custodyBalance: 15,
+          availableToRemit: 15,
+          totalCollected: 15,
+          collectedOrders: [
+            DriverCollectedOrder(
+              orderId: 123,
+              orderNumber: 'FO-123',
+              currency: 'KWD',
+              orderTotal: 30,
+              collectedAmount: 15,
+              remainingAmount: 15,
+              paymentState: 'partially_settled',
+            ),
+          ],
+        ),
+      ];
+
+  @override
+  Future<DriverCollectionResult> collect(
+    int assignmentId, {
+    required double amount,
+    required String idempotencyKey,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<DriverRemittance> submitRemittance({
+    required int collectionAccountId,
+    required double amount,
+    required String method,
+    String? reference,
+    String? note,
+    required String idempotencyKey,
+  }) {
+    throw UnimplementedError();
+  }
 }
 
 class _EvidenceAuthRepository implements DriverAuthRepository {

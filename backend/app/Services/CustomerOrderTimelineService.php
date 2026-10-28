@@ -157,7 +157,7 @@ final class CustomerOrderTimelineService
             },
         );
 
-        return $events;
+        return $this->uniqueStages($events);
     }
 
     /** @return list<array<string, mixed>> */
@@ -279,7 +279,37 @@ final class CustomerOrderTimelineService
             },
         );
 
-        return $events;
+        return $this->uniqueStages($events);
+    }
+
+    /**
+     * Multiple independent sources can confirm the same customer-visible stage.
+     * Keep the earliest occurrence without allowing a second status-history or
+     * driver proof to duplicate a completed timeline milestone.
+     *
+     * @param  list<array<string, mixed>>  $events
+     * @return list<array<string, mixed>>
+     */
+    public function uniqueStages(array $events): array
+    {
+        $seen = [];
+        $unique = [];
+
+        foreach ($events as $event) {
+            $stage = strtolower(trim((string) ($event['stage'] ?? '')));
+            if ($stage === '') {
+                continue;
+            }
+
+            if (isset($seen[$stage])) {
+                continue;
+            }
+
+            $seen[$stage] = true;
+            $unique[] = $event;
+        }
+
+        return $unique;
     }
 
     private function timestamp(mixed $value): ?string

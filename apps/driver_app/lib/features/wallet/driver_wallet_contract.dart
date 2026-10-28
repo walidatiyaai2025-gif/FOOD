@@ -1,3 +1,34 @@
+class DriverCollectedOrder {
+  const DriverCollectedOrder({
+    required this.orderId,
+    required this.orderNumber,
+    required this.currency,
+    required this.orderTotal,
+    required this.collectedAmount,
+    required this.remainingAmount,
+    required this.paymentState,
+  });
+
+  final int orderId;
+  final String orderNumber;
+  final String currency;
+  final double orderTotal;
+  final double collectedAmount;
+  final double remainingAmount;
+  final String paymentState;
+
+  factory DriverCollectedOrder.fromJson(Map<String, dynamic> json) =>
+      DriverCollectedOrder(
+        orderId: (json['order_id'] as num?)?.toInt() ?? 0,
+        orderNumber: (json['order_number'] ?? '').toString(),
+        currency: (json['currency'] ?? '').toString(),
+        orderTotal: (json['order_total'] as num?)?.toDouble() ?? 0,
+        collectedAmount: (json['collected_amount'] as num?)?.toDouble() ?? 0,
+        remainingAmount: (json['remaining_amount'] as num?)?.toDouble() ?? 0,
+        paymentState: (json['payment_state'] ?? 'unpaid').toString(),
+      );
+}
+
 class DriverCollectionReceipt {
   const DriverCollectionReceipt({
     required this.id,
@@ -65,6 +96,9 @@ class DriverWalletAccount {
     required this.custodyBalance,
     required this.availableToRemit,
     this.unsettledCollections,
+    this.totalCollected = 0,
+    this.collectedOrders = const [],
+    this.hasMoreCollectedOrders = false,
     this.transactions = const [],
     this.remittances = const [],
   });
@@ -77,6 +111,9 @@ class DriverWalletAccount {
   final double? unsettledCollections;
   double get unsettledCollectionsBalance =>
       unsettledCollections ?? custodyBalance;
+  final double totalCollected;
+  final List<DriverCollectedOrder> collectedOrders;
+  final bool hasMoreCollectedOrders;
   final List<DriverCollectionReceipt> transactions;
   final List<DriverRemittance> remittances;
 
@@ -89,6 +126,14 @@ class DriverWalletAccount {
         availableToRemit: (json['available_to_remit'] as num?)?.toDouble() ?? 0,
         unsettledCollections:
             (json['unsettled_collections'] as num?)?.toDouble(),
+        totalCollected: (json['total_collected'] as num?)?.toDouble() ?? 0,
+        collectedOrders: (json['orders'] as List? ?? const [])
+            .whereType<Map>()
+            .map((row) => DriverCollectedOrder.fromJson(
+                  Map<String, dynamic>.from(row),
+                ))
+            .toList(growable: false),
+        hasMoreCollectedOrders: json['has_more'] == true,
         transactions: (json['transactions'] as List? ?? const [])
             .whereType<Map>()
             .map((row) => DriverCollectionReceipt.fromJson(

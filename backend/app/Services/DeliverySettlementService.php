@@ -4,14 +4,118 @@ namespace App\Services;
 
 use App\Models\Invoice;
 use App\Models\Order;
+use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
 
 final class DeliverySettlementService
 {
     public function __construct(private readonly B2bAccountLedgerService $b2bLedger) {}
 
+    /**
+     * Resolve a whole page's settlements with bounded database queries instead of
+     * fetching an invoice, payment and ledger separately for every order.
+     *
+     * @param  list<Order>  $orders
+     * @return array<int, array<string, mixed>>
+     */
+    public function summarizeMany(array $orders): array
+    {
+        if ($orders === []) {
+            return [];
+        }
+
+        $orderIds = array_map(
+            static fn (Order $order): int => (int) $order->getKey(),
+            $orders,
+        );
+
+        $invoices = Invoice::query()
+            ->whereIn('order_id', $orderIds)
+            ->whereIn('status', ['issued', 'reissued'])
+            ->orderByDesc('revision')
+            ->orderByDesc('id')
+            ->get()
+            ->unique('order_id')
+            ->keyBy('order_id');
+
+        $payments = Payment::query()
+            ->whereIn('order_id', $orderIds)
+            ->whereIn('id', function ($query) use ($orderIds): void {
+                $query->selectRaw('MAX(id)')
+                    ->from('payments')
+                    ->whereIn('order_id', $orderIds)
+                    ->groupBy('order_id');
+            })
+            ->get()
+            ->keyBy('order_id');
+
+        $invoiceIds = $invoices->pluck('id')->all();
+        $paidTotals = $invoiceIds === []
+            ? collect()
+            : DB::table('payments')
+                ->whereIn('invoice_id', $invoiceIds)
+                ->whereIn('status', ['paid', 'captured'])
+                ->selectRaw("invoice_id, SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) as paid_amount, SUM(amount) as captured_amount")
+                ->groupBy('invoice_id')
+                ->get()
+                ->keyBy('invoice_id');
+
+        $b2bInvoiceIds = $invoices
+            ->filter(static fn (Invoice $invoice): bool => strtolower((string) $invoice->channel) === 'b2b')
+            ->pluck('id')
+            ->all();
+        $ledgerTotals = $b2bInvoiceIds === []
+            ? collect()
+            : DB::table('customer_account_ledger_entries')
+                ->whereIn('invoice_id', $b2bInvoiceIds)
+                ->selectRaw('invoice_id, COALESCE(SUM(debit), 0) as debits, COALESCE(SUM(credit), 0) as credits')
+                ->selectRaw("COALESCE(SUM(CASE WHEN entry_type = 'payment' THEN credit ELSE 0 END), 0) as payment_credits")
+                ->groupBy('invoice_id')
+                ->get()
+                ->keyBy('invoice_id');
+
+        $summaries = [];
+        foreach ($orders as $order) {
+            $orderId = (int) $order->getKey();
+            $invoice = $invoices->get($orderId);
+            $invoiceAmounts = null;
+
+            if ($invoice instanceof Invoice) {
+                $invoiceId = (int) $invoice->getKey();
+                $totals = $paidTotals->get($invoiceId);
+
+                if (strtolower((string) $invoice->channel) === 'b2b') {
+                    $paid = round((float) ($totals->captured_amount ?? 0), 3);
+                    $ledger = $ledgerTotals->get($invoiceId);
+                    $debits = round((float) ($ledger->debits ?? 0), 3);
+                    $credits = round((float) ($ledger->credits ?? 0), 3);
+                    $paymentCredits = round((float) ($ledger->payment_credits ?? 0), 3);
+                    $invoiceAmounts = [
+                        'paid_amount' => round($paid + $paymentCredits, 3),
+                        'outstanding_amount' => round(max((float) $invoice->total + $debits - $paid - $credits, 0), 3),
+                    ];
+                } else {
+                    $paid = round((float) ($totals->paid_amount ?? 0), 3);
+                    $invoiceAmounts = [
+                        'paid_amount' => $paid,
+                        'outstanding_amount' => round(max((float) $invoice->total - $paid, 0), 3),
+                    ];
+                }
+            }
+
+            $summaries[$orderId] = $this->summarize(
+                $order,
+                $invoice instanceof Invoice ? $invoice : null,
+                $payments->get($orderId),
+                $invoiceAmounts,
+            );
+        }
+
+        return $summaries;
+    }
+
     /** @return array<string, mixed> */
-    public function summarize(Order $order, ?Invoice $invoice, ?object $payment): array
+    public function summarize(Order $order, ?Invoice $invoice, ?object $payment, ?array $invoiceAmounts = null): array
     {
         $metadataRaw = $payment?->metadata;
         $metadata = is_array($metadataRaw)
@@ -45,7 +149,10 @@ final class DeliverySettlementService
         $paidAmount = 0.0;
         $outstanding = round(max(0, (float) $order->grand_total), 3);
         if ($invoice instanceof Invoice) {
-            if (strtolower((string) $invoice->channel) === 'b2b') {
+            if ($invoiceAmounts !== null) {
+                $paidAmount = round((float) $invoiceAmounts['paid_amount'], 3);
+                $outstanding = round((float) $invoiceAmounts['outstanding_amount'], 3);
+            } elseif (strtolower((string) $invoice->channel) === 'b2b') {
                 $amounts = $this->b2bLedger->invoiceAmounts($invoice);
                 $paidAmount = round((float) $amounts['paid_amount'], 3);
                 $outstanding = round((float) $amounts['outstanding_amount'], 3);

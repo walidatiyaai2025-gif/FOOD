@@ -1418,7 +1418,7 @@ class _OrderTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final entries = details.history;
+    final entries = details.uniqueHistory;
     if (entries.isEmpty) {
       return _TimelineRow(status: details.summary.status, isLast: true);
     }
@@ -1605,6 +1605,19 @@ class _PaymentSummary extends StatelessWidget {
     final payment = details.payment;
     final receipts = details.collectionReceipts;
     final outstanding = details.summary.invoiceOutstandingAmount;
+    final collected = details.summary.paidAmount;
+    final state = details.summary.paymentState;
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final paymentColor = switch (state) {
+      'fully_settled' => CustomerUiColors.success,
+      'partially_settled' => CustomerUiColors.warning,
+      _ => CustomerUiColors.destructive,
+    };
+    final paymentStateLabel = switch (state) {
+      'fully_settled' => isArabic ? 'مدفوع بالكامل' : 'Fully paid',
+      'partially_settled' => isArabic ? 'مدفوع جزئياً' : 'Partially paid',
+      _ => isArabic ? 'غير مدفوع' : 'Unpaid',
+    };
     final paymentMethodLabel = _paymentMethodLabel(
       context,
       details.paymentMethod,
@@ -1615,13 +1628,62 @@ class _PaymentSummary extends StatelessWidget {
     final paymentStatusLabel =
         payment == null ? null : _paymentStatusLabel(context, payment.status);
 
-    if (payment == null && receipts.isEmpty && outstanding == null) {
+    if (payment == null &&
+        receipts.isEmpty &&
+        outstanding == null &&
+        state == null) {
       return Text(paymentMethodLabel);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (state != null) ...[
+          Container(
+            key: ValueKey('customer-order-payment-state-${details.summary.id}'),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: paymentColor.withValues(alpha: .11),
+              borderRadius: BorderRadius.circular(CustomerUiRadii.md),
+              border: Border.all(color: paymentColor),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.payments_rounded, color: paymentColor),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    paymentStateLabel,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: paymentColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(isArabic ? 'إجمالي الطلب' : 'Order total'),
+            trailing: Text(
+              foodexMoneyText(
+                  details.summary.grandTotal, details.summary.currency),
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          if (collected != null)
+            ListTile(
+              key: ValueKey('customer-order-collected-${details.summary.id}'),
+              contentPadding: EdgeInsets.zero,
+              title: Text(isArabic ? 'المبلغ المحصّل' : 'Collected amount'),
+              trailing: Text(
+                foodexMoneyText(collected, details.summary.currency),
+                style:
+                    TextStyle(color: paymentColor, fontWeight: FontWeight.w800),
+              ),
+            ),
+        ],
         if (payment != null)
           ListTile(
             contentPadding: EdgeInsets.zero,

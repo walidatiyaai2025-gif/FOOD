@@ -20,6 +20,7 @@ use App\Services\CommercialPolicyService;
 use App\Services\CustomerDomainResolver;
 use App\Services\CustomerOrderTimelineService;
 use App\Services\DashboardOperationalNotifier;
+use App\Services\DeliverySettlementService;
 use App\Services\InvoiceService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
@@ -644,6 +645,8 @@ class OrderController extends Controller
                 'credit_amount' => 0.0,
             ];
 
+        $settlement = app(DeliverySettlementService::class)->summarize($order, $invoice, $payment);
+
         $collectionReceipts = $invoice instanceof Invoice
             ? DB::table('collection_allocations')
                 ->join(
@@ -750,6 +753,7 @@ class OrderController extends Controller
                     ? null
                     : CarbonImmutable::parse((string) $invoice->issued_at)->toAtomString(),
             ] : null,
+            'settlement' => $settlement,
             'collection_receipts' => $collectionReceipts,
             'tracking' => $tracking,
             'driver' => $driver,
