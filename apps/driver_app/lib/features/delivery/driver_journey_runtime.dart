@@ -24,6 +24,7 @@ class DriverJourneyRuntimePage extends StatelessWidget {
     this.homeRoute,
     this.deliveriesRoute,
     this.notificationsRoute,
+    this.walletRoute,
   });
 
   final DriverChannel channel;
@@ -37,6 +38,7 @@ class DriverJourneyRuntimePage extends StatelessWidget {
   final String? homeRoute;
   final String? deliveriesRoute;
   final String? notificationsRoute;
+  final String? walletRoute;
 
   Future<void> _openCompletion(
     BuildContext context,
@@ -98,6 +100,7 @@ class DriverJourneyRuntimePage extends StatelessWidget {
         homeRoute: homeRoute,
         deliveriesRoute: deliveriesRoute,
         notificationsRoute: notificationsRoute,
+        walletRoute: walletRoute,
         title: Text(
           context.tr(
             channel == DriverChannel.b2c

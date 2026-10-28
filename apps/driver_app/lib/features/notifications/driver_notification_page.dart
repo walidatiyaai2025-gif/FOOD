@@ -15,6 +15,7 @@ class DriverNotificationPage extends StatefulWidget {
     this.homeRoute,
     this.deliveriesRoute,
     this.notificationsRoute,
+    this.walletRoute,
     this.currentAssignmentId,
   });
 
@@ -24,6 +25,7 @@ class DriverNotificationPage extends StatefulWidget {
   final String? homeRoute;
   final String? deliveriesRoute;
   final String? notificationsRoute;
+  final String? walletRoute;
   final int? currentAssignmentId;
 
   @override
@@ -187,6 +189,7 @@ class _DriverNotificationPageState extends State<DriverNotificationPage>
       homeRoute: widget.homeRoute,
       deliveriesRoute: widget.deliveriesRoute,
       notificationsRoute: widget.notificationsRoute,
+      walletRoute: widget.walletRoute,
       appBar: AppBar(
         title: Text(context.tr('driver.notifications.title')),
         actions: [

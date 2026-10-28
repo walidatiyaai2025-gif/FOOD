@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/localization/driver_translations.dart';
+import '../../core/navigation/driver_shell.dart';
 import 'driver_wallet_contract.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
@@ -10,9 +11,17 @@ class DriverWalletPage extends StatefulWidget {
   const DriverWalletPage({
     super.key,
     required this.repository,
+    this.homeRoute,
+    this.deliveriesRoute,
+    this.notificationsRoute,
+    this.walletRoute,
   });
 
   final DriverWalletRepository repository;
+  final String? homeRoute;
+  final String? deliveriesRoute;
+  final String? notificationsRoute;
+  final String? walletRoute;
 
   @override
   State<DriverWalletPage> createState() => _DriverWalletPageState();
@@ -288,6 +297,15 @@ class _DriverWalletPageState extends State<DriverWalletPage>
           ),
         ],
       ),
+      bottomNavigationBar: widget.walletRoute == null
+          ? null
+          : DriverShellNavigation(
+              destination: DriverShellDestination.wallet,
+              homeRoute: widget.homeRoute,
+              deliveriesRoute: widget.deliveriesRoute,
+              notificationsRoute: widget.notificationsRoute,
+              walletRoute: widget.walletRoute,
+            ),
       body: Column(
         children: [
           if (_stale && _accounts.isNotEmpty)

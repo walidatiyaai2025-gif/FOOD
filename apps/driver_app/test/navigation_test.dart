@@ -67,6 +67,18 @@ class _WalletStatusRepo extends _StatusRepo implements DriverWalletRepository {
           status: 'active',
           custodyBalance: 42.75,
           availableToRemit: 30,
+          totalCollected: 15,
+          collectedOrders: [
+            DriverCollectedOrder(
+              orderId: 123,
+              orderNumber: 'FO-123',
+              currency: 'KWD',
+              orderTotal: 30,
+              collectedAmount: 15,
+              remainingAmount: 15,
+              paymentState: 'partially_settled',
+            ),
+          ],
         ),
       ];
 
@@ -212,6 +224,94 @@ DriverSession session(DriverChannel channel) => DriverSession(
     );
 
 void main() {
+  testWidgets('B2C wallet is reachable from Home footer, shows collected orders, and returns Home',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(FoodexDriverApp(
+      locale: const Locale('ar'),
+      initialSession: session(DriverChannel.b2c),
+      assignmentRepositoryFactory: (_) => _WalletStatusRepo(),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-shell-wallet')), findsOneWidget);
+    expect(find.text('المحفظة'), findsOneWidget);
+    expect(find.byKey(const Key('driver-open-wallet')), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-unsettled-collections')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('driver-shell-wallet')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-wallet-page')), findsOneWidget);
+    expect(find.byKey(const Key('driver-collected-summary-81')), findsOneWidget);
+    expect(find.byKey(const Key('driver-shell-navigation')), findsOneWidget);
+    expect(
+      tester.widget<NavigationBar>(
+        find.byKey(const Key('driver-shell-navigation')),
+      ).selectedIndex,
+      DriverShellDestination.wallet.index,
+    );
+
+    await tester.tap(find.byKey(const Key('driver-collected-summary-81')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-collected-order-123')), findsOneWidget);
+    expect(find.text('FO-123'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('driver-shell-home')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-home-unsettled-collections')), findsOneWidget);
+    expect(find.byKey(const Key('driver-wallet-page')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('driver-open-wallet')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-wallet-page')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('English footer opens B2C wallet and preserves Deliveries navigation',
+      (tester) async {
+    await tester.pumpWidget(FoodexDriverApp(
+      locale: const Locale('en'),
+      initialSession: session(DriverChannel.b2c),
+      assignmentRepositoryFactory: (_) => _WalletStatusRepo(),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Wallet'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('driver-shell-wallet')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-wallet-page')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('driver-shell-deliveries')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-shell')), findsOneWidget);
+    expect(tester.widget<NavigationBar>(
+      find.byKey(const Key('driver-shell-navigation')),
+    ).selectedIndex, DriverShellDestination.deliveries.index);
+    expect(find.byKey(const Key('driver-shell-wallet')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('B2B and unsupported B2C repositories do not expose a dead Wallet destination',
+      (tester) async {
+    for (final channel in [DriverChannel.b2b, DriverChannel.b2c]) {
+      await tester.pumpWidget(FoodexDriverApp(
+        initialSession: session(channel),
+        assignmentRepositoryFactory: (_) => _StatusRepo(),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('driver-shell-wallet')), findsNothing);
+      expect(find.byKey(const Key('driver-open-wallet')), findsNothing);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }
+  });
+
   testWidgets('B2C driver starts inside the backend-derived B2C partition',
       (tester) async {
     final repo = ChannelRecordingRepo();
