@@ -266,7 +266,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('driver-collected-order-123')), findsOneWidget);
     expect(find.text('FO-123'), findsOneWidget);
-    await tester.pageBack();
+    // Dismiss the Material bottom sheet by tapping its modal barrier.
+    await tester.tapAt(const Offset(10, 30));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('driver-shell-home')));
@@ -284,6 +285,13 @@ void main() {
   testWidgets(
       'English footer opens B2C wallet and preserves Deliveries navigation',
       (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
     await tester.pumpWidget(FoodexDriverApp(
       locale: const Locale('en'),
       initialSession: session(DriverChannel.b2c),
