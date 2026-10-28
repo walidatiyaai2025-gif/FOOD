@@ -1418,13 +1418,7 @@ class _OrderTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // A delivery proof and order history can repeat the same milestone.
-    // Timeline semantics are one visible row per normalized order state.
-    final seenStages = <String>{};
-    final entries = details.history.where((entry) {
-      final stage = entry.toStatus.trim().toLowerCase();
-      return stage.isNotEmpty && seenStages.add(stage);
-    }).toList(growable: false);
+    final entries = details.uniqueHistory;
     if (entries.isEmpty) {
       return _TimelineRow(status: details.summary.status, isLast: true);
     }
