@@ -464,9 +464,9 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         $collectionState = (string)($row['collection_payment_state'] ?? 'unpaid');
         $rowPaid = $collectionState === 'fully_settled';
         $collectionColor = match ($collectionState) {
-            'fully_settled' => '#167542',
-            'partially_settled' => '#9a5a00',
-            default => '#a32e32',
+            'fully_settled' => 'var(--foodex-green-dark)',
+            'partially_settled' => 'var(--foodex-orange)',
+            default => 'var(--foodex-danger-text)',
         };
         $collectionLabel = match ($collectionState) {
             'fully_settled' => $isAr ? 'مدفوع بالكامل' : 'Fully paid',

@@ -48,9 +48,9 @@
                     @php
                         $paymentState = (string)($order->payment_state ?? 'unpaid');
                         $color = match($paymentState) {
-                            'fully_settled' => '#167542',
-                            'partially_settled' => '#9a5a00',
-                            default => '#a32e32',
+                            'fully_settled' => 'var(--foodex-green-dark)',
+                            'partially_settled' => 'var(--foodex-orange)',
+                            default => 'var(--foodex-danger-text)',
                         };
                         $label = match($paymentState) {
                             'fully_settled' => app()->getLocale()==='ar' ? 'مدفوع بالكامل' : 'Fully paid',
