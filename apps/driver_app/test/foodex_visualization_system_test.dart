@@ -31,7 +31,8 @@ void main() {
   });
 
   for (final direction in TextDirection.values) {
-    testWidgets('shared visualization primitives render in $direction', (tester) async {
+    testWidgets('shared visualization primitives render in $direction',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Directionality(
