@@ -156,7 +156,8 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                               ? Colors.green.shade700
                               : Colors.orange.shade800;
                           return ListTile(
-                            key: ValueKey('driver-collected-order-${order.orderId}'),
+                            key: ValueKey(
+                                'driver-collected-order-${order.orderId}'),
                             isThreeLine: true,
                             title: Text(
                               order.orderNumber.isEmpty
@@ -179,14 +180,21 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                 ),
                                 Text(
                                   isPaid
-                                      ? (isArabic ? 'مدفوع بالكامل' : 'Fully paid')
-                                      : (isArabic ? 'مدفوع جزئياً' : 'Partially paid'),
-                                  style: TextStyle(color: tone, fontWeight: FontWeight.w700),
+                                      ? (isArabic
+                                          ? 'مدفوع بالكامل'
+                                          : 'Fully paid')
+                                      : (isArabic
+                                          ? 'مدفوع جزئياً'
+                                          : 'Partially paid'),
+                                  style: TextStyle(
+                                      color: tone, fontWeight: FontWeight.w700),
                                 ),
                               ],
                             ),
                             trailing: Icon(
-                              isPaid ? Icons.check_circle_rounded : Icons.timelapse_rounded,
+                              isPaid
+                                  ? Icons.check_circle_rounded
+                                  : Icons.timelapse_rounded,
                               color: tone,
                             ),
                           );
@@ -286,137 +294,162 @@ class _DriverWalletPageState extends State<DriverWalletPage>
             _WalletStaleBanner(lastSuccessfulAt: _lastSuccessfulAt),
           Expanded(
             child: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: FilledButton.icon(
-                    onPressed: _load,
-                    icon: const Icon(Icons.refresh_rounded),
-                    label: Text(context.tr('driver.wallet.retry')),
-                  ),
-                )
-              : _accounts.isEmpty
-                  ? Center(child: Text(context.tr('driver.wallet.empty')))
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
-                        itemCount: _accounts.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final account = _accounts[index];
-                          return Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Text(
-                                    account.currency,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(fontWeight: FontWeight.w800),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Card(
-                                    key: Key('driver-collected-summary-${account.id}'),
-                                    color: Theme.of(context).colorScheme.primaryContainer,
-                                    child: InkWell(
-                                      onTap: () => _showCollectedOrders(account),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(12),
-                                        child: Row(
-                                          children: [
-                                            const Icon(Icons.payments_outlined),
-                                            const SizedBox(width: 10),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? Center(
+                        child: FilledButton.icon(
+                          onPressed: _load,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: Text(context.tr('driver.wallet.retry')),
+                        ),
+                      )
+                    : _accounts.isEmpty
+                        ? Center(child: Text(context.tr('driver.wallet.empty')))
+                        : RefreshIndicator(
+                            onRefresh: _load,
+                            child: ListView.separated(
+                              padding:
+                                  const EdgeInsets.fromLTRB(12, 10, 12, 20),
+                              itemCount: _accounts.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final account = _accounts[index];
+                                return Card(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        Text(
+                                          account.currency,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                  fontWeight: FontWeight.w800),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Card(
+                                          key: Key(
+                                              'driver-collected-summary-${account.id}'),
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primaryContainer,
+                                          child: InkWell(
+                                            onTap: () =>
+                                                _showCollectedOrders(account),
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(12),
+                                              child: Row(
                                                 children: [
-                                                  Text(
-                                                    Localizations.localeOf(context).languageCode == 'ar'
-                                                        ? 'إجمالي المبالغ المحصّلة'
-                                                        : 'Total collected',
-                                                  ),
-                                                  Text(
-                                                    foodexMoneyText(
-                                                      account.totalCollected,
-                                                      account.currency,
+                                                  const Icon(
+                                                      Icons.payments_outlined),
+                                                  const SizedBox(width: 10),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          Localizations.localeOf(
+                                                                          context)
+                                                                      .languageCode ==
+                                                                  'ar'
+                                                              ? 'إجمالي المبالغ المحصّلة'
+                                                              : 'Total collected',
+                                                        ),
+                                                        Text(
+                                                          foodexMoneyText(
+                                                            account
+                                                                .totalCollected,
+                                                            account.currency,
+                                                          ),
+                                                          style:
+                                                              Theme.of(context)
+                                                                  .textTheme
+                                                                  .titleLarge,
+                                                        ),
+                                                      ],
                                                     ),
-                                                    style: Theme.of(context).textTheme.titleLarge,
                                                   ),
+                                                  const Icon(Icons
+                                                      .chevron_right_rounded),
                                                 ],
                                               ),
                                             ),
-                                            const Icon(Icons.chevron_right_rounded),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  _MoneyRow(
-                                    label: context.tr('driver.wallet.custody'),
-                                    amount: account.custodyBalance,
-                                    currency: account.currency,
-                                  ),
-                                  _MoneyRow(
-                                    label:
-                                        context.tr('driver.wallet.available'),
-                                    amount: account.availableToRemit,
-                                    currency: account.currency,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  FilledButton.icon(
-                                    key: Key(
-                                      'driver-wallet-remit-${account.id}',
-                                    ),
-                                    onPressed: _submitting ||
-                                            account.availableToRemit <= 0
-                                        ? null
-                                        : () => _submitRemittance(account),
-                                    icon:
-                                        const Icon(Icons.account_balance_rounded),
-                                    label: Text(
-                                      context.tr('driver.wallet.remit'),
-                                    ),
-                                  ),
-                                  if (account.transactions.isNotEmpty) ...[
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      context.tr('driver.wallet.recent'),
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleSmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    ...account.transactions.take(5).map(
-                                          (row) => ListTile(
-                                            dense: true,
-                                            contentPadding: EdgeInsets.zero,
-                                            leading: const Icon(
-                                              Icons.receipt_long_outlined,
-                                            ),
-                                            title: Text(
-                                              foodexMoneyText(row.amount, row.currency),
-                                            ),
-                                            subtitle: Text(
-                                              _transactionStatusLabel(row.status),
-                                            ),
                                           ),
                                         ),
-                                  ],
-                                ],
-                              ),
+                                        const SizedBox(height: 10),
+                                        _MoneyRow(
+                                          label: context
+                                              .tr('driver.wallet.custody'),
+                                          amount: account.custodyBalance,
+                                          currency: account.currency,
+                                        ),
+                                        _MoneyRow(
+                                          label: context
+                                              .tr('driver.wallet.available'),
+                                          amount: account.availableToRemit,
+                                          currency: account.currency,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        FilledButton.icon(
+                                          key: Key(
+                                            'driver-wallet-remit-${account.id}',
+                                          ),
+                                          onPressed: _submitting ||
+                                                  account.availableToRemit <= 0
+                                              ? null
+                                              : () =>
+                                                  _submitRemittance(account),
+                                          icon: const Icon(
+                                              Icons.account_balance_rounded),
+                                          label: Text(
+                                            context.tr('driver.wallet.remit'),
+                                          ),
+                                        ),
+                                        if (account
+                                            .transactions.isNotEmpty) ...[
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            context.tr('driver.wallet.recent'),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleSmall
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          ...account.transactions.take(5).map(
+                                                (row) => ListTile(
+                                                  dense: true,
+                                                  contentPadding:
+                                                      EdgeInsets.zero,
+                                                  leading: const Icon(
+                                                    Icons.receipt_long_outlined,
+                                                  ),
+                                                  title: Text(
+                                                    foodexMoneyText(row.amount,
+                                                        row.currency),
+                                                  ),
+                                                  subtitle: Text(
+                                                    _transactionStatusLabel(
+                                                        row.status),
+                                                  ),
+                                                ),
+                                              ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
-                    ),
+                          ),
           ),
         ],
       ),

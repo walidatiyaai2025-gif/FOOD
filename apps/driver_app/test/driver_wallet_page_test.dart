@@ -138,5 +138,4 @@ void main() {
     expect(find.textContaining('Remaining'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-
 }
