@@ -101,6 +101,8 @@ class CustomerOrderSummary {
     this.appliedCustomerCreditAmount,
     this.remainderMethod,
     this.fullySettled,
+    this.paidAmount,
+    this.paymentState,
   });
 
   final int id;
@@ -135,6 +137,12 @@ class CustomerOrderSummary {
 
   /// Explicit fully-settled flag when supplied by the finance contract.
   final bool? fullySettled;
+
+  /// Amount already paid from the authoritative order/invoice settlement.
+  final double? paidAmount;
+
+  /// Explicit ledger payment state: unpaid, partially_settled or fully_settled.
+  final String? paymentState;
 
   CustomerOrderContext get context =>
       CustomerOrderContext(storeId: storeId, channel: channel);
@@ -224,6 +232,13 @@ class CustomerOrderSummary {
       appliedCustomerCreditAmount: appliedCustomerCreditAmount,
       remainderMethod: remainderMethod?.toLowerCase(),
       fullySettled: fullySettled,
+      paidAmount: _firstNullableDouble(<Object?>[
+        settlement['paid_amount'],
+        invoice['paid_amount'],
+      ]),
+      paymentState: _firstNullableText(<Object?>[
+        settlement['payment_state'],
+      ])?.toLowerCase(),
     );
   }
 }
