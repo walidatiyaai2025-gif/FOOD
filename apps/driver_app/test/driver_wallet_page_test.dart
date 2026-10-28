@@ -46,6 +46,31 @@ class _FakeWallet implements DriverWalletRepository {
   }
 }
 
+class _CollectedWallet extends _FakeWallet {
+  @override
+  Future<List<DriverWalletAccount>> wallet() async => const [
+        DriverWalletAccount(
+          id: 6,
+          currency: 'KWD',
+          status: 'active',
+          custodyBalance: 0,
+          availableToRemit: 0,
+          totalCollected: 15,
+          collectedOrders: [
+            DriverCollectedOrder(
+              orderId: 123,
+              orderNumber: 'FO-123',
+              currency: 'KWD',
+              orderTotal: 30,
+              collectedAmount: 15,
+              remainingAmount: 15,
+              paymentState: 'partially_settled',
+            ),
+          ],
+        ),
+      ];
+}
+
 void main() {
   testWidgets(
       'wallet polls in foreground and preserves stale confirmed balances',
@@ -96,4 +121,22 @@ void main() {
     expect(repository.walletCalls, 2);
     expect(find.text('10.000 KWD'), findsOneWidget);
   });
+  testWidgets('collected card opens scoped order amounts and remaining balance',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      locale: const Locale('en'),
+      home: DriverWalletPage(repository: _CollectedWallet()),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-collected-summary-6')), findsOneWidget);
+    expect(find.text('15.000 KWD'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('driver-collected-summary-6')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-collected-order-123')), findsOneWidget);
+    expect(find.text('FO-123'), findsOneWidget);
+    expect(find.textContaining('Partially paid'), findsOneWidget);
+    expect(find.textContaining('Remaining'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
 }
