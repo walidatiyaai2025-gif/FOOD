@@ -1,3 +1,12 @@
+## 1.0.118 — Customer timeline and payment collection visibility
+
+- Deduplicate customer-visible order timeline stages even when order history and delivery execution record a milestone twice.
+- Display authoritative unpaid, partially paid and fully paid states and collected/remaining amounts in Customer Order Details.
+- Add a collected-payments summary in the Driver wallet, with per-order collected and remaining amounts and currency-separated totals.
+- Show collected/remaining payment breakdowns in Dashboard Order Management and per-driver Order lists.
+- Reconcile only posted invoice-allocated collection receipts under strict driver/store scopes; no synthesized payment successes.
+- Bundle synchronized Customer, Driver, Van and Dashboard artifacts through the canonical release factory after full CI.
+
 # Changelog
 
 ## 1.0.117 - 2026-10-27
