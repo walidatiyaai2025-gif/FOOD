@@ -10,8 +10,29 @@ void main() {
     expect(FoodexChartPalette.series.length, greaterThanOrEqualTo(4));
   });
 
+  testWidgets('long English chart legend labels fit a narrow phone layout',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 140,
+            child: FoodexChartLegend(
+              labels: ['Out for delivery', 'Awaiting confirmation'],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Out for delivery'), findsOneWidget);
+    expect(find.text('Awaiting confirmation'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final direction in TextDirection.values) {
-    testWidgets('shared visualization primitives render in $direction', (tester) async {
+    testWidgets('shared visualization primitives render in $direction',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Directionality(

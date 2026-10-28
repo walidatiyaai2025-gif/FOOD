@@ -24,6 +24,7 @@ class DriverJourneyRuntimePage extends StatelessWidget {
     this.homeRoute,
     this.deliveriesRoute,
     this.notificationsRoute,
+    this.walletRoute,
   });
 
   final DriverChannel channel;
@@ -37,6 +38,7 @@ class DriverJourneyRuntimePage extends StatelessWidget {
   final String? homeRoute;
   final String? deliveriesRoute;
   final String? notificationsRoute;
+  final String? walletRoute;
 
   Future<void> _openCompletion(
     BuildContext context,
@@ -98,6 +100,7 @@ class DriverJourneyRuntimePage extends StatelessWidget {
         homeRoute: homeRoute,
         deliveriesRoute: deliveriesRoute,
         notificationsRoute: notificationsRoute,
+        walletRoute: walletRoute,
         title: Text(
           context.tr(
             channel == DriverChannel.b2c
@@ -106,54 +109,54 @@ class DriverJourneyRuntimePage extends StatelessWidget {
           ),
         ),
         body: DriverActiveJourneyPage(
-        channel: channel,
-        repository: repository,
-        focusAssignmentId: focusAssignmentId,
-        initialAssignmentStatus: initialAssignmentStatus,
-        previewContext: previewContext,
-        onSessionExpired: onSessionExpired,
-        onNavigationRequested: (assignment) async {
-          final preview = previewContext;
-          if (preview != null && !preview.nativeNavigationEnabled) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  context.tr('driver.preview.navigation_simulated'),
+          channel: channel,
+          repository: repository,
+          focusAssignmentId: focusAssignmentId,
+          initialAssignmentStatus: initialAssignmentStatus,
+          previewContext: previewContext,
+          onSessionExpired: onSessionExpired,
+          onNavigationRequested: (assignment) async {
+            final preview = previewContext;
+            if (preview != null && !preview.nativeNavigationEnabled) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    context.tr('driver.preview.navigation_simulated'),
+                  ),
                 ),
-              ),
-            );
-            return;
-          }
+              );
+              return;
+            }
 
-          final latitude = assignment.navigationLatitude;
-          final longitude = assignment.navigationLongitude;
-          final address = assignment.address.trim();
-          final opened = latitude != null && longitude != null
-              ? await navigationLauncher(latitude, longitude)
-              : address.isNotEmpty
-                  ? await addressNavigationLauncher(address)
-                  : false;
-          if (!opened && context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(context.tr('driver.navigation.unavailable')),
-              ),
-            );
-          }
-        },
-        onFailedDeliveryRequested: (assignment, {note}) => _openCompletion(
-          context,
-          assignment,
-          target: DriverCompletionTarget.failed,
-          note: note,
+            final latitude = assignment.navigationLatitude;
+            final longitude = assignment.navigationLongitude;
+            final address = assignment.address.trim();
+            final opened = latitude != null && longitude != null
+                ? await navigationLauncher(latitude, longitude)
+                : address.isNotEmpty
+                    ? await addressNavigationLauncher(address)
+                    : false;
+            if (!opened && context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(context.tr('driver.navigation.unavailable')),
+                ),
+              );
+            }
+          },
+          onFailedDeliveryRequested: (assignment, {note}) => _openCompletion(
+            context,
+            assignment,
+            target: DriverCompletionTarget.failed,
+            note: note,
+          ),
+          onDeliveredRequested: (assignment) => _openCompletion(
+            context,
+            assignment,
+            target: DriverCompletionTarget.delivered,
+          ),
         ),
-        onDeliveredRequested: (assignment) => _openCompletion(
-          context,
-          assignment,
-          target: DriverCompletionTarget.delivered,
-        ),
-      ),
-    );
+      );
 }
 
 class _DriverRepositoryCompletionGateway implements DriverCompletionGateway {
@@ -228,7 +231,8 @@ String? _normalized(String? value) {
   return normalized.isEmpty ? null : normalized;
 }
 
-String _validationCode(DriverCompletionValidationError error) => switch (error) {
+String _validationCode(DriverCompletionValidationError error) =>
+    switch (error) {
       DriverCompletionValidationError.proofRequired => 'proof_required',
       DriverCompletionValidationError.proofTooLarge => 'proof_too_large',
       DriverCompletionValidationError.failureReasonRequired =>

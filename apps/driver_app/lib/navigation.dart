@@ -84,6 +84,10 @@ class DriverNavigator {
     final homeRoute = DriverRoutes.home(channel);
     final deliveriesRoute = DriverRoutes.deliveries(channel);
     final notificationsRoute = DriverRoutes.notifications(channel);
+    final walletRoute =
+        channel == DriverChannel.b2c && repository is DriverWalletRepository
+            ? DriverRoutes.b2cWallet
+            : null;
 
     if (name == homeRoute) {
       return _page(_homeFor(channel), settings);
@@ -104,6 +108,7 @@ class DriverNavigator {
           homeRoute: homeRoute,
           deliveriesRoute: deliveriesRoute,
           notificationsRoute: notificationsRoute,
+          walletRoute: walletRoute,
         ),
         settings,
       );
@@ -121,6 +126,7 @@ class DriverNavigator {
             homeRoute: homeRoute,
             deliveriesRoute: deliveriesRoute,
             notificationsRoute: notificationsRoute,
+            walletRoute: walletRoute,
             onOpenAssignment: (assignmentId) {
               Navigator.of(context)
                   .pushNamed(deliveriesRoute, arguments: assignmentId);
@@ -130,12 +136,21 @@ class DriverNavigator {
         settings,
       );
     }
-    if (channel == DriverChannel.b2c && name == DriverRoutes.b2cWallet) {
-      if (repository is! DriverWalletRepository) {
+    if (name == DriverRoutes.b2cWallet) {
+      if (walletRoute == null) {
         return _page(const _DriverRouteNotFound(), settings);
       }
       final walletRepository = repository as DriverWalletRepository;
-      return _page(DriverWalletPage(repository: walletRepository), settings);
+      return _page(
+        DriverWalletPage(
+          repository: walletRepository,
+          homeRoute: homeRoute,
+          deliveriesRoute: deliveriesRoute,
+          notificationsRoute: notificationsRoute,
+          walletRoute: walletRoute,
+        ),
+        settings,
+      );
     }
 
     return _page(const _DriverRouteNotFound(), settings);
@@ -722,6 +737,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
       homeRoute: widget.homeRoute,
       deliveriesRoute: widget.deliveriesRoute,
       notificationsRoute: widget.notificationsRoute,
+      walletRoute: widget.walletRoute,
       appBar: AppBar(
         titleSpacing: 16,
         title: Row(
