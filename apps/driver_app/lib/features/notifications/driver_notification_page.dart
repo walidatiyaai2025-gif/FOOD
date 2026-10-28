@@ -210,78 +210,83 @@ class _DriverNotificationPageState extends State<DriverNotificationPage>
               ),
             Expanded(
               child: _loading
-            ? const Center(
-                child: CircularProgressIndicator(
-                  key: Key('driver-notifications-loading'),
-                ),
-              )
-            : _failed
-                ? Center(
-                    key: const Key('driver-notifications-error'),
-                    child: FilledButton.icon(
-                      onPressed: _load,
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: Text(context.tr('driver.retry')),
-                    ),
-                  )
-                : _items.isEmpty
-                    ? Center(
-                        child: Text(
-                          context.tr('driver.notifications.empty'),
-                          key: const Key('driver-notifications-empty'),
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _load,
-                        child: ListView.builder(
-                          key: const Key('driver-notifications-list'),
-                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
-                          itemCount: _items.length,
-                          itemBuilder: (context, index) {
-                            final notification = _items[index];
-                            final unread = notification.readAt == null;
-                            final actionable = !notification.accessRevoked &&
-                                notification.assignmentId != null &&
-                                notification.assignmentId! > 0;
-
-                            return Card(
-                              key: Key(
-                                'driver-notification-${notification.id}',
-                              ),
-                              margin: const EdgeInsets.only(bottom: 10),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 4,
-                                ),
-                                leading: Icon(
-                                  unread
-                                      ? Icons.notifications_active_rounded
-                                      : Icons.notifications_none_rounded,
-                                ),
-                                title: Text(
-                                  notification.title,
-                                  style: TextStyle(
-                                    fontWeight: unread
-                                        ? FontWeight.w800
-                                        : FontWeight.w500,
-                                  ),
-                                ),
-                                subtitle: Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: Text(notification.body),
-                                ),
-                                trailing: actionable
-                                    ? const Icon(Icons.chevron_right_rounded)
-                                    : notification.accessRevoked
-                                        ? const Icon(Icons.lock_outline_rounded)
-                                        : null,
-                                onTap: () => _open(notification),
-                              ),
-                            );
-                          },
-                        ),
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        key: Key('driver-notifications-loading'),
                       ),
+                    )
+                  : _failed
+                      ? Center(
+                          key: const Key('driver-notifications-error'),
+                          child: FilledButton.icon(
+                            onPressed: _load,
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: Text(context.tr('driver.retry')),
+                          ),
+                        )
+                      : _items.isEmpty
+                          ? Center(
+                              child: Text(
+                                context.tr('driver.notifications.empty'),
+                                key: const Key('driver-notifications-empty'),
+                              ),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: _load,
+                              child: ListView.builder(
+                                key: const Key('driver-notifications-list'),
+                                padding:
+                                    const EdgeInsets.fromLTRB(12, 8, 12, 20),
+                                itemCount: _items.length,
+                                itemBuilder: (context, index) {
+                                  final notification = _items[index];
+                                  final unread = notification.readAt == null;
+                                  final actionable =
+                                      !notification.accessRevoked &&
+                                          notification.assignmentId != null &&
+                                          notification.assignmentId! > 0;
+
+                                  return Card(
+                                    key: Key(
+                                      'driver-notification-${notification.id}',
+                                    ),
+                                    margin: const EdgeInsets.only(bottom: 10),
+                                    child: ListTile(
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 4,
+                                      ),
+                                      leading: Icon(
+                                        unread
+                                            ? Icons.notifications_active_rounded
+                                            : Icons.notifications_none_rounded,
+                                      ),
+                                      title: Text(
+                                        notification.title,
+                                        style: TextStyle(
+                                          fontWeight: unread
+                                              ? FontWeight.w800
+                                              : FontWeight.w500,
+                                        ),
+                                      ),
+                                      subtitle: Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text(notification.body),
+                                      ),
+                                      trailing: actionable
+                                          ? const Icon(
+                                              Icons.chevron_right_rounded)
+                                          : notification.accessRevoked
+                                              ? const Icon(
+                                                  Icons.lock_outline_rounded)
+                                              : null,
+                                      onTap: () => _open(notification),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
             ),
           ],
         ),

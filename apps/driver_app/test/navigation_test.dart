@@ -224,7 +224,8 @@ DriverSession session(DriverChannel channel) => DriverSession(
     );
 
 void main() {
-  testWidgets('B2C wallet is reachable from Home footer, shows collected orders, and returns Home',
+  testWidgets(
+      'B2C wallet is reachable from Home footer, shows collected orders, and returns Home',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -243,17 +244,21 @@ void main() {
     expect(find.byKey(const Key('driver-shell-wallet')), findsOneWidget);
     expect(find.text('المحفظة'), findsOneWidget);
     expect(find.byKey(const Key('driver-open-wallet')), findsOneWidget);
-    expect(find.byKey(const Key('driver-home-unsettled-collections')), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-unsettled-collections')),
+        findsOneWidget);
 
     await tester.tap(find.byKey(const Key('driver-shell-wallet')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('driver-wallet-page')), findsOneWidget);
-    expect(find.byKey(const Key('driver-collected-summary-81')), findsOneWidget);
+    expect(
+        find.byKey(const Key('driver-collected-summary-81')), findsOneWidget);
     expect(find.byKey(const Key('driver-shell-navigation')), findsOneWidget);
     expect(
-      tester.widget<NavigationBar>(
-        find.byKey(const Key('driver-shell-navigation')),
-      ).selectedIndex,
+      tester
+          .widget<NavigationBar>(
+            find.byKey(const Key('driver-shell-navigation')),
+          )
+          .selectedIndex,
       DriverShellDestination.wallet.index,
     );
 
@@ -266,7 +271,8 @@ void main() {
 
     await tester.tap(find.byKey(const Key('driver-shell-home')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('driver-home-unsettled-collections')), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-unsettled-collections')),
+        findsOneWidget);
     expect(find.byKey(const Key('driver-wallet-page')), findsNothing);
 
     await tester.tap(find.byKey(const Key('driver-open-wallet')));
@@ -275,7 +281,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('English footer opens B2C wallet and preserves Deliveries navigation',
+  testWidgets(
+      'English footer opens B2C wallet and preserves Deliveries navigation',
       (tester) async {
     await tester.pumpWidget(FoodexDriverApp(
       locale: const Locale('en'),
@@ -290,14 +297,19 @@ void main() {
     await tester.tap(find.byKey(const Key('driver-shell-deliveries')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('driver-shell')), findsOneWidget);
-    expect(tester.widget<NavigationBar>(
-      find.byKey(const Key('driver-shell-navigation')),
-    ).selectedIndex, DriverShellDestination.deliveries.index);
+    expect(
+        tester
+            .widget<NavigationBar>(
+              find.byKey(const Key('driver-shell-navigation')),
+            )
+            .selectedIndex,
+        DriverShellDestination.deliveries.index);
     expect(find.byKey(const Key('driver-shell-wallet')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('B2B and unsupported B2C repositories do not expose a dead Wallet destination',
+  testWidgets(
+      'B2B and unsupported B2C repositories do not expose a dead Wallet destination',
       (tester) async {
     for (final channel in [DriverChannel.b2b, DriverChannel.b2c]) {
       await tester.pumpWidget(FoodexDriverApp(
