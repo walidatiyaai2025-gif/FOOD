@@ -291,6 +291,16 @@ class CustomerOrderDetails {
   final CustomerOrderDriver? driver;
   final List<CustomerCollectionReceipt> collectionReceipts;
 
+  /// Customer-facing timeline must not repeat a milestone reported by two
+  /// separate status producers (for example proof + order status history).
+  List<CustomerOrderHistoryEntry> get uniqueHistory {
+    final seen = <String>{};
+    return history.where((entry) {
+      final status = entry.toStatus.trim().toLowerCase();
+      return status.isNotEmpty && seen.add(status);
+    }).toList(growable: false);
+  }
+
   factory CustomerOrderDetails.fromJson(Map<String, dynamic> json) {
     final items = json['items'] is List
         ? (json['items'] as List)
