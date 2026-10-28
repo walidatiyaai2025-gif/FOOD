@@ -4,6 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Order;
+use App\Models\Invoice;
+use App\Models\Payment;
+use App\Services\DeliverySettlementService;
 use App\Services\OperationalTenantScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -53,9 +57,34 @@ class DriverOrdersController extends Controller
             ]);
         abort_unless($driverRow !== null, 404);
 
-        $orders = DB::table('driver_assignments')
+        // Only posted, invoice-allocated collections belonging to this driver
+        // count towards the driver total. Never attribute an order's other
+        // collectors or online payments to this driver.
+        $collections = DB::table('collection_allocations as alloc')
+            ->join('collection_transactions as ct', 'ct.id', '=', 'alloc.collection_transaction_id')
+            ->join('collection_accounts as account', 'account.id', '=', 'ct.collection_account_id')
+            ->join('invoices as invoice', 'invoice.id', '=', 'alloc.invoice_id')
+            ->join('orders as collected_order', 'collected_order.id', '=', 'invoice.order_id')
+            ->where('account.actor_type', 'driver')
+            ->where('account.actor_id', $driver)
+            ->where('account.store_id', $driverRow->store_id)
+            ->where('ct.type', 'collection')
+            ->where('ct.status', 'posted')
+            ->whereColumn('alloc.currency', 'collected_order.currency')
+            ->whereNotExists(function ($query): void {
+                $query->selectRaw('1')
+                    ->from('collection_transactions as reversal')
+                    ->whereColumn('reversal.reversal_of_id', 'ct.id')
+                    ->where('reversal.status', 'posted');
+            })
+            ->select('invoice.order_id')
+            ->selectRaw('SUM(alloc.amount) as collected_amount')
+            ->groupBy('invoice.order_id');
+
+        $baseOrders = DB::table('driver_assignments')
             ->join('orders', 'orders.id', '=', 'driver_assignments.order_id')
             ->join('stores', 'stores.id', '=', 'orders.store_id')
+            ->leftJoinSub($collections, 'driver_collections', fn ($join) => $join->on('driver_collections.order_id', '=', 'orders.id'))
             ->where('driver_assignments.driver_id', $driver)
             ->where('orders.channel', $channel)
             ->whereIn('orders.store_id', $storeIds)
@@ -70,6 +99,16 @@ class DriverOrdersController extends Controller
                 isset($validated['to']),
                 fn ($query) => $query->whereDate('orders.created_at', '<=', (string) $validated['to']),
             )
+            ;
+
+        $collectionTotals = (clone $baseOrders)
+            ->select('orders.currency')
+            ->selectRaw('SUM(COALESCE(driver_collections.collected_amount, 0)) as collected_amount')
+            ->groupBy('orders.currency')
+            ->orderBy('orders.currency')
+            ->get();
+
+        $orders = $baseOrders
             ->orderByDesc('orders.created_at')
             ->orderByDesc('orders.id')
             ->select([
@@ -80,13 +119,41 @@ class DriverOrdersController extends Controller
                 'stores.name as store_name',
                 'driver_assignments.status as assignment_status',
                 'driver_assignments.assigned_at',
+                'orders.currency',
+                'orders.grand_total',
+                'driver_collections.collected_amount',
             ])
             ->paginate(10)
             ->withQueryString();
 
+        $ids = array_map(static fn (object $row): int => (int) $row->id, $orders->items());
+        $orderModels = Order::query()->whereIn('id', $ids)->get()->keyBy('id');
+        $invoices = Invoice::query()->whereIn('order_id', $ids)
+            ->whereIn('status', ['issued', 'reissued'])
+            ->orderByDesc('revision')->orderByDesc('id')
+            ->get()->unique('order_id')->keyBy('order_id');
+        $payments = Payment::query()->whereIn('order_id', $ids)
+            ->orderByDesc('id')->get()->unique('order_id')->keyBy('order_id');
+        $settlements = app(DeliverySettlementService::class);
+        foreach ($orders->items() as $row) {
+            $order = $orderModels->get((int) $row->id);
+            if (! $order instanceof Order) {
+                continue;
+            }
+            $amounts = $settlements->summarize(
+                $order,
+                $invoices->get((int) $row->id),
+                $payments->get((int) $row->id),
+            );
+            $row->remaining_amount = (float) $amounts['remaining_amount'];
+            $row->paid_amount = (float) $amounts['paid_amount'];
+            $row->payment_state = (string) $amounts['payment_state'];
+        }
+
         return view('admin._driver-orders-popup', [
             'driver' => $driverRow,
             'orders' => $orders,
+            'collectionTotals' => $collectionTotals,
             'channel' => $channel,
             'storeId' => $storeId,
             'from' => $validated['from'] ?? null,
