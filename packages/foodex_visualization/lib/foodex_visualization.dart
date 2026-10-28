@@ -342,7 +342,13 @@ class FoodexChartLegend extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Text(labels[index]),
+              Flexible(
+                child: Text(
+                  labels[index],
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
       ],
