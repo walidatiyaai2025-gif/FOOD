@@ -47,10 +47,12 @@ void main() {
         (tester) async {
       await _setup(tester);
       final key = GlobalKey();
+      final theme = FoodexTheme.light(fontFamily: _evidenceFontFamily);
       await tester.pumpWidget(
         RepaintBoundary(
           key: key,
           child: MaterialApp(
+            debugShowCheckedModeBanner: false,
             locale: locale,
             supportedLocales: const [Locale('ar'), Locale('en')],
             localizationsDelegates: const [
@@ -58,7 +60,13 @@ void main() {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
+            theme: theme.copyWith(
+              appBarTheme: theme.appBarTheme.copyWith(
+                titleTextStyle: theme.appBarTheme.titleTextStyle?.copyWith(
+                  fontFamily: _evidenceFontFamily,
+                ),
+              ),
+            ),
             home: const DriverWalletPage(
               repository: _EvidenceCollectedWallet(),
             ),
@@ -81,8 +89,8 @@ void main() {
       await tester.tap(summary);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 150));
-      expect(find.byKey(const Key('driver-collected-order-123')),
-          findsOneWidget);
+      expect(
+          find.byKey(const Key('driver-collected-order-123')), findsOneWidget);
       await _writeBoundary(
         tester,
         key,
