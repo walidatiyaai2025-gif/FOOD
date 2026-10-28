@@ -2,11 +2,11 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.117",
-  "minimum_current_version": "1.0.114",
-  "source_base": "13bf6b36c2813d93af6f982ddcc68f2f3e677ab6",
-  "source_commit": "bd2a04629eb77610fe527e126c94e87ee1c4d06e",
-  "sha256": "f3eb213e8cb05ad9b41fbac7e7e5a00882021db4e0854bbc8436dffbd648b72d",
+  "target_version": "1.0.118",
+  "minimum_current_version": "1.0.117",
+  "source_base": "bd2a04629eb77610fe527e126c94e87ee1c4d06e",
+  "source_commit": "b4808030679cfffa08a792dfd61be2185eecad92",
+  "sha256": "d75ec745f08cccd58ae9ffa8074e88a6860fd62968c6bc8c78196600cbb5f4c8",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/0001_01_01_000000_create_users_table.php",
@@ -226,19 +226,19 @@
     "backend/database/migrations/2026_10_27_171000_create_user_permission_overrides.php"
   ],
   "delta": {
-    "file_count": 1971,
-    "source_file_count": 1854,
+    "file_count": 1972,
+    "source_file_count": 1855,
     "files_manifest": "FOODEX-Update.files.txt"
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Synchronize Dashboard, Customer, Driver and Van release identities from the final post-merge main source; Customer, Driver and Van are now `1.0.117+117`. Complete the Customer Service dispatch upgrade repair so authorized Customer Service Manager/Supervisor/Agent roles receive the canonical `orders.dispatch` capability on existing databases without elevated order-management or driver-administration access. Add per-user permission allow/deny overrides on top of role defaults, including protected SUPER_ADMIN behavior, store/global scope enforcement, auditability and automatic reset when role assignments change. Reconcile canonical RBAC database state before/after permission mutations so stale built-in role, permission and override data self-heals during administration and upgrades. Preserve the baseline permission-query path for users without individual overrides, keeping WMS query budgets unchanged while enabling override-aware authorization only where needed. Build the Dashboard update, Setup package and all three mobile APKs from the same final 1.0.117 source lineage and validate them through the canonical Release Factory.",
+  "release_notes": "Deduplicate customer-visible order timeline stages even when order history and delivery execution record a milestone twice. Display authoritative unpaid, partially paid and fully paid states and collected/remaining amounts in Customer Order Details. Add a collected-payments summary in the Driver wallet, with per-order collected and remaining amounts and currency-separated totals. Show collected/remaining payment breakdowns in Dashboard Order Management and per-driver Order lists. Reconcile only posted invoice-allocated collection receipts under strict driver/store scopes; no synthesized payment successes. Bundle synchronized Customer, Driver, Van and Dashboard artifacts through the canonical release factory after full CI.",
   "dashboard_fields": {
-    "target_version": "1.0.117",
-    "minimum_current_version": "1.0.114",
-    "source_commit": "bd2a04629eb77610fe527e126c94e87ee1c4d06e",
-    "sha256": "f3eb213e8cb05ad9b41fbac7e7e5a00882021db4e0854bbc8436dffbd648b72d",
+    "target_version": "1.0.118",
+    "minimum_current_version": "1.0.117",
+    "source_commit": "b4808030679cfffa08a792dfd61be2185eecad92",
+    "sha256": "d75ec745f08cccd58ae9ffa8074e88a6860fd62968c6bc8c78196600cbb5f4c8",
     "contains_migrations": true,
-    "release_notes": "Synchronize Dashboard, Customer, Driver and Van release identities from the final post-merge main source; Customer, Driver and Van are now `1.0.117+117`. Complete the Customer Service dispatch upgrade repair so authorized Customer Service Manager/Supervisor/Agent roles receive the canonical `orders.dispatch` capability on existing databases without elevated order-management or driver-administration access. Add per-user permission allow/deny overrides on top of role defaults, including protected SUPER_ADMIN behavior, store/global scope enforcement, auditability and automatic reset when role assignments change. Reconcile canonical RBAC database state before/after permission mutations so stale built-in role, permission and override data self-heals during administration and upgrades. Preserve the baseline permission-query path for users without individual overrides, keeping WMS query budgets unchanged while enabling override-aware authorization only where needed. Build the Dashboard update, Setup package and all three mobile APKs from the same final 1.0.117 source lineage and validate them through the canonical Release Factory."
+    "release_notes": "Deduplicate customer-visible order timeline stages even when order history and delivery execution record a milestone twice. Display authoritative unpaid, partially paid and fully paid states and collected/remaining amounts in Customer Order Details. Add a collected-payments summary in the Driver wallet, with per-order collected and remaining amounts and currency-separated totals. Show collected/remaining payment breakdowns in Dashboard Order Management and per-driver Order lists. Reconcile only posted invoice-allocated collection receipts under strict driver/store scopes; no synthesized payment successes. Bundle synchronized Customer, Driver, Van and Dashboard artifacts through the canonical release factory after full CI."
   }
 }
