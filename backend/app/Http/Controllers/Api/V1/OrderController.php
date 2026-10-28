@@ -644,6 +644,8 @@ class OrderController extends Controller
                 'credit_amount' => 0.0,
             ];
 
+        $settlement = app(\App\Services\DeliverySettlementService::class)->summarize($order, $invoice, $payment);
+
         $collectionReceipts = $invoice instanceof Invoice
             ? DB::table('collection_allocations')
                 ->join(
@@ -750,6 +752,7 @@ class OrderController extends Controller
                     ? null
                     : CarbonImmutable::parse((string) $invoice->issued_at)->toAtomString(),
             ] : null,
+            'settlement' => $settlement,
             'collection_receipts' => $collectionReceipts,
             'tracking' => $tracking,
             'driver' => $driver,
