@@ -1,3 +1,11 @@
+## 1.0.119 - Driver Wallet navigation and synchronized release
+
+- Add a discoverable Wallet tab to the shared Driver B2C bottom navigation on Home, Deliveries, Notifications and Wallet.
+- Retain the Home Wallet entry point and per-order collected and remaining payment details.
+- Preserve B2B isolation, authenticated driver/store-scoped collections and Arabic/English localization.
+- Verify mobile route accessibility at small viewports and Arabic/English navigation with regression tests.
+- Rebuild synchronized Customer, Driver, Van APKs, Dashboard Update and Laravel Setup with version 1.0.119 and verified source identity using the canonical Release Factory.
+
 ## 1.0.118 - Customer timeline and payment collection visibility
 
 - Deduplicate customer-visible order timeline stages even when order history and delivery execution record a milestone twice.

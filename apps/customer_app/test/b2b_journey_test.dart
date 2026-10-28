@@ -10,6 +10,7 @@ import 'package:foodex_customer_app/core/api/customer_action_api.dart';
 import 'package:foodex_customer_app/core/api/storefront_api.dart';
 import 'package:foodex_customer_app/core/api/wholesale_commerce_api.dart';
 import 'package:foodex_customer_app/core/auth/customer_session.dart';
+import 'package:foodex_customer_app/core/config/customer_app_release.dart';
 import 'package:foodex_customer_app/core/diagnostics/customer_diagnostics.dart';
 import 'package:foodex_customer_app/core/routing/customer_pending_action.dart';
 import 'package:foodex_customer_app/core/theme/customer_ui_v3_tokens.dart';
@@ -649,7 +650,7 @@ void main() {
     );
     expect(find.byKey(const ValueKey('b2b-profile-logout')), findsNothing);
     expect(find.byKey(const ValueKey('b2b-more-app-version')), findsOneWidget);
-    expect(find.text('الإصدار 1.0.118'), findsOneWidget);
+    expect(find.text('الإصدار $customerAppVersion'), findsOneWidget);
     expect(find.text('company_name'), findsNothing);
   });
 
