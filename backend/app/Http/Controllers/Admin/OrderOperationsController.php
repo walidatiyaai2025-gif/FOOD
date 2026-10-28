@@ -2108,7 +2108,7 @@ final class OrderOperationsController extends Controller
             issuedInvoiceOrders: $issuedInvoiceOrders,
             stores: $stores,
             sources: $sources,
-            settlements: [],
+            settlements: app(DeliverySettlementService::class)->summarizeMany($orders),
             deliveredAt: $deliveredAt,
         );
     }
@@ -2217,21 +2217,25 @@ final class OrderOperationsController extends Controller
                 ->first(['id', 'invoice_number', 'status', 'total', 'currency'])
             : ($context->invoices[$orderId] ?? null);
 
-        $issuedFinancialInvoice = Invoice::query()
-            ->where('order_id', $orderId)
-            ->whereIn('status', ['issued', 'reissued'])
-            ->orderByDesc('revision')
-            ->orderByDesc('id')
-            ->first();
-        $financialPayment = Payment::query()
-            ->where('order_id', $orderId)
-            ->latest('id')
-            ->first();
-        $paymentSettlement = app(DeliverySettlementService::class)->summarize(
-            $order,
-            $issuedFinancialInvoice,
-            $financialPayment,
-        );
+        if ($context === null) {
+            $issuedFinancialInvoice = Invoice::query()
+                ->where('order_id', $orderId)
+                ->whereIn('status', ['issued', 'reissued'])
+                ->orderByDesc('revision')
+                ->orderByDesc('id')
+                ->first();
+            $financialPayment = Payment::query()
+                ->where('order_id', $orderId)
+                ->latest('id')
+                ->first();
+            $paymentSettlement = app(DeliverySettlementService::class)->summarize(
+                $order,
+                $issuedFinancialInvoice,
+                $financialPayment,
+            );
+        } else {
+            $paymentSettlement = $context->settlements[$orderId];
+        }
 
         $channel = strtolower((string) $order->channel);
         $canManage = in_array(
