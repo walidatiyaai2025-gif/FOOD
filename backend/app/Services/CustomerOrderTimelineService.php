@@ -290,7 +290,7 @@ final class CustomerOrderTimelineService
      * @param  list<array<string, mixed>>  $events
      * @return list<array<string, mixed>>
      */
-    private function uniqueStages(array $events): array
+    public function uniqueStages(array $events): array
     {
         $seen = [];
         $unique = [];
