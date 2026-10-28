@@ -68,7 +68,9 @@ void main() {
     expect(details.history.single.fromStatus, 'pending');
     expect(details.history.single.toStatus, 'confirmed');
   });
-  test('repeated tracking milestones collapse and authoritative split payment is retained', () {
+  test(
+      'repeated tracking milestones collapse and authoritative split payment is retained',
+      () {
     final details = CustomerOrderDetails.fromJson({
       'id': 118,
       'order_number': 'FO-118',
@@ -89,7 +91,8 @@ void main() {
         {'id': 4, 'to_status': 'delivered'},
       ],
     });
-    expect(details.uniqueHistory.map((row) => row.toStatus.toLowerCase()).toList(),
+    expect(
+        details.uniqueHistory.map((row) => row.toStatus.toLowerCase()).toList(),
         ['pending', 'out_for_delivery', 'delivered']);
     expect(details.summary.paidAmount, 7.5);
     expect(details.summary.invoiceOutstandingAmount, 12.5);
@@ -99,20 +102,21 @@ void main() {
 
   test('fully paid and missing settlement remain distinct', () {
     final paid = CustomerOrderSummary.fromJson({
-      'id': 2, 'store_id': 3, 'currency': 'KWD', 'grand_total': 5,
+      'id': 2,
+      'store_id': 3,
+      'currency': 'KWD',
+      'grand_total': 5,
       'settlement': {
         'paid_amount': 5,
         'remaining_amount': 0,
         'payment_state': 'fully_settled'
       }
     });
-    final missing = CustomerOrderSummary.fromJson({
-      'id': 3, 'store_id': 3, 'currency': 'KWD', 'grand_total': 5
-    });
+    final missing = CustomerOrderSummary.fromJson(
+        {'id': 3, 'store_id': 3, 'currency': 'KWD', 'grand_total': 5});
     expect(paid.fullySettled, true);
     expect(paid.paymentState, 'fully_settled');
     expect(missing.paymentState, isNull);
     expect(missing.paidAmount, isNull);
   });
-
 }

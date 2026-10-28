@@ -1628,7 +1628,10 @@ class _PaymentSummary extends StatelessWidget {
     final paymentStatusLabel =
         payment == null ? null : _paymentStatusLabel(context, payment.status);
 
-    if (payment == null && receipts.isEmpty && outstanding == null && state == null) {
+    if (payment == null &&
+        receipts.isEmpty &&
+        outstanding == null &&
+        state == null) {
       return Text(paymentMethodLabel);
     }
 
@@ -1664,7 +1667,8 @@ class _PaymentSummary extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
             title: Text(isArabic ? 'إجمالي الطلب' : 'Order total'),
             trailing: Text(
-              foodexMoneyText(details.summary.grandTotal, details.summary.currency),
+              foodexMoneyText(
+                  details.summary.grandTotal, details.summary.currency),
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
@@ -1675,7 +1679,8 @@ class _PaymentSummary extends StatelessWidget {
               title: Text(isArabic ? 'المبلغ المحصّل' : 'Collected amount'),
               trailing: Text(
                 foodexMoneyText(collected, details.summary.currency),
-                style: TextStyle(color: paymentColor, fontWeight: FontWeight.w800),
+                style:
+                    TextStyle(color: paymentColor, fontWeight: FontWeight.w800),
               ),
             ),
         ],
