@@ -812,6 +812,7 @@ backend/app/Services/DatabaseTranslationLoader.php
 backend/app/Services/DeliveryExecutionService.php
 backend/app/Services/DeliverySettlementService.php
 backend/app/Services/DemoDataManager.php
+backend/app/Services/DriverCollectionReportService.php
 backend/app/Services/DriverDeliveryEvidenceService.php
 backend/app/Services/DriverLocationEnforcementPolicy.php
 backend/app/Services/DriverOrderService.php
