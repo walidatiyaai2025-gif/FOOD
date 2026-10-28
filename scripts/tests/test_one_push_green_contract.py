@@ -1,5 +1,11 @@
 from __future__ import annotations
 import unittest
+import hashlib
+import json
+import os
+import subprocess
+import tempfile
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -103,6 +109,108 @@ class OnePushGreenContractTest(unittest.TestCase):
             self.assertNotIn("actions/cache@v4", text, path.name)
             self.assertNotIn("actions/setup-node@v4", text, path.name)
             self.assertNotIn("@latest", text, path.name)
+
+
+
+class PublishedDashboardSyncPolicyTest(unittest.TestCase):
+    """Exercise the exact release artifact lane without weakening other release branches."""
+
+    def _git(self, repo: Path, *args: str) -> str:
+        return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+
+    def _fixture(self, repo: Path) -> tuple[str, str]:
+        self._git(repo, "init", "-q")
+        self._git(repo, "config", "user.email", "ci@example.test")
+        self._git(repo, "config", "user.name", "CI Fixture")
+        (repo / "VERSION").write_text("1.0.118\n", encoding="utf-8")
+        for app in ("customer_app", "driver_app", "van_app"):
+            pubspec = repo / "apps" / app / "pubspec.yaml"
+            pubspec.parent.mkdir(parents=True)
+            pubspec.write_text("name: test\nversion: 1.0.118+118\n", encoding="utf-8")
+        registry = repo / "docs/release/RELEASE_REGISTRY.json"
+        registry.parent.mkdir(parents=True)
+        baseline = {"schema_version": 1, "current_version": "1.0.117", "releases": [
+            {"version": "1.0.117", "state": "published"}
+        ]}
+        registry.write_text(json.dumps(baseline), encoding="utf-8")
+        self._git(repo, "add", ".")
+        self._git(repo, "commit", "-qm", "baseline")
+        base = self._git(repo, "rev-parse", "HEAD")
+
+        updates = repo / "Release/Updates"
+        updates.mkdir(parents=True)
+        package = updates / "FOODEX-Update.zip"
+        with zipfile.ZipFile(package, "w") as archive:
+            archive.writestr("README.txt", "published Dashboard update fixture")
+        digest = hashlib.sha256(package.read_bytes()).hexdigest()
+        (updates / "FOODEX-Update.sha256.txt").write_text(
+            f"{digest}  FOODEX-Update.zip\n", encoding="utf-8"
+        )
+        (updates / "FOODEX-Update.files.txt").write_text("README.txt\n", encoding="utf-8")
+        manifest = {
+            "available": True, "package": "FOODEX-Update.zip",
+            "target_version": "1.0.118",
+            "minimum_current_version": "1.0.117",
+            "source_commit": base, "sha256": digest,
+            "delta": {"files_manifest": "FOODEX-Update.files.txt"},
+            "dashboard_fields": {"target_version": "1.0.118", "sha256": digest},
+        }
+        (updates / "FOODEX-Update.json").write_text(json.dumps(manifest), encoding="utf-8")
+        promoted = {
+            "schema_version": 1, "current_version": "1.0.118",
+            "releases": [*baseline["releases"], {
+                "version": "1.0.118", "state": "published",
+                "registration": "generated-release",
+                "dashboard_update_sha256": digest,
+            }],
+        }
+        registry.write_text(json.dumps(promoted), encoding="utf-8")
+        self._git(repo, "add", ".")
+        self._git(repo, "commit", "-qm", "generated artifacts")
+        return base, self._git(repo, "rev-parse", "HEAD")
+
+    def _validate(self, repo: Path, base: str, head: str, branch: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            ["bash", str(ROOT / "scripts/validate-premerge-release-version.sh"), base, head],
+            cwd=repo,
+            env={**os.environ, "GITHUB_HEAD_REF": branch, "GITHUB_BASE_REF": "main"},
+            capture_output=True, text=True, check=False,
+        )
+
+    def test_published_artifact_sync_and_negative_boundaries(self):
+        with tempfile.TemporaryDirectory() as location:
+            repo = Path(location)
+            base, head = self._fixture(repo)
+            branch = "release/1.0.118-dashboard-update-sync"
+            allowed = self._validate(repo, base, head, branch)
+            self.assertEqual(0, allowed.returncode, allowed.stdout + allowed.stderr)
+
+            wrong_branch = self._validate(repo, base, head, "release/1.0.118-unrelated")
+            self.assertNotEqual(0, wrong_branch.returncode)
+            wrong_version = self._validate(
+                repo, base, head, "release/1.0.119-dashboard-update-sync"
+            )
+            self.assertNotEqual(0, wrong_version.returncode)
+
+            unexpected = repo / "backend/app/Unrelated.php"
+            unexpected.parent.mkdir(parents=True)
+            unexpected.write_text("<?php\n", encoding="utf-8")
+            self._git(repo, "add", ".")
+            self._git(repo, "commit", "-qm", "unexpected source change")
+            changed_head = self._git(repo, "rev-parse", "HEAD")
+            outside = self._validate(repo, base, changed_head, branch)
+            self.assertNotEqual(0, outside.returncode)
+            self.assertIn("exactly the five", outside.stderr)
+
+            self._git(repo, "reset", "--hard", head)
+            hashfile = repo / "Release/Updates/FOODEX-Update.sha256.txt"
+            hashfile.write_text("0" * 64 + "  FOODEX-Update.zip\n", encoding="utf-8")
+            self._git(repo, "add", ".")
+            self._git(repo, "commit", "-qm", "invalid hash")
+            corrupt_head = self._git(repo, "rev-parse", "HEAD")
+            corrupt = self._validate(repo, base, corrupt_head, branch)
+            self.assertNotEqual(0, corrupt.returncode)
+            self.assertIn("hashes must match", corrupt.stderr)
 
 
 if __name__ == "__main__":

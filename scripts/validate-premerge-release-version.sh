@@ -82,6 +82,81 @@ if [[ "$version_changed" != "true" && "$release_branch" != "true" ]]; then
 fi
 
 if [[ "$release_branch" == "true" && "$version_changed" != "true" ]]; then
+  # A published release's Dashboard artifact sync is not a second version
+  # promotion. This narrow five-path lane is independently certified by
+  # release-sync-gate.yml; all other release branches still bump VERSION.
+  if [[ "$branch_name" =~ ^release/([0-9]+\.[0-9]+\.[0-9]+)-dashboard-update-sync$ ]] \
+    && [[ "${BASH_REMATCH[1]}" == "$current_version" ]]; then
+    expected_paths="$(printf '%s\n' \
+      'Release/Updates/FOODEX-Update.files.txt' \
+      'Release/Updates/FOODEX-Update.json' \
+      'Release/Updates/FOODEX-Update.sha256.txt' \
+      'Release/Updates/FOODEX-Update.zip' \
+      'docs/release/RELEASE_REGISTRY.json' | LC_ALL=C sort)"
+    actual_paths="$(printf '%s\n' "$changed" | sed '/^$/d' | LC_ALL=C sort -u)"
+    if [[ "$actual_paths" != "$expected_paths" ]]; then
+      echo "Dashboard release sync must change exactly the five certified generated paths." >&2
+      exit 1
+    fi
+    if [[ "${customer_identity%%+*}" != "$current_version" \
+      || "${driver_identity%%+*}" != "$current_version" \
+      || "${van_identity%%+*}" != "$current_version" ]]; then
+      echo "Dashboard release sync must preserve synchronized mobile VERSION identities." >&2
+      exit 1
+    fi
+    python3 - "$base" "$current_version" <<'PY'
+import hashlib
+import json
+import pathlib
+import subprocess
+import sys
+
+base, version = sys.argv[1:]
+root = pathlib.Path(".")
+read = lambda path: json.loads((root / path).read_text(encoding="utf-8"))
+base_registry = json.loads(subprocess.check_output(
+    ["git", "show", f"{base}:docs/release/RELEASE_REGISTRY.json"], text=True
+))
+registry = read("docs/release/RELEASE_REGISTRY.json")
+manifest = read("Release/Updates/FOODEX-Update.json")
+releases = registry.get("releases", [])
+previous = base_registry.get("releases", [])
+if (registry.get("current_version") != version
+        or len(releases) != len(previous) + 1
+        or releases[:-1] != previous
+        or releases[-1].get("version") != version
+        or releases[-1].get("state") != "published"
+        or releases[-1].get("registration") != "generated-release"
+        or base_registry.get("current_version") == version):
+    raise SystemExit("Published release sync must append precisely one immutable registered version.")
+if (manifest.get("available") is not True
+        or manifest.get("target_version") != version
+        or manifest.get("minimum_current_version") != base_registry.get("current_version")
+        or manifest.get("package") != "FOODEX-Update.zip"
+        or manifest.get("delta", {}).get("files_manifest") != "FOODEX-Update.files.txt"):
+    raise SystemExit("Dashboard update manifest must match current and prior registered release.")
+source = str(manifest.get("source_commit", ""))
+if len(source) != 40 or any(c not in "0123456789abcdef" for c in source):
+    raise SystemExit("Dashboard update source_commit must be a full commit SHA.")
+if subprocess.run(["git", "merge-base", "--is-ancestor", source, base], check=False).returncode:
+    raise SystemExit("Dashboard update source must be an ancestor of the protected base.")
+digest = hashlib.sha256((root / "Release/Updates/FOODEX-Update.zip").read_bytes()).hexdigest()
+checksum = (root / "Release/Updates/FOODEX-Update.sha256.txt").read_text(
+    encoding="utf-8"
+).split()
+entry = releases[-1]
+dashboard = manifest.get("dashboard_fields", {})
+if (manifest.get("sha256") != digest
+        or not checksum or checksum[0] != digest
+        or entry.get("dashboard_update_sha256") != digest
+        or dashboard.get("target_version") != version
+        or dashboard.get("sha256") != digest):
+    raise SystemExit("Published Dashboard package, registry and manifest hashes must match.")
+print(f"Verified published {version} Dashboard artifact sync: {digest}")
+PY
+    echo "Verified published Dashboard artifact sync accepted without a second VERSION bump."
+    exit 0
+  fi
   if [[ "$branch_name" == "release/1.0.77-production-program" && "$hold_retirement_promotion" == "true" ]]; then
     echo "Certified 1.0.77 hold-retirement promotion accepted: base and candidate VERSION remain 1.0.77 while the production HOLD is removed."
   else
