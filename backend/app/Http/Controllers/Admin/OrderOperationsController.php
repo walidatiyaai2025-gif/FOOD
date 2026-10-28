@@ -21,6 +21,7 @@ use App\Services\AdminOrderManagementService;
 use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerServiceTeamManager;
+use App\Services\DeliverySettlementService;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\DriverDeliveryEvidenceService;
 use App\Services\InvoiceService;
@@ -2215,6 +2216,22 @@ final class OrderOperationsController extends Controller
                 ->first(['id', 'invoice_number', 'status', 'total', 'currency'])
             : ($context->invoices[$orderId] ?? null);
 
+        $issuedFinancialInvoice = Invoice::query()
+            ->where('order_id', $orderId)
+            ->whereIn('status', ['issued', 'reissued'])
+            ->orderByDesc('revision')
+            ->orderByDesc('id')
+            ->first();
+        $financialPayment = \App\Models\Payment::query()
+            ->where('order_id', $orderId)
+            ->latest('id')
+            ->first();
+        $paymentSettlement = app(DeliverySettlementService::class)->summarize(
+            $order,
+            $issuedFinancialInvoice,
+            $financialPayment,
+        );
+
         $channel = strtolower((string) $order->channel);
         $canManage = in_array(
             (int) $order->store_id,
@@ -2307,6 +2324,9 @@ final class OrderOperationsController extends Controller
             'updated_at' => $order->updated_at,
             'delivered_at' => $deliveredAt,
             'payment_status' => $payment?->status,
+            'collection_payment_state' => $paymentSettlement['payment_state'],
+            'collection_paid_amount' => $paymentSettlement['paid_amount'],
+            'collection_remaining_amount' => $paymentSettlement['remaining_amount'],
             'payment_provider' => $payment?->provider,
             'payment_amount' => $payment?->amount === null ? null : (float) $payment->amount,
             'payment_currency' => $payment?->currency,
