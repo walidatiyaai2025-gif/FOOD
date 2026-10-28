@@ -162,6 +162,9 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                               order.orderNumber.isEmpty
                                   ? '#${order.orderId}'
                                   : order.orderNumber,
+                              maxLines: 1,
+                              softWrap: false,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
