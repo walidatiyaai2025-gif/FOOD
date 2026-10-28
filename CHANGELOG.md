@@ -1,4 +1,4 @@
-## 1.0.118 — Customer timeline and payment collection visibility
+## 1.0.118 - Customer timeline and payment collection visibility
 
 - Deduplicate customer-visible order timeline stages even when order history and delivery execution record a milestone twice.
 - Display authoritative unpaid, partially paid and fully paid states and collected/remaining amounts in Customer Order Details.
