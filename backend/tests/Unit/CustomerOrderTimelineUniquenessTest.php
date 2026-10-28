@@ -16,7 +16,7 @@ final class CustomerOrderTimelineUniquenessTest extends TestCase
             ['stage' => 'delivered', 'source' => 'driver', 'occurred_at' => '2026-10-28T11:00:00Z'],
         ];
 
-        $timeline = (new CustomerOrderTimelineService())->uniqueStages($events);
+        $timeline = (new CustomerOrderTimelineService)->uniqueStages($events);
 
         self::assertSame(['placed', 'out_for_delivery', 'delivered'], array_column($timeline, 'stage'));
         self::assertSame('driver', $timeline[1]['source']);
@@ -35,7 +35,7 @@ final class CustomerOrderTimelineUniquenessTest extends TestCase
 
         self::assertSame(
             ['placed', 'accepted', 'picked_up', 'out_for_delivery'],
-            array_column((new CustomerOrderTimelineService())->uniqueStages($events), 'stage')
+            array_column((new CustomerOrderTimelineService)->uniqueStages($events), 'stage')
         );
     }
 }

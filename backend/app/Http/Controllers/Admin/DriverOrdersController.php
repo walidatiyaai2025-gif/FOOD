@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
-use App\Models\Order;
 use App\Models\Invoice;
+use App\Models\Order;
 use App\Models\Payment;
+use App\Models\User;
 use App\Services\DeliverySettlementService;
 use App\Services\OperationalTenantScope;
 use Illuminate\Http\Request;
@@ -98,8 +98,7 @@ class DriverOrdersController extends Controller
             ->when(
                 isset($validated['to']),
                 fn ($query) => $query->whereDate('orders.created_at', '<=', (string) $validated['to']),
-            )
-            ;
+            );
 
         $collectionTotals = (clone $baseOrders)
             ->select('orders.currency')

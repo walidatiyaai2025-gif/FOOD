@@ -16,13 +16,14 @@ use App\Models\Order;
 use App\Models\OrderDispatchState;
 use App\Models\OrderStatusHistory;
 use App\Models\OrderVanAssignment;
+use App\Models\Payment;
 use App\Models\User;
 use App\Services\AdminOrderManagementService;
 use App\Services\AuditLogger;
 use App\Services\B2bAccountLedgerService;
 use App\Services\CustomerServiceTeamManager;
-use App\Services\DeliverySettlementService;
 use App\Services\DashboardOperationalNotifier;
+use App\Services\DeliverySettlementService;
 use App\Services\DriverDeliveryEvidenceService;
 use App\Services\InvoiceService;
 use App\Services\OperationalLookupService;
@@ -2222,7 +2223,7 @@ final class OrderOperationsController extends Controller
             ->orderByDesc('revision')
             ->orderByDesc('id')
             ->first();
-        $financialPayment = \App\Models\Payment::query()
+        $financialPayment = Payment::query()
             ->where('order_id', $orderId)
             ->latest('id')
             ->first();
