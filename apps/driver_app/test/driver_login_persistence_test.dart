@@ -287,6 +287,18 @@ void main() {
 
     final biometricButton = find.byKey(const Key('driver-login-biometric'));
     expect(biometricButton, findsOneWidget);
+    expect(
+      tester.widget<CheckboxListTile>(
+        find.byKey(const Key('driver-login-remember')),
+      ).value,
+      isTrue,
+    );
+    expect(
+      tester.widget<CheckboxListTile>(
+        find.byKey(const Key('driver-login-biometric-toggle')),
+      ).value,
+      isTrue,
+    );
     await tester.ensureVisible(biometricButton);
     await tester.tap(biometricButton);
     await tester.pumpAndSettle();
