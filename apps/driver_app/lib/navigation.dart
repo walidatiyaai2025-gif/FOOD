@@ -1141,35 +1141,54 @@ class _DriverUnsettledCollectionsCard extends StatelessWidget {
   Widget build(BuildContext context) => Card(
         key: const Key('driver-home-unsettled-collections'),
         margin: EdgeInsets.zero,
+        color: FoodexBrand.surface,
+        elevation: 5,
+        shadowColor: _DriverDashboardStyle.softShadow,
+        shape: _DriverDashboardStyle.panelShape(),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             child: Row(
               children: [
-                const Icon(
-                  Icons.account_balance_wallet_rounded,
-                  color: FoodexBrand.actionGreen,
-                  size: 23,
+                Container(
+                  height: 44,
+                  width: 44,
+                  decoration: BoxDecoration(
+                    color: _DriverDashboardStyle.mint,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet_rounded,
+                    color: FoodexBrand.greenDark,
+                    size: 24,
+                  ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 9),
                 Expanded(
+                  flex: 5,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         context.tr('driver.home.unsettled_collections'),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w900),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          color: FoodexBrand.ink,
+                          height: 1.25,
+                        ),
                       ),
+                      const SizedBox(height: 3),
                       Text(
                         context.tr('driver.home.unsettled_collections_help'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
                               color: FoodexBrand.muted,
                               fontWeight: FontWeight.w600,
                             ),
@@ -1177,23 +1196,39 @@ class _DriverUnsettledCollectionsCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                if (loading)
-                  const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2.1),
-                  )
-                else
-                  Text(
-                    failed ? '—' : value,
-                    key: const Key('driver-home-unsettled-collections-value'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: FoodexBrand.greenDark,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
+                const SizedBox(width: 9),
+                Container(
+                  width: 1,
+                  height: 37,
+                  color: _DriverDashboardStyle.mintBorder,
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  flex: 4,
+                  child: loading
+                      ? const Center(
+                          child: SizedBox.square(
+                            dimension: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : FittedBox(
+                          alignment: AlignmentDirectional.centerStart,
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            failed ? '—' : value,
+                            key: const Key(
+                                'driver-home-unsettled-collections-value'),
+                            maxLines: 1,
+                            style: const TextStyle(
+                              color: FoodexBrand.greenDark,
+                              fontSize: 23,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ),
+                ),
               ],
             ),
           ),
