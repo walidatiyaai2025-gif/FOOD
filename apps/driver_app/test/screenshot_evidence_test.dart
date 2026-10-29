@@ -147,6 +147,12 @@ void main() {
             '01_Mobile/Driver_B2C/03_driver_deliveries__populated__$localeCode.png',
       ),
       (
+        session: b2bSession,
+        route: '/driver/b2b/deliveries',
+        path:
+            '01_Mobile/Driver_B2B/03_driver_deliveries__premium__$localeCode.png',
+      ),
+      (
         session: b2cSession,
         route: '/driver/b2c/notifications',
         path:
