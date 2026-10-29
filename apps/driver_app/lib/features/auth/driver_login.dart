@@ -62,7 +62,11 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
     if (!mounted) return;
     setState(() {
       _biometricAvailable = available;
-      _savedBiometricLogin = available && stored?.biometricEnabled == true;
+      // Restore the user's saved choice on every fresh login screen.
+      // The password is never persisted: only the secure session is reused.
+      _rememberMe = stored != null;
+      _enableBiometrics = available && stored?.biometricEnabled == true;
+      _savedBiometricLogin = _enableBiometrics;
       _checkingBiometrics = false;
     });
   }
