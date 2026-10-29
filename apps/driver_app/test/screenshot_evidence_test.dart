@@ -137,7 +137,9 @@ void main() {
           FoodexDriverApp(
             theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
             initialSession: item.session,
-            initialRoute: item.route,
+            // The Home capture starts at the same root as a real login, so
+            // no synthetic back arrow is added by Flutter's initial route stack.
+            initialRoute: item.route.endsWith('/home') ? '/' : item.route,
             locale: locale,
             authRepository: const _EvidenceAuthRepository(),
             assignmentRepositoryFactory: (_) => item.route.endsWith('/home')
