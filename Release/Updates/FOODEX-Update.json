@@ -2,11 +2,11 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.118",
-  "minimum_current_version": "1.0.117",
-  "source_base": "bd2a04629eb77610fe527e126c94e87ee1c4d06e",
-  "source_commit": "b4808030679cfffa08a792dfd61be2185eecad92",
-  "sha256": "d75ec745f08cccd58ae9ffa8074e88a6860fd62968c6bc8c78196600cbb5f4c8",
+  "target_version": "1.0.119",
+  "minimum_current_version": "1.0.118",
+  "source_base": "b4808030679cfffa08a792dfd61be2185eecad92",
+  "source_commit": "0975fd0c228741681d29233f778066e373347b52",
+  "sha256": "4943ae1997ae8da78343127ca5fc4a2b5d39c13d6fbe564f55f393f78ba91905",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/0001_01_01_000000_create_users_table.php",
@@ -232,13 +232,13 @@
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Deduplicate customer-visible order timeline stages even when order history and delivery execution record a milestone twice. Display authoritative unpaid, partially paid and fully paid states and collected/remaining amounts in Customer Order Details. Add a collected-payments summary in the Driver wallet, with per-order collected and remaining amounts and currency-separated totals. Show collected/remaining payment breakdowns in Dashboard Order Management and per-driver Order lists. Reconcile only posted invoice-allocated collection receipts under strict driver/store scopes; no synthesized payment successes. Bundle synchronized Customer, Driver, Van and Dashboard artifacts through the canonical release factory after full CI.",
+  "release_notes": "Add a discoverable Wallet tab to the shared Driver B2C bottom navigation on Home, Deliveries, Notifications and Wallet. Retain the Home Wallet entry point and per-order collected and remaining payment details. Preserve B2B isolation, authenticated driver/store-scoped collections and Arabic/English localization. Verify mobile route accessibility at small viewports and Arabic/English navigation with regression tests. Rebuild synchronized Customer, Driver, Van APKs, Dashboard Update and Laravel Setup with version 1.0.119 and verified source identity using the canonical Release Factory.",
   "dashboard_fields": {
-    "target_version": "1.0.118",
-    "minimum_current_version": "1.0.117",
-    "source_commit": "b4808030679cfffa08a792dfd61be2185eecad92",
-    "sha256": "d75ec745f08cccd58ae9ffa8074e88a6860fd62968c6bc8c78196600cbb5f4c8",
+    "target_version": "1.0.119",
+    "minimum_current_version": "1.0.118",
+    "source_commit": "0975fd0c228741681d29233f778066e373347b52",
+    "sha256": "4943ae1997ae8da78343127ca5fc4a2b5d39c13d6fbe564f55f393f78ba91905",
     "contains_migrations": true,
-    "release_notes": "Deduplicate customer-visible order timeline stages even when order history and delivery execution record a milestone twice. Display authoritative unpaid, partially paid and fully paid states and collected/remaining amounts in Customer Order Details. Add a collected-payments summary in the Driver wallet, with per-order collected and remaining amounts and currency-separated totals. Show collected/remaining payment breakdowns in Dashboard Order Management and per-driver Order lists. Reconcile only posted invoice-allocated collection receipts under strict driver/store scopes; no synthesized payment successes. Bundle synchronized Customer, Driver, Van and Dashboard artifacts through the canonical release factory after full CI."
+    "release_notes": "Add a discoverable Wallet tab to the shared Driver B2C bottom navigation on Home, Deliveries, Notifications and Wallet. Retain the Home Wallet entry point and per-order collected and remaining payment details. Preserve B2B isolation, authenticated driver/store-scoped collections and Arabic/English localization. Verify mobile route accessibility at small viewports and Arabic/English navigation with regression tests. Rebuild synchronized Customer, Driver, Van APKs, Dashboard Update and Laravel Setup with version 1.0.119 and verified source identity using the canonical Release Factory."
   }
 }
