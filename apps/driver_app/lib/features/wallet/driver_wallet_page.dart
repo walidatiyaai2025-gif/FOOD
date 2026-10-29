@@ -364,8 +364,10 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                             borderRadius:
                                                 BorderRadius.circular(20),
                                             gradient: const LinearGradient(
-                                              begin: AlignmentDirectional.topStart,
-                                              end: AlignmentDirectional.bottomEnd,
+                                              begin:
+                                                  AlignmentDirectional.topStart,
+                                              end: AlignmentDirectional
+                                                  .bottomEnd,
                                               colors: [
                                                 FoodexBrand.greenDark,
                                                 FoodexBrand.green,
@@ -392,12 +394,15 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                                     width: 48,
                                                     decoration: BoxDecoration(
                                                       color: Colors.white
-                                                          .withValues(alpha: 0.16),
+                                                          .withValues(
+                                                              alpha: 0.16),
                                                       borderRadius:
-                                                          BorderRadius.circular(15),
+                                                          BorderRadius.circular(
+                                                              15),
                                                     ),
                                                     child: const Icon(
-                                                      Icons.account_balance_wallet_rounded,
+                                                      Icons
+                                                          .account_balance_wallet_rounded,
                                                       size: 27,
                                                       color: Colors.white,
                                                     ),
@@ -416,7 +421,8 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                                                   'ar'
                                                               ? 'إجمالي المبالغ المحصّلة'
                                                               : 'Total collected',
-                                                          style: const TextStyle(
+                                                          style:
+                                                              const TextStyle(
                                                             color: Colors.white,
                                                             fontWeight:
                                                                 FontWeight.w700,
@@ -433,11 +439,14 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                                                   .totalCollected,
                                                               account.currency,
                                                             ),
-                                                            style: const TextStyle(
-                                                              color: Colors.white,
+                                                            style:
+                                                                const TextStyle(
+                                                              color:
+                                                                  Colors.white,
                                                               fontSize: 25,
                                                               fontWeight:
-                                                                  FontWeight.w900,
+                                                                  FontWeight
+                                                                      .w900,
                                                             ),
                                                           ),
                                                         ),
@@ -485,7 +494,8 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                                   )
                                                 : null,
                                             color: _submitting ||
-                                                    account.availableToRemit <= 0
+                                                    account.availableToRemit <=
+                                                        0
                                                 ? const Color(0xFFE5EAE7)
                                                 : null,
                                           ),
@@ -509,7 +519,8 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                             key: Key('driver-wallet-remit-' +
                                                 account.id.toString()),
                                             onPressed: _submitting ||
-                                                    account.availableToRemit <= 0
+                                                    account.availableToRemit <=
+                                                        0
                                                 ? null
                                                 : () =>
                                                     _submitRemittance(account),
@@ -522,8 +533,8 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                                       color: Colors.white,
                                                     ),
                                                   )
-                                                : const Icon(
-                                                    Icons.account_balance_rounded),
+                                                : const Icon(Icons
+                                                    .account_balance_rounded),
                                             label: Text(
                                               context.tr('driver.wallet.remit'),
                                               style: const TextStyle(
@@ -549,11 +560,13 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                                 (row) => Card(
                                                   margin: const EdgeInsets.only(
                                                       bottom: 8),
-                                                  color: const Color(0xFFFBFDFC),
+                                                  color:
+                                                      const Color(0xFFFBFDFC),
                                                   elevation: 0,
                                                   shape: RoundedRectangleBorder(
                                                     borderRadius:
-                                                        BorderRadius.circular(15),
+                                                        BorderRadius.circular(
+                                                            15),
                                                     side: const BorderSide(
                                                       color: Color(0xFFE5EEE8),
                                                     ),
@@ -561,7 +574,8 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                                   child: ListTile(
                                                     dense: true,
                                                     contentPadding:
-                                                        const EdgeInsets.symmetric(
+                                                        const EdgeInsets
+                                                            .symmetric(
                                                       horizontal: 12,
                                                       vertical: 4,
                                                     ),
@@ -569,21 +583,24 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                                       height: 42,
                                                       width: 42,
                                                       decoration: BoxDecoration(
-                                                        color:
-                                                            FoodexBrand.greenSoft,
+                                                        color: FoodexBrand
+                                                            .greenSoft,
                                                         borderRadius:
-                                                            BorderRadius.circular(13),
+                                                            BorderRadius
+                                                                .circular(13),
                                                       ),
                                                       child: const Icon(
-                                                        Icons.receipt_long_outlined,
-                                                        color:
-                                                            FoodexBrand.greenDark,
+                                                        Icons
+                                                            .receipt_long_outlined,
+                                                        color: FoodexBrand
+                                                            .greenDark,
                                                       ),
                                                     ),
-                                                  title: Text(
-                                                    foodexMoneyText(row.amount,
-                                                        row.currency),
-                                                  ),
+                                                    title: Text(
+                                                      foodexMoneyText(
+                                                          row.amount,
+                                                          row.currency),
+                                                    ),
                                                     subtitle: Text(
                                                       _transactionStatusLabel(
                                                           row.status),

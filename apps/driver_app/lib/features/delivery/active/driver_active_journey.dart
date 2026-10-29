@@ -1133,7 +1133,9 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     };
     final surface = switch (status) {
       'accepted' => FoodexBrand.greenSoft,
-      'picked_up' || 'out_for_delivery' || 'in_transit' =>
+      'picked_up' ||
+      'out_for_delivery' ||
+      'in_transit' =>
         const Color(0xFFEDF4FF),
       'failed' => FoodexBrand.orangeSoft,
       'delivered' || 'completed' => const Color(0xFFFFF0F0),
@@ -1373,7 +1375,10 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                           ? const Key('driver-active-status-filter')
                           : const Key('driver-active-assignment-list'),
                       padding: const EdgeInsetsDirectional.fromSTEB(
-                        12, 10, 12, 24,
+                        12,
+                        10,
+                        12,
+                        24,
                       ),
                       itemCount: rows.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
@@ -1396,7 +1401,10 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                             onTap: () => _showDetail(assignment),
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(
-                                14, 12, 14, 10,
+                                14,
+                                12,
+                                14,
+                                10,
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1452,8 +1460,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                                   if (assignment.customerName.isNotEmpty) ...[
                                     const SizedBox(height: 5),
                                     Padding(
-                                      padding:
-                                          const EdgeInsetsDirectional.only(
+                                      padding: const EdgeInsetsDirectional.only(
                                         start: 27,
                                       ),
                                       child: Text(
@@ -1539,8 +1546,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                                         context.tr('driver.detail.title'),
                                       ),
                                       style: TextButton.styleFrom(
-                                        foregroundColor:
-                                            FoodexBrand.greenDark,
+                                        foregroundColor: FoodexBrand.greenDark,
                                         textStyle: const TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w800,

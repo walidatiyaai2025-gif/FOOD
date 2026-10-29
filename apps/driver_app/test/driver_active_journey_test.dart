@@ -705,23 +705,29 @@ void main() {
     await tester.pumpWidget(_host(b2bRepo, channel: DriverChannel.b2b));
     await tester.pumpAndSettle();
     expect(
-      tester.widget<ChoiceChip>(
-        find.byKey(const Key('driver-filter-all')),
-      ).selected,
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(const Key('driver-filter-all')),
+          )
+          .selected,
       isTrue,
     );
     expect(
-      tester.widget<ChoiceChip>(
-        find.byKey(const Key('driver-filter-today')),
-      ).selected,
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(const Key('driver-filter-today')),
+          )
+          .selected,
       isFalse,
     );
     await tester.pumpWidget(_host(b2bRepo, channel: DriverChannel.b2c));
     await tester.pumpAndSettle();
     expect(
-      tester.widget<ChoiceChip>(
-        find.byKey(const Key('driver-filter-today')),
-      ).selected,
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(const Key('driver-filter-today')),
+          )
+          .selected,
       isTrue,
     );
   });
@@ -1086,8 +1092,7 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    const fullAddress =
-        'الكويت، منطقة الفروانية، شارع طويل للغاية، بناية ۱۲، '
+    const fullAddress = 'الكويت، منطقة الفروانية، شارع طويل للغاية، بناية ۱۲، '
         'الطابق الثالث، شقة ٣، Delivery entrance opposite the park';
     const repo = _StaticActiveRepo([
       DriverAssignment(
@@ -1108,9 +1113,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      tester.widget<ChoiceChip>(
-        find.byKey(const Key('driver-filter-all')),
-      ).selected,
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(const Key('driver-filter-all')),
+          )
+          .selected,
       isTrue,
     );
     expect(find.text('#33095'), findsOneWidget);

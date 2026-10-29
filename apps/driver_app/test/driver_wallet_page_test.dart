@@ -167,8 +167,7 @@ void main() {
       home: DriverWalletPage(repository: _CollectedWallet()),
     ));
     await tester.pumpAndSettle();
-    final collectedCard =
-        find.byKey(const Key('driver-collected-summary-6'));
+    final collectedCard = find.byKey(const Key('driver-collected-summary-6'));
     expect(collectedCard, findsOneWidget);
     final decoration = tester.widget<Container>(collectedCard).decoration;
     expect((decoration as BoxDecoration).gradient, isA<LinearGradient>());

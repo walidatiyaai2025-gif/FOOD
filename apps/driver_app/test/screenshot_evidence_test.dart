@@ -111,8 +111,7 @@ void main() {
       );
     });
 
-    testWidgets('capture full premium B2C wallet $localeCode',
-        (tester) async {
+    testWidgets('capture full premium B2C wallet $localeCode', (tester) async {
       await _setup(tester);
       await _captureApp(
         tester,

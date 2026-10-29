@@ -289,15 +289,19 @@ void main() {
     final biometricButton = find.byKey(const Key('driver-login-biometric'));
     expect(biometricButton, findsOneWidget);
     expect(
-      tester.widget<CheckboxListTile>(
-        find.byKey(const Key('driver-login-remember')),
-      ).value,
+      tester
+          .widget<CheckboxListTile>(
+            find.byKey(const Key('driver-login-remember')),
+          )
+          .value,
       isTrue,
     );
     expect(
-      tester.widget<CheckboxListTile>(
-        find.byKey(const Key('driver-login-biometric-toggle')),
-      ).value,
+      tester
+          .widget<CheckboxListTile>(
+            find.byKey(const Key('driver-login-biometric-toggle')),
+          )
+          .value,
       isTrue,
     );
     await tester.ensureVisible(biometricButton);
@@ -306,8 +310,8 @@ void main() {
 
     expect(session?.token, 'remembered-token');
   });
-  test('secure session storage round-trips both B2B and B2C drivers',
-      () async {
+
+  test('secure sessions restore B2B and B2C', () async {
     for (final channel in DriverChannel.values) {
       FlutterSecureStorage.setMockInitialValues(<String, String>{});
       final store = SecureDriverSessionStore();
@@ -334,8 +338,7 @@ void main() {
     }
   });
 
-  test('secure B2B session without biometrics supports Remember Me',
-      () async {
+  test('B2B remembers without biometrics', () async {
     FlutterSecureStorage.setMockInitialValues(<String, String>{});
     final store = SecureDriverSessionStore();
     await store.write(
@@ -354,8 +357,7 @@ void main() {
     expect(saved?.biometricEnabled, isFalse);
   });
 
-  testWidgets('previously signed-in B2B driver sees fingerprint and can enter',
-      (tester) async {
+  testWidgets('saved B2B fingerprint login', (tester) async {
     final store = _Store()
       ..stored = const DriverStoredSession(
         session: DriverSession(
@@ -388,15 +390,19 @@ void main() {
     final fingerprint = find.byKey(const Key('driver-login-biometric'));
     expect(fingerprint, findsOneWidget);
     expect(
-      tester.widget<CheckboxListTile>(
-        find.byKey(const Key('driver-login-remember')),
-      ).value,
+      tester
+          .widget<CheckboxListTile>(
+            find.byKey(const Key('driver-login-remember')),
+          )
+          .value,
       isTrue,
     );
     expect(
-      tester.widget<CheckboxListTile>(
-        find.byKey(const Key('driver-login-biometric-toggle')),
-      ).value,
+      tester
+          .widget<CheckboxListTile>(
+            find.byKey(const Key('driver-login-biometric-toggle')),
+          )
+          .value,
       isTrue,
     );
 
