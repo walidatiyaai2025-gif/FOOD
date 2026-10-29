@@ -118,7 +118,7 @@ class PublishedDashboardSyncPolicyTest(unittest.TestCase):
     def _git(self, repo: Path, *args: str) -> str:
         return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
 
-    def _fixture(self, repo: Path) -> tuple[str, str]:
+    def _fixture(self, repo: Path, *, stable_files_manifest: bool = False) -> tuple[str, str]:
         self._git(repo, "init", "-q")
         self._git(repo, "config", "user.email", "ci@example.test")
         self._git(repo, "config", "user.name", "CI Fixture")
@@ -133,12 +133,17 @@ class PublishedDashboardSyncPolicyTest(unittest.TestCase):
             {"version": "1.0.117", "state": "published"}
         ]}
         registry.write_text(json.dumps(baseline), encoding="utf-8")
+        if stable_files_manifest:
+            # Generated delta inventory may be byte-identical to prior release.
+            index = repo / "Release/Updates/FOODEX-Update.files.txt"
+            index.parent.mkdir(parents=True, exist_ok=True)
+            index.write_text("README.txt\n", encoding="utf-8")
         self._git(repo, "add", ".")
         self._git(repo, "commit", "-qm", "baseline")
         base = self._git(repo, "rev-parse", "HEAD")
 
         updates = repo / "Release/Updates"
-        updates.mkdir(parents=True)
+        updates.mkdir(parents=True, exist_ok=True)
         package = updates / "FOODEX-Update.zip"
         with zipfile.ZipFile(package, "w") as archive:
             archive.writestr("README.txt", "published Dashboard update fixture")
@@ -177,6 +182,31 @@ class PublishedDashboardSyncPolicyTest(unittest.TestCase):
             capture_output=True, text=True, check=False,
         )
 
+    def test_release_sync_gate_can_certify_same_repo_pull_request_exact_head(self):
+        gate = (ROOT / ".github/workflows/release-sync-gate.yml").read_text(encoding="utf-8")
+        self.assertIn("pull_request:", gate)
+        self.assertIn("branches: [main]", gate)
+        self.assertIn("head.repo.full_name == github.repository", gate)
+        self.assertIn("github.event.pull_request.base.sha", gate)
+        self.assertIn("github.event.pull_request.head.sha", gate)
+        self.assertIn("ref: ${{ env.HEAD_SHA }}", gate)
+        self.assertIn("github.head_ref", gate)
+
+    def test_unchanged_generated_files_index_is_allowed(self):
+        with tempfile.TemporaryDirectory() as location:
+            repo = Path(location)
+            base, head = self._fixture(repo, stable_files_manifest=True)
+            changed = self._git(repo, "diff", "--name-only", base, head).splitlines()
+            self.assertNotIn("Release/Updates/FOODEX-Update.files.txt", changed)
+            for required in (
+                "Release/Updates/FOODEX-Update.zip",
+                "Release/Updates/FOODEX-Update.json",
+                "docs/release/RELEASE_REGISTRY.json",
+            ):
+                self.assertIn(required, changed)
+            result = self._validate(repo, base, head, "release/1.0.118-dashboard-update-sync")
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_published_artifact_sync_and_negative_boundaries(self):
         with tempfile.TemporaryDirectory() as location:
             repo = Path(location)
@@ -200,7 +230,7 @@ class PublishedDashboardSyncPolicyTest(unittest.TestCase):
             changed_head = self._git(repo, "rev-parse", "HEAD")
             outside = self._validate(repo, base, changed_head, branch)
             self.assertNotEqual(0, outside.returncode)
-            self.assertIn("exactly the five", outside.stderr)
+            self.assertIn("only the five certified generated paths", outside.stderr)
 
             self._git(repo, "reset", "--hard", head)
             hashfile = repo / "Release/Updates/FOODEX-Update.sha256.txt"
