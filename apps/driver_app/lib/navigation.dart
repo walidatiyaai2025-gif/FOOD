@@ -785,6 +785,10 @@ class _DriverHomePageState extends State<_DriverHomePage>
                     context.tr('driver.app.title'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: FoodexBrand.ink,
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
                   if (driverName.isNotEmpty)
                     Text(
