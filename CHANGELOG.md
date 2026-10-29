@@ -1,3 +1,12 @@
+## 1.0.120 - Driver biometric unlock, premium operations and synchronized release
+
+- Restore encrypted Remember Me sessions for both B2B and B2C authorized Driver channels, preserving token/store scope validation and secure storage without persisting passwords.
+- When saved biometric login is available, present only fingerprint authentication and Sign out; hide email/password fields, regular Sign in, and Remember Me toggles until the saved session is cleared.
+- Keep local sign-out safe by clearing the remembered session and reverting to the normal credential form, with best-effort server token logout.
+- Extend and validate shared Driver B2B/B2C Wallet access and authorized scoped remittance behavior, plus premium Home and Wholesale Deliveries presentation without changing payment or delivery business rules.
+- Capture Arabic/English and B2B/B2C UI/widget/screenshot regressions and preserve production navigation, RBAC, and accessible responsive controls.
+- Publish synchronized Customer, Driver and Van Android APKs at 1.0.120+120, Dashboard Update and Laravel Setup from the final protected-main release commit through the canonical Release Factory with exact-source/clean-install/sha256 proof.
+
 ## 1.0.119 - Driver Wallet navigation and synchronized release
 
 - Add a discoverable Wallet tab to the shared Driver B2C bottom navigation on Home, Deliveries, Notifications and Wallet.
