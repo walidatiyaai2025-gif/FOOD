@@ -8,9 +8,12 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/app.dart';
+import 'package:foodex_driver_app/core/auth/driver_auth_persistence.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
+import 'package:foodex_driver_app/core/localization/driver_translations.dart';
 import 'package:foodex_driver_app/core/push/firebase_push_service.dart';
 import 'package:foodex_driver_app/core/theme/foodex_theme.dart';
+import 'package:foodex_driver_app/features/auth/driver_login.dart';
 import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
 import 'package:foodex_driver_app/features/notifications/notification_feed.dart';
 import 'package:foodex_driver_app/features/wallet/driver_wallet_contract.dart';
@@ -50,6 +53,64 @@ void main() {
         '01_Mobile/Driver_B2C/01_driver_login__default__$localeCode.png',
       );
     });
+
+    for (final channel in DriverChannel.values) {
+      testWidgets('capture saved biometric login ${channel.name} $localeCode',
+          (tester) async {
+        await _setup(tester);
+        await _captureApp(
+          tester,
+          MaterialApp(
+            debugShowCheckedModeBanner: false,
+            locale: locale,
+            supportedLocales: const [Locale('ar'), Locale('en')],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
+            home: DriverTranslations(
+              locale: locale,
+              overrides: const {},
+              child: DriverLoginPage(
+                repository: const _EvidenceAuthRepository(),
+                onAuthenticated: (_, __, ___) {},
+                sessionStore: _EvidenceRememberedSessionStore(
+                  DriverSession(
+                    token: 'saved-evidence-token',
+                    name: 'FOODEX Driver',
+                    email: 'driver@foodex.test',
+                    locale: localeCode,
+                    channel: channel,
+                    storeId: 7,
+                  ),
+                ),
+                biometricAuthenticator: const _EvidenceBiometric(),
+              ),
+            ),
+          ),
+          '01_Mobile/Driver_${channel == DriverChannel.b2b ? 'B2B' : 'B2C'}/'
+          '01_driver_login__biometric_saved__$localeCode.png',
+        );
+        expect(
+          find.byKey(const Key('driver-login-biometric')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('driver-login-logout')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('driver-login-email')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const Key('driver-login-password')),
+          findsNothing,
+        );
+      });
+    }
 
     testWidgets('capture driver collected wallet and order details $localeCode',
         (tester) async {
@@ -439,6 +500,35 @@ class _EvidenceCollectedWallet implements DriverWalletRepository {
   }) {
     throw UnimplementedError();
   }
+}
+
+class _EvidenceRememberedSessionStore implements DriverSessionStore {
+  const _EvidenceRememberedSessionStore(this.session);
+
+  final DriverSession session;
+
+  @override
+  Future<DriverStoredSession?> read() async =>
+      DriverStoredSession(session: session, biometricEnabled: true);
+
+  @override
+  Future<void> write(
+    DriverSession session, {
+    required bool biometricEnabled,
+  }) async {}
+
+  @override
+  Future<void> clear() async {}
+}
+
+class _EvidenceBiometric implements DriverBiometricAuthenticator {
+  const _EvidenceBiometric();
+
+  @override
+  Future<bool> isAvailable() async => true;
+
+  @override
+  Future<bool> authenticate({required String reason}) async => true;
 }
 
 class _EvidenceAuthRepository implements DriverAuthRepository {
