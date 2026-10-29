@@ -454,6 +454,10 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                           amount: account.custodyBalance,
                                           currency: account.currency,
                                         ),
+                                        const Divider(
+                                          color: Color(0xFFE7F0EA),
+                                          height: 16,
+                                        ),
                                         _MoneyRow(
                                           label: context
                                               .tr('driver.wallet.available'),
@@ -461,29 +465,65 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                           currency: account.currency,
                                         ),
                                         const SizedBox(height: 12),
-                                        FilledButton.icon(
-                                          style: FilledButton.styleFrom(
-                                            minimumSize: const Size.fromHeight(52),
-                                            backgroundColor:
-                                                FoodexBrand.actionGreen,
-                                            foregroundColor: Colors.white,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
+                                        DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                            gradient: !_submitting &&
+                                                    account.availableToRemit > 0
+                                                ? const LinearGradient(
+                                                    colors: [
+                                                      FoodexBrand.actionGreen,
+                                                      FoodexBrand.greenBright,
+                                                    ],
+                                                  )
+                                                : null,
+                                            color: _submitting ||
+                                                    account.availableToRemit <= 0
+                                                ? const Color(0xFFE5EAE7)
+                                                : null,
+                                          ),
+                                          child: FilledButton.icon(
+                                            style: FilledButton.styleFrom(
+                                              minimumSize:
+                                                  const Size.fromHeight(52),
+                                              backgroundColor:
+                                                  Colors.transparent,
+                                              disabledBackgroundColor:
+                                                  Colors.transparent,
+                                              foregroundColor: Colors.white,
+                                              disabledForegroundColor:
+                                                  FoodexBrand.muted,
+                                              elevation: 0,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                              ),
                                             ),
-                                          ),
-                                          key: Key(
-                                            'driver-wallet-remit-${account.id}',
-                                          ),
-                                          onPressed: _submitting ||
-                                                  account.availableToRemit <= 0
-                                              ? null
-                                              : () =>
-                                                  _submitRemittance(account),
-                                          icon: const Icon(
-                                              Icons.account_balance_rounded),
-                                          label: Text(
-                                            context.tr('driver.wallet.remit'),
+                                            key: Key('driver-wallet-remit-' +
+                                                account.id.toString()),
+                                            onPressed: _submitting ||
+                                                    account.availableToRemit <= 0
+                                                ? null
+                                                : () =>
+                                                    _submitRemittance(account),
+                                            icon: _submitting
+                                                ? const SizedBox.square(
+                                                    dimension: 18,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: Colors.white,
+                                                    ),
+                                                  )
+                                                : const Icon(
+                                                    Icons.account_balance_rounded),
+                                            label: Text(
+                                              context.tr('driver.wallet.remit'),
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                         if (account
