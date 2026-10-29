@@ -111,6 +111,24 @@ void main() {
       );
     });
 
+    testWidgets('capture full premium B2C wallet $localeCode',
+        (tester) async {
+      await _setup(tester);
+      await _captureApp(
+        tester,
+        FoodexDriverApp(
+          theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
+          initialSession: b2cSession,
+          initialRoute: '/driver/b2c/wallet',
+          locale: locale,
+          authRepository: const _EvidenceAuthRepository(),
+          assignmentRepositoryFactory: (_) =>
+              const _EvidenceDashboardAssignments(),
+        ),
+        '01_Mobile/Driver_B2C/12_driver_wallet__premium__$localeCode.png',
+      );
+    });
+
     for (final item in <({DriverSession session, String route, String path})>[
       (
         session: b2cSession,
@@ -487,6 +505,29 @@ class _EvidenceDashboardAssignments extends _EvidenceAssignments
           unsettledCollections: 1712.5,
           availableToRemit: 1712.5,
           totalCollected: 1712.5,
+          transactions: [
+            DriverCollectionReceipt(
+              id: 701,
+              amount: 187.5,
+              currency: 'EGP',
+              status: 'posted',
+              createdAt: '2026-10-29T09:00:00Z',
+            ),
+            DriverCollectionReceipt(
+              id: 702,
+              amount: 662.5,
+              currency: 'EGP',
+              status: 'posted',
+              createdAt: '2026-10-28T18:00:00Z',
+            ),
+            DriverCollectionReceipt(
+              id: 703,
+              amount: 862.5,
+              currency: 'EGP',
+              status: 'posted',
+              createdAt: '2026-10-27T16:00:00Z',
+            ),
+          ],
         ),
       ];
 
