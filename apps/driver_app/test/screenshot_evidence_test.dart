@@ -127,7 +127,9 @@ void main() {
             initialRoute: item.route,
             locale: locale,
             authRepository: const _EvidenceAuthRepository(),
-            assignmentRepositoryFactory: (_) => const _EvidenceAssignments(),
+            assignmentRepositoryFactory: (_) => item.route.endsWith('/home')
+                ? const _EvidenceDashboardAssignments()
+                : const _EvidenceAssignments(),
             notificationRepositoryFactory: (_) =>
                 const _EvidenceNotifications(),
           ),
@@ -448,6 +450,44 @@ class _EvidenceAssignments implements DriverAssignmentRepository {
   @override
   Future<void> transition(int id, DriverChannel channel, String status,
       {String? note, String? failureReason}) async {}
+}
+
+/// Snapshot-only fixture: no mock currency or balances enter production.
+class _EvidenceDashboardAssignments extends _EvidenceAssignments
+    implements DriverWalletRepository {
+  const _EvidenceDashboardAssignments();
+
+  @override
+  Future<List<DriverWalletAccount>> wallet() async => const [
+        DriverWalletAccount(
+          id: 71,
+          currency: 'EGP',
+          status: 'active',
+          custodyBalance: 1712.5,
+          unsettledCollections: 1712.5,
+          availableToRemit: 1712.5,
+          totalCollected: 1712.5,
+        ),
+      ];
+
+  @override
+  Future<DriverCollectionResult> collect(
+    int assignmentId, {
+    required double amount,
+    required String idempotencyKey,
+  }) async =>
+      throw UnsupportedError('Screenshot evidence must not mutate finance');
+
+  @override
+  Future<DriverRemittance> submitRemittance({
+    required int collectionAccountId,
+    required double amount,
+    required String method,
+    String? reference,
+    String? note,
+    required String idempotencyKey,
+  }) async =>
+      throw UnsupportedError('Screenshot evidence must not mutate finance');
 }
 
 class _EvidenceNotifications implements DriverNotificationRepository {
