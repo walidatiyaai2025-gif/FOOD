@@ -94,8 +94,15 @@ if [[ "$release_branch" == "true" && "$version_changed" != "true" ]]; then
       'Release/Updates/FOODEX-Update.zip' \
       'docs/release/RELEASE_REGISTRY.json' | LC_ALL=C sort)"
     actual_paths="$(printf '%s\n' "$changed" | sed '/^$/d' | LC_ALL=C sort -u)"
-    if [[ "$actual_paths" != "$expected_paths" ]]; then
-      echo "Dashboard release sync must change exactly the five certified generated paths." >&2
+    # A deterministic generated files index (or checksum) may be byte-identical
+    # across consecutive releases. Enforce the five-path ALLOWLIST, not an exact
+    # five-path delta, while requiring the new package, manifest and registry.
+    unexpected_paths="$(comm -23 <(printf '%s\\n' "$actual_paths") <(printf '%s\\n' "$expected_paths"))"
+    if [[ -n "$unexpected_paths" ]] \
+      || ! grep -Fxq 'Release/Updates/FOODEX-Update.json' <<< "$actual_paths" \
+      || ! grep -Fxq 'Release/Updates/FOODEX-Update.zip' <<< "$actual_paths" \
+      || ! grep -Fxq 'docs/release/RELEASE_REGISTRY.json' <<< "$actual_paths"; then
+      echo "Dashboard release sync must change package, manifest and registry, and only the five certified generated paths." >&2
       exit 1
     fi
     if [[ "${customer_identity%%+*}" != "$current_version" \
