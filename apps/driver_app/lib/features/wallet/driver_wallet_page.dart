@@ -228,39 +228,14 @@ class _DriverWalletPageState extends State<DriverWalletPage>
 
   Future<void> _submitRemittance(DriverWalletAccount account) async {
     if (_submitting || account.availableToRemit <= 0) return;
-    final controller = TextEditingController(
-      text: foodexMoneyAmount(account.availableToRemit, account.currency),
-    );
+    // The dialog owns its controller until its exit animation is finished.
     final amount = await showDialog<double>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(context.tr('driver.wallet.remit')),
-        content: TextField(
-          key: const Key('driver-wallet-remittance-amount'),
-          controller: controller,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(
-            labelText: context.tr('driver.wallet.amount'),
-            suffixText: account.currency,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(context.tr('driver.action.cancel')),
-          ),
-          FilledButton(
-            onPressed: () {
-              final parsed = double.tryParse(controller.text.trim());
-              Navigator.of(dialogContext).pop(parsed);
-            },
-            child: Text(context.tr('driver.wallet.submit')),
-          ),
-        ],
+      builder: (_) => _DriverRemittanceAmountDialog(
+        availableToRemit: account.availableToRemit,
+        currency: account.currency,
       ),
     );
-    controller.dispose();
     if (amount == null || amount <= 0 || !mounted) return;
 
     setState(() {
@@ -473,6 +448,71 @@ class _DriverWalletPageState extends State<DriverWalletPage>
       ),
     );
   }
+}
+
+/// The route, not the awaiting caller, owns the text controller. showDialog's
+/// Future completes on pop, before the closing route is necessarily unmounted.
+class _DriverRemittanceAmountDialog extends StatefulWidget {
+  const _DriverRemittanceAmountDialog({
+    required this.availableToRemit,
+    required this.currency,
+  });
+
+  final double availableToRemit;
+  final String currency;
+
+  @override
+  State<_DriverRemittanceAmountDialog> createState() =>
+      _DriverRemittanceAmountDialogState();
+}
+
+class _DriverRemittanceAmountDialogState
+    extends State<_DriverRemittanceAmountDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: foodexMoneyAmount(widget.availableToRemit, widget.currency),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: Text(context.tr('driver.wallet.remit')),
+        content: TextField(
+          key: const Key('driver-wallet-remittance-amount'),
+          controller: _controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: context.tr('driver.wallet.amount'),
+            suffixText: widget.currency,
+          ),
+        ),
+        actions: [
+          TextButton(
+            key: const Key('driver-wallet-remittance-cancel'),
+            onPressed: () => Navigator.of(context).pop<double>(),
+            child: Text(context.tr('driver.action.cancel')),
+          ),
+          FilledButton(
+            key: const Key('driver-wallet-remittance-submit'),
+            onPressed: () {
+              final amount = double.tryParse(_controller.text.trim());
+              Navigator.of(context).pop<double>(amount);
+            },
+            child: Text(context.tr('driver.wallet.submit')),
+          ),
+        ],
+      );
 }
 
 class _WalletStaleBanner extends StatelessWidget {
