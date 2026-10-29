@@ -843,7 +843,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('driver-home-status-accepted')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('driver-shell-deliveries')), findsOneWidget);
+    final navigation =
+        find.byKey(const Key('driver-shell-navigation'));
+    expect(navigation, findsOneWidget);
+    expect(
+      tester.widget<NavigationBar>(navigation).selectedIndex,
+      DriverShellDestination.deliveries.index,
+    );
     expect(tester.takeException(), isNull);
   });
 
