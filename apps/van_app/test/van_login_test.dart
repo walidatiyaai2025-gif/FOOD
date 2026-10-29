@@ -251,7 +251,7 @@ void main() {
   );
 
   testWidgets(
-    'remembered password login automatically enables biometric unlock when available',
+    'Remember Me without explicit opt-in does not enable biometric unlock',
     (tester) async {
       final store = _MemoryStore();
       final preferences = _PreferenceStore();
@@ -288,6 +288,50 @@ void main() {
 
       expect(find.text('Authorized Van'), findsOneWidget);
       expect(find.text('Home Dashboard'), findsWidgets);
+      expect(store.value?.token, 'token');
+      expect(preferences.value?.rememberMe, isTrue);
+      expect(preferences.value?.biometricEnabled, isFalse);
+    },
+  );
+
+  testWidgets(
+    'Van explicitly selected Remember Me plus biometric persists unlock',
+    (tester) async {
+      final store = _MemoryStore();
+      final preferences = _PreferenceStore();
+
+      await tester.pumpWidget(
+        FoodexVanApp(
+          locale: const Locale('en'),
+          authRepository: _Auth(),
+          sessionStore: store,
+          authPreferenceStore: preferences,
+          biometricAuthenticator: const _Biometric(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final remember = find.byKey(const Key('van-login-remember'));
+      await tester.ensureVisible(remember);
+      await tester.tap(remember);
+      await tester.pump();
+      final fingerprint = find.byKey(const Key('van-login-biometric-toggle'));
+      await tester.ensureVisible(fingerprint);
+      await tester.tap(fingerprint);
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const Key('van-login-email')),
+        'van@example.test',
+      );
+      await tester.enterText(
+        find.byKey(const Key('van-login-password')),
+        'password',
+      );
+      final submit = find.byKey(const Key('van-login-submit'));
+      await tester.ensureVisible(submit);
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+
       expect(store.value?.token, 'token');
       expect(preferences.value?.rememberMe, isTrue);
       expect(preferences.value?.biometricEnabled, isTrue);
