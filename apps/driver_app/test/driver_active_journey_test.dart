@@ -692,6 +692,40 @@ void main() {
     },
   );
 
+  testWidgets('B2B deliveries default to All while B2C defaults to Today',
+      (tester) async {
+    const b2bRepo = _StaticActiveRepo([
+      DriverAssignment(
+        id: 500,
+        channel: DriverChannel.b2b,
+        reference: 'WHOLESALE-500',
+        status: 'assigned',
+      ),
+    ]);
+    await tester.pumpWidget(_host(b2bRepo, channel: DriverChannel.b2b));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<ChoiceChip>(
+        find.byKey(const Key('driver-filter-all')),
+      ).selected,
+      isTrue,
+    );
+    expect(
+      tester.widget<ChoiceChip>(
+        find.byKey(const Key('driver-filter-today')),
+      ).selected,
+      isFalse,
+    );
+    await tester.pumpWidget(_host(b2bRepo, channel: DriverChannel.b2c));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<ChoiceChip>(
+        find.byKey(const Key('driver-filter-today')),
+      ).selected,
+      isTrue,
+    );
+  });
+
   testWidgets(
     'delivery filters stay on one compact row at narrow phone width',
     (tester) async {
