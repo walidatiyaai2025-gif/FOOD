@@ -1060,7 +1060,13 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                     children: [
                       const SizedBox(height: 80),
                       Center(
-                        child: Text(context.tr('driver.filter.period_empty')),
+                        child: Text(
+                          context.tr(
+                            _assignments.isEmpty
+                                ? 'driver.empty'
+                                : 'driver.filter.period_empty',
+                          ),
+                        ),
                       ),
                     ],
                   )
@@ -1388,7 +1394,13 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                       children: [
                         const SizedBox(height: 80),
                         Center(
-                          child: Text(context.tr('driver.filter.period_empty')),
+                          child: Text(
+                          context.tr(
+                            _assignments.isEmpty
+                                ? 'driver.empty'
+                                : 'driver.filter.period_empty',
+                          ),
+                        ),
                         ),
                       ],
                     )
@@ -1596,9 +1608,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
       _DriverActiveLoadState.loading => const Center(
           child: CircularProgressIndicator(),
         ),
-      _DriverActiveLoadState.empty => Center(
-          child: Text(context.tr('driver.empty')),
-        ),
+      _DriverActiveLoadState.empty => _readyBody(),
       _DriverActiveLoadState.error => _RetryState(
           message: context.tr('driver.error'),
           onRetry: _load,
