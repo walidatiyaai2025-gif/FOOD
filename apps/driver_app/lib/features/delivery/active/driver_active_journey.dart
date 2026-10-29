@@ -81,7 +81,8 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (widget.focusAssignmentId != null) {
+    if (widget.channel == DriverChannel.b2b ||
+        widget.focusAssignmentId != null) {
       _period = _DriverDeliveryPeriod.all;
     }
     _load();
@@ -1066,7 +1067,9 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                   tooltip: context.tr('driver.filter.clear_date'),
                   onPressed: () => setState(() {
                     _dateRange = null;
-                    _period = _DriverDeliveryPeriod.today;
+                    _period = widget.channel == DriverChannel.b2b
+                        ? _DriverDeliveryPeriod.all
+                        : _DriverDeliveryPeriod.today;
                   }),
                   icon: const Icon(Icons.close_rounded),
                 ),
