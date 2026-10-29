@@ -92,8 +92,8 @@ void main() {
       await tester.enterText(
           find.byKey(const Key('driver-wallet-remittance-amount')), '1.500');
 
-      await tester.tap(
-          find.byKey(const Key('driver-wallet-remittance-cancel')));
+      await tester
+          .tap(find.byKey(const Key('driver-wallet-remittance-cancel')));
       // showDialog completes before its closing animation unmounts the field.
       await tester.pump();
       await tester.pumpAndSettle();
