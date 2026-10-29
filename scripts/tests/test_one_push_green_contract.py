@@ -143,7 +143,7 @@ class PublishedDashboardSyncPolicyTest(unittest.TestCase):
         base = self._git(repo, "rev-parse", "HEAD")
 
         updates = repo / "Release/Updates"
-        updates.mkdir(parents=True)
+        updates.mkdir(parents=True, exist_ok=True)
         package = updates / "FOODEX-Update.zip"
         with zipfile.ZipFile(package, "w") as archive:
             archive.writestr("README.txt", "published Dashboard update fixture")
