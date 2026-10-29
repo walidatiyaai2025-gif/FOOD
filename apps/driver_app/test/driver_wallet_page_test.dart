@@ -5,6 +5,7 @@ import 'package:foodex_driver_app/features/wallet/driver_wallet_page.dart';
 
 class _FakeWallet implements DriverWalletRepository {
   int walletCalls = 0;
+  int remittanceCalls = 0;
   bool failWallet = false;
 
   @override
@@ -42,6 +43,7 @@ class _FakeWallet implements DriverWalletRepository {
     String? note,
     required String idempotencyKey,
   }) {
+    remittanceCalls += 1;
     throw UnimplementedError();
   }
 }
@@ -72,6 +74,43 @@ class _CollectedWallet extends _FakeWallet {
 }
 
 void main() {
+  testWidgets(
+      'cancelling remittance twice disposes the dialog only after pop and never submits',
+      (tester) async {
+    final repository = _FakeWallet();
+    await tester.pumpWidget(MaterialApp(
+      locale: const Locale('ar'),
+      home: DriverWalletPage(repository: repository),
+    ));
+    await tester.pumpAndSettle();
+
+    for (var attempt = 0; attempt < 2; attempt++) {
+      await tester.tap(find.byKey(const Key('driver-wallet-remit-5')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('driver-wallet-remittance-amount')),
+          findsOneWidget);
+      await tester.enterText(
+          find.byKey(const Key('driver-wallet-remittance-amount')), '1.500');
+
+      await tester.tap(
+          find.byKey(const Key('driver-wallet-remittance-cancel')));
+      // showDialog completes before its closing animation unmounts the field.
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('driver-wallet-page')), findsOneWidget);
+      expect(find.byKey(const Key('driver-wallet-remittance-amount')),
+          findsNothing);
+      expect(repository.remittanceCalls, 0);
+      expect(tester.takeException(), isNull);
+    }
+
+    // Unmount the wallet as well to exercise the inherited widget lifecycle.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
       'wallet polls in foreground and preserves stale confirmed balances',
       (tester) async {
