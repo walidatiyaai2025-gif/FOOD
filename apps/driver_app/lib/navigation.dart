@@ -991,8 +991,8 @@ class _DriverHomePageState extends State<_DriverHomePage>
                                     ultraCompact: ultraCompact,
                                     icon: status.$2,
                                     status: status.$1,
-                                    label:
-                                        context.tr('driver.status.${status.$1}'),
+                                    label: context
+                                        .tr('driver.status.${status.$1}'),
                                     value: _loading ? null : _count(status.$1),
                                     onTap: _loading
                                         ? null
