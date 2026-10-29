@@ -743,7 +743,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
       walletRoute: widget.walletRoute,
       appBar: AppBar(
         titleSpacing: 12,
-        toolbarHeight: 74,
+        toolbarHeight: 72,
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         flexibleSpace: const DecoratedBox(
