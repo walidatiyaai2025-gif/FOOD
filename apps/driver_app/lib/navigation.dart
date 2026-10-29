@@ -1078,7 +1078,7 @@ class _DriverHeaderAction extends StatelessWidget {
           iconSize: 22,
           color: _DriverDashboardStyle.ink,
           padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 42, minHeight: 44),
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
           style: IconButton.styleFrom(
             backgroundColor: const Color(0xDFFFFFFF),
             disabledBackgroundColor: const Color(0x88FFFFFF),
