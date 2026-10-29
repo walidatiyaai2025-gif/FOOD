@@ -1325,14 +1325,31 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                                           ),
                                           const SizedBox(width: 8),
                                           Expanded(
-                                            child: Text(
-                                              assignment.address,
-                                              softWrap: true,
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                color: FoodexBrand.inkSoft,
-                                                height: 1.5,
-                                              ),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  context.tr(
+                                                    'driver.detail.address',
+                                                  ),
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color: FoodexBrand.muted,
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 3),
+                                                Text(
+                                                  assignment.address,
+                                                  softWrap: true,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: FoodexBrand.inkSoft,
+                                                    height: 1.5,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ],
