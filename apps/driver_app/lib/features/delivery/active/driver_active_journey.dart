@@ -90,6 +90,28 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
   }
 
   @override
+  void didUpdateWidget(covariant DriverActiveJourneyPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.channel != widget.channel ||
+        oldWidget.focusAssignmentId != widget.focusAssignmentId ||
+        oldWidget.initialAssignmentStatus != widget.initialAssignmentStatus) {
+      // A retained widget state must not reuse the previous driver's date
+      // filter, assignments, or focused assignment across channel switches.
+      _period = widget.channel == DriverChannel.b2b ||
+              widget.focusAssignmentId != null
+          ? _DriverDeliveryPeriod.all
+          : _DriverDeliveryPeriod.today;
+      _dateRange = null;
+      _assignments = const [];
+      _state = _DriverActiveLoadState.loading;
+      _focusedAssignmentOpened = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_load());
+      });
+    }
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(_load(silent: _assignments.isNotEmpty));

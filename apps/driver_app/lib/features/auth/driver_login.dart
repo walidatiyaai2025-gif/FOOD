@@ -292,11 +292,6 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
-                              if (configured && _checkingBiometrics)
-                                const SizedBox(
-                                  key: Key('driver-login-checking-session'),
-                                  height: 52,
-                                ),
                               if (configured &&
                                   !_checkingBiometrics &&
                                   _savedBiometricLogin) ...[
@@ -345,9 +340,7 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                   label: Text(context.tr('driver.logout')),
                                 ),
                               ],
-                              if (configured &&
-                                  !_checkingBiometrics &&
-                                  !_savedBiometricLogin) ...[
+                              if (configured && !_savedBiometricLogin) ...[
                                 TextField(
                                   key: const Key('driver-login-email'),
                                   controller: _email,
