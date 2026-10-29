@@ -1,6 +1,16 @@
 name: FOODEX Release Sync Gate
 
 on:
+  # Validate the exact head of a same-repository artifact-only sync PR, even
+  # when the Release Factory token cannot dispatch workflows or create PRs.
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Release/Updates/FOODEX-Update.zip'
+      - 'Release/Updates/FOODEX-Update.json'
+      - 'Release/Updates/FOODEX-Update.sha256.txt'
+      - 'Release/Updates/FOODEX-Update.files.txt'
+      - 'docs/release/RELEASE_REGISTRY.json'
   workflow_dispatch:
     inputs:
       base_sha:
@@ -20,24 +30,26 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-sync-gate-${{ inputs.branch }}
+  group: release-sync-gate-${{ inputs.branch || github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
   required-ci-gate:
+    # A fork PR cannot use this release-certification identity.
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.head_ref, 'release/'))
     name: required-ci-gate
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       GH_TOKEN: ${{ github.token }}
-      BASE_SHA: ${{ inputs.base_sha }}
-      HEAD_SHA: ${{ inputs.head_sha }}
-      SYNC_BRANCH: ${{ inputs.branch }}
+      BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ inputs.head_sha || github.event.pull_request.head.sha }}
+      SYNC_BRANCH: ${{ inputs.branch || github.head_ref }}
     steps:
       - name: Checkout exact sync head
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.head_sha }}
+          ref: ${{ env.HEAD_SHA }}
           fetch-depth: 0
 
       - name: Validate protected release-sync boundary
