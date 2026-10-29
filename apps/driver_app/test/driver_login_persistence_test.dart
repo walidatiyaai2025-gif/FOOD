@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/core/auth/driver_auth_persistence.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
@@ -305,4 +306,107 @@ void main() {
 
     expect(session?.token, 'remembered-token');
   });
+  test('secure session storage round-trips both B2B and B2C drivers',
+      () async {
+    for (final channel in DriverChannel.values) {
+      FlutterSecureStorage.setMockInitialValues(<String, String>{});
+      final store = SecureDriverSessionStore();
+      final session = DriverSession(
+        token: 'secure-${channel.name}-token',
+        name: 'Driver',
+        email: 'driver@example.test',
+        locale: 'ar',
+        channel: channel,
+        storeId: 7,
+      );
+      await store.write(session, biometricEnabled: true);
+
+      // A fresh store simulates the next app launch reading secure storage.
+      final restored = await SecureDriverSessionStore().read();
+      expect(restored, isNotNull);
+      expect(restored!.session.token, session.token);
+      expect(restored.session.channel, channel);
+      expect(restored.session.storeId, session.storeId);
+      expect(restored.biometricEnabled, isTrue);
+
+      await store.clear();
+      expect(await store.read(), isNull);
+    }
+  });
+
+  test('secure B2B session without biometrics supports Remember Me',
+      () async {
+    FlutterSecureStorage.setMockInitialValues(<String, String>{});
+    final store = SecureDriverSessionStore();
+    await store.write(
+      const DriverSession(
+        token: 'wholesale-remembered-token',
+        name: 'Wholesale Driver',
+        email: 'wholesale@example.test',
+        locale: 'ar',
+        channel: DriverChannel.b2b,
+        storeId: 21,
+      ),
+      biometricEnabled: false,
+    );
+    final saved = await SecureDriverSessionStore().read();
+    expect(saved?.session.channel, DriverChannel.b2b);
+    expect(saved?.biometricEnabled, isFalse);
+  });
+
+  testWidgets('previously signed-in B2B driver sees fingerprint and can enter',
+      (tester) async {
+    final store = _Store()
+      ..stored = const DriverStoredSession(
+        session: DriverSession(
+          token: 'wholesale-biometric-token',
+          name: 'Wholesale Driver',
+          email: 'wholesale@example.test',
+          locale: 'ar',
+          channel: DriverChannel.b2b,
+          storeId: 21,
+        ),
+        biometricEnabled: true,
+      );
+
+    DriverSession? authenticatedSession;
+    bool? remembered;
+    bool? biometricEnabled;
+    await tester.pumpWidget(
+      _host(
+        store: store,
+        biometric: const _Biometric(),
+        onAuthenticated: (session, remember, biometric) {
+          authenticatedSession = session;
+          remembered = remember;
+          biometricEnabled = biometric;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final fingerprint = find.byKey(const Key('driver-login-biometric'));
+    expect(fingerprint, findsOneWidget);
+    expect(
+      tester.widget<CheckboxListTile>(
+        find.byKey(const Key('driver-login-remember')),
+      ).value,
+      isTrue,
+    );
+    expect(
+      tester.widget<CheckboxListTile>(
+        find.byKey(const Key('driver-login-biometric-toggle')),
+      ).value,
+      isTrue,
+    );
+
+    await tester.ensureVisible(fingerprint);
+    await tester.tap(fingerprint);
+    await tester.pumpAndSettle();
+    expect(authenticatedSession?.token, 'wholesale-biometric-token');
+    expect(authenticatedSession?.channel, DriverChannel.b2b);
+    expect(remembered, isTrue);
+    expect(biometricEnabled, isTrue);
+  });
+
 }
