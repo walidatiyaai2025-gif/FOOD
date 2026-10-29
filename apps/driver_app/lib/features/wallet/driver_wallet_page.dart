@@ -422,17 +422,23 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                                                 FontWeight.w700,
                                                           ),
                                                         ),
-                                                        Text(
-                                                          foodexMoneyText(
-                                                            account
-                                                                .totalCollected,
-                                                            account.currency,
-                                                          ),
-                                                          style: const TextStyle(
-                                                            color: Colors.white,
-                                                            fontSize: 25,
-                                                            fontWeight:
-                                                                FontWeight.w900,
+                                                        FittedBox(
+                                                          alignment:
+                                                              AlignmentDirectional
+                                                                  .centerStart,
+                                                          fit: BoxFit.scaleDown,
+                                                          child: Text(
+                                                            foodexMoneyText(
+                                                              account
+                                                                  .totalCollected,
+                                                              account.currency,
+                                                            ),
+                                                            style: const TextStyle(
+                                                              color: Colors.white,
+                                                              fontSize: 25,
+                                                              fontWeight:
+                                                                  FontWeight.w900,
+                                                            ),
                                                           ),
                                                         ),
                                                       ],
@@ -711,9 +717,15 @@ class _MoneyRow extends StatelessWidget {
         child: Row(
           children: [
             Expanded(child: Text(label)),
-            Text(
-              foodexMoneyText(amount, currency),
-              style: const TextStyle(fontWeight: FontWeight.w800),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: AlignmentDirectional.centerEnd,
+                child: Text(
+                  foodexMoneyText(amount, currency),
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
             ),
           ],
         ),
