@@ -23,7 +23,7 @@ abstract interface class DriverSessionStore {
 
 class SecureDriverSessionStore implements DriverSessionStore {
   SecureDriverSessionStore({FlutterSecureStorage? storage})
-    : _storage = storage ?? const FlutterSecureStorage();
+      : _storage = storage ?? const FlutterSecureStorage();
 
   static const _key = 'foodex.driver.auth_session.v1';
   static const _version = 1;
@@ -123,7 +123,7 @@ abstract interface class DriverBiometricAuthenticator {
 class LocalAuthDriverBiometricAuthenticator
     implements DriverBiometricAuthenticator {
   LocalAuthDriverBiometricAuthenticator({LocalAuthentication? auth})
-    : _auth = auth ?? LocalAuthentication();
+      : _auth = auth ?? LocalAuthentication();
 
   final LocalAuthentication _auth;
 
