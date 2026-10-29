@@ -55,6 +55,7 @@ class SecureDriverSessionStore implements DriverSessionStore {
       final storeId = (payload['store_id'] as num?)?.toInt();
       final channel = switch (channelName) {
         'b2c' => DriverChannel.b2c,
+        'b2b' => DriverChannel.b2b,
         _ => null,
       };
 
