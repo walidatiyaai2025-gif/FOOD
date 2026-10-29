@@ -838,8 +838,7 @@ void main() {
     expect(find.byKey(const Key('driver-shell-wallet')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-unsettled-collections')),
         findsOneWidget);
-    final statusCard =
-        find.byKey(const Key('driver-home-status-accepted'));
+    final statusCard = find.byKey(const Key('driver-home-status-accepted'));
     await tester.ensureVisible(statusCard);
     await tester.pumpAndSettle();
     final action = find.descendant(
