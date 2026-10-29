@@ -376,7 +376,8 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                             ),
                                             boxShadow: const [
                                               BoxShadow(
-                                                color: DriverUiPalette.walletAccent,
+                                                color: DriverUiPalette
+                                                    .walletAccent,
                                                 blurRadius: 14,
                                                 offset: Offset(0, 5),
                                               ),
@@ -560,15 +561,16 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                                 (row) => Card(
                                                   margin: const EdgeInsets.only(
                                                       bottom: 8),
-                                                  color:
-                                                      DriverUiPalette.rowSurface,
+                                                  color: DriverUiPalette
+                                                      .rowSurface,
                                                   elevation: 0,
                                                   shape: RoundedRectangleBorder(
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                             15),
                                                     side: const BorderSide(
-                                                      color: DriverUiPalette.rowBorder,
+                                                      color: DriverUiPalette
+                                                          .rowBorder,
                                                     ),
                                                   ),
                                                   child: ListTile(

@@ -1458,7 +1458,8 @@ class _DriverPendingCard extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: DriverHomePalette.pendingBorder, width: 1.25),
+            border:
+                Border.all(color: DriverHomePalette.pendingBorder, width: 1.25),
           ),
           child: Row(
             children: [
