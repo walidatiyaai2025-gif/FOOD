@@ -1290,19 +1290,19 @@ class _DriverWorkloadChart extends StatelessWidget {
       body = Text(context.tr('driver.home.analytics.empty'));
     } else {
       final chartSize = ultraCompact
-          ? 50.0
+          ? 56.0
           : compact
-              ? 60.0
-              : 70.0;
+              ? 72.0
+              : 108.0;
       final chart = FoodexDonutChart(
         values: [for (final item in statuses) item.value.toDouble()],
         semanticLabel: semanticLabel,
         size: chartSize,
         strokeWidth: ultraCompact
-            ? 8
+            ? 9
             : compact
-                ? 10
-                : 12,
+                ? 11
+                : 17,
       );
       final legend = FoodexChartLegend(labels: labels);
 
@@ -1324,12 +1324,18 @@ class _DriverWorkloadChart extends StatelessWidget {
     return Card(
       key: const Key('driver-home-workload-chart'),
       margin: EdgeInsets.zero,
+      color: FoodexBrand.surface,
+      elevation: 5,
+      shadowColor: _DriverDashboardStyle.softShadow,
+      shape: _DriverDashboardStyle.panelShape(
+        border: const Color(0xFFE4F0E8),
+      ),
       child: Padding(
         padding: EdgeInsets.all(ultraCompact
-            ? 7
+            ? 9
             : compact
-                ? 9
-                : 12),
+                ? 11
+                : 15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1342,7 +1348,7 @@ class _DriverWorkloadChart extends StatelessWidget {
                       : compact
                           ? 18
                           : 20,
-                  color: FoodexChartPalette.primaryDark,
+                  color: FoodexBrand.greenDark,
                 ),
                 SizedBox(width: ultraCompact ? 5 : 8),
                 Expanded(
@@ -1352,10 +1358,10 @@ class _DriverWorkloadChart extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontSize: ultraCompact
-                              ? 11
+                              ? 12
                               : compact
-                                  ? 12
-                                  : null,
+                                  ? 14
+                                  : 16,
                           fontWeight: FontWeight.w900,
                         ),
                   ),
@@ -1363,7 +1369,7 @@ class _DriverWorkloadChart extends StatelessWidget {
               ],
             ),
             if (!compact) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 5),
               Text(
                 context.tr('driver.home.analytics.summary'),
                 maxLines: 2,
