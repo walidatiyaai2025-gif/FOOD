@@ -742,20 +742,37 @@ class _DriverHomePageState extends State<_DriverHomePage>
       notificationsRoute: widget.notificationsRoute,
       walletRoute: widget.walletRoute,
       appBar: AppBar(
-        titleSpacing: 16,
+        titleSpacing: 12,
+        toolbarHeight: 74,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        flexibleSpace: const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topEnd,
+              end: Alignment.bottomStart,
+              colors: [
+                Color(0xFFF9FFFC),
+                Color(0xFFDEF7EA),
+                Color(0xFFF0FCF5),
+              ],
+            ),
+          ),
+        ),
         title: Row(
           children: [
             Container(
-              width: 38,
-              height: 38,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: FoodexBrand.greenSoft,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: const Color(0xFFCBEEDB)),
               ),
               child: const Icon(
                 Icons.local_shipping_rounded,
                 color: FoodexBrand.greenDark,
-                size: 21,
+                size: 24,
               ),
             ),
             const SizedBox(width: 10),
@@ -786,37 +803,49 @@ class _DriverHomePageState extends State<_DriverHomePage>
           ],
         ),
         actions: [
-          IconButton(
-            key: const Key('driver-home-refresh'),
+          _DriverHeaderAction(
+            actionKey: const Key('driver-home-refresh'),
             onPressed: _loading ? null : _loadSummary,
             tooltip: context.tr('driver.refresh'),
-            icon: const Icon(Icons.refresh_rounded),
+            icon: Icons.refresh_rounded,
           ),
           if (widget.walletRoute != null)
-            IconButton(
-              key: const Key('driver-open-wallet'),
+            _DriverHeaderAction(
+              actionKey: const Key('driver-open-wallet'),
               onPressed: () =>
                   Navigator.of(context).pushNamed(widget.walletRoute!),
               tooltip: context.tr('driver.home.open_wallet'),
-              icon: const Icon(Icons.account_balance_wallet_outlined),
+              icon: Icons.account_balance_wallet_outlined,
             ),
-          IconButton(
-            key: const Key('driver-open-notifications'),
+          _DriverHeaderAction(
+            actionKey: const Key('driver-open-notifications'),
             onPressed: () =>
                 Navigator.of(context).pushNamed(widget.notificationsRoute),
             tooltip: context.tr('driver.notifications.title'),
-            icon: const Icon(Icons.notifications_none_rounded),
+            icon: Icons.notifications_none_rounded,
           ),
           if (widget.onLogout != null)
-            IconButton(
-              key: const Key('driver-logout'),
+            _DriverHeaderAction(
+              actionKey: const Key('driver-logout'),
               onPressed: widget.onLogout,
               tooltip: context.tr('driver.logout'),
-              icon: const Icon(Icons.logout_rounded),
+              icon: Icons.logout_rounded,
             ),
         ],
       ),
-      body: SafeArea(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFF0FAF5),
+              Color(0xFFF7FBF8),
+              Color(0xFFF1F9F5),
+            ],
+          ),
+        ),
+        child: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
             final compact = constraints.maxHeight < 610;
@@ -827,40 +856,40 @@ class _DriverHomePageState extends State<_DriverHomePage>
                     ? 6.0
                     : 8.0;
             final horizontalPadding = ultraCompact ? 8.0 : 12.0;
-            final columns = compact ? 3 : 2;
-            final baseChartHeight = ultraCompact
-                ? 96.0
+            const columns = 2;
+            final chartHeight = ultraCompact
+                ? 118.0
                 : compact
-                    ? 118.0
-                    : 160.0;
-            final chartHeight = baseChartHeight * 1.20;
+                    ? 158.0
+                    : 212.0;
             final pendingHeight = ultraCompact
-                ? 38.0
+                ? 44.0
                 : compact
-                    ? 42.0
-                    : 46.0;
+                    ? 49.0
+                    : 58.0;
             final statusCardHeight = ultraCompact
-                ? 46.0
+                ? 58.0
                 : compact
-                    ? 54.0
-                    : 64.0;
+                    ? 66.0
+                    : 78.0;
             final unsettledCardHeight = ultraCompact
-                ? 48.0
+                ? 66.0
                 : compact
-                    ? 54.0
-                    : 62.0;
+                    ? 73.0
+                    : 84.0;
             final showUnsettledCollections = widget.walletRoute != null &&
                 widget.repository is DriverWalletRepository;
             final statusRows = (_statuses.length / columns).ceil();
             final statusGridHeight =
                 (statusRows * statusCardHeight) + ((statusRows - 1) * gap);
 
-            return Padding(
+            return SingleChildScrollView(
+              key: const Key('driver-home-scroll'),
               padding: EdgeInsets.fromLTRB(
                 horizontalPadding,
-                gap,
+                gap + 6,
                 horizontalPadding,
-                gap,
+                gap + 14,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -880,19 +909,8 @@ class _DriverHomePageState extends State<_DriverHomePage>
                     ),
                     SizedBox(height: gap),
                   ],
-                  Text(
-                    context.tr('driver.home.status_summary'),
-                    key: const Key('driver-home-status-summary-title'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontSize: ultraCompact
-                              ? 14
-                              : compact
-                                  ? 15
-                                  : null,
-                          fontWeight: FontWeight.w900,
-                        ),
+                  _DriverDashboardSectionHeading(
+                    title: context.tr('driver.home.status_summary'),
                   ),
                   SizedBox(height: gap),
                   SizedBox(
@@ -972,6 +990,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
                                   compact: compact,
                                   ultraCompact: ultraCompact,
                                   icon: status.$2,
+                                  status: status.$1,
                                   label:
                                       context.tr('driver.status.${status.$1}'),
                                   value: _loading ? null : _count(status.$1),
@@ -982,11 +1001,12 @@ class _DriverHomePageState extends State<_DriverHomePage>
                             ],
                           ),
                   ),
-                  const Spacer(),
+                  SizedBox(height: gap),
                 ],
               ),
             );
           },
+        ),
         ),
       ),
     );
