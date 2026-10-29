@@ -1395,12 +1395,12 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                         const SizedBox(height: 80),
                         Center(
                           child: Text(
-                          context.tr(
-                            _assignments.isEmpty
-                                ? 'driver.empty'
-                                : 'driver.filter.period_empty',
+                            context.tr(
+                              _assignments.isEmpty
+                                  ? 'driver.empty'
+                                  : 'driver.filter.period_empty',
+                            ),
                           ),
-                        ),
                         ),
                       ],
                     )
