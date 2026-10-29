@@ -123,7 +123,7 @@ class DriverShellNavigation extends StatelessWidget {
           ),
           child: NavigationBar(
             key: const Key('driver-shell-navigation'),
-            height: 82,
+            height: 96,
             selectedIndex: destination.index,
             onDestinationSelected: (index) =>
                 _open(context, DriverShellDestination.values[index]),
