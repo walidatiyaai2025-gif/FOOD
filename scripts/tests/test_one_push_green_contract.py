@@ -182,6 +182,16 @@ class PublishedDashboardSyncPolicyTest(unittest.TestCase):
             capture_output=True, text=True, check=False,
         )
 
+    def test_release_sync_gate_can_certify_same_repo_pull_request_exact_head(self):
+        gate = (ROOT / ".github/workflows/release-sync-gate.yml").read_text(encoding="utf-8")
+        self.assertIn("pull_request:", gate)
+        self.assertIn("branches: [main]", gate)
+        self.assertIn("head.repo.full_name == github.repository", gate)
+        self.assertIn("github.event.pull_request.base.sha", gate)
+        self.assertIn("github.event.pull_request.head.sha", gate)
+        self.assertIn("ref: ${{ env.HEAD_SHA }}", gate)
+        self.assertIn("github.head_ref", gate)
+
     def test_unchanged_generated_files_index_is_allowed(self):
         with tempfile.TemporaryDirectory() as location:
             repo = Path(location)
