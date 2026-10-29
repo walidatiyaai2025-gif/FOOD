@@ -735,7 +735,7 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('driver home cards use the reduced-height layout',
+  testWidgets('premium Driver Home keeps full dashboard cards at 390px',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -756,24 +756,24 @@ void main() {
       tester
           .getSize(find.byKey(const Key('driver-home-workload-chart')))
           .height,
-      closeTo(192, 0.01),
+      closeTo(212, 0.01),
     );
     expect(
       tester
           .getSize(find.byKey(const Key('driver-home-pending-orders')))
           .height,
-      lessThanOrEqualTo(46),
+      lessThanOrEqualTo(58),
     );
     expect(
       tester
           .getSize(find.byKey(const Key('driver-home-status-accepted')))
           .height,
-      lessThanOrEqualTo(64),
+      lessThanOrEqualTo(78),
     );
   });
 
   testWidgets(
-      'home shows authoritative unsettled collections and a 20 percent taller workload card',
+      'premium Home preserves live wallet amounts above quick summary',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -794,7 +794,7 @@ void main() {
       tester
           .getSize(find.byKey(const Key('driver-home-workload-chart')))
           .height,
-      closeTo(192, 0.01),
+      closeTo(212, 0.01),
     );
     expect(
       find.byKey(const Key('driver-home-unsettled-collections')),
@@ -817,6 +817,34 @@ void main() {
     await tester.tap(unsettledCard);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('driver-wallet-page')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('premium Home keeps live status filtering usable at 320px',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await tester.pumpWidget(FoodexDriverApp(
+      locale: const Locale('ar'),
+      initialSession: session(DriverChannel.b2c),
+      assignmentRepositoryFactory: (_) => _WalletStatusRepo(),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-home-scroll')), findsOneWidget);
+    expect(find.byKey(const Key('driver-shell-wallet')), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-unsettled-collections')),
+        findsOneWidget);
+    await tester.ensureVisible(
+        find.byKey(const Key('driver-home-status-accepted')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('driver-home-status-accepted')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-shell-deliveries')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
