@@ -474,6 +474,8 @@ class _EvidenceAssignments implements DriverAssignmentRepository {
           reference:
               channel == DriverChannel.b2c ? '#FOODEX-41' : '#FOODEX-B2B-141',
           status: 'assigned',
+          storeName: channel == DriverChannel.b2b ? 'FOODEX Wholesale' : '',
+          customerName: channel == DriverChannel.b2b ? 'سوبر ماركت - 1' : '',
           address: 'Bayan Block 1 · Street 5 · Building 12',
           navigationLatitude: 29.3031,
           navigationLongitude: 48.0489,
