@@ -97,7 +97,7 @@ if [[ "$release_branch" == "true" && "$version_changed" != "true" ]]; then
     # A deterministic generated files index (or checksum) may be byte-identical
     # across consecutive releases. Enforce the five-path ALLOWLIST, not an exact
     # five-path delta, while requiring the new package, manifest and registry.
-    unexpected_paths="$(comm -23 <(printf '%s\\n' "$actual_paths") <(printf '%s\\n' "$expected_paths"))"
+    unexpected_paths="$(comm -23 <(printf '%s\n' "$actual_paths") <(printf '%s\n' "$expected_paths"))"
     if [[ -n "$unexpected_paths" ]] \
       || ! grep -Fxq 'Release/Updates/FOODEX-Update.json' <<< "$actual_paths" \
       || ! grep -Fxq 'Release/Updates/FOODEX-Update.zip' <<< "$actual_paths" \
