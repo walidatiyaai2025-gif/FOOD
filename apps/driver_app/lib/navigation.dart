@@ -1434,131 +1434,83 @@ class _DriverPendingCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
-        color: FoodexBrand.statusSurface('error'),
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: ultraCompact
-                  ? 8
-                  : compact
-                      ? 10
-                      : 14,
-              vertical: ultraCompact
-                  ? 3
-                  : compact
-                      ? 4
-                      : 5,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: FoodexBrand.red,
-                width: 1.4,
+  Widget build(BuildContext context) {
+    final iconSize = ultraCompact ? 30.0 : compact ? 34.0 : 40.0;
+
+    return Material(
+      color: const Color(0xFFFFF1F1),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: ultraCompact ? 8 : 12,
+            vertical: ultraCompact ? 4 : 7,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFEF6369), width: 1.25),
+          ),
+          child: Row(
+            children: [
+              Container(
+                height: iconSize,
+                width: iconSize,
+                decoration: BoxDecoration(
+                  color: FoodexBrand.red,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(
+                  Icons.notifications_active_rounded,
+                  size: ultraCompact ? 16 : 20,
+                  color: Colors.white,
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: ultraCompact
-                      ? 24
-                      : compact
-                          ? 28
-                          : 32,
-                  height: ultraCompact
-                      ? 24
-                      : compact
-                          ? 28
-                          : 32,
-                  decoration: BoxDecoration(
-                    color: FoodexBrand.red,
-                    borderRadius: BorderRadius.circular(compact ? 10 : 14),
-                  ),
-                  child: Icon(
-                    Icons.notifications_active_rounded,
-                    color: Colors.white,
-                    size: ultraCompact
-                        ? 14
-                        : compact
-                            ? 16
-                            : 18,
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: ultraCompact ? 11 : compact ? 12 : 15,
+                    color: FoodexBrand.dangerText,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                SizedBox(
-                    width: ultraCompact
-                        ? 6
-                        : compact
-                            ? 8
-                            : 10),
-                Expanded(
+              ),
+              const SizedBox(width: 7),
+              if (value == null)
+                const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2.2),
+                )
+              else
+                Container(
+                  constraints: BoxConstraints(minWidth: iconSize),
+                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: FoodexBrand.red,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: Text(
-                    label,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    value.toString(),
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: FoodexBrand.dangerText,
-                      fontSize: ultraCompact
-                          ? 10
-                          : compact
-                              ? 11
-                              : 13,
+                      color: Colors.white,
+                      fontSize: ultraCompact ? 16 : 20,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                if (value == null)
-                  const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.2,
-                      color: FoodexBrand.red,
-                    ),
-                  )
-                else
-                  Container(
-                    constraints: BoxConstraints(
-                      minWidth: ultraCompact
-                          ? 30
-                          : compact
-                              ? 34
-                              : 40,
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: ultraCompact ? 7 : 9,
-                      vertical: ultraCompact
-                          ? 3
-                          : compact
-                              ? 4
-                              : 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: FoodexBrand.red,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      value.toString(),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: ultraCompact
-                            ? 14
-                            : compact
-                                ? 16
-                                : 19,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+            ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _DriverStatusCard extends StatelessWidget {
@@ -1567,6 +1519,7 @@ class _DriverStatusCard extends StatelessWidget {
     required this.compact,
     required this.ultraCompact,
     required this.icon,
+    required this.status,
     required this.label,
     required this.value,
     required this.onTap,
@@ -1575,106 +1528,83 @@ class _DriverStatusCard extends StatelessWidget {
   final bool compact;
   final bool ultraCompact;
   final IconData icon;
+  final String status;
   final String label;
   final int? value;
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
-        color: FoodexBrand.surface,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: ultraCompact
-                  ? 6
-                  : compact
-                      ? 8
-                      : 10,
-              vertical: ultraCompact
-                  ? 5
-                  : compact
-                      ? 7
-                      : 9,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: FoodexBrand.border),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: ultraCompact
-                      ? 26
-                      : compact
-                          ? 30
-                          : 34,
-                  height: ultraCompact
-                      ? 26
-                      : compact
-                          ? 30
-                          : 34,
-                  decoration: BoxDecoration(
-                    color: FoodexBrand.greenSoft,
-                    borderRadius: BorderRadius.circular(compact ? 9 : 12),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: FoodexBrand.greenDark,
-                    size: ultraCompact
-                        ? 14
-                        : compact
-                            ? 16
-                            : 18,
-                  ),
-                ),
-                SizedBox(
-                    width: ultraCompact
-                        ? 5
-                        : compact
-                            ? 6
-                            : 8),
-                Expanded(
-                  child: Text(
-                    label,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: ultraCompact
-                          ? 9
-                          : compact
-                              ? 10
-                              : 11,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                if (value == null)
-                  const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2.1),
-                  )
-                else
-                  Text(
-                    value.toString(),
-                    style: TextStyle(
-                      fontSize: ultraCompact
-                          ? 14
-                          : compact
-                              ? 16
-                              : 19,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-              ],
+  Widget build(BuildContext context) {
+    final tone = _DriverDashboardStyle.statusColor(status);
+    final size = ultraCompact ? 30.0 : compact ? 33.0 : 39.0;
+
+    return Material(
+      color: _DriverDashboardStyle.statusBackground(status),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: ultraCompact ? 7 : 10,
+            vertical: ultraCompact ? 4 : 8,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: _DriverDashboardStyle.statusBorder(status),
+              width: 1.15,
             ),
           ),
+          child: Row(
+            children: [
+              Container(
+                height: size,
+                width: size,
+                decoration: BoxDecoration(
+                  color: tone.withValues(alpha: 0.11),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(
+                  icon,
+                  color: tone,
+                  size: ultraCompact ? 17 : 21,
+                ),
+              ),
+              SizedBox(width: ultraCompact ? 5 : 8),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: _DriverDashboardStyle.ink,
+                    fontSize: ultraCompact ? 10 : compact ? 11 : 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 5),
+              if (value == null)
+                const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                Text(
+                  value.toString(),
+                  style: TextStyle(
+                    color: _DriverDashboardStyle.ink,
+                    fontSize: ultraCompact ? 17 : compact ? 20 : 25,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+            ],
+          ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _DriverRouteDenied extends StatelessWidget {
