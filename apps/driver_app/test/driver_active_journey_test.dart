@@ -1076,4 +1076,62 @@ void main() {
       TextDirection.rtl,
     );
   });
+
+  testWidgets('premium wholesale card preserves full original address',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    const fullAddress =
+        'الكويت، منطقة الفروانية، شارع طويل للغاية، بناية ۱۲، '
+        'الطابق الثالث، شقة ٣، Delivery entrance opposite the park';
+    const repo = _StaticActiveRepo([
+      DriverAssignment(
+        id: 33095,
+        channel: DriverChannel.b2b,
+        reference: '#33095',
+        status: 'accepted',
+        storeName: 'FOODEX Wholesale',
+        customerName: 'سوبر ماركت - 1',
+        address: fullAddress,
+        availableStatuses: ['out_for_delivery', 'failed'],
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      _host(repo, channel: DriverChannel.b2b, locale: const Locale('ar')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<ChoiceChip>(
+        find.byKey(const Key('driver-filter-all')),
+      ).selected,
+      isTrue,
+    );
+    expect(find.text('#33095'), findsOneWidget);
+    expect(find.text('FOODEX Wholesale'), findsOneWidget);
+    expect(find.text('سوبر ماركت - 1'), findsOneWidget);
+    expect(
+      find.byKey(const Key('driver-active-status-33095')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('driver-active-actions-33095')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('driver-active-details-33095')),
+      findsOneWidget,
+    );
+
+    final address = tester.widget<Text>(find.text(fullAddress));
+    expect(address.maxLines, isNull);
+    expect(address.overflow, isNot(TextOverflow.ellipsis));
+    expect(tester.takeException(), isNull);
+  });
 }
