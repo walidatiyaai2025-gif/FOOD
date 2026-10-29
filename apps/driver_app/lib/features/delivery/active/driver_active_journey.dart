@@ -956,6 +956,171 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     );
   }
 
+  Widget _legacyFilterControls() {
+    final locale = MaterialLocalizations.of(context);
+    final range = _dateRange;
+    final rangeLabel = range == null
+        ? context.tr('driver.filter.date_range')
+        : '${locale.formatShortDate(range.start)} — ${locale.formatShortDate(range.end)}';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
+      child: SizedBox(
+        key: const Key('driver-filter-single-row'),
+        height: 48,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OutlinedButton.icon(
+                key: const Key('driver-delivery-date-range'),
+                onPressed: _pickDateRange,
+                icon: const Icon(Icons.date_range_rounded),
+                label: Text(
+                  rangeLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              ChoiceChip(
+                key: const Key('driver-filter-today'),
+                label: Text(context.tr('driver.filter.today')),
+                selected: _period == _DriverDeliveryPeriod.today,
+                onSelected: (_) => setState(() {
+                  _period = _DriverDeliveryPeriod.today;
+                }),
+              ),
+              const SizedBox(width: 8),
+              ChoiceChip(
+                key: const Key('driver-filter-all'),
+                label: Text(context.tr('driver.filter.all')),
+                selected: _period == _DriverDeliveryPeriod.all,
+                onSelected: (_) => setState(() {
+                  _period = _DriverDeliveryPeriod.all;
+                }),
+              ),
+              if (_period == _DriverDeliveryPeriod.custom) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  key: const Key('driver-filter-clear-date'),
+                  tooltip: context.tr('driver.filter.clear_date'),
+                  onPressed: () => setState(() {
+                    _dateRange = null;
+                    _period = widget.channel == DriverChannel.b2b
+                        ? _DriverDeliveryPeriod.all
+                        : _DriverDeliveryPeriod.today;
+                  }),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _legacyReadyBody() {
+    final rows = _filteredAssignments();
+    return Column(
+      children: [
+        _legacyFilterControls(),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _load,
+            child: rows.isEmpty
+                ? ListView(
+                    key: const Key('driver-filter-empty'),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(28),
+                    children: [
+                      const SizedBox(height: 80),
+                      Center(
+                        child: Text(context.tr('driver.filter.period_empty')),
+                      ),
+                    ],
+                  )
+                : ListView.separated(
+                    key: widget.initialAssignmentStatus != null
+                        ? const Key('driver-active-status-filter')
+                        : const Key('driver-active-assignment-list'),
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
+                    itemCount: rows.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final assignment = rows[index];
+                      return Card(
+                        key: Key('driver-active-assignment-${assignment.id}'),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: () => _showDetail(assignment),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        assignment.reference,
+                                        key: Key(
+                                          'driver-active-reference-${assignment.id}',
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Chip(
+                                      visualDensity: VisualDensity.compact,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      label: Text(
+                                        _statusLabel(assignment.status),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 2),
+                                    _actions(assignment),
+                                  ],
+                                ),
+                                if (assignment.storeName.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Text(assignment.storeName),
+                                ],
+                                if (assignment.customerName.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(assignment.customerName),
+                                ],
+                                if (assignment.address.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    assignment.address,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Presentation colors only; delivery statuses and actions are unchanged.
   Widget _premiumStatusBadge(DriverAssignment assignment) {
     final status = assignment.status.toLowerCase();
@@ -1055,6 +1220,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
   }
 
   Widget _filterControls() {
+    if (widget.channel != DriverChannel.b2b) return _legacyFilterControls();
     final locale = MaterialLocalizations.of(context);
     final range = _dateRange;
     final rangeLabel = range == null
@@ -1180,6 +1346,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
   }
 
   Widget _readyBody() {
+    if (widget.channel != DriverChannel.b2b) return _legacyReadyBody();
     final rows = _filteredAssignments();
     return ColoredBox(
       color: const Color(0xFFF5FCF8),
