@@ -1013,6 +1013,117 @@ class _DriverHomePageState extends State<_DriverHomePage>
   }
 }
 
+/// Shared presentation tokens for the Driver Home only; financial and routing
+/// state continue to come from the existing authenticated repositories.
+abstract final class _DriverDashboardStyle {
+  static const mint = Color(0xFFE2F7EC);
+  static const mintBorder = Color(0xFFCBEAD8);
+  static const ink = FoodexBrand.ink;
+  static const softShadow = Color(0x120F5132);
+
+  static RoundedRectangleBorder panelShape({
+    Color border = mintBorder,
+  }) =>
+      RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(color: border),
+      );
+
+  static Color statusColor(String status) => switch (status) {
+        'accepted' => const Color(0xFF147A40),
+        'out_for_delivery' => const Color(0xFF347FDE),
+        'failed' => const Color(0xFFEB7916),
+        'delivered' => const Color(0xFFDC4044),
+        _ => FoodexBrand.muted,
+      };
+
+  static Color statusBackground(String status) => switch (status) {
+        'accepted' => const Color(0xFFF1FBF5),
+        'out_for_delivery' => const Color(0xFFF2F8FF),
+        'failed' => const Color(0xFFFFF8EE),
+        'delivered' => const Color(0xFFFFF5F5),
+        _ => FoodexBrand.surface,
+      };
+
+  static Color statusBorder(String status) => switch (status) {
+        'accepted' => const Color(0xFFCEEEDB),
+        'out_for_delivery' => const Color(0xFFD1E4FF),
+        'failed' => const Color(0xFFFFDEAC),
+        'delivered' => const Color(0xFFFFD2D3),
+        _ => FoodexBrand.border,
+      };
+}
+
+class _DriverHeaderAction extends StatelessWidget {
+  const _DriverHeaderAction({
+    required this.actionKey,
+    required this.onPressed,
+    required this.tooltip,
+    required this.icon,
+  });
+
+  final Key actionKey;
+  final VoidCallback? onPressed;
+  final String tooltip;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsetsDirectional.only(end: 3),
+        child: IconButton(
+          key: actionKey,
+          onPressed: onPressed,
+          tooltip: tooltip,
+          icon: Icon(icon),
+          iconSize: 22,
+          color: _DriverDashboardStyle.ink,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 42, minHeight: 44),
+          style: IconButton.styleFrom(
+            backgroundColor: const Color(0xDFFFFFFF),
+            disabledBackgroundColor: const Color(0x88FFFFFF),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+      );
+}
+
+class _DriverDashboardSectionHeading extends StatelessWidget {
+  const _DriverDashboardSectionHeading({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Container(
+            height: 23,
+            width: 4,
+            decoration: BoxDecoration(
+              color: FoodexBrand.actionGreen,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              title,
+              key: const Key('driver-home-status-summary-title'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: FoodexBrand.ink,
+                    fontSize: 19,
+                  ),
+            ),
+          ),
+        ],
+      );
+}
+
 class _DriverUnsettledCollectionsCard extends StatelessWidget {
   const _DriverUnsettledCollectionsCard({
     required this.loading,
