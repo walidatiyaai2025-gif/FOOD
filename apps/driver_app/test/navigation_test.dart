@@ -243,6 +243,11 @@ void main() {
 
     expect(find.byKey(const Key('driver-shell-wallet')), findsOneWidget);
     expect(find.text('المحفظة'), findsOneWidget);
+    expect(
+      tester.widget<NavigationBar>(find.byKey(const Key('driver-shell-navigation')))
+          .labelBehavior,
+      NavigationDestinationLabelBehavior.alwaysShow,
+    );
     expect(find.byKey(const Key('driver-open-wallet')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-unsettled-collections')),
         findsOneWidget);
