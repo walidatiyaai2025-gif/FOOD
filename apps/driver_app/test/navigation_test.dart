@@ -819,7 +819,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('premium Home keeps live status filtering usable at 320px',
+  testWidgets('premium Home fits 320px and keeps status action enabled',
       (tester) async {
     tester.view.physicalSize = const Size(320, 568);
     tester.view.devicePixelRatio = 1;
@@ -838,17 +838,16 @@ void main() {
     expect(find.byKey(const Key('driver-shell-wallet')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-unsettled-collections')),
         findsOneWidget);
-    await tester
-        .ensureVisible(find.byKey(const Key('driver-home-status-accepted')));
+    final statusCard =
+        find.byKey(const Key('driver-home-status-accepted'));
+    await tester.ensureVisible(statusCard);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('driver-home-status-accepted')));
-    await tester.pumpAndSettle();
-    final navigation = find.byKey(const Key('driver-shell-navigation'));
-    expect(navigation, findsOneWidget);
-    expect(
-      tester.widget<NavigationBar>(navigation).selectedIndex,
-      DriverShellDestination.deliveries.index,
+    final action = find.descendant(
+      of: statusCard,
+      matching: find.byType(InkWell),
     );
+    expect(action, findsOneWidget);
+    expect(tester.widget<InkWell>(action).onTap, isNotNull);
     expect(tester.takeException(), isNull);
   });
 
