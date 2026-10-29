@@ -112,6 +112,41 @@ abstract final class DriverHomePalette {
   static const pendingBorder = Color(0xFFEF6369);
 }
 
+/// Shared Driver authentication, deliveries and Wallet surface tokens.
+abstract final class DriverUiPalette {
+  static const shellShadow = Color(0x260F5132);
+  static const dangerSurface = Color(0xFFFFF0F0);
+  static const loginBrandShadow = Color(0x2A003223);
+  static const infoSurface = Color(0xFFEDF4FF);
+  static const neutralSurface = Color(0xFFF2F4F7);
+  static const dividerGreen = Color(0xFFE1ECE5);
+  static const greenBorderStrong = Color(0xFFC3EAD4);
+  static const cardShadow = Color(0x100F5132);
+  static const mintSurface = Color(0xFFF5FCF8);
+  static const raisedShadow = Color(0x180F5132);
+  static const softBorder = Color(0xFFE2EFE8);
+  static const neutralFill = Color(0xFFF5F7F6);
+  static const neutralBorder = Color(0xFFEDF0EE);
+  static const warningSurface = Color(0xFFFFF7E6);
+  static const warningBorder = Color(0xFFF1D39A);
+  static const warningInk = Color(0xFF8A5A00);
+  static const warningDeepInk = Color(0xFF6B4A00);
+  static const successSurface = Color(0xFFF2F8F5);
+  static const successBorder = Color(0xFFD9E9E1);
+  static const successInk = Color(0xFF087347);
+  static const mutedSurface = Color(0xFFF2F5F3);
+  static const headerIconSurface = Color(0xFFD3F3E1);
+  static const headerIconBorder = Color(0xFFC2EACF);
+  static const walletTop = Color(0xFFE9F8EF);
+  static const walletShadow = Color(0x130F5132);
+  static const walletBorder = Color(0xFFE1EEE5);
+  static const walletAccent = Color(0x22165D2D);
+  static const walletSubtle = Color(0xFFE7F0EA);
+  static const buttonDisabled = Color(0xFFE5EAE7);
+  static const rowSurface = Color(0xFFFBFDFC);
+  static const rowBorder = Color(0xFFE5EEE8);
+}
+
 abstract final class FoodexTheme {
   static ThemeData light({String? fontFamily}) {
     const scheme = ColorScheme.light(

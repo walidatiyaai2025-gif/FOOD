@@ -107,9 +107,9 @@ class DriverJourneyRuntimePage extends StatelessWidget {
             begin: AlignmentDirectional.topEnd,
             end: AlignmentDirectional.bottomStart,
             colors: [
-              Color(0xFFF9FFFC),
-              Color(0xFFDEF7EA),
-              Color(0xFFF0FCF5),
+              DriverHomePalette.headerTop,
+              DriverHomePalette.headerMiddle,
+              DriverHomePalette.headerBottom,
             ],
           ),
         ),
@@ -120,7 +120,7 @@ class DriverJourneyRuntimePage extends StatelessWidget {
             width: 4,
             height: 27,
             decoration: BoxDecoration(
-              color: const Color(0xFF158A3A),
+              color: FoodexBrand.green,
               borderRadius: BorderRadius.circular(6),
             ),
           ),
@@ -135,7 +135,7 @@ class DriverJourneyRuntimePage extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: const Color(0xFF172033),
+                    color: FoodexBrand.ink,
                     fontWeight: FontWeight.w900,
                   ),
             ),
@@ -144,13 +144,13 @@ class DriverJourneyRuntimePage extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: const Color(0xFFD3F3E1),
+              color: DriverUiPalette.headerIconSurface,
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: const Color(0xFFC2EACF)),
+              border: Border.all(color: DriverUiPalette.headerIconBorder),
             ),
             child: const Icon(
               Icons.alt_route_rounded,
-              color: Color(0xFF165D2D),
+              color: FoodexBrand.greenDark,
               size: 23,
             ),
           ),

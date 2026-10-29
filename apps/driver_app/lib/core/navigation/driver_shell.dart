@@ -96,7 +96,7 @@ class DriverShellNavigation extends StatelessWidget {
       child: Material(
         color: FoodexBrand.surface,
         elevation: 9,
-        shadowColor: const Color(0x260F5132),
+        shadowColor: DriverUiPalette.shellShadow,
         borderRadius: BorderRadius.circular(24),
         clipBehavior: Clip.antiAlias,
         child: NavigationBarTheme(

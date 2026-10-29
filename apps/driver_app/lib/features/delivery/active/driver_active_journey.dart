@@ -1136,10 +1136,10 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
       'picked_up' ||
       'out_for_delivery' ||
       'in_transit' =>
-        const Color(0xFFEDF4FF),
+        DriverUiPalette.infoSurface,
       'failed' => FoodexBrand.orangeSoft,
-      'delivered' || 'completed' => const Color(0xFFFFF0F0),
-      _ => const Color(0xFFF2F4F7),
+      'delivered' || 'completed' => DriverUiPalette.dangerSurface,
+      _ => DriverUiPalette.neutralSurface,
     };
     return Chip(
       key: Key('driver-active-status-${assignment.id}'),
@@ -1228,8 +1228,8 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     final rangeLabel = range == null
         ? context.tr('driver.filter.date_range')
         : '${locale.formatShortDate(range.start)} — ${locale.formatShortDate(range.end)}';
-    const inactiveBorder = Color(0xFFE1ECE5);
-    const activeBorder = Color(0xFFC3EAD4);
+    const inactiveBorder = DriverUiPalette.dividerGreen;
+    const activeBorder = DriverUiPalette.greenBorderStrong;
 
     Widget periodChip({
       required Key key,
@@ -1266,7 +1266,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
           border: Border.all(color: inactiveBorder),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x100F5132),
+              color: DriverUiPalette.cardShadow,
               blurRadius: 15,
               offset: Offset(0, 4),
             ),
@@ -1351,7 +1351,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     if (widget.channel != DriverChannel.b2b) return _legacyReadyBody();
     final rows = _filteredAssignments();
     return ColoredBox(
-      color: const Color(0xFFF5FCF8),
+      color: DriverUiPalette.mintSurface,
       child: Column(
         children: [
           _filterControls(),
@@ -1389,11 +1389,11 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                           margin: EdgeInsets.zero,
                           color: FoodexBrand.surface,
                           elevation: 3,
-                          shadowColor: const Color(0x180F5132),
+                          shadowColor: DriverUiPalette.raisedShadow,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(22),
                             side: const BorderSide(
-                              color: Color(0xFFE2EFE8),
+                              color: DriverUiPalette.softBorder,
                             ),
                           ),
                           clipBehavior: Clip.antiAlias,
@@ -1482,10 +1482,10 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                                       width: double.infinity,
                                       padding: const EdgeInsets.all(11),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFF5F7F6),
+                                        color: DriverUiPalette.neutralFill,
                                         borderRadius: BorderRadius.circular(15),
                                         border: Border.all(
-                                          color: const Color(0xFFEDF0EE),
+                                          color: DriverUiPalette.neutralBorder,
                                         ),
                                       ),
                                       child: Row(
@@ -1635,9 +1635,9 @@ class _DriverStaleDataBanner extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7E6),
+        color: DriverUiPalette.warningSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFF1D39A)),
+        border: Border.all(color: DriverUiPalette.warningBorder),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1645,7 +1645,7 @@ class _DriverStaleDataBanner extends StatelessWidget {
           const Icon(
             Icons.cloud_off_outlined,
             size: 18,
-            color: Color(0xFF8A5A00),
+            color: DriverUiPalette.warningInk,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -1659,7 +1659,7 @@ class _DriverStaleDataBanner extends StatelessWidget {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF6B4A00),
+                    color: DriverUiPalette.warningDeepInk,
                     fontWeight: FontWeight.w700,
                   ),
             ),
@@ -1759,9 +1759,9 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
           key: Key('driver-detail-address-card-${assignment.id}'),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFFF2F8F5),
+            color: DriverUiPalette.successSurface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFD9E9E1)),
+            border: Border.all(color: DriverUiPalette.successBorder),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1771,7 +1771,7 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
                 children: [
                   const Icon(
                     Icons.location_on_outlined,
-                    color: Color(0xFF087347),
+                    color: DriverUiPalette.successInk,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -1969,14 +1969,14 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
                         height: 64,
                         child: image.isEmpty
                             ? const ColoredBox(
-                                color: Color(0xFFF2F5F3),
+                                color: DriverUiPalette.mutedSurface,
                                 child: Icon(Icons.inventory_2_outlined),
                               )
                             : Image.network(
                                 image,
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => const ColoredBox(
-                                  color: Color(0xFFF2F5F3),
+                                  color: DriverUiPalette.mutedSurface,
                                   child: Icon(Icons.broken_image_outlined),
                                 ),
                               ),

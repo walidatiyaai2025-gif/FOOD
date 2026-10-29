@@ -319,7 +319,7 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                       key: const Key('driver-login-error'),
                                       padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFFF0F0),
+                                        color: DriverUiPalette.dangerSurface,
                                         borderRadius: BorderRadius.circular(14),
                                         border: Border.all(
                                           color: FoodexBrand.red.withAlpha(64),
@@ -418,7 +418,7 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                       key: const Key('driver-login-error'),
                                       padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFFF0F0),
+                                        color: DriverUiPalette.dangerSurface,
                                         borderRadius: BorderRadius.circular(14),
                                         border: Border.all(
                                           color: FoodexBrand.red.withAlpha(64),
@@ -535,7 +535,7 @@ class _DriverBrandHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x2A003223),
+                color: DriverUiPalette.loginBrandShadow,
                 blurRadius: 28,
                 offset: Offset(0, 14),
               ),

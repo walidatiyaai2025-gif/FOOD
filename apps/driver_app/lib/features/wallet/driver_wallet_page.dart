@@ -263,9 +263,9 @@ class _DriverWalletPageState extends State<DriverWalletPage>
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('driver-wallet-page'),
-      backgroundColor: const Color(0xFFF5FCF8),
+      backgroundColor: DriverUiPalette.mintSurface,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE9F8EF),
+        backgroundColor: DriverUiPalette.walletTop,
         surfaceTintColor: Colors.transparent,
         title: Text(
           context.tr('driver.wallet.title'),
@@ -335,11 +335,11 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                   margin: EdgeInsets.zero,
                                   color: FoodexBrand.surface,
                                   elevation: 4,
-                                  shadowColor: const Color(0x130F5132),
+                                  shadowColor: DriverUiPalette.walletShadow,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(22),
                                     side: const BorderSide(
-                                      color: Color(0xFFE1EEE5),
+                                      color: DriverUiPalette.walletBorder,
                                     ),
                                   ),
                                   child: Padding(
@@ -376,7 +376,7 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                             ),
                                             boxShadow: const [
                                               BoxShadow(
-                                                color: Color(0x22165D2D),
+                                                color: DriverUiPalette.walletAccent,
                                                 blurRadius: 14,
                                                 offset: Offset(0, 5),
                                               ),
@@ -470,7 +470,7 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                           currency: account.currency,
                                         ),
                                         const Divider(
-                                          color: Color(0xFFE7F0EA),
+                                          color: DriverUiPalette.walletSubtle,
                                           height: 16,
                                         ),
                                         _MoneyRow(
@@ -496,7 +496,7 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                             color: _submitting ||
                                                     account.availableToRemit <=
                                                         0
-                                                ? const Color(0xFFE5EAE7)
+                                                ? DriverUiPalette.buttonDisabled
                                                 : null,
                                           ),
                                           child: FilledButton.icon(
@@ -561,14 +561,14 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                                   margin: const EdgeInsets.only(
                                                       bottom: 8),
                                                   color:
-                                                      const Color(0xFFFBFDFC),
+                                                      DriverUiPalette.rowSurface,
                                                   elevation: 0,
                                                   shape: RoundedRectangleBorder(
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                             15),
                                                     side: const BorderSide(
-                                                      color: Color(0xFFE5EEE8),
+                                                      color: DriverUiPalette.rowBorder,
                                                     ),
                                                   ),
                                                   child: ListTile(
