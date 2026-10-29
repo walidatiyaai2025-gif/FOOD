@@ -956,6 +956,45 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     );
   }
 
+  /// Presentation colors only; delivery statuses and actions are unchanged.
+  Widget _premiumStatusBadge(DriverAssignment assignment) {
+    final status = assignment.status.toLowerCase();
+    final tone = switch (status) {
+      'accepted' => FoodexBrand.greenDark,
+      'picked_up' || 'out_for_delivery' || 'in_transit' => FoodexBrand.blue,
+      'failed' => FoodexBrand.orange,
+      'delivered' || 'completed' => FoodexBrand.red,
+      _ => FoodexBrand.muted,
+    };
+    final surface = switch (status) {
+      'accepted' => FoodexBrand.greenSoft,
+      'picked_up' || 'out_for_delivery' || 'in_transit' =>
+        const Color(0xFFEDF4FF),
+      'failed' => FoodexBrand.orangeSoft,
+      'delivered' || 'completed' => const Color(0xFFFFF0F0),
+      _ => const Color(0xFFF2F4F7),
+    };
+    return Chip(
+      key: Key('driver-active-status-${assignment.id}'),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      backgroundColor: surface,
+      side: BorderSide(color: surface),
+      shape: const StadiumBorder(),
+      label: Text(
+        _statusLabel(assignment.status),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: tone,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
   DateTime? _assignmentDate(DriverAssignment assignment) {
     for (final value in [assignment.assignedAt, assignment.createdAt]) {
       final parsed = DateTime.tryParse(value);
@@ -1021,60 +1060,119 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     final rangeLabel = range == null
         ? context.tr('driver.filter.date_range')
         : '${locale.formatShortDate(range.start)} — ${locale.formatShortDate(range.end)}';
+    const inactiveBorder = Color(0xFFE1ECE5);
+    const activeBorder = Color(0xFFC3EAD4);
+
+    Widget periodChip({
+      required Key key,
+      required String label,
+      required _DriverDeliveryPeriod period,
+    }) {
+      final selected = _period == period;
+      return ChoiceChip(
+        key: key,
+        label: Text(label),
+        selected: selected,
+        showCheckmark: false,
+        selectedColor: FoodexBrand.greenSoft,
+        backgroundColor: FoodexBrand.surface,
+        side: BorderSide(color: selected ? activeBorder : inactiveBorder),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(13),
+        ),
+        labelStyle: TextStyle(
+          color: selected ? FoodexBrand.greenDark : FoodexBrand.inkSoft,
+          fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+          fontSize: 12,
+        ),
+        onSelected: (_) => setState(() => _period = period),
+      );
+    }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
-      child: SizedBox(
-        key: const Key('driver-filter-single-row'),
-        height: 48,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              OutlinedButton.icon(
-                key: const Key('driver-delivery-date-range'),
-                onPressed: _pickDateRange,
-                icon: const Icon(Icons.date_range_rounded),
-                label: Text(
-                  rangeLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+      padding: const EdgeInsetsDirectional.fromSTEB(12, 10, 12, 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: FoodexBrand.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: inactiveBorder),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x100F5132),
+              blurRadius: 15,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: SizedBox(
+          key: const Key('driver-filter-single-row'),
+          height: 48,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                periodChip(
+                  key: const Key('driver-filter-all'),
+                  label: context.tr('driver.filter.all'),
+                  period: _DriverDeliveryPeriod.all,
                 ),
-              ),
-              const SizedBox(width: 8),
-              ChoiceChip(
-                key: const Key('driver-filter-today'),
-                label: Text(context.tr('driver.filter.today')),
-                selected: _period == _DriverDeliveryPeriod.today,
-                onSelected: (_) => setState(() {
-                  _period = _DriverDeliveryPeriod.today;
-                }),
-              ),
-              const SizedBox(width: 8),
-              ChoiceChip(
-                key: const Key('driver-filter-all'),
-                label: Text(context.tr('driver.filter.all')),
-                selected: _period == _DriverDeliveryPeriod.all,
-                onSelected: (_) => setState(() {
-                  _period = _DriverDeliveryPeriod.all;
-                }),
-              ),
-              if (_period == _DriverDeliveryPeriod.custom) ...[
-                const SizedBox(width: 4),
-                IconButton(
-                  key: const Key('driver-filter-clear-date'),
-                  tooltip: context.tr('driver.filter.clear_date'),
-                  onPressed: () => setState(() {
-                    _dateRange = null;
-                    _period = widget.channel == DriverChannel.b2b
-                        ? _DriverDeliveryPeriod.all
-                        : _DriverDeliveryPeriod.today;
-                  }),
-                  icon: const Icon(Icons.close_rounded),
+                const SizedBox(width: 6),
+                periodChip(
+                  key: const Key('driver-filter-today'),
+                  label: context.tr('driver.filter.today'),
+                  period: _DriverDeliveryPeriod.today,
                 ),
+                const SizedBox(width: 6),
+                OutlinedButton.icon(
+                  key: const Key('driver-delivery-date-range'),
+                  onPressed: _pickDateRange,
+                  icon: const Icon(Icons.date_range_rounded, size: 17),
+                  label: Text(
+                    rangeLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _period == _DriverDeliveryPeriod.custom
+                        ? FoodexBrand.greenDark
+                        : FoodexBrand.inkSoft,
+                    backgroundColor: _period == _DriverDeliveryPeriod.custom
+                        ? FoodexBrand.greenSoft
+                        : FoodexBrand.surface,
+                    side: BorderSide(
+                      color: _period == _DriverDeliveryPeriod.custom
+                          ? activeBorder
+                          : inactiveBorder,
+                    ),
+                    minimumSize: const Size(0, 38),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                  ),
+                ),
+                if (_period == _DriverDeliveryPeriod.custom) ...[
+                  const SizedBox(width: 2),
+                  IconButton(
+                    key: const Key('driver-filter-clear-date'),
+                    tooltip: context.tr('driver.filter.clear_date'),
+                    onPressed: () => setState(() {
+                      _dateRange = null;
+                      _period = widget.channel == DriverChannel.b2b
+                          ? _DriverDeliveryPeriod.all
+                          : _DriverDeliveryPeriod.today;
+                    }),
+                    icon: const Icon(Icons.close_rounded, size: 19),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
