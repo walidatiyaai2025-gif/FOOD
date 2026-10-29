@@ -720,6 +720,8 @@ void main() {
           .selected,
       isFalse,
     );
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
     await tester.pumpWidget(_host(b2bRepo, channel: DriverChannel.b2c));
     await tester.pumpAndSettle();
     expect(
