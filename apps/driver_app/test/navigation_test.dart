@@ -772,8 +772,7 @@ void main() {
     );
   });
 
-  testWidgets(
-      'premium Home preserves live wallet amounts above quick summary',
+  testWidgets('premium Home preserves live wallet amounts above quick summary',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -839,8 +838,8 @@ void main() {
     expect(find.byKey(const Key('driver-shell-wallet')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-unsettled-collections')),
         findsOneWidget);
-    await tester.ensureVisible(
-        find.byKey(const Key('driver-home-status-accepted')));
+    await tester
+        .ensureVisible(find.byKey(const Key('driver-home-status-accepted')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('driver-home-status-accepted')));
     await tester.pumpAndSettle();
