@@ -865,6 +865,21 @@ class _DriverHomePageState extends State<_DriverHomePage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (showUnsettledCollections) ...[
+                    SizedBox(
+                      height: unsettledCardHeight,
+                      child: _DriverUnsettledCollectionsCard(
+                        loading: _walletLoading && _walletAccounts.isEmpty,
+                        failed: _walletLoadFailed && _walletAccounts.isEmpty,
+                        value: _unsettledCollectionsValue(),
+                        onTap: widget.walletRoute == null
+                            ? null
+                            : () => Navigator.of(context)
+                                .pushNamed(widget.walletRoute!),
+                      ),
+                    ),
+                    SizedBox(height: gap),
+                  ],
                   Text(
                     context.tr('driver.home.status_summary'),
                     key: const Key('driver-home-status-summary-title'),
@@ -968,21 +983,6 @@ class _DriverHomePageState extends State<_DriverHomePage>
                           ),
                   ),
                   const Spacer(),
-                  if (showUnsettledCollections) ...[
-                    SizedBox(height: gap),
-                    SizedBox(
-                      height: unsettledCardHeight,
-                      child: _DriverUnsettledCollectionsCard(
-                        loading: _walletLoading && _walletAccounts.isEmpty,
-                        failed: _walletLoadFailed && _walletAccounts.isEmpty,
-                        value: _unsettledCollectionsValue(),
-                        onTap: widget.walletRoute == null
-                            ? null
-                            : () => Navigator.of(context)
-                                .pushNamed(widget.walletRoute!),
-                      ),
-                    ),
-                  ],
                 ],
               ),
             );
