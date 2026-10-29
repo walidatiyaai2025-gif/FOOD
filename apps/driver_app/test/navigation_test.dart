@@ -243,6 +243,13 @@ void main() {
 
     expect(find.byKey(const Key('driver-shell-wallet')), findsOneWidget);
     expect(find.text('المحفظة'), findsOneWidget);
+    expect(
+      tester
+          .widget<NavigationBar>(
+              find.byKey(const Key('driver-shell-navigation')))
+          .labelBehavior,
+      NavigationDestinationLabelBehavior.alwaysShow,
+    );
     expect(find.byKey(const Key('driver-open-wallet')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-unsettled-collections')),
         findsOneWidget);
@@ -317,7 +324,57 @@ void main() {
   });
 
   testWidgets(
-      'B2B and unsupported B2C repositories do not expose a dead Wallet destination',
+      'B2B wallet opens from localized footer, preserves Home and denies B2C route',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    for (final locale in [const Locale('ar'), const Locale('en')]) {
+      await tester.pumpWidget(FoodexDriverApp(
+        locale: locale,
+        initialSession: session(DriverChannel.b2b),
+        assignmentRepositoryFactory: (_) => _WalletStatusRepo(),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('driver-shell-wallet')), findsOneWidget);
+      expect(find.text(locale.languageCode == 'ar' ? 'المحفظة' : 'Wallet'),
+          findsOneWidget);
+      expect(find.byKey(const Key('driver-open-wallet')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('driver-shell-wallet')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('driver-wallet-page')), findsOneWidget);
+      expect(
+          find.byKey(const Key('driver-collected-summary-81')), findsOneWidget);
+      expect(find.byKey(const Key('driver-shell-navigation')), findsOneWidget);
+      expect(
+        tester
+            .widget<NavigationBar>(
+              find.byKey(const Key('driver-shell-navigation')),
+            )
+            .selectedIndex,
+        DriverShellDestination.wallet.index,
+      );
+
+      // A B2B driver cannot deep-link into the B2C wallet.
+      Navigator.of(tester.element(find.byKey(const Key('driver-wallet-page'))))
+          .pushNamed<void>(DriverRoutes.b2cWallet);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('driver-route-denied')), findsOneWidget);
+      expect(find.byKey(const Key('driver-wallet-page')), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    }
+  });
+
+  testWidgets(
+      'Unsupported B2B and B2C repositories do not expose a dead Wallet destination',
       (tester) async {
     for (final channel in [DriverChannel.b2b, DriverChannel.b2c]) {
       await tester.pumpWidget(FoodexDriverApp(
@@ -678,7 +735,7 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('driver home cards use the reduced-height layout',
+  testWidgets('premium Driver Home keeps full dashboard cards at 390px',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -699,24 +756,23 @@ void main() {
       tester
           .getSize(find.byKey(const Key('driver-home-workload-chart')))
           .height,
-      closeTo(192, 0.01),
+      closeTo(212, 0.01),
     );
     expect(
       tester
           .getSize(find.byKey(const Key('driver-home-pending-orders')))
           .height,
-      lessThanOrEqualTo(46),
+      lessThanOrEqualTo(58),
     );
     expect(
       tester
           .getSize(find.byKey(const Key('driver-home-status-accepted')))
           .height,
-      lessThanOrEqualTo(64),
+      lessThanOrEqualTo(78),
     );
   });
 
-  testWidgets(
-      'home shows authoritative unsettled collections and a 20 percent taller workload card',
+  testWidgets('premium Home preserves live wallet amounts above quick summary',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -737,7 +793,7 @@ void main() {
       tester
           .getSize(find.byKey(const Key('driver-home-workload-chart')))
           .height,
-      closeTo(192, 0.01),
+      closeTo(212, 0.01),
     );
     expect(
       find.byKey(const Key('driver-home-unsettled-collections')),
@@ -749,6 +805,83 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('42.750 KWD'), findsOneWidget);
+    final unsettledCard =
+        find.byKey(const Key('driver-home-unsettled-collections'));
+    final quickSummary =
+        find.byKey(const Key('driver-home-status-summary-title'));
+    expect(
+      tester.getTopLeft(unsettledCard).dy,
+      lessThan(tester.getTopLeft(quickSummary).dy),
+    );
+    await tester.tap(unsettledCard);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-wallet-page')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('premium Home fits 320px and keeps status action enabled',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await tester.pumpWidget(FoodexDriverApp(
+      locale: const Locale('ar'),
+      initialSession: session(DriverChannel.b2c),
+      assignmentRepositoryFactory: (_) => _WalletStatusRepo(),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('driver-home-scroll')), findsOneWidget);
+    expect(find.byKey(const Key('driver-shell-wallet')), findsOneWidget);
+    expect(find.byKey(const Key('driver-home-unsettled-collections')),
+        findsOneWidget);
+    final statusCard = find.byKey(const Key('driver-home-status-accepted'));
+    await tester.ensureVisible(statusCard);
+    await tester.pumpAndSettle();
+    final action = find.descendant(
+      of: statusCard,
+      matching: find.byType(InkWell),
+    );
+    expect(action, findsOneWidget);
+    expect(tester.widget<InkWell>(action).onTap, isNotNull);
+    final layoutError = tester.takeException();
+    if (layoutError is FlutterError) {
+      debugPrint(layoutError.toStringDeep());
+    }
+    expect(layoutError, isNull);
+  });
+
+  testWidgets('B2B driver Home shows unsettled collections above quick summary',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(FoodexDriverApp(
+      initialSession: session(DriverChannel.b2b),
+      assignmentRepositoryFactory: (_) => _WalletStatusRepo(),
+    ));
+    await tester.pumpAndSettle();
+
+    final unsettledCard =
+        find.byKey(const Key('driver-home-unsettled-collections'));
+    final quickSummary =
+        find.byKey(const Key('driver-home-status-summary-title'));
+    expect(unsettledCard, findsOneWidget);
+    expect(
+      tester.getTopLeft(unsettledCard).dy,
+      lessThan(tester.getTopLeft(quickSummary).dy),
+    );
+    await tester.tap(unsettledCard);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-wallet-page')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(

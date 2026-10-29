@@ -207,7 +207,9 @@ class _VanLoginScreenState extends State<VanLoginScreen> {
         email: _email.text.trim(),
         password: _password.text,
       );
-      final useBiometricUnlock = _rememberMe && _biometricAvailable;
+      // Opt-in must be explicit; Remember Me alone does not enable biometrics.
+      final useBiometricUnlock =
+          _rememberMe && _enableBiometrics && _biometricAvailable;
       await widget.onAuthenticated(session, _rememberMe, useBiometricUnlock);
     } on VanAuthenticationException {
       if (mounted) {
