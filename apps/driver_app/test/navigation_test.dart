@@ -806,6 +806,48 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('42.750 KWD'), findsOneWidget);
+    final unsettledCard =
+        find.byKey(const Key('driver-home-unsettled-collections'));
+    final quickSummary =
+        find.byKey(const Key('driver-home-status-summary-title'));
+    expect(
+      tester.getTopLeft(unsettledCard).dy,
+      lessThan(tester.getTopLeft(quickSummary).dy),
+    );
+    await tester.tap(unsettledCard);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-wallet-page')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('B2B driver Home shows unsettled collections above quick summary',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(FoodexDriverApp(
+      initialSession: session(DriverChannel.b2b),
+      assignmentRepositoryFactory: (_) => _WalletStatusRepo(),
+    ));
+    await tester.pumpAndSettle();
+
+    final unsettledCard =
+        find.byKey(const Key('driver-home-unsettled-collections'));
+    final quickSummary =
+        find.byKey(const Key('driver-home-status-summary-title'));
+    expect(unsettledCard, findsOneWidget);
+    expect(
+      tester.getTopLeft(unsettledCard).dy,
+      lessThan(tester.getTopLeft(quickSummary).dy),
+    );
+    await tester.tap(unsettledCard);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('driver-wallet-page')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(
