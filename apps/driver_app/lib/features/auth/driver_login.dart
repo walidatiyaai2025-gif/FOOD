@@ -293,17 +293,17 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                   ),
                                 ),
                               if (configured && _checkingBiometrics)
-                                const Center(
-                                  child: CircularProgressIndicator(),
+                                const SizedBox(
+                                  key: Key('driver-login-checking-session'),
+                                  height: 52,
                                 ),
                               if (configured &&
                                   !_checkingBiometrics &&
                                   _savedBiometricLogin) ...[
                                 FilledButton.icon(
                                   key: const Key('driver-login-biometric'),
-                                  onPressed: _submitting
-                                      ? null
-                                      : _loginWithBiometrics,
+                                  onPressed:
+                                      _submitting ? null : _loginWithBiometrics,
                                   icon: const Icon(Icons.fingerprint_rounded),
                                   label: Text(
                                     context.tr('driver.login.biometric'),
@@ -339,9 +339,8 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                 const SizedBox(height: 12),
                                 OutlinedButton.icon(
                                   key: const Key('driver-login-logout'),
-                                  onPressed: _submitting
-                                      ? null
-                                      : _logoutSavedSession,
+                                  onPressed:
+                                      _submitting ? null : _logoutSavedSession,
                                   icon: const Icon(Icons.logout_rounded),
                                   label: Text(context.tr('driver.logout')),
                                 ),

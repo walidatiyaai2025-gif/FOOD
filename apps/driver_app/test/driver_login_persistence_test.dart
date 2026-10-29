@@ -296,7 +296,8 @@ void main() {
     expect(find.byKey(const Key('driver-login-password')), findsNothing);
     expect(find.byKey(const Key('driver-login-submit')), findsNothing);
     expect(find.byKey(const Key('driver-login-remember')), findsNothing);
-    expect(find.byKey(const Key('driver-login-biometric-toggle')), findsNothing);
+    expect(
+        find.byKey(const Key('driver-login-biometric-toggle')), findsNothing);
     expect(find.byKey(const Key('driver-login-logout')), findsOneWidget);
     await tester.ensureVisible(biometricButton);
     await tester.tap(biometricButton);
@@ -387,7 +388,8 @@ void main() {
     expect(find.byKey(const Key('driver-login-password')), findsNothing);
     expect(find.byKey(const Key('driver-login-submit')), findsNothing);
     expect(find.byKey(const Key('driver-login-remember')), findsNothing);
-    expect(find.byKey(const Key('driver-login-biometric-toggle')), findsNothing);
+    expect(
+        find.byKey(const Key('driver-login-biometric-toggle')), findsNothing);
     expect(find.byKey(const Key('driver-login-logout')), findsOneWidget);
 
     await tester.ensureVisible(fingerprint);
@@ -446,9 +448,11 @@ void main() {
       expect(find.byKey(const Key('driver-login-password')), findsOneWidget);
       expect(find.byKey(const Key('driver-login-submit')), findsOneWidget);
       expect(
-        tester.widget<CheckboxListTile>(
-          find.byKey(const Key('driver-login-remember')),
-        ).value,
+        tester
+            .widget<CheckboxListTile>(
+              find.byKey(const Key('driver-login-remember')),
+            )
+            .value,
         isFalse,
       );
       await tester.pumpWidget(const SizedBox.shrink());

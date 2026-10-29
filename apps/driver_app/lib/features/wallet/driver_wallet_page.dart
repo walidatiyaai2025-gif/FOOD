@@ -516,7 +516,8 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                                     BorderRadius.circular(16),
                                               ),
                                             ),
-                                            key: Key('driver-wallet-remit-${account.id}'),
+                                            key: Key(
+                                                'driver-wallet-remit-${account.id}'),
                                             onPressed: _submitting ||
                                                     account.availableToRemit <=
                                                         0
