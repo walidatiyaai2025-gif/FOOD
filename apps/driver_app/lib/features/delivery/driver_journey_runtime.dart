@@ -101,11 +101,66 @@ class DriverJourneyRuntimePage extends StatelessWidget {
         deliveriesRoute: deliveriesRoute,
         notificationsRoute: notificationsRoute,
         walletRoute: walletRoute,
-        title: Text(
-          context.tr(
-            channel == DriverChannel.b2c
-                ? 'driver.b2c.title'
-                : 'driver.b2b.title',
+        appBar: AppBar(
+          titleSpacing: 12,
+          toolbarHeight: 72,
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          flexibleSpace: const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: AlignmentDirectional.topEnd,
+                end: AlignmentDirectional.bottomStart,
+                colors: [
+                  Color(0xFFF9FFFC),
+                  Color(0xFFDEF7EA),
+                  Color(0xFFF0FCF5),
+                ],
+              ),
+            ),
+          ),
+          title: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 27,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF158A3A),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  context.tr(
+                    channel == DriverChannel.b2c
+                        ? 'driver.b2c.title'
+                        : 'driver.b2b.title',
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: const Color(0xFF172033),
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ),
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD3F3E1),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: const Color(0xFFC2EACF)),
+                ),
+                child: const Icon(
+                  Icons.alt_route_rounded,
+                  color: Color(0xFF165D2D),
+                  size: 23,
+                ),
+              ),
+            ],
           ),
         ),
         body: DriverActiveJourneyPage(
