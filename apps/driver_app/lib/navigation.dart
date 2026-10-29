@@ -862,7 +862,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
               final horizontalPadding = ultraCompact ? 8.0 : 12.0;
               const columns = 2;
               final chartHeight = ultraCompact
-                  ? 130.0
+                  ? 118.0
                   : compact
                       ? 158.0
                       : 212.0;
@@ -872,7 +872,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
                       ? 49.0
                       : 58.0;
               final statusCardHeight = ultraCompact
-                  ? 64.0
+                  ? 58.0
                   : compact
                       ? 66.0
                       : 78.0;
