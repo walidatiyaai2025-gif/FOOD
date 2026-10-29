@@ -322,7 +322,57 @@ void main() {
   });
 
   testWidgets(
-      'B2B and unsupported B2C repositories do not expose a dead Wallet destination',
+      'B2B wallet opens from localized footer, preserves Home and denies B2C route',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    for (final locale in [const Locale('ar'), const Locale('en')]) {
+      await tester.pumpWidget(FoodexDriverApp(
+        locale: locale,
+        initialSession: session(DriverChannel.b2b),
+        assignmentRepositoryFactory: (_) => _WalletStatusRepo(),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('driver-shell-wallet')), findsOneWidget);
+      expect(find.text(locale.languageCode == 'ar' ? 'المحفظة' : 'Wallet'),
+          findsOneWidget);
+      expect(find.byKey(const Key('driver-open-wallet')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('driver-shell-wallet')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('driver-wallet-page')), findsOneWidget);
+      expect(find.byKey(const Key('driver-collected-summary-81')),
+          findsOneWidget);
+      expect(find.byKey(const Key('driver-shell-navigation')), findsOneWidget);
+      expect(
+        tester
+            .widget<NavigationBar>(
+              find.byKey(const Key('driver-shell-navigation')),
+            )
+            .selectedIndex,
+        DriverShellDestination.wallet.index,
+      );
+
+      // A B2B driver cannot deep-link into the B2C wallet.
+      Navigator.of(tester.element(find.byKey(const Key('driver-wallet-page'))))
+          .pushNamed<void>(DriverRoutes.b2cWallet);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('driver-route-denied')), findsOneWidget);
+      expect(find.byKey(const Key('driver-wallet-page')), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    }
+  });
+
+  testWidgets(
+      'Unsupported B2B and B2C repositories do not expose a dead Wallet destination',
       (tester) async {
     for (final channel in [DriverChannel.b2b, DriverChannel.b2c]) {
       await tester.pumpWidget(FoodexDriverApp(
