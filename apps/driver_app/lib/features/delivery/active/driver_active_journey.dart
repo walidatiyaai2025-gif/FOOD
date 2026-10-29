@@ -1181,100 +1181,200 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
 
   Widget _readyBody() {
     final rows = _filteredAssignments();
-    return Column(
-      children: [
-        _filterControls(),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: _load,
-            child: rows.isEmpty
-                ? ListView(
-                    key: const Key('driver-filter-empty'),
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(28),
-                    children: [
-                      const SizedBox(height: 80),
-                      Center(
-                        child: Text(context.tr('driver.filter.period_empty')),
+    return ColoredBox(
+      color: const Color(0xFFF5FCF8),
+      child: Column(
+        children: [
+          _filterControls(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _load,
+              child: rows.isEmpty
+                  ? ListView(
+                      key: const Key('driver-filter-empty'),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(28),
+                      children: [
+                        const SizedBox(height: 80),
+                        Center(
+                          child: Text(context.tr('driver.filter.period_empty')),
+                        ),
+                      ],
+                    )
+                  : ListView.separated(
+                      key: widget.initialAssignmentStatus != null
+                          ? const Key('driver-active-status-filter')
+                          : const Key('driver-active-assignment-list'),
+                      padding: const EdgeInsetsDirectional.fromSTEB(
+                        12, 10, 12, 24,
                       ),
-                    ],
-                  )
-                : ListView.separated(
-                    key: widget.initialAssignmentStatus != null
-                        ? const Key('driver-active-status-filter')
-                        : const Key('driver-active-assignment-list'),
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
-                    itemCount: rows.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      final assignment = rows[index];
-                      return Card(
-                        key: Key('driver-active-assignment-${assignment.id}'),
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          onTap: () => _showDetail(assignment),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        assignment.reference,
-                                        key: Key(
-                                          'driver-active-reference-${assignment.id}',
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Chip(
-                                      visualDensity: VisualDensity.compact,
-                                      materialTapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                      label: Text(
-                                        _statusLabel(assignment.status),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 2),
-                                    _actions(assignment),
-                                  ],
-                                ),
-                                if (assignment.storeName.isNotEmpty) ...[
-                                  const SizedBox(height: 6),
-                                  Text(assignment.storeName),
-                                ],
-                                if (assignment.customerName.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(assignment.customerName),
-                                ],
-                                if (assignment.address.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    assignment.address,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ],
+                      itemCount: rows.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final assignment = rows[index];
+                        return Card(
+                          key: Key('driver-active-assignment-${assignment.id}'),
+                          margin: EdgeInsets.zero,
+                          color: FoodexBrand.surface,
+                          elevation: 3,
+                          shadowColor: const Color(0x180F5132),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                            side: const BorderSide(
+                              color: Color(0xFFE2EFE8),
                             ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () => _showDetail(assignment),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                14, 12, 14, 10,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          assignment.reference,
+                                          key: Key(
+                                            'driver-active-reference-${assignment.id}',
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                color: FoodexBrand.ink,
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      _premiumStatusBadge(assignment),
+                                      const SizedBox(width: 2),
+                                      _actions(assignment),
+                                    ],
+                                  ),
+                                  if (assignment.storeName.isNotEmpty) ...[
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.storefront_outlined,
+                                          size: 19,
+                                          color: FoodexBrand.greenDark,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            assignment.storeName,
+                                            style: const TextStyle(
+                                              color: FoodexBrand.ink,
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                  if (assignment.customerName.isNotEmpty) ...[
+                                    const SizedBox(height: 5),
+                                    Padding(
+                                      padding:
+                                          const EdgeInsetsDirectional.only(
+                                        start: 27,
+                                      ),
+                                      child: Text(
+                                        assignment.customerName,
+                                        style: const TextStyle(
+                                          color: FoodexBrand.muted,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  if (assignment.address.isNotEmpty) ...[
+                                    const SizedBox(height: 10),
+                                    Container(
+                                      key: Key(
+                                        'driver-active-address-${assignment.id}',
+                                      ),
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(11),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF5F7F6),
+                                        borderRadius: BorderRadius.circular(15),
+                                        border: Border.all(
+                                          color: const Color(0xFFEDF0EE),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Icon(
+                                            Icons.location_on_outlined,
+                                            size: 19,
+                                            color: FoodexBrand.green,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              assignment.address,
+                                              softWrap: true,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: FoodexBrand.inkSoft,
+                                                height: 1.5,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 4),
+                                  Align(
+                                    alignment: AlignmentDirectional.centerEnd,
+                                    child: TextButton.icon(
+                                      key: Key(
+                                        'driver-active-details-${assignment.id}',
+                                      ),
+                                      onPressed: () => _showDetail(assignment),
+                                      icon: const Icon(
+                                        Icons.arrow_forward_rounded,
+                                        size: 17,
+                                      ),
+                                      label: Text(
+                                        context.tr('driver.detail.title'),
+                                      ),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor:
+                                            FoodexBrand.greenDark,
+                                        textStyle: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
