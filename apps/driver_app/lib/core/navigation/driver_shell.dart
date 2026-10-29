@@ -97,6 +97,8 @@ class DriverShellNavigation extends StatelessWidget {
           _open(context, DriverShellDestination.values[index]),
       backgroundColor: FoodexBrand.surface,
       indicatorColor: FoodexBrand.greenSoft,
+      // Keep the Wallet title visible on compact phones as well as desktop previews.
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       destinations: [
         NavigationDestination(
           icon: const Icon(
