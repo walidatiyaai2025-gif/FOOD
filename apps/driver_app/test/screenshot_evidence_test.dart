@@ -93,6 +93,11 @@ void main() {
         key,
         '01_Mobile/Driver_B2C/10_driver_collected_summary__partial__$localeCode.png',
       );
+      await _writeBoundary(
+        tester,
+        key,
+        '01_Mobile/Driver_B2C/10b_driver_collection_wallet__premium__$localeCode.png',
+      );
 
       await tester.tap(summary);
       await tester.pump();
