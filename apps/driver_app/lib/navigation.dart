@@ -1435,7 +1435,11 @@ class _DriverPendingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconSize = ultraCompact ? 30.0 : compact ? 34.0 : 40.0;
+    final iconSize = ultraCompact
+        ? 30.0
+        : compact
+            ? 34.0
+            : 40.0;
 
     return Material(
       color: const Color(0xFFFFF1F1),
@@ -1474,7 +1478,11 @@ class _DriverPendingCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: ultraCompact ? 11 : compact ? 12 : 15,
+                    fontSize: ultraCompact
+                        ? 11
+                        : compact
+                            ? 12
+                            : 15,
                     color: FoodexBrand.dangerText,
                     fontWeight: FontWeight.w900,
                   ),
@@ -1490,7 +1498,8 @@ class _DriverPendingCard extends StatelessWidget {
               else
                 Container(
                   constraints: BoxConstraints(minWidth: iconSize),
-                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 11, vertical: 4),
                   decoration: BoxDecoration(
                     color: FoodexBrand.red,
                     borderRadius: BorderRadius.circular(16),
@@ -1536,7 +1545,11 @@ class _DriverStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tone = _DriverDashboardStyle.statusColor(status);
-    final size = ultraCompact ? 30.0 : compact ? 33.0 : 39.0;
+    final size = ultraCompact
+        ? 30.0
+        : compact
+            ? 33.0
+            : 39.0;
 
     return Material(
       color: _DriverDashboardStyle.statusBackground(status),
@@ -1579,7 +1592,11 @@ class _DriverStatusCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: _DriverDashboardStyle.ink,
-                    fontSize: ultraCompact ? 10 : compact ? 11 : 13,
+                    fontSize: ultraCompact
+                        ? 10
+                        : compact
+                            ? 11
+                            : 13,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -1595,7 +1612,11 @@ class _DriverStatusCard extends StatelessWidget {
                   value.toString(),
                   style: TextStyle(
                     color: _DriverDashboardStyle.ink,
-                    fontSize: ultraCompact ? 17 : compact ? 20 : 25,
+                    fontSize: ultraCompact
+                        ? 17
+                        : compact
+                            ? 20
+                            : 25,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
