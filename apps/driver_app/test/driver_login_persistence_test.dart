@@ -22,8 +22,12 @@ class _Auth implements DriverAuthRepository {
         storeId: 7,
       );
 
+  String? lastLoggedOutToken;
+
   @override
-  Future<void> logout(String token) async {}
+  Future<void> logout(String token) async {
+    lastLoggedOutToken = token;
+  }
 }
 
 class _FailingAuth implements DriverAuthRepository {
@@ -288,22 +292,12 @@ void main() {
 
     final biometricButton = find.byKey(const Key('driver-login-biometric'));
     expect(biometricButton, findsOneWidget);
-    expect(
-      tester
-          .widget<CheckboxListTile>(
-            find.byKey(const Key('driver-login-remember')),
-          )
-          .value,
-      isTrue,
-    );
-    expect(
-      tester
-          .widget<CheckboxListTile>(
-            find.byKey(const Key('driver-login-biometric-toggle')),
-          )
-          .value,
-      isTrue,
-    );
+    expect(find.byKey(const Key('driver-login-email')), findsNothing);
+    expect(find.byKey(const Key('driver-login-password')), findsNothing);
+    expect(find.byKey(const Key('driver-login-submit')), findsNothing);
+    expect(find.byKey(const Key('driver-login-remember')), findsNothing);
+    expect(find.byKey(const Key('driver-login-biometric-toggle')), findsNothing);
+    expect(find.byKey(const Key('driver-login-logout')), findsOneWidget);
     await tester.ensureVisible(biometricButton);
     await tester.tap(biometricButton);
     await tester.pumpAndSettle();
@@ -389,22 +383,12 @@ void main() {
 
     final fingerprint = find.byKey(const Key('driver-login-biometric'));
     expect(fingerprint, findsOneWidget);
-    expect(
-      tester
-          .widget<CheckboxListTile>(
-            find.byKey(const Key('driver-login-remember')),
-          )
-          .value,
-      isTrue,
-    );
-    expect(
-      tester
-          .widget<CheckboxListTile>(
-            find.byKey(const Key('driver-login-biometric-toggle')),
-          )
-          .value,
-      isTrue,
-    );
+    expect(find.byKey(const Key('driver-login-email')), findsNothing);
+    expect(find.byKey(const Key('driver-login-password')), findsNothing);
+    expect(find.byKey(const Key('driver-login-submit')), findsNothing);
+    expect(find.byKey(const Key('driver-login-remember')), findsNothing);
+    expect(find.byKey(const Key('driver-login-biometric-toggle')), findsNothing);
+    expect(find.byKey(const Key('driver-login-logout')), findsOneWidget);
 
     await tester.ensureVisible(fingerprint);
     await tester.tap(fingerprint);
@@ -413,5 +397,62 @@ void main() {
     expect(authenticatedSession?.channel, DriverChannel.b2b);
     expect(remembered, isTrue);
     expect(biometricEnabled, isTrue);
+  });
+
+  testWidgets('sign out clears saved session and restores sign-in form',
+      (tester) async {
+    for (final entry in const <(DriverChannel, Locale, String)>[
+      (DriverChannel.b2b, Locale('ar'), 'تسجيل الخروج'),
+      (DriverChannel.b2c, Locale('en'), 'Sign out'),
+    ]) {
+      final store = _Store()
+        ..stored = DriverStoredSession(
+          session: DriverSession(
+            token: 'saved-${entry.$1.name}-token',
+            name: 'Remembered Driver',
+            email: 'driver@example.test',
+            locale: entry.$2.languageCode,
+            channel: entry.$1,
+            storeId: 7,
+          ),
+          biometricEnabled: true,
+        );
+      final repository = _Auth();
+      await tester.pumpWidget(
+        _host(
+          store: store,
+          repository: repository,
+          locale: entry.$2,
+          biometric: const _Biometric(),
+          onAuthenticated: (_, __, ___) {},
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('driver-login-email')), findsNothing);
+      expect(find.byKey(const Key('driver-login-password')), findsNothing);
+      expect(find.byKey(const Key('driver-login-submit')), findsNothing);
+      expect(find.byKey(const Key('driver-login-biometric')), findsOneWidget);
+      expect(find.text(entry.$3), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('driver-login-logout')));
+      await tester.pumpAndSettle();
+
+      expect(store.stored, isNull);
+      expect(repository.lastLoggedOutToken, 'saved-${entry.$1.name}-token');
+      expect(find.byKey(const Key('driver-login-biometric')), findsNothing);
+      expect(find.byKey(const Key('driver-login-logout')), findsNothing);
+      expect(find.byKey(const Key('driver-login-email')), findsOneWidget);
+      expect(find.byKey(const Key('driver-login-password')), findsOneWidget);
+      expect(find.byKey(const Key('driver-login-submit')), findsOneWidget);
+      expect(
+        tester.widget<CheckboxListTile>(
+          find.byKey(const Key('driver-login-remember')),
+        ).value,
+        isFalse,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    }
   });
 }
