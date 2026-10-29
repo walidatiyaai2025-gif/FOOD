@@ -414,5 +414,4 @@ void main() {
     expect(remembered, isTrue);
     expect(biometricEnabled, isTrue);
   });
-
 }
