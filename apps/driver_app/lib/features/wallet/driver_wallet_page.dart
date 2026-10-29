@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/localization/driver_translations.dart';
+import '../../core/theme/foodex_theme.dart';
 import '../../core/navigation/driver_shell.dart';
 import 'driver_wallet_contract.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
@@ -262,13 +263,35 @@ class _DriverWalletPageState extends State<DriverWalletPage>
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('driver-wallet-page'),
+      backgroundColor: const Color(0xFFF5FCF8),
       appBar: AppBar(
-        title: Text(context.tr('driver.wallet.title')),
+        backgroundColor: const Color(0xFFE9F8EF),
+        surfaceTintColor: Colors.transparent,
+        title: Text(
+          context.tr('driver.wallet.title'),
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: FoodexBrand.ink,
+                fontWeight: FontWeight.w900,
+              ),
+        ),
         actions: [
-          IconButton(
-            onPressed: _loading ? null : _load,
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: context.tr('driver.wallet.refresh'),
+          Padding(
+            padding: const EdgeInsetsDirectional.only(end: 12),
+            child: IconButton.filledTonal(
+              key: const Key('driver-wallet-refresh'),
+              onPressed: _loading ? null : _load,
+              icon: _loading
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh_rounded),
+              tooltip: context.tr('driver.wallet.refresh'),
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: FoodexBrand.greenDark,
+              ),
+            ),
           ),
         ],
       ),
@@ -302,15 +325,25 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                             onRefresh: _load,
                             child: ListView.separated(
                               padding:
-                                  const EdgeInsets.fromLTRB(12, 10, 12, 20),
+                                  const EdgeInsets.fromLTRB(14, 16, 14, 24),
                               itemCount: _accounts.length,
                               separatorBuilder: (_, __) =>
                                   const SizedBox(height: 8),
                               itemBuilder: (context, index) {
                                 final account = _accounts[index];
                                 return Card(
+                                  margin: EdgeInsets.zero,
+                                  color: FoodexBrand.surface,
+                                  elevation: 4,
+                                  shadowColor: const Color(0x130F5132),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(22),
+                                    side: const BorderSide(
+                                      color: Color(0xFFE1EEE5),
+                                    ),
+                                  ),
                                   child: Padding(
-                                    padding: const EdgeInsets.all(12),
+                                    padding: const EdgeInsets.all(16),
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.stretch,
@@ -324,21 +357,51 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                                   fontWeight: FontWeight.w800),
                                         ),
                                         const SizedBox(height: 12),
-                                        Card(
+                                        Container(
                                           key: Key(
                                               'driver-collected-summary-${account.id}'),
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primaryContainer,
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            gradient: const LinearGradient(
+                                              begin: AlignmentDirectional.topStart,
+                                              end: AlignmentDirectional.bottomEnd,
+                                              colors: [
+                                                FoodexBrand.greenDark,
+                                                FoodexBrand.green,
+                                                FoodexBrand.greenBright,
+                                              ],
+                                            ),
+                                            boxShadow: const [
+                                              BoxShadow(
+                                                color: Color(0x22165D2D),
+                                                blurRadius: 14,
+                                                offset: Offset(0, 5),
+                                              ),
+                                            ],
+                                          ),
                                           child: InkWell(
                                             onTap: () =>
                                                 _showCollectedOrders(account),
                                             child: Padding(
-                                              padding: const EdgeInsets.all(12),
+                                              padding: const EdgeInsets.all(17),
                                               child: Row(
                                                 children: [
-                                                  const Icon(
-                                                      Icons.payments_outlined),
+                                                  Container(
+                                                    height: 48,
+                                                    width: 48,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white
+                                                          .withValues(alpha: 0.16),
+                                                      borderRadius:
+                                                          BorderRadius.circular(15),
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.account_balance_wallet_rounded,
+                                                      size: 27,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
                                                   const SizedBox(width: 10),
                                                   Expanded(
                                                     child: Column(
@@ -353,6 +416,11 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                                                   'ar'
                                                               ? 'إجمالي المبالغ المحصّلة'
                                                               : 'Total collected',
+                                                          style: const TextStyle(
+                                                            color: Colors.white,
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                          ),
                                                         ),
                                                         Text(
                                                           foodexMoneyText(
@@ -360,16 +428,20 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                                                 .totalCollected,
                                                             account.currency,
                                                           ),
-                                                          style:
-                                                              Theme.of(context)
-                                                                  .textTheme
-                                                                  .titleLarge,
+                                                          style: const TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 25,
+                                                            fontWeight:
+                                                                FontWeight.w900,
+                                                          ),
                                                         ),
                                                       ],
                                                     ),
                                                   ),
-                                                  const Icon(Icons
-                                                      .chevron_right_rounded),
+                                                  const Icon(
+                                                    Icons.chevron_right_rounded,
+                                                    color: Colors.white,
+                                                  ),
                                                 ],
                                               ),
                                             ),
@@ -390,6 +462,16 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                         ),
                                         const SizedBox(height: 12),
                                         FilledButton.icon(
+                                          style: FilledButton.styleFrom(
+                                            minimumSize: const Size.fromHeight(52),
+                                            backgroundColor:
+                                                FoodexBrand.actionGreen,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                            ),
+                                          ),
                                           key: Key(
                                             'driver-wallet-remit-${account.id}',
                                           ),
@@ -418,20 +500,48 @@ class _DriverWalletPageState extends State<DriverWalletPage>
                                           ),
                                           const SizedBox(height: 8),
                                           ...account.transactions.take(5).map(
-                                                (row) => ListTile(
-                                                  dense: true,
-                                                  contentPadding:
-                                                      EdgeInsets.zero,
-                                                  leading: const Icon(
-                                                    Icons.receipt_long_outlined,
+                                                (row) => Card(
+                                                  margin: const EdgeInsets.only(
+                                                      bottom: 8),
+                                                  color: const Color(0xFFFBFDFC),
+                                                  elevation: 0,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(15),
+                                                    side: const BorderSide(
+                                                      color: Color(0xFFE5EEE8),
+                                                    ),
                                                   ),
+                                                  child: ListTile(
+                                                    dense: true,
+                                                    contentPadding:
+                                                        const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 4,
+                                                    ),
+                                                    leading: Container(
+                                                      height: 42,
+                                                      width: 42,
+                                                      decoration: BoxDecoration(
+                                                        color:
+                                                            FoodexBrand.greenSoft,
+                                                        borderRadius:
+                                                            BorderRadius.circular(13),
+                                                      ),
+                                                      child: const Icon(
+                                                        Icons.receipt_long_outlined,
+                                                        color:
+                                                            FoodexBrand.greenDark,
+                                                      ),
+                                                    ),
                                                   title: Text(
                                                     foodexMoneyText(row.amount,
                                                         row.currency),
                                                   ),
-                                                  subtitle: Text(
-                                                    _transactionStatusLabel(
-                                                        row.status),
+                                                    subtitle: Text(
+                                                      _transactionStatusLabel(
+                                                          row.status),
+                                                    ),
                                                   ),
                                                 ),
                                               ),
