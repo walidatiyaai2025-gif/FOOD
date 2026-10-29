@@ -28,6 +28,7 @@ abstract final class DriverRoutes {
   static const b2bHome = '/driver/b2b/home';
   static const b2bDeliveries = '/driver/b2b/deliveries';
   static const b2bNotifications = '/driver/b2b/notifications';
+  static const b2bWallet = '/driver/b2b/wallet';
 
   static String home(DriverChannel channel) => channel == DriverChannel.b2b
       ? DriverRoutes.b2bHome
@@ -42,6 +43,10 @@ abstract final class DriverRoutes {
       channel == DriverChannel.b2b
           ? DriverRoutes.b2bNotifications
           : DriverRoutes.b2cNotifications;
+
+  static String wallet(DriverChannel channel) => channel == DriverChannel.b2b
+      ? DriverRoutes.b2bWallet
+      : DriverRoutes.b2cWallet;
 
   static bool belongsTo(String route, DriverChannel channel) {
     final prefix =
@@ -84,10 +89,9 @@ class DriverNavigator {
     final homeRoute = DriverRoutes.home(channel);
     final deliveriesRoute = DriverRoutes.deliveries(channel);
     final notificationsRoute = DriverRoutes.notifications(channel);
-    final walletRoute =
-        channel == DriverChannel.b2c && repository is DriverWalletRepository
-            ? DriverRoutes.b2cWallet
-            : null;
+    final walletRoute = repository is DriverWalletRepository
+        ? DriverRoutes.wallet(channel)
+        : null;
 
     if (name == homeRoute) {
       return _page(_homeFor(channel), settings);
@@ -136,7 +140,7 @@ class DriverNavigator {
         settings,
       );
     }
-    if (name == DriverRoutes.b2cWallet) {
+    if (name == DriverRoutes.wallet(channel)) {
       if (walletRoute == null) {
         return _page(const _DriverRouteNotFound(), settings);
       }
@@ -160,10 +164,9 @@ class DriverNavigator {
     final home = DriverRoutes.home(channel);
     final deliveries = DriverRoutes.deliveries(channel);
     final notifications = DriverRoutes.notifications(channel);
-    final wallet =
-        channel == DriverChannel.b2c && repository is DriverWalletRepository
-            ? DriverRoutes.b2cWallet
-            : null;
+    final wallet = repository is DriverWalletRepository
+        ? DriverRoutes.wallet(channel)
+        : null;
 
     return _DriverHomePage(
       homeRoute: home,
