@@ -782,7 +782,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    context.tr('driver.app.title'),
+                    context.tr('driver.home.brand_title'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
