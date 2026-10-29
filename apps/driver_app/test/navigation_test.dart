@@ -847,7 +847,11 @@ void main() {
     );
     expect(action, findsOneWidget);
     expect(tester.widget<InkWell>(action).onTap, isNotNull);
-    expect(tester.takeException(), isNull);
+    final layoutError = tester.takeException();
+    if (layoutError is FlutterError) {
+      debugPrint(layoutError.toStringDeep());
+    }
+    expect(layoutError, isNull);
   });
 
   testWidgets('B2B driver Home shows unsettled collections above quick summary',
