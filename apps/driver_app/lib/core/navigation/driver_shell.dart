@@ -57,7 +57,7 @@ class DriverShellScaffold extends StatelessWidget {
 }
 
 /// The one Driver footer used by Home, Deliveries, Notifications and Wallet.
-/// Wallet is shown only when the B2C router supplies an authorized wallet route.
+/// Wallet is shown for either driver channel when its authorized route exists.
 class DriverShellNavigation extends StatelessWidget {
   const DriverShellNavigation({
     super.key,
@@ -90,48 +90,89 @@ class DriverShellNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NavigationBar(
-      key: const Key('driver-shell-navigation'),
-      selectedIndex: destination.index,
-      onDestinationSelected: (index) =>
-          _open(context, DriverShellDestination.values[index]),
-      backgroundColor: FoodexBrand.surface,
-      indicatorColor: FoodexBrand.greenSoft,
-      destinations: [
-        NavigationDestination(
-          icon: const Icon(
-            Icons.home_outlined,
-            key: Key('driver-shell-home'),
-          ),
-          selectedIcon: const Icon(Icons.home_rounded),
-          label: context.tr('driver.nav.home'),
-        ),
-        NavigationDestination(
-          icon: const Icon(
-            Icons.route_outlined,
-            key: Key('driver-shell-deliveries'),
-          ),
-          selectedIcon: const Icon(Icons.route_rounded),
-          label: context.tr('driver.nav.deliveries'),
-        ),
-        NavigationDestination(
-          icon: const Icon(
-            Icons.notifications_none_rounded,
-            key: Key('driver-shell-notifications'),
-          ),
-          selectedIcon: const Icon(Icons.notifications_rounded),
-          label: context.tr('driver.nav.notifications'),
-        ),
-        if (walletRoute != null)
-          NavigationDestination(
-            icon: const Icon(
-              Icons.account_balance_wallet_outlined,
-              key: Key('driver-shell-wallet'),
+    return SafeArea(
+      top: false,
+      minimum: const EdgeInsets.fromLTRB(10, 5, 10, 7),
+      child: Material(
+        color: FoodexBrand.surface,
+        elevation: 9,
+        shadowColor: const Color(0x260F5132),
+        borderRadius: BorderRadius.circular(24),
+        clipBehavior: Clip.antiAlias,
+        child: NavigationBarTheme(
+          data: NavigationBarThemeData(
+            iconTheme: WidgetStateProperty.resolveWith<IconThemeData>(
+              (states) => IconThemeData(
+                color: states.contains(WidgetState.selected)
+                    ? FoodexBrand.greenDark
+                    : FoodexBrand.ink,
+                size: 24,
+              ),
             ),
-            selectedIcon: const Icon(Icons.account_balance_wallet_rounded),
-            label: context.tr('driver.nav.wallet'),
+            labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
+              (states) => TextStyle(
+                color: states.contains(WidgetState.selected)
+                    ? FoodexBrand.greenDark
+                    : FoodexBrand.ink,
+                fontSize: 12,
+                fontWeight: states.contains(WidgetState.selected)
+                    ? FontWeight.w900
+                    : FontWeight.w700,
+              ),
+            ),
           ),
-      ],
+          child: NavigationBar(
+            key: const Key('driver-shell-navigation'),
+            height: 96,
+            selectedIndex: destination.index,
+            onDestinationSelected: (index) =>
+                _open(context, DriverShellDestination.values[index]),
+            backgroundColor: FoodexBrand.surface,
+            surfaceTintColor: Colors.transparent,
+            indicatorColor: FoodexBrand.greenSoft,
+            indicatorShape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            destinations: [
+              NavigationDestination(
+                icon: const Icon(
+                  Icons.home_outlined,
+                  key: Key('driver-shell-home'),
+                ),
+                selectedIcon: const Icon(Icons.home_rounded),
+                label: context.tr('driver.nav.home'),
+              ),
+              NavigationDestination(
+                icon: const Icon(
+                  Icons.route_outlined,
+                  key: Key('driver-shell-deliveries'),
+                ),
+                selectedIcon: const Icon(Icons.route_rounded),
+                label: context.tr('driver.nav.deliveries'),
+              ),
+              NavigationDestination(
+                icon: const Icon(
+                  Icons.notifications_none_rounded,
+                  key: Key('driver-shell-notifications'),
+                ),
+                selectedIcon: const Icon(Icons.notifications_rounded),
+                label: context.tr('driver.nav.notifications'),
+              ),
+              if (walletRoute != null)
+                NavigationDestination(
+                  icon: const Icon(
+                    Icons.account_balance_wallet_outlined,
+                    key: Key('driver-shell-wallet'),
+                  ),
+                  selectedIcon:
+                      const Icon(Icons.account_balance_wallet_rounded),
+                  label: context.tr('driver.nav.wallet'),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

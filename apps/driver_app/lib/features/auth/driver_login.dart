@@ -62,9 +62,51 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
     if (!mounted) return;
     setState(() {
       _biometricAvailable = available;
-      _savedBiometricLogin = available && stored?.biometricEnabled == true;
+      // Restore the user's saved choice on every fresh login screen.
+      // The password is never persisted: only the secure session is reused.
+      _rememberMe = stored != null;
+      _enableBiometrics = available && stored?.biometricEnabled == true;
+      _savedBiometricLogin = _enableBiometrics;
       _checkingBiometrics = false;
     });
+  }
+
+  Future<void> _logoutSavedSession() async {
+    if (_submitting || !_savedBiometricLogin) return;
+    setState(() {
+      _submitting = true;
+      _errorKey = null;
+    });
+    try {
+      DriverStoredSession? stored;
+      try {
+        stored = await widget.sessionStore.read();
+      } catch (_) {
+        // Still attempt to clear the local session if it cannot be read.
+      }
+      await widget.sessionStore.clear();
+      if (!mounted) return;
+      setState(() {
+        _savedBiometricLogin = false;
+        _rememberMe = false;
+        _enableBiometrics = false;
+        _email.clear();
+        _password.clear();
+        _emailErrorKey = null;
+        _passwordErrorKey = null;
+      });
+      if (stored != null && widget.repository != null) {
+        try {
+          await widget.repository!.logout(stored.session.token);
+        } catch (_) {
+          // Local credentials are already cleared if the server is offline.
+        }
+      }
+    } catch (_) {
+      if (mounted) setState(() => _errorKey = 'driver.error');
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   Future<void> _loginWithBiometrics() async {
@@ -250,7 +292,62 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
-                              if (configured) ...[
+                              if (configured && _checkingBiometrics)
+                                const SizedBox(
+                                  key: Key('driver-login-checking-session'),
+                                  height: 52,
+                                ),
+                              if (configured &&
+                                  !_checkingBiometrics &&
+                                  _savedBiometricLogin) ...[
+                                FilledButton.icon(
+                                  key: const Key('driver-login-biometric'),
+                                  onPressed:
+                                      _submitting ? null : _loginWithBiometrics,
+                                  icon: const Icon(Icons.fingerprint_rounded),
+                                  label: Text(
+                                    context.tr('driver.login.biometric'),
+                                  ),
+                                ),
+                                if (_errorKey != null) ...[
+                                  const SizedBox(height: 12),
+                                  Semantics(
+                                    key: const Key('driver-login-error-live'),
+                                    container: true,
+                                    liveRegion: true,
+                                    child: Container(
+                                      key: const Key('driver-login-error'),
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFF0F0),
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(
+                                          color: FoodexBrand.red.withAlpha(64),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        context.tr(_errorKey!),
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          color: FoodexBrand.dangerText,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 12),
+                                OutlinedButton.icon(
+                                  key: const Key('driver-login-logout'),
+                                  onPressed:
+                                      _submitting ? null : _logoutSavedSession,
+                                  icon: const Icon(Icons.logout_rounded),
+                                  label: Text(context.tr('driver.logout')),
+                                ),
+                              ],
+                              if (configured &&
+                                  !_checkingBiometrics &&
+                                  !_savedBiometricLogin) ...[
                                 TextField(
                                   key: const Key('driver-login-email'),
                                   controller: _email,
@@ -353,19 +450,6 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                   label:
                                       Text(context.tr('driver.login.submit')),
                                 ),
-                                if (_savedBiometricLogin) ...[
-                                  const SizedBox(height: 12),
-                                  OutlinedButton.icon(
-                                    key: const Key('driver-login-biometric'),
-                                    onPressed: _submitting
-                                        ? null
-                                        : _loginWithBiometrics,
-                                    icon: const Icon(Icons.fingerprint_rounded),
-                                    label: Text(
-                                      context.tr('driver.login.biometric'),
-                                    ),
-                                  ),
-                                ],
                                 const SizedBox(height: 10),
                                 CheckboxListTile(
                                   key: const Key('driver-login-remember'),

@@ -7,6 +7,7 @@ void main() {
       'driver bootstrap is Arabic-first, RTL and uses configured production API',
       (tester) async {
     await tester.pumpWidget(const FoodexDriverApp());
+    await tester.pumpAndSettle();
 
     expect(find.text('تطبيق السائق'), findsOneWidget);
     expect(find.byKey(const Key('driver-config-missing')), findsNothing);
@@ -33,6 +34,7 @@ void main() {
   testWidgets('driver login requires normal email and password credentials',
       (tester) async {
     await tester.pumpWidget(const FoodexDriverApp());
+    await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('driver-login-email')), findsOneWidget);
     expect(find.byKey(const Key('driver-login-password')), findsOneWidget);
