@@ -30,6 +30,14 @@ void main() {
       channel: DriverChannel.b2c,
     );
 
+    final b2bSession = DriverSession(
+      token: 'evidence-token-b2b',
+      name: localeCode == 'ar' ? 'سائق متجر الجملة' : 'Wholesale Store Driver',
+      email: 'driver.b2b@foodex.test',
+      locale: localeCode,
+      channel: DriverChannel.b2b,
+    );
+
     testWidgets('capture driver login $localeCode', (tester) async {
       await _setup(tester);
       await _captureApp(
@@ -103,6 +111,11 @@ void main() {
         session: b2cSession,
         route: '/driver/b2c/home',
         path: '01_Mobile/Driver_B2C/02_driver_home__default__$localeCode.png',
+      ),
+      (
+        session: b2bSession,
+        route: '/driver/b2b/home',
+        path: '01_Mobile/Driver_B2B/02_driver_home__default__$localeCode.png',
       ),
       (
         session: b2cSession,
