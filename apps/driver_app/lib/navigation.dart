@@ -749,8 +749,8 @@ class _DriverHomePageState extends State<_DriverHomePage>
         flexibleSpace: const DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment.topEnd,
-              end: Alignment.bottomStart,
+              begin: AlignmentDirectional.topEnd,
+              end: AlignmentDirectional.bottomStart,
               colors: [
                 Color(0xFFF9FFFC),
                 Color(0xFFDEF7EA),
