@@ -846,167 +846,167 @@ class _DriverHomePageState extends State<_DriverHomePage>
           ),
         ),
         child: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxHeight < 610;
-            final ultraCompact = constraints.maxHeight < 510;
-            final gap = ultraCompact
-                ? 4.0
-                : compact
-                    ? 6.0
-                    : 8.0;
-            final horizontalPadding = ultraCompact ? 8.0 : 12.0;
-            const columns = 2;
-            final chartHeight = ultraCompact
-                ? 118.0
-                : compact
-                    ? 158.0
-                    : 212.0;
-            final pendingHeight = ultraCompact
-                ? 44.0
-                : compact
-                    ? 49.0
-                    : 58.0;
-            final statusCardHeight = ultraCompact
-                ? 58.0
-                : compact
-                    ? 66.0
-                    : 78.0;
-            final unsettledCardHeight = ultraCompact
-                ? 66.0
-                : compact
-                    ? 73.0
-                    : 84.0;
-            final showUnsettledCollections = widget.walletRoute != null &&
-                widget.repository is DriverWalletRepository;
-            final statusRows = (_statuses.length / columns).ceil();
-            final statusGridHeight =
-                (statusRows * statusCardHeight) + ((statusRows - 1) * gap);
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxHeight < 610;
+              final ultraCompact = constraints.maxHeight < 510;
+              final gap = ultraCompact
+                  ? 4.0
+                  : compact
+                      ? 6.0
+                      : 8.0;
+              final horizontalPadding = ultraCompact ? 8.0 : 12.0;
+              const columns = 2;
+              final chartHeight = ultraCompact
+                  ? 118.0
+                  : compact
+                      ? 158.0
+                      : 212.0;
+              final pendingHeight = ultraCompact
+                  ? 44.0
+                  : compact
+                      ? 49.0
+                      : 58.0;
+              final statusCardHeight = ultraCompact
+                  ? 58.0
+                  : compact
+                      ? 66.0
+                      : 78.0;
+              final unsettledCardHeight = ultraCompact
+                  ? 66.0
+                  : compact
+                      ? 73.0
+                      : 84.0;
+              final showUnsettledCollections = widget.walletRoute != null &&
+                  widget.repository is DriverWalletRepository;
+              final statusRows = (_statuses.length / columns).ceil();
+              final statusGridHeight =
+                  (statusRows * statusCardHeight) + ((statusRows - 1) * gap);
 
-            return SingleChildScrollView(
-              key: const Key('driver-home-scroll'),
-              padding: EdgeInsets.fromLTRB(
-                horizontalPadding,
-                gap + 6,
-                horizontalPadding,
-                gap + 14,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (showUnsettledCollections) ...[
+              return SingleChildScrollView(
+                key: const Key('driver-home-scroll'),
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  gap + 6,
+                  horizontalPadding,
+                  gap + 14,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (showUnsettledCollections) ...[
+                      SizedBox(
+                        height: unsettledCardHeight,
+                        child: _DriverUnsettledCollectionsCard(
+                          loading: _walletLoading && _walletAccounts.isEmpty,
+                          failed: _walletLoadFailed && _walletAccounts.isEmpty,
+                          value: _unsettledCollectionsValue(),
+                          onTap: widget.walletRoute == null
+                              ? null
+                              : () => Navigator.of(context)
+                                  .pushNamed(widget.walletRoute!),
+                        ),
+                      ),
+                      SizedBox(height: gap),
+                    ],
+                    _DriverDashboardSectionHeading(
+                      title: context.tr('driver.home.status_summary'),
+                    ),
+                    SizedBox(height: gap),
                     SizedBox(
-                      height: unsettledCardHeight,
-                      child: _DriverUnsettledCollectionsCard(
-                        loading: _walletLoading && _walletAccounts.isEmpty,
-                        failed: _walletLoadFailed && _walletAccounts.isEmpty,
-                        value: _unsettledCollectionsValue(),
-                        onTap: widget.walletRoute == null
-                            ? null
-                            : () => Navigator.of(context)
-                                .pushNamed(widget.walletRoute!),
+                      height: chartHeight,
+                      child: _DriverWorkloadChart(
+                        compact: compact,
+                        ultraCompact: ultraCompact,
+                        loading: _loading && _assignments.isEmpty,
+                        failed: _loadFailed,
+                        stale: _showingStaleData,
+                        statuses: [
+                          for (final status in _statuses)
+                            _DriverWorkloadSlice(
+                              label: context.tr('driver.status.${status.$1}'),
+                              value: _count(status.$1),
+                            ),
+                        ],
                       ),
                     ),
                     SizedBox(height: gap),
-                  ],
-                  _DriverDashboardSectionHeading(
-                    title: context.tr('driver.home.status_summary'),
-                  ),
-                  SizedBox(height: gap),
-                  SizedBox(
-                    height: chartHeight,
-                    child: _DriverWorkloadChart(
-                      compact: compact,
-                      ultraCompact: ultraCompact,
-                      loading: _loading && _assignments.isEmpty,
-                      failed: _loadFailed,
-                      stale: _showingStaleData,
-                      statuses: [
-                        for (final status in _statuses)
-                          _DriverWorkloadSlice(
-                            label: context.tr('driver.status.${status.$1}'),
-                            value: _count(status.$1),
-                          ),
-                      ],
+                    SizedBox(
+                      height: pendingHeight,
+                      child: _DriverPendingCard(
+                        key: const Key('driver-home-pending-orders'),
+                        compact: compact,
+                        ultraCompact: ultraCompact,
+                        label: context.tr('driver.home.pending_orders'),
+                        value: _loading ? null : _count('assigned'),
+                        onTap: _loading ? null : () => _openStatus('assigned'),
+                      ),
                     ),
-                  ),
-                  SizedBox(height: gap),
-                  SizedBox(
-                    height: pendingHeight,
-                    child: _DriverPendingCard(
-                      key: const Key('driver-home-pending-orders'),
-                      compact: compact,
-                      ultraCompact: ultraCompact,
-                      label: context.tr('driver.home.pending_orders'),
-                      value: _loading ? null : _count('assigned'),
-                      onTap: _loading ? null : () => _openStatus('assigned'),
-                    ),
-                  ),
-                  SizedBox(height: gap),
-                  SizedBox(
-                    height: statusGridHeight,
-                    child: _loadFailed
-                        ? Card(
-                            margin: EdgeInsets.zero,
-                            child: Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(compact ? 8 : 12),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.cloud_off_rounded),
-                                    SizedBox(width: ultraCompact ? 4 : 6),
-                                    Flexible(
-                                      child: Text(
-                                        context.tr('driver.error'),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
+                    SizedBox(height: gap),
+                    SizedBox(
+                      height: statusGridHeight,
+                      child: _loadFailed
+                          ? Card(
+                              margin: EdgeInsets.zero,
+                              child: Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(compact ? 8 : 12),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.cloud_off_rounded),
+                                      SizedBox(width: ultraCompact ? 4 : 6),
+                                      Flexible(
+                                        child: Text(
+                                          context.tr('driver.error'),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    TextButton(
-                                      onPressed: _loadSummary,
-                                      child: Text(context.tr('driver.retry')),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 8),
+                                      TextButton(
+                                        onPressed: _loadSummary,
+                                        child: Text(context.tr('driver.retry')),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          )
-                        : GridView.count(
-                            key: const Key('driver-home-status-grid'),
-                            padding: EdgeInsets.zero,
-                            physics: const NeverScrollableScrollPhysics(),
-                            crossAxisCount: columns,
-                            crossAxisSpacing: gap,
-                            mainAxisSpacing: gap,
-                            mainAxisExtent: statusCardHeight,
-                            children: [
-                              for (final status in _statuses)
-                                _DriverStatusCard(
-                                  key: Key(
-                                    'driver-home-status-${status.$1}',
+                            )
+                          : GridView.count(
+                              key: const Key('driver-home-status-grid'),
+                              padding: EdgeInsets.zero,
+                              physics: const NeverScrollableScrollPhysics(),
+                              crossAxisCount: columns,
+                              crossAxisSpacing: gap,
+                              mainAxisSpacing: gap,
+                              mainAxisExtent: statusCardHeight,
+                              children: [
+                                for (final status in _statuses)
+                                  _DriverStatusCard(
+                                    key: Key(
+                                      'driver-home-status-${status.$1}',
+                                    ),
+                                    compact: compact,
+                                    ultraCompact: ultraCompact,
+                                    icon: status.$2,
+                                    status: status.$1,
+                                    label:
+                                        context.tr('driver.status.${status.$1}'),
+                                    value: _loading ? null : _count(status.$1),
+                                    onTap: _loading
+                                        ? null
+                                        : () => _openStatus(status.$1),
                                   ),
-                                  compact: compact,
-                                  ultraCompact: ultraCompact,
-                                  icon: status.$2,
-                                  status: status.$1,
-                                  label:
-                                      context.tr('driver.status.${status.$1}'),
-                                  value: _loading ? null : _count(status.$1),
-                                  onTap: _loading
-                                      ? null
-                                      : () => _openStatus(status.$1),
-                                ),
-                            ],
-                          ),
-                  ),
-                  SizedBox(height: gap),
-                ],
-              ),
-            );
-          },
-        ),
+                              ],
+                            ),
+                    ),
+                    SizedBox(height: gap),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
