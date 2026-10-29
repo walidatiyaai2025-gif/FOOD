@@ -752,9 +752,9 @@ class _DriverHomePageState extends State<_DriverHomePage>
               begin: AlignmentDirectional.topEnd,
               end: AlignmentDirectional.bottomStart,
               colors: [
-                Color(0xFFF9FFFC),
-                Color(0xFFDEF7EA),
-                Color(0xFFF0FCF5),
+                DriverHomePalette.headerTop,
+                DriverHomePalette.headerMiddle,
+                DriverHomePalette.headerBottom,
               ],
             ),
           ),
@@ -767,7 +767,7 @@ class _DriverHomePageState extends State<_DriverHomePage>
               decoration: BoxDecoration(
                 color: FoodexBrand.greenSoft,
                 borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: const Color(0xFFCBEEDB)),
+                border: Border.all(color: DriverHomePalette.logoBorder),
               ),
               child: const Icon(
                 Icons.local_shipping_rounded,
@@ -843,9 +843,9 @@ class _DriverHomePageState extends State<_DriverHomePage>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFF0FAF5),
-              Color(0xFFF7FBF8),
-              Color(0xFFF1F9F5),
+              DriverHomePalette.summaryTop,
+              DriverHomePalette.summaryMiddle,
+              DriverHomePalette.summaryBottom,
             ],
           ),
         ),
@@ -1020,10 +1020,10 @@ class _DriverHomePageState extends State<_DriverHomePage>
 /// Shared presentation tokens for the Driver Home only; financial and routing
 /// state continue to come from the existing authenticated repositories.
 abstract final class _DriverDashboardStyle {
-  static const mint = Color(0xFFE2F7EC);
-  static const mintBorder = Color(0xFFCBEAD8);
+  static const mint = DriverHomePalette.mint;
+  static const mintBorder = DriverHomePalette.mintBorder;
   static const ink = FoodexBrand.ink;
-  static const softShadow = Color(0x120F5132);
+  static const softShadow = DriverHomePalette.softShadow;
 
   static RoundedRectangleBorder panelShape({
     Color border = mintBorder,
@@ -1034,26 +1034,26 @@ abstract final class _DriverDashboardStyle {
       );
 
   static Color statusColor(String status) => switch (status) {
-        'accepted' => const Color(0xFF147A40),
-        'out_for_delivery' => const Color(0xFF347FDE),
-        'failed' => const Color(0xFFEB7916),
-        'delivered' => const Color(0xFFDC4044),
+        'accepted' => DriverHomePalette.accepted,
+        'out_for_delivery' => DriverHomePalette.inProgress,
+        'failed' => DriverHomePalette.failed,
+        'delivered' => DriverHomePalette.delivered,
         _ => FoodexBrand.muted,
       };
 
   static Color statusBackground(String status) => switch (status) {
-        'accepted' => const Color(0xFFF1FBF5),
-        'out_for_delivery' => const Color(0xFFF2F8FF),
-        'failed' => const Color(0xFFFFF8EE),
-        'delivered' => const Color(0xFFFFF5F5),
+        'accepted' => DriverHomePalette.acceptedBackground,
+        'out_for_delivery' => DriverHomePalette.inProgressBackground,
+        'failed' => DriverHomePalette.failedBackground,
+        'delivered' => DriverHomePalette.deliveredBackground,
         _ => FoodexBrand.surface,
       };
 
   static Color statusBorder(String status) => switch (status) {
-        'accepted' => const Color(0xFFCEEEDB),
-        'out_for_delivery' => const Color(0xFFD1E4FF),
-        'failed' => const Color(0xFFFFDEAC),
-        'delivered' => const Color(0xFFFFD2D3),
+        'accepted' => DriverHomePalette.acceptedBorder,
+        'out_for_delivery' => DriverHomePalette.inProgressBorder,
+        'failed' => DriverHomePalette.failedBorder,
+        'delivered' => DriverHomePalette.deliveredBorder,
         _ => FoodexBrand.border,
       };
 }
@@ -1084,8 +1084,8 @@ class _DriverHeaderAction extends StatelessWidget {
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
           style: IconButton.styleFrom(
-            backgroundColor: const Color(0xDFFFFFFF),
-            disabledBackgroundColor: const Color(0x88FFFFFF),
+            backgroundColor: DriverHomePalette.iconButtonBackground,
+            disabledBackgroundColor: DriverHomePalette.disabledIconBackground,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
@@ -1332,7 +1332,7 @@ class _DriverWorkloadChart extends StatelessWidget {
       elevation: 5,
       shadowColor: _DriverDashboardStyle.softShadow,
       shape: _DriverDashboardStyle.panelShape(
-        border: const Color(0xFFE4F0E8),
+        border: DriverHomePalette.panelBorder,
       ),
       child: Padding(
         padding: EdgeInsets.all(ultraCompact
@@ -1446,7 +1446,7 @@ class _DriverPendingCard extends StatelessWidget {
             : 40.0;
 
     return Material(
-      color: const Color(0xFFFFF1F1),
+      color: DriverHomePalette.pendingBackground,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
@@ -1458,7 +1458,7 @@ class _DriverPendingCard extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFEF6369), width: 1.25),
+            border: Border.all(color: DriverHomePalette.pendingBorder, width: 1.25),
           ),
           child: Row(
             children: [

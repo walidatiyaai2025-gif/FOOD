@@ -80,6 +80,38 @@ abstract final class FoodexBrand {
   }
 }
 
+/// Shared premium Driver Home palette. These named tokens keep feature widgets
+/// free of per-screen color literals while preserving the approved visuals.
+abstract final class DriverHomePalette {
+  static const headerTop = Color(0xFFF9FFFC);
+  static const headerMiddle = Color(0xFFDEF7EA);
+  static const headerBottom = Color(0xFFF0FCF5);
+  static const logoBorder = Color(0xFFCBEEDB);
+  static const summaryTop = Color(0xFFF0FAF5);
+  static const summaryMiddle = Color(0xFFF7FBF8);
+  static const summaryBottom = Color(0xFFF1F9F5);
+  static const mint = Color(0xFFE2F7EC);
+  static const mintBorder = Color(0xFFCBEAD8);
+  static const softShadow = Color(0x120F5132);
+  static const accepted = Color(0xFF147A40);
+  static const inProgress = Color(0xFF347FDE);
+  static const failed = Color(0xFFEB7916);
+  static const delivered = Color(0xFFDC4044);
+  static const acceptedBackground = Color(0xFFF1FBF5);
+  static const inProgressBackground = Color(0xFFF2F8FF);
+  static const failedBackground = Color(0xFFFFF8EE);
+  static const deliveredBackground = Color(0xFFFFF5F5);
+  static const acceptedBorder = Color(0xFFCEEEDB);
+  static const inProgressBorder = Color(0xFFD1E4FF);
+  static const failedBorder = Color(0xFFFFDEAC);
+  static const deliveredBorder = Color(0xFFFFD2D3);
+  static const iconButtonBackground = Color(0xDFFFFFFF);
+  static const disabledIconBackground = Color(0x88FFFFFF);
+  static const panelBorder = Color(0xFFE4F0E8);
+  static const pendingBackground = Color(0xFFFFF1F1);
+  static const pendingBorder = Color(0xFFEF6369);
+}
+
 abstract final class FoodexTheme {
   static ThemeData light({String? fontFamily}) {
     const scheme = ColorScheme.light(
