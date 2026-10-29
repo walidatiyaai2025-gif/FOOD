@@ -5,6 +5,7 @@ import '../../core/localization/driver_translations.dart';
 import '../../core/navigation/driver_shell.dart';
 import '../../core/navigation/driver_navigation.dart';
 import '../../core/preview/driver_preview_context.dart';
+import '../../core/theme/foodex_theme.dart';
 import 'active/driver_active_journey.dart';
 import 'completion/driver_completion_contract.dart';
 import 'completion/driver_completion_sheet.dart';
