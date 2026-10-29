@@ -167,8 +167,13 @@ void main() {
       home: DriverWalletPage(repository: _CollectedWallet()),
     ));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('driver-collected-summary-6')), findsOneWidget);
+    final collectedCard =
+        find.byKey(const Key('driver-collected-summary-6'));
+    expect(collectedCard, findsOneWidget);
+    final decoration = tester.widget<Container>(collectedCard).decoration;
+    expect((decoration as BoxDecoration).gradient, isA<LinearGradient>());
     expect(find.text('15.000 KWD'), findsOneWidget);
+    expect(find.byKey(const Key('driver-wallet-refresh')), findsOneWidget);
     await tester.tap(find.byKey(const Key('driver-collected-summary-6')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('driver-collected-order-123')), findsOneWidget);
