@@ -428,6 +428,10 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('van-login-remember')));
     await tester.pump();
+    final biometric = find.byKey(const Key('van-login-biometric-toggle'));
+    await tester.ensureVisible(biometric);
+    await tester.tap(biometric);
+    await tester.pump();
     await tester.enterText(
       find.byKey(const Key('van-login-email')),
       'van@example.test',
