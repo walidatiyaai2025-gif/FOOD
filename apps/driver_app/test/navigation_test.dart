@@ -244,7 +244,9 @@ void main() {
     expect(find.byKey(const Key('driver-shell-wallet')), findsOneWidget);
     expect(find.text('المحفظة'), findsOneWidget);
     expect(
-      tester.widget<NavigationBar>(find.byKey(const Key('driver-shell-navigation')))
+      tester
+          .widget<NavigationBar>(
+              find.byKey(const Key('driver-shell-navigation')))
           .labelBehavior,
       NavigationDestinationLabelBehavior.alwaysShow,
     );
@@ -347,8 +349,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('driver-wallet-page')), findsOneWidget);
-      expect(find.byKey(const Key('driver-collected-summary-81')),
-          findsOneWidget);
+      expect(
+          find.byKey(const Key('driver-collected-summary-81')), findsOneWidget);
       expect(find.byKey(const Key('driver-shell-navigation')), findsOneWidget);
       expect(
         tester
