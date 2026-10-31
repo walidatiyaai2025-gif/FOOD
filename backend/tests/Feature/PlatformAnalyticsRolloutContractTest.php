@@ -29,7 +29,11 @@ class PlatformAnalyticsRolloutContractTest extends TestCase
         $this->assertStringContainsString('_DriverWorkloadChart', $driver);
         $this->assertStringContainsString('FoodexDonutChart(', $driver);
         $this->assertStringContainsString('driver-home-workload-chart', $driver);
-        $this->assertStringContainsString('baseChartHeight * 1.20', $driver);
+        $this->assertStringContainsString('final chartSize = ultraCompact', $driver);
+        $this->assertStringContainsString('? 56.0', $driver);
+        $this->assertStringContainsString('? 72.0', $driver);
+        $this->assertStringContainsString(': 108.0;', $driver);
+        $this->assertStringContainsString('size: chartSize', $driver);
         $this->assertStringContainsString('driver-home-unsettled-collections', $driver);
         $this->assertStringContainsString('unsettledCollectionsBalance', $driver);
         $this->assertStringContainsString('data-driver-unsettled-collections', $financeSupport);
