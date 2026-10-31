@@ -46,6 +46,7 @@ jobs:
               'production',
               'prod',
               'release/1.0.58-van-complete',
+              'release/store-demo', // Owner-designated permanent store demo release lane (#2461).
             ]);
             const keepPrefixes = []; // release/* branches are temporary; normal safety guards decide retention.
 
@@ -156,6 +157,7 @@ jobs:
               'production',
               'prod',
               'release/1.0.58-van-complete',
+              'release/store-demo', // Owner-designated permanent store demo release lane (#2461).
             ]);
             const keepPrefixes = []; // release/* branches are temporary; normal safety guards decide retention.
 
