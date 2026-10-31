@@ -5,6 +5,7 @@ import '../../core/localization/driver_translations.dart';
 import '../../core/navigation/driver_shell.dart';
 import '../../core/navigation/driver_navigation.dart';
 import '../../core/preview/driver_preview_context.dart';
+import '../../core/theme/foodex_theme.dart';
 import 'active/driver_active_journey.dart';
 import 'completion/driver_completion_contract.dart';
 import 'completion/driver_completion_sheet.dart';
@@ -94,6 +95,71 @@ class DriverJourneyRuntimePage extends StatelessWidget {
     );
   }
 
+  PreferredSizeWidget _premiumWholesaleAppBar(BuildContext context) {
+    return AppBar(
+      titleSpacing: 12,
+      toolbarHeight: 72,
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      flexibleSpace: const DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: AlignmentDirectional.topEnd,
+            end: AlignmentDirectional.bottomStart,
+            colors: [
+              DriverHomePalette.headerTop,
+              DriverHomePalette.headerMiddle,
+              DriverHomePalette.headerBottom,
+            ],
+          ),
+        ),
+      ),
+      title: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 27,
+            decoration: BoxDecoration(
+              color: FoodexBrand.green,
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              context.tr(
+                channel == DriverChannel.b2c
+                    ? 'driver.b2c.title'
+                    : 'driver.b2b.title',
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: FoodexBrand.ink,
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+          ),
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: DriverUiPalette.headerIconSurface,
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: DriverUiPalette.headerIconBorder),
+            ),
+            child: const Icon(
+              Icons.alt_route_rounded,
+              color: FoodexBrand.greenDark,
+              size: 23,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => DriverShellScaffold(
         destination: DriverShellDestination.deliveries,
@@ -101,13 +167,12 @@ class DriverJourneyRuntimePage extends StatelessWidget {
         deliveriesRoute: deliveriesRoute,
         notificationsRoute: notificationsRoute,
         walletRoute: walletRoute,
-        title: Text(
-          context.tr(
-            channel == DriverChannel.b2c
-                ? 'driver.b2c.title'
-                : 'driver.b2b.title',
-          ),
-        ),
+        appBar: channel == DriverChannel.b2b
+            ? _premiumWholesaleAppBar(context)
+            : null,
+        title: channel == DriverChannel.b2c
+            ? Text(context.tr('driver.b2c.title'))
+            : null,
         body: DriverActiveJourneyPage(
           channel: channel,
           repository: repository,

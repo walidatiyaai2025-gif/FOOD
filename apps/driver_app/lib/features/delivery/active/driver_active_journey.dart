@@ -81,11 +81,34 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (widget.focusAssignmentId != null) {
+    if (widget.channel == DriverChannel.b2b ||
+        widget.focusAssignmentId != null) {
       _period = _DriverDeliveryPeriod.all;
     }
     _load();
     _startLiveRefresh();
+  }
+
+  @override
+  void didUpdateWidget(covariant DriverActiveJourneyPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.channel != widget.channel ||
+        oldWidget.focusAssignmentId != widget.focusAssignmentId ||
+        oldWidget.initialAssignmentStatus != widget.initialAssignmentStatus) {
+      // A retained widget state must not reuse the previous driver's date
+      // filter, assignments, or focused assignment across channel switches.
+      _period = widget.channel == DriverChannel.b2b ||
+              widget.focusAssignmentId != null
+          ? _DriverDeliveryPeriod.all
+          : _DriverDeliveryPeriod.today;
+      _dateRange = null;
+      _assignments = const [];
+      _state = _DriverActiveLoadState.loading;
+      _focusedAssignmentOpened = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_load());
+      });
+    }
   }
 
   @override
@@ -955,66 +978,7 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     );
   }
 
-  DateTime? _assignmentDate(DriverAssignment assignment) {
-    for (final value in [assignment.assignedAt, assignment.createdAt]) {
-      final parsed = DateTime.tryParse(value);
-      if (parsed != null) return parsed.toLocal();
-    }
-    return null;
-  }
-
-  List<DriverAssignment> _filteredAssignments() {
-    if (_period == _DriverDeliveryPeriod.all) return _assignments;
-    final now = DateTime.now();
-    final range = _period == _DriverDeliveryPeriod.today
-        ? DateTimeRange(
-            start: DateTime(now.year, now.month, now.day),
-            end: DateTime(now.year, now.month, now.day, 23, 59, 59, 999),
-          )
-        : _dateRange;
-    if (range == null) return _assignments;
-
-    final start = DateTime(
-      range.start.year,
-      range.start.month,
-      range.start.day,
-    );
-    final end = DateTime(
-      range.end.year,
-      range.end.month,
-      range.end.day,
-      23,
-      59,
-      59,
-      999,
-    );
-    return _assignments.where((assignment) {
-      final date = _assignmentDate(assignment);
-      if (date == null) {
-        return _period != _DriverDeliveryPeriod.custom;
-      }
-      return !date.isBefore(start) && !date.isAfter(end);
-    }).toList(growable: false);
-  }
-
-  Future<void> _pickDateRange() async {
-    final now = DateTime.now();
-    final initial = _dateRange ??
-        DateTimeRange(start: now.subtract(const Duration(days: 7)), end: now);
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(now.year - 3),
-      lastDate: DateTime(now.year + 1),
-      initialDateRange: initial,
-    );
-    if (picked == null || !mounted) return;
-    setState(() {
-      _dateRange = picked;
-      _period = _DriverDeliveryPeriod.custom;
-    });
-  }
-
-  Widget _filterControls() {
+  Widget _legacyFilterControls() {
     final locale = MaterialLocalizations.of(context);
     final range = _dateRange;
     final rangeLabel = range == null
@@ -1066,7 +1030,9 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                   tooltip: context.tr('driver.filter.clear_date'),
                   onPressed: () => setState(() {
                     _dateRange = null;
-                    _period = _DriverDeliveryPeriod.today;
+                    _period = widget.channel == DriverChannel.b2b
+                        ? _DriverDeliveryPeriod.all
+                        : _DriverDeliveryPeriod.today;
                   }),
                   icon: const Icon(Icons.close_rounded),
                 ),
@@ -1078,11 +1044,11 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     );
   }
 
-  Widget _readyBody() {
+  Widget _legacyReadyBody() {
     final rows = _filteredAssignments();
     return Column(
       children: [
-        _filterControls(),
+        _legacyFilterControls(),
         Expanded(
           child: RefreshIndicator(
             onRefresh: _load,
@@ -1094,7 +1060,13 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
                     children: [
                       const SizedBox(height: 80),
                       Center(
-                        child: Text(context.tr('driver.filter.period_empty')),
+                        child: Text(
+                          context.tr(
+                            _assignments.isEmpty
+                                ? 'driver.empty'
+                                : 'driver.filter.period_empty',
+                          ),
+                        ),
                       ),
                     ],
                   )
@@ -1177,15 +1149,466 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
     );
   }
 
+  /// Presentation colors only; delivery statuses and actions are unchanged.
+  Widget _premiumStatusBadge(DriverAssignment assignment) {
+    final status = assignment.status.toLowerCase();
+    final tone = switch (status) {
+      'accepted' => FoodexBrand.greenDark,
+      'picked_up' || 'out_for_delivery' || 'in_transit' => FoodexBrand.blue,
+      'failed' => FoodexBrand.orange,
+      'delivered' || 'completed' => FoodexBrand.red,
+      _ => FoodexBrand.muted,
+    };
+    final surface = switch (status) {
+      'accepted' => FoodexBrand.greenSoft,
+      'picked_up' ||
+      'out_for_delivery' ||
+      'in_transit' =>
+        DriverUiPalette.infoSurface,
+      'failed' => FoodexBrand.orangeSoft,
+      'delivered' || 'completed' => DriverUiPalette.dangerSurface,
+      _ => DriverUiPalette.neutralSurface,
+    };
+    return Chip(
+      key: Key('driver-active-status-${assignment.id}'),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      backgroundColor: surface,
+      side: BorderSide(color: surface),
+      shape: const StadiumBorder(),
+      label: Text(
+        _statusLabel(assignment.status),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: tone,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  DateTime? _assignmentDate(DriverAssignment assignment) {
+    for (final value in [assignment.assignedAt, assignment.createdAt]) {
+      final parsed = DateTime.tryParse(value);
+      if (parsed != null) return parsed.toLocal();
+    }
+    return null;
+  }
+
+  List<DriverAssignment> _filteredAssignments() {
+    if (_period == _DriverDeliveryPeriod.all) return _assignments;
+    final now = DateTime.now();
+    final range = _period == _DriverDeliveryPeriod.today
+        ? DateTimeRange(
+            start: DateTime(now.year, now.month, now.day),
+            end: DateTime(now.year, now.month, now.day, 23, 59, 59, 999),
+          )
+        : _dateRange;
+    if (range == null) return _assignments;
+
+    final start = DateTime(
+      range.start.year,
+      range.start.month,
+      range.start.day,
+    );
+    final end = DateTime(
+      range.end.year,
+      range.end.month,
+      range.end.day,
+      23,
+      59,
+      59,
+      999,
+    );
+    return _assignments.where((assignment) {
+      final date = _assignmentDate(assignment);
+      if (date == null) {
+        return _period != _DriverDeliveryPeriod.custom;
+      }
+      return !date.isBefore(start) && !date.isAfter(end);
+    }).toList(growable: false);
+  }
+
+  Future<void> _pickDateRange() async {
+    final now = DateTime.now();
+    final initial = _dateRange ??
+        DateTimeRange(start: now.subtract(const Duration(days: 7)), end: now);
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 3),
+      lastDate: DateTime(now.year + 1),
+      initialDateRange: initial,
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _dateRange = picked;
+      _period = _DriverDeliveryPeriod.custom;
+    });
+  }
+
+  Widget _filterControls() {
+    if (widget.channel != DriverChannel.b2b) return _legacyFilterControls();
+    final locale = MaterialLocalizations.of(context);
+    final range = _dateRange;
+    final rangeLabel = range == null
+        ? context.tr('driver.filter.date_range')
+        : '${locale.formatShortDate(range.start)} — ${locale.formatShortDate(range.end)}';
+    const inactiveBorder = DriverUiPalette.dividerGreen;
+    const activeBorder = DriverUiPalette.greenBorderStrong;
+
+    Widget periodChip({
+      required Key key,
+      required String label,
+      required _DriverDeliveryPeriod period,
+    }) {
+      final selected = _period == period;
+      return ChoiceChip(
+        key: key,
+        label: Text(label),
+        selected: selected,
+        showCheckmark: false,
+        selectedColor: FoodexBrand.greenSoft,
+        backgroundColor: FoodexBrand.surface,
+        side: BorderSide(color: selected ? activeBorder : inactiveBorder),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(13),
+        ),
+        labelStyle: TextStyle(
+          color: selected ? FoodexBrand.greenDark : FoodexBrand.inkSoft,
+          fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+          fontSize: 12,
+        ),
+        onSelected: (_) => setState(() => _period = period),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(12, 10, 12, 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: FoodexBrand.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: inactiveBorder),
+          boxShadow: const [
+            BoxShadow(
+              color: DriverUiPalette.cardShadow,
+              blurRadius: 15,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: SizedBox(
+          key: const Key('driver-filter-single-row'),
+          height: 48,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                periodChip(
+                  key: const Key('driver-filter-all'),
+                  label: context.tr('driver.filter.all'),
+                  period: _DriverDeliveryPeriod.all,
+                ),
+                const SizedBox(width: 6),
+                periodChip(
+                  key: const Key('driver-filter-today'),
+                  label: context.tr('driver.filter.today'),
+                  period: _DriverDeliveryPeriod.today,
+                ),
+                const SizedBox(width: 6),
+                OutlinedButton.icon(
+                  key: const Key('driver-delivery-date-range'),
+                  onPressed: _pickDateRange,
+                  icon: const Icon(Icons.date_range_rounded, size: 17),
+                  label: Text(
+                    rangeLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _period == _DriverDeliveryPeriod.custom
+                        ? FoodexBrand.greenDark
+                        : FoodexBrand.inkSoft,
+                    backgroundColor: _period == _DriverDeliveryPeriod.custom
+                        ? FoodexBrand.greenSoft
+                        : FoodexBrand.surface,
+                    side: BorderSide(
+                      color: _period == _DriverDeliveryPeriod.custom
+                          ? activeBorder
+                          : inactiveBorder,
+                    ),
+                    minimumSize: const Size(0, 38),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                  ),
+                ),
+                if (_period == _DriverDeliveryPeriod.custom) ...[
+                  const SizedBox(width: 2),
+                  IconButton(
+                    key: const Key('driver-filter-clear-date'),
+                    tooltip: context.tr('driver.filter.clear_date'),
+                    onPressed: () => setState(() {
+                      _dateRange = null;
+                      _period = widget.channel == DriverChannel.b2b
+                          ? _DriverDeliveryPeriod.all
+                          : _DriverDeliveryPeriod.today;
+                    }),
+                    icon: const Icon(Icons.close_rounded, size: 19),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _readyBody() {
+    if (widget.channel != DriverChannel.b2b) return _legacyReadyBody();
+    final rows = _filteredAssignments();
+    return ColoredBox(
+      color: DriverUiPalette.mintSurface,
+      child: Column(
+        children: [
+          _filterControls(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _load,
+              child: rows.isEmpty
+                  ? ListView(
+                      key: const Key('driver-filter-empty'),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(28),
+                      children: [
+                        const SizedBox(height: 80),
+                        Center(
+                          child: Text(
+                            context.tr(
+                              _assignments.isEmpty
+                                  ? 'driver.empty'
+                                  : 'driver.filter.period_empty',
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : ListView.separated(
+                      key: widget.initialAssignmentStatus != null
+                          ? const Key('driver-active-status-filter')
+                          : const Key('driver-active-assignment-list'),
+                      padding: const EdgeInsetsDirectional.fromSTEB(
+                        12,
+                        10,
+                        12,
+                        24,
+                      ),
+                      itemCount: rows.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final assignment = rows[index];
+                        return Card(
+                          key: Key('driver-active-assignment-${assignment.id}'),
+                          margin: EdgeInsets.zero,
+                          color: FoodexBrand.surface,
+                          elevation: 3,
+                          shadowColor: DriverUiPalette.raisedShadow,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                            side: const BorderSide(
+                              color: DriverUiPalette.softBorder,
+                            ),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () => _showDetail(assignment),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                14,
+                                12,
+                                14,
+                                10,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          assignment.reference,
+                                          key: Key(
+                                            'driver-active-reference-${assignment.id}',
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                color: FoodexBrand.ink,
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      _premiumStatusBadge(assignment),
+                                      const SizedBox(width: 2),
+                                      _actions(assignment),
+                                    ],
+                                  ),
+                                  if (assignment.storeName.isNotEmpty) ...[
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.storefront_outlined,
+                                          size: 19,
+                                          color: FoodexBrand.greenDark,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            assignment.storeName,
+                                            style: const TextStyle(
+                                              color: FoodexBrand.ink,
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                  if (assignment.customerName.isNotEmpty) ...[
+                                    const SizedBox(height: 5),
+                                    Padding(
+                                      padding: const EdgeInsetsDirectional.only(
+                                        start: 27,
+                                      ),
+                                      child: Text(
+                                        assignment.customerName,
+                                        style: const TextStyle(
+                                          color: FoodexBrand.muted,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  if (assignment.address.isNotEmpty) ...[
+                                    const SizedBox(height: 10),
+                                    Container(
+                                      key: Key(
+                                        'driver-active-address-${assignment.id}',
+                                      ),
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(11),
+                                      decoration: BoxDecoration(
+                                        color: DriverUiPalette.neutralFill,
+                                        borderRadius: BorderRadius.circular(15),
+                                        border: Border.all(
+                                          color: DriverUiPalette.neutralBorder,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Icon(
+                                            Icons.location_on_outlined,
+                                            size: 19,
+                                            color: FoodexBrand.green,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  context.tr(
+                                                    'driver.detail.address',
+                                                  ),
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color: FoodexBrand.muted,
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 3),
+                                                Text(
+                                                  assignment.address,
+                                                  softWrap: true,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: FoodexBrand.inkSoft,
+                                                    height: 1.5,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 4),
+                                  Align(
+                                    alignment: AlignmentDirectional.centerEnd,
+                                    child: TextButton.icon(
+                                      key: Key(
+                                        'driver-active-details-${assignment.id}',
+                                      ),
+                                      onPressed: () => _showDetail(assignment),
+                                      icon: const Icon(
+                                        Icons.arrow_forward_rounded,
+                                        size: 17,
+                                      ),
+                                      label: Text(
+                                        context.tr('driver.detail.title'),
+                                      ),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: FoodexBrand.greenDark,
+                                        textStyle: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final body = switch (_state) {
       _DriverActiveLoadState.loading => const Center(
           child: CircularProgressIndicator(),
         ),
-      _DriverActiveLoadState.empty => Center(
-          child: Text(context.tr('driver.empty')),
-        ),
+      _DriverActiveLoadState.empty => _readyBody(),
       _DriverActiveLoadState.error => _RetryState(
           message: context.tr('driver.error'),
           onRetry: _load,
@@ -1244,9 +1667,9 @@ class _DriverStaleDataBanner extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7E6),
+        color: DriverUiPalette.warningSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFF1D39A)),
+        border: Border.all(color: DriverUiPalette.warningBorder),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1254,7 +1677,7 @@ class _DriverStaleDataBanner extends StatelessWidget {
           const Icon(
             Icons.cloud_off_outlined,
             size: 18,
-            color: Color(0xFF8A5A00),
+            color: DriverUiPalette.warningInk,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -1268,7 +1691,7 @@ class _DriverStaleDataBanner extends StatelessWidget {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF6B4A00),
+                    color: DriverUiPalette.warningDeepInk,
                     fontWeight: FontWeight.w700,
                   ),
             ),
@@ -1368,9 +1791,9 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
           key: Key('driver-detail-address-card-${assignment.id}'),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFFF2F8F5),
+            color: DriverUiPalette.successSurface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFD9E9E1)),
+            border: Border.all(color: DriverUiPalette.successBorder),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1380,7 +1803,7 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
                 children: [
                   const Icon(
                     Icons.location_on_outlined,
-                    color: Color(0xFF087347),
+                    color: DriverUiPalette.successInk,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -1578,14 +2001,14 @@ class DriverActiveAssignmentDetail extends StatelessWidget {
                         height: 64,
                         child: image.isEmpty
                             ? const ColoredBox(
-                                color: Color(0xFFF2F5F3),
+                                color: DriverUiPalette.mutedSurface,
                                 child: Icon(Icons.inventory_2_outlined),
                               )
                             : Image.network(
                                 image,
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => const ColoredBox(
-                                  color: Color(0xFFF2F5F3),
+                                  color: DriverUiPalette.mutedSurface,
                                   child: Icon(Icons.broken_image_outlined),
                                 ),
                               ),

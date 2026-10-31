@@ -21,6 +21,7 @@ class DriverTranslations extends InheritedWidget {
 
   static const Map<String, String> _ar = {
     'driver.app.title': 'تطبيق السائق',
+    'driver.home.brand_title': 'فودكس للسائق',
     'driver.brand.economical_group': 'مجموعة فودكس الاقتصادية',
     'driver.home.title': 'الرئيسية',
     'driver.home.subtitle': 'ابدأ يومك وراجع التوصيلات المسندة لك',
@@ -304,6 +305,7 @@ class DriverTranslations extends InheritedWidget {
 
   static const Map<String, String> _en = {
     'driver.app.title': 'Driver App',
+    'driver.home.brand_title': 'FOODEX Driver',
     'driver.brand.economical_group': 'FOODEX Economical Group',
     'driver.home.title': 'Driver Home',
     'driver.home.subtitle':
