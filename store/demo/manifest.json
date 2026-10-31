@@ -53,7 +53,7 @@
     "branch_bootstrapped": true,
     "long_lived_issue_created": true,
     "github_delete_and_force_push_protection": "MANUAL_ACTION_REQUIRED",
-    "cleanup_exact_name_exception_on_default_branch": "NOT_YET_APPLIED",
+    "cleanup_exact_name_exception_on_default_branch": "MERGED_MAIN_PR_2463_AT_192975c31a3d002845e3562af4f352851f5f7867",
     "demo_identity_registration": "NOT_STARTED",
     "demo_firebase_and_push": "NOT_STARTED",
     "demo_reviewer_accounts": "NOT_STARTED",
@@ -64,5 +64,14 @@
     "play_console_submitted": false,
     "app_store_connect_submitted": false
   },
-  "last_promotion": null
+  "last_promotion": null,
+  "last_verified": {
+    "date": "2026-10-31",
+    "branch_exists": true,
+    "branch_protected": false,
+    "cleanup_guard_main_sha": "192975c31a3d002845e3562af4f352851f5f7867",
+    "cleanup_guard_path": ".github/workflows/cleanup-merged-branch.yml",
+    "cleanup_keepNames_match_count": 2,
+    "required_ci_gate": "success"
+  }
 }
