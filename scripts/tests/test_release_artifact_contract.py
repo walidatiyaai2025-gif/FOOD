@@ -247,23 +247,32 @@ class ReleaseArtifactContractTest(unittest.TestCase):
         (updates / "FOODEX-Update.files.txt").unlink()
         self.validate()
 
-    def test_trial_distribution_wires_contract_before_publication(self) -> None:
+    def test_trial_distribution_validates_tester_artifacts_without_publication(self) -> None:
         workflow = (ROOT / ".github/workflows/trial-distribution.yml").read_text(
             encoding="utf-8"
         )
         validator = "python3 scripts/validate_release_artifact_contract.py"
-        immutable_guard = "- name: Guard immutable published release"
+        upload = "- name: Upload distribution artifact"
         self.assertIn(validator, workflow)
-        self.assertIn(immutable_guard, workflow)
-        self.assertLess(workflow.index(validator), workflow.index(immutable_guard))
+        self.assertIn(upload, workflow)
+        self.assertLess(workflow.index(validator), workflow.index(upload))
+        self.assertIn("permissions:\n  contents: read", workflow)
         for token in (
             "FOODEX-Customer-${CURRENT_VERSION}.apk",
             "FOODEX-Driver-${CURRENT_VERSION}.apk",
             "FOODEX-Van-${CURRENT_VERSION}.apk",
             "Release/LATEST_RELEASE.json",
-            "release/221-generated-trial-bundle",
         ):
             self.assertIn(token, workflow)
+        # The release/* workflow must never mutate canonical immutable Releases,
+        # tags or the generated distribution branch before a protected-main merge.
+        for forbidden in (
+            "gh release",
+            "git push",
+            "release/221-generated-trial-bundle",
+            "contents: write",
+        ):
+            self.assertNotIn(forbidden, workflow)
 
 
 if __name__ == "__main__":
