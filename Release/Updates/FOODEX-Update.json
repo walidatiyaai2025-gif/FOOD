@@ -2,11 +2,11 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.121",
+  "target_version": "1.0.122",
   "minimum_current_version": "1.0.119",
   "source_base": "0975fd0c228741681d29233f778066e373347b52",
-  "source_commit": "7d0caef1175ca778f98790abc8c56b0eca7a1600",
-  "sha256": "14d59ce4ca2e611ab29073aebbef33c9f007a73e4f4a0edace600f789ca286a5",
+  "source_commit": "2d5501e37fc428e4bc499eeabbb47733d794003b",
+  "sha256": "b4d85fced19e7f130855cd6b2b6067059983d19ebb471858bb2dc46121b8114b",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/0001_01_01_000000_create_users_table.php",
@@ -232,13 +232,13 @@
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Carry forward the approved 1.0.120 Driver B2B/B2C Wallet, biometric remembered-session unlock, responsive Driver Home and Laravel Dashboard source without changing operational behavior, permissions or finance calculations. Recover official publication using an unused immutable v1.0.121 tag; preserve the historical v1.0.120 tag and assets without retargeting or overwriting. Synchronize Customer, Driver and Van release identity to 1.0.121+121, Dashboard Update, Laravel Setup and manifest provenance from the exact final protected-main source. Validate clean Setup installation, localized app builds, Dashboard update checksum, immutable assets and protected-main registry synchronization; see #2464 and 1.0.120 lineage exception #2458.",
+  "release_notes": "Preserve previously published v1.0.120 and v1.0.121 tags, Releases and assets without retargeting, deletion or replacement. The v1.0.121 Release was published from pre-merge source 275c5c81379c7269b12f48374dd71e64b39044ce, not the authoritative protected-main squash merge 7d0caef1175ca778f98790abc8c56b0eca7a1600. Restrict Trial Distribution to tester Actions artifacts; canonical immutable GitHub Releases and the generated distribution branch are published exclusively by Release Factory after protected-main integration. Carry forward the validated Driver B2B/B2C Wallet, encrypted Remember Me, biometric-only saved-session unlock, premium responsive Driver Home, Customer and Van applications, and Laravel Dashboard without changes to business logic, authorization or finance calculations. Promote Dashboard, Customer, Driver and Van to 1.0.122 (Android build 122). Require exact-head CI, clean Laravel Setup install, source-locked APK x3, Dashboard ZIP/JSON/SHA256, immutable GitHub Release, generated distribution and protected-main registry sync before distribution. See #2466, #2464 and #2458.",
   "dashboard_fields": {
-    "target_version": "1.0.121",
+    "target_version": "1.0.122",
     "minimum_current_version": "1.0.119",
-    "source_commit": "7d0caef1175ca778f98790abc8c56b0eca7a1600",
-    "sha256": "14d59ce4ca2e611ab29073aebbef33c9f007a73e4f4a0edace600f789ca286a5",
+    "source_commit": "2d5501e37fc428e4bc499eeabbb47733d794003b",
+    "sha256": "b4d85fced19e7f130855cd6b2b6067059983d19ebb471858bb2dc46121b8114b",
     "contains_migrations": true,
-    "release_notes": "Carry forward the approved 1.0.120 Driver B2B/B2C Wallet, biometric remembered-session unlock, responsive Driver Home and Laravel Dashboard source without changing operational behavior, permissions or finance calculations. Recover official publication using an unused immutable v1.0.121 tag; preserve the historical v1.0.120 tag and assets without retargeting or overwriting. Synchronize Customer, Driver and Van release identity to 1.0.121+121, Dashboard Update, Laravel Setup and manifest provenance from the exact final protected-main source. Validate clean Setup installation, localized app builds, Dashboard update checksum, immutable assets and protected-main registry synchronization; see #2464 and 1.0.120 lineage exception #2458."
+    "release_notes": "Preserve previously published v1.0.120 and v1.0.121 tags, Releases and assets without retargeting, deletion or replacement. The v1.0.121 Release was published from pre-merge source 275c5c81379c7269b12f48374dd71e64b39044ce, not the authoritative protected-main squash merge 7d0caef1175ca778f98790abc8c56b0eca7a1600. Restrict Trial Distribution to tester Actions artifacts; canonical immutable GitHub Releases and the generated distribution branch are published exclusively by Release Factory after protected-main integration. Carry forward the validated Driver B2B/B2C Wallet, encrypted Remember Me, biometric-only saved-session unlock, premium responsive Driver Home, Customer and Van applications, and Laravel Dashboard without changes to business logic, authorization or finance calculations. Promote Dashboard, Customer, Driver and Van to 1.0.122 (Android build 122). Require exact-head CI, clean Laravel Setup install, source-locked APK x3, Dashboard ZIP/JSON/SHA256, immutable GitHub Release, generated distribution and protected-main registry sync before distribution. See #2466, #2464 and #2458."
   }
 }
