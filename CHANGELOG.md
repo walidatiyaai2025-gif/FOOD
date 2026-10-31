@@ -1,3 +1,10 @@
+## 1.0.122 - Protected-main publication recovery after pre-merge 1.0.121 collision
+
+- Preserve previously published v1.0.120 and v1.0.121 tags, Releases and assets without retargeting, deletion or replacement. The v1.0.121 Release was published from pre-merge source 275c5c81379c7269b12f48374dd71e64b39044ce, not the authoritative protected-main squash merge 7d0caef1175ca778f98790abc8c56b0eca7a1600.
+- Restrict Trial Distribution to tester Actions artifacts; canonical immutable GitHub Releases and the generated distribution branch are published exclusively by Release Factory after protected-main integration.
+- Carry forward the validated Driver B2B/B2C Wallet, encrypted Remember Me, biometric-only saved-session unlock, premium responsive Driver Home, Customer and Van applications, and Laravel Dashboard without changes to business logic, authorization or finance calculations.
+- Promote Dashboard, Customer, Driver and Van to 1.0.122 (Android build 122). Require exact-head CI, clean Laravel Setup install, source-locked APK x3, Dashboard ZIP/JSON/SHA256, immutable GitHub Release, generated distribution and protected-main registry sync before distribution. See #2466, #2464 and #2458.
+
 ## 1.0.121 - Forward-only immutable release recovery after 1.0.120 tag collision
 
 - Carry forward the approved 1.0.120 Driver B2B/B2C Wallet, biometric remembered-session unlock, responsive Driver Home and Laravel Dashboard source without changing operational behavior, permissions or finance calculations.
