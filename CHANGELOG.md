@@ -1,3 +1,10 @@
+## 1.0.121 - Forward-only immutable release recovery after 1.0.120 tag collision
+
+- Carry forward the approved 1.0.120 Driver B2B/B2C Wallet, biometric remembered-session unlock, responsive Driver Home and Laravel Dashboard source without changing operational behavior, permissions or finance calculations.
+- Recover official publication using an unused immutable v1.0.121 tag; preserve the historical v1.0.120 tag and assets without retargeting or overwriting.
+- Synchronize Customer, Driver and Van release identity to 1.0.121+121, Dashboard Update, Laravel Setup and manifest provenance from the exact final protected-main source.
+- Validate clean Setup installation, localized app builds, Dashboard update checksum, immutable assets and protected-main registry synchronization; see #2464 and 1.0.120 lineage exception #2458.
+
 ## 1.0.120 - Driver biometric unlock, premium operations and synchronized release
 
 - Restore encrypted Remember Me sessions for both B2B and B2C authorized Driver channels, preserving token/store scope validation and secure storage without persisting passwords.
