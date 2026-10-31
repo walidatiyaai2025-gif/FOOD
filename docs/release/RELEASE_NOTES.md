@@ -1,21 +1,20 @@
-# FOODEX 1.0.120 — Synchronized Release Notes
+# FOODEX 1.0.121 — Synchronized Release Notes
 
 ## Identity
 
-- Dashboard / repository: `1.0.120`.
-- Customer App: `1.0.120+120`.
-- Driver App: `1.0.120+120`.
-- Van App: `1.0.120+120`.
+- Dashboard / repository: `1.0.121`.
+- Customer App: `1.0.121+121`.
+- Driver App: `1.0.121+121`.
+- Van App: `1.0.121+121`.
 
 ## Changes
 
-- Driver saved-session UX: fingerprint / biometric Sign in and Sign out only when a supported, remembered biometric session exists; no password/email fields or standard Sign in action in that state.
-- Explicit Sign out securely forgets the saved login, attempts scoped server logout and returns to the regular email/password form.
-- Repair secure Remember Me persistence for both authorized B2B and B2C drivers, with no password persistence and no new authentication backend APIs.
-- Integrate shared Driver B2B/B2C wallet, premium data-driven Home/Wholesale Deliveries styling and RTL/LTR mobile responsive UI without changing order, finance or permission contracts.
-- Update regression suites and visual evidence for both Driver channels in Arabic and English.
-- Synchronously rebuild Customer, Driver and Van Android APKs, Dashboard update bundle and Laravel Setup from one exact final source commit.
+- Forward-only recovery of the validated FOODEX 1.0.120 source at protected-main commit `b9c530b0944ba436503995084faf60a5537f228e`.
+- Preserve the originally published immutable `v1.0.120` tag at commit `fb6f1924b00e31e63c09009e6f537d55672baae9`; never rewrite its release assets.
+- Retain the B2B/B2C Driver Wallet, premium responsive Home / Deliveries interface, Remember Me encrypted session restoration, biometric-only saved-session unlock and Sign out from the previously validated 1.0.120 main source.
+- Promote synchronized version identity to 1.0.121 without modifying product business rules, permissions, finance calculations, localization or login behavior.
+- Rebuild all three Android APKs, Dashboard Update and Laravel Setup from the exact final 1.0.121 main commit and verify checksums / clean-install evidence.
 
 ## Release quality gate
 
-This release is not published until Issue #2456 / PR #2459 is merged to protected main with successful required CI, this separate release-promotion PR has passing policy/CI, and the canonical `.github/workflows/release-factory.yml` produces and verifies all three 1.0.120+120 APKs, Dashboard update, Laravel Setup and clean-install evidence. Ensure `v1.0.120` is immutable, `BUILD_INFO.json` and `LATEST_RELEASE.json` agree with release assets and SHA256, generated distribution is synchronized, and protected-main Dashboard registry sync passes. Issue #2458 owns terminal closure.
+Publish only after #2464's protected-main PR is exact-head CI green; require the canonical `.github/workflows/release-factory.yml` to produce and verify immutable `v1.0.121`, three APKs, Dashboard Update ZIP plus manifests, clean Laravel Setup and protected-main update registry. Do not mark #2464 or predecessor #2458 terminal before complete evidence. The historic 1.0.120 tag/Release remain unchanged.
