@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "lane": "FOODEX_STORE_DEMO",
+  "branch": "release/store-demo",
+  "persistent": true,
+  "tracker_issue": 2461,
+  "established_on": "2026-10-31",
+  "baseline_source_sha": "c1db905c344d9217ba9b1c0911d8a19ef8f11453",
+  "baseline_source_version": "1.0.119",
+  "intended_distribution": "separate demo developer account; no production app transfer",
+  "backend": {
+    "api_base_url": "https://foodex.50sols.com",
+    "environment": "existing_live_backend",
+    "backend_changes_allowed": false,
+    "reviewer_access": "restricted, seeded demo identities ONLY; do not impact real customers"
+  },
+  "public_links": {
+    "privacy": "https://foodex.50sols.com/privacy",
+    "terms": "https://foodex.50sols.com/terms",
+    "support": "https://foodex.50sols.com/support",
+    "account_deletion": "https://foodex.50sols.com/account-deletion"
+  },
+  "identities": {
+    "customer": {
+      "display_name": "FOODEX Customer Demo",
+      "production_id": "com.fiftysolution.foodex.customer",
+      "proposed_demo_id": "com.fiftysolution.foodex.customer.demo",
+      "id_registration": "PENDING",
+      "android_aab": "NOT_READY",
+      "ios_ipa": "NOT_READY",
+      "release_build": null
+    },
+    "driver": {
+      "display_name": "FOODEX Driver Demo",
+      "production_id": "com.fiftysolution.foodex.driver",
+      "proposed_demo_id": "com.fiftysolution.foodex.driver.demo",
+      "id_registration": "PENDING",
+      "android_aab": "NOT_READY",
+      "ios_ipa": "NOT_READY",
+      "release_build": null
+    },
+    "van": {
+      "display_name": "FOODEX Van Demo",
+      "production_id": "com.foodex.van",
+      "proposed_demo_id": "com.foodex.van.demo",
+      "id_registration": "PENDING",
+      "android_aab": "NOT_READY",
+      "ios_ipa": "NOT_READY",
+      "release_build": null
+    }
+  },
+  "readiness": {
+    "branch_bootstrapped": true,
+    "long_lived_issue_created": true,
+    "github_delete_and_force_push_protection": "MANUAL_ACTION_REQUIRED",
+    "cleanup_exact_name_exception_on_default_branch": "NOT_YET_APPLIED",
+    "demo_identity_registration": "NOT_STARTED",
+    "demo_firebase_and_push": "NOT_STARTED",
+    "demo_reviewer_accounts": "NOT_STARTED",
+    "store_signing": "EXTERNAL_CREDENTIALS_REQUIRED",
+    "android_release_aab_validation": "NOT_STARTED",
+    "ios_native_project_and_signing": "NOT_STARTED",
+    "privacy_metadata_and_screenshots": "NOT_STARTED",
+    "play_console_submitted": false,
+    "app_store_connect_submitted": false
+  },
+  "last_promotion": null
+}
