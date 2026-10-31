@@ -8,9 +8,12 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/app.dart';
+import 'package:foodex_driver_app/core/auth/driver_auth_persistence.dart';
 import 'package:foodex_driver_app/core/auth/driver_session.dart';
+import 'package:foodex_driver_app/core/localization/driver_translations.dart';
 import 'package:foodex_driver_app/core/push/firebase_push_service.dart';
 import 'package:foodex_driver_app/core/theme/foodex_theme.dart';
+import 'package:foodex_driver_app/features/auth/driver_login.dart';
 import 'package:foodex_driver_app/features/delivery/driver_assignment_contract.dart';
 import 'package:foodex_driver_app/features/notifications/notification_feed.dart';
 import 'package:foodex_driver_app/features/wallet/driver_wallet_contract.dart';
@@ -30,6 +33,14 @@ void main() {
       channel: DriverChannel.b2c,
     );
 
+    final b2bSession = DriverSession(
+      token: 'evidence-token-b2b',
+      name: localeCode == 'ar' ? 'سائق متجر الجملة' : 'Wholesale Store Driver',
+      email: 'driver.b2b@foodex.test',
+      locale: localeCode,
+      channel: DriverChannel.b2b,
+    );
+
     testWidgets('capture driver login $localeCode', (tester) async {
       await _setup(tester);
       await _captureApp(
@@ -42,6 +53,64 @@ void main() {
         '01_Mobile/Driver_B2C/01_driver_login__default__$localeCode.png',
       );
     });
+
+    for (final channel in DriverChannel.values) {
+      testWidgets('capture saved biometric login ${channel.name} $localeCode',
+          (tester) async {
+        await _setup(tester);
+        await _captureApp(
+          tester,
+          MaterialApp(
+            debugShowCheckedModeBanner: false,
+            locale: locale,
+            supportedLocales: const [Locale('ar'), Locale('en')],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
+            home: DriverTranslations(
+              locale: locale,
+              overrides: const {},
+              child: DriverLoginPage(
+                repository: const _EvidenceAuthRepository(),
+                onAuthenticated: (_, __, ___) {},
+                sessionStore: _EvidenceRememberedSessionStore(
+                  DriverSession(
+                    token: 'saved-evidence-token',
+                    name: 'FOODEX Driver',
+                    email: 'driver@foodex.test',
+                    locale: localeCode,
+                    channel: channel,
+                    storeId: 7,
+                  ),
+                ),
+                biometricAuthenticator: const _EvidenceBiometric(),
+              ),
+            ),
+          ),
+          '01_Mobile/Driver_${channel == DriverChannel.b2b ? 'B2B' : 'B2C'}/'
+          '01_driver_login__biometric_saved__$localeCode.png',
+        );
+        expect(
+          find.byKey(const Key('driver-login-biometric')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('driver-login-logout')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('driver-login-email')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const Key('driver-login-password')),
+          findsNothing,
+        );
+      });
+    }
 
     testWidgets('capture driver collected wallet and order details $localeCode',
         (tester) async {
@@ -85,6 +154,11 @@ void main() {
         key,
         '01_Mobile/Driver_B2C/10_driver_collected_summary__partial__$localeCode.png',
       );
+      await _writeBoundary(
+        tester,
+        key,
+        '01_Mobile/Driver_B2C/10b_driver_collection_wallet__premium__$localeCode.png',
+      );
 
       await tester.tap(summary);
       await tester.pump();
@@ -98,6 +172,23 @@ void main() {
       );
     });
 
+    testWidgets('capture full premium B2C wallet $localeCode', (tester) async {
+      await _setup(tester);
+      await _captureApp(
+        tester,
+        FoodexDriverApp(
+          theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
+          initialSession: b2cSession,
+          initialRoute: '/driver/b2c/wallet',
+          locale: locale,
+          authRepository: const _EvidenceAuthRepository(),
+          assignmentRepositoryFactory: (_) =>
+              const _EvidenceDashboardAssignments(),
+        ),
+        '01_Mobile/Driver_B2C/12_driver_wallet__premium__$localeCode.png',
+      );
+    });
+
     for (final item in <({DriverSession session, String route, String path})>[
       (
         session: b2cSession,
@@ -105,10 +196,21 @@ void main() {
         path: '01_Mobile/Driver_B2C/02_driver_home__default__$localeCode.png',
       ),
       (
+        session: b2bSession,
+        route: '/driver/b2b/home',
+        path: '01_Mobile/Driver_B2B/02_driver_home__default__$localeCode.png',
+      ),
+      (
         session: b2cSession,
         route: '/driver/b2c/deliveries',
         path:
             '01_Mobile/Driver_B2C/03_driver_deliveries__populated__$localeCode.png',
+      ),
+      (
+        session: b2bSession,
+        route: '/driver/b2b/deliveries',
+        path:
+            '01_Mobile/Driver_B2B/03_driver_deliveries__premium__$localeCode.png',
       ),
       (
         session: b2cSession,
@@ -124,10 +226,14 @@ void main() {
           FoodexDriverApp(
             theme: FoodexTheme.light(fontFamily: _evidenceFontFamily),
             initialSession: item.session,
-            initialRoute: item.route,
+            // The Home capture starts at the same root as a real login, so
+            // no synthetic back arrow is added by Flutter's initial route stack.
+            initialRoute: item.route.endsWith('/home') ? '/' : item.route,
             locale: locale,
             authRepository: const _EvidenceAuthRepository(),
-            assignmentRepositoryFactory: (_) => const _EvidenceAssignments(),
+            assignmentRepositoryFactory: (_) => item.route.endsWith('/home')
+                ? const _EvidenceDashboardAssignments()
+                : const _EvidenceAssignments(),
             notificationRepositoryFactory: (_) =>
                 const _EvidenceNotifications(),
           ),
@@ -396,6 +502,35 @@ class _EvidenceCollectedWallet implements DriverWalletRepository {
   }
 }
 
+class _EvidenceRememberedSessionStore implements DriverSessionStore {
+  const _EvidenceRememberedSessionStore(this.session);
+
+  final DriverSession session;
+
+  @override
+  Future<DriverStoredSession?> read() async =>
+      DriverStoredSession(session: session, biometricEnabled: true);
+
+  @override
+  Future<void> write(
+    DriverSession session, {
+    required bool biometricEnabled,
+  }) async {}
+
+  @override
+  Future<void> clear() async {}
+}
+
+class _EvidenceBiometric implements DriverBiometricAuthenticator {
+  const _EvidenceBiometric();
+
+  @override
+  Future<bool> isAvailable() async => true;
+
+  @override
+  Future<bool> authenticate({required String reason}) async => true;
+}
+
 class _EvidenceAuthRepository implements DriverAuthRepository {
   const _EvidenceAuthRepository();
 
@@ -428,6 +563,8 @@ class _EvidenceAssignments implements DriverAssignmentRepository {
           reference:
               channel == DriverChannel.b2c ? '#FOODEX-41' : '#FOODEX-B2B-141',
           status: 'assigned',
+          storeName: channel == DriverChannel.b2b ? 'FOODEX Wholesale' : '',
+          customerName: channel == DriverChannel.b2b ? 'سوبر ماركت - 1' : '',
           address: 'Bayan Block 1 · Street 5 · Building 12',
           navigationLatitude: 29.3031,
           navigationLongitude: 48.0489,
@@ -448,6 +585,67 @@ class _EvidenceAssignments implements DriverAssignmentRepository {
   @override
   Future<void> transition(int id, DriverChannel channel, String status,
       {String? note, String? failureReason}) async {}
+}
+
+/// Snapshot-only fixture: no mock currency or balances enter production.
+class _EvidenceDashboardAssignments extends _EvidenceAssignments
+    implements DriverWalletRepository {
+  const _EvidenceDashboardAssignments();
+
+  @override
+  Future<List<DriverWalletAccount>> wallet() async => const [
+        DriverWalletAccount(
+          id: 71,
+          currency: 'EGP',
+          status: 'active',
+          custodyBalance: 1712.5,
+          unsettledCollections: 1712.5,
+          availableToRemit: 1712.5,
+          totalCollected: 1712.5,
+          transactions: [
+            DriverCollectionReceipt(
+              id: 701,
+              amount: 187.5,
+              currency: 'EGP',
+              status: 'posted',
+              createdAt: '2026-10-29T09:00:00Z',
+            ),
+            DriverCollectionReceipt(
+              id: 702,
+              amount: 662.5,
+              currency: 'EGP',
+              status: 'posted',
+              createdAt: '2026-10-28T18:00:00Z',
+            ),
+            DriverCollectionReceipt(
+              id: 703,
+              amount: 862.5,
+              currency: 'EGP',
+              status: 'posted',
+              createdAt: '2026-10-27T16:00:00Z',
+            ),
+          ],
+        ),
+      ];
+
+  @override
+  Future<DriverCollectionResult> collect(
+    int assignmentId, {
+    required double amount,
+    required String idempotencyKey,
+  }) async =>
+      throw UnsupportedError('Screenshot evidence must not mutate finance');
+
+  @override
+  Future<DriverRemittance> submitRemittance({
+    required int collectionAccountId,
+    required double amount,
+    required String method,
+    String? reference,
+    String? note,
+    required String idempotencyKey,
+  }) async =>
+      throw UnsupportedError('Screenshot evidence must not mutate finance');
 }
 
 class _EvidenceNotifications implements DriverNotificationRepository {
