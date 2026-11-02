@@ -29,7 +29,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       build_number: ${{ steps.version.outputs.build_number }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Verify production installer and APK gate tests
         run: |
           set -euo pipefail
@@ -67,16 +67,16 @@ jobs:
       run:
         working-directory: apps/${{ matrix.app }}_app
     env:
-      CUSTOMER_FIREBASE_API_KEY: ${{ vars.FOODEX_CUSTOMER_FIREBASE_API_KEY }}
-      CUSTOMER_FIREBASE_APP_ID: ${{ vars.FOODEX_CUSTOMER_FIREBASE_APP_ID }}
-      CUSTOMER_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FOODEX_CUSTOMER_FIREBASE_MESSAGING_SENDER_ID }}
-      CUSTOMER_FIREBASE_PROJECT_ID: ${{ vars.FOODEX_CUSTOMER_FIREBASE_PROJECT_ID }}
-      DRIVER_FIREBASE_API_KEY: ${{ vars.FOODEX_DRIVER_FIREBASE_API_KEY }}
-      DRIVER_FIREBASE_APP_ID: ${{ vars.FOODEX_DRIVER_FIREBASE_APP_ID }}
-      DRIVER_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FOODEX_DRIVER_FIREBASE_MESSAGING_SENDER_ID }}
-      DRIVER_FIREBASE_PROJECT_ID: ${{ vars.FOODEX_DRIVER_FIREBASE_PROJECT_ID }}
+      CUSTOMER_FIREBASE_API_KEY: ${{ vars.FOODEX_STORE_PRODUCTION_CUSTOMER_FIREBASE_API_KEY }}
+      CUSTOMER_FIREBASE_APP_ID: ${{ vars.FOODEX_STORE_PRODUCTION_CUSTOMER_FIREBASE_APP_ID }}
+      CUSTOMER_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FOODEX_STORE_PRODUCTION_CUSTOMER_FIREBASE_MESSAGING_SENDER_ID }}
+      CUSTOMER_FIREBASE_PROJECT_ID: ${{ vars.FOODEX_STORE_PRODUCTION_CUSTOMER_FIREBASE_PROJECT_ID }}
+      DRIVER_FIREBASE_API_KEY: ${{ vars.FOODEX_STORE_PRODUCTION_DRIVER_FIREBASE_API_KEY }}
+      DRIVER_FIREBASE_APP_ID: ${{ vars.FOODEX_STORE_PRODUCTION_DRIVER_FIREBASE_APP_ID }}
+      DRIVER_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FOODEX_STORE_PRODUCTION_DRIVER_FIREBASE_MESSAGING_SENDER_ID }}
+      DRIVER_FIREBASE_PROJECT_ID: ${{ vars.FOODEX_STORE_PRODUCTION_DRIVER_FIREBASE_PROJECT_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.47.5"
@@ -142,7 +142,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
@@ -216,20 +216,20 @@ jobs:
           --health-timeout=5s
           --health-retries=12
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
           extensions: mbstring, pdo_mysql, zip
           coverage: none
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
       - name: Install Playwright Chromium for canonical setup QA
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: store-production-setup-${{ github.sha }}
           path: Release
@@ -253,8 +253,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v5
         with:
           pattern: store-production-*-${{ github.sha }}
           path: dist/inputs
