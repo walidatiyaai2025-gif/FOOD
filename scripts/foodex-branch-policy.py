@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse, re, sys
 
 KINDS=("feat","fix","chore","docs","refactor","test","ci","worker")
-SPECIAL={"feat/assistant-v1-integration","chore/geography-reset-one-shot"}
+SPECIAL={"feat/assistant-v1-integration","chore/geography-reset-one-shot","release/store-production"}
 PROMOTION_BRANCHES={
     "feature/enterprise-core-platform",
     "feature/enterprise-admin-shell",
