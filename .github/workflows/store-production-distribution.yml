@@ -1,0 +1,314 @@
+name: FOODEX Store Production Distribution
+
+on:
+  push:
+    branches:
+      - release/store-production
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/store-production-distribution.yml
+      - scripts/verify-store-production-apk.py
+      - scripts/tests/test_store_production_apk.py
+      - docs/release/STORE_PRODUCTION_INSTALL_FIRST.md
+
+permissions:
+  contents: read
+
+concurrency:
+  group: foodex-store-production-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    name: Production lane contract preflight
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build_number: ${{ steps.version.outputs.build_number }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify production installer and APK gate tests
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s scripts/tests -p 'test_store_production_*.py' -v
+          python3 -m py_compile scripts/verify-store-production-apk.py
+          test -s docs/release/STORE_PRODUCTION_INSTALL_FIRST.md
+      - name: Require synchronized mobile identities
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < VERSION)"
+          customer="$(awk '/^version:/{print $2; exit}' apps/customer_app/pubspec.yaml)"
+          driver="$(awk '/^version:/{print $2; exit}' apps/driver_app/pubspec.yaml)"
+          van="$(awk '/^version:/{print $2; exit}' apps/van_app/pubspec.yaml)"
+          test "$customer" = "$driver"
+          test "$driver" = "$van"
+          test "${customer%%+*}" = "$version"
+          build_number="${customer##*+}"
+          [[ "$build_number" =~ ^[1-9][0-9]*$ ]]
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "build_number=$build_number" >> "$GITHUB_OUTPUT"
+
+  mobile:
+    name: Build ${{ matrix.app }} production-origin APK
+    if: github.ref == 'refs/heads/release/store-production'
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [customer, driver, van]
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}_app
+    env:
+      CUSTOMER_FIREBASE_API_KEY: ${{ vars.FOODEX_STORE_PRODUCTION_CUSTOMER_FIREBASE_API_KEY }}
+      CUSTOMER_FIREBASE_APP_ID: ${{ vars.FOODEX_STORE_PRODUCTION_CUSTOMER_FIREBASE_APP_ID }}
+      CUSTOMER_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FOODEX_STORE_PRODUCTION_CUSTOMER_FIREBASE_MESSAGING_SENDER_ID }}
+      CUSTOMER_FIREBASE_PROJECT_ID: ${{ vars.FOODEX_STORE_PRODUCTION_CUSTOMER_FIREBASE_PROJECT_ID }}
+      DRIVER_FIREBASE_API_KEY: ${{ vars.FOODEX_STORE_PRODUCTION_DRIVER_FIREBASE_API_KEY }}
+      DRIVER_FIREBASE_APP_ID: ${{ vars.FOODEX_STORE_PRODUCTION_DRIVER_FIREBASE_APP_ID }}
+      DRIVER_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FOODEX_STORE_PRODUCTION_DRIVER_FIREBASE_MESSAGING_SENDER_ID }}
+      DRIVER_FIREBASE_PROJECT_ID: ${{ vars.FOODEX_STORE_PRODUCTION_DRIVER_FIREBASE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.5"
+          cache: true
+      - name: Create Android project and configure native identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --platforms=android --project-name "foodex_${{ matrix.app }}_app" .
+          python3 ../../scripts/configure-mobile-native.py --app "${{ matrix.app }}" --app-dir . --platform android
+          rm -f test/widget_test.dart
+          flutter pub get
+      - name: Build APK with store.foodexeg.com endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--dart-define=FOODEX_API_BASE_URL=https://store.foodexeg.com)
+          if [[ "${{ matrix.app }}" == customer && -n "$CUSTOMER_FIREBASE_API_KEY" && -n "$CUSTOMER_FIREBASE_APP_ID" && -n "$CUSTOMER_FIREBASE_MESSAGING_SENDER_ID" && -n "$CUSTOMER_FIREBASE_PROJECT_ID" ]]; then
+            args+=(--dart-define=FOODEX_FIREBASE_API_KEY="$CUSTOMER_FIREBASE_API_KEY")
+            args+=(--dart-define=FOODEX_FIREBASE_APP_ID="$CUSTOMER_FIREBASE_APP_ID")
+            args+=(--dart-define=FOODEX_FIREBASE_MESSAGING_SENDER_ID="$CUSTOMER_FIREBASE_MESSAGING_SENDER_ID")
+            args+=(--dart-define=FOODEX_FIREBASE_PROJECT_ID="$CUSTOMER_FIREBASE_PROJECT_ID")
+          fi
+          if [[ "${{ matrix.app }}" == driver && -n "$DRIVER_FIREBASE_API_KEY" && -n "$DRIVER_FIREBASE_APP_ID" && -n "$DRIVER_FIREBASE_MESSAGING_SENDER_ID" && -n "$DRIVER_FIREBASE_PROJECT_ID" ]]; then
+            args+=(--dart-define=FOODEX_FIREBASE_API_KEY="$DRIVER_FIREBASE_API_KEY")
+            args+=(--dart-define=FOODEX_FIREBASE_APP_ID="$DRIVER_FIREBASE_APP_ID")
+            args+=(--dart-define=FOODEX_FIREBASE_MESSAGING_SENDER_ID="$DRIVER_FIREBASE_MESSAGING_SENDER_ID")
+            args+=(--dart-define=FOODEX_FIREBASE_PROJECT_ID="$DRIVER_FIREBASE_PROJECT_ID")
+          fi
+          flutter build apk --release \
+            --build-name="${{ needs.preflight.outputs.version }}" \
+            --build-number="${{ needs.preflight.outputs.build_number }}" \
+            "${args[@]}"
+      - name: Verify native identity, version and exact production origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          python3 ../../scripts/verify-store-production-apk.py "$apk"
+          aapt_bin="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          "$aapt_bin" dump badging "$apk" > build/production-badging.txt
+          case "${{ matrix.app }}" in
+            customer) expected_id=com.fiftysolution.foodex.customer ;;
+            driver) expected_id=com.fiftysolution.foodex.driver ;;
+            van) expected_id=com.foodex.van ;;
+          esac
+          grep -F "package: name='$expected_id'" build/production-badging.txt
+          grep -F "versionCode='${{ needs.preflight.outputs.build_number }}'" build/production-badging.txt
+          grep -F "versionName='${{ needs.preflight.outputs.version }}'" build/production-badging.txt
+          mkdir -p "$GITHUB_WORKSPACE/dist/mobile"
+          cp "$apk" "$GITHUB_WORKSPACE/dist/mobile/FOODEX-${{ matrix.app }}-${{ needs.preflight.outputs.version }}.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: store-production-${{ matrix.app }}-${{ github.sha }}
+          path: dist/mobile/FOODEX-${{ matrix.app }}-${{ needs.preflight.outputs.version }}.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  setup:
+    name: Build new-site Laravel Setup ZIP
+    if: github.ref == 'refs/heads/release/store-production'
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_mysql, zip
+          tools: composer:v2
+          coverage: none
+      - name: Package fresh Laravel installation with new production origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          composer install --working-dir=backend --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
+          stage="$(mktemp -d)"
+          mkdir -p "$stage/backend"
+          rsync -a backend/ "$stage/backend/" \
+            --exclude='.env' --exclude='tests/' --exclude='docs/' \
+            --exclude='.phpunit.cache/' --exclude='storage/logs/*' \
+            --exclude='storage/app/system/*'
+          rm -f "$stage/backend/bootstrap/cache/"*.php
+          cp VERSION "$stage/VERSION"
+          cp docs/release/STORE_PRODUCTION_INSTALL_FIRST.md "$stage/INSTALL-FIRST.md"
+          python3 - "$stage/backend/.env.production.example" <<'PY'
+          import sys
+          from pathlib import Path
+          path=Path(sys.argv[1])
+          text=path.read_text(encoding="utf-8")
+          assert "APP_URL=https://foodex.50sols.com" in text
+          text=text.replace("https://foodex.50sols.com", "https://store.foodexeg.com")
+          text=text.replace("DB_DATABASE=solscool_foodex", "DB_DATABASE=foodex_store_production")
+          text=text.replace("DB_USERNAME=solscool_foodex", "DB_USERNAME=foodex_store_production")
+          text=text.replace("MAIL_FROM_ADDRESS=noreply@50sols.com", "MAIL_FROM_ADDRESS=noreply@store.foodexeg.com")
+          path.write_text(text, encoding="utf-8")
+          assert "APP_URL=https://store.foodexeg.com" in text
+          PY
+          test ! -e "$stage/backend/.env"
+          (cd "$stage" && zip -qr "$GITHUB_WORKSPACE/FOODEX-Laravel-Setup.zip" .)
+          test -s FOODEX-Laravel-Setup.zip
+          unzip -p FOODEX-Laravel-Setup.zip backend/.env.production.example | grep -Fx 'APP_URL=https://store.foodexeg.com'
+          test "$(unzip -Z1 FOODEX-Laravel-Setup.zip | grep -c '^backend/.env$' || true)" = 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: store-production-setup-${{ github.sha }}
+          path: FOODEX-Laravel-Setup.zip
+          if-no-files-found: error
+          retention-days: 30
+
+  fresh-install:
+    name: Validate new-site Setup ZIP against clean database
+    if: github.ref == 'refs/heads/release/store-production'
+    needs: [preflight, setup]
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      CURRENT_VERSION: ${{ needs.preflight.outputs.version }}
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: foodex_acceptance
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_mysql, zip
+          coverage: none
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+      - name: Install Playwright Chromium for canonical setup QA
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v5
+        with:
+          name: store-production-setup-${{ github.sha }}
+          path: Release
+      - name: Validate package and run canonical fresh-install acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -p Release/FOODEX-Laravel-Setup.zip backend/.env.production.example | grep -Fx 'APP_URL=https://store.foodexeg.com'
+          bash scripts/validate-fresh-setup.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: store-production-install-evidence-${{ github.sha }}
+          path: Release/FRESH_INSTALL_EVIDENCE.json
+          if-no-files-found: error
+          retention-days: 30
+
+  assemble:
+    name: Produce single three-app + installer download
+    if: github.ref == 'refs/heads/release/store-production'
+    needs: [preflight, mobile, setup, fresh-install]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: store-production-*-${{ github.sha }}
+          path: dist/inputs
+          merge-multiple: true
+      - name: Prove synchronized source, origins and package integrity
+        shell: bash
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+          BUILD_NUMBER: ${{ needs.preflight.outputs.build_number }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist/production
+          cp dist/inputs/FOODEX-Laravel-Setup.zip dist/production/
+          cp dist/inputs/FOODEX-{customer,driver,van}-"$VERSION".apk dist/production/
+          cp dist/inputs/FRESH_INSTALL_EVIDENCE.json dist/production/
+          cp docs/release/STORE_PRODUCTION_INSTALL_FIRST.md dist/production/INSTALL-FIRST.md
+          for app in customer driver van; do
+            python3 scripts/verify-store-production-apk.py "dist/production/FOODEX-$app-$VERSION.apk"
+          done
+          unzip -p dist/production/FOODEX-Laravel-Setup.zip backend/.env.production.example | grep -Fx 'APP_URL=https://store.foodexeg.com'
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          root=Path("dist/production")
+          version=os.environ["VERSION"]
+          names=[f"FOODEX-{app}-{version}.apk" for app in ("customer","driver","van")]
+          names+=["FOODEX-Laravel-Setup.zip","FRESH_INSTALL_EVIDENCE.json","INSTALL-FIRST.md"]
+          items=[]
+          for name in names:
+              file=root/name
+              assert file.is_file() and file.stat().st_size>0, f"Missing artifact: {name}"
+              digest=hashlib.sha256(file.read_bytes()).hexdigest()
+              items.append({"file":name,"bytes":file.stat().st_size,"sha256":digest})
+          data={
+              "schema_version":1,"purpose":"first-time-store-production-install",
+              "source_commit":os.environ["GITHUB_SHA"],
+              "version":version,"build_number":int(os.environ["BUILD_NUMBER"]),
+              "api_base_url":"https://store.foodexeg.com",
+              "android_signing":"generated-flutter-template-test-only",
+              "google_play_ready":False,"fresh_install_ci":"passed",
+              "files":items,
+          }
+          (root/"BUILD_INFO.json").write_text(json.dumps(data,indent=2)+"\n")
+          (root/"SHA256SUMS").write_text("".join(f'{item["sha256"]}  {item["file"]}\n' for item in items))
+          PY
+          artifact="FOODEX-Store-Production-${VERSION}-${GITHUB_SHA:0:12}.zip"
+          (cd dist/production && zip -q -r "../$artifact" .)
+          test -s "dist/$artifact"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FOODEX-Store-Production-${{ needs.preflight.outputs.version }}-${{ github.sha }}
+          path: dist/FOODEX-Store-Production-*.zip
+          if-no-files-found: error
+          retention-days: 30
