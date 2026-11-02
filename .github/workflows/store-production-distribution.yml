@@ -170,6 +170,9 @@ jobs:
           text=path.read_text(encoding="utf-8")
           assert "APP_URL=https://foodex.50sols.com" in text
           text=text.replace("https://foodex.50sols.com", "https://store.foodexeg.com")
+          text=text.replace("DB_DATABASE=solscool_foodex", "DB_DATABASE=foodex_store_production")
+          text=text.replace("DB_USERNAME=solscool_foodex", "DB_USERNAME=foodex_store_production")
+          text=text.replace("MAIL_FROM_ADDRESS=noreply@50sols.com", "MAIL_FROM_ADDRESS=noreply@store.foodexeg.com")
           path.write_text(text, encoding="utf-8")
           assert "APP_URL=https://store.foodexeg.com" in text
           PY
