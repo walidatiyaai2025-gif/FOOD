@@ -422,6 +422,10 @@ class WholesaleStorefrontBuilderTest extends TestCase
             ->assertOk()
             ->assertSee('Show only products with available stock')
             ->assertSee('data-wholesale-stock-visibility', false)
+            ->assertSee('data-wholesale-storefront-settings-row', false)
+            ->assertSee('data-wholesale-minimum-order', false)
+            ->assertSee('data-wholesale-stock-visibility-save', false)
+            ->assertSee('data-wholesale-minimum-order-save', false)
             ->assertSeeInOrder(['Product visibility in the Customer app', 'Wholesale minimum order value']);
 
         $this->actingAs($admin)->put(route('admin.b2b.storefront.stock-visibility'), [

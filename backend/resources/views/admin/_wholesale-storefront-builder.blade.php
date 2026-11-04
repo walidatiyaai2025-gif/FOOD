@@ -22,7 +22,17 @@
 .wsf-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);gap:16px;margin-bottom:16px}.wsf-card{background:#fff;border:1px solid var(--foodex-border);border-radius:18px;padding:16px}.wsf-card h3{margin:0 0 6px}.wsf-muted{color:#667085;font-size:.9rem}.wsf-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.wsf-form .wide{grid-column:1/-1}.wsf-card label{display:grid;gap:5px;font-size:.82rem;font-weight:700}.wsf-card input,.wsf-card select,.wsf-card textarea{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:9px 10px;background:#fff}.wsf-card input[type=color]{padding:3px;height:42px}.wsf-card input[type=checkbox]{width:auto}.wsf-preview{background:var(--wsf-bg);border:1px solid #e5e7eb;border-radius:24px;padding:16px;min-height:430px;overflow:hidden}.wsf-preview-head{display:flex;align-items:center;gap:10px;color:#fff;background:linear-gradient(135deg,var(--wsf-dark),var(--wsf-primary));border-radius:18px;padding:14px}.wsf-logo{width:50px;height:50px;border-radius:14px;background:#fff;object-fit:cover}.wsf-badge{background:var(--wsf-accent);color:var(--foodex-green-dark);border-radius:999px;padding:5px 9px;font-size:.72rem;font-weight:800}.wsf-hero{margin-top:12px;border-radius:18px;padding:20px;color:#fff;background:linear-gradient(135deg,var(--wsf-primary),var(--wsf-dark));min-height:125px}.wsf-chip-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.wsf-chip{background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:6px 9px;font-size:.75rem}.wsf-list{display:grid;gap:10px}.wsf-item{border:1px solid #e5e7eb;border-radius:14px;padding:12px}.wsf-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}.wsf-danger{border:1px solid #fecaca;background:#fff1f2;color:#b91c1c;border-radius:9px;padding:7px 10px;cursor:pointer}.wsf-thumb{width:96px;height:58px;border-radius:10px;object-fit:cover;border:1px solid #e5e7eb}.wsf-item-head{display:flex;justify-content:space-between;gap:10px;align-items:center}.wsf-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;color:#667085}@media(max-width:980px){.wsf-grid{grid-template-columns:1fr}.wsf-form{grid-template-columns:1fr}.wsf-form .wide{grid-column:auto}}
 </style>
 
-<section class="wsf-card" data-wholesale-stock-visibility style="margin-bottom:16px">
+<style>
+.wsf-settings-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px;align-items:stretch}
+.wsf-settings-row>.wsf-card{min-width:0;margin-bottom:0!important;display:flex;flex-direction:column;gap:8px}
+.wsf-settings-row>.wsf-card>form{margin-top:auto}
+.wsf-settings-row .wsf-actions{flex-wrap:wrap}
+.wsf-settings-row .wsf-card button{min-height:44px}
+@media(max-width:900px){.wsf-settings-row{grid-template-columns:minmax(0,1fr)}}
+</style>
+
+<div class="wsf-settings-row" data-wholesale-storefront-settings-row>
+<section class="wsf-card" data-wholesale-stock-visibility>
     <h3>{{ app()->getLocale()==='ar' ? 'ظهور المنتجات في تطبيق العميل' : 'Product visibility in the Customer app' }}</h3>
     <p class="wsf-muted">{{ app()->getLocale()==='ar'
         ? 'تحكم في عرض منتجات الجملة وفق الكمية المتاحة بعد خصم الكمية المحجوزة. يظهر الإعداد في التطبيق بعد نشر المسودة.'
@@ -50,7 +60,7 @@
         : 'Unchecked: all active products, including out-of-stock ones. Published behavior changes only after Publish Draft.' }}</small>
 </section>
 
-<section class="wsf-card" data-wholesale-minimum-order style="margin-bottom:16px">
+<section class="wsf-card" data-wholesale-minimum-order>
     <h3>{{ app()->getLocale()==='ar' ? 'الحد الأدنى لطلبات الجملة' : 'Wholesale minimum order value' }}</h3>
     <p class="wsf-muted">{{ app()->getLocale()==='ar'
         ? 'الحد الأدنى لقيمة منتجات طلب الجملة بعد خصومات الأصناف، بدون التوصيل أو الضرائب. يتم تطبيق التغيير فور الحفظ على تطبيق العميل وعلى الخادم.'
@@ -75,6 +85,7 @@
         ? 'القيمة 0 تعني إلغاء الحد الأدنى، ويسمح حينها بإتمام أي طلب جملة مؤهل.'
         : 'Enter 0 to disable the minimum and allow any otherwise eligible wholesale order.' }}</small>
 </section>
+</div>
 
 <div class="wsf-grid">
     <section class="wsf-card">
