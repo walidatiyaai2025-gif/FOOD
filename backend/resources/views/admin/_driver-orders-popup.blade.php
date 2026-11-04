@@ -4,7 +4,7 @@
             <h3 style="margin:0">{{ $driver->name }}</h3>
             @if(!empty($driver->phone_e164))<div class="muted">{{ $driver->phone_e164 }}</div>@endif
         </div>
-        <span class="badge">{{ strtoupper($channel) }}</span>
+        <span class="badge">{{ app()->getLocale()==='ar' ? 'نوع النشاط' : 'Business Type' }}: {{ strtoupper($channel) }}</span>
     </div>
 
     <form method="get" action="{{ route('admin.drivers.orders',['driver'=>$driver->id]) }}" data-driver-orders-filter class="links workspace-inline-form" style="margin-bottom:14px">
