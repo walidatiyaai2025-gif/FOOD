@@ -3,6 +3,19 @@ import 'package:flutter/material.dart';
 import '../../core/api/b2c_account_api.dart';
 import '../../core/localization/app_translations.dart';
 
+// Single-purpose controls live outside invoice rows and respect the compact
+// list policy. Invoice rows themselves use tap-to-open, never inline buttons.
+Widget _invoiceDialogClose(BuildContext context, bool arabic) => TextButton(
+      onPressed: () => Navigator.of(context).pop(),
+      child: Text(arabic ? 'إغلاق' : 'Close'),
+    );
+
+Widget _invoiceRetry(BuildContext context, VoidCallback retry, bool arabic) =>
+    TextButton(
+      onPressed: retry,
+      child: Text(arabic ? 'إعادة المحاولة' : 'Retry'),
+    );
+
 /// Displays immutable retail invoice snapshots for the selected store.
 class CustomerRetailInvoicesScreen extends StatefulWidget {
   const CustomerRetailInvoicesScreen({
@@ -114,12 +127,7 @@ class _CustomerRetailInvoicesScreenState
             },
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(isArabic(dialogContext) ? 'إغلاق' : 'Close'),
-          ),
-        ],
+        actions: [_invoiceDialogClose(dialogContext, isArabic(dialogContext))],
       ),
     );
   }
@@ -142,10 +150,7 @@ class _CustomerRetailInvoicesScreenState
                     Text(isArabic(context)
                         ? 'تعذر تحميل الفواتير'
                         : 'Could not load invoices'),
-                    TextButton(
-                      onPressed: refresh,
-                      child: Text(isArabic(context) ? 'إعادة المحاولة' : 'Retry'),
-                    ),
+                    _invoiceRetry(context, refresh, isArabic(context)),
                   ],
                 ),
               );
