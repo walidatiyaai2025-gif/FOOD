@@ -27,6 +27,7 @@ import '../../core/theme/customer_display_preferences.dart';
 import '../../core/theme/customer_ui_v3_tokens.dart';
 import '../../shared/customer_favorite_button.dart';
 import '../checkout/customer_checkout_vnext_components.dart';
+import '../customer_orders/customer_order_payment_badge.dart';
 import 'storefront_design_system.dart';
 
 Future<int> resolveWholesaleStoreId({
@@ -9173,6 +9174,13 @@ class _OrderCard extends StatelessWidget {
         .toUpperCase();
     final total = row['grand_total'] ?? row['total'];
     final totalLabel = _compactOrderAmount(total, currency);
+    final settlement = row['settlement'] is Map
+        ? Map<String, dynamic>.from(row['settlement'] as Map)
+        : const <String, dynamic>{};
+    final paymentState = settlement['payment_state']?.toString();
+    final paid = _numberValue(settlement['paid_amount']);
+    final remaining = _numberValue(settlement['remaining_amount']);
+    final fullyPaid = paymentState == 'fully_settled';
     final title =
         row['display_order_number']?.toString().trim().isNotEmpty == true
             ? row['display_order_number'].toString().trim()
@@ -9282,12 +9290,25 @@ class _OrderCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style:
                             Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: palette.primary,
+                                  color: fullyPaid
+                                      ? CustomerUiColors.success
+                                      : palette.primary,
                                   fontSize: compact ? 12.8 : 14.5,
                                   fontWeight: FontWeight.w900,
                                   height: 1.05,
                                 ),
                       ),
+                      if (paymentState != null) ...[
+                        SizedBox(height: compact ? 5 : 7),
+                        CustomerOrderPaymentBadge(
+                          orderId: id,
+                          currency: currency,
+                          paymentState: paymentState,
+                          paidAmount: paid,
+                          remainingAmount: remaining,
+                          compact: compact,
+                        ),
+                      ],
                     ],
                   ),
                 ),
