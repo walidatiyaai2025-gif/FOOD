@@ -441,6 +441,18 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
               );
             }
 
+            void openOffers() {
+              if (storeId <= 0) return;
+              Navigator.of(context).pushNamed(
+                CustomerRouteLocations.wholesaleOffers(
+                  CustomerCommerceContext(
+                    channel: CustomerCommerceChannel.wholesale,
+                    storeId: storeId,
+                  ),
+                ),
+              );
+            }
+
             final content = <Widget>[];
             var homeCardSizeControlPlaced = false;
 
@@ -569,12 +581,14 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                               textScale: .8,
                               spacingScale: .25,
                               onAction: storeId > 0
-                                  ? () => openCatalog(
-                                        _wholesaleSectionFilters(
-                                          section,
-                                          rows: sectionRows,
-                                        ),
-                                      )
+                                  ? (type == 'offers'
+                                      ? openOffers
+                                      : () => openCatalog(
+                                            _wholesaleSectionFilters(
+                                              section,
+                                              rows: sectionRows,
+                                            ),
+                                          ))
                                   : null,
                               trailing: cardSizeControl,
                             ),
