@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_customer_app/core/theme/customer_ui_v3_tokens.dart';
 import 'package:foodex_customer_app/features/customer_orders/customer_order_payment_badge.dart';
@@ -14,6 +15,8 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         locale: locale,
+        supportedLocales: const [Locale('ar'), Locale('en')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         home: Scaffold(
           body: Center(
             child: CustomerOrderPaymentBadge(
