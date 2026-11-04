@@ -605,6 +605,7 @@ class GuestCartController extends Controller
         );
 
         $currency = (string) $quote['currency'];
+        $minimumOrders = app(\App\Services\MinimumOrderPolicy::class);
         $productIds = collect($quote['items'])
             ->pluck('product_id')
             ->filter()
@@ -673,6 +674,10 @@ class GuestCartController extends Controller
             'items' => $items,
             'subtotal' => (float) $quote['subtotal'],
             'has_unavailable_items' => (bool) $quote['has_unavailable_items'],
+            'minimum_order_egp' => $cart->channel === 'b2b'
+                ? $minimumOrders->minimumForStore((int) $cart->store_id)
+                : 0.0,
+            'merchandise_total' => $minimumOrders->merchandiseTotal($quote),
             'quote' => [
                 'quote_id' => $quote['quote_id'],
                 'quoted_at' => $quote['quoted_at'],
