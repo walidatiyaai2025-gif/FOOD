@@ -188,6 +188,51 @@ class CartDomainTest extends TestCase
             ->assertJsonPath('subtotal', 3);
     }
 
+    public function test_carton_or_bag_uses_authoritative_price_and_base_stock(): void
+    {
+        DB::table('product_selling_units')->insert([
+            'product_id' => $this->productId,
+            'unit_id' => null,
+            'code' => 'BAG',
+            'name' => 'Bag',
+            'conversion_factor' => 3,
+            'price' => 4.5,
+            'sku' => 'CART-001-BAG',
+            'is_base' => false,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $cart = $this->postJson('/api/v1/cart/items', [
+            'store_id' => $this->b2cStoreId,
+            'product_id' => $this->productId,
+            'quantity' => 1,
+            'selling_unit_code' => 'BAG',
+        ])->assertCreated()
+            ->assertJsonPath('items.0.quantity', 1)
+            ->assertJsonPath('items.0.base_quantity', 3)
+            ->assertJsonPath('items.0.selling_unit_code', 'BAG')
+            ->assertJsonPath('items.0.selling_unit_conversion_factor', 3)
+            ->assertJsonPath('items.0.unit_price_snapshot', 4.5)
+            ->assertJsonPath('subtotal', 4.5);
+
+        $token = (string) $cart->headers->get('X-Guest-Token');
+        $itemId = (int) $cart->json('items.0.id');
+
+        $this->withHeader('X-Guest-Token', $token)
+            ->patchJson("/api/v1/cart/items/{$itemId}", ['quantity' => 2])
+            ->assertStatus(409);
+
+        $this->withHeader('X-Guest-Token', $token)
+            ->postJson('/api/v1/cart/items', [
+                'store_id' => $this->b2cStoreId,
+                'product_id' => $this->productId,
+                'quantity' => 1,
+            ])
+            ->assertUnprocessable();
+    }
+
     public function test_authenticated_cart_items_are_customer_owned(): void
     {
         Sanctum::actingAs($this->b2cUser);
