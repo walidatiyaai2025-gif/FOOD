@@ -657,6 +657,7 @@ Route::prefix('admin')
         Route::patch('/b2b/drivers/{driver}/password', [B2bWorkspaceController::class, 'resetDriverPassword'])->whereNumber('driver')->name('b2b.drivers.password');
         Route::put('/b2b/settings/pricing-tiers', [B2bWorkspaceController::class, 'savePricingMode'])->name('b2b.settings.pricing-tiers');
         Route::put('/b2b/settings', [B2bWorkspaceController::class, 'saveSetting'])->name('b2b.settings.save');
+        Route::put('/b2b/storefront/minimum-order', [B2bWorkspaceController::class, 'saveWholesaleMinimumOrder'])->name('b2b.storefront.minimum-order');
         Route::put('/b2b/storefront/settings', [StorefrontDraftEditorController::class, 'wholesaleSettings'])->name('b2b.storefront.settings');
         Route::post('/b2b/storefront/sections', [StorefrontDraftEditorController::class, 'wholesaleSectionStore'])->name('b2b.storefront.sections.store');
         Route::patch('/b2b/storefront/sections/{section}', [StorefrontDraftEditorController::class, 'wholesaleSectionUpdate'])->name('b2b.storefront.sections.update');
