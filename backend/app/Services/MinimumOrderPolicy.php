@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -31,6 +33,35 @@ final class MinimumOrderPolicy
         return round(max(0.0, $subtotal - max(0.0, $discount)), 3);
     }
 
+    public const WHOLESALE_SETTING_KEY = 'checkout.minimum_merchandise_total_egp';
+
+    /**
+     * The published B2B checkout minimum is an immediate operational setting,
+     * not a draft storefront design property. Zero means no minimum.
+     */
+    public function minimumForStore(int $storeId, string $channel = 'b2b'): float
+    {
+        $default = max(0.0, (float) config('checkout.minimum_merchandise_total_egp', 1500));
+        if ($channel !== 'b2b' || $storeId <= 0 || ! Schema::hasTable('settings')) {
+            return $default;
+        }
+
+        $raw = DB::table('settings')
+            ->where('store_id', $storeId)
+            ->where('key', self::WHOLESALE_SETTING_KEY)
+            ->value('value');
+        if ($raw === null) {
+            return $default;
+        }
+
+        $decoded = is_string($raw) ? json_decode($raw, true) : null;
+        $value = is_numeric($decoded) ? $decoded : $raw;
+
+        return is_numeric($value) && (float) $value >= 0
+            ? round((float) $value, 2)
+            : $default;
+    }
+
     /** @param array<string, mixed> $quote */
     public function assertEligible(array $quote, string $field = 'cart'): void
     {
@@ -38,7 +69,10 @@ final class MinimumOrderPolicy
             return;
         }
 
-        $minimum = max(0.0, (float) config('checkout.minimum_merchandise_total_egp', 1500));
+        $minimum = $this->minimumForStore(
+            (int) ($quote['store_id'] ?? 0),
+            strtolower((string) ($quote['channel'] ?? 'b2b')),
+        );
         $remaining = round($minimum - $this->merchandiseTotal($quote), 2);
         if ($remaining <= 0) {
             return;
