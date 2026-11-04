@@ -147,7 +147,7 @@ class _RetailCheckoutAuthScreenState extends State<RetailCheckoutAuthScreen> {
 
     return Scaffold(
       key: const ValueKey('retail-checkout-auth-screen'),
-      backgroundColor: CustomerUiColors.mint,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: FoodexUnifiedHeaderSurface(
         title: title,
         searchHint: context.tr('customer.products.search_name_sku_barcode'),
@@ -161,7 +161,7 @@ class _RetailCheckoutAuthScreenState extends State<RetailCheckoutAuthScreen> {
           children: [
             DecoratedBox(
               decoration: BoxDecoration(
-                color: CustomerUiColors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(CustomerUiRadii.xl),
                 border: Border.all(color: CustomerUiColors.border),
               ),
