@@ -60,9 +60,7 @@ final class DocumentBrandingController extends Controller
         });
 
         return redirect()->route('admin.documents.branding.index')
-            ->with('status', app()->getLocale() === 'ar'
-                ? 'تم تحديث بيانات الشركة للمطبوعات'
-                : 'Document company identity updated');
+            ->with('status', __('document_branding.saved'));
     }
 
     private function authorizeSettings(Request $request, bool $write): void
