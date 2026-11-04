@@ -408,7 +408,18 @@ final class InvoiceService
                 .'<td>'.$money($item['line_total']).' '.$e($data['currency']).'</td></tr>';
         }
 
-        return '<div style="font-family:dejavusans;"><h1>'.$e($labels['title']).'</h1>'
+        $brand = app(DocumentBrandingService::class)->identity();
+        $logo = $brand['logo_data_uri'] !== null
+            ? '<img src="'.$e($brand['logo_data_uri']).'" height="48" alt="FOODEX">'
+            : '<strong>FOODEX</strong>';
+        $brandingHeader = '<table cellpadding="5" style="border-bottom:1px solid #166534">'
+            .'<tr><td width="24%">'.$logo.'</td><td width="76%">'
+            .'<strong>'.$e($brand['name']).'</strong><br>'
+            .$e($brand['address']).'<br>'
+            .$e($brand['phone_primary']).' / '.$e($brand['phone_secondary'])
+            .'</td></tr></table><br>';
+
+        return '<div style="font-family:dejavusans;">'.$brandingHeader.'<h1>'.$e($labels['title']).'</h1>'
             .'<table cellpadding="4"><tr><td><b>'.$e($labels['invoice']).':</b> '.$e($data['display_invoice_number'] ?? $data['invoice_number']).'</td>'
             .'<td><b>'.$e($labels['date']).':</b> '.$e($data['issued_at']).'</td></tr>'
             .'<tr><td><b>'.$e($labels['order']).':</b> '.$e($data['display_order_number'] ?? $data['order_number']).'</td>'
