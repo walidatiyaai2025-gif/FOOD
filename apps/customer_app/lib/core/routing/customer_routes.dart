@@ -31,6 +31,7 @@ abstract final class CustomerRoutePaths {
   static const b2bPurchaseReports = '/b2b/reports/purchases';
   static const b2bTopProducts = '/b2b/products/top';
   static const b2bProducts = '/b2b/products';
+  static const b2bOffers = '/b2b/offers';
   static const b2bProductDetails = '/b2b/products/:id';
   static const b2bInvoices = '/b2b/invoices';
   static const b2bInvoiceDetails = '/b2b/invoices/:id';
@@ -158,6 +159,11 @@ abstract final class CustomerRouteLocations {
       '/b2b/products/$productId',
       context,
     );
+  }
+
+  static String wholesaleOffers(CustomerCommerceContext context) {
+    _requireChannel(context, CustomerCommerceChannel.wholesale);
+    return _scoped(CustomerRoutePaths.b2bOffers, context);
   }
 
   static String wholesaleCart(CustomerCommerceContext context) {
@@ -559,6 +565,11 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bProducts,
     label: 'B2B products',
+    channel: CustomerChannel.b2b,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.b2bOffers,
+    label: 'B2B offers',
     channel: CustomerChannel.b2b,
   ),
   CustomerRouteDefinition(
