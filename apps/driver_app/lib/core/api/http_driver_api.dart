@@ -449,9 +449,22 @@ class HttpDriverAssignmentRepository
     if (note != null && note.trim().isNotEmpty) {
       request.fields['note'] = note.trim();
     }
-    request.files.add(
-      await http.MultipartFile.fromPath('proof_image', proofImagePath),
-    );
+    // This is the live delivery-sheet upload path; validate the temporary
+    // picker file before sending anything to the backend.
+    try {
+      final imageBytes = await File(proofImagePath).length();
+      if (imageBytes <= 0) {
+        throw const DriverApiException('proof_file_missing');
+      }
+      if (imageBytes > DriverProofAttachment.maxBytes) {
+        throw const DriverApiException('proof_too_large');
+      }
+      request.files.add(
+        await http.MultipartFile.fromPath('proof_image', proofImagePath),
+      );
+    } on FileSystemException {
+      throw const DriverApiException('proof_file_missing');
+    }
 
     final http.Response response;
     try {
@@ -461,6 +474,30 @@ class HttpDriverAssignmentRepository
       throw const DriverOfflineException();
     } on http.ClientException {
       throw const DriverOfflineException();
+    }
+    // The delivery endpoint is guarded by the authoritative fresh-location
+    // policy; do not bypass it or report a GPS rejection as a photo failure.
+    if (response.statusCode == 428) {
+      throw const DriverApiException('driver_location_heartbeat_required');
+    }
+    if (response.statusCode == 409) {
+      throw const DriverApiException('stale_assignment');
+    }
+    if (response.statusCode == 413) {
+      throw const DriverApiException('proof_too_large');
+    }
+    if (response.statusCode == 422) {
+      Object? payload;
+      try {
+        payload = jsonDecode(response.body);
+      } catch (_) {
+        payload = null;
+      }
+      final errors = payload is Map ? payload['errors'] : null;
+      final proofRejected = errors is Map && errors.containsKey('proof_image');
+      throw DriverApiException(proofRejected
+          ? 'proof_upload_validation_failed'
+          : 'delivery_validation_failed');
     }
     _ensureSuccess(response);
   }
