@@ -49,6 +49,7 @@ void main() {
         'offers',
         'orders',
         'invoices',
+        'account',
       ]) {
         expect(
           find.byKey(ValueKey('customer-footer-$destination')),
@@ -62,6 +63,7 @@ void main() {
       expect(find.text('My orders'), findsOneWidget);
       expect(find.text('Offers'), findsOneWidget);
       expect(find.text('Invoices'), findsOneWidget);
+      expect(find.text('More'), findsOneWidget);
 
       await tester.tap(
         find.byKey(const ValueKey('customer-footer-products')),
@@ -90,6 +92,18 @@ void main() {
       expect(offersRoute.queryParameters['section'], 'offers');
       expect(offersRoute.queryParameters['store_id'], '70');
       expect(offersRoute.queryParameters['channel'], 'wholesale');
+
+      Navigator.of(tester.element(find.byKey(const ValueKey('route-name'))))
+          .pop();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('customer-footer-account')));
+      await tester.pumpAndSettle();
+      final moreRoute = Uri.parse(
+        tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
+      );
+      expect(moreRoute.path, CustomerRoutePaths.b2bProfile);
+      expect(moreRoute.queryParameters['store_id'], '70');
+      expect(moreRoute.queryParameters['channel'], 'wholesale');
     },
   );
 
@@ -188,6 +202,7 @@ void main() {
         'offers',
         'orders',
         'invoices',
+        'account',
       ]) {
         expect(
           find.byKey(ValueKey('customer-footer-$destination')),
@@ -208,6 +223,65 @@ void main() {
         tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data,
         '/b2b/invoices',
       );
+
+      Navigator.of(tester.element(find.byKey(const ValueKey('route-name'))))
+          .pop();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('customer-footer-account')));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data,
+        CustomerRoutePaths.b2bProfile,
+      );
+    },
+  );
+
+  testWidgets(
+    'Retail footer More navigates to the scoped profile without losing store context',
+    (tester) async {
+      const retail = CustomerCommerceContext(
+        channel: CustomerCommerceChannel.retail,
+        storeId: 9,
+      );
+      await tester.pumpWidget(
+        AppTranslations(
+          locale: const Locale('ar'),
+          overrides: const {},
+          child: MaterialApp(
+            home: const Scaffold(
+              body: Column(
+                children: [
+                  Spacer(),
+                  CustomerPersistentFooter(
+                    commerceContext: retail,
+                    activeDestination: CustomerFooterDestination.orders,
+                  ),
+                ],
+              ),
+            ),
+            onGenerateRoute: (settings) => MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => Scaffold(
+                body: Text(
+                  settings.name ?? '',
+                  key: const ValueKey('route-name'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('المزيد'), findsOneWidget);
+      expect(find.byKey(const ValueKey('customer-footer-account')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('customer-footer-account')));
+      await tester.pumpAndSettle();
+      final route = Uri.parse(
+        tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
+      );
+      expect(route.path, CustomerRoutePaths.profile);
+      expect(route.queryParameters['store_id'], '9');
+      expect(route.queryParameters['channel'], 'retail');
     },
   );
 
@@ -265,6 +339,7 @@ void main() {
           'offers',
           'orders',
           'invoices',
+          'account',
         ]) {
           expect(
             find.byKey(ValueKey('customer-footer-$destination')),
