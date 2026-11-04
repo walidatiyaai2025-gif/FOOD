@@ -77,8 +77,8 @@ class _DriverCompletionDecisionSheetState
     );
   }
 
-  bool get _canDeliver =>
-      widget.availableStatuses.contains(DriverCompletionTarget.delivered.status);
+  bool get _canDeliver => widget.availableStatuses
+      .contains(DriverCompletionTarget.delivered.status);
 
   bool get _canFail =>
       widget.availableStatuses.contains(DriverCompletionTarget.failed.status);
@@ -184,8 +184,9 @@ class _DriverCompletionDecisionSheetState
     final validationText = _validationError == null
         ? null
         : _validationMessage(context, _validationError!);
-    final submitText =
-        _submitError == null ? null : _submitErrorMessage(context, _submitError!);
+    final submitText = _submitError == null
+        ? null
+        : _submitErrorMessage(context, _submitError!);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -298,8 +299,9 @@ class _DriverCompletionDecisionSheetState
                 Expanded(
                   child: OutlinedButton.icon(
                     key: const ValueKey('driver-completion-proof-camera'),
-                    onPressed:
-                        (_submitting || _pickingProof) ? null : () => _pickProof(camera: true),
+                    onPressed: (_submitting || _pickingProof)
+                        ? null
+                        : () => _pickProof(camera: true),
                     icon: const Icon(Icons.photo_camera_rounded),
                     label: Text(context.tr('driver.proof.camera')),
                   ),
@@ -308,8 +310,9 @@ class _DriverCompletionDecisionSheetState
                 Expanded(
                   child: OutlinedButton.icon(
                     key: const ValueKey('driver-completion-proof-gallery'),
-                    onPressed:
-                        (_submitting || _pickingProof) ? null : () => _pickProof(camera: false),
+                    onPressed: (_submitting || _pickingProof)
+                        ? null
+                        : () => _pickProof(camera: false),
                     icon: const Icon(Icons.photo_library_rounded),
                     label: Text(context.tr('driver.proof.gallery')),
                   ),
