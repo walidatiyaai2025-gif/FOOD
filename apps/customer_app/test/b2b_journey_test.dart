@@ -1364,6 +1364,56 @@ void main() {
   );
 
   testWidgets(
+    'B2B quick add uses live per-account minimum instead of stale grid quantity',
+    (tester) async {
+      final productList = _FakeB2bApi({
+        'data': [
+          {
+            'id': 42,
+            'sku': 'B2B-QA-42',
+            'name': 'Quick Add Product',
+            'store_id': 7,
+            'account_price': 20,
+            'minimum_order_quantity': 1,
+            'ordering_increment': 1,
+            'available_quantity': 20,
+            'is_available': true,
+            'availability_state': 'AVAILABLE',
+          },
+        ],
+      });
+      final actionApi = _RevalidatingQuickAddActionApi();
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          locale: const Locale('ar'),
+          initialRoute: '/b2b/products?store_id=7',
+          b2bApi: productList,
+          storefrontApi: _FakeWholesaleStorefrontApi(),
+          actionApi: actionApi,
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      final add = find.byKey(const ValueKey('wholesale-product-add-42'));
+      expect(add, findsOneWidget);
+      await tester.tap(add);
+      await _pumpCustomerFrames(tester);
+
+      expect(actionApi.termsCalls, 1);
+      expect(actionApi.addCalls, 1);
+      expect(actionApi.lastStoreId, 7);
+      expect(actionApi.lastProductId, 42);
+      expect(actionApi.lastQuantity, 5);
+      expect(
+        find.byKey(const ValueKey('wholesale-cart-add-hover')),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 11));
+    },
+  );
+
+  testWidgets(
     'B2B product details render authoritative account pricing and inventory',
     (tester) async {
       tester.view.physicalSize = const Size(800, 1400);
@@ -4702,6 +4752,28 @@ class _CountingCustomerActionApi implements CustomerActionApi {
     required String idempotencyKey,
   }) async =>
       null;
+}
+
+class _RevalidatingQuickAddActionApi extends _CountingCustomerActionApi
+    implements CustomerWholesaleProductTermsApi {
+  int termsCalls = 0;
+
+  @override
+  Future<Map<String, dynamic>> wholesaleProductTerms({
+    required int storeId,
+    required int productId,
+  }) async {
+    termsCalls++;
+    expect(storeId, 7);
+    expect(productId, 42);
+    return {
+      'id': productId,
+      'minimum_order_quantity': 5,
+      'ordering_increment': 5,
+      'available_quantity': 10,
+      'is_available': true,
+    };
+  }
 }
 
 class _MemoryPendingActionStore implements CustomerPendingActionStore {
