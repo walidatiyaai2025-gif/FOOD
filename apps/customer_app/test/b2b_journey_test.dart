@@ -2427,6 +2427,107 @@ void main() {
   );
 
   testWidgets(
+    'B2B cart checkout turns on exactly at minimum and off when quantity drops',
+    (tester) async {
+      final commerce = _MinimumThresholdWholesaleCommerceApi();
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          locale: const Locale('en'),
+          initialRoute: '/b2b/cart?store_id=7',
+          wholesaleCommerceApi: commerce,
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      final checkout = find.byKey(const ValueKey('b2b-cart-checkout'));
+      await tester.ensureVisible(checkout);
+      InkWell button() => tester.widget<InkWell>(
+            find.descendant(of: checkout, matching: find.byType(InkWell)),
+          );
+      expect(button().onTap, isNull);
+      expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('b2b-cart-plus-41')));
+      await _pumpCustomerFrames(tester);
+      expect(commerce.cartValue['merchandise_total'], 1500.0);
+      expect(button().onTap, isNotNull);
+      expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('b2b-cart-minus-41')));
+      await _pumpCustomerFrames(tester);
+      expect(commerce.cartValue['merchandise_total'], 1100.0);
+      expect(button().onTap, isNull);
+      expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'B2B checkout confirmation stays dim below server minimum',
+    (tester) async {
+      final cart = <String, dynamic>{
+        'store_id': 7,
+        'channel': 'b2b',
+        'currency': 'EGP',
+        'minimum_order_egp': 1500.0,
+        'merchandise_total': 1100.0,
+        'subtotal': 1100.0,
+        'quote': {'grand_total': 1100.0},
+        'has_unavailable_items': false,
+        'items': [
+          {
+            'id': 41,
+            'product': {'id': 401, 'name': 'Eligible item'},
+            'quantity': 1.0,
+            'is_available': true,
+          },
+        ],
+      };
+      final commerce = _C13WholesaleCommerceApi(cartValue: cart);
+      Future<void> openCheckout() async {
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpWidget(
+          FoodexCustomerApp(
+            session: b2b,
+            locale: const Locale('ar'),
+            initialRoute: '/b2b/checkout?store_id=7',
+            storefrontApi: const _CheckoutStorefrontApi(),
+            wholesaleCommerceApi: commerce,
+          ),
+        );
+        await _pumpCustomerFrames(tester);
+      }
+
+      await openCheckout();
+      final submit = find.byKey(const ValueKey('b2b-checkout-submit'));
+      await tester.ensureVisible(submit);
+      InkWell button() => tester.widget<InkWell>(
+            find.descendant(of: submit, matching: find.byType(InkWell)),
+          );
+      expect(button().onTap, isNull);
+      expect(
+        find.byKey(const ValueKey('b2b-checkout-minimum-warning')),
+        findsOneWidget,
+      );
+      expect(commerce.checkoutCalls, 0);
+
+      // Equal to the active policy threshold means the button unlocks.
+      cart['merchandise_total'] = 1500.0;
+      cart['subtotal'] = 1500.0;
+      cart['quote'] = {'grand_total': 1500.0};
+      await openCheckout();
+      await tester.ensureVisible(submit);
+      expect(button().onTap, isNotNull);
+      expect(
+        find.byKey(const ValueKey('b2b-checkout-minimum-warning')),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'C13 checkout prevents double submit with one stable attempt key',
     (tester) async {
       tester.view.physicalSize = const Size(900, 1900);
@@ -4554,6 +4655,46 @@ class _ReorderWholesaleCommerceApi implements WholesaleCommerceApi {
     required String idempotencyKey,
   }) async =>
       const <String, Object?>{};
+}
+
+class _MinimumThresholdWholesaleCommerceApi extends _C13WholesaleCommerceApi {
+  _MinimumThresholdWholesaleCommerceApi()
+      : super(cartValue: {
+          'store_id': 7,
+          'channel': 'b2b',
+          'currency': 'EGP',
+          'minimum_order_egp': 1500.0,
+          'merchandise_total': 1100.0,
+          'subtotal': 1100.0,
+          'quote': {'grand_total': 1100.0},
+          'has_unavailable_items': false,
+          'items': [
+            {
+              'id': 41,
+              'product': {'id': 401, 'name': 'Wholesale item', 'sku': 'WS-401'},
+              'quantity': 1.0,
+              'unit_price_snapshot': 1100.0,
+              'line_total': 1100.0,
+              'available_quantity': 10.0,
+              'is_available': true,
+              'minimum_order_quantity': 1.0,
+              'ordering_increment': 1.0,
+            },
+          ],
+        });
+
+  @override
+  Future<Object?> updateItem(int itemId, double quantity) async {
+    final items = cartValue['items'] as List;
+    final item = items.first as Map<String, dynamic>;
+    item['quantity'] = quantity;
+    final nextTotal = 1100.0 + (quantity - 1) * 400.0;
+    item['line_total'] = nextTotal;
+    cartValue['merchandise_total'] = nextTotal;
+    cartValue['subtotal'] = nextTotal;
+    cartValue['quote'] = {'grand_total': nextTotal};
+    return Map<String, dynamic>.from(cartValue);
+  }
 }
 
 class _FailFirstWholesaleCartApi extends _ReorderWholesaleCommerceApi {
