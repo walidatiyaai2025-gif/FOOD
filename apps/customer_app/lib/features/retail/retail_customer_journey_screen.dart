@@ -13,6 +13,7 @@ import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_action_widgets.dart';
 import '../customer_account/customer_account_data.dart';
 import '../customer_account/customer_account_screen.dart';
+import '../customer_account/customer_retail_invoices_screen.dart';
 import '../customer_account/customer_address_book_screen.dart';
 import '../customer_account/customer_favorites_screen.dart';
 import '../customer_account/customer_notification_center_screen.dart';
@@ -179,7 +180,7 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
 
       case CustomerRoutePaths.offers:
         return withShell(
-          CustomerRetailDestination.products,
+          CustomerRetailDestination.offers,
           CustomerFlashOffersScreen(
             storeId: storeId,
             api: HttpCustomerFlashOffersApi(
@@ -352,6 +353,19 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
             api: accountApi,
             onOpenOrder: (target) =>
                 _openNotificationOrder(context, target, commerceContext),
+          ),
+        );
+
+      case CustomerRoutePaths.invoices:
+        final invoiceApi = accountApi;
+        if (invoiceApi is! CustomerRetailInvoiceApi) {
+          return const _RetailContextMissing();
+        }
+        return withShell(
+          CustomerRetailDestination.invoices,
+          CustomerRetailInvoicesScreen(
+            api: invoiceApi,
+            storeId: storeId,
           ),
         );
 
