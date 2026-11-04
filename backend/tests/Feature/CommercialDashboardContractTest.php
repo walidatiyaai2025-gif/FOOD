@@ -553,6 +553,27 @@ class CommercialDashboardContractTest extends TestCase
             ->assertSee(route('admin.catalog.index', ['tab' => 'products', 'store_id' => $storeId]), false);
     }
 
+    public function test_retail_manager_cannot_read_or_save_wholesale_flash_products(): void
+    {
+        [, $wholesaleStoreId] = $this->wholesaleManager();
+        $wholesaleProduct = $this->flashProduct($wholesaleStoreId, 'b2b');
+        [$retailManager, $retailStoreId] = $this->retailManager();
+        $retailProduct = $this->flashProduct($retailStoreId);
+
+        // A read-only deep link from another channel must stay within the
+        // manager's authorized retail store, never show wholesale SKU/options.
+        $this->actingAs($retailManager)
+            ->get(route('admin.commercial.flash-offers', ['store_id' => $wholesaleStoreId]))
+            ->assertOk()
+            ->assertSee('value="'.$retailProduct.'" data-product-context="retail"', false)
+            ->assertDontSee('value="'.$wholesaleProduct.'" data-product-context="wholesale"', false);
+
+        // Mutations never silently switch stores or allow cross-tenant IDs.
+        $this->actingAs($retailManager)
+            ->post(route('admin.commercial.flash-offers.save', ['store_id' => $wholesaleStoreId]), [])
+            ->assertNotFound();
+    }
+
     public function test_flash_offer_workspace_uses_structured_business_controls_instead_of_raw_json_or_ids(): void
     {
         [$manager, $storeId] = $this->retailManager();
