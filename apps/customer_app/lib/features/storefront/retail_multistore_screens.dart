@@ -1347,6 +1347,42 @@ class _RetailProductDetailsDesignScreenState
   late final int storeId = retailStoreId(widget.location);
   late final int productId = productIdFromLocation(widget.location);
   double quantity = 1;
+  String? selectedSellingUnitCode;
+
+  Future<Object?> _addProduct(B2cProduct product) {
+    if (product.sellingUnits.isEmpty) {
+      return widget.actionApi.addCartItem(
+        storeId: storeId,
+        productId: productId,
+        quantity: quantity,
+      );
+    }
+
+    final code = selectedSellingUnitCode ?? product.sellingUnits.first.code;
+    final selectedUnit = product.sellingUnits.firstWhere(
+      (unit) => unit.code == code,
+      orElse: () => product.sellingUnits.first,
+    );
+    final actionApi = widget.actionApi;
+    if (actionApi is CustomerSellingUnitActionApi) {
+      return actionApi.addCartSellingUnit(
+        storeId: storeId,
+        productId: productId,
+        quantity: quantity,
+        sellingUnitCode: selectedUnit.code,
+      );
+    }
+
+    if (!selectedUnit.isBase) {
+      throw StateError('Selling-unit checkout is not available in this session.');
+    }
+
+    return actionApi.addCartItem(
+      storeId: storeId,
+      productId: productId,
+      quantity: quantity,
+    );
+  }
 
   @override
   Widget build(BuildContext context) => Directionality(
@@ -1448,6 +1484,45 @@ class _RetailProductDetailsDesignScreenState
                       ),
                     ),
                     const SizedBox(height: 18),
+                    if (product.sellingUnits.isNotEmpty) ...[
+                      Semantics(
+                        label: Localizations.localeOf(context).languageCode == 'ar'
+                            ? 'اختر وحدة البيع' : 'Select selling unit',
+                        child: Wrap(
+                          key: const ValueKey('retail-selling-unit-options'),
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final unit in product.sellingUnits)
+                              ChoiceChip(
+                                key: ValueKey('retail-selling-unit-${unit.code}'),
+                                label: Text(
+                                  unit.name +
+                                      (unit.price == null
+                                          ? ''
+                                          : ' · ' +
+                                              foodexMoneyText(
+                                                  unit.price!, product.currency)),
+                                ),
+                                selected: (selectedSellingUnitCode ??
+                                        product.sellingUnits.first.code) ==
+                                    unit.code,
+                                onSelected: product.isAvailable
+                                    ? (value) {
+                                        if (value) {
+                                          setState(() {
+                                            selectedSellingUnitCode = unit.code;
+                                            quantity = 1;
+                                          });
+                                        }
+                                      }
+                                    : null,
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     FoodexQuantityCta(
                       quantity: quantity,
                       increment: 1,
@@ -1461,11 +1536,7 @@ class _RetailProductDetailsDesignScreenState
                       onCheckout: product.isAvailable
                           ? () async {
                               try {
-                                await widget.actionApi.addCartItem(
-                                  storeId: storeId,
-                                  productId: productId,
-                                  quantity: quantity,
-                                );
+                                await _addProduct(product);
                                 if (!context.mounted) return;
                                 final scope = CustomerCommerceContext(
                                   channel: CustomerCommerceChannel.retail,
@@ -1493,11 +1564,7 @@ class _RetailProductDetailsDesignScreenState
                       onPressed: product.isAvailable
                           ? () async {
                               try {
-                                await widget.actionApi.addCartItem(
-                                  storeId: storeId,
-                                  productId: productId,
-                                  quantity: quantity,
-                                );
+                                await _addProduct(product);
                               } catch (error) {
                                 if (context.mounted) {
                                   await showOperationalError(context, error);
