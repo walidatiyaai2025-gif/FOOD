@@ -431,8 +431,8 @@ final class InvoiceService
         }
 
         // Keep all company details directly beneath the logo in Arabic and English PDFs.
-        $brandingHeader = '<table cellpadding="4" style="border-bottom:2px solid #166534">'
-            .'<tr><td width="100%">'.$logo.'<br>'
+        $brandingHeader = '<table cellpadding="4" width="100%" style="border-bottom:2px solid #166534">'
+            .'<tr><td width="100%" align="right" style="text-align:right">'.$logo.'<br>'
             .'<strong>'.$e($brand['name']).'</strong><br>'
             .$e($brand['address'])
             .($contactLines === [] ? '' : '<br>'.implode('<br>', $contactLines))
