@@ -10,8 +10,8 @@
     min-width: 0;
     padding: 0 0 14px;
     margin-bottom: 14px;
-    border-bottom: 2px solid var(--foodex-green-dark, #166534);
-    color: var(--foodex-ink, #17271d);
+    border-bottom: 2px solid var(--foodex-green-dark);
+    color: var(--foodex-ink);
     break-inside: avoid;
 }
 .foodex-invoice-company-logo {
@@ -42,7 +42,7 @@
 }
 .foodex-invoice-company-contacts span { unicode-bidi: isolate; }
 @media print {
-    .foodex-invoice-company { color: #111 !important; background: #fff !important; }
+    .foodex-invoice-company { color: black !important; background: white !important; }
     .foodex-invoice-company-logo { max-height: 67px; width: 150px; margin: 0 auto; }
     .order-popup-content[data-order-popup-content="invoice"] .order-print-header { display: none !important; }
 }

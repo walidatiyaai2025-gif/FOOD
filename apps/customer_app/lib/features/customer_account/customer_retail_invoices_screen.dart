@@ -63,6 +63,23 @@ class _CustomerRetailInvoicesScreenState
   bool isArabic(BuildContext context) =>
       Localizations.localeOf(context).languageCode == 'ar';
 
+  String invoiceStatus(BuildContext context, Object? rawStatus) {
+    final status = rawStatus?.toString().trim().toLowerCase();
+    final key = switch (status) {
+      'paid' || 'fully_settled' || 'settled' =>
+        'customer.invoice.status.paid',
+      'partially_paid' || 'partially_settled' =>
+        'customer.invoice.status.partial',
+      'issued' || 'pending' || 'due' || 'unpaid' =>
+        'customer.invoice.status.due',
+      'overdue' => 'customer.invoice.status.overdue',
+      'cancelled' || 'canceled' || 'void' =>
+        'customer.invoice.status.cancelled',
+      _ => 'customer.invoice.status.unknown',
+    };
+    return context.tr(key);
+  }
+
   List<Map<String, dynamic>> rows(Object? response) {
     if (response is! Map || response['data'] is! List) return const [];
     return (response['data'] as List)
@@ -97,6 +114,9 @@ class _CustomerRetailInvoicesScreenState
                       ? Map<String, dynamic>.from(
                           (snapshot.data as Map)['data'] as Map)
                       : const <String, dynamic>{};
+              final statusText = invoiceStatus(context, data['status']);
+              final amountText = data['grand_total']?.toString() ?? '—';
+              final currencyText = data['currency']?.toString() ?? 'EGP';
               final items = data['items'] is List
                   ? (data['items'] as List).whereType<Map>().toList()
                   : const <Map>[];
@@ -105,10 +125,8 @@ class _CustomerRetailInvoicesScreenState
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                        "${isArabic(context) ? 'الحالة: ' : 'Status: '}${data['status'] ?? '—'}"),
-                    Text(
-                        "${isArabic(context) ? 'الإجمالي: ' : 'Total: '}${data['grand_total'] ?? '—'} ${data['currency'] ?? 'EGP'}"),
+                    Text("${context.tr('customer.invoice.status_label')}: $statusText"),
+                    Text("${context.tr('customer.invoice.total')}: $amountText $currencyText"),
                     const Divider(),
                     for (final line in items)
                       ListTile(

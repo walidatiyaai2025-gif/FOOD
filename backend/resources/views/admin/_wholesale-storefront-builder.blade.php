@@ -54,7 +54,7 @@
             </button>
         @endif
     </form>
-    @error('show_in_stock_only')<p role="alert" style="color:#b91c1c;font-weight:700">{{ $message }}</p>@enderror
+    @error('show_in_stock_only')<p role="alert" style="color:var(--foodex-danger-text, firebrick);font-weight:700">{{ $message }}</p>@enderror
     <small class="wsf-muted">{{ app()->getLocale()==='ar'
         ? 'عند إلغاء تحديد المربع تظهر جميع المنتجات النشطة بما فيها الأصناف النافدة. يعمل الإعداد فور الحفظ.'
         : 'Unchecked: all active products, including out-of-stock ones. The setting takes effect as soon as you save.' }}</small>
@@ -65,7 +65,7 @@
     <p class="wsf-muted">{{ app()->getLocale()==='ar'
         ? 'الحد الأدنى لقيمة منتجات طلب الجملة بعد خصومات الأصناف، بدون التوصيل أو الضرائب. يتم تطبيق التغيير فور الحفظ على تطبيق العميل وعلى الخادم.'
         : 'Minimum wholesale merchandise value after product discounts, excluding delivery and tax. Changes apply immediately in the Customer app and at checkout.' }}</p>
-    @if($errors->has('minimum_order_egp'))<p role="alert" style="color:#b91c1c;font-weight:700">{{ $errors->first('minimum_order_egp') }}</p>@endif
+    @error('minimum_order_egp')<p role="alert" style="color:var(--foodex-danger-text, firebrick);font-weight:700">{{ $message }}</p>@enderror
     <form method="post" action="{{ route('admin.b2b.storefront.minimum-order') }}" class="wsf-actions" style="align-items:end;gap:12px">
         @csrf @method('PUT')
         <label for="wholesale-minimum-order-egp" style="flex:0 1 260px">

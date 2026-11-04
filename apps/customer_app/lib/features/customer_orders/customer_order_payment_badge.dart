@@ -43,10 +43,14 @@ class CustomerOrderPaymentBadge extends StatelessWidget {
             : (ar ? 'غير مدفوع' : 'Unpaid');
 
     Widget amountLine(String key, String title, double amount, Color color) {
+      final amountDescription = <String>[
+        title,
+        foodexMoneyText(amount, currency),
+      ].join(': ');
       return Semantics(
-        label: '$title: ${foodexMoneyText(amount, currency)}',
+        label: amountDescription,
         child: Text(
-          '$title: ${foodexMoneyText(amount, currency)}',
+          amountDescription,
           key: ValueKey('customer-order-$key-$orderId'),
           maxLines: 2,
           softWrap: true,

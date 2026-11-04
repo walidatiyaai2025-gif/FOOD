@@ -152,10 +152,10 @@
     max-width: 96vw;
     max-height: min(88vh, 960px);
     padding: 0 !important;
-    border: 1px solid var(--foodex-border, #dbe3e8) !important;
+    border: 1px solid var(--foodex-border) !important;
     border-radius: 16px;
-    background: var(--foodex-surface, #fff);
-    color: var(--foodex-ink, #17271d);
+    background: var(--foodex-surface, white);
+    color: var(--foodex-ink);
 }
 [data-driver-order-details-dialog]::backdrop { background: rgba(15, 23, 42, .55); }
 [data-driver-order-details-head] {
@@ -165,7 +165,7 @@
     gap: 12px;
     flex-wrap: wrap;
     padding: 12px 18px;
-    border-bottom: 1px solid var(--foodex-border, #dbe3e8);
+    border-bottom: 1px solid var(--foodex-border);
 }
 [data-driver-order-details-body] {
     padding: 18px;
@@ -198,13 +198,13 @@
     gap: 5px;
     min-width: 0;
     padding: 12px;
-    border: 1px solid var(--foodex-border, #dbe3e8);
+    border: 1px solid var(--foodex-border);
     border-radius: 10px;
-    background: var(--foodex-surface-soft, var(--foodex-palette-f8fafc, #f8fafc));
+    background: var(--foodex-surface-soft, var(--foodex-surface, whitesmoke));
 }
 [data-driver-order-details-dialog] .order-popup-summary small,
 [data-driver-order-details-dialog] .order-popup-facts span {
-    color: var(--foodex-muted, #64748b);
+    color: var(--foodex-muted);
     font-size: .75rem;
 }
 [data-driver-order-details-dialog] .order-popup-summary strong,
@@ -213,19 +213,19 @@
     overflow-wrap: anywhere;
     line-height: 1.5;
 }
-[data-driver-order-details-dialog] .is-paid { color: var(--foodex-green-dark, #12652d); }
-[data-driver-order-details-dialog] .is-unpaid { color: var(--foodex-danger-text, #b42318); }
+[data-driver-order-details-dialog] .is-paid { color: var(--foodex-green-dark); }
+[data-driver-order-details-dialog] .is-unpaid { color: var(--foodex-danger-text, firebrick); }
 [data-driver-order-details-dialog] .order-popup-section {
     min-width: 0;
     margin: 0;
     padding: 14px;
-    border: 1px solid var(--foodex-border, #dbe3e8);
+    border: 1px solid var(--foodex-border);
     border-radius: 12px;
 }
 [data-driver-order-details-dialog] .order-popup-section h3 {
     margin: 0 0 12px;
     font-size: 1rem;
-    color: var(--foodex-ink, #17271d);
+    color: var(--foodex-ink);
 }
 [data-driver-order-details-dialog] .order-popup-section p {
     margin: 0 0 8px;
@@ -247,11 +247,11 @@
 [data-driver-order-details-dialog] .order-popup-table td {
     padding: 10px;
     text-align: start;
-    border-bottom: 1px solid var(--foodex-border, #dbe3e8);
+    border-bottom: 1px solid var(--foodex-border);
     vertical-align: top;
 }
 [data-driver-order-details-dialog] .order-popup-table th {
-    background: var(--foodex-surface-soft, var(--foodex-palette-f8fafc, #f8fafc));
+    background: var(--foodex-surface-soft, var(--foodex-surface, whitesmoke));
 }
 @media (max-width: 600px) {
     [data-driver-order-details-head] { padding: 10px 12px; }

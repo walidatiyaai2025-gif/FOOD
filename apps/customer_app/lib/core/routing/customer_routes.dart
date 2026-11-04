@@ -569,7 +569,7 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bOffers,
-    label: 'B2B offers',
+    label: 'customer.nav.offers',
     channel: CustomerChannel.b2b,
   ),
   CustomerRouteDefinition(

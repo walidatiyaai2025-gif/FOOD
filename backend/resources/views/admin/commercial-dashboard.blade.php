@@ -538,7 +538,7 @@
                 @endif
             </div>
             @if($editingOffer && \Illuminate\Support\Carbon::parse($editingOffer->ends_at)->lessThanOrEqualTo(now()))
-                <p role="alert" data-flash-edit-expired style="color:#b91c1c;font-weight:700">
+                <p role="alert" data-flash-edit-expired style="color:var(--foodex-danger-text, firebrick);font-weight:700">
                     {{ __('commercial.flash.edit_expired_help') }}
                 </p>
             @endif
@@ -797,7 +797,7 @@
                     <div style="display:grid;gap:5px;min-width:0">
                         <span>{{ $offer->name }} · <strong data-flash-effective-status="{{ $effectiveFlashStatus }}">{{ __('commercial.flash.statuses.'.$effectiveFlashStatus) }}</strong> · {{ $offer->starts_at }} → {{ $offer->ends_at }}</span>
                         @if($flashEnded)
-                            <small role="status" data-flash-expired-message style="color:#b91c1c;font-weight:700">
+                            <small role="status" data-flash-expired-message style="color:var(--foodex-danger-text, firebrick);font-weight:700">
                                 {{ __('commercial.flash.expired_not_visible') }}
                                 <a href="{{ route($flashRoutePrefix, ['edit'=>$offer->id] + $scope) }}">{{ __('commercial.flash.edit_dates') }}</a>
                             </small>
@@ -805,12 +805,12 @@
                             <small role="status" data-flash-upcoming-message>{{ __('commercial.flash.upcoming_not_visible') }}</small>
                         @endif
                         @if($storeChannel === 'b2b' && !in_array('van', $flashChannels, true))
-                            <small role="alert" data-flash-wholesale-channel-missing style="color:#b91c1c;font-weight:800">
+                            <small role="alert" data-flash-wholesale-channel-missing style="color:var(--foodex-danger-text, firebrick);font-weight:800">
                                 {{ __('commercial.flash.wholesale_van_channel_missing') }}
                                 <a href="{{ route($flashRoutePrefix, ['edit'=>$offer->id] + $scope) }}#flash-offer-form">{{ __('commercial.flash.edit') }}</a>
                             </small>
                         @elseif($storeChannel === 'b2c' && !in_array('customer', $flashChannels, true))
-                            <small role="status" data-flash-customer-channel-missing style="color:#9a3412">{{ __('commercial.flash.customer_channel_missing') }}</small>
+                            <small role="status" data-flash-customer-channel-missing style="color:var(--foodex-warning-text, darkorange)">{{ __('commercial.flash.customer_channel_missing') }}</small>
                         @endif
                     </div>
                     <div class="flash-row-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
