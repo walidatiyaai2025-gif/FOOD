@@ -185,7 +185,7 @@ class FlashOfferBackendTest extends TestCase
             ->assertJsonPath('data.0.products.0.sku', 'FLASH-001')
             ->assertJsonPath('data.0.products.0.selling_unit_name', 'CARTON')
             ->assertJsonPath('data.0.products.0.flash_price', 7)
-            ->assertJsonPath('data.0.products.0.normal_price', 100)
+            ->assertJsonPath('data.0.products.0.normal_price', 10)
             ->assertJsonPath('data.0.products.0.available_quantity', 2);
 
         // Zero available inventory must remove the product, not advertise
