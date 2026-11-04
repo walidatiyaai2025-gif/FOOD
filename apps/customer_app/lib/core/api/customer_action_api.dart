@@ -95,8 +95,18 @@ abstract interface class CustomerSellingUnitActionApi {
   });
 }
 
+/// Optional canonical B2B price/stock read before a home-card quick add.
+/// Preview/fake action APIs do not have to implement this extension.
+abstract interface class CustomerWholesaleProductTermsApi {
+  Future<Map<String, dynamic>> wholesaleProductTerms({
+    required int storeId,
+    required int productId,
+  });
+}
+
 class HttpCustomerActionApi
-    implements CustomerActionApi, CustomerSellingUnitActionApi {
+    implements CustomerActionApi, CustomerSellingUnitActionApi,
+        CustomerWholesaleProductTermsApi {
   HttpCustomerActionApi({
     required this.baseUrl,
     this.token,
@@ -288,6 +298,24 @@ class HttpCustomerActionApi
         quantity: quantity,
         sellingUnitCode: sellingUnitCode,
       );
+
+  @override
+  Future<Map<String, dynamic>> wholesaleProductTerms({
+    required int storeId,
+    required int productId,
+  }) async {
+    _requireToken();
+    final response = await _client.get(
+      Uri.parse('$baseUrl/api/v1/b2b/products/$productId?store_id=$storeId'),
+      headers: {
+        ..._headersForStore(storeId),
+        'X-FOODEX-Customer-Domain': 'b2b',
+      },
+    );
+    final body = _decode(response);
+    if (body is Map) return Map<String, dynamic>.from(body);
+    throw const CustomerActionException('invalid_wholesale_product_terms');
+  }
 
   Future<Object?> _submitCartItem({
     required int storeId,
