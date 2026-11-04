@@ -579,6 +579,10 @@ class GuestCartController extends Controller
             'items' => [],
             'subtotal' => 0.0,
             'has_unavailable_items' => false,
+            'minimum_order_egp' => $channel === 'b2b'
+                ? app(\App\Services\MinimumOrderPolicy::class)->minimumForStore($storeId)
+                : 0.0,
+            'merchandise_total' => 0.0,
             'quote' => [
                 'quote_id' => null,
                 'quoted_at' => now()->toIso8601String(),
