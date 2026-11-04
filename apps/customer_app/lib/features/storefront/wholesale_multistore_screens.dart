@@ -8155,6 +8155,9 @@ class _WholesaleOrderDetailsDesignScreenState
                       final payment = order['payment'] is Map
                           ? Map<String, dynamic>.from(order['payment'] as Map)
                           : null;
+                      final settlement = order['settlement'] is Map
+                          ? Map<String, dynamic>.from(order['settlement'] as Map)
+                          : const <String, dynamic>{};
                       final accountCredit =
                           order['account_credit_impact'] is Map
                               ? Map<String, dynamic>.from(
@@ -8215,7 +8218,9 @@ class _WholesaleOrderDetailsDesignScreenState
                                 context.tr('b2b.order.status'),
                                 _orderStatusText(context, status),
                               ),
-                              if (payment != null)
+                              // The latest transaction state is not the
+                              // same thing as the full order settlement.
+                              if (payment != null && settlement.isEmpty)
                                 (
                                   context.tr('b2b.order.payment_status'),
                                   _paymentStatusText(
@@ -8234,6 +8239,21 @@ class _WholesaleOrderDetailsDesignScreenState
                               ),
                             ],
                           ),
+                          if (settlement['payment_state'] != null) ...[
+                            const SizedBox(height: 10),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: CustomerOrderPaymentBadge(
+                                orderId: orderId,
+                                currency: currency,
+                                paymentState:
+                                    settlement['payment_state']?.toString(),
+                                paidAmount: _numberValue(settlement['paid_amount']),
+                                remainingAmount:
+                                    _numberValue(settlement['remaining_amount']),
+                              ),
+                            ),
+                          ],
                           if (address != null) ...[
                             const SizedBox(height: 2),
                             _OrderDetailCard(
