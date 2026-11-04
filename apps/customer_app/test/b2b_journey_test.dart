@@ -2204,6 +2204,37 @@ void main() {
   );
 
   testWidgets(
+    'Wholesale cart retry after HTTP failure never returns a Future from setState',
+    (tester) async {
+      final commerce = _FailFirstWholesaleCartApi();
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: '/b2b/cart?store_id=7',
+          locale: const Locale('ar'),
+          wholesaleCommerceApi: commerce,
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      final failure = find.byKey(const ValueKey('b2b-error'));
+      expect(failure, findsOneWidget);
+      expect(find.textContaining('HTTP 503'), findsOneWidget);
+      final retry = find.descendant(
+        of: failure,
+        matching: find.byType(OutlinedButton),
+      );
+      expect(retry, findsOneWidget);
+
+      await tester.tap(retry);
+      await _pumpCustomerFrames(tester);
+      expect(tester.takeException(), isNull);
+      expect(commerce.attempts, 2);
+      expect(find.byKey(const ValueKey('b2b-cart-data')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'Wholesale cart without store_id resolves principal from selection before GET',
     (tester) async {
       final commerce = _ReorderWholesaleCommerceApi();
@@ -4511,6 +4542,19 @@ class _ReorderWholesaleCommerceApi implements WholesaleCommerceApi {
     required String idempotencyKey,
   }) async =>
       const <String, Object?>{};
+}
+
+class _FailFirstWholesaleCartApi extends _ReorderWholesaleCommerceApi {
+  int attempts = 0;
+
+  @override
+  Future<Object?> cart(int storeId) async {
+    attempts++;
+    if (attempts == 1) {
+      throw const WholesaleCommerceException('Server Error', statusCode: 503);
+    }
+    return super.cart(storeId);
+  }
 }
 
 class _FakeWholesaleCommerceApi implements WholesaleCommerceApi {
