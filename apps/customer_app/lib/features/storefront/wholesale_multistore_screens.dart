@@ -2365,10 +2365,36 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
 
     setState(() => busy = true);
     try {
+      var quantityToAdd = minimum;
+      final actionApi = widget.actionApi;
+      if (actionApi is CustomerWholesaleProductTermsApi) {
+        // Homepage merchandising may be cached or guest-scoped. The actual
+        // active customer's live B2B limits must authorize every quick add.
+        final terms = await actionApi.wholesaleProductTerms(
+          storeId: widget.storeId,
+          productId: id,
+        );
+        quantityToAdd = math.max(
+          1.0,
+          doubleValue(terms['minimum_order_quantity'], minimum),
+        );
+        final available = terms['available_quantity'] == null
+            ? null
+            : doubleValue(terms['available_quantity'], 0);
+        if (terms['is_available'] == false ||
+            terms['availability_state'] == 'OUT_OF_STOCK' ||
+            (available != null && available + .0001 < quantityToAdd)) {
+          throw const CustomerActionException(
+            'stock_unavailable',
+            statusCode: 409,
+          );
+        }
+      }
+
       final cartPayload = await widget.actionApi.addCartItem(
         storeId: widget.storeId,
         productId: id,
-        quantity: minimum,
+        quantity: quantityToAdd,
       );
       syncFoodexWholesaleCartProductCount(cartPayload);
       if (overlay != null && overlay.mounted) {
