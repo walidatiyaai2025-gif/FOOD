@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/core/localization/driver_translations.dart';
 import 'package:foodex_driver_app/features/delivery/completion/driver_completion_contract.dart';
@@ -57,6 +58,48 @@ void main() {
     expect(gateway.calls.single.proof?.fileName, 'proof.jpg');
   });
 
+  testWidgets('photo access denial displays actionable recovery guidance',
+      (tester) async {
+    await tester.pumpWidget(
+      DriverTranslations(
+        locale: const Locale('en'),
+        overrides: const {},
+        child: MaterialApp(
+          home: Scaffold(
+            body: DriverCompletionDecisionSheet(
+              assignmentId: 31,
+              availableStatuses: const ['delivered'],
+              gateway: _RecordingGateway(),
+              proofPicker: _PermissionDeniedProofPicker(),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('driver-completion-proof-gallery')),
+    );
+    await tester.pump();
+
+    expect(
+      find.text(
+        'Allow camera or photo access for FOODEX Driver in iPhone Settings, then retry.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('driver-completion-proof-attached')),
+      findsNothing,
+    );
+    expect(
+      tester.widget<OutlinedButton>(
+        find.byKey(const ValueKey('driver-completion-proof-gallery')),
+      ).onPressed,
+      isNotNull,
+    );
+  });
+
   testWidgets('unavailable server action is not rendered', (tester) async {
     await tester.pumpWidget(
       DriverTranslations(
@@ -97,6 +140,16 @@ class _RecordingGateway implements DriverCompletionGateway {
     calls.add(draft);
     throw const DriverCompletionException('test_stop');
   }
+}
+
+class _PermissionDeniedProofPicker implements DriverProofPicker {
+  @override
+  Future<DriverProofAttachment?> pickCamera() async =>
+      throw PlatformException(code: 'camera_access_denied');
+
+  @override
+  Future<DriverProofAttachment?> pickGallery() async =>
+      throw PlatformException(code: 'photo_access_denied');
 }
 
 class _FakeProofPicker implements DriverProofPicker {
