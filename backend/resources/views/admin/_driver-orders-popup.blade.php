@@ -41,7 +41,11 @@
             <tbody>
             @forelse($orders as $order)
                 <tr>
-                    <td><a href="{{ route('admin.operations.orders.index', ['order_id' => $order->id]) }}" class="foodex-order-link" title="{{ app()->getLocale()==='ar' ? 'عرض تفاصيل الطلب' : 'View order details' }}"><strong>{{ \App\Support\DisplayNumber::reference($order->id) }}</strong></a></td>
+                    <td><a href="{{ route('admin.operations.orders.popup', ['order' => $order->id, 'kind' => 'details']) }}"
+                      data-driver-order-detail
+                      data-full-url="{{ route('admin.operations.orders.index', ['order' => $order->id]) }}"
+                      class="foodex-order-link"
+                      title="{{ __('order_operations.popup.details') }}"><strong>{{ \App\Support\DisplayNumber::reference($order->id) }}</strong></a></td>
                     <td>{{ $order->store_name }}</td>
                     <td>{{ str_replace('_',' ',(string)$order->order_status) }}</td>
                     <td>{{ str_replace('_',' ',(string)$order->assignment_status) }}</td>
