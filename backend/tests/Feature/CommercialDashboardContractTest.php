@@ -878,7 +878,7 @@ class CommercialDashboardContractTest extends TestCase
         ]);
 
         $page = route('admin.commercial.flash-offers', ['store_id' => $storeId]);
-        $editUrl = route('admin.commercial.flash-offers', ['store_id' => $storeId, 'edit' => $offerId]);
+        $editUrl = route('admin.commercial.flash-offers', ['edit' => $offerId, 'store_id' => $storeId]);
         $this->actingAs($manager)->get($page)
             ->assertOk()
             ->assertSee('data-flash-edit-offer="'.$offerId.'"', false)
