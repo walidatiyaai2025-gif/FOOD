@@ -131,9 +131,11 @@ final class DeliveryExecutionService
         ?UploadedFile $proofImage,
         bool $hasStoredDeliveryProof = false,
     ): void {
-        if ($targetStatus === 'delivered') {
+        if (in_array($targetStatus, ['out_for_delivery', 'delivered'], true)) {
             $this->previousCredit->assertNoEarlierDebt($order);
+        }
 
+        if ($targetStatus === 'delivered') {
             $deliveryInvoice = Invoice::query()
                 ->where('order_id', $order->getKey())
                 ->whereIn('status', ['issued', 'reissued'])
