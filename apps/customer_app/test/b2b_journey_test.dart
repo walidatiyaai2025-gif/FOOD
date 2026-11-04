@@ -698,6 +698,89 @@ void main() {
   );
 
   testWidgets(
+    'Offers footer from wholesale home opens Offers screen, never Shopping',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final api = _FakeB2bApi({
+        'data': [
+          {
+            'id': 42,
+            'name': 'Promoted Wholesale Water',
+            'sku': 'PROMO-42',
+            'account_price': 75,
+            'promotion': {'id': 6},
+            'is_available': true,
+            'available_quantity': 12,
+          },
+        ],
+      });
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: '/b2b/home?channel=wholesale&store_id=70',
+          b2bApi: api,
+          storefrontApi: _FakeWholesaleStorefrontApi(),
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      final offers = find.byKey(const ValueKey('customer-footer-offers'));
+      expect(offers, findsOneWidget);
+      await tester.tap(offers);
+      await _pumpCustomerFrames(tester);
+
+      expect(find.byKey(const ValueKey('wholesale-offers-screen')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-catalog-screen')), findsNothing);
+      expect(find.byKey(const ValueKey('wholesale-offers-heading')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-product-name-42')), findsOneWidget);
+      expect(api.lastPath, '/api/v1/b2b/products?store_id=70');
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Wholesale home offers View All opens Offers screen, not Shopping',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: '/b2b/home?channel=wholesale&store_id=70',
+          b2bApi: _FakeB2bApi(const {'data': <Object>[]}),
+          storefrontApi: _FakeWholesaleStorefrontApi(),
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      final viewAll = find.byKey(const ValueKey('section-action-عروض الحساب'));
+      await tester.scrollUntilVisible(
+        viewAll,
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(viewAll, findsOneWidget);
+      await tester.tap(viewAll);
+      await _pumpCustomerFrames(tester);
+
+      expect(find.byKey(const ValueKey('wholesale-offers-screen')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-catalog-screen')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'Wholesale Offers is a distinct page with only discounted products',
     (tester) async {
       tester.view.physicalSize = const Size(900, 1600);
