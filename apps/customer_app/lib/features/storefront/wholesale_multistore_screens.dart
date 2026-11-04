@@ -6009,6 +6009,10 @@ class _CartTotalPanel extends StatelessWidget {
     final delivery = quote['delivery_total'];
     final tax = quote['tax_total'];
     final total = quote['grand_total'] ?? cart['grand_total'] ?? subtotal;
+    final merchandiseEstimate = doubleValue(subtotal, 0) - doubleValue(discount, 0);
+    final minimumMissing = currency.toUpperCase() == 'EGP'
+        ? (1500 - merchandiseEstimate).clamp(0, double.infinity).toDouble()
+        : 0.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -6042,6 +6046,20 @@ class _CartTotalPanel extends StatelessWidget {
             ),
           ],
         ),
+        if (minimumMissing > 0.0001) ...[
+          const SizedBox(height: 9),
+          Text(
+            (Localizations.localeOf(context).languageCode == 'ar'
+                ? 'الحد الأدنى 1500 جنيه. أضف منتجات بقيمة '
+                : 'Minimum EGP 1,500. Add products worth ') +
+                money(minimumMissing, currency: currency),
+            key: const ValueKey('b2b-cart-minimum-warning'),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.error,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
         const SizedBox(height: 9),
         Text(
           context.tr('b2b.cart.revalidation'),
