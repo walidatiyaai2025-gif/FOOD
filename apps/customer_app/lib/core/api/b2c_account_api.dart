@@ -46,7 +46,11 @@ abstract interface class B2cRetailFavoritesApi {
 }
 
 class HttpB2cAccountApi
-    implements B2cAccountApi, B2cRetailFavoritesApi, CustomerContactApi, CustomerRetailInvoiceApi {
+    implements
+        B2cAccountApi,
+        B2cRetailFavoritesApi,
+        CustomerContactApi,
+        CustomerRetailInvoiceApi {
   HttpB2cAccountApi({
     required this.baseUrl,
     this.token,
@@ -139,13 +143,15 @@ class HttpB2cAccountApi
   @override
   Future<Object?> invoicesForStore(int storeId) async {
     _requireToken();
-    return _get('/api/v1/invoices?store_id=$storeId&channel=b2c', storeId: storeId);
+    return _get('/api/v1/invoices?store_id=$storeId&channel=b2c',
+        storeId: storeId);
   }
 
   @override
   Future<Object?> invoiceForStore(int storeId, int invoiceId) async {
     _requireToken();
-    return _get('/api/v1/invoices/$invoiceId?store_id=$storeId&channel=b2c', storeId: storeId);
+    return _get('/api/v1/invoices/$invoiceId?store_id=$storeId&channel=b2c',
+        storeId: storeId);
   }
 
   @override
