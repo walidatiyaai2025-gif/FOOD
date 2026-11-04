@@ -35,7 +35,7 @@
             {{ app()->getLocale()==='ar' ? 'الحد الأدنى لطلبات الجملة (جنيه مصري)' : 'Wholesale minimum order (EGP)' }}
             <input id="wholesale-minimum-order-egp" data-wholesale-minimum-order-input
                    type="number" name="minimum_order_egp" min="0" max="99999999.99" step="0.01" inputmode="decimal" required
-                   value="{{ old('minimum_order_egp', number_format(app(\\App\\Services\\MinimumOrderPolicy::class)->minimumForStore($sfStoreId), 2, '.', '')) }}"
+                   value="{{ old('minimum_order_egp', number_format(app(\App\Services\MinimumOrderPolicy::class)->minimumForStore($sfStoreId), 2, '.', '')) }}"
                    @unless($canManageStorefront) disabled @endunless>
         </label>
         @if($canManageStorefront)
