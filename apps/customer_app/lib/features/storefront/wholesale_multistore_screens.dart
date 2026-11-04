@@ -6082,6 +6082,82 @@ class _CartLine extends StatelessWidget {
   }
 }
 
+double _wholesaleMinimumRemaining(
+  Map<String, dynamic> cart, {
+  Map<String, dynamic>? quoteOverride,
+  double? minimumOverride,
+}) {
+  final currency = (quoteOverride?['currency'] ?? cart['currency'] ?? 'EGP')
+      .toString()
+      .toUpperCase();
+  if (currency != 'EGP') return 0;
+  final minimum = minimumOverride ??
+      doubleValue(cart['minimum_order_egp'], 1500);
+  if (minimum <= 0) return 0;
+
+  final quote = quoteOverride ??
+      (cart['quote'] is Map
+          ? Map<String, dynamic>.from(cart['quote'] as Map)
+          : <String, dynamic>{});
+  final directMerchandise = quoteOverride == null
+      ? double.tryParse((cart['merchandise_total'] ?? '').toString())
+      : null;
+  var merchandise = directMerchandise ??
+      (doubleValue(quote['subtotal'] ?? cart['subtotal'], 0) -
+          doubleValue(quote['discount_total'], 0));
+
+  // Free delivery is not a merchandise discount.
+  for (final key in <String>['promotion', 'coupon']) {
+    final discount = quote[key];
+    if (discount is! Map) continue;
+    final type = (discount['type'] ?? discount['discount_type'] ?? '')
+        .toString()
+        .toLowerCase();
+    if (type == 'free_shipping') {
+      merchandise += doubleValue(
+        quote[key == 'promotion'
+            ? 'promotion_discount_total'
+            : 'coupon_discount_total'],
+        0,
+      );
+    }
+  }
+  return math.max(0, minimum - math.max(0, merchandise)).toDouble();
+}
+
+Future<void> _showWholesaleMinimumPopup(
+  BuildContext context, {
+  required double minimum,
+  required double remaining,
+}) {
+  final isAr = Localizations.localeOf(context).languageCode == 'ar';
+  return showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      key: const ValueKey('b2b-minimum-order-popup'),
+      icon: const Icon(Icons.warning_amber_rounded, color: Color(0xFFB91C1C), size: 42),
+      title: Text(
+        isAr ? 'لم تصل إلى الحد الأدنى لقيمة الطلب' : 'Minimum order not reached',
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: Color(0xFFB91C1C), fontWeight: FontWeight.w900),
+      ),
+      content: Text(
+        isAr
+            ? 'الحد الأدنى للطلب هو ${foodexMoneyText(minimum, 'EGP')}. أضف منتجات بقيمة ${foodexMoneyText(remaining, 'EGP')} لإتمام الطلب.'
+            : 'Minimum order is ${foodexMoneyText(minimum, 'EGP')}. Add ${foodexMoneyText(remaining, 'EGP')} in products to continue.',
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: Color(0xFF991B1B), fontWeight: FontWeight.w700),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: Text(isAr ? 'حسنًا' : 'OK'),
+        ),
+      ],
+    ),
+  );
+}
+
 class _CartTotalPanel extends StatelessWidget {
   const _CartTotalPanel({
     required this.cart,
@@ -6104,11 +6180,8 @@ class _CartTotalPanel extends StatelessWidget {
     final delivery = quote['delivery_total'];
     final tax = quote['tax_total'];
     final total = quote['grand_total'] ?? cart['grand_total'] ?? subtotal;
-    final merchandiseEstimate =
-        doubleValue(subtotal, 0) - doubleValue(discount, 0);
-    final minimumMissing = currency.toUpperCase() == 'EGP'
-        ? (1500 - merchandiseEstimate).clamp(0, double.infinity).toDouble()
-        : 0.0;
+    final minimum = doubleValue(cart['minimum_order_egp'], 1500);
+    final minimumMissing = _wholesaleMinimumRemaining(cart);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -6146,8 +6219,8 @@ class _CartTotalPanel extends StatelessWidget {
           const SizedBox(height: 9),
           Text(
             (Localizations.localeOf(context).languageCode == 'ar'
-                    ? 'الحد الأدنى 1500 جنيه. أضف منتجات بقيمة '
-                    : 'Minimum EGP 1,500. Add products worth ') +
+                    ? 'الحد الأدنى ${money(minimum, currency: currency)}. أضف منتجات بقيمة '
+                    : 'Minimum ${money(minimum, currency: currency)}. Add products worth ') +
                 money(minimumMissing, currency: currency),
             key: const ValueKey('b2b-cart-minimum-warning'),
             style: TextStyle(
@@ -6172,7 +6245,17 @@ class _CartTotalPanel extends StatelessWidget {
             key: const ValueKey('b2b-cart-checkout'),
             enabled: enabled,
             label: context.tr('b2b.action.checkout'),
-            onPressed: onCheckout,
+            onPressed: () {
+              if (minimumMissing > 0.0001) {
+                _showWholesaleMinimumPopup(
+                  context,
+                  minimum: minimum,
+                  remaining: minimumMissing,
+                );
+                return;
+              }
+              onCheckout();
+            },
           ),
         ),
       ],
@@ -6352,6 +6435,7 @@ class _WholesaleCheckoutDesignScreenState
   bool applyingCoupon = false;
   String? appliedCouponCode;
   Map<String, dynamic>? appliedQuote;
+  _CheckoutPayload? _latestCheckoutPayload;
   Map<String, dynamic>? createdOrder;
   final note = TextEditingController();
   final coupon = TextEditingController();
@@ -6408,7 +6492,9 @@ class _WholesaleCheckoutDesignScreenState
         ? Map<String, dynamic>.from(rawCart)
         : <String, dynamic>{};
 
-    return _CheckoutPayload(options: options, cart: cart);
+    final payload = _CheckoutPayload(options: options, cart: cart);
+    _latestCheckoutPayload = payload;
+    return payload;
   }
 
   String _paymentLabel(BuildContext context, String method) {
@@ -6499,6 +6585,28 @@ class _WholesaleCheckoutDesignScreenState
         paymentMethod == null ||
         submitting) {
       return;
+    }
+
+    final payload = _latestCheckoutPayload;
+    if (payload != null) {
+      final minimum = doubleValue(
+        payload.options['minimum_order_egp'] ??
+            payload.cart['minimum_order_egp'],
+        1500,
+      );
+      final remaining = _wholesaleMinimumRemaining(
+        payload.cart,
+        quoteOverride: appliedQuote,
+        minimumOverride: minimum,
+      );
+      if (remaining > 0.0001) {
+        await _showWholesaleMinimumPopup(
+          context,
+          minimum: minimum,
+          remaining: remaining,
+        );
+        return;
+      }
     }
 
     setState(() => submitting = true);
