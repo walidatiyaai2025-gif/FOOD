@@ -54,6 +54,7 @@ CustomerRouteAuthority customerRouteAuthorityFor(
     case CustomerRoutePaths.retailHome:
     case CustomerRoutePaths.retailProductDetails:
     case CustomerRoutePaths.offers:
+    case CustomerRoutePaths.invoices:
     case CustomerRoutePaths.products:
     case CustomerRoutePaths.productDetails:
     case CustomerRoutePaths.categories:
