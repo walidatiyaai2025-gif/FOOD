@@ -294,7 +294,7 @@ final class FlashOfferController extends Controller
             ->sum('reserved_base_quantity');
         $customerUsed = (float) FlashReservation::query()
             ->where('flash_offer_id', $offer->getKey())
-            ->where('user_id', $user->getKey())
+            ->where('user_id', $user?->getKey() ?? 0)
             ->whereIn('status', ['active', 'confirmed'])
             ->sum('reserved_base_quantity');
 
