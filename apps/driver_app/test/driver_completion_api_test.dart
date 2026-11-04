@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodex_driver_app/core/api/http_driver_api.dart';
+import 'package:foodex_driver_app/core/auth/driver_session.dart';
 import 'package:foodex_driver_app/features/delivery/completion/driver_completion_api.dart';
 import 'package:foodex_driver_app/features/delivery/completion/driver_completion_contract.dart';
 import 'package:http/http.dart' as http;
@@ -91,6 +93,66 @@ void main() {
       ),
     );
     expect(sent, isFalse);
+  });
+
+  test('live driver repository surfaces fresh GPS HTTP 428 before completing',
+      () async {
+    final directory = await Directory.systemTemp.createTemp('foodex-live-proof-');
+    addTearDown(() => directory.delete(recursive: true));
+    final proof = File('${directory.path}/proof.jpg');
+    await proof.writeAsBytes([1, 2, 3, 4]);
+    var submitted = false;
+    final repository = HttpDriverAssignmentRepository(
+      'https://foodex.example',
+      'driver-token',
+      client: MockClient((request) async {
+        submitted = true;
+        expect(request.method, 'POST');
+        expect(request.url.path, '/api/v1/driver/assignments/31/status');
+        expect(request.body, contains('name="proof_image"'));
+        return http.Response(
+          '{"code":"DRIVER_LOCATION_HEARTBEAT_REQUIRED","reason":"stale"}',
+          428,
+          headers: {'content-type': 'application/json'},
+        );
+      }),
+    );
+
+    await expectLater(
+      repository.transitionWithProof(31, DriverChannel.b2c, 'delivered', proof.path),
+      throwsA(isA<DriverApiException>().having(
+        (error) => error.message,
+        'message',
+        'driver_location_heartbeat_required',
+      )),
+    );
+    expect(submitted, isTrue);
+  });
+
+  test('live driver repository rejects missing proof before HTTP', () async {
+    var submitted = false;
+    final repository = HttpDriverAssignmentRepository(
+      'https://foodex.example',
+      'driver-token',
+      client: MockClient((request) async {
+        submitted = true;
+        return http.Response('{}', 200);
+      }),
+    );
+    await expectLater(
+      repository.transitionWithProof(
+        31,
+        DriverChannel.b2c,
+        'delivered',
+        '${Directory.systemTemp.path}/foodex-nonexistent-proof.jpg',
+      ),
+      throwsA(isA<DriverApiException>().having(
+        (error) => error.message,
+        'message',
+        'proof_file_missing',
+      )),
+    );
+    expect(submitted, isFalse);
   });
 
   test('completion gateway preserves backend validation failures', () async {
