@@ -336,6 +336,38 @@ class FoodexWholesaleHeader extends StatelessWidget {
     }
   }
 
+  void _defaultFavorites(BuildContext context) {
+    final scope = _scope(context);
+    if (scope?.isWholesale == true) {
+      Navigator.of(context).pushNamed(
+        CustomerRouteLocations.wholesaleFavorites(scope!),
+      );
+      return;
+    }
+    if (scope?.isRetail == true) {
+      Navigator.of(context).pushNamed(
+        CustomerRouteLocations.retailFavorites(scope!),
+      );
+      return;
+    }
+    final current = _currentLocation(context);
+    if (current != null &&
+        Uri.tryParse(current)?.path.startsWith('/b2b') == true) {
+      final uri = Uri.parse(current);
+      final storeId =
+          uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: CustomerRoutePaths.b2bFavorites,
+          queryParameters: <String, String>{
+            if (storeId != null && storeId.isNotEmpty) 'store_id': storeId,
+            'channel': 'wholesale',
+          },
+        ).toString(),
+      );
+    }
+  }
+
   void _defaultCart(BuildContext context) {
     final scope = _scope(context);
     if (scope?.isWholesale == true) {
@@ -473,6 +505,17 @@ class FoodexWholesaleHeader extends StatelessWidget {
             ...trailingActions,
             if (trailingActions.isNotEmpty) const SizedBox(width: 4),
             if (isAuthenticated) ...[
+              Semantics(
+                button: true,
+                label: Localizations.localeOf(context).languageCode == 'ar'
+                    ? 'المفضلة' : 'Favorites',
+                child: _FoodexWholesaleHeaderIcon(
+                  key: const ValueKey('customer-header-favorites'),
+                  icon: Icons.favorite_border_rounded,
+                  onTap: () => _defaultFavorites(context),
+                ),
+              ),
+              const SizedBox(width: 4),
               _FoodexWholesaleHeaderIcon(
                 key: notificationKey,
                 icon: Icons.notifications_none_rounded,
