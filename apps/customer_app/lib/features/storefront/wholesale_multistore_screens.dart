@@ -4625,7 +4625,7 @@ class _WholesaleProductDetailsDesignScreenState
   }
 
   double _sellingFactor(Map<String, dynamic> row) =>
-      math.max(1, doubleValue(_selectedUnit(row)?['conversion_factor'], 1));
+      math.max(1.0, doubleValue(_selectedUnit(row)?['conversion_factor'], 1));
 
   Future<Object?> _submitUnitCartItem(
     double baseQuantity,
@@ -5146,8 +5146,8 @@ class _WholesaleProductDetailsDesignScreenState
                   FoodexQuantityCta(
                     key: const ValueKey('customer-add-cart'),
                     quantity: quantity! / sellingUnitFactor,
-                    increment: math.max(1, increment / sellingUnitFactor),
-                    minimum: math.max(1, minimum / sellingUnitFactor),
+                    increment: math.max(1.0, increment / sellingUnitFactor),
+                    minimum: math.max(1.0, minimum / sellingUnitFactor),
                     palette: FoodexPalette.wholesale,
                     label: revalidating
                         ? context.tr('b2b.product.revalidating')
