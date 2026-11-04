@@ -119,8 +119,10 @@ class CustomerPersistentFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isRetail = commerceContext?.isRetail == true && !forceWholesale;
+    // Six destinations must remain legible on compact 320px devices.
+    final compact = MediaQuery.sizeOf(context).width < 390;
 
-    // Canonical five destinations: Home, Shopping, Offers, Orders, Invoices.
+    // Canonical six destinations: Home, Shopping, Offers, Orders, Invoices, More.
     // Favorites now lives beside Notifications in the shared customer header.
     final items = <_FooterItem>[
       _FooterItem(
@@ -152,6 +154,12 @@ class CustomerPersistentFooter extends StatelessWidget {
         label: context.tr('customer.nav.invoices'),
         icon: Icons.description_outlined,
         activeIcon: Icons.description_rounded,
+      ),
+      _FooterItem(
+        destination: CustomerFooterDestination.account,
+        label: context.tr('customer.nav.more'),
+        icon: Icons.more_horiz_rounded,
+        activeIcon: Icons.more_horiz_rounded,
       ),
     ];
 
@@ -188,6 +196,7 @@ class CustomerPersistentFooter extends StatelessWidget {
                           item: item,
                           active: item.destination == activeDestination,
                           enabled: !disabled,
+                          compact: compact,
                           onTap: disabled ||
                                   (isRetail &&
                                       item.destination == activeDestination &&
@@ -313,12 +322,14 @@ class _FooterButton extends StatelessWidget {
     required this.active,
     required this.enabled,
     required this.onTap,
+    required this.compact,
     super.key,
   });
 
   final _FooterItem item;
   final bool active;
   final bool enabled;
+  final bool compact;
   final VoidCallback? onTap;
 
   @override
@@ -354,7 +365,7 @@ class _FooterButton extends StatelessWidget {
                 AnimatedContainer(
                   duration: duration,
                   curve: CustomerUiMotion.emphasisCurve,
-                  width: active ? 58 : 46,
+                  width: compact ? (active ? 44 : 38) : (active ? 58 : 46),
                   height: 42,
                   decoration: BoxDecoration(
                     color:
@@ -363,7 +374,7 @@ class _FooterButton extends StatelessWidget {
                   ),
                   child: Icon(
                     active ? item.activeIcon : item.icon,
-                    size: active ? 27 : 24,
+                    size: compact ? (active ? 24 : 22) : (active ? 27 : 24),
                     color: active
                         ? CustomerUiColors.deepGreenStrong
                         : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -384,7 +395,7 @@ class _FooterButton extends StatelessWidget {
                               : Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight:
                               active ? FontWeight.w900 : FontWeight.w700,
-                          fontSize: 10.5,
+                          fontSize: compact ? 9.5 : 10.5,
                           height: 1.05,
                         ),
                   ),
