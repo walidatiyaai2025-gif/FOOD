@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
+import '../../core/api/customer_action_api.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../core/theme/customer_display_preferences.dart';
@@ -1478,27 +1479,92 @@ class FoodexDetailAccordion extends StatelessWidget {
       );
 }
 
-Future<void> showOperationalError(BuildContext context, Object error) =>
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          icon: const Icon(
-            Icons.error_outline_rounded,
-            color: Color(0xFFB42318),
-          ),
-          title: const Text('تعذر تنفيذ العملية'),
-          content: Text(error.toString().replaceFirst('Exception: ', '')),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('حسنًا'),
-            ),
-          ],
+/// Show safe, actionable server-side validation instead of an opaque Dart type.
+/// The backend remains authoritative for price, stock and commercial rules.
+String operationalErrorMessage(Object error, {required bool isArabic}) {
+  final generic = isArabic
+      ? 'تعذر تنفيذ العملية. حاول مجددًا، وإذا استمرت المشكلة تواصل مع الدعم.'
+      : 'Unable to complete the action. Try again or contact support.';
+  if (error is CustomerActionException) {
+    final code = error.code.trim();
+    final normalized = code.toLowerCase();
+    if (normalized == 'authentication_required' ||
+        normalized == 'unauthenticated' ||
+        normalized == 'http_401') {
+      return isArabic
+          ? 'انتهت جلسة تسجيل الدخول. سجل الدخول مجددًا ثم حاول مرة أخرى.'
+          : 'Your session has expired. Sign in again and retry.';
+    }
+    if (normalized == 'http_403' || normalized == 'forbidden') {
+      return isArabic
+          ? 'لا يسمح حسابك بتنفيذ هذا الطلب. راجع صلاحيات حسابك.'
+          : 'Your account cannot perform this action. Check account access.';
+    }
+    if (normalized == 'store_required') {
+      return isArabic
+          ? 'اختر متجرًا قبل إضافة المنتج إلى السلة.'
+          : 'Select a store before adding this product to the cart.';
+    }
+    if (normalized == 'http_409' ||
+        normalized == 'stale_cart' ||
+        normalized == 'stock_unavailable') {
+      return isArabic
+          ? 'تغير السعر أو المخزون أو شروط البيع. حدّث المنتج وراجع الكمية ثم حاول مجددًا.'
+          : 'Price, stock, or sale terms changed. Refresh the item and review the quantity.';
+    }
+    for (final messages in error.fieldErrors.values) {
+      for (final message in messages) {
+        final text = message.trim();
+        if (text.isNotEmpty && text.length <= 240) return text;
+      }
+    }
+    // Some legacy endpoints put a user-readable message in "message" instead
+    // of "code". Never show raw Dart exception identities or server internals.
+    if (code.length <= 200 &&
+        (RegExp(r'[\\u0600-\\u06FF]').hasMatch(code) ||
+            (code.contains(' ') &&
+                !code.contains('Exception') &&
+                !code.contains('StackTrace')))) {
+      return code;
+    }
+    if (RegExp(r'^[A-Za-z0-9_\\-]{1,60}$').hasMatch(code)) {
+      return '$generic ($code)';
+    }
+    return generic;
+  }
+  final text = error.toString().replaceFirst('Exception: ', '').trim();
+  if (text.isEmpty ||
+      text.startsWith('Instance of ') ||
+      text.contains('StackTrace') ||
+      text.length > 240) {
+    return generic;
+  }
+  return text;
+}
+
+Future<void> showOperationalError(BuildContext context, Object error) {
+  final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+  return showDialog<void>(
+    context: context,
+    builder: (dialogContext) => Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: AlertDialog(
+        icon: const Icon(
+          Icons.error_outline_rounded,
+          color: Color(0xFFB42318),
         ),
+        title: Text(isArabic ? 'تعذر تنفيذ العملية' : 'Action could not be completed'),
+        content: Text(operationalErrorMessage(error, isArabic: isArabic)),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(isArabic ? 'حسنًا' : 'OK'),
+          ),
+        ],
       ),
-    );
+    ),
+  );
+}
 
 List<Map<String, dynamic>> mapRows(Object? value) =>
     (value as List? ?? const <Object>[])
