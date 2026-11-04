@@ -355,8 +355,14 @@ final class InvoiceService
                     'product_id' => $item->product_id === null ? null : (int) $item->product_id,
                     'sku' => $item->sku_snapshot,
                     'name' => (string) $item->description,
-                    'quantity' => (float) $item->quantity,
-                    'unit_price' => (float) $item->unit_price,
+                    'quantity' => (float) (data_get($item->line_snapshot, 'selling_unit_quantity') ?? $item->quantity),
+                    'base_quantity' => (float) $item->quantity,
+                    'selling_unit_code' => data_get($item->line_snapshot, 'selling_unit_code'),
+                    'selling_unit_name' => data_get($item->line_snapshot, 'selling_unit_name'),
+                    'unit_price' => round(
+                        (float) $item->unit_price * max(1.0, (float) ($item->quantity_conversion_factor ?? 1)),
+                        3,
+                    ),
                     'discount_total' => (float) ($item->line_discount_total ?? 0),
                     'tax_total' => (float) ($item->line_tax_total ?? 0),
                     'line_total' => (float) $item->line_total,
@@ -403,7 +409,9 @@ final class InvoiceService
 
         $rows = '';
         foreach ((array) ($data['items'] ?? []) as $item) {
-            $rows .= '<tr><td>'.$e($item['name']).'<br><small>'.$e($item['sku']).'</small></td>'
+            $rows .= '<tr><td>'.$e($item['name']).'<br><small>'.$e($item['sku'])
+                .($item['selling_unit_name'] === null ? '' : ' · '.$e($item['selling_unit_name']))
+                .'</small></td>'
                 .'<td>'.$e($item['quantity']).'</td><td>'.$money($item['unit_price']).'</td>'
                 .'<td>'.$money($item['line_total']).' '.$e($data['currency']).'</td></tr>';
         }
