@@ -112,6 +112,7 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/stores/{store}/categories', [GuestCatalogController::class, 'categories']);
     Route::get('/stores/{store}/products', [GuestCatalogController::class, 'products']);
     Route::get('/stores/{store}/offers', [GuestCatalogController::class, 'offers']);
+    Route::get('/flash-offers/public', [FlashOfferController::class, 'publicIndex'])->middleware('throttle:120,1');
     Route::get('/stores/{store}/banners', [GuestCatalogController::class, 'banners']);
     Route::get('/stores/{store}/storefront', [StorefrontController::class, 'show']);
     Route::get('/catalog/images/{image}/thumbnail', [CustomerCatalogImageController::class, 'thumbnail'])
