@@ -176,7 +176,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
-      setState(() => future = _load(search.text));
+      setState(() {
+        future = _load(search.text);
+      });
     }
   }
 
@@ -274,7 +276,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
     syncFoodexWholesaleCartProductCount(null);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      setState(() => future = _load(search.text));
+      setState(() {
+        future = _load(search.text);
+      });
     });
   }
 
@@ -324,7 +328,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                   child: FoodexErrorState(
                     key: const ValueKey('b2b-error'),
                     message: 'تعذر تحميل متجر الجملة.',
-                    onRetry: () => setState(() => future = _load(search.text)),
+                    onRetry: () => setState(() {
+                      future = _load(search.text);
+                    }),
                   ),
                 ),
               );
@@ -679,7 +685,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                         'customer.products.search_name_sku_barcode',
                       ),
                       onSearchSubmitted: (value) =>
-                          setState(() => future = _load(value)),
+                          setState(() {
+                            future = _load(value);
+                          }),
                       onCart: () => Navigator.of(context)
                           .pushNamed('/b2b/cart?store=' + storeId.toString()),
                     ),
@@ -2368,10 +2376,13 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
     try {
       var quantityToAdd = minimum;
       final actionApi = widget.actionApi;
-      if (actionApi is CustomerWholesaleProductTermsApi) {
+      final termsApi = actionApi is CustomerWholesaleProductTermsApi
+          ? actionApi as CustomerWholesaleProductTermsApi
+          : null;
+      if (termsApi != null) {
         // Homepage merchandising may be cached or guest-scoped. The actual
         // active customer's live B2B limits must authorize every quick add.
-        final terms = await actionApi.wholesaleProductTerms(
+        final terms = await termsApi.wholesaleProductTerms(
           storeId: widget.storeId,
           productId: id,
         );
@@ -2811,7 +2822,9 @@ class _WholesaleFavoritesDesignScreenState
     };
   }
 
-  void _reload() => setState(() => future = _load());
+  void _reload() => setState(() {
+    future = _load();
+  });
 
   List<Map<String, dynamic>> _rows(Object? raw) {
     final needle = search.text.trim().toLowerCase();
@@ -3347,7 +3360,9 @@ class _WholesaleCatalogDesignScreenState
                 child: FoodexErrorState(
                   key: const ValueKey('b2b-catalog-error'),
                   message: context.tr('b2b.catalog.load_error'),
-                  onRetry: () => setState(() => future = _load(search.text)),
+                  onRetry: () => setState(() {
+                    future = _load(search.text);
+                  }),
                 ),
               ),
             );
@@ -5698,7 +5713,9 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
       if (mounted) {
         await showOperationalError(context, error);
         if (mounted) {
-          setState(() => future = _load());
+          setState(() {
+            future = _load();
+          });
         }
       }
     }
@@ -5852,7 +5869,9 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                       snapshot.error!,
                       isArabic: Localizations.localeOf(context).languageCode == 'ar',
                     ),
-                    onRetry: () => setState(() => future = _load()),
+                    onRetry: () => setState(() {
+                      future = _load();
+                    }),
                   );
                 }
 
@@ -6513,7 +6532,9 @@ class _WholesaleCheckoutDesignScreenState
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted && !submitting) {
-      setState(() => future = _load());
+      setState(() {
+        future = _load();
+      });
     }
   }
 
@@ -6708,7 +6729,9 @@ class _WholesaleCheckoutDesignScreenState
       setState(() => submitting = false);
       await showOperationalError(context, error);
       if (mounted) {
-        setState(() => future = _load());
+        setState(() {
+          future = _load();
+        });
       }
     }
   }
@@ -6823,7 +6846,9 @@ class _WholesaleCheckoutDesignScreenState
                   return FoodexErrorState(
                     key: const ValueKey('b2b-checkout-error'),
                     message: context.tr('b2b.cart.subtitle'),
-                    onRetry: () => setState(() => future = _load()),
+                    onRetry: () => setState(() {
+                      future = _load();
+                    }),
                   );
                 }
 
