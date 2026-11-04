@@ -113,6 +113,7 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/stores/{store}/products', [GuestCatalogController::class, 'products']);
     Route::get('/stores/{store}/offers', [GuestCatalogController::class, 'offers']);
     Route::get('/flash-offers/public', [FlashOfferController::class, 'publicIndex'])->middleware('throttle:120,1');
+    Route::get('/b2b/flash-offers/public', [FlashOfferController::class, 'publicWholesaleIndex'])->middleware('throttle:120,1');
     Route::get('/stores/{store}/banners', [GuestCatalogController::class, 'banners']);
     Route::get('/stores/{store}/storefront', [StorefrontController::class, 'show']);
     Route::get('/catalog/images/{image}/thumbnail', [CustomerCatalogImageController::class, 'thumbnail'])
@@ -338,6 +339,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/profile/favorites/{product}', [CustomerProfileController::class, 'addFavorite']);
         Route::delete('/profile/favorites/{product}', [CustomerProfileController::class, 'removeFavorite']);
 
+        Route::get('/b2b/flash-offers', [FlashOfferController::class, 'wholesaleIndex'])->middleware('throttle:120,1');
         Route::get('/flash-offers', [FlashOfferController::class, 'index'])->middleware('throttle:120,1');
         Route::post('/flash-offers/{offer}/events', [FlashOfferController::class, 'event'])->whereNumber('offer')->middleware('throttle:240,1');
         Route::post('/flash-offers/products/{offerProduct}/reserve', [FlashOfferController::class, 'reserve'])->whereNumber('offerProduct')->middleware('throttle:60,1');
