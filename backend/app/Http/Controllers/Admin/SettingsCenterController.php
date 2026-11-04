@@ -55,6 +55,7 @@ final class SettingsCenterController extends Controller
                 || $user->hasPermission('lookups.manage')
                 || $visibleNavigationKeys->contains('lookup_management'),
             'system_lookups' => $superAdmin && $user->hasPermission('lookups.manage'),
+            'document_branding' => $superAdmin || $canOperationalSettings,
             'b2b_settings' => $superAdmin || $canOperationalSettings,
             'b2b_storefront' => $superAdmin || $visibleNavigationKeys->contains('b2b_storefront'),
             'b2b_web_storefront' => $superAdmin || $visibleNavigationKeys->contains('b2b_web_storefront'),
@@ -91,6 +92,7 @@ final class SettingsCenterController extends Controller
                 'items' => [
                     ['key' => 'lookups', 'icon' => 'REF', 'title' => __('admin.settings_center.items.lookups'), 'description' => __('admin.settings_center.items.lookups_description'), 'route' => 'admin.lookups.index', 'params' => [], 'fragment' => null, 'allowed' => $access['lookups']],
                     ['key' => 'system_lookups', 'icon' => 'SYS', 'title' => __('admin.settings_center.items.system_lookups'), 'description' => __('admin.settings_center.items.system_lookups_description'), 'route' => 'admin.operations.lookups.index', 'params' => [], 'fragment' => null, 'allowed' => $access['system_lookups']],
+                    ['key' => 'document_branding', 'icon' => 'PDF', 'title' => app()->getLocale() === 'ar' ? 'بيانات الشركة للمطبوعات' : 'Document company identity', 'description' => app()->getLocale() === 'ar' ? 'الشعار والعنوان وأرقام الهاتف للفواتير والتقارير' : 'Logo, address and phones on invoices and reports', 'route' => 'admin.documents.branding.index', 'params' => [], 'fragment' => null, 'allowed' => $access['document_branding']],
                     ['key' => 'b2b_settings', 'icon' => 'B2B', 'title' => __('admin.settings_center.items.b2b_settings'), 'description' => __('admin.settings_center.items.b2b_settings_description'), 'route' => 'admin.b2b.settings-permissions', 'params' => [], 'fragment' => null, 'allowed' => $access['b2b_settings']],
                     ['key' => 'b2b_storefront', 'icon' => 'APP', 'title' => __('admin.settings_center.items.b2b_storefront'), 'description' => __('admin.settings_center.items.b2b_storefront_description'), 'route' => 'admin.b2b.module', 'params' => ['module' => 'storefront'], 'fragment' => null, 'allowed' => $access['b2b_storefront']],
                     ['key' => 'b2b_web_storefront', 'icon' => 'WEB', 'title' => __('admin.settings_center.items.b2b_web_storefront'), 'description' => __('admin.settings_center.items.b2b_web_storefront_description'), 'route' => 'admin.b2b.module', 'params' => ['module' => 'web_storefront'], 'fragment' => null, 'allowed' => $access['b2b_web_storefront']],
