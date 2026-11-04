@@ -28,6 +28,7 @@
     data-menu-search-results="{{ trans('smart_ordering_storefront.search.results', [], $locale) }}"
     data-menu-search-clear="{{ trans('smart_ordering_storefront.search.clear', [], $locale) }}"
     data-ordering-enabled="{{ ($ordering['enabled'] ?? false) ? '1' : '0' }}"
+    data-ordering-minimum-egp="{{ (float) config('checkout.minimum_merchandise_total_egp', 1500) }}"
     data-ordering-site="{{ $ordering['site_slug'] ?? '' }}"
     data-ordering-branch="{{ $ordering['branch_public_id'] ?? '' }}"
     data-ordering-revision="{{ $ordering['revision_public_id'] ?? '' }}"
@@ -93,6 +94,7 @@
                 <div data-cart-discount-row hidden><dt>{{ $locale === 'ar' ? 'الخصم' : 'Discount' }}</dt><dd data-cart-discount>—</dd></div>
                 <div><dt>{{ $locale === 'ar' ? 'الإجمالي' : 'Total' }}</dt><dd data-cart-total>—</dd></div>
             </dl>
+            <p class="so-inline-error" data-cart-minimum role="alert" aria-live="polite" hidden></p>
             <form class="so-checkout-form" data-checkout-form novalidate>
                 <h3>{{ $locale === 'ar' ? 'إتمام الطلب' : 'Checkout' }}</h3>
                 <label>
