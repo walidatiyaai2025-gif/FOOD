@@ -337,8 +337,12 @@ final class CustomerReplicaReportPdfService
         $landscape = $type !== CustomerReplicaReportService::ACCOUNT_STATEMENT;
         $pageWidth = $landscape ? 297.0 : 210.0;
         $footerY = $landscape ? 202.5 : 289.0;
+        $brand = app(DocumentBrandingService::class)->identity();
+        $contact = $brand['name'].' · '.$brand['address']
+            .' · '.$brand['phone_primary'].' / '.$brand['phone_secondary'];
         for ($page = 1; $page <= $pages; $page++) {
             $pdf->setPage($page);
+            $this->cell($pdf, 4, $footerY - 6, $pageWidth - 8, 4, $contact, false, 'C', 5.5, false, null, [50, 70, 66], 0);
             $this->cell($pdf, ($pageWidth / 2) - 20, $footerY, 40, 5, (string) $page, false, 'C', 6.2, false, null, [0, 0, 0], 0);
             $this->cell($pdf, $pageWidth - 55, $footerY, 50, 5, 'Page '.$page.' of '.$pages, false, 'R', 6.2, false, null, [0, 0, 0], 0);
         }
@@ -352,6 +356,22 @@ final class CustomerReplicaReportPdfService
 
     private function logo(TCPDF $pdf, float $x, float $y, float $w, float $h): void
     {
+        $dataUri = app(DocumentBrandingService::class)->identity()['logo_data_uri'];
+        if (is_string($dataUri)
+            && preg_match('#^data:image/(png|jpeg);base64,#', $dataUri, $matches) === 1) {
+            $encoded = substr($dataUri, strlen($matches[0]));
+            $imageBytes = base64_decode($encoded, true);
+            if (is_string($imageBytes)) {
+                try {
+                    $pdf->Image('@'.$imageBytes, $x, $y, $w, $h, '', '', '', true, 300);
+
+                    return;
+                } catch (Throwable) {
+                    // Fall back to the existing official bundled brand asset.
+                }
+            }
+        }
+
         $path = public_path('brand/foodex-economical-group.webp');
         if (is_file($path)) {
             try {
