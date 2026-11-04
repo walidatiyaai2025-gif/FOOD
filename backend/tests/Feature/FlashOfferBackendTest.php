@@ -172,6 +172,42 @@ class FlashOfferBackendTest extends TestCase
         );
     }
 
+    public function test_public_offers_show_only_available_untargeted_retail_products(): void
+    {
+        [$offer, $product] = $this->offer();
+
+        $this->getJson('/api/v1/flash-offers/public?store_id='.$this->storeId)
+            ->assertOk()
+            ->assertJsonPath('data.0.id', (int) $offer->id)
+            ->assertJsonPath('data.0.products.0.id', (int) $product->id)
+            ->assertJsonPath('data.0.products.0.product_id', $this->productId)
+            ->assertJsonPath('data.0.products.0.name', 'Flash Product')
+            ->assertJsonPath('data.0.products.0.sku', 'FLASH-001')
+            ->assertJsonPath('data.0.products.0.selling_unit_name', 'CARTON')
+            ->assertJsonPath('data.0.products.0.flash_price', 7)
+            ->assertJsonPath('data.0.products.0.normal_price', 100)
+            ->assertJsonPath('data.0.products.0.available_quantity', 2);
+
+        // Zero available inventory must remove the product, not advertise
+        // an offer the user cannot actually reserve.
+        DB::table('inventories')->where('id', $this->inventoryId)
+            ->update(['reserved_quantity' => 100]);
+        $this->getJson('/api/v1/flash-offers/public?store_id='.$this->storeId)
+            ->assertOk()->assertJsonCount(0, 'data');
+
+        DB::table('inventories')->where('id', $this->inventoryId)
+            ->update(['reserved_quantity' => 0]);
+        $offer->update(['audience_customer_ids' => [987654]]);
+        $this->getJson('/api/v1/flash-offers/public?store_id='.$this->storeId)
+            ->assertOk()->assertJsonCount(0, 'data');
+
+        $offer->update(['audience_customer_ids' => null]);
+        DB::table('store_products')->where('store_id', $this->storeId)
+            ->where('product_id', $this->productId)->update(['is_active' => false]);
+        $this->getJson('/api/v1/flash-offers/public?store_id='.$this->storeId)
+            ->assertOk()->assertJsonCount(0, 'data');
+    }
+
     public function test_customer_flash_contract_converts_reservation_to_order_invoice_quota_and_order_inventory_reservation(): void
     {
         [$offer, $offerProduct] = $this->offer();
@@ -209,7 +245,10 @@ class FlashOfferBackendTest extends TestCase
             ->assertJsonPath('data.0.selling_units.0.id', $offerProduct->id)
             ->assertJsonPath('data.0.flash_price', 7)
             ->assertJsonPath('data.0.normal_price', 10)
-            ->assertJsonPath('data.0.eligible', true);
+            ->assertJsonPath('data.0.eligible', true)
+            ->assertJsonPath('data.0.products.0.id', (int) $offerProduct->id)
+            ->assertJsonPath('data.0.products.0.name', 'Flash Product')
+            ->assertJsonPath('data.0.products.0.available_quantity', 2);
 
         $reserve = $this->withHeaders([
             'X-FOODEX-Store-ID' => (string) $this->storeId,
