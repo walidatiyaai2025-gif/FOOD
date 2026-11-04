@@ -154,6 +154,17 @@ class HttpStorefrontApi implements StorefrontApi {
     }
   }
 
+  /// B2B Flash is a Van-fulfillment catalogue, not direct Customer checkout.
+  Future<Map<String, dynamic>> wholesaleFlashOffers(
+    int storeId, {
+    bool authenticated = false,
+  }) async => _asMap(await _get(
+        authenticated && token != null && token!.isNotEmpty
+            ? '/api/v1/b2b/flash-offers'
+            : '/api/v1/b2b/flash-offers/public',
+        query: {'store_id': '$storeId'},
+      ));
+
   @override
   Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async =>
       _asMap(
