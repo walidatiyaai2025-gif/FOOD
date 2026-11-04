@@ -484,6 +484,14 @@ String _submitErrorMessage(BuildContext context, Object error) {
         return context.tr('driver.completion.proof_too_large');
       case 'proof_upload_failed':
         return context.tr('driver.completion.proof_upload_failed');
+      case 'driver_location_heartbeat_required':
+        return context.tr('driver.completion.location_required');
+      case 'proof_upload_validation_failed':
+        return context.tr('driver.completion.proof_validation_failed');
+      case 'delivery_validation_failed':
+        return context.tr('driver.completion.validation_failed');
+      case 'stale_assignment':
+        return context.tr('driver.completion.stale_assignment');
     }
   }
   return context.tr('driver.completion.submit_failed');
