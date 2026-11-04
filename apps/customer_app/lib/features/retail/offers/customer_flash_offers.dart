@@ -393,12 +393,15 @@ class CustomerFlashOffersScreen extends StatefulWidget {
       _CustomerFlashOffersScreenState();
 }
 
-class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
+class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen>
+    with WidgetsBindingObserver {
   List<CustomerFlashOffer> _offers = const [];
   CustomerFlashReservation? _reservation;
   Object? _error;
   bool _busy = true;
   Timer? _ticker;
+  Timer? _autoRefresh;
+  int _loadGeneration = 0;
   final Stopwatch _serverClock = Stopwatch();
 
   bool get _ar => Localizations.localeOf(context).languageCode == 'ar';
@@ -406,7 +409,12 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _serverClock.start();
+    _autoRefresh = Timer.periodic(const Duration(seconds: 45), (_) {
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      unawaited(_load(silent: true));
+    });
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       final reservation = _reservation;
@@ -420,28 +428,36 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
+  Future<void> _load({bool silent = false}) async {
+    final generation = ++_loadGeneration;
+    if (!silent) {
+      setState(() {
+        _busy = true;
+        _error = null;
+      });
+    }
     try {
       final results = await Future.wait<Object?>([
         widget.api.activeOffers(storeId: widget.storeId),
         widget.api.activeReservation(storeId: widget.storeId),
       ]);
-      if (!mounted) return;
+      if (!mounted || generation != _loadGeneration) return;
       _serverClock
         ..reset()
         ..start();
       setState(() {
         _offers = results[0] as List<CustomerFlashOffer>;
         _reservation = results[1] as CustomerFlashReservation?;
+        _error = null;
       });
     } catch (error) {
-      if (mounted) setState(() => _error = error);
+      if (mounted && generation == _loadGeneration) {
+        setState(() => _error = error);
+      }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted && generation == _loadGeneration && !silent) {
+        setState(() => _busy = false);
+      }
     }
   }
 
@@ -484,8 +500,31 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant CustomerFlashOffersScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.storeId != widget.storeId ||
+        oldWidget.api != widget.api ||
+        oldWidget.isAuthenticated != widget.isAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_load());
+      });
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted &&
+        (ModalRoute.of(context)?.isCurrent ?? true)) {
+      unawaited(_load(silent: true));
+    }
+  }
+
+  @override
   void dispose() {
+    ++_loadGeneration;
+    _autoRefresh?.cancel();
     _ticker?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -498,6 +537,12 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
         title: _ar ? 'العروض السريعة' : 'Flash Offers',
         searchHint: context.tr('customer.products.search_name_sku_barcode'),
         trailingActions: [
+          IconButton(
+            key: const ValueKey('customer-flash-offers-refresh'),
+            tooltip: _ar ? 'تحديث العروض' : 'Refresh offers',
+            onPressed: () => unawaited(_load()),
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+          ),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: Colors.white),
             onPressed: widget.onOpenNormalOffers,
@@ -507,6 +552,8 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
         child: RefreshIndicator(
           onRefresh: _load,
           child: ListView(
+            key: const ValueKey('customer-flash-offers-list'),
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             children: [
               if (_reservation != null)
