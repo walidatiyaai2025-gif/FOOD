@@ -55,7 +55,7 @@ final class SettingsCenterController extends Controller
                 || $user->hasPermission('lookups.manage')
                 || $visibleNavigationKeys->contains('lookup_management'),
             'system_lookups' => $superAdmin && $user->hasPermission('lookups.manage'),
-            'document_branding' => $superAdmin || $canOperationalSettings,
+            'document_branding' => $superAdmin,
             'b2b_settings' => $superAdmin || $canOperationalSettings,
             'b2b_storefront' => $superAdmin || $visibleNavigationKeys->contains('b2b_storefront'),
             'b2b_web_storefront' => $superAdmin || $visibleNavigationKeys->contains('b2b_web_storefront'),
