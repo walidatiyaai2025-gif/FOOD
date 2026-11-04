@@ -496,6 +496,12 @@ final class CommercialDashboardController extends Controller
         ]);
 
         $channels = collect($data['channels'])->map(static fn ($item): string => (string) $item)->unique()->values()->all();
+        if (app(OperationalTenantScope::class)->storeChannel($storeId) === 'b2b'
+            && $channels !== ['van']) {
+            throw ValidationException::withMessages([
+                'channels' => [__('commercial.validation.wholesale_flash_van_only')],
+            ]);
+        }
         $audienceCustomerIds = collect($data['audience_customer_ids'] ?? [])->map(static fn ($id): int => (int) $id)->filter()->unique()->values()->all();
         $audienceCustomerGroupIds = collect($data['audience_customer_group_ids'] ?? [])->map(static fn ($id): int => (int) $id)->filter()->unique()->values()->all();
         $audienceRegions = collect($data['audience_regions'] ?? [])->map(static fn ($item): string => trim((string) $item))->filter()->unique()->values()->all();
