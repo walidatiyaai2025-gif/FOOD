@@ -23,10 +23,10 @@ class InvoiceCompanyIdentityPresentationTest extends TestCase
         $this->assertStringContainsString("@include('admin._invoice-company-identity')", $orderPopup);
         $this->assertStringContainsString('data-invoice-company-identity', $partial);
         $this->assertStringContainsString('class="foodex-invoice-company-logo"', $partial);
-        $this->assertStringContainsString('align-items: flex-end;', $partial);
+        $this->assertStringContainsString('align-items: center;', $partial);
         $this->assertStringContainsString('direction: rtl;', $partial);
-        $this->assertStringContainsString('text-align: right;', $partial);
-        $this->assertStringContainsString('object-position: right center;', $partial);
+        $this->assertStringContainsString('text-align: center;', $partial);
+        $this->assertStringContainsString('object-position: center center;', $partial);
         $this->assertStringContainsString("['address']", $partial);
         $this->assertStringContainsString("['phone_secondary']", $partial);
         $this->assertStringContainsString("['phone_primary']", $partial);
@@ -61,13 +61,13 @@ class InvoiceCompanyIdentityPresentationTest extends TestCase
         $this->assertStringContainsString("'Telephone'", $service);
         $this->assertStringContainsString("'موبايل'", $service);
         $this->assertStringContainsString("'تليفون'", $service);
-        $this->assertStringContainsString('align="right" style="text-align:right"', $service);
+        $this->assertStringContainsString('align="center" style="text-align:center"', $service);
         $this->assertStringContainsString("implode('<br>', \$contactLines)", $service);
         $print = file_get_contents(resource_path('views/admin/_order-popup-isolated-print.blade.php'));
         $this->assertIsString($print);
-        $this->assertStringContainsString('align-items:flex-end; direction:rtl; text-align:right; width:100%', $print);
-        $this->assertStringContainsString('object-position:right center; margin:0 0 4px auto;', $print);
-        $this->assertStringContainsString('text-align:right; max-width:100%; white-space:nowrap', $print);
+        $this->assertStringContainsString('align-items:center; direction:rtl; text-align:center; width:100%', $print);
+        $this->assertStringContainsString('object-position:center center; margin:0 auto 4px;', $print);
+        $this->assertStringContainsString('text-align:center; max-width:100%; white-space:nowrap', $print);
         $this->assertStringContainsString('data-order-popup-content="{{ $kind }}"', file_get_contents(resource_path('views/admin/_order-operation-popup.blade.php')));
         $this->assertStringContainsString('.order-popup-content[data-order-popup-content="invoice"] .order-print-header { display: none !important; }', $partial);
     }
