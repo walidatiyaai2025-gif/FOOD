@@ -88,8 +88,9 @@ void main() {
       final offersRoute = Uri.parse(
         tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
       );
-      expect(offersRoute.path, CustomerRoutePaths.b2bProducts);
-      expect(offersRoute.queryParameters['section'], 'offers');
+      expect(offersRoute.path, CustomerRoutePaths.b2bOffers);
+      expect(offersRoute.queryParameters.containsKey('section'), isFalse);
+      expect(offersRoute.path, isNot(route.path));
       expect(offersRoute.queryParameters['store_id'], '70');
       expect(offersRoute.queryParameters['channel'], 'wholesale');
 
