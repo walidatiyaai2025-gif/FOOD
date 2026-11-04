@@ -6,6 +6,8 @@ import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 
 import '../../core/api/customer_action_api.dart';
 import '../../core/localization/app_translations.dart';
+import '../../core/routing/customer_commerce_context.dart';
+import '../../core/routing/customer_routes.dart';
 import '../../core/network/customer_data_mode.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'customer_order_models.dart';
@@ -1546,6 +1548,26 @@ class _OrderItems extends StatelessWidget {
           .map(
             (item) => ListTile(
               contentPadding: EdgeInsets.zero,
+              key: ValueKey('customer-order-item-product-${item.productId}'),
+              enabled: item.productId > 0 && details.summary.storeId > 0,
+              onTap: item.productId <= 0 || details.summary.storeId <= 0
+                  ? null
+                  : () {
+                      final wholesale =
+                          details.summary.channel.toLowerCase() == 'b2b';
+                      final scope = CustomerCommerceContext(
+                        channel: wholesale
+                            ? CustomerCommerceChannel.wholesale
+                            : CustomerCommerceChannel.retail,
+                        storeId: details.summary.storeId,
+                      );
+                      final productLocation = wholesale
+                          ? CustomerRouteLocations.wholesaleProduct(
+                              scope, item.productId)
+                          : CustomerRouteLocations.retailProduct(
+                              scope, item.productId);
+                      Navigator.of(context).pushNamed(productLocation);
+                    },
               title: Text(item.name.isEmpty ? item.sku : item.name),
               subtitle: Text(
                 '${context.tr('customer.cart.quantity')}: ${_quantity(item.quantity)}',
