@@ -8,6 +8,7 @@ import '../core/theme/customer_ui_v3_tokens.dart';
 enum CustomerFooterDestination {
   home,
   products,
+  offers,
   cart,
   orders,
   favorites,
@@ -117,79 +118,41 @@ class CustomerPersistentFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isWholesale = commerceContext?.isWholesale ?? forceWholesale;
     final isRetail = commerceContext?.isRetail == true;
-    final items = isWholesale
-        ? <_FooterItem>[
-            _FooterItem(
-              destination: CustomerFooterDestination.home,
-              label: context.tr('customer.nav.home'),
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.products,
-              label: context.tr('customer.nav.shopping'),
-              icon: Icons.shopping_cart_outlined,
-              activeIcon: Icons.shopping_cart_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.orders,
-              label: context.tr('customer.profile.orders'),
-              icon: Icons.receipt_long_outlined,
-              activeIcon: Icons.receipt_long_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.favorites,
-              label: context.tr('customer.profile.favorites'),
-              icon: Icons.favorite_border_rounded,
-              activeIcon: Icons.favorite_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.invoices,
-              label: context.tr('customer.nav.invoices'),
-              icon: Icons.description_outlined,
-              activeIcon: Icons.description_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.account,
-              label: context.tr('customer.nav.more'),
-              icon: Icons.more_horiz_rounded,
-              activeIcon: Icons.more_horiz_rounded,
-            ),
-          ]
-        : <_FooterItem>[
-            _FooterItem(
-              destination: CustomerFooterDestination.home,
-              label: context.tr('customer.nav.home'),
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.products,
-              label: context.tr('customer.nav.products'),
-              icon: Icons.grid_view_outlined,
-              activeIcon: Icons.grid_view_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.cart,
-              label: context.tr('customer.nav.cart'),
-              icon: Icons.shopping_bag_outlined,
-              activeIcon: Icons.shopping_bag_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.orders,
-              label: context.tr('customer.profile.orders'),
-              icon: Icons.receipt_long_outlined,
-              activeIcon: Icons.receipt_long_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.account,
-              label: context.tr('customer.nav.profile'),
-              icon: Icons.person_outline_rounded,
-              activeIcon: Icons.person_rounded,
-            ),
-          ];
+    // Canonical five destinations: Home, Shopping, Offers, Orders, Invoices.
+    // Favorites now lives beside Notifications in the shared customer header.
+    final items = <_FooterItem>[
+      _FooterItem(
+        destination: CustomerFooterDestination.home,
+        label: context.tr('customer.nav.home'),
+        icon: Icons.home_outlined,
+        activeIcon: Icons.home_rounded,
+      ),
+      _FooterItem(
+        destination: CustomerFooterDestination.products,
+        label: context.tr('customer.nav.shopping'),
+        icon: Icons.grid_view_outlined,
+        activeIcon: Icons.grid_view_rounded,
+      ),
+      _FooterItem(
+        destination: CustomerFooterDestination.offers,
+        label: context.tr('customer.nav.offers'),
+        icon: Icons.local_offer_outlined,
+        activeIcon: Icons.local_offer_rounded,
+      ),
+      _FooterItem(
+        destination: CustomerFooterDestination.orders,
+        label: context.tr('customer.profile.orders'),
+        icon: Icons.receipt_long_outlined,
+        activeIcon: Icons.receipt_long_rounded,
+      ),
+      _FooterItem(
+        destination: CustomerFooterDestination.invoices,
+        label: context.tr('customer.nav.invoices'),
+        icon: Icons.description_outlined,
+        activeIcon: Icons.description_rounded,
+      ),
+    ];
 
     return Material(
       key: const ValueKey('customer-persistent-footer'),
@@ -251,10 +214,15 @@ class CustomerPersistentFooter extends StatelessWidget {
     if (scope?.isRetail == true) {
       switch (destination) {
         case CustomerFooterDestination.home:
-          return CustomerRoutePaths.b2bHome;
+          return CustomerRouteLocations.retailHome(scope!);
         case CustomerFooterDestination.products:
           return Uri(
             path: CustomerRoutePaths.products,
+            queryParameters: scope!.toQueryParameters(),
+          ).toString();
+        case CustomerFooterDestination.offers:
+          return Uri(
+            path: CustomerRoutePaths.offers,
             queryParameters: scope!.toQueryParameters(),
           ).toString();
         case CustomerFooterDestination.cart:
@@ -264,7 +232,7 @@ class CustomerPersistentFooter extends StatelessWidget {
         case CustomerFooterDestination.favorites:
           return CustomerRouteLocations.retailFavorites(scope!);
         case CustomerFooterDestination.invoices:
-          return CustomerRouteLocations.retailProfile(scope!);
+          return CustomerRouteLocations.retailInvoices(scope!);
         case CustomerFooterDestination.account:
           return CustomerRouteLocations.retailProfile(scope!);
       }
@@ -278,6 +246,14 @@ class CustomerPersistentFooter extends StatelessWidget {
           return Uri(
             path: CustomerRoutePaths.b2bProducts,
             queryParameters: scope!.toQueryParameters(),
+          ).toString();
+        case CustomerFooterDestination.offers:
+          return Uri(
+            path: CustomerRoutePaths.b2bProducts,
+            queryParameters: <String, String>{
+              ...scope!.toQueryParameters(),
+              'section': 'offers',
+            },
           ).toString();
         case CustomerFooterDestination.cart:
           return CustomerRouteLocations.wholesaleCart(scope!);
@@ -300,6 +276,8 @@ class CustomerPersistentFooter extends StatelessWidget {
         return CustomerRoutePaths.b2bHome;
       case CustomerFooterDestination.products:
         return CustomerRoutePaths.b2bProducts;
+      case CustomerFooterDestination.offers:
+        return '/b2b/products?section=offers';
       case CustomerFooterDestination.cart:
         return CustomerRoutePaths.b2bCart;
       case CustomerFooterDestination.orders:
