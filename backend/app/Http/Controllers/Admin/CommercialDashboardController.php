@@ -527,6 +527,19 @@ final class CommercialDashboardController extends Controller
             ];
         }
 
+        // A row represents a product and a selling unit. Duplicate lines
+        // would make a subsequent edit ambiguous and could change reservations.
+        $productUnitKeys = [];
+        foreach ($products as $index => $product) {
+            $key = (int) $product['product_id'].'|'.strtoupper((string) $product['selling_unit_code']);
+            if (isset($productUnitKeys[$key])) {
+                throw ValidationException::withMessages([
+                    "products.$index.selling_unit_code" => [__('commercial.validation.flash_duplicate_product_unit')],
+                ]);
+            }
+            $productUnitKeys[$key] = true;
+        }
+
         DB::transaction(function () use (
             $data,
             $channels,
@@ -574,20 +587,71 @@ final class CommercialDashboardController extends Controller
                 'kill_switch' => $request->boolean('kill_switch'),
                 'updated_at' => now(),
             ];
+            // Preserve FlashOfferProduct IDs: reservations have foreign keys to
+            // these rows and must survive edits to titles, dates and channel.
+            $existingLines = $offerId > 0
+                ? DB::table('flash_offer_products')->where('flash_offer_id', $offerId)->lockForUpdate()->get()
+                : collect();
+            $oldByKey = $existingLines->keyBy(static fn (object $line): string =>
+                (int) $line->product_id.'|'.strtoupper((string) $line->selling_unit_code));
+            $newByKey = collect($products)->keyBy(static fn (array $line): string =>
+                (int) $line['product_id'].'|'.strtoupper((string) $line['selling_unit_code']));
+
+            foreach ($existingLines as $oldLine) {
+                $key = (int) $oldLine->product_id.'|'.strtoupper((string) $oldLine->selling_unit_code);
+                $nextLine = $newByKey->get($key);
+                $hasReservationHistory = DB::table('flash_reservations')
+                    ->where('flash_offer_product_id', $oldLine->id)->exists();
+                if (! $hasReservationHistory) {
+                    continue;
+                }
+
+                // A sold/reserved unit cannot be removed or silently repriced.
+                $changed = $nextLine === null
+                    || (int) ($nextLine['selling_unit_id'] ?? 0) !== (int) ($oldLine->selling_unit_id ?? 0)
+                    || abs((float) $nextLine['conversion_factor'] - (float) $oldLine->conversion_factor) > 0.0001
+                    || abs((float) $nextLine['flash_price'] - (float) $oldLine->flash_price) > 0.0001
+                    || (($nextLine['allocation_base'] ?? null) === null) !== ($oldLine->allocation_base === null)
+                    || (($nextLine['allocation_base'] ?? null) !== null
+                        && abs((float) $nextLine['allocation_base'] - (float) $oldLine->allocation_base) > 0.0001);
+                if ($changed) {
+                    throw ValidationException::withMessages([
+                        'products' => [__('commercial.validation.flash_reserved_product_locked')],
+                    ]);
+                }
+            }
+
             if ($offerId === 0) {
                 $offerId = (int) DB::table('flash_offers')->insertGetId([...$payload, 'created_by' => $user->getAuthIdentifier(), 'created_at' => now()]);
             } else {
                 DB::table('flash_offers')->where('id', $offerId)->update($payload);
             }
 
-            DB::table('flash_offer_products')->where('flash_offer_id', $offerId)->delete();
             foreach ($products as $product) {
+                $key = (int) $product['product_id'].'|'.strtoupper((string) $product['selling_unit_code']);
+                $previousLine = $oldByKey->get($key);
+                if ($previousLine !== null) {
+                    DB::table('flash_offer_products')
+                        ->where('flash_offer_id', $offerId)
+                        ->where('id', $previousLine->id)
+                        ->update([...$product, 'updated_at' => now()]);
+                    continue;
+                }
                 DB::table('flash_offer_products')->insert([
                     'flash_offer_id' => $offerId,
                     ...$product,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
+            }
+            foreach ($existingLines as $oldLine) {
+                $key = (int) $oldLine->product_id.'|'.strtoupper((string) $oldLine->selling_unit_code);
+                if (! $newByKey->has($key)) {
+                    DB::table('flash_offer_products')
+                        ->where('flash_offer_id', $offerId)
+                        ->where('id', $oldLine->id)
+                        ->delete();
+                }
             }
 
             $after = (array) DB::table('flash_offers')->where('id', $offerId)->first();
