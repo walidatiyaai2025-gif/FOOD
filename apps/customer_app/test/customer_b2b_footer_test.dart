@@ -46,10 +46,9 @@ void main() {
       for (final destination in [
         'home',
         'products',
+        'offers',
         'orders',
-        'favorites',
         'invoices',
-        'account',
       ]) {
         expect(
           find.byKey(ValueKey('customer-footer-$destination')),
@@ -61,9 +60,8 @@ void main() {
       expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
       expect(find.text('Shopping'), findsOneWidget);
       expect(find.text('My orders'), findsOneWidget);
-      expect(find.text('Favorites'), findsOneWidget);
+      expect(find.text('Offers'), findsOneWidget);
       expect(find.text('Invoices'), findsOneWidget);
-      expect(find.text('More'), findsOneWidget);
 
       await tester.tap(
         find.byKey(const ValueKey('customer-footer-products')),
@@ -81,16 +79,17 @@ void main() {
           .pop();
       await tester.pumpAndSettle();
       await tester.tap(
-        find.byKey(const ValueKey('customer-footer-favorites')),
+        find.byKey(const ValueKey('customer-footer-offers')),
       );
       await tester.pumpAndSettle();
 
-      final favoritesRoute = Uri.parse(
+      final offersRoute = Uri.parse(
         tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
       );
-      expect(favoritesRoute.path, CustomerRoutePaths.b2bFavorites);
-      expect(favoritesRoute.queryParameters['store_id'], '70');
-      expect(favoritesRoute.queryParameters['channel'], 'wholesale');
+      expect(offersRoute.path, CustomerRoutePaths.b2bProducts);
+      expect(offersRoute.queryParameters['section'], 'offers');
+      expect(offersRoute.queryParameters['store_id'], '70');
+      expect(offersRoute.queryParameters['channel'], 'wholesale');
     },
   );
 
@@ -186,10 +185,9 @@ void main() {
       for (final destination in [
         'home',
         'products',
+        'offers',
         'orders',
-        'favorites',
         'invoices',
-        'account',
       ]) {
         expect(
           find.byKey(ValueKey('customer-footer-$destination')),
@@ -264,9 +262,9 @@ void main() {
         );
         for (final destination in [
           'products',
+          'offers',
           'orders',
           'invoices',
-          'account',
         ]) {
           expect(
             find.byKey(ValueKey('customer-footer-$destination')),
