@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/localization/driver_translations.dart';
 import 'driver_completion_contract.dart';
@@ -461,9 +462,28 @@ String _validationMessage(
     };
 
 String _submitErrorMessage(BuildContext context, Object error) {
+  if (error is PlatformException) {
+    final code = error.code.toLowerCase();
+    if (code.contains('permission') ||
+        code.contains('denied') ||
+        code.contains('restricted')) {
+      return context.tr('driver.completion.photo_permission_denied');
+    }
+    return context.tr('driver.completion.photo_picker_failed');
+  }
+  if (error is MissingPluginException) {
+    return context.tr('driver.completion.photo_picker_failed');
+  }
   if (error is DriverCompletionException) {
-    if (error.code == 'network_unavailable') {
-      return context.tr('driver.offline');
+    switch (error.code) {
+      case 'network_unavailable':
+        return context.tr('driver.offline');
+      case 'proof_file_missing':
+        return context.tr('driver.completion.proof_file_missing');
+      case 'proof_too_large':
+        return context.tr('driver.completion.proof_too_large');
+      case 'proof_upload_failed':
+        return context.tr('driver.completion.proof_upload_failed');
     }
   }
   return context.tr('driver.completion.submit_failed');
