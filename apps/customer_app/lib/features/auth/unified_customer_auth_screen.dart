@@ -676,7 +676,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
   void _showC13InfoSheet({required String title, required String body}) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: CustomerUiColors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       showDragHandle: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -765,7 +765,7 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
       textDirection: textDirection,
       child: Scaffold(
         key: const ValueKey('unified-customer-auth-screen'),
-        backgroundColor: CustomerUiColors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: FoodexUnifiedHeaderSurface(
           title: context.tr('customer.app.title'),
           searchHint: context.tr('customer.products.search_name_sku_barcode'),
@@ -826,8 +826,8 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                           child: Container(
                             margin: EdgeInsets.zero,
                             padding: const EdgeInsets.fromLTRB(20, 30, 20, 18),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFCFEFD),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
                               borderRadius: BorderRadius.vertical(
                                 top: Radius.circular(34),
                               ),
