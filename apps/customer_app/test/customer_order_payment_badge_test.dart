@@ -16,7 +16,11 @@ void main() {
       MaterialApp(
         locale: locale,
         supportedLocales: const [Locale('ar'), Locale('en')],
-        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         home: Scaffold(
           body: Center(
             child: CustomerOrderPaymentBadge(
