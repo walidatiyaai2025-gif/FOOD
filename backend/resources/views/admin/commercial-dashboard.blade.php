@@ -527,7 +527,7 @@
             ])->values()->all()]);
         @endphp
 
-        <section class="commercial-card" data-flash-offer-form>
+        <section class="commercial-card" id="flash-offer-form" data-flash-offer-form>
             <div class="feature-flags-head">
                 <div>
                     <h2>{{ $editingOffer ? __('commercial.flash.edit_title') : __('commercial.flash.create_title') }}</h2>
@@ -805,6 +805,9 @@
                             <small role="status" data-flash-customer-channel-missing style="color:#9a3412">{{ __('commercial.flash.customer_channel_missing') }}</small>
                         @endif
                     </div>
+                    <div class="flash-row-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                        <a class="flash-secondary" data-flash-edit-offer="{{ $offer->id }}"
+                           href="{{ route('admin.commercial.flash-offers', ['edit'=>$offer->id] + $scope) }}#flash-offer-form">{{ __('commercial.flash.edit') }}</a>
                     <details class="foodex-ops-actions" data-flash-offer-actions>
                         <summary aria-label="{{ __('commercial.flash.actions_menu') }}">⋮</summary>
                         <div class="foodex-ops-menu">
@@ -817,6 +820,7 @@
                             </form>
                         </div>
                     </details>
+                    </div>
                 </div>
             @empty
                 <p class="muted">{{ __('commercial.flash.no_offers') }}</p>
