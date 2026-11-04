@@ -1752,6 +1752,12 @@ final class CatalogManagementController extends Controller
             }
         }, 3);
 
+        app(AuditLogger::class)->record('catalog.product.app_display_order.updated', $this->actor($request), null, null, [
+            'product_id' => $product,
+            'store_id' => $storeId,
+            'position' => (int) $data['position'],
+        ], $request);
+
         return back()->with('status', $this->msg('تم حفظ ترتيب عرض المنتج في التطبيق.', 'Product display order saved.'));
     }
 
@@ -1759,10 +1765,9 @@ final class CatalogManagementController extends Controller
     private function availableAppProductsQuery(array $storeIds): QueryBuilder
     {
         $principalStoreId = DB::table('stores')
-            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
-            ->where('store_types.code', 'B2B')
-            ->orderBy('stores.id')
-            ->value('stores.id');
+            ->whereIn('id', $storeIds)
+            ->where('code', WholesalePrincipal::STORE_CODE)
+            ->value('id');
         $principalWarehouseId = $principalStoreId === null
             ? null
             : app(WholesalePrincipal::class)->warehouseId();
