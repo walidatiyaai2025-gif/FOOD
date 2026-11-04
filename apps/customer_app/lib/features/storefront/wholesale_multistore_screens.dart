@@ -3164,20 +3164,67 @@ class _WholesaleOffersDesignScreenState extends State<WholesaleOffersDesignScree
       return {'store_id': 0, 'rows': <Map<String, dynamic>>[]};
     }
 
-    Object? response;
-    if (widget.api != null) {
-      response = await widget.api!.get('/api/v1/b2b/products?store_id=$storeId');
-    } else if (widget.storefrontApi != null) {
-      final storefront = await widget.storefrontApi!.wholesaleHome(storeId);
-      response = storefront['products'];
+    // The marketing Flash feed is NOT the ordinary product catalogue.
+    // Read Van-channel B2B offers, with targeted visibility checked server-side.
+    Object? flashResponse;
+    if (widget.session.isAuthenticated && widget.api != null) {
+      flashResponse = await widget.api!.get(
+        '/api/v1/b2b/flash-offers?store_id=$storeId',
+      );
+    } else if (widget.storefrontApi is HttpStorefrontApi) {
+      flashResponse = await (widget.storefrontApi as HttpStorefrontApi)
+          .wholesaleFlashOffers(storeId,
+              authenticated: widget.session.isAuthenticated);
+    } else if (widget.api != null) {
+      // Test adapters can implement the anonymous endpoint directly.
+      flashResponse = await widget.api!.get(
+        '/api/v1/b2b/flash-offers/public?store_id=$storeId',
+      );
     }
 
-    final rows = dataRows(response)
+    final flashProducts = <Map<String, dynamic>>[];
+    for (final offer in dataRows(flashResponse)) {
+      if (offer['fulfillment_channel'] != null &&
+          offer['fulfillment_channel'] != 'van') {
+        continue;
+      }
+      for (final product in mapRows(offer['products'])) {
+        if (intValue(product['id']) <= 0 ||
+            intValue(product['available_quantity']) <= 0) {
+          continue;
+        }
+        flashProducts.add({
+          ...product,
+          'offer_id': offer['id'],
+          'offer_title_ar': offer['title_ar'],
+          'offer_title_en': offer['title_en'],
+          'offer_ends_at': offer['ends_at'],
+          'currency': offer['currency'] ?? 'EGP',
+          'fulfillment_channel': 'van',
+        });
+      }
+    }
+
+    Object? ordinaryResponse;
+    if (widget.api != null && widget.session.isAuthenticated) {
+      ordinaryResponse = await widget.api!.get(
+        '/api/v1/b2b/products?store_id=$storeId',
+      );
+    } else if (widget.storefrontApi != null) {
+      final storefront = await widget.storefrontApi!.wholesaleHome(storeId);
+      ordinaryResponse = storefront['products'];
+    }
+    final regularDiscounts = dataRows(ordinaryResponse)
         .where((row) =>
             _wholesaleRowMatchesSection(row, 'offers') &&
             _wholesaleProductIsAvailable(row))
         .toList(growable: false);
-    return {'store_id': storeId, 'rows': rows};
+
+    return {
+      'store_id': storeId,
+      'flash_products': flashProducts,
+      'rows': regularDiscounts,
+    };
   }
 
   Future<void> _refresh() async {
@@ -3257,6 +3304,7 @@ class _WholesaleOffersDesignScreenState extends State<WholesaleOffersDesignScree
                   final payload = snapshot.data ?? const <String, dynamic>{};
                   final storeId = intValue(payload['store_id']);
                   final rows = mapRows(payload['rows']);
+                  final flashRows = mapRows(payload['flash_products']);
                   return RefreshIndicator(
                     onRefresh: _refresh,
                     child: ListView(
@@ -3286,7 +3334,26 @@ class _WholesaleOffersDesignScreenState extends State<WholesaleOffersDesignScree
                           ],
                         ),
                         const SizedBox(height: 12),
-                        if (storeId <= 0 || rows.isEmpty)
+                        if (flashRows.isNotEmpty) ...[
+                          Text(
+                            isArabic ? 'العروض السريعة' : 'Flash offers',
+                            key: const ValueKey('wholesale-flash-heading'),
+                            style: const TextStyle(
+                              color: CustomerUiColors.ink,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          ...flashRows.map((flashProduct) =>
+                              _wholesaleFlashProductCard(
+                                context,
+                                flashProduct,
+                                isArabic: isArabic,
+                              )),
+                        ],
+                        if (storeId <= 0 ||
+                            (rows.isEmpty && flashRows.isEmpty))
                           FoodexEmptyState(
                             key: const ValueKey('wholesale-offers-empty'),
                             title: isArabic
@@ -3296,7 +3363,18 @@ class _WholesaleOffersDesignScreenState extends State<WholesaleOffersDesignScree
                                 ? 'ستظهر هنا منتجات الجملة المتاحة التي عليها خصومات أو عروض.'
                                 : 'Available wholesale products with eligible discounts or promotions appear here.',
                           )
-                        else
+                        if (rows.isNotEmpty) ...[
+                          if (flashRows.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            Text(
+                              isArabic ? 'خصومات أخرى' : 'Other discounts',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
                           _WholesaleProductGrid(
                             rows: rows,
                             storeId: storeId,
@@ -3308,6 +3386,7 @@ class _WholesaleOffersDesignScreenState extends State<WholesaleOffersDesignScree
                             favoritesApi: widget.favoritesApi,
                             showCommerceActions: true,
                           ),
+                        ],
                       ],
                     ),
                   );
@@ -3319,6 +3398,132 @@ class _WholesaleOffersDesignScreenState extends State<WholesaleOffersDesignScree
       ),
     );
   }
+}
+
+/// Promotional price is informational for B2B customers. Van execution is
+/// the only supported wholesale fulfillment path; never route to Driver or
+/// use a normal Customer cart to claim a Flash price.
+Widget _wholesaleFlashProductCard(
+  BuildContext context,
+  Map<String, dynamic> product, {
+  required bool isArabic,
+}) {
+  const palette = FoodexPalette.wholesale;
+  final id = intValue(product['id']);
+  final title = (product['name'] ?? '').toString();
+  final imageUrl = (product['image_url'] ?? '').toString();
+  final unitName = (product['selling_unit_name'] ??
+          product['selling_unit_code'] ?? '')
+      .toString();
+  final currency = (product['currency'] ?? 'EGP').toString();
+  final flashPrice = doubleValue(product['flash_price'], 0);
+  final normalPrice = doubleValue(product['normal_price'], 0);
+  final endsAt = DateTime.tryParse((product['offer_ends_at'] ?? '').toString());
+  final label = isArabic
+      ? (product['offer_title_ar'] ?? product['offer_title_en'] ?? '')
+      : (product['offer_title_en'] ?? product['offer_title_ar'] ?? '');
+
+  return Card(
+    key: ValueKey('wholesale-flash-product-$id'),
+    margin: const EdgeInsets.only(bottom: 12),
+    color: Colors.white,
+    elevation: 0,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: BorderSide(color: palette.soft),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (imageUrl.isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                imageUrl,
+                height: 125,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.inventory_2_outlined, size: 60),
+              ),
+            ),
+          if (label.toString().isNotEmpty)
+            Text(label.toString(),
+                style: TextStyle(color: palette.primary, fontSize: 12)),
+          const SizedBox(height: 5),
+          Text(title,
+              style: const TextStyle(
+                color: CustomerUiColors.ink,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              )),
+          if (unitName.isNotEmpty)
+            Text(
+              '${isArabic ? 'وحدة البيع' : 'Selling unit'}: $unitName',
+              style: TextStyle(color: palette.muted),
+            ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                foodexMoneyText(flashPrice, currency),
+                key: ValueKey('wholesale-flash-price-$id'),
+                style: TextStyle(
+                  color: palette.primary,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 19,
+                ),
+              ),
+              if (normalPrice > flashPrice)
+                Text(
+                  foodexMoneyText(normalPrice, currency),
+                  style: TextStyle(
+                    color: palette.muted,
+                    decoration: TextDecoration.lineThrough,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Text(
+            isArabic
+                ? 'المتاح: ${intValue(product['available_quantity'])}'
+                : 'Available: ${intValue(product['available_quantity'])}',
+            style: TextStyle(color: palette.muted),
+          ),
+          if (endsAt != null)
+            Text(
+              '${isArabic ? 'ينتهي' : 'Ends'}: ${endsAt.toLocal()}',
+              style: TextStyle(color: palette.muted, fontSize: 11),
+            ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.local_shipping_outlined,
+                  color: palette.primary, size: 18),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  isArabic
+                      ? 'عرض جملة — الطلب والتوصيل من خلال الفان فقط'
+                      : 'Wholesale offer — ordering and delivery via Van only',
+                  key: const ValueKey('wholesale-flash-van-only'),
+                  style: TextStyle(
+                    color: palette.primaryDark,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class WholesaleCatalogDesignScreen extends StatefulWidget {
