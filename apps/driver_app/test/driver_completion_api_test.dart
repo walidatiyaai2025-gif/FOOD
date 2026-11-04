@@ -55,6 +55,44 @@ void main() {
     expect(result.status, 'delivered');
   });
 
+  test('missing temporary proof photo fails before any network request', () async {
+    final directory = await Directory.systemTemp.createTemp('foodex-lost-proof-');
+    addTearDown(() => directory.delete(recursive: true));
+    final missing = '${directory.path}/no-longer-there.jpg';
+    var sent = false;
+    final gateway = HttpDriverCompletionGateway(
+      baseUrl: 'https://foodex.example',
+      token: 'driver-token',
+      client: MockClient((request) async {
+        sent = true;
+        return http.Response('{}', 200);
+      }),
+    );
+
+    await expectLater(
+      gateway.submit(
+        assignmentId: 31,
+        draft: DriverCompletionDraft(
+          target: DriverCompletionTarget.delivered,
+          proof: DriverProofAttachment(
+            path: missing,
+            fileName: 'proof.jpg',
+            byteLength: 1024,
+            mimeType: 'image/jpeg',
+          ),
+        ),
+      ),
+      throwsA(
+        isA<DriverCompletionException>().having(
+          (error) => error.code,
+          'code',
+          'proof_file_missing',
+        ),
+      ),
+    );
+    expect(sent, isFalse);
+  });
+
   test('completion gateway preserves backend validation failures', () async {
     final gateway = HttpDriverCompletionGateway(
       baseUrl: 'https://foodex.example',
