@@ -335,6 +335,8 @@ return [
         'selling_unit_code_name' => 'Every selling unit needs code and name.',
         'store_product' => 'Select a product assigned to this store.',
         'flash_active_selling_unit' => 'Select an active selling unit for this product.',
+        'flash_duplicate_product_unit' => 'The same product and selling unit cannot be added twice to one offer.',
+        'flash_reserved_product_locked' => 'This product has reservation history. You may edit the offer details and dates, but cannot remove or reprice this line, change its selling unit, or modify its allocation. Add another line instead.',
         'json_array_required' => 'A JSON array is required.',
         'selling_unit_factor' => 'Selling unit conversion factor must be greater than zero.',
         'sales_channel' => 'Select a supported sales channel.',
