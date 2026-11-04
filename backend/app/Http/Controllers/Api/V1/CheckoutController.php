@@ -177,6 +177,20 @@ class CheckoutController extends Controller
                 true,
             );
 
+            // Enforce the FOODEX minimum against the server-repriced merchandise
+            // amount after discounts, excluding delivery/service charges.
+            $merchandiseTotal = round(
+                (float) $quote['subtotal'] - (float) ($quote['discount_total'] ?? 0),
+                2,
+            );
+            if ($merchandiseTotal + 0.0001 < 1500.00) {
+                throw ValidationException::withMessages([
+                    'cart' => [app()->getLocale() === 'ar'
+                        ? 'الحد الأدنى للطلب 1500 جنيه. أضف منتجات بقيمة '.number_format(1500 - $merchandiseTotal, 2).' جنيه لإتمام الطلب.'
+                        : 'Minimum order is EGP 1,500. Add EGP '.number_format(1500 - $merchandiseTotal, 2).' in products to check out.'],
+                ]);
+            }
+
             if ($channel === 'b2b' && $paymentMethod === 'account_credit') {
                 abort_unless($customer instanceof B2bCustomer, 500);
 
