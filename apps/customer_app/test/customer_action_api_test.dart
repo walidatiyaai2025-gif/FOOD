@@ -82,6 +82,28 @@ void main() {
     expect(session.activeStoreId, 7);
   });
 
+  test('selected carton posts canonical selling unit to authoritative cart', () async {
+    final api = HttpCustomerActionApi(
+      baseUrl: 'https://foodex.example',
+      client: MockClient((request) async {
+        expect(request.url.path, '/api/v1/cart/items');
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['store_id'], 7);
+        expect(body['product_id'], 42);
+        expect(body['quantity'], 2);
+        expect(body['selling_unit_code'], 'CARTON');
+        return http.Response('{"id":1,"items":[]}', 201);
+      }),
+    );
+
+    await api.addCartSellingUnit(
+      storeId: 7,
+      productId: 42,
+      quantity: 2,
+      sellingUnitCode: 'CARTON',
+    );
+  });
+
   test('credential login restores Platform Customer identity on one token', () async {
     final api = HttpCustomerActionApi(
       baseUrl: 'https://foodex.example',
