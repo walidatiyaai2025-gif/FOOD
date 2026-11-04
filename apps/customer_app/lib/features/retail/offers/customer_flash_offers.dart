@@ -400,7 +400,6 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
   bool _busy = true;
   Timer? _ticker;
   final Stopwatch _serverClock = Stopwatch();
-  final Map<int, int> _selectedUnits = <int, int>{};
 
   bool get _ar => Localizations.localeOf(context).languageCode == 'ar';
 
@@ -459,7 +458,10 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
     if (mounted) await _load();
   }
 
-  Future<void> _buyNow(CustomerFlashOffer offer) async {
+  Future<void> _buyNow(
+    CustomerFlashOffer offer,
+    CustomerFlashProduct product,
+  ) async {
     if (!widget.isAuthenticated) {
       widget.onAuthenticationRequired();
       return;
@@ -471,12 +473,8 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
     try {
       final reservation = await widget.api.reserve(
         storeId: widget.storeId,
-        offerId: offer.id,
+        offerProductId: product.id,
         quantity: 1,
-        sellingUnitId: _selectedUnits[offer.id] ??
-            (offer.sellingUnits.isNotEmpty
-                ? offer.sellingUnits.first.id
-                : null),
       );
       if (!mounted) return;
       setState(() => _reservation = reservation);
@@ -531,7 +529,8 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
                   actionLabel: _ar ? 'إعادة المحاولة' : 'Retry',
                   onAction: _load,
                 ),
-              if (!_busy && _offers.isEmpty)
+              if (!_busy && _error == null &&
+                  !_offers.any((offer) => offer.products.isNotEmpty))
                 CustomerStateView(
                   kind: CustomerStateKind.empty,
                   title: _ar
@@ -539,116 +538,110 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
                       : 'No active Flash Offers right now.',
                   icon: Icons.local_offer_outlined,
                 ),
-              ..._offers.map((offer) {
+              ..._offers.expand((offer) {
                 final remaining = offer.remainingAfter(_serverClock.elapsed);
-                final canBuy = offer.eligible &&
-                    offer.remainingAllocation > 0 &&
-                    offer.remainingCustomerLimit > 0 &&
-                    remaining > Duration.zero;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: CustomerUiSpacing.sm),
-                  child: CustomerAccountSurfaceCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (offer.imageUrl != null &&
-                            offer.imageUrl!.isNotEmpty)
-                          ClipRRect(
-                            borderRadius:
-                                BorderRadius.circular(CustomerUiRadii.md),
-                            child: Image.network(
-                              offer.imageUrl!,
-                              height: 150,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  const SizedBox.shrink(),
+                return offer.products.map((product) {
+                  final canBuy = product.availableQuantity > 0 &&
+                      remaining > Duration.zero;
+                  return Padding(
+                    key: ValueKey('flash-product-card-${product.id}'),
+                    padding: const EdgeInsets.only(
+                      bottom: CustomerUiSpacing.sm,
+                    ),
+                    child: CustomerAccountSurfaceCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (product.imageUrl != null &&
+                              product.imageUrl!.isNotEmpty)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(
+                                CustomerUiRadii.md,
+                              ),
+                              child: Image.network(
+                                product.imageUrl!,
+                                height: 142,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    const Icon(Icons.inventory_2_outlined),
+                              ),
                             ),
+                          Text(
+                            product.name,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w900),
                           ),
-                        const SizedBox(height: 10),
-                        Text(
-                          offer.title,
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                        ),
-                        if (offer.body.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Text(offer.body),
-                        ],
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
+                          if (product.sku.isNotEmpty)
                             Text(
-                              foodexMoneyText(offer.flashPrice, offer.currency),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                              product.sku,
+                              style: Theme.of(context).textTheme.bodySmall,
                             ),
-                            if (offer.normalPrice > offer.flashPrice) ...[
-                              const SizedBox(width: 10),
+                          if (product.sellingUnit.isNotEmpty)
+                            Text(
+                              '${_ar ? 'وحدة البيع' : 'Selling unit'}: ${product.sellingUnit}',
+                            ),
+                          const SizedBox(height: 6),
+                          Text(
+                            offer.title,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          if (offer.body.isNotEmpty)
+                            Text(
+                              offer.body,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
                               Text(
                                 foodexMoneyText(
-                                    offer.normalPrice, offer.currency),
-                                style: const TextStyle(
-                                  decoration: TextDecoration.lineThrough,
-                                ),
-                              ),
-                            ],
-                            const Spacer(),
-                            Text(_duration(remaining)),
-                          ],
-                        ),
-                        if (offer.sellingUnits.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          DropdownButtonFormField<int>(
-                            initialValue: _selectedUnits[offer.id] ??
-                                offer.sellingUnits.first.id,
-                            decoration: InputDecoration(
-                              labelText: _ar ? 'وحدة البيع' : 'Selling unit',
-                            ),
-                            items: offer.sellingUnits
-                                .map(
-                                  (unit) => DropdownMenuItem<int>(
-                                    value: unit.id,
-                                    child: Text(
-                                      unit.label.isEmpty
-                                          ? (_ar ? 'وحدة' : 'Unit')
-                                          : unit.label,
+                                    product.flashPrice, offer.currency),
+                                key: ValueKey('flash-product-price-${product.id}'),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      color: CustomerUiColors.deepGreen,
+                                      fontWeight: FontWeight.w900,
                                     ),
+                              ),
+                              if (product.normalPrice > product.flashPrice)
+                                Text(
+                                  foodexMoneyText(
+                                      product.normalPrice, offer.currency),
+                                  style: const TextStyle(
+                                    decoration: TextDecoration.lineThrough,
                                   ),
-                                )
-                                .toList(growable: false),
-                            onChanged: _busy
-                                ? null
-                                : (value) {
-                                    if (value == null) return;
-                                    setState(
-                                        () => _selectedUnits[offer.id] = value);
-                                  },
+                                ),
+                              Text(_duration(remaining)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _ar
+                                ? 'المتاح: ${product.availableQuantity}'
+                                : 'Available: ${product.availableQuantity}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton(
+                            key: ValueKey('flash-buy-now-${product.id}'),
+                            onPressed: canBuy && !_busy
+                                ? () => _buyNow(offer, product)
+                                : null,
+                            child: Text(_ar ? 'اشترِ الآن' : 'Buy now'),
                           ),
                         ],
-                        const SizedBox(height: 8),
-                        Text(
-                          _ar
-                              ? 'المتبقي لك: ${offer.remainingCustomerLimit} · المتاح: ${offer.remainingAllocation}'
-                              : 'Your remaining limit: ${offer.remainingCustomerLimit} · Available: ${offer.remainingAllocation}',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton(
-                          key: ValueKey('flash-buy-now-${offer.id}'),
-                          onPressed:
-                              canBuy && !_busy ? () => _buyNow(offer) : null,
-                          child: Text(_ar ? 'اشترِ الآن' : 'BUY NOW'),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                );
+                  );
+                });
               }),
             ],
           ),
