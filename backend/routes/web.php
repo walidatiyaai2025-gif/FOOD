@@ -687,6 +687,13 @@ Route::prefix('admin')
         Route::get('/b2b/commercial/sales-control', [CommercialDashboardController::class, 'salesControl'])->name('commercial.sales-control');
         Route::get('/b2b/commercial/sales-control/products', [CommercialDashboardController::class, 'searchSalesControlProducts'])->name('commercial.sales-control.products');
         Route::put('/b2b/commercial/sales-control/{product}', [CommercialDashboardController::class, 'saveSalesControl'])->whereNumber('product')->name('commercial.sales-control.save');
+        // Wholesale Flash management is a B2B workspace. Must precede
+        // /b2b/{module}, which otherwise catches the commercial prefix.
+        Route::get('/b2b/commercial/flash-offers', [CommercialDashboardController::class, 'flashOffers'])->name('commercial.wholesale-flash-offers');
+        Route::get('/b2b/commercial/flash-offers/{offer}/preview', [CommercialDashboardController::class, 'flashPreview'])->whereNumber('offer')->name('commercial.wholesale-flash-offers.preview');
+        Route::get('/b2b/commercial/flash-offers/{offer}/analytics', [CommercialDashboardController::class, 'flashAnalytics'])->whereNumber('offer')->name('commercial.wholesale-flash-offers.analytics');
+        Route::post('/b2b/commercial/flash-offers', [CommercialDashboardController::class, 'saveFlashOffer'])->name('commercial.wholesale-flash-offers.save');
+        Route::post('/b2b/commercial/flash-offers/{offer}/action', [CommercialDashboardController::class, 'flashAction'])->whereNumber('offer')->name('commercial.wholesale-flash-offers.action');
         Route::get('/b2b/{module}', [B2bWorkspaceController::class, 'show'])->name('b2b.module');
         Route::get('/b2c/dashboard', [B2cWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2c.dashboard');
         Route::get('/restaurant/wholesale-purchases', [RestaurantWholesalePurchasesController::class, 'index'])->name('restaurant.wholesale-purchases.index');
