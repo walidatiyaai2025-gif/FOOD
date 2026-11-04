@@ -458,10 +458,7 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
     if (mounted) await _load();
   }
 
-  Future<void> _buyNow(
-    CustomerFlashOffer offer,
-    CustomerFlashProduct product,
-  ) async {
+  Future<void> _buyNow(CustomerFlashProduct product) async {
     if (!widget.isAuthenticated) {
       widget.onAuthenticationRequired();
       return;
@@ -633,7 +630,7 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
                           FilledButton(
                             key: ValueKey('flash-buy-now-${product.id}'),
                             onPressed: canBuy && !_busy
-                                ? () => _buyNow(offer, product)
+                                ? () => _buyNow(product)
                                 : null,
                             child: Text(_ar ? 'اشترِ الآن' : 'Buy now'),
                           ),
