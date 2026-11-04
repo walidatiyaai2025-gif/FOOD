@@ -91,11 +91,11 @@ class _CustomerRetailInvoicesScreenState
                     ? 'تعذر تحميل تفاصيل الفاتورة'
                     : 'Could not load invoice details');
               }
-              final data = snapshot.data is Map &&
-                      (snapshot.data as Map)['data'] is Map
-                  ? Map<String, dynamic>.from(
-                      (snapshot.data as Map)['data'] as Map)
-                  : const <String, dynamic>{};
+              final data =
+                  snapshot.data is Map && (snapshot.data as Map)['data'] is Map
+                      ? Map<String, dynamic>.from(
+                          (snapshot.data as Map)['data'] as Map)
+                      : const <String, dynamic>{};
               final items = data['items'] is List
                   ? (data['items'] as List).whereType<Map>().toList()
                   : const <Map>[];
@@ -108,7 +108,8 @@ class _CustomerRetailInvoicesScreenState
                         (data['status']?.toString() ?? '—')),
                     Text((isArabic(context) ? 'الإجمالي: ' : 'Total: ') +
                         (data['grand_total']?.toString() ?? '—') +
-                        ' ' + (data['currency']?.toString() ?? 'EGP')),
+                        ' ' +
+                        (data['currency']?.toString() ?? 'EGP')),
                     const Divider(),
                     for (final line in items)
                       ListTile(
@@ -117,7 +118,8 @@ class _CustomerRetailInvoicesScreenState
                         title: Text(line['name']?.toString() ?? ''),
                         subtitle: Text(
                           (line['quantity']?.toString() ?? '—') +
-                              ' × ' + (line['unit_price']?.toString() ?? '—'),
+                              ' × ' +
+                              (line['unit_price']?.toString() ?? '—'),
                         ),
                         trailing: Text(line['line_total']?.toString() ?? ''),
                       ),
@@ -180,13 +182,15 @@ class _CustomerRetailInvoicesScreenState
                       ),
                       subtitle: Text(
                         (invoice['issued_at']?.toString() ?? '') +
-                            ' · ' + (invoice['status']?.toString() ?? ''),
+                            ' · ' +
+                            (invoice['status']?.toString() ?? ''),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       trailing: Text(
                         (invoice['grand_total']?.toString() ?? '—') +
-                            ' ' + (invoice['currency']?.toString() ?? 'EGP'),
+                            ' ' +
+                            (invoice['currency']?.toString() ?? 'EGP'),
                       ),
                       onTap: () => showInvoice(invoice),
                     ),
