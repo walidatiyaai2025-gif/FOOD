@@ -34,6 +34,47 @@ class CustomerFlashSellingUnit {
       );
 }
 
+/// A single purchasable Flash offer line (one product and selling unit).
+/// This ID is the flash_offer_products ID, not the parent offer ID.
+class CustomerFlashProduct {
+  const CustomerFlashProduct({
+    required this.id,
+    required this.productId,
+    required this.name,
+    required this.sku,
+    required this.sellingUnit,
+    required this.flashPrice,
+    required this.normalPrice,
+    required this.availableQuantity,
+    this.imageUrl,
+  });
+
+  final int id;
+  final int productId;
+  final String name;
+  final String sku;
+  final String sellingUnit;
+  final double flashPrice;
+  final double normalPrice;
+  final int availableQuantity;
+  final String? imageUrl;
+
+  factory CustomerFlashProduct.fromMap(Map<String, dynamic> map) =>
+      CustomerFlashProduct(
+        id: _int(map['id']),
+        productId: _int(map['product_id']),
+        name: map['name']?.toString() ?? '',
+        sku: map['sku']?.toString() ?? '',
+        sellingUnit: (map['selling_unit_name'] ??
+                map['selling_unit_code'] ??
+                '').toString(),
+        flashPrice: _double(map['flash_price']),
+        normalPrice: _double(map['normal_price']),
+        availableQuantity: _int(map['available_quantity']),
+        imageUrl: map['image_url']?.toString(),
+      );
+}
+
 class CustomerFlashOffer {
   const CustomerFlashOffer({
     required this.id,
@@ -48,6 +89,7 @@ class CustomerFlashOffer {
     required this.remainingCustomerLimit,
     required this.eligible,
     required this.sellingUnits,
+    this.products = const <CustomerFlashProduct>[],
     this.imageUrl,
   });
 
@@ -63,6 +105,7 @@ class CustomerFlashOffer {
   final int remainingCustomerLimit;
   final bool eligible;
   final List<CustomerFlashSellingUnit> sellingUnits;
+  final List<CustomerFlashProduct> products;
   final String? imageUrl;
 
   Duration remainingAfter(Duration elapsedSinceServerSample) {
@@ -94,6 +137,16 @@ class CustomerFlashOffer {
               ))
           .where((unit) => unit.id > 0)
           .toList(growable: false),
+      products: _list(map['products'])
+          .whereType<Map>()
+          .map((row) => CustomerFlashProduct.fromMap(
+                Map<String, dynamic>.from(row),
+              ))
+          .where((product) =>
+              product.id > 0 &&
+              product.productId > 0 &&
+              product.availableQuantity > 0)
+          .toList(growable: false),
       imageUrl: map['image_url']?.toString(),
     );
   }
@@ -108,7 +161,7 @@ class CustomerFlashReservation {
     required this.status,
   });
 
-  final int id;
+  final String id;
   final int offerId;
   final DateTime expiresAt;
   final DateTime serverTime;
@@ -127,7 +180,7 @@ class CustomerFlashReservation {
 
   factory CustomerFlashReservation.fromMap(Map<String, dynamic> map) =>
       CustomerFlashReservation(
-        id: _int(map['id']),
+        id: map['id']?.toString() ?? '',
         offerId: _int(map['offer_id']),
         expiresAt: _date(map['expires_at']),
         serverTime: _date(map['server_time']),
@@ -140,19 +193,18 @@ abstract interface class CustomerFlashOffersApi {
   Future<CustomerFlashReservation?> activeReservation({required int storeId});
   Future<CustomerFlashReservation> reserve({
     required int storeId,
-    required int offerId,
+    required int offerProductId,
     required int quantity,
-    int? sellingUnitId,
   });
   Future<RetailCheckoutOptions> checkoutOptions({required int storeId});
   Future<RetailCreatedOrder> confirm({
     required int storeId,
-    required int reservationId,
+    required String reservationId,
     required int addressId,
     required String paymentMethod,
     required String idempotencyKey,
   });
-  Future<void> release({required int reservationId});
+  Future<void> release({required String reservationId});
 }
 
 class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
@@ -177,8 +229,12 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
   @override
   Future<List<CustomerFlashOffer>> activeOffers({required int storeId}) async {
     final response = await _client.get(
-      Uri.parse('$baseUrl/api/v1/flash-offers/active').replace(
-        queryParameters: {'store_id': '$storeId', 'channel': 'customer'},
+      Uri.parse('$baseUrl/api/v1/${token == null || token!.trim().isEmpty ? 'flash-offers/public' : 'flash-offers'}').replace(
+        queryParameters: {
+          'store_id': '$storeId',
+          if (token != null && token!.trim().isNotEmpty)
+            'channel': 'customer',
+        },
       ),
       headers: {..._headers, 'X-FOODEX-Store-ID': '$storeId'},
     );
@@ -211,21 +267,20 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
     final reservation = CustomerFlashReservation.fromMap(
       Map<String, dynamic>.from(data),
     );
-    return reservation.id > 0 && reservation.active ? reservation : null;
+    return reservation.id.isNotEmpty && reservation.active ? reservation : null;
   }
 
   @override
   Future<CustomerFlashReservation> reserve({
     required int storeId,
-    required int offerId,
+    required int offerProductId,
     required int quantity,
-    int? sellingUnitId,
   }) async {
     if (token == null || token!.trim().isEmpty) {
       throw const RetailCommerceException('authentication_required');
     }
     final response = await _client.post(
-      Uri.parse('$baseUrl/api/v1/flash-offers/$offerId/reservations'),
+      Uri.parse('$baseUrl/api/v1/flash-offers/products/$offerProductId/reserve'),
       headers: {
         ..._headers,
         'Content-Type': 'application/json',
@@ -235,8 +290,7 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
         'store_id': storeId,
         'channel': 'customer',
         'quantity': quantity,
-        if (sellingUnitId != null && sellingUnitId > 0)
-          'selling_unit_id': sellingUnitId,
+        'idempotency_key': 'flash-reserve-$offerProductId-${DateTime.now().microsecondsSinceEpoch}',
       }),
     );
     final body = _decode(response);
@@ -262,7 +316,7 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
   @override
   Future<RetailCreatedOrder> confirm({
     required int storeId,
-    required int reservationId,
+    required String reservationId,
     required int addressId,
     required String paymentMethod,
     required String idempotencyKey,
@@ -288,8 +342,8 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
   }
 
   @override
-  Future<void> release({required int reservationId}) async {
-    if (reservationId <= 0) return;
+  Future<void> release({required String reservationId}) async {
+    if (reservationId.isEmpty) return;
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/flash-reservations/$reservationId/release'),
       headers: {..._headers, 'Content-Type': 'application/json'},
