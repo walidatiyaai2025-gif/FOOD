@@ -477,11 +477,12 @@ class CommercialDashboardContractTest extends TestCase
             ->assertDontSee('<html class="legacy-commercial-shell"', false);
     }
 
-    public function test_flash_offers_recovers_from_cross_channel_store_context(): void
+    public function test_flash_offers_keep_the_selected_authorized_store_channel_and_its_products(): void
     {
         [, $wholesaleStoreId] = $this->wholesaleManager();
         [, $retailStoreId] = $this->retailManager();
-        $this->flashProduct($retailStoreId);
+        $wholesaleProduct = $this->flashProduct($wholesaleStoreId, 'b2b');
+        $retailProduct = $this->flashProduct($retailStoreId);
 
         $superAdmin = User::query()->create([
             'name' => 'Cross Channel Flash Admin',
@@ -495,8 +496,61 @@ class CommercialDashboardContractTest extends TestCase
         $this->actingAs($superAdmin)
             ->get(route('admin.commercial.flash-offers', ['store_id' => $wholesaleStoreId]))
             ->assertOk()
-            ->assertSee('Flash Product')
-            ->assertSee(route('admin.commercial.flash-offers.save', ['store_id' => $retailStoreId]), false);
+            ->assertSee('data-flash-product-search', false)
+            ->assertSee('data-flash-products-available-count', false)
+            ->assertSee('value="'.$wholesaleProduct.'" data-product-context="wholesale"', false)
+            ->assertDontSee('value="'.$retailProduct.'" data-product-context="retail"', false)
+            ->assertSee(route('admin.commercial.flash-offers.save', ['store_id' => $wholesaleStoreId]), false);
+
+        $this->actingAs($superAdmin)
+            ->post(route('admin.commercial.flash-offers.save', ['store_id' => $wholesaleStoreId]), [
+                'name' => 'Wholesale Scoped Flash',
+                'title_ar' => 'عرض الجملة',
+                'title_en' => 'Wholesale Flash',
+                'status' => 'draft',
+                'starts_at' => now()->addMinutes(5)->format('Y-m-d H:i:s'),
+                'ends_at' => now()->addHour()->format('Y-m-d H:i:s'),
+                'timezone' => 'Asia/Kuwait',
+                'channels' => ['van'],
+                'allocation_mode' => 'shared',
+                'reservation_seconds' => 300,
+                'retry_count' => 0,
+                'cooldown_seconds' => 0,
+                'priority' => 0,
+                'popup_frequency' => 'once_per_session',
+                'products' => [[
+                    'product_id' => $wholesaleProduct,
+                    'selling_unit_code' => 'PIECE',
+                    'flash_price' => 8,
+                    'allocation_base' => 20,
+                ]],
+            ])
+            ->assertRedirect()
+            ->assertSessionDoesntHaveErrors();
+
+        $this->assertDatabaseHas('flash_offers', [
+            'store_id' => $wholesaleStoreId,
+            'name' => 'Wholesale Scoped Flash',
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.commercial.flash-offers', ['store_id' => $retailStoreId]))
+            ->assertOk()
+            ->assertSee('value="'.$retailProduct.'" data-product-context="retail"', false)
+            ->assertDontSee('value="'.$wholesaleProduct.'" data-product-context="wholesale"', false);
+    }
+
+    public function test_flash_offers_show_an_actionable_empty_state_when_current_store_has_no_products(): void
+    {
+        [$manager, $storeId] = $this->retailManager();
+
+        $this->actingAs($manager)
+            ->get(route('admin.commercial.flash-offers', ['store_id' => $storeId]))
+            ->assertOk()
+            ->assertSee('data-flash-products-available-count data-count="0"', false)
+            ->assertSee('data-flash-products-empty', false)
+            ->assertSee('No active priced products exist in this store catalog.')
+            ->assertSee(route('admin.catalog.index', ['tab' => 'products', 'store_id' => $storeId]), false);
     }
 
     public function test_flash_offer_workspace_uses_structured_business_controls_instead_of_raw_json_or_ids(): void
