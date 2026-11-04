@@ -3141,12 +3141,18 @@ class WholesaleOffersDesignScreen extends StatefulWidget {
 class _WholesaleOffersDesignScreenState extends State<WholesaleOffersDesignScreen>
     with WidgetsBindingObserver {
   late Future<Map<String, dynamic>> _feed;
+  Timer? _autoRefresh;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
     super.initState();
     _feed = _load();
     WidgetsBinding.instance.addObserver(this);
+    _autoRefresh = Timer.periodic(const Duration(seconds: 45), (_) {
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      unawaited(_refresh());
+    });
   }
 
   Future<Map<String, dynamic>> _load() async {
@@ -3174,15 +3180,43 @@ class _WholesaleOffersDesignScreenState extends State<WholesaleOffersDesignScree
     return {'store_id': storeId, 'rows': rows};
   }
 
-  void _refresh() => setState(() => _feed = _load());
+  Future<void> _refresh() async {
+    if (!mounted || _isRefreshing) return;
+    _isRefreshing = true;
+    final pending = _load();
+    setState(() => _feed = pending);
+    try {
+      await pending;
+    } catch (_) {
+      // FutureBuilder renders the error with its explicit retry action.
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant WholesaleOffersDesignScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.location != widget.location ||
+        oldWidget.api != widget.api ||
+        oldWidget.storefrontApi != widget.storefrontApi) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_refresh());
+      });
+    }
+  }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && mounted) _refresh();
+    if (state == AppLifecycleState.resumed && mounted &&
+        (ModalRoute.of(context)?.isCurrent ?? true)) {
+      unawaited(_refresh());
+    }
   }
 
   @override
   void dispose() {
+    _autoRefresh?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -3224,22 +3258,32 @@ class _WholesaleOffersDesignScreenState extends State<WholesaleOffersDesignScree
                   final storeId = intValue(payload['store_id']);
                   final rows = mapRows(payload['rows']);
                   return RefreshIndicator(
-                    onRefresh: () async {
-                      _refresh();
-                      await _feed;
-                    },
+                    onRefresh: _refresh,
                     child: ListView(
                       key: const ValueKey('wholesale-offers-list'),
+                      physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(12, 14, 12, 24),
                       children: [
-                        Text(
-                          isArabic ? 'العروض المتاحة' : 'Available offers',
-                          key: const ValueKey('wholesale-offers-heading'),
-                          style: const TextStyle(
-                            color: CustomerUiColors.ink,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                isArabic ? 'العروض المتاحة' : 'Available offers',
+                                key: const ValueKey('wholesale-offers-heading'),
+                                style: const TextStyle(
+                                  color: CustomerUiColors.ink,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              key: const ValueKey('wholesale-offers-refresh'),
+                              tooltip: isArabic ? 'تحديث العروض' : 'Refresh offers',
+                              icon: const Icon(Icons.refresh_rounded),
+                              onPressed: () => unawaited(_refresh()),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 12),
                         if (storeId <= 0 || rows.isEmpty)
