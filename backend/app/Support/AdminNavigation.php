@@ -151,7 +151,12 @@ class AdminNavigation
                 $useCustomerServiceDashboardProfile
                     ? null
                     : $this->routeItem($user, 'whatsapp_chatbot', 'chatbot.nav_title', 'admin.whatsapp-chatbot.index', 'chatbot.view'),
-                $this->routeItem($user, 'commercial_flash_offers', 'admin.flash_offers', 'admin.commercial.flash-offers', 'promotions.view'),
+                isset($channels['b2b'])
+                    ? $this->routeItem($user, 'commercial_flash_offers', 'admin.flash_offers_wholesale', 'admin.commercial.wholesale-flash-offers', 'promotions.view')
+                    : null,
+                isset($channels['b2c'])
+                    ? $this->routeItem($user, 'commercial_flash_offers_retail', 'admin.flash_offers_retail', 'admin.commercial.flash-offers', 'promotions.view')
+                    : null,
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'promotions', 'admin.b2c_workspace.modules.promotions', 'promotions.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'content', 'admin.b2c_workspace.modules.content', 'promotions.view'),
                 $useCustomerServiceDashboardProfile
