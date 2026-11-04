@@ -66,6 +66,7 @@ class _DriverCompletionDecisionSheetState
   DriverCompletionValidationError? _validationError;
   Object? _submitError;
   bool _submitting = false;
+  bool _pickingProof = false;
 
   @override
   void initState() {
@@ -83,20 +84,29 @@ class _DriverCompletionDecisionSheetState
       widget.availableStatuses.contains(DriverCompletionTarget.failed.status);
 
   Future<void> _pickProof({required bool camera}) async {
-    if (_submitting) return;
-
-    final attachment = camera
-        ? await widget.proofPicker.pickCamera()
-        : await widget.proofPicker.pickGallery();
-    if (!mounted || attachment == null) return;
-
+    if (_submitting || _pickingProof) return;
     setState(() {
-      _draft = _draft.copyWith(proof: attachment);
-      _validationError = attachment.isWithinSizeLimit
-          ? null
-          : DriverCompletionValidationError.proofTooLarge;
+      _pickingProof = true;
       _submitError = null;
     });
+    try {
+      final attachment = camera
+          ? await widget.proofPicker.pickCamera()
+          : await widget.proofPicker.pickGallery();
+      if (!mounted || attachment == null) return;
+      setState(() {
+        _draft = _draft.copyWith(proof: attachment);
+        _validationError = attachment.isWithinSizeLimit
+            ? null
+            : DriverCompletionValidationError.proofTooLarge;
+        _submitError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _submitError = error);
+    } finally {
+      if (mounted) setState(() => _pickingProof = false);
+    }
   }
 
   void _removeProof() {
@@ -289,7 +299,7 @@ class _DriverCompletionDecisionSheetState
                   child: OutlinedButton.icon(
                     key: const ValueKey('driver-completion-proof-camera'),
                     onPressed:
-                        _submitting ? null : () => _pickProof(camera: true),
+                        (_submitting || _pickingProof) ? null : () => _pickProof(camera: true),
                     icon: const Icon(Icons.photo_camera_rounded),
                     label: Text(context.tr('driver.proof.camera')),
                   ),
@@ -299,7 +309,7 @@ class _DriverCompletionDecisionSheetState
                   child: OutlinedButton.icon(
                     key: const ValueKey('driver-completion-proof-gallery'),
                     onPressed:
-                        _submitting ? null : () => _pickProof(camera: false),
+                        (_submitting || _pickingProof) ? null : () => _pickProof(camera: false),
                     icon: const Icon(Icons.photo_library_rounded),
                     label: Text(context.tr('driver.proof.gallery')),
                   ),
