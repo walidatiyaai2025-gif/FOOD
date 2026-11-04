@@ -183,11 +183,12 @@ class CheckoutController extends Controller
                 (float) $quote['subtotal'] - (float) ($quote['discount_total'] ?? 0),
                 2,
             );
-            if ($merchandiseTotal + 0.0001 < 1500.00) {
+            $minimumMerchandise = max(0.0, (float) config('checkout.minimum_merchandise_total_egp', 1500));
+            if ($merchandiseTotal + 0.0001 < $minimumMerchandise) {
                 throw ValidationException::withMessages([
                     'cart' => [app()->getLocale() === 'ar'
-                        ? 'الحد الأدنى للطلب 1500 جنيه. أضف منتجات بقيمة '.number_format(1500 - $merchandiseTotal, 2).' جنيه لإتمام الطلب.'
-                        : 'Minimum order is EGP 1,500. Add EGP '.number_format(1500 - $merchandiseTotal, 2).' in products to check out.'],
+                        ? 'الحد الأدنى للطلب '.number_format($minimumMerchandise, 2).' جنيه. أضف منتجات بقيمة '.number_format($minimumMerchandise - $merchandiseTotal, 2).' جنيه لإتمام الطلب.'
+                        : 'Minimum order is EGP '.number_format($minimumMerchandise, 2).'. Add EGP '.number_format(1500 - $merchandiseTotal, 2).' in products to check out.'],
                 ]);
             }
 
