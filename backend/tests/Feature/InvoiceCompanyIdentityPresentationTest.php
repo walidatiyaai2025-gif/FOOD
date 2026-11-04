@@ -19,7 +19,7 @@ class InvoiceCompanyIdentityPresentationTest extends TestCase
         $this->assertIsString($branding);
 
         $this->assertStringContainsString("@include('admin._invoice-company-identity')", $invoicePage);
-        $this->assertStringContainsString("@if(\$kind === 'invoice')", $orderPopup);
+        $this->assertStringContainsString("@if(in_array(\$kind, ['details', 'invoice'], true))", $orderPopup);
         $this->assertStringContainsString("@include('admin._invoice-company-identity')", $orderPopup);
         $this->assertStringContainsString('data-invoice-company-identity', $partial);
         $this->assertStringContainsString('class="foodex-invoice-company-logo"', $partial);
