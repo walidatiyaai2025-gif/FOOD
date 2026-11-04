@@ -2341,7 +2341,7 @@ void main() {
   );
 
   testWidgets(
-    'B2B cart shows a red popup for configurable minimum and accepts zero',
+    'B2B checkout is disabled below the configured minimum and accepts zero',
     (tester) async {
       tester.view.physicalSize = const Size(900, 1900);
       tester.view.devicePixelRatio = 1;
@@ -2387,14 +2387,16 @@ void main() {
 
       final checkout = find.byKey(const ValueKey('b2b-cart-checkout'));
       await tester.ensureVisible(checkout);
-      await tester.tap(checkout);
-      await _pumpCustomerFrames(tester);
-      expect(find.byKey(const ValueKey('b2b-minimum-order-popup')), findsOneWidget);
-      expect(find.text('لم تصل إلى الحد الأدنى لقيمة الطلب'), findsOneWidget);
+      expect(
+        tester.widget<InkWell>(
+          find.descendant(of: checkout, matching: find.byType(InkWell)),
+        ).onTap,
+        isNull,
+      );
+      expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')), findsOneWidget);
+      expect(find.textContaining('400'), findsWidgets);
+      expect(find.byKey(const ValueKey('b2b-minimum-order-popup')), findsNothing);
       expect(commerce.checkoutCalls, 0);
-
-      await tester.tap(find.text('حسنًا'));
-      await _pumpCustomerFrames(tester);
 
       // Zero is an explicit admin policy, not a missing/fallback value.
       cart['minimum_order_egp'] = 0.0;
@@ -2410,7 +2412,17 @@ void main() {
       );
       await _pumpCustomerFrames(tester);
       expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')), findsNothing);
-      expect(find.byKey(const ValueKey('b2b-cart-checkout')), findsOneWidget);
+      final enabledCheckout = find.byKey(const ValueKey('b2b-cart-checkout'));
+      expect(enabledCheckout, findsOneWidget);
+      expect(
+        tester.widget<InkWell>(
+          find.descendant(
+            of: enabledCheckout,
+            matching: find.byType(InkWell),
+          ),
+        ).onTap,
+        isNotNull,
+      );
     },
   );
 
