@@ -23,11 +23,10 @@
 </style>
 
 <section class="wsf-card" data-wholesale-minimum-order style="margin-bottom:16px">
-    <h3>{{ app()->getLocale()==='ar' ? 'الطلبات' : 'Orders' }}</h3>
+    <h3>{{ app()->getLocale()==='ar' ? 'الحد الأدنى لطلبات الجملة' : 'Wholesale minimum order value' }}</h3>
     <p class="wsf-muted">{{ app()->getLocale()==='ar'
         ? 'الحد الأدنى لقيمة منتجات طلب الجملة بعد خصومات الأصناف، بدون التوصيل أو الضرائب. يتم تطبيق التغيير فور الحفظ على تطبيق العميل وعلى الخادم.'
         : 'Minimum wholesale merchandise value after product discounts, excluding delivery and tax. Changes apply immediately in the Customer app and at checkout.' }}</p>
-    @if(session('status'))<p role="status" class="wsf-muted">{{ session('status') }}</p>@endif
     @if($errors->has('minimum_order_egp'))<p role="alert" style="color:#b91c1c;font-weight:700">{{ $errors->first('minimum_order_egp') }}</p>@endif
     <form method="post" action="{{ route('admin.b2b.storefront.minimum-order') }}" class="wsf-actions" style="align-items:end;gap:12px">
         @csrf @method('PUT')
