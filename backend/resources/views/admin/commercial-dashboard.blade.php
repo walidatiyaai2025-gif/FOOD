@@ -537,6 +537,11 @@
                     <a class="flash-secondary" href="{{ route('admin.commercial.flash-offers', $scope) }}">{{ __('commercial.flash.create_new') }}</a>
                 @endif
             </div>
+            @if($editingOffer && \Illuminate\Support\Carbon::parse($editingOffer->ends_at)->lessThanOrEqualTo(now()))
+                <p role="alert" data-flash-edit-expired style="color:#b91c1c;font-weight:700">
+                    {{ __('commercial.flash.edit_expired_help') }}
+                </p>
+            @endif
             @if($storeId > 0)
             <form method="post" action="{{ route('admin.commercial.flash-offers.save', $scope) }}" class="control-list" data-flash-wizard-form novalidate>
                 @csrf
@@ -775,8 +780,31 @@
         <section class="commercial-card">
             <h2>{{ __('commercial.flash.current_offers') }}</h2>
             @forelse($flashOffers as $offer)
-                <div class="control-row">
-                    <span>{{ $offer->name }} · <strong>{{ __('commercial.flash.statuses.'.$offer->status) }}</strong> · {{ $offer->starts_at }} → {{ $offer->ends_at }}</span>
+                @php
+                    $flashNow = now();
+                    $flashStart = \Illuminate\Support\Carbon::parse($offer->starts_at);
+                    $flashEnd = \Illuminate\Support\Carbon::parse($offer->ends_at);
+                    $flashLiveStatus = in_array((string) $offer->status, ['active', 'scheduled', 'paused', 'sold_out'], true);
+                    $flashEnded = $flashLiveStatus && $flashEnd->lessThanOrEqualTo($flashNow);
+                    $flashUpcoming = $flashLiveStatus && ! $flashEnded && $flashStart->greaterThan($flashNow);
+                    $effectiveFlashStatus = $flashEnded ? 'expired' : ($flashUpcoming ? 'scheduled' : (string) $offer->status);
+                    $flashChannels = json_decode((string) ($offer->channels ?? '[]'), true) ?: [];
+                @endphp
+                <div class="control-row" data-flash-offer-row="{{ $offer->id }}">
+                    <div style="display:grid;gap:5px;min-width:0">
+                        <span>{{ $offer->name }} · <strong data-flash-effective-status="{{ $effectiveFlashStatus }}">{{ __('commercial.flash.statuses.'.$effectiveFlashStatus) }}</strong> · {{ $offer->starts_at }} → {{ $offer->ends_at }}</span>
+                        @if($flashEnded)
+                            <small role="status" data-flash-expired-message style="color:#b91c1c;font-weight:700">
+                                {{ __('commercial.flash.expired_not_visible') }}
+                                <a href="{{ route('admin.commercial.flash-offers', ['edit'=>$offer->id] + $scope) }}">{{ __('commercial.flash.edit_dates') }}</a>
+                            </small>
+                        @elseif($flashUpcoming)
+                            <small role="status" data-flash-upcoming-message>{{ __('commercial.flash.upcoming_not_visible') }}</small>
+                        @endif
+                        @if(!in_array('customer', $flashChannels, true))
+                            <small role="status" data-flash-customer-channel-missing style="color:#9a3412">{{ __('commercial.flash.customer_channel_missing') }}</small>
+                        @endif
+                    </div>
                     <details class="foodex-ops-actions" data-flash-offer-actions>
                         <summary aria-label="{{ __('commercial.flash.actions_menu') }}">⋮</summary>
                         <div class="foodex-ops-menu">
