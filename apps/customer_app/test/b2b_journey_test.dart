@@ -2429,6 +2429,12 @@ void main() {
   testWidgets(
     'B2B cart checkout turns on exactly at minimum and off when quantity drops',
     (tester) async {
+      tester.view.physicalSize = const Size(900, 1900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
       final commerce = _MinimumThresholdWholesaleCommerceApi();
       await tester.pumpWidget(
         FoodexCustomerApp(
@@ -2466,6 +2472,12 @@ void main() {
   testWidgets(
     'B2B checkout confirmation stays dim below server minimum',
     (tester) async {
+      tester.view.physicalSize = const Size(900, 1900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
       final cart = <String, dynamic>{
         'store_id': 7,
         'channel': 'b2b',
