@@ -52,6 +52,7 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RestaurantWholesalePurchasesController;
 use App\Http\Controllers\Admin\RetailStoreProvisioningController;
 use App\Http\Controllers\Admin\SecurityController;
+use App\Http\Controllers\Admin\DocumentBrandingController;
 use App\Http\Controllers\Admin\SettingsCenterController;
 use App\Http\Controllers\Admin\SidebarManagementController;
 use App\Http\Controllers\Admin\SmartOrderingQrController;
@@ -351,6 +352,8 @@ Route::prefix('admin')
             ->middleware('throttle:30,1')
             ->name('enterprise-saved-views.destroy');
         Route::get('/settings', SettingsCenterController::class)->name('settings.index');
+        Route::get('/settings/documents', [DocumentBrandingController::class, 'index'])->name('documents.branding.index');
+        Route::put('/settings/documents', [DocumentBrandingController::class, 'update'])->middleware('throttle:20,1')->name('documents.branding.update');
         Route::get('/settings/whatsapp', [WhatsAppFoundationController::class, 'index'])->name('whatsapp.index');
         Route::put('/settings/whatsapp', [WhatsAppFoundationController::class, 'update'])->middleware('throttle:30,1')->name('whatsapp.update');
         Route::get('/settings/whatsapp/connections', [WhatsAppConnectionController::class, 'index'])->name('whatsapp.connections.index');
