@@ -1488,14 +1488,17 @@ String operationalErrorMessage(Object error, {required bool isArabic}) {
   if (error is CustomerActionException) {
     final code = error.code.trim();
     final normalized = code.toLowerCase();
-    if (normalized == 'authentication_required' ||
+    if (error.statusCode == 401 ||
+        normalized == 'authentication_required' ||
         normalized == 'unauthenticated' ||
         normalized == 'http_401') {
       return isArabic
           ? 'انتهت جلسة تسجيل الدخول. سجل الدخول مجددًا ثم حاول مرة أخرى.'
           : 'Your session has expired. Sign in again and retry.';
     }
-    if (normalized == 'http_403' || normalized == 'forbidden') {
+    if (error.statusCode == 403 ||
+        normalized == 'http_403' ||
+        normalized == 'forbidden') {
       return isArabic
           ? 'لا يسمح حسابك بتنفيذ هذا الطلب. راجع صلاحيات حسابك.'
           : 'Your account cannot perform this action. Check account access.';
@@ -1505,12 +1508,22 @@ String operationalErrorMessage(Object error, {required bool isArabic}) {
           ? 'اختر متجرًا قبل إضافة المنتج إلى السلة.'
           : 'Select a store before adding this product to the cart.';
     }
-    if (normalized == 'http_409' ||
+    if (error.statusCode == 409 ||
+        normalized == 'http_409' ||
         normalized == 'stale_cart' ||
         normalized == 'stock_unavailable') {
       return isArabic
           ? 'تغير السعر أو المخزون أو شروط البيع. حدّث المنتج وراجع الكمية ثم حاول مجددًا.'
           : 'Price, stock, or sale terms changed. Refresh the item and review the quantity.';
+    }
+    final sellingUnitMessages = error.fieldErrors['selling_unit_code'];
+    if (sellingUnitMessages != null &&
+        sellingUnitMessages.any(
+          (message) => message.toLowerCase().contains('existing product line'),
+        )) {
+      return isArabic
+          ? 'هذا المنتج موجود في السلة بوحدة بيع مختلفة. راجع السلة واحذف السطر القديم قبل تغيير الوحدة.'
+          : 'This product is already in the cart with another selling unit. Remove its existing cart line before changing units.';
     }
     for (final messages in error.fieldErrors.values) {
       for (final message in messages) {
