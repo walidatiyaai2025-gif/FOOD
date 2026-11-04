@@ -3093,6 +3093,176 @@ Future<void> _beginWholesaleAddHandoff({
   );
 }
 
+/// Canonical Wholesale Offers screen. It deliberately does NOT reuse the
+/// shopping/catalog screen or interpret a 'section=offers' query parameter.
+class WholesaleOffersDesignScreen extends StatefulWidget {
+  const WholesaleOffersDesignScreen({
+    required this.location,
+    required this.session,
+    required this.api,
+    required this.storefrontApi,
+    required this.actionApi,
+    this.favoritesApi,
+    this.pendingActionStore,
+    this.onLocaleChanged,
+    this.onLogout,
+    super.key,
+  });
+
+  final String location;
+  final CustomerSession session;
+  final B2bApi? api;
+  final StorefrontApi? storefrontApi;
+  final CustomerActionApi actionApi;
+  final B2cRetailFavoritesApi? favoritesApi;
+  final CustomerPendingActionStore? pendingActionStore;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
+
+  @override
+  State<WholesaleOffersDesignScreen> createState() =>
+      _WholesaleOffersDesignScreenState();
+}
+
+class _WholesaleOffersDesignScreenState extends State<WholesaleOffersDesignScreen>
+    with WidgetsBindingObserver {
+  late Future<Map<String, dynamic>> _feed;
+
+  @override
+  void initState() {
+    super.initState();
+    _feed = _load();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  Future<Map<String, dynamic>> _load() async {
+    final storeId = await resolveWholesaleStoreId(
+      location: widget.location,
+      storefrontApi: widget.storefrontApi,
+    );
+    if (storeId <= 0) {
+      return {'store_id': 0, 'rows': <Map<String, dynamic>>[]};
+    }
+
+    Object? response;
+    if (widget.api != null) {
+      response = await widget.api!.get('/api/v1/b2b/products?store_id=$storeId');
+    } else if (widget.storefrontApi != null) {
+      final storefront = await widget.storefrontApi!.wholesaleHome(storeId);
+      response = storefront['products'];
+    }
+
+    final rows = dataRows(response)
+        .where((row) =>
+            _wholesaleRowMatchesSection(row, 'offers') &&
+            _wholesaleProductIsAvailable(row))
+        .toList(growable: false);
+    return {'store_id': storeId, 'rows': rows};
+  }
+
+  void _refresh() => setState(() => _feed = _load());
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) _refresh();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    const palette = FoodexPalette.wholesale;
+    return Scaffold(
+      key: const ValueKey('wholesale-offers-screen'),
+      backgroundColor: palette.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            FoodexWholesaleHeader(
+              title: isArabic ? 'عروض الجملة' : 'Wholesale offers',
+              palette: palette,
+              location: widget.location,
+              isAuthenticated: widget.session.isAuthenticated,
+              onLocaleChanged: widget.onLocaleChanged,
+              onLogout: widget.onLogout,
+            ),
+            Expanded(
+              child: FutureBuilder<Map<String, dynamic>>(
+                future: _feed,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return FoodexErrorState(
+                      key: const ValueKey('wholesale-offers-error'),
+                      message: context.tr('b2b.catalog.load_error'),
+                      onRetry: _refresh,
+                    );
+                  }
+
+                  final payload = snapshot.data ?? const <String, dynamic>{};
+                  final storeId = intValue(payload['store_id']);
+                  final rows = mapRows(payload['rows']);
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      _refresh();
+                      await _feed;
+                    },
+                    child: ListView(
+                      key: const ValueKey('wholesale-offers-list'),
+                      padding: const EdgeInsets.fromLTRB(12, 14, 12, 24),
+                      children: [
+                        Text(
+                          isArabic ? 'العروض المتاحة' : 'Available offers',
+                          key: const ValueKey('wholesale-offers-heading'),
+                          style: const TextStyle(
+                            color: CustomerUiColors.ink,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        if (storeId <= 0 || rows.isEmpty)
+                          FoodexEmptyState(
+                            key: const ValueKey('wholesale-offers-empty'),
+                            title: isArabic
+                                ? 'لا توجد عروض متاحة حاليًا'
+                                : 'No available offers right now',
+                            subtitle: isArabic
+                                ? 'ستظهر هنا منتجات الجملة المتاحة التي عليها خصومات أو عروض.'
+                                : 'Available wholesale products with eligible discounts or promotions appear here.',
+                          )
+                        else
+                          _WholesaleProductGrid(
+                            rows: rows,
+                            storeId: storeId,
+                            sourceLocation: widget.location,
+                            session: widget.session,
+                            actionApi: widget.actionApi,
+                            pendingActionStore: widget.pendingActionStore,
+                            palette: palette,
+                            favoritesApi: widget.favoritesApi,
+                            showCommerceActions: true,
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class WholesaleCatalogDesignScreen extends StatefulWidget {
   const WholesaleCatalogDesignScreen({
     required this.location,
