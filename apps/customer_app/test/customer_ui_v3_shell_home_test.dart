@@ -107,9 +107,10 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey('retail-shell-nav-account')),
+        find.byKey(const ValueKey('retail-shell-nav-invoices')),
         findsOneWidget,
       );
+      expect(find.byKey(const ValueKey('retail-shell-nav-offers')), findsOneWidget);
       expect(tester.takeException(), isNull);
 
       await tester.enterText(
