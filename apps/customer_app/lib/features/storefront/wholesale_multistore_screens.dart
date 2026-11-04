@@ -4473,6 +4473,7 @@ class _WholesaleProductDetailsDesignScreenState
   late final int productId = productIdFromLocation(widget.location);
   late Future<Object?> future = _loadProduct();
   double? quantity;
+  String? selectedSellingUnitCode;
   Map<String, dynamic>? _lastProduct;
   Timer? _stockRefreshTimer;
   bool stale = false;
@@ -4607,6 +4608,51 @@ class _WholesaleProductDetailsDesignScreenState
         .toList(growable: false);
   }
 
+  List<Map<String, dynamic>> _sellingUnits(Map<String, dynamic> row) =>
+      (row['selling_units'] as List? ?? const <Object>[])
+          .whereType<Map>()
+          .map((unit) => Map<String, dynamic>.from(unit))
+          .where((unit) => (unit['code']?.toString() ?? '').isNotEmpty)
+          .toList(growable: false);
+
+  Map<String, dynamic>? _selectedUnit(Map<String, dynamic> row) {
+    final units = _sellingUnits(row);
+    if (units.isEmpty) return null;
+    for (final unit in units) {
+      if (unit['code']?.toString() == selectedSellingUnitCode) return unit;
+    }
+    return units.first;
+  }
+
+  double _sellingFactor(Map<String, dynamic> row) =>
+      math.max(1, doubleValue(_selectedUnit(row)?['conversion_factor'], 1));
+
+  Future<Object?> _submitUnitCartItem(
+    double baseQuantity,
+    Map<String, dynamic> row,
+  ) {
+    final selectedUnit = _selectedUnit(row);
+    final code = selectedUnit?['code']?.toString();
+    final actionApi = widget.actionApi;
+    if (code != null && actionApi is CustomerSellingUnitActionApi) {
+      return actionApi.addCartSellingUnit(
+        storeId: storeId,
+        productId: productId,
+        quantity: baseQuantity / _sellingFactor(row),
+        sellingUnitCode: code,
+      );
+    }
+    if (selectedUnit != null &&
+        selectedUnit['is_base'] != true) {
+      throw StateError('Selling-unit checkout is not supported in this session.');
+    }
+    return actionApi.addCartItem(
+      storeId: storeId,
+      productId: productId,
+      quantity: baseQuantity,
+    );
+  }
+
   void _retry() {
     if (!mounted) return;
     setState(() {
@@ -4628,6 +4674,7 @@ class _WholesaleProductDetailsDesignScreenState
       'case_size',
       'pack_label',
       'available_quantity',
+      'selling_units',
       'is_available',
       'availability_state',
       'currency',
@@ -4760,11 +4807,7 @@ class _WholesaleProductDetailsDesignScreenState
       final confirmationClose =
           MaterialLocalizations.of(context).closeButtonTooltip;
 
-      await widget.actionApi.addCartItem(
-        storeId: storeId,
-        productId: productId,
-        quantity: selectedQuantity,
-      );
+      await _submitUnitCartItem(selectedQuantity, row);
       if (checkoutAfterAdd && mounted) {
         Navigator.of(context).pushNamed(
           '/b2b/checkout?store_id=$storeId&channel=wholesale',
@@ -4876,7 +4919,11 @@ class _WholesaleProductDetailsDesignScreenState
                 .001,
                 doubleValue(row['ordering_increment'], 1),
               );
+              final sellingUnitFactor = _sellingFactor(row);
               quantity ??= minimum;
+              if (quantity! + .0001 < sellingUnitFactor) {
+                quantity = sellingUnitFactor;
+              }
               final images = (row['images'] as List? ?? const <Object>[])
                   .whereType<String>()
                   .where((value) => value.trim().isNotEmpty)
@@ -5055,11 +5102,52 @@ class _WholesaleProductDetailsDesignScreenState
                     ),
                   ],
                   const SizedBox(height: 14),
+                  if (_sellingUnits(row).isNotEmpty) ...[
+                    Wrap(
+                      key: const ValueKey('wholesale-selling-unit-options'),
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final unit in _sellingUnits(row))
+                          ChoiceChip(
+                            key: ValueKey('wholesale-selling-unit-${unit['code']}'),
+                            label: Text(
+                              (unit['name']?.toString() ?? unit['code'].toString()) +
+                                  ' · ' +
+                                  money(
+                                    unit['price'] ??
+                                        (doubleValue(row['account_price'], 0) *
+                                            doubleValue(unit['conversion_factor'], 1)),
+                                    currency: currency,
+                                  ),
+                            ),
+                            selected:
+                                _selectedUnit(row)?['code'] == unit['code'],
+                            onSelected: isAvailable && !revalidating
+                                ? (selected) {
+                                    if (!selected) return;
+                                    final factor = math.max(
+                                      1,
+                                      doubleValue(unit['conversion_factor'], 1),
+                                    );
+                                    setState(() {
+                                      selectedSellingUnitCode =
+                                          unit['code']?.toString();
+                                      quantity = factor *
+                                          math.max(1, (minimum / factor).ceil());
+                                    });
+                                  }
+                                : null,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   FoodexQuantityCta(
                     key: const ValueKey('customer-add-cart'),
-                    quantity: quantity!,
-                    increment: increment,
-                    minimum: minimum,
+                    quantity: quantity! / sellingUnitFactor,
+                    increment: math.max(1, increment / sellingUnitFactor),
+                    minimum: math.max(1, minimum / sellingUnitFactor),
                     palette: FoodexPalette.wholesale,
                     label: revalidating
                         ? context.tr('b2b.product.revalidating')
@@ -5082,8 +5170,9 @@ class _WholesaleProductDetailsDesignScreenState
                         : null,
                     onChanged: isAvailable && !revalidating
                         ? (value) {
+                            final baseValue = value * sellingUnitFactor;
                             if (availableQuantity != null &&
-                                value > availableQuantity + .0001) {
+                                baseValue > availableQuantity + .0001) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
@@ -5095,7 +5184,7 @@ class _WholesaleProductDetailsDesignScreenState
                               );
                               return;
                             }
-                            setState(() => quantity = value);
+                            setState(() => quantity = baseValue);
                           }
                         : null,
                     onPressed: isAvailable && !revalidating
