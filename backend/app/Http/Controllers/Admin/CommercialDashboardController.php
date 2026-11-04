@@ -287,9 +287,12 @@ final class CommercialDashboardController extends Controller
             ->with('status', __('commercial.status.sales_control_saved'));
     }
 
-    public function flashOffers(Request $request): View
+    public function flashOffers(Request $request): View|RedirectResponse
     {
         [$user, $storeId] = $this->authorizedFlashStore($request, 'promotions.view', true);
+        if ($redirect = $this->wholesaleFlashCanonicalRedirect($request, $storeId)) {
+            return $redirect;
+        }
         $lookups = $this->flashOfferLookups($storeId, $user);
 
         $editingOffer = null;
@@ -348,9 +351,12 @@ final class CommercialDashboardController extends Controller
         ]);
     }
 
-    public function flashPreview(Request $request, int $offer): View
+    public function flashPreview(Request $request, int $offer): View|RedirectResponse
     {
         [$user, $storeId] = $this->authorizedFlashStore($request, 'promotions.view');
+        if ($redirect = $this->wholesaleFlashCanonicalRedirect($request, $storeId, 'preview', $offer)) {
+            return $redirect;
+        }
         $row = $this->flashOfferRow($storeId, $offer);
         $products = DB::table('flash_offer_products')
             ->leftJoin('products', 'products.id', '=', 'flash_offer_products.product_id')
@@ -385,9 +391,12 @@ final class CommercialDashboardController extends Controller
         ]);
     }
 
-    public function flashAnalytics(Request $request, int $offer): View
+    public function flashAnalytics(Request $request, int $offer): View|RedirectResponse
     {
         [$user, $storeId] = $this->authorizedFlashStore($request, 'promotions.view');
+        if ($redirect = $this->wholesaleFlashCanonicalRedirect($request, $storeId, 'analytics', $offer)) {
+            return $redirect;
+        }
         $row = $this->flashOfferRow($storeId, $offer);
 
         $reservationStats = DB::table('flash_reservations')
@@ -659,7 +668,7 @@ final class CommercialDashboardController extends Controller
         });
 
         return redirect()
-            ->route('admin.commercial.flash-offers', ['store_id' => $storeId] + ($request->boolean('support_access') ? ['support_access' => 1] : []))
+            ->route($this->flashRoutePrefix($storeId), ['store_id' => $storeId] + ($request->boolean('support_access') ? ['support_access' => 1] : []))
             ->with('status', __('commercial.status.flash_offer_saved'));
     }
 
@@ -729,15 +738,50 @@ final class CommercialDashboardController extends Controller
         abort_unless($user instanceof User, 401);
         $requestedStore = $request->integer('store_id');
         $scope = app(OperationalTenantScope::class);
-        if ($requestedStore > 0
+        if ($request->routeIs('admin.commercial.wholesale-flash-offers*')) {
+            return $this->authorizedStore($request, $permission, $allowEmptyStore, 'b2b');
+        }
+        // Bookmarked B2C GET links for an authorized wholesale store are
+        // canonicalized to B2B. Never allow a B2C POST to mutate B2B records.
+        if ($request->isMethod('GET')
+            && $requestedStore > 0
             && in_array($requestedStore, $scope->allowedStoreIds($user, $permission, 'b2b'), true)
         ) {
-            // An explicit B2B store remains B2B throughout read, save, preview
-            // and status changes. No cross-tenant/cross-channel fallback.
             return $this->authorizedStore($request, $permission, $allowEmptyStore, 'b2b');
         }
 
         return $this->authorizedStore($request, $permission, $allowEmptyStore, 'b2c');
+    }
+
+    private function flashRoutePrefix(int $storeId): string
+    {
+        return $storeId > 0
+            && app(OperationalTenantScope::class)->storeChannel($storeId) === 'b2b'
+                ? 'admin.commercial.wholesale-flash-offers'
+                : 'admin.commercial.flash-offers';
+    }
+
+    private function wholesaleFlashCanonicalRedirect(
+        Request $request,
+        int $storeId,
+        string $suffix = '',
+        ?int $offerId = null,
+    ): ?RedirectResponse {
+        if ($storeId <= 0 || $this->flashRoutePrefix($storeId) !== 'admin.commercial.wholesale-flash-offers'
+            || $request->routeIs('admin.commercial.wholesale-flash-offers*')) {
+            return null;
+        }
+
+        $params = array_filter([
+            'store_id' => $storeId,
+            'edit' => $request->query('edit'),
+            'support_access' => $request->boolean('support_access') ? 1 : null,
+            'offer' => $offerId,
+        ], static fn ($value): bool => $value !== null && $value !== '');
+        return redirect()->route(
+            'admin.commercial.wholesale-flash-offers'.($suffix === '' ? '' : '.'.$suffix),
+            $params,
+        );
     }
 
     /** @return array{0: User, 1: int} */
@@ -1169,8 +1213,11 @@ final class CommercialDashboardController extends Controller
             'storeId' => $storeId,
             'section' => $section,
             'supportAccess' => $supportAccess,
+            'storeChannel' => $storeId > 0 ? app(OperationalTenantScope::class)->storeChannel($storeId) : 'b2c',
+            'flashRoutePrefix' => $this->flashRoutePrefix($storeId),
             'navGroups' => $this->navigation->groupsFor($user),
-            'navContext' => $section === 'sales-control' ? 'b2b_products' : 'b2c_promotions',
+            'navContext' => $section === 'sales-control' || $this->flashRoutePrefix($storeId) === 'admin.commercial.wholesale-flash-offers'
+                ? 'b2b_products' : 'b2c_promotions',
         ]);
     }
 }
