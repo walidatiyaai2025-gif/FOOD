@@ -9,6 +9,7 @@ abstract final class CustomerRoutePaths {
   static const retailHome = '/retail/:store/home';
   static const retailProductDetails = '/retail/:store/products/:product';
   static const offers = '/offers';
+  static const invoices = '/invoices';
   static const products = '/products';
   static const productDetails = '/products/:id';
   static const categories = '/categories';
@@ -100,6 +101,11 @@ abstract final class CustomerRouteLocations {
   static String retailProfile(CustomerCommerceContext context) {
     _requireChannel(context, CustomerCommerceChannel.retail);
     return _scoped(CustomerRoutePaths.profile, context);
+  }
+
+  static String retailInvoices(CustomerCommerceContext context) {
+    _requireChannel(context, CustomerCommerceChannel.retail);
+    return _scoped(CustomerRoutePaths.invoices, context);
   }
 
   static String retailOrders(CustomerCommerceContext context) {
@@ -437,6 +443,12 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
     pattern: CustomerRoutePaths.offers,
     label: 'B2C offers',
     channel: CustomerChannel.b2c,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.invoices,
+    label: 'Retail invoices',
+    channel: CustomerChannel.b2c,
+    requiresAuth: true,
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.products,
