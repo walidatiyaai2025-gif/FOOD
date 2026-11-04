@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\DocumentBrandingService;
+use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,12 @@ final class DocumentBrandingController extends Controller
     {
         $this->authorizeSettings($request, false);
 
+        $user = $request->user();
+
         return view('admin.document-branding', [
+            'user' => $user,
+            'navGroups' => app(AdminNavigation::class)->groupsFor($user),
+            'navContext' => 'administration_hub',
             'identity' => $branding->identity(),
         ]);
     }
