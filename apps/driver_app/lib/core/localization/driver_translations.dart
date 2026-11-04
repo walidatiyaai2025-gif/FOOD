@@ -246,6 +246,14 @@ class DriverTranslations extends InheritedWidget {
     'driver.completion.failure_reason_required': 'اختر سبب تعذر التسليم.',
     'driver.completion.other_note_required': 'اكتب ملاحظة عند اختيار سبب آخر.',
     'driver.completion.submit_failed': 'تعذر تحديث حالة التوصيل. أعد المحاولة.',
+    'driver.completion.photo_permission_denied':
+        'فعّل إذن الكاميرا أو الصور لتطبيق FOODEX Driver من إعدادات iPhone ثم حاول مجددًا.',
+    'driver.completion.photo_picker_failed':
+        'تعذر فتح الكاميرا أو مكتبة الصور. أعد المحاولة أو اختر المصدر الآخر.',
+    'driver.completion.proof_upload_failed':
+        'تعذر رفع صورة الإثبات. تحقق من الاتصال وحاول مجددًا دون إعادة تأكيد الطلب.',
+    'driver.completion.proof_file_missing':
+        'صورة الإثبات لم تعد متاحة. اختر الصورة مرة أخرى.',
     'driver.invoice.title': 'الفاتورة / الإيصال',
     'driver.invoice.open': 'عرض الفاتورة',
     'driver.invoice.download': 'فتح / تنزيل PDF',
@@ -544,6 +552,14 @@ class DriverTranslations extends InheritedWidget {
         'Add a note when Other reason is selected.',
     'driver.completion.submit_failed':
         'Unable to update the delivery status. Try again.',
+    'driver.completion.photo_permission_denied':
+        'Allow camera or photo access for FOODEX Driver in iPhone Settings, then retry.',
+    'driver.completion.photo_picker_failed':
+        'Unable to open camera or photos. Retry or choose the other source.',
+    'driver.completion.proof_upload_failed':
+        'Unable to upload the proof image. Check your connection and retry without confirming twice.',
+    'driver.completion.proof_file_missing':
+        'The proof image is no longer available. Pick it again.',
     'driver.invoice.title': 'Invoice / receipt',
     'driver.invoice.open': 'View invoice',
     'driver.invoice.download': 'Open / download PDF',
