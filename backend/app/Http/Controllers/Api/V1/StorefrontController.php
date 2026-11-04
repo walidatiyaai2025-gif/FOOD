@@ -528,6 +528,7 @@ final class StorefrontController extends Controller
             'credit_limit' => (float) $finance['credit_limit'],
             'available_credit_line' => (float) $finance['available_credit_line'],
             'purchasing_power' => (float) $finance['purchasing_power'],
+            'minimum_order_egp' => app(\\App\\Services\\MinimumOrderPolicy::class)->minimumForStore($storeId),
             'currency' => $finance['currency'],
         ]);
     }
