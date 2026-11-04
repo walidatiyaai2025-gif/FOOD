@@ -138,7 +138,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
         );
       case CustomerRoutePaths.b2bOffers:
         return withFooter(
-          WholesaleCatalogDesignScreen(
+          WholesaleOffersDesignScreen(
             location: location,
             session: session,
             api: b2bApi,
@@ -146,7 +146,6 @@ class MultiStoreDesignScreen extends StatelessWidget {
             actionApi: actionApi,
             favoritesApi: wholesaleFavoritesApi,
             pendingActionStore: pendingActionStore,
-            offersOnly: true,
             onLocaleChanged: onLocaleChanged,
             onLogout: onLogout,
           ),
