@@ -105,12 +105,8 @@ class _CustomerRetailInvoicesScreenState
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text((isArabic(context) ? 'الحالة: ' : 'Status: ') +
-                        (data['status']?.toString() ?? '—')),
-                    Text((isArabic(context) ? 'الإجمالي: ' : 'Total: ') +
-                        (data['grand_total']?.toString() ?? '—') +
-                        ' ' +
-                        (data['currency']?.toString() ?? 'EGP')),
+                    Text("${isArabic(context) ? 'الحالة: ' : 'Status: '}${data['status'] ?? '—'}"),
+                    Text("${isArabic(context) ? 'الإجمالي: ' : 'Total: '}${data['grand_total'] ?? '—'} ${data['currency'] ?? 'EGP'}"),
                     const Divider(),
                     for (final line in items)
                       ListTile(
@@ -118,9 +114,7 @@ class _CustomerRetailInvoicesScreenState
                         contentPadding: EdgeInsets.zero,
                         title: Text(line['name']?.toString() ?? ''),
                         subtitle: Text(
-                          (line['quantity']?.toString() ?? '—') +
-                              ' × ' +
-                              (line['unit_price']?.toString() ?? '—'),
+                          "${line['quantity'] ?? '—'} × ${line['unit_price'] ?? '—'}",
                         ),
                         trailing: Text(line['line_total']?.toString() ?? ''),
                       ),
@@ -171,27 +165,22 @@ class _CustomerRetailInvoicesScreenState
               child: ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: list.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                separatorBuilder: (_, __) => const SizedBox(height: CustomerUiSpacing.sm),
                 itemBuilder: (context, index) {
                   final invoice = list[index];
                   return Card(
                     child: ListTile(
-                      key: ValueKey('retail-invoice-' +
-                          (invoice['id']?.toString() ?? 'unknown')),
+                      key: ValueKey("retail-invoice-${invoice['id'] ?? 'unknown'}"),
                       title: Text(
                         invoice['invoice_number']?.toString() ?? '—',
                       ),
                       subtitle: Text(
-                        (invoice['issued_at']?.toString() ?? '') +
-                            ' · ' +
-                            (invoice['status']?.toString() ?? ''),
+                        "${invoice['issued_at'] ?? ''} · ${invoice['status'] ?? ''}",
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       trailing: Text(
-                        (invoice['grand_total']?.toString() ?? '—') +
-                            ' ' +
-                            (invoice['currency']?.toString() ?? 'EGP'),
+                        "${invoice['grand_total'] ?? '—'} ${invoice['currency'] ?? 'EGP'}",
                       ),
                       onTap: () => showInvoice(invoice),
                     ),
