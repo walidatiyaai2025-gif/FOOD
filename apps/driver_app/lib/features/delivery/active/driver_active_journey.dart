@@ -551,6 +551,31 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
 
     try {
       await widget.onDeliveredRequested(assignment);
+      // Completion sheets can be cancelled; display success only after a
+      // fresh server confirmation, never from the button click alone.
+      DriverAssignment? confirmed;
+      try {
+        confirmed = await _fetchAuthoritativeAssignment(assignment.id);
+      } catch (_) {
+        // A status-refresh failure must not undo a completed delivery.
+      }
+      if (mounted &&
+          confirmed?.status == 'delivered' &&
+          confirmed?.settlement?.remainderMethod == 'account_debt' &&
+          (confirmed?.settlement?.remainingAmount ?? 0) > 0.0001) {
+        final due = confirmed!.settlement!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            key: const Key('driver-credit-delivered-with-balance'),
+            content: Text(
+              (Localizations.localeOf(context).languageCode == 'ar'
+                  ? 'تم التسليم — متبقي '
+                  : 'Delivered — balance due ') +
+                  foodexMoneyText(due.remainingAmount, due.currency),
+            ),
+          ),
+        );
+      }
       await _load();
     } on DriverSessionExpiredException {
       widget.onSessionExpired?.call();
