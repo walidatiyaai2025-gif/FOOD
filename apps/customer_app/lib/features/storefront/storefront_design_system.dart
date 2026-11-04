@@ -1521,13 +1521,117 @@ String operationalErrorMessage(Object error, {required bool isArabic}) {
     // Some legacy endpoints put a user-readable message in "message" instead
     // of "code". Never show raw Dart exception identities or server internals.
     if (code.length <= 200 &&
-        (RegExp(r'[\\u0600-\\u06FF]').hasMatch(code) ||
+        (code.runes.any((value) => value >= 0x0600 && value <= 0x06FF) ||
             (code.contains(' ') &&
                 !code.contains('Exception') &&
                 !code.contains('StackTrace')))) {
       return code;
     }
-    if (RegExp(r'^[A-Za-z0-9_\\-]{1,60}$').hasMatch(code)) {
+    if (RegExp(r'^[A-Za-z0-9_-]{1,60}) {
+      return '$generic ($code)';
+    }
+    return generic;
+  }
+  final text = error.toString().replaceFirst('Exception: ', '').trim();
+  if (text.isEmpty ||
+      text.startsWith('Instance of ') ||
+      text.contains('StackTrace') ||
+      text.length > 240) {
+    return generic;
+  }
+  return text;
+}
+
+Future<void> showOperationalError(BuildContext context, Object error) {
+  final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+  return showDialog<void>(
+    context: context,
+    builder: (dialogContext) => Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: AlertDialog(
+        icon: const Icon(
+          Icons.error_outline_rounded,
+          color: Color(0xFFB42318),
+        ),
+        title: Text(isArabic ? 'تعذر تنفيذ العملية' : 'Action could not be completed'),
+        content: Text(operationalErrorMessage(error, isArabic: isArabic)),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(isArabic ? 'حسنًا' : 'OK'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+List<Map<String, dynamic>> mapRows(Object? value) =>
+    (value as List? ?? const <Object>[])
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList(growable: false);
+
+List<Map<String, dynamic>> dataRows(Object? value) {
+  if (value is Map && value['data'] is List) {
+    return mapRows(value['data']);
+  }
+  if (value is List) return mapRows(value);
+  return const <Map<String, dynamic>>[];
+}
+
+int intValue(Object? value) =>
+    value is num ? value.toInt() : int.tryParse(value.toString()) ?? 0;
+
+double doubleValue(Object? value, [double fallback = 0]) => value is num
+    ? value.toDouble()
+    : double.tryParse(value.toString()) ?? fallback;
+
+String compactNumber(double value) => value == value.roundToDouble()
+    ? value.toInt().toString()
+    : value.toStringAsFixed(2);
+
+String money(Object? value, {String currency = 'EGP'}) {
+  if (value == null) return '—';
+  return foodexMoneyText(doubleValue(value), currency, fractionDigits: 2);
+}
+
+int retailStoreId(String location) {
+  final uri = Uri.parse(location);
+  final parts = uri.pathSegments;
+  final index = parts.indexOf('retail');
+  if (index >= 0 && parts.length > index + 1) {
+    return int.tryParse(parts[index + 1]) ?? 0;
+  }
+  return int.tryParse(uri.queryParameters['store'] ?? '') ?? 0;
+}
+
+int wholesaleStoreId(String location) {
+  final uri = Uri.parse(location);
+  return int.tryParse(
+        uri.queryParameters['store_id'] ?? uri.queryParameters['store'] ?? '',
+      ) ??
+      0;
+}
+
+int productIdFromLocation(String location) {
+  for (final segment in Uri.parse(location).pathSegments.reversed) {
+    final id = int.tryParse(segment);
+    if (id != null) return id;
+  }
+  return 0;
+}
+
+Color parseHexColor(Object? value, Color fallback) {
+  if (value is! String) return fallback;
+  final raw = value.replaceAll('#', '').trim();
+  final parsed = int.tryParse(raw, radix: 16);
+  if (parsed == null) return fallback;
+  if (raw.length == 6) return Color(0xFF000000 | parsed);
+  if (raw.length == 8) return Color(parsed);
+  return fallback;
+}
+).hasMatch(code)) {
       return '$generic ($code)';
     }
     return generic;
