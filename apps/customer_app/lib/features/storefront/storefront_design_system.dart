@@ -1267,6 +1267,8 @@ class FoodexQuantityCta extends StatelessWidget {
     required this.label,
     required this.onChanged,
     required this.onPressed,
+    this.onCheckout,
+    this.checkoutLabel,
     super.key,
   });
 
@@ -1277,6 +1279,8 @@ class FoodexQuantityCta extends StatelessWidget {
   final String label;
   final ValueChanged<double>? onChanged;
   final VoidCallback? onPressed;
+  final VoidCallback? onCheckout;
+  final String? checkoutLabel;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -1324,6 +1328,22 @@ class FoodexQuantityCta extends StatelessWidget {
               ),
             ),
           ),
+          if (onCheckout != null) ...[
+            const SizedBox(width: 8),
+            Expanded(
+              child: SizedBox(
+                height: 52,
+                child: OutlinedButton(
+                  key: const ValueKey('customer-checkout-now'),
+                  onPressed: onCheckout,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(checkoutLabel ?? 'Checkout'),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       );
 }
