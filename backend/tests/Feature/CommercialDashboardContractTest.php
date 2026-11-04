@@ -816,6 +816,139 @@ class CommercialDashboardContractTest extends TestCase
         $this->assertStringNotContainsString('{{ $promotion->is_active ? ($ar ?', $view);
     }
 
+    public function test_flash_offer_has_visible_edit_button_and_updates_without_deleting_reservations(): void
+    {
+        [$manager, $storeId] = $this->retailManager();
+        $productId = $this->flashProduct($storeId);
+        $unitId = (int) DB::table('product_selling_units')
+            ->where('product_id', $productId)->where('code', 'PIECE')->value('id');
+        $offerId = (int) DB::table('flash_offers')->insertGetId([
+            'store_id' => $storeId,
+            'name' => 'مكرونات',
+            'title_ar' => 'عرض مكرونات',
+            'title_en' => 'Pasta Flash',
+            'status' => 'active',
+            'starts_at' => now()->startOfMonth(),
+            'ends_at' => now()->endOfMonth(),
+            'timezone' => 'Asia/Kuwait',
+            'channels' => json_encode(['customer'], JSON_THROW_ON_ERROR),
+            'allocation_mode' => 'shared',
+            'total_allocation_base' => 100,
+            'per_customer_limit_base' => 20,
+            'reservation_seconds' => 300,
+            'retry_count' => 0,
+            'cooldown_seconds' => 0,
+            'priority' => 0,
+            'popup_frequency' => 'once_per_session',
+            'counts_toward_normal_quota' => false,
+            'stackable' => false,
+            'kill_switch' => false,
+            'created_by' => $manager->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $offerProductId = (int) DB::table('flash_offer_products')->insertGetId([
+            'flash_offer_id' => $offerId,
+            'product_id' => $productId,
+            'selling_unit_id' => $unitId,
+            'selling_unit_code' => 'PIECE',
+            'conversion_factor' => 1,
+            'flash_price' => 8,
+            'allocation_base' => 20,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $reservationId = (string) Str::uuid();
+        DB::table('flash_reservations')->insert([
+            'id' => $reservationId,
+            'flash_offer_id' => $offerId,
+            'flash_offer_product_id' => $offerProductId,
+            'user_id' => $manager->id,
+            'channel' => 'customer',
+            'selling_quantity' => 1,
+            'reserved_base_quantity' => 1,
+            'unit_price' => 8,
+            'status' => 'confirmed',
+            'idempotency_key' => 'flash-edit-preserve',
+            'inventory_allocations' => json_encode([], JSON_THROW_ON_ERROR),
+            'expires_at' => now()->addMinutes(5),
+            'confirmed_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $page = route('admin.commercial.flash-offers', ['store_id' => $storeId]);
+        $editUrl = route('admin.commercial.flash-offers', ['store_id' => $storeId, 'edit' => $offerId]);
+        $this->actingAs($manager)->get($page)
+            ->assertOk()
+            ->assertSee('data-flash-edit-offer="'.$offerId.'"', false)
+            ->assertSee($editUrl.'#flash-offer-form', false);
+        $this->actingAs($manager)->get($editUrl)
+            ->assertOk()
+            ->assertSee('id="flash-offer-form"', false)
+            ->assertSee('name="offer_id" value="'.$offerId.'"', false)
+            ->assertSee('مكرونات');
+
+        $payload = [
+            'offer_id' => $offerId,
+            'name' => 'مكرونات نوفمبر',
+            'title_ar' => 'مكرونات عرض نوفمبر',
+            'title_en' => 'November Pasta Flash',
+            'status' => 'active',
+            'starts_at' => now()->startOfMonth()->format('Y-m-d H:i:s'),
+            'ends_at' => now()->endOfMonth()->format('Y-m-d H:i:s'),
+            'timezone' => 'Asia/Kuwait',
+            'channels' => ['customer'],
+            'allocation_mode' => 'shared',
+            'total_allocation_base' => 100,
+            'per_customer_limit_base' => 20,
+            'reservation_seconds' => 300,
+            'retry_count' => 0,
+            'cooldown_seconds' => 0,
+            'priority' => 3,
+            'popup_frequency' => 'once_per_session',
+            'products' => [[
+                'product_id' => $productId,
+                'selling_unit_code' => 'PIECE',
+                'flash_price' => 8,
+                'allocation_base' => 20,
+            ]],
+        ];
+        $this->actingAs($manager)
+            ->post(route('admin.commercial.flash-offers.save', ['store_id' => $storeId]), $payload)
+            ->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('flash_offers', [
+            'id' => $offerId,
+            'store_id' => $storeId,
+            'name' => 'مكرونات نوفمبر',
+        ]);
+        $this->assertDatabaseHas('flash_offer_products', [
+            'id' => $offerProductId,
+            'flash_offer_id' => $offerId,
+            'flash_price' => 8,
+        ]);
+        $this->assertDatabaseHas('flash_reservations', [
+            'id' => $reservationId,
+            'flash_offer_product_id' => $offerProductId,
+            'status' => 'confirmed',
+        ]);
+
+        // Never silently reprice a previously reserved/sold unit.
+        $payload['products'][0]['flash_price'] = 6;
+        $this->actingAs($manager)
+            ->post(route('admin.commercial.flash-offers.save', ['store_id' => $storeId]), $payload)
+            ->assertSessionHasErrors('products');
+        $this->assertDatabaseHas('flash_offer_products', [
+            'id' => $offerProductId,
+            'flash_price' => 8,
+        ]);
+        $this->assertDatabaseHas('flash_reservations', [
+            'id' => $reservationId,
+            'flash_offer_product_id' => $offerProductId,
+        ]);
+    }
+
     public function test_sales_control_rejects_targeting_customer_outside_authoritative_store_scope(): void
     {
         [$manager, $storeId] = $this->wholesaleManager();
