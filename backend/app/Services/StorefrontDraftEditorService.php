@@ -14,6 +14,7 @@ final class StorefrontDraftEditorService
     public function __construct(
         private readonly StorefrontRevisionService $revisions,
         private readonly AuditLogger $audit,
+        private readonly WholesaleAppCatalogPolicy $catalogPolicy,
     ) {}
 
     /** @return array{revision:StorefrontRevision,payload:array<string,mixed>,has_draft:bool} */
@@ -77,7 +78,9 @@ final class StorefrontDraftEditorService
                 'accent_color' => $accentColor,
                 'background_color' => $backgroundColor,
                 'header_address' => $settings['header_address'] ?? '',
-                'show_in_stock_only' => filter_var($branding['show_in_stock_only'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                'show_in_stock_only' => $channel === 'b2b'
+                    ? $this->catalogPolicy->showInStockOnly($storeId)
+                    : filter_var($branding['show_in_stock_only'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'brand_title_ar' => (string) ($branding['brand_title_ar'] ?? ''),
                 'brand_title_en' => (string) ($branding['brand_title_en'] ?? ''),
                 'brand_subtitle_ar' => (string) ($branding['brand_subtitle_ar'] ?? ''),
@@ -153,6 +156,59 @@ final class StorefrontDraftEditorService
                 ->values()
                 ->all(),
         ];
+    }
+
+    /**
+     * Stock visibility is an immediate operational B2B setting, intentionally
+     * independent of the draft/publish lifecycle for storefront appearance.
+     */
+    public function saveWholesaleStockVisibility(
+        User $actor,
+        int $storeId,
+        bool $enabled,
+        ?Request $request = null,
+    ): void {
+        DB::transaction(function () use ($actor, $storeId, $enabled, $request): void {
+            $current = DB::table('storefront_settings')
+                ->where('store_id', $storeId)
+                ->lockForUpdate()
+                ->first();
+
+            $branding = json_decode((string) ($current->branding ?? ''), true);
+            $branding = is_array($branding) ? $branding : [];
+            $previous = filter_var($branding['show_in_stock_only'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $branding['show_in_stock_only'] = $enabled;
+            $encoded = json_encode(
+                $branding,
+                JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
+            );
+
+            if ($current === null) {
+                DB::table('storefront_settings')->insert([
+                    'store_id' => $storeId,
+                    'theme_code' => 'wholesale_b2b',
+                    'branding' => $encoded,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } else {
+                DB::table('storefront_settings')->where('store_id', $storeId)->update([
+                    'branding' => $encoded,
+                    'updated_at' => now(),
+                ]);
+            }
+
+            if ($previous !== $enabled) {
+                $this->audit->record(
+                    'storefront.wholesale.stock_visibility.updated',
+                    $actor,
+                    null,
+                    ['store_id' => $storeId, 'show_in_stock_only' => $previous],
+                    ['store_id' => $storeId, 'show_in_stock_only' => $enabled],
+                    $request,
+                );
+            }
+        });
     }
 
     /** @param array<string,mixed> $settings */

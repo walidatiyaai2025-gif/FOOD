@@ -413,14 +413,16 @@ class WholesaleStorefrontBuilderTest extends TestCase
     }
 
 
-    public function test_wholesale_stock_only_checkbox_is_saved_to_draft_then_applied_on_publish(): void
+    public function test_wholesale_stock_only_toggle_applies_immediately_and_survives_design_publish(): void
     {
         $storeId = app(WholesalePrincipal::class)->storeId();
         $admin = $this->roleUser('B2B_ADMIN', 'wholesale-stock-filter@example.test');
+        $policy = app(\App\Services\WholesaleAppCatalogPolicy::class);
 
         $this->actingAs($admin)->get(route('admin.b2b.module', ['module' => 'storefront']))
             ->assertOk()
             ->assertSee('Show only products with available stock')
+            ->assertSee('Save &amp; Apply Now', false)
             ->assertSee('data-wholesale-stock-visibility', false)
             ->assertSee('data-wholesale-storefront-settings-row', false)
             ->assertSee('data-wholesale-minimum-order', false)
@@ -428,48 +430,85 @@ class WholesaleStorefrontBuilderTest extends TestCase
             ->assertSee('data-wholesale-minimum-order-save', false)
             ->assertSeeInOrder(['Product visibility in the Customer app', 'Wholesale minimum order value']);
 
+        $this->assertFalse($policy->showInStockOnly($storeId));
+
         $this->actingAs($admin)->put(route('admin.b2b.storefront.stock-visibility'), [
             'store_id' => $storeId,
             'show_in_stock_only' => 1,
-        ])->assertSessionHasNoErrors();
+        ])->assertSessionHasNoErrors()->assertSessionHas('status');
 
-        $this->assertFalse(app(\App\Services\WholesaleAppCatalogPolicy::class)->showInStockOnly($storeId));
+        // No draft/publish request is needed for the API's live policy.
+        $this->assertTrue($policy->showInStockOnly($storeId));
+        $this->assertDatabaseMissing('storefront_revisions', [
+            'store_id' => $storeId,
+            'channel' => 'b2b',
+            'status' => 'draft',
+        ]);
+        $liveBranding = json_decode((string) DB::table('storefront_settings')
+            ->where('store_id', $storeId)->value('branding'), true);
+        $this->assertTrue($liveBranding['show_in_stock_only']);
 
-        $draft = StorefrontRevision::query()
-            ->where('store_id', $storeId)
-            ->where('channel', 'b2b')
-            ->where('status', 'draft')
-            ->firstOrFail();
-        $this->assertTrue((bool) $draft->payload['settings']['branding']['show_in_stock_only']);
-
-        // Saving other storefront settings must not reset the independently managed toggle.
+        // A design draft is independent; even a stale draft cannot undo this setting.
         $this->actingAs($admin)->put(route('admin.b2b.storefront.settings'), [
             'store_id' => $storeId,
             'theme_code' => 'wholesale_b2b',
             'brand_title_en' => 'Updated wholesale branding',
         ])->assertSessionHasNoErrors();
-        $draft->refresh();
-        $this->assertTrue((bool) $draft->payload['settings']['branding']['show_in_stock_only']);
-        $this->assertSame('Updated wholesale branding', $draft->payload['settings']['branding']['brand_title_en']);
-
-        $this->actingAs($admin)->post(route('admin.b2b.storefront.publish'), [
-            'store_id' => $storeId,
-        ])->assertSessionHasNoErrors();
-
-        $this->assertTrue(app(\App\Services\WholesaleAppCatalogPolicy::class)->showInStockOnly($storeId));
+        $draft = StorefrontRevision::query()
+            ->where('store_id', $storeId)
+            ->where('channel', 'b2b')
+            ->where('status', 'draft')
+            ->firstOrFail();
 
         $this->actingAs($admin)->put(route('admin.b2b.storefront.stock-visibility'), [
             'store_id' => $storeId,
             'show_in_stock_only' => 0,
         ])->assertSessionHasNoErrors();
-
-        $this->assertTrue(app(\App\Services\WholesaleAppCatalogPolicy::class)->showInStockOnly($storeId));
+        $this->assertFalse($policy->showInStockOnly($storeId));
+        $this->assertSame('Updated wholesale branding', $draft->fresh()->payload['settings']['branding']['brand_title_en']);
 
         $this->actingAs($admin)->post(route('admin.b2b.storefront.publish'), [
             'store_id' => $storeId,
         ])->assertSessionHasNoErrors();
 
+        $this->assertFalse($policy->showInStockOnly($storeId));
+        $liveBranding = json_decode((string) DB::table('storefront_settings')
+            ->where('store_id', $storeId)->value('branding'), true);
+        $this->assertSame('Updated wholesale branding', $liveBranding['brand_title_en']);
+        $this->assertFalse($liveBranding['show_in_stock_only']);
+
+        $this->actingAs($admin)->put(route('admin.b2b.storefront.stock-visibility'), [
+            'store_id' => $storeId,
+            'show_in_stock_only' => 1,
+        ])->assertSessionHasNoErrors();
+        $this->assertTrue($policy->showInStockOnly($storeId));
+
+        $this->assertDatabaseHas('audit_logs', [
+            'store_id' => $storeId,
+            'event' => 'storefront.wholesale.stock_visibility.updated',
+        ]);
+    }
+
+    public function test_wholesale_stock_only_rejects_invalid_values_and_unauthorized_users(): void
+    {
+        $storeId = app(WholesalePrincipal::class)->storeId();
+        $admin = $this->roleUser('B2B_ADMIN', 'wholesale-stock-input@example.test');
+
+        $this->actingAs($admin)->put(route('admin.b2b.storefront.stock-visibility'), [
+            'store_id' => $storeId,
+            'show_in_stock_only' => 'not-a-boolean',
+        ])->assertSessionHasErrors('show_in_stock_only');
+
         $this->assertFalse(app(\App\Services\WholesaleAppCatalogPolicy::class)->showInStockOnly($storeId));
+
+        $retailStoreId = (int) DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('store_types.code', 'B2C')
+            ->value('stores.id');
+        $this->actingAs($admin)->put(route('admin.b2b.storefront.stock-visibility'), [
+            'store_id' => $retailStoreId,
+            'show_in_stock_only' => 1,
+        ])->assertNotFound();
     }
 
     private function roleUser(string $roleCode, string $email): User

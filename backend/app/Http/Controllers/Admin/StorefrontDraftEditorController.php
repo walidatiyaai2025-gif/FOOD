@@ -108,19 +108,16 @@ final class StorefrontDraftEditorController extends Controller
         $storeId = (int) $data['store_id'];
         $this->authorizeWholesale($actor, $storeId, 'settings.manage');
 
-        // Patch only the stock-visibility key. Branding, colors and logo stay unchanged.
-        $this->drafts->updateSettings(
+        $this->drafts->saveWholesaleStockVisibility(
             $actor,
             $storeId,
-            'b2b',
-            ['branding' => ['show_in_stock_only' => (bool) $data['show_in_stock_only']]],
-            null,
+            (bool) $data['show_in_stock_only'],
             $request,
         );
 
         return back()->with('status', $this->msg(
-            'تم حفظ إعداد ظهور المنتجات في المسودة. انشر المسودة لتطبيقه على تطبيق العميل.',
-            'Product visibility saved to Draft. Publish the Draft to apply it to the Customer app.',
+            'تم حفظ إعداد ظهور المنتجات وتطبيقه فورًا على تطبيق العميل.',
+            'Product visibility saved and applied to the Customer app immediately.',
         ));
     }
 
@@ -459,7 +456,6 @@ final class StorefrontDraftEditorController extends Controller
             'accent_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'background_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'header_address' => ['nullable', 'string', 'max:255'],
-            'show_in_stock_only' => ['nullable', 'boolean'],
             'brand_title_ar' => ['nullable', 'string', 'max:255'],
             'brand_title_en' => ['nullable', 'string', 'max:255'],
             'brand_subtitle_ar' => ['nullable', 'string', 'max:500'],
@@ -545,12 +541,6 @@ final class StorefrontDraftEditorController extends Controller
         foreach ($brandingKeys as $key) {
             $value = trim((string) ($data[$key] ?? ''));
             $branding[$key] = $value === '' ? null : $value;
-        }
-
-        if ($wholesale) {
-            if (array_key_exists('show_in_stock_only', $data)) {
-                $branding['show_in_stock_only'] = (bool) $data['show_in_stock_only'];
-            }
         }
 
         return [

@@ -35,8 +35,8 @@
 <section class="wsf-card" data-wholesale-stock-visibility>
     <h3>{{ app()->getLocale()==='ar' ? 'ظهور المنتجات في تطبيق العميل' : 'Product visibility in the Customer app' }}</h3>
     <p class="wsf-muted">{{ app()->getLocale()==='ar'
-        ? 'تحكم في عرض منتجات الجملة وفق الكمية المتاحة بعد خصم الكمية المحجوزة. يظهر الإعداد في التطبيق بعد نشر المسودة.'
-        : 'Control wholesale product visibility using available inventory after reservations. Publish the draft for the app to use this setting.' }}</p>
+        ? 'تحكم في عرض منتجات الجملة وفق الكمية المتاحة بعد خصم الكمية المحجوزة. يتم تطبيق التغيير فور الحفظ، دون مسودة أو نشر.'
+        : 'Control wholesale products using stock after reservations. Changes apply immediately when saved, with no draft or publish step.' }}</p>
     <form method="post" action="{{ route('admin.b2b.storefront.stock-visibility') }}" class="wsf-actions" style="align-items:center;gap:14px" data-wholesale-stock-visibility-form>
         @csrf @method('PUT')
         <input type="hidden" name="store_id" value="{{ $sfStoreId }}">
@@ -50,14 +50,14 @@
         </label>
         @if($canManageStorefront)
             <button class="foodex-primary" type="submit" style="min-height:44px" data-wholesale-stock-visibility-save>
-                {{ app()->getLocale()==='ar'?'حفظ في المسودة':'Save to Draft' }}
+                {{ app()->getLocale()==='ar'?'حفظ وتطبيق فورًا':'Save & Apply Now' }}
             </button>
         @endif
     </form>
     @error('show_in_stock_only')<p role="alert" style="color:#b91c1c;font-weight:700">{{ $message }}</p>@enderror
     <small class="wsf-muted">{{ app()->getLocale()==='ar'
-        ? 'عند إلغاء تحديد المربع تظهر جميع المنتجات النشطة بما فيها الأصناف النافدة. لا يتغير الإعداد المنشور حتى الضغط على نشر المسودة.'
-        : 'Unchecked: all active products, including out-of-stock ones. Published behavior changes only after Publish Draft.' }}</small>
+        ? 'عند إلغاء تحديد المربع تظهر جميع المنتجات النشطة بما فيها الأصناف النافدة. يعمل الإعداد فور الحفظ.'
+        : 'Unchecked: all active products, including out-of-stock ones. The setting takes effect as soon as you save.' }}</small>
 </section>
 
 <section class="wsf-card" data-wholesale-minimum-order>
