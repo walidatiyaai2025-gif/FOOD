@@ -157,6 +157,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
             location: location,
             api: b2bApi,
             commerceApi: wholesaleApi,
+            storefrontApi: storefrontApi,
             session: currentSession?.call() ?? session,
             onLocaleChanged: onLocaleChanged,
             onLogout: onLogout,
