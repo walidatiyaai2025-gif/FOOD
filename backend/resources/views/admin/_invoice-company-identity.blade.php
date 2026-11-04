@@ -2,9 +2,9 @@
 .foodex-invoice-company {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
     direction: rtl;
-    text-align: right;
+    text-align: center;
     gap: 5px;
     width: 100%;
     min-width: 0;
@@ -19,18 +19,18 @@
     width: min(190px, 100%);
     max-height: 96px;
     object-fit: contain;
-    object-position: right center;
-    margin: 0 0 0 auto;
+    object-position: center center;
+    margin: 0 auto;
 }
 .foodex-invoice-company-name { font-size: 1.05rem; line-height: 1.4; }
 .foodex-invoice-company-address { line-height: 1.6; overflow-wrap: anywhere; font-size: .85rem; }
 .foodex-invoice-company-contacts {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
     gap: 4px;
     width: 100%;
-    text-align: right;
+    text-align: center;
     font-size: .85rem;
     line-height: 1.6;
 }
@@ -38,12 +38,12 @@
 .foodex-invoice-company-address,
 .foodex-invoice-company-contacts span {
     max-width: 100%;
-    text-align: right;
+    text-align: center;
 }
 .foodex-invoice-company-contacts span { unicode-bidi: isolate; }
 @media print {
     .foodex-invoice-company { color: #111 !important; background: #fff !important; }
-    .foodex-invoice-company-logo { max-height: 67px; width: 150px; }
+    .foodex-invoice-company-logo { max-height: 67px; width: 150px; margin: 0 auto; }
     .order-popup-content[data-order-popup-content="invoice"] .order-print-header { display: none !important; }
 }
 </style>
