@@ -2204,6 +2204,29 @@ void main() {
   );
 
   testWidgets(
+    'Wholesale cart without store_id resolves principal from selection before GET',
+    (tester) async {
+      final commerce = _ReorderWholesaleCommerceApi();
+      final storefront = _FakeWholesaleStorefrontApi();
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: '/b2b/cart',
+          locale: const Locale('ar'),
+          storefrontApi: storefront,
+          wholesaleCommerceApi: commerce,
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      expect(storefront.selectionCalls, greaterThanOrEqualTo(1));
+      expect(commerce.lastCartStoreId, 70);
+      expect(find.byKey(const ValueKey('b2b-cart-data')), findsOneWidget);
+      expect(find.byKey(const ValueKey('b2b-error')), findsNothing);
+    },
+  );
+
+  testWidgets(
     'C13 checkout exposes financial position and blocks insufficient account credit',
     (tester) async {
       tester.view.physicalSize = const Size(900, 1900);
@@ -4437,11 +4460,13 @@ class _CheckoutStorefrontApi implements StorefrontApi {
 
 class _ReorderWholesaleCommerceApi implements WholesaleCommerceApi {
   int cartCalls = 0;
+  int? lastCartStoreId;
   final List<String> addCalls = <String>[];
 
   @override
   Future<Object?> cart(int storeId) async {
     cartCalls++;
+    lastCartStoreId = storeId;
     return {
       'store_id': storeId,
       'currency': 'KWD',
