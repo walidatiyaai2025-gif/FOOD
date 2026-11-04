@@ -11,6 +11,8 @@ import '../../core/theme/customer_ui_v3_tokens.dart';
 import '../../core/engagement/live_ad_service.dart';
 import '../../core/engagement/notification_campaign_popup_service.dart';
 import '../../core/localization/app_translations.dart';
+import '../../core/routing/customer_commerce_context.dart';
+import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_favorite_button.dart';
 import 'storefront_design_system.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
@@ -1451,7 +1453,36 @@ class _RetailProductDetailsDesignScreenState
                       increment: 1,
                       minimum: 1,
                       palette: FoodexPalette.grocery,
-                      label: 'إضافة إلى السلة',
+                      label: context.tr('customer.action.add_cart'),
+                      checkoutLabel: Localizations.localeOf(context).languageCode == 'ar'
+                          ? 'إتمام الطلب' : 'Checkout',
+                      onCheckout: product.isAvailable
+                          ? () async {
+                              try {
+                                await widget.actionApi.addCartItem(
+                                  storeId: storeId,
+                                  productId: productId,
+                                  quantity: quantity,
+                                );
+                                if (!context.mounted) return;
+                                final scope = CustomerCommerceContext(
+                                  channel: CustomerCommerceChannel.retail,
+                                  storeId: storeId,
+                                );
+                                final checkout = CustomerRouteLocations.retailCheckout(scope);
+                                Navigator.of(context).pushNamed(
+                                  widget.session.isAuthenticated
+                                      ? checkout
+                                      : CustomerRouteLocations.authHandoff(
+                                          context: scope, next: checkout),
+                                );
+                              } catch (error) {
+                                if (context.mounted) {
+                                  await showOperationalError(context, error);
+                                }
+                              }
+                            }
+                          : null,
                       onChanged: product.isAvailable
                           ? (value) => setState(() => quantity = value)
                           : null,
