@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/b2c_account_api.dart';
 import '../../core/localization/app_translations.dart';
+import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 
 // Single-purpose controls live outside invoice rows and respect the compact
 // list policy. Invoice rows themselves use tap-to-open, never inline buttons.
