@@ -135,8 +135,8 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 <div class="catalog-tabs-row">
 <div class="catalog-tabs-meta">@if($tab==='products')<span class="catalog-count">{{ $products->total() }} {{ app()->getLocale()==='ar'?'منتج':'products' }}</span>@endif</div>
 <nav class="tabs" aria-label="{{ __('catalog_completion.title') }}">
-@foreach(['overview','products','categories','attributes','import'] as $catalogTab)
-<a class="{{ $tab===$catalogTab?'active':'' }}" href="{{ route('admin.catalog.index', array_merge(['tab'=>$catalogTab], $scopeParams)) }}">{{ __('catalog_completion.tabs.'.$catalogTab) }}</a>
+@foreach(['overview','products','app_products','categories','attributes','import'] as $catalogTab)
+<a class="{{ $tab===$catalogTab?'active':'' }}" href="{{ route('admin.catalog.index', array_merge(['tab'=>$catalogTab], $scopeParams)) }}">{{ $catalogTab==='app_products' ? (app()->getLocale()==='ar'?'المنتجات المتاحة في التطبيق':'Products available in the app') : __('catalog_completion.tabs.'.$catalogTab) }}</a>
 @endforeach
 @if($canManageStores)
 <a class="{{ $tab==='stores'?'active':'' }}" href="{{ route('admin.catalog.index',['tab'=>'stores']) }}">{{ app()->getLocale()==='ar'?'المتاجر':'Stores' }}</a>
@@ -403,6 +403,45 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 </div>
 </dialog>
 @endforeach
+
+@elseif($tab==='app_products')
+<section class="card" style="margin-bottom:16px">
+    <h2>{{ app()->getLocale()==='ar'?'المنتجات المتاحة في التطبيق':'Products available in the app' }}</h2>
+    <p class="muted">{{ app()->getLocale()==='ar'?'تظهر فقط المنتجات النشطة والمفعلة للعرض ولديها مخزون فعلي متاح بعد خصم المحجوز. غيّر رقم الظهور ثم اضغط حفظ لترتيب منتجات نفس المتجر داخل تطبيق العميل.':'Only active, app-visible products with stock remaining after reservations are shown. Change the position and save to reorder products within the same store in the Customer app.' }}</p>
+</section>
+<style>
+.app-order-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:12px}
+.app-order-card{border:1px solid var(--foodex-border);border-radius:14px;background:var(--foodex-surface);padding:14px;min-width:0;display:grid;gap:12px}
+.app-order-heading{display:flex;align-items:center;gap:12px;min-width:0}
+.app-order-image{width:56px;height:56px;flex:0 0 56px;object-fit:cover;border-radius:10px;border:1px solid var(--foodex-border)}
+.app-order-rank{background:var(--foodex-green-soft);color:var(--foodex-green-dark);border-radius:9px;padding:6px 10px;font-weight:800}
+.app-order-form{display:flex;align-items:end;gap:8px;flex-wrap:wrap}
+.app-order-form label{display:grid;gap:5px;flex:1;min-width:100px}
+.app-order-form input{width:100%;box-sizing:border-box;min-height:44px;border:1px solid var(--foodex-border);border-radius:10px;padding:8px 10px;font:inherit;background:var(--foodex-surface);color:var(--foodex-ink)}
+.app-order-form .btn{min-height:44px}
+</style>
+<div class="app-order-grid" data-app-products-order-grid>
+@forelse($appProducts as $appProduct)
+@php($position=($appProducts->currentPage()-1)*$appProducts->perPage()+$loop->iteration)
+<article class="app-order-card" data-app-product-id="{{ $appProduct->id }}">
+    <div class="app-order-heading">
+        @if($appProduct->image_path)<img class="app-order-image" src="{{ url('/'.ltrim($appProduct->image_path,'/')) }}" alt="">
+        @else <span class="app-order-image" style="display:grid;place-items:center">{{ app()->getLocale()==='ar'?'بدون صورة':'No image' }}</span>@endif
+        <div style="min-width:0;flex:1"><strong>{{ $appProduct->name }}</strong><div class="muted">{{ $appProduct->sku }} · {{ $appProduct->store_name }}</div></div>
+        <span class="app-order-rank" aria-label="{{ app()->getLocale()==='ar'?'ترتيب الظهور':'Display position' }}">{{ $position }}</span>
+    </div>
+    <form class="app-order-form" method="post" action="{{ route('admin.catalog.products.app-order',$appProduct->id) }}">
+        @csrf @method('PATCH')
+        @if(!empty($scopeParams['support_access']))<input type="hidden" name="support_access" value="1">@endif
+        <label>{{ app()->getLocale()==='ar'?'ترتيب الظهور':'Display position' }}<input name="position" type="number" min="1" max="1000000" step="1" required value="{{ $position }}"></label>
+        <button class="btn primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ':'Save' }}</button>
+    </form>
+</article>
+@empty
+<div class="card catalog-empty" style="grid-column:1/-1">{{ app()->getLocale()==='ar'?'لا توجد منتجات متاحة في التطبيق ولها مخزون حالياً.':'No app-visible products currently have available stock.' }}</div>
+@endforelse
+</div>
+@if($appProducts){{ $appProducts->links() }}@endif
 
 @elseif($tab==='import')
 @php($importPreview=session('catalog_import_preview'))

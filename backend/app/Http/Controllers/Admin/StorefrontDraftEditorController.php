@@ -433,6 +433,7 @@ final class StorefrontDraftEditorController extends Controller
             'accent_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'background_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'header_address' => ['nullable', 'string', 'max:255'],
+            'show_in_stock_only' => ['nullable', 'boolean'],
             'brand_title_ar' => ['nullable', 'string', 'max:255'],
             'brand_title_en' => ['nullable', 'string', 'max:255'],
             'brand_subtitle_ar' => ['nullable', 'string', 'max:500'],
@@ -518,6 +519,10 @@ final class StorefrontDraftEditorController extends Controller
         foreach ($brandingKeys as $key) {
             $value = trim((string) ($data[$key] ?? ''));
             $branding[$key] = $value === '' ? null : $value;
+        }
+
+        if ($wholesale) {
+            $branding['show_in_stock_only'] = (bool) ($data['show_in_stock_only'] ?? false);
         }
 
         return [

@@ -71,6 +71,12 @@
                 <label>{{ app()->getLocale()==='ar'?'عنوان الهيرو بالإنجليزية':'English hero title' }}<input name="brand_subtitle_en" value="{{ $sfSettings['brand_subtitle_en'] ?? '' }}" maxlength="500" placeholder="Best prices for retailers"></label>
                 <label>{{ app()->getLocale()==='ar'?'زر الهيرو بالعربية':'Arabic hero CTA' }}<input name="hero_cta_ar" value="{{ $sfSettings['hero_cta_ar'] ?? '' }}" maxlength="120" placeholder="تصفح الكتالوج"></label>
                 <label>{{ app()->getLocale()==='ar'?'زر الهيرو بالإنجليزية':'English hero CTA' }}<input name="hero_cta_en" value="{{ $sfSettings['hero_cta_en'] ?? '' }}" maxlength="120" placeholder="Browse catalog"></label>
+                <label class="wide" style="display:flex;align-items:center;gap:10px;min-height:44px">
+                    <input type="hidden" name="show_in_stock_only" value="0">
+                    <input type="checkbox" name="show_in_stock_only" value="1" @checked((bool)($sfSettings['show_in_stock_only'] ?? false)) style="width:20px;height:20px">
+                    <span>{{ app()->getLocale()==='ar'?'إظهار المنتجات المتاح لها مخزون فقط':'Show only products with available stock' }}</span>
+                </label>
+                <p class="wsf-muted wide" style="margin:0">{{ app()->getLocale()==='ar'?'عند إلغاء التفعيل تظهر جميع المنتجات النشطة بما فيها النافدة. يسري التغيير على التطبيق بعد نشر المسودة.':'When disabled, all active products are shown, including out-of-stock items. The app changes after publishing the Draft.' }}</p>
             </div>
             <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ المسودة':'Save Draft' }}</button></div>
         </form>

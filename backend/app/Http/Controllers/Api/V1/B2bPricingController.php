@@ -12,6 +12,7 @@ use App\Services\B2bPricingMode;
 use App\Services\CustomerDomainResolver;
 use App\Services\ProductAvailabilityService;
 use App\Services\WholesalePrincipal;
+use App\Services\WholesaleAppCatalogPolicy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ class B2bPricingController extends Controller
         private readonly B2bPriceResolver $prices,
         private readonly B2bPricingMode $pricingMode,
         private readonly WholesalePrincipal $principal,
+        private readonly WholesaleAppCatalogPolicy $appCatalog,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -268,6 +270,10 @@ class B2bPricingController extends Controller
             ->when($categoryId !== null, fn ($query) => $query->where('products.category_id', $categoryId))
             ->when($brandId !== null, fn ($query) => $query->where('products.brand_id', $brandId));
 
+        if ($this->appCatalog->showInStockOnly($storeId)) {
+            $this->appCatalog->restrictToAvailableStock($query, $storeId);
+        }
+
         if ($tiersEnabled) {
             $query->join('b2b_price_rules', function ($join) use ($account, $storeId): void {
                 $join->on('b2b_price_rules.product_id', '=', 'products.id')
@@ -278,6 +284,8 @@ class B2bPricingController extends Controller
         }
 
         $baseRows = $query
+            ->orderByRaw('CASE WHEN store_products.app_display_order IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('store_products.app_display_order')
             ->orderBy('products.id')
             ->get([
                 'products.id',

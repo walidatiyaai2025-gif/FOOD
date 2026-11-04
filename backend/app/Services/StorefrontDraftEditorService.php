@@ -77,6 +77,7 @@ final class StorefrontDraftEditorService
                 'accent_color' => $accentColor,
                 'background_color' => $backgroundColor,
                 'header_address' => $settings['header_address'] ?? '',
+                'show_in_stock_only' => filter_var($branding['show_in_stock_only'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'brand_title_ar' => (string) ($branding['brand_title_ar'] ?? ''),
                 'brand_title_en' => (string) ($branding['brand_title_en'] ?? ''),
                 'brand_subtitle_ar' => (string) ($branding['brand_subtitle_ar'] ?? ''),

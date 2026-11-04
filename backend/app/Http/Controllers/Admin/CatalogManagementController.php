@@ -22,6 +22,7 @@ use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -58,7 +59,7 @@ final class CatalogManagementController extends Controller
             abort(403);
         }
 
-        $tab = in_array((string) $request->query('tab'), ['overview', 'products', 'categories', 'attributes', 'import'], true)
+        $tab = in_array((string) $request->query('tab'), ['overview', 'products', 'app_products', 'categories', 'attributes', 'import'], true)
             ? (string) $request->query('tab')
             : 'products';
 
@@ -346,6 +347,26 @@ final class CatalogManagementController extends Controller
             return $product;
         }));
 
+        $appProducts = null;
+        if ($tab === 'app_products') {
+            $appProducts = $this->availableAppProductsQuery($storeIds)
+                ->select([
+                    'products.id',
+                    'products.name',
+                    'products.sku',
+                    'catalogs.store_id',
+                    'catalogs.channel',
+                    'catalog_store.name as store_name',
+                    'store_products.app_display_order',
+                    DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as image_path'),
+                ])
+                ->orderByRaw('CASE WHEN store_products.app_display_order IS NULL THEN 1 ELSE 0 END')
+                ->orderBy('store_products.app_display_order')
+                ->orderBy('products.id')
+                ->paginate(50, ['*'], 'app_page')
+                ->withQueryString();
+        }
+
         $categoryQuery = DB::table('categories')
             ->join('catalogs', 'catalogs.id', '=', 'categories.catalog_id')
             ->join('stores as catalog_store', 'catalog_store.id', '=', 'catalogs.store_id')
@@ -437,6 +458,7 @@ final class CatalogManagementController extends Controller
             'inventoryUrl' => $inventoryUrl,
             'tab' => $tab,
             'products' => $products,
+            'appProducts' => $appProducts,
             'categories' => $categories,
             'categoryRows' => $categoryRows,
             'productFilters' => [
@@ -1686,6 +1708,93 @@ final class CatalogManagementController extends Controller
         }
 
         return $params;
+    }
+
+    public function reorderAppProduct(Request $request, int $product): RedirectResponse
+    {
+        $owner = $this->productOwner($product);
+        $storeId = (int) $owner->store_id;
+        $this->authorizeCatalogAction($request, 'catalog.manage', $storeId, (string) $owner->channel);
+
+        $data = $request->validate([
+            'position' => ['required', 'integer', 'min:1', 'max:1000000'],
+        ]);
+
+        DB::transaction(function () use ($storeId, $product, $data): void {
+            // Serialize rankings within the owning store so two editors cannot overwrite each other.
+            DB::table('store_products')->where('store_id', $storeId)->lockForUpdate()->get(['id']);
+
+            $ids = $this->availableAppProductsQuery([$storeId])
+                ->orderByRaw('CASE WHEN store_products.app_display_order IS NULL THEN 1 ELSE 0 END')
+                ->orderBy('store_products.app_display_order')
+                ->orderBy('products.id')
+                ->pluck('products.id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+
+            $oldIndex = array_search($product, $ids, true);
+            if ($oldIndex === false) {
+                throw ValidationException::withMessages([
+                    'position' => [$this->msg('المنتج غير متاح حالياً في التطبيق أو لا يملك مخزوناً متاحاً.', 'Product is not currently app-visible and in stock.')],
+                ]);
+            }
+
+            array_splice($ids, $oldIndex, 1);
+            array_splice($ids, min((int) $data['position'] - 1, count($ids)), 0, [$product]);
+
+            foreach ($ids as $index => $id) {
+                DB::table('store_products')
+                    ->where('store_id', $storeId)
+                    ->where('product_id', $id)
+                    ->update(['app_display_order' => $index + 1, 'updated_at' => now()]);
+            }
+        }, 3);
+
+        return back()->with('status', $this->msg('تم حفظ ترتيب عرض المنتج في التطبيق.', 'Product display order saved.'));
+    }
+
+    /** @param list<int> $storeIds */
+    private function availableAppProductsQuery(array $storeIds): QueryBuilder
+    {
+        $principalStoreId = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('store_types.code', 'B2B')
+            ->orderBy('stores.id')
+            ->value('stores.id');
+        $principalWarehouseId = $principalStoreId === null
+            ? null
+            : app(WholesalePrincipal::class)->warehouseId();
+
+        return DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->join('stores as catalog_store', 'catalog_store.id', '=', 'catalogs.store_id')
+            ->join('store_products', function ($join): void {
+                $join->on('store_products.product_id', '=', 'products.id')
+                    ->on('store_products.store_id', '=', 'catalogs.store_id');
+            })
+            ->whereIn('catalogs.store_id', $storeIds)
+            ->where('catalogs.is_active', true)
+            ->where('catalogs.is_migration_quarantine', false)
+            ->where('products.is_active', true)
+            ->where('store_products.is_active', true)
+            ->whereNotNull('store_products.price')
+            ->whereExists(static function (QueryBuilder $query) use ($principalStoreId, $principalWarehouseId): void {
+                $query->selectRaw('1')
+                    ->from('inventories as app_stock')
+                    ->join('warehouses as app_warehouse', 'app_warehouse.id', '=', 'app_stock.warehouse_id')
+                    ->whereColumn('app_stock.product_id', 'products.id')
+                    ->whereColumn('app_warehouse.store_id', 'catalogs.store_id')
+                    ->where('app_warehouse.is_active', true)
+                    ->whereColumn('app_stock.quantity', '>', 'app_stock.reserved_quantity');
+
+                if ($principalWarehouseId !== null) {
+                    $query->where(static function (QueryBuilder $scope) use ($principalStoreId, $principalWarehouseId): void {
+                        $scope->where('catalogs.channel', '!=', 'b2b')
+                            ->orWhere('catalogs.store_id', '!=', $principalStoreId)
+                            ->orWhere('app_warehouse.id', $principalWarehouseId);
+                    });
+                }
+            });
     }
 
     private function productOwner(int $product): object

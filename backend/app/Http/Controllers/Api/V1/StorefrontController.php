@@ -11,6 +11,7 @@ use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
 use App\Services\SmartOrderingAttributionService;
 use App\Services\WholesalePrincipal;
+use App\Services\WholesaleAppCatalogPolicy;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ final class StorefrontController extends Controller
 {
     public function __construct(
         private readonly SmartOrderingAttributionService $smartOrderingAttribution,
+        private readonly WholesaleAppCatalogPolicy $appCatalog,
     ) {}
 
     public function marketplace(Request $request): JsonResponse
@@ -115,7 +117,7 @@ final class StorefrontController extends Controller
             ->values()
             ->all();
 
-        $products = DB::table('products')
+        $productsQuery = DB::table('products')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->join('store_products', function ($join): void {
                 $join->on('store_products.product_id', '=', 'products.id')
@@ -127,8 +129,16 @@ final class StorefrontController extends Controller
             ->where('catalogs.is_migration_quarantine', false)
             ->where('products.is_active', true)
             ->where('store_products.is_active', true)
-            ->whereNotNull('store_products.price')
-            ->orderBy('products.name')
+            ->whereNotNull('store_products.price');
+
+        if ($this->appCatalog->showInStockOnly($store)) {
+            $this->appCatalog->restrictToAvailableStock($productsQuery, $store);
+        }
+
+        $products = $productsQuery
+            ->orderByRaw('CASE WHEN store_products.app_display_order IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('store_products.app_display_order')
+            ->orderBy('products.id')
             ->limit(60)
             ->get([
                 'products.id',
