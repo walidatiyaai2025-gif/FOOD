@@ -19,6 +19,7 @@ final class DeliveryExecutionService
         private readonly OrderInventoryReservationService $reservations,
         private readonly OperationalLookupService $lookups,
         private readonly DeliverySettlementService $settlements,
+        private readonly PriorCreditDeliveryGuard $previousCredit,
     ) {}
 
     /** @return list<string> */
@@ -131,6 +132,8 @@ final class DeliveryExecutionService
         bool $hasStoredDeliveryProof = false,
     ): void {
         if ($targetStatus === 'delivered') {
+            $this->previousCredit->assertNoEarlierDebt($order);
+
             $deliveryInvoice = Invoice::query()
                 ->where('order_id', $order->getKey())
                 ->whereIn('status', ['issued', 'reissued'])
