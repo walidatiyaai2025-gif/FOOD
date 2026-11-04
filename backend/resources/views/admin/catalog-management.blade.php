@@ -422,7 +422,7 @@ html[dir=ltr] .catalog-header-filters{direction:ltr}
 </style>
 <div class="app-order-grid" data-app-products-order-grid>
 @forelse($appProducts as $appProduct)
-@php($position=($appProducts->currentPage()-1)*$appProducts->perPage()+$loop->iteration)
+@php($position=(int)$appProduct->app_position)
 <article class="app-order-card" data-app-product-id="{{ $appProduct->id }}">
     <div class="app-order-heading">
         @if($appProduct->image_path)<img class="app-order-image" src="{{ url('/'.ltrim($appProduct->image_path,'/')) }}" alt="">

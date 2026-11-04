@@ -37,6 +37,79 @@ class AdminCatalogManagementTest extends TestCase
             ->assertSee('.sidebar{grid-column:2;grid-row:1;direction:rtl;', false);
     }
 
+
+    public function test_app_products_tab_only_lists_in_stock_products_and_saves_per_store_order(): void
+    {
+        $admin = $this->superAdmin('en');
+        $principal = app(WholesalePrincipal::class);
+        $storeId = $principal->storeId();
+        $warehouseId = $principal->warehouseId();
+        $catalogId = (int) app(CatalogOwnership::class)->defaultCatalogForStore($storeId, 'b2b')->id;
+        $unitId = (int) DB::table('units')->insertGetId([
+            'code' => 'APP-RANK-EA',
+            'name' => 'App Rank Each',
+            'decimal_places' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $ids = [];
+        foreach (['App Stock Alpha' => 5, 'App Stock Beta' => 4, 'App No Stock Gamma' => 0] as $name => $quantity) {
+            $productId = (int) DB::table('products')->insertGetId([
+                'catalog_id' => $catalogId,
+                'unit_id' => $unitId,
+                'sku' => 'APP-RANK-'.count($ids),
+                'name' => $name,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $ids[] = $productId;
+            DB::table('store_products')->insert([
+                'store_id' => $storeId,
+                'product_id' => $productId,
+                'price' => 5,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            DB::table('inventories')->insert([
+                'warehouse_id' => $warehouseId,
+                'product_id' => $productId,
+                'quantity' => $quantity,
+                'reserved_quantity' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $this->actingAs($admin)->get('/admin/catalog?tab=app_products')
+            ->assertOk()
+            ->assertSee('Products available in the app')
+            ->assertSee('App Stock Alpha')
+            ->assertSee('App Stock Beta')
+            ->assertDontSee('App No Stock Gamma');
+
+        $this->actingAs($admin)->patch(route('admin.catalog.products.app-order', $ids[1]), [
+            'position' => 1,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('store_products', [
+            'store_id' => $storeId,
+            'product_id' => $ids[1],
+            'app_display_order' => 1,
+        ]);
+        $this->assertDatabaseHas('store_products', [
+            'store_id' => $storeId,
+            'product_id' => $ids[0],
+            'app_display_order' => 2,
+        ]);
+
+        $this->actingAs($admin)->patch(route('admin.catalog.products.app-order', $ids[2]), [
+            'position' => 1,
+        ])->assertSessionHasErrors('position');
+    }
+
     public function test_super_admin_can_manage_categories_and_products_from_web_ui(): void
     {
         $user = $this->superAdmin('ar');

@@ -412,6 +412,52 @@ class WholesaleStorefrontBuilderTest extends TestCase
         ]);
     }
 
+
+    public function test_wholesale_stock_only_checkbox_is_saved_to_draft_then_applied_on_publish(): void
+    {
+        $storeId = app(WholesalePrincipal::class)->storeId();
+        $admin = $this->roleUser('B2B_ADMIN', 'wholesale-stock-filter@example.test');
+
+        $this->actingAs($admin)->get(route('admin.b2b.module', ['module' => 'storefront']))
+            ->assertOk()
+            ->assertSee('Show only products with available stock');
+
+        $this->actingAs($admin)->put(route('admin.b2b.storefront.settings'), [
+            'store_id' => $storeId,
+            'theme_code' => 'wholesale_b2b',
+            'show_in_stock_only' => 1,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertFalse(app(\App\Services\WholesaleAppCatalogPolicy::class)->showInStockOnly($storeId));
+
+        $draft = StorefrontRevision::query()
+            ->where('store_id', $storeId)
+            ->where('channel', 'b2b')
+            ->where('status', 'draft')
+            ->firstOrFail();
+        $this->assertTrue((bool) $draft->payload['settings']['branding']['show_in_stock_only']);
+
+        $this->actingAs($admin)->post(route('admin.b2b.storefront.publish'), [
+            'store_id' => $storeId,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertTrue(app(\App\Services\WholesaleAppCatalogPolicy::class)->showInStockOnly($storeId));
+
+        $this->actingAs($admin)->put(route('admin.b2b.storefront.settings'), [
+            'store_id' => $storeId,
+            'theme_code' => 'wholesale_b2b',
+            'show_in_stock_only' => 0,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertTrue(app(\App\Services\WholesaleAppCatalogPolicy::class)->showInStockOnly($storeId));
+
+        $this->actingAs($admin)->post(route('admin.b2b.storefront.publish'), [
+            'store_id' => $storeId,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertFalse(app(\App\Services\WholesaleAppCatalogPolicy::class)->showInStockOnly($storeId));
+    }
+
     private function roleUser(string $roleCode, string $email): User
     {
         $user = User::query()->create([

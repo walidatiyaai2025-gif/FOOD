@@ -358,8 +358,10 @@ final class CatalogManagementController extends Controller
                     'catalogs.channel',
                     'catalog_store.name as store_name',
                     'store_products.app_display_order',
+                    DB::raw('ROW_NUMBER() OVER (PARTITION BY catalogs.store_id ORDER BY CASE WHEN store_products.app_display_order IS NULL THEN 1 ELSE 0 END, store_products.app_display_order, products.id) as app_position'),
                     DB::raw('(select path from product_images where product_images.product_id = products.id order by is_primary desc, sort_order asc, id asc limit 1) as image_path'),
                 ])
+                ->orderBy('catalogs.store_id')
                 ->orderByRaw('CASE WHEN store_products.app_display_order IS NULL THEN 1 ELSE 0 END')
                 ->orderBy('store_products.app_display_order')
                 ->orderBy('products.id')
