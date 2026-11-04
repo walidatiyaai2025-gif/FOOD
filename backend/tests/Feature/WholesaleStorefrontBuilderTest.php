@@ -501,10 +501,15 @@ class WholesaleStorefrontBuilderTest extends TestCase
 
         $this->assertFalse(app(\App\Services\WholesaleAppCatalogPolicy::class)->showInStockOnly($storeId));
 
-        $retailStoreId = (int) DB::table('stores')
-            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
-            ->where('store_types.code', 'B2C')
-            ->value('stores.id');
+        $retailTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $retailStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $retailTypeId,
+            'code' => 'B2C-STOCK-TOGGLE-DENIED',
+            'name' => 'Unrelated Retail Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $this->actingAs($admin)->put(route('admin.b2b.storefront.stock-visibility'), [
             'store_id' => $retailStoreId,
             'show_in_stock_only' => 1,
