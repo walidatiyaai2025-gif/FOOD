@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 
 /** Central company identity for PDFs, reports and printable documents. */
 final class DocumentBrandingService
@@ -24,13 +25,15 @@ final class DocumentBrandingService
             array_keys(self::DEFAULTS),
         );
 
-        $values = DB::table('settings')
-            ->whereNull('store_id')
-            ->whereIn('key', $keys)
-            ->orderByDesc('id')
-            ->get(['key', 'value'])
-            ->unique('key')
-            ->pluck('value', 'key');
+        $values = Schema::hasTable('settings')
+            ? DB::table('settings')
+                ->whereNull('store_id')
+                ->whereIn('key', $keys)
+                ->orderByDesc('id')
+                ->get(['key', 'value'])
+                ->unique('key')
+                ->pluck('value', 'key')
+            : collect();
 
         $identity = [];
         foreach (self::DEFAULTS as $key => $default) {
@@ -42,9 +45,36 @@ final class DocumentBrandingService
                 : $default;
         }
 
-        $identity['logo_data_uri'] = $this->logoDataUri($identity['logo_path']);
+        $identity['logo_data_uri'] = $this->logoDataUri($identity['logo_path'])
+            ?? $this->bundledLogoDataUri();
 
         return $identity;
+    }
+
+    private function bundledLogoDataUri(): ?string
+    {
+        // The existing official FOODEX economical-group logo is bundled with
+        // production assets. Convert WebP only when the host supports it.
+        $path = public_path('brand/foodex-economical-group.webp');
+        if (! is_file($path) || filesize($path) > 1024 * 1024
+            || ! function_exists('imagecreatefromwebp')
+            || ! function_exists('imagepng')) {
+            return null;
+        }
+
+        $image = @imagecreatefromwebp($path);
+        if ($image === false) {
+            return null;
+        }
+
+        ob_start();
+        imagepng($image);
+        $png = ob_get_clean();
+        imagedestroy($image);
+
+        return is_string($png) && $png !== ''
+            ? 'data:image/png;base64,'.base64_encode($png)
+            : null;
     }
 
     private function logoDataUri(string $path): ?string
