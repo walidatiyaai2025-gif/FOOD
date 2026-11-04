@@ -882,7 +882,7 @@ class CommercialDashboardContractTest extends TestCase
         $this->actingAs($manager)->get($page)
             ->assertOk()
             ->assertSee('data-flash-edit-offer="'.$offerId.'"', false)
-            ->assertSee($editUrl.'#flash-offer-form', false);
+            ->assertSee($editUrl.'#flash-offer-form');
         $this->actingAs($manager)->get($editUrl)
             ->assertOk()
             ->assertSee('id="flash-offer-form"', false)
