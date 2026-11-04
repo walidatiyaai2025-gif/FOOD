@@ -359,10 +359,12 @@ final class InvoiceService
                     'base_quantity' => (float) $item->quantity,
                     'selling_unit_code' => data_get($item->line_snapshot, 'selling_unit_code'),
                     'selling_unit_name' => data_get($item->line_snapshot, 'selling_unit_name'),
-                    'unit_price' => round(
-                        (float) $item->unit_price * max(1.0, (float) ($item->quantity_conversion_factor ?? 1)),
-                        3,
-                    ),
+                    'unit_price' => data_get($item->line_snapshot, 'selling_unit_code') === null
+                        ? (float) $item->unit_price
+                        : round(
+                            (float) $item->unit_price * (float) data_get($item->line_snapshot, 'conversion_factor', 1),
+                            3,
+                        ),
                     'discount_total' => (float) ($item->line_discount_total ?? 0),
                     'tax_total' => (float) ($item->line_tax_total ?? 0),
                     'line_total' => (float) $item->line_total,
