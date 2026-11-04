@@ -22,9 +22,14 @@ class ImagePickerDriverProofPicker implements DriverProofPicker {
       _pick(ImageSource.gallery);
 
   Future<DriverProofAttachment?> _pick(ImageSource source) async {
+    // Limit camera/gallery images before they reach the 5 MB server upload
+    // cap. The proof remains a real photo, with sufficient delivery detail.
     final image = await _picker.pickImage(
       source: source,
-      imageQuality: 82,
+      imageQuality: 75,
+      maxWidth: 1920,
+      maxHeight: 1920,
+      requestFullMetadata: false,
     );
     if (image == null) return null;
 
