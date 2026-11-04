@@ -91,6 +91,7 @@ const b2c = [
   ['16_إدارة_وحدات_المنصة', '/admin/administration/modules'],
   ['16_MFA_Enrollment', '/admin/security/mfa/enroll'],
   ['16_مركز_الإعدادات', '/admin/settings'],
+  ['16_هوية_الشركة_للمطبوعات', '/admin/settings/documents'],
   ['16_مركز_عمليات_AI', '/admin/settings/assistant'],
   ['16_مركز_ذكاء_FOODEX', '/admin/assistant/intelligence'],
   ['17_إعادة_تهيئة_بيانات_FOODEX', '/admin/settings/foodex-reset'],
