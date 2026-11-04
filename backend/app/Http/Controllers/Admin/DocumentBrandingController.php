@@ -71,8 +71,9 @@ final class DocumentBrandingController extends Controller
         $canRead = $user->hasRole('SUPER_ADMIN')
             || $user->hasPermission('settings.view')
             || $user->hasPermission('settings.manage');
-        $canWrite = $user->hasRole('SUPER_ADMIN')
-            || $user->hasPermission('settings.manage');
+        // Global printed identity is platform-scoped and must never be editable
+        // by a tenant-scoped STORE_ADMIN with operational settings access.
+        $canWrite = $user->hasRole('SUPER_ADMIN');
 
         abort_unless($write ? $canWrite : $canRead, 403);
     }
