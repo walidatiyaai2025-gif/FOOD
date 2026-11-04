@@ -203,13 +203,19 @@ class GuestCartController extends Controller
             : round((float) ($item->exists ? $item->selling_unit_quantity : 0) + $sellingQuantity, 3);
         $item->selling_unit_conversion_factor = $selectedUnit['conversion_factor'] ?? null;
         $item->unit_price_snapshot = $state['price'];
-        $item->save();
 
-        $response = response()->json($this->cartPayload($cart->fresh()), 201);
+        // A 201 must not partially persist an additive cart mutation if live
+        // repricing/serialization fails. Otherwise retrying the + action
+        // silently doubles the quantity even though the user saw an error.
+        return DB::transaction(function () use ($item, $cart, $user, $token): JsonResponse {
+            $item->save();
 
-        return $user instanceof User
-            ? $response
-            : $response->header('X-Guest-Token', (string) $token);
+            $response = response()->json($this->cartPayload($cart->fresh()), 201);
+
+            return $user instanceof User
+                ? $response
+                : $response->header('X-Guest-Token', (string) $token);
+        });
     }
 
     public function updateItem(Request $request, int $item): JsonResponse
