@@ -698,6 +698,94 @@ void main() {
   );
 
   testWidgets(
+    'Wholesale Offers is a distinct page with only discounted products',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final api = _FakeB2bApi({
+        'data': [
+          {
+            'id': 42,
+            'name': 'Flash Wholesale Water',
+            'sku': 'OFFER-42',
+            'account_price': 50,
+            'promotion': {'id': 3},
+            'minimum_order_quantity': 1,
+            'is_available': true,
+            'available_quantity': 10,
+          },
+          {
+            'id': 43,
+            'name': 'Regular Wholesale Rice',
+            'sku': 'REGULAR-43',
+            'account_price': 100,
+            'minimum_order_quantity': 1,
+            'is_available': true,
+            'available_quantity': 10,
+          },
+        ],
+      });
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          locale: const Locale('ar'),
+          initialRoute: '/b2b/offers?channel=wholesale&store_id=70',
+          b2bApi: api,
+          storefrontApi: _FakeWholesaleStorefrontApi(),
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      expect(api.lastPath, '/api/v1/b2b/products?store_id=70');
+      expect(find.byKey(const ValueKey('wholesale-offers-screen')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-catalog-screen')), findsNothing);
+      expect(find.byKey(const ValueKey('wholesale-offers-heading')), findsOneWidget);
+      expect(find.text('العروض المتاحة'), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-product-name-42')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-product-name-43')), findsNothing);
+      expect(find.byKey(const ValueKey('customer-footer-offers')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Wholesale Offers shows a real empty state instead of shopping',
+    (tester) async {
+      final api = _FakeB2bApi({
+        'data': [
+          {
+            'id': 43,
+            'name': 'Regular Wholesale Rice',
+            'sku': 'REGULAR-43',
+            'account_price': 100,
+            'is_available': true,
+          },
+        ],
+      });
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: '/b2b/offers?channel=wholesale&store_id=70',
+          b2bApi: api,
+          storefrontApi: _FakeWholesaleStorefrontApi(),
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      expect(find.byKey(const ValueKey('wholesale-offers-screen')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-offers-empty')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-product-name-43')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'Wholesale shopping resolves principal store on first open without store id',
     (tester) async {
       final storefront = _FakeWholesaleStorefrontApi();
