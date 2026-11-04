@@ -446,7 +446,7 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
   ),
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.invoices,
-    label: 'Retail invoices',
+    label: 'customer.nav.invoices',
     channel: CustomerChannel.b2c,
     requiresAuth: true,
   ),
