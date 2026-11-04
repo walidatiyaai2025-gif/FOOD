@@ -781,6 +781,73 @@ void main() {
   );
 
   testWidgets(
+    'Wholesale Flash Pasta appears after manual refresh from canonical B2B offer API',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final api = _MutableWholesaleFlashApi();
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          locale: const Locale('ar'),
+          initialRoute: '/b2b/offers?channel=wholesale&store_id=70',
+          b2bApi: api,
+          storefrontApi: _FakeWholesaleStorefrontApi(),
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+      expect(find.byKey(const ValueKey('wholesale-offers-empty')), findsOneWidget);
+      expect(api.paths, contains('/api/v1/b2b/flash-offers?store_id=70'));
+      expect(find.byKey(const ValueKey('wholesale-flash-product-91')), findsNothing);
+
+      api.flashOffers = {
+        'fulfillment_channel': 'van',
+        'data': [
+          {
+            'id': 7,
+            'title_ar': 'عرض مكرونات',
+            'title_en': 'Pasta Flash',
+            'ends_at': '2026-11-30T21:07:00+03:00',
+            'currency': 'EGP',
+            'fulfillment_channel': 'van',
+            'products': [
+              {
+                'id': 91,
+                'product_id': 30,
+                'name': 'مكرونات',
+                'sku': 'PASTA-30',
+                'selling_unit_name': 'كرتونة',
+                'flash_price': 100.0,
+                'normal_price': 120.0,
+                'available_quantity': 5,
+              },
+            ],
+          },
+        ],
+      };
+      await tester.tap(find.byKey(const ValueKey('wholesale-offers-refresh')));
+      await _pumpCustomerFrames(tester);
+      expect(find.byKey(const ValueKey('wholesale-flash-heading')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-flash-product-91')), findsOneWidget);
+      expect(find.text('مكرونات'), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-flash-price-91')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-flash-van-only')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-offers-empty')), findsNothing);
+      expect(
+        api.paths.where((path) =>
+            path == '/api/v1/b2b/flash-offers?store_id=70').length,
+        greaterThanOrEqualTo(2),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'Wholesale Offers is a distinct page with only discounted products',
     (tester) async {
       tester.view.physicalSize = const Size(900, 1600);
@@ -5050,6 +5117,23 @@ class _FakeB2bApi implements B2bApi {
     lastPath = path;
     paths.add(path);
     return value;
+  }
+}
+
+class _MutableWholesaleFlashApi implements B2bApi {
+  Map<String, dynamic> flashOffers = {'data': <Object>[]};
+  final List<String> paths = <String>[];
+
+  @override
+  Future<Object?> get(String path) async {
+    paths.add(path);
+    if (path.startsWith('/api/v1/b2b/flash-offers?')) {
+      return flashOffers;
+    }
+    if (path.startsWith('/api/v1/b2b/products?')) {
+      return {'data': <Object>[]};
+    }
+    throw StateError('Unexpected wholesale route: $path');
   }
 }
 
