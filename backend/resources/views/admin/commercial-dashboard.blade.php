@@ -679,7 +679,23 @@
                         <div><h3>{{ __('commercial.flash.products') }}</h3><p class="muted">{{ __('commercial.flash.products_hint') }}</p></div>
                         <button type="button" class="flash-secondary" data-flash-product-add>{{ __('commercial.flash.add_product') }}</button>
                     </div>
+                    <div class="muted" data-flash-products-available-count data-count="{{ $flashProducts->count() }}">
+                        {{ __('commercial.flash.products_available_count', ['count' => $flashProducts->count()]) }}
+                    </div>
+                    @if($flashProducts->isEmpty())
+                        <div class="commercial-empty" data-flash-products-empty role="status">
+                            <div>
+                                <strong>{{ __('commercial.flash.products_empty') }}</strong>
+                                <p><a class="flash-secondary" href="{{ route('admin.catalog.index', ['tab' => 'products', 'store_id' => $storeId]) }}">{{ __('commercial.flash.products_manage') }}</a></p>
+                            </div>
+                        </div>
+                    @endif
                     <div class="flash-product-context">
+                        @if($flashProducts->isNotEmpty())
+                            <label>{{ __('commercial.flash.products_search') }}
+                                <input type="search" data-flash-product-search placeholder="{{ __('commercial.flash.products_search') }}" autocomplete="off">
+                            </label>
+                        @endif
                         <label>{{ __('commercial.flash.product_context') }}
                             <select data-flash-product-context>
                                 <option value="all">{{ __('commercial.flash.context_all') }}</option>
@@ -1210,12 +1226,17 @@
     });
 
     const productContext = document.querySelector('[data-flash-product-context]');
+    const productSearch = document.querySelector('[data-flash-product-search]');
     const applyProductContext = () => {
         const context = productContext?.value || 'all';
+        const term = (productSearch?.value || '').trim().toLocaleLowerCase();
         document.querySelectorAll('[data-flash-product]').forEach((select) => {
             [...select.options].forEach((option) => {
                 if (!option.value) return;
-                const matches = context === 'all' || option.dataset.productContext === context;
+                const contextMatches = context === 'all' || option.dataset.productContext === context;
+                const searchMatches = term === '' || option.textContent.toLocaleLowerCase().includes(term);
+                // Never silently clear a selected product while searching.
+                const matches = contextMatches && (searchMatches || option.selected);
                 option.hidden = !matches;
                 option.disabled = !matches;
             });
@@ -1227,6 +1248,7 @@
         });
     };
     productContext?.addEventListener('change', applyProductContext);
+    productSearch?.addEventListener('input', applyProductContext);
     window.addEventListener('click', (event) => {
         if (event.target instanceof Element && event.target.closest('[data-flash-product-add]')) {
             requestAnimationFrame(applyProductContext);
