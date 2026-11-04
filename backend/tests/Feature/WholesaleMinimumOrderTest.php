@@ -104,7 +104,7 @@ class WholesaleMinimumOrderTest extends TestCase
         $this->assertStringContainsString("'minimum_order_egp' =>", $options);
         $this->assertStringContainsString('MinimumOrderPolicy::class)->assertEligible($quote)', $checkout);
         $this->assertStringContainsString('b2b-minimum-order-popup', $flutter);
-        $this->assertStringContainsString("_wholesaleMinimumRemaining(", $flutter);
+        $this->assertStringContainsString('_wholesaleMinimumRemaining(', $flutter);
         $this->assertStringNotContainsString('(1500 - merchandiseEstimate)', $flutter);
     }
 

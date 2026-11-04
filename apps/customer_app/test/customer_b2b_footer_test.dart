@@ -274,7 +274,8 @@ void main() {
       );
 
       expect(find.text('المزيد'), findsOneWidget);
-      expect(find.byKey(const ValueKey('customer-footer-account')), findsOneWidget);
+      expect(find.byKey(const ValueKey('customer-footer-account')),
+          findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('customer-footer-account')));
       await tester.pumpAndSettle();
       final route = Uri.parse(

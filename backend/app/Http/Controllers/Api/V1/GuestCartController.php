@@ -12,7 +12,9 @@ use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\CommerceQuoteService;
+use App\Services\CommercialPolicyService;
 use App\Services\CustomerDomainResolver;
+use App\Services\MinimumOrderPolicy;
 use App\Services\SmartOrderingAttributionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -123,7 +125,7 @@ class GuestCartController extends Controller
         $selectedUnit = null;
         if ($sellingUnitCode !== '') {
             try {
-                $selectedUnit = app(\App\Services\CommercialPolicyService::class)
+                $selectedUnit = app(CommercialPolicyService::class)
                     ->sellingUnit($productId, $sellingUnitCode, $sellingQuantity);
             } catch (\DomainException|\InvalidArgumentException $exception) {
                 throw ValidationException::withMessages([
@@ -237,7 +239,7 @@ class GuestCartController extends Controller
         $sellingUnitCode = trim((string) ($cartItem->selling_unit_code ?? ''));
         if ($sellingUnitCode !== '') {
             try {
-                $selectedUnit = app(\App\Services\CommercialPolicyService::class)
+                $selectedUnit = app(CommercialPolicyService::class)
                     ->sellingUnit((int) $cartItem->product_id, $sellingUnitCode, $sellingQuantity);
             } catch (\DomainException|\InvalidArgumentException $exception) {
                 throw ValidationException::withMessages([
@@ -586,7 +588,7 @@ class GuestCartController extends Controller
             'subtotal' => 0.0,
             'has_unavailable_items' => false,
             'minimum_order_egp' => $channel === 'b2b'
-                ? app(\App\Services\MinimumOrderPolicy::class)->minimumForStore($storeId)
+                ? app(MinimumOrderPolicy::class)->minimumForStore($storeId)
                 : 0.0,
             'merchandise_total' => 0.0,
             'quote' => [
@@ -615,7 +617,7 @@ class GuestCartController extends Controller
         );
 
         $currency = (string) $quote['currency'];
-        $minimumOrders = app(\App\Services\MinimumOrderPolicy::class);
+        $minimumOrders = app(MinimumOrderPolicy::class);
         $productIds = collect($quote['items'])
             ->pluck('product_id')
             ->filter()

@@ -12,9 +12,12 @@ use App\Services\CommercialPolicyService;
 use App\Services\CustomerDomainResolver;
 use App\Services\FlashCheckoutService;
 use App\Services\FlashOfferService;
+use App\Services\OperationalTenantScope;
+use App\Services\WholesalePrincipal;
 use App\Support\DisplayNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -85,8 +88,7 @@ final class FlashOfferController extends Controller
             ->exists(), 404);
 
         $offers = $flash->activeOffers($storeId, 'customer')
-            ->filter(static fn (FlashOffer $offer): bool =>
-                (array) ($offer->audience_customer_ids ?? []) === []
+            ->filter(static fn (FlashOffer $offer): bool => (array) ($offer->audience_customer_ids ?? []) === []
                 && (array) ($offer->audience_customer_group_ids ?? []) === []
                 && (array) ($offer->audience_regions ?? []) === []
                 && (array) ($offer->audience_routes ?? []) === []);
@@ -121,6 +123,7 @@ final class FlashOfferController extends Controller
             ? null : (int) $customer->legacy_customer_id;
 
         $offers = $flash->activeOffers($storeId, 'van', (int) $user->getKey());
+
         return response()->json([
             'server_time' => now()->toAtomString(),
             'fulfillment_channel' => 'van',
@@ -146,8 +149,7 @@ final class FlashOfferController extends Controller
         $storeId = (int) $data['store_id'];
         $this->assertPrincipalWholesaleStore($storeId);
         $offers = $flash->activeOffers($storeId, 'van')
-            ->filter(static fn (FlashOffer $offer): bool =>
-                (array) ($offer->audience_customer_ids ?? []) === []
+            ->filter(static fn (FlashOffer $offer): bool => (array) ($offer->audience_customer_ids ?? []) === []
                 && (array) ($offer->audience_customer_group_ids ?? []) === []
                 && (array) ($offer->audience_regions ?? []) === []
                 && (array) ($offer->audience_routes ?? []) === []);
@@ -166,7 +168,7 @@ final class FlashOfferController extends Controller
         abort_unless(DB::table('stores')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->where('stores.id', $storeId)
-            ->where('stores.code', \App\Services\WholesalePrincipal::STORE_CODE)
+            ->where('stores.code', WholesalePrincipal::STORE_CODE)
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2B')
             ->exists(), 404);
@@ -458,12 +460,12 @@ final class FlashOfferController extends Controller
      * The list is product-level, store-scoped and uses live remaining stock.
      * Do not show offers with inactive/unpriced/cross-store products.
      *
-     * @param \Illuminate\Support\Collection<int, FlashOfferProduct> $offerProducts
+     * @param  Collection<int, FlashOfferProduct>  $offerProducts
      * @return list<array<string, mixed>>
      */
     private function availableFlashProducts(
         FlashOffer $offer,
-        \Illuminate\Support\Collection $offerProducts,
+        Collection $offerProducts,
         ?int $legacyCustomerId,
         CommercialPolicyService $commercialPolicy,
         float $offerRemaining,
@@ -471,7 +473,7 @@ final class FlashOfferController extends Controller
         string $policyChannel = 'customer',
     ): array {
         $storeId = (int) $offer->store_id;
-        $storeChannel = app(\App\Services\OperationalTenantScope::class)->storeChannel($storeId);
+        $storeChannel = app(OperationalTenantScope::class)->storeChannel($storeId);
         $ids = $offerProducts->pluck('product_id')->map(static fn ($id): int => (int) $id)->unique();
         if ($ids->isEmpty()) {
             return [];

@@ -12,6 +12,7 @@ use App\Models\VanVisit;
 use App\Services\FlashOfferService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -219,14 +220,14 @@ class FlashOfferBackendTest extends TestCase
             'kill_switch' => false,
         ]);
 
-        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-11-04 22:30:00'));
+        $this->travelTo(Carbon::parse('2026-11-04 22:30:00'));
         $this->getJson('/api/v1/flash-offers/public?store_id='.$this->storeId)
             ->assertOk()
             ->assertJsonPath('data.0.id', (int) $offer->id)
             ->assertJsonPath('data.0.products.0.id', (int) $product->id)
             ->assertJsonPath('data.0.products.0.available_quantity', 2);
 
-        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-12-01 00:00:00'));
+        $this->travelTo(Carbon::parse('2026-12-01 00:00:00'));
         $this->getJson('/api/v1/flash-offers/public?store_id='.$this->storeId)
             ->assertOk()
             ->assertJsonCount(0, 'data');

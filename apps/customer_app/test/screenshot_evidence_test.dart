@@ -1309,7 +1309,8 @@ class _EvidenceCatalogApi implements B2cCatalogApi {
       );
 }
 
-class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi, CustomerRetailInvoiceApi {
+class _EvidenceAccountApi
+    implements B2cAccountApi, B2cRetailFavoritesApi, CustomerRetailInvoiceApi {
   const _EvidenceAccountApi([this.localeCode = 'ar']);
 
   final String localeCode;

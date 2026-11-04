@@ -155,7 +155,8 @@ String? _message(Object? decoded) {
   return null;
 }
 
-String _validationCode(DriverCompletionValidationError error) => switch (error) {
+String _validationCode(DriverCompletionValidationError error) =>
+    switch (error) {
       DriverCompletionValidationError.proofRequired => 'proof_required',
       DriverCompletionValidationError.proofTooLarge => 'proof_too_large',
       DriverCompletionValidationError.failureReasonRequired =>

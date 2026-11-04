@@ -206,7 +206,6 @@ class B2bPricingTest extends TestCase
         $this->getJson("/api/v1/b2b/products/{$productId}?store_id={$storeId}")->assertForbidden();
     }
 
-
     public function test_wholesale_app_order_and_stock_only_setting_control_product_feed(): void
     {
         $this->seed(CoreReferenceSeeder::class);

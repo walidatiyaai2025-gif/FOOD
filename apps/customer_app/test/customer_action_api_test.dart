@@ -58,18 +58,21 @@ void main() {
         if (call == 1) {
           expect(storeId, 7);
           expect(request.headers['X-Guest-Token'], isNull);
-          return http.Response('{}', 201, headers: const {'x-guest-token': tokenA});
+          return http.Response('{}', 201,
+              headers: const {'x-guest-token': tokenA});
         }
 
         if (call == 2) {
           expect(storeId, 8);
           expect(request.headers['X-Guest-Token'], isNull);
-          return http.Response('{}', 201, headers: const {'x-guest-token': tokenB});
+          return http.Response('{}', 201,
+              headers: const {'x-guest-token': tokenB});
         }
 
         expect(storeId, 7);
         expect(request.headers['X-Guest-Token'], tokenA);
-        return http.Response('{}', 201, headers: const {'x-guest-token': tokenA});
+        return http.Response('{}', 201,
+            headers: const {'x-guest-token': tokenA});
       }),
     );
 
@@ -82,7 +85,8 @@ void main() {
     expect(session.activeStoreId, 7);
   });
 
-  test('wholesale quick add reads live customer minimum and stock before posting',
+  test(
+      'wholesale quick add reads live customer minimum and stock before posting',
       () async {
     final requests = <String>[];
     final api = HttpCustomerActionApi(
@@ -126,7 +130,8 @@ void main() {
     ]);
   });
 
-  test('selected carton posts canonical selling unit to authoritative cart', () async {
+  test('selected carton posts canonical selling unit to authoritative cart',
+      () async {
     final api = HttpCustomerActionApi(
       baseUrl: 'https://foodex.example',
       client: MockClient((request) async {
@@ -148,7 +153,8 @@ void main() {
     );
   });
 
-  test('credential login restores Platform Customer identity on one token', () async {
+  test('credential login restores Platform Customer identity on one token',
+      () async {
     final api = HttpCustomerActionApi(
       baseUrl: 'https://foodex.example',
       client: MockClient((request) async {
@@ -206,5 +212,4 @@ void main() {
     await api.logout();
     expect(calls, 1);
   });
-
 }

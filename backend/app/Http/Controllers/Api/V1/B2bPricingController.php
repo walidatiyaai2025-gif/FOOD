@@ -9,10 +9,11 @@ use App\Models\B2bPriceRule;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\B2bPricingMode;
+use App\Services\CommercialPolicyService;
 use App\Services\CustomerDomainResolver;
 use App\Services\ProductAvailabilityService;
-use App\Services\WholesalePrincipal;
 use App\Services\WholesaleAppCatalogPolicy;
+use App\Services\WholesalePrincipal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -209,7 +210,7 @@ class B2bPricingController extends Controller
             'pack_size' => $pricing['pack_size'],
             'case_size' => $pricing['case_size'],
             'pack_label' => $pricing['pack_label'],
-            'selling_units' => app(\App\Services\CommercialPolicyService::class)->sellingUnits($product),
+            'selling_units' => app(CommercialPolicyService::class)->sellingUnits($product),
             'price_tier' => $tiersEnabled ? (string) ($row->price_tier ?? '') : null,
             'pricing_tiers_enabled' => $tiersEnabled,
             ...$availability,

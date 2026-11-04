@@ -14,12 +14,10 @@ class ImagePickerDriverProofPicker implements DriverProofPicker {
   final ImagePicker _picker;
 
   @override
-  Future<DriverProofAttachment?> pickCamera() =>
-      _pick(ImageSource.camera);
+  Future<DriverProofAttachment?> pickCamera() => _pick(ImageSource.camera);
 
   @override
-  Future<DriverProofAttachment?> pickGallery() =>
-      _pick(ImageSource.gallery);
+  Future<DriverProofAttachment?> pickGallery() => _pick(ImageSource.gallery);
 
   Future<DriverProofAttachment?> _pick(ImageSource source) async {
     // Limit camera/gallery images before they reach the 5 MB server upload

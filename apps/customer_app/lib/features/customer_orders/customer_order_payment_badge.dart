@@ -26,7 +26,8 @@ class CustomerOrderPaymentBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = paymentState?.trim().toLowerCase();
-    if (state != 'fully_settled' && state != 'partially_settled' &&
+    if (state != 'fully_settled' &&
+        state != 'partially_settled' &&
         state != 'unpaid') {
       return const SizedBox.shrink();
     }
@@ -75,9 +76,7 @@ class CustomerOrderPaymentBadge extends StatelessWidget {
             fontWeight: FontWeight.w800,
           ),
         ),
-        if (paidAmount != null &&
-            paidAmount! > 0.0001 &&
-            (fully || partial))
+        if (paidAmount != null && paidAmount! > 0.0001 && (fully || partial))
           amountLine(
             'paid',
             ar ? 'المدفوع' : 'Paid',

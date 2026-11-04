@@ -29,8 +29,8 @@ class DriverOrderDetailsPresentationTest extends TestCase
         $this->assertStringContainsString('.order-popup-table', $driverView);
         $this->assertStringContainsString('data-order-popup-print', $orderPopup);
         $this->assertStringContainsString("event.target.closest('[data-order-popup-print]')", $driverView);
-        $this->assertStringContainsString("window.FoodexOrderPopupPrint?.(detailsBody);", $driverView);
-        $this->assertStringContainsString("window.FoodexOrderPopupPrint?.(body);", $ordersView);
+        $this->assertStringContainsString('window.FoodexOrderPopupPrint?.(detailsBody);', $driverView);
+        $this->assertStringContainsString('window.FoodexOrderPopupPrint?.(body);', $ordersView);
         $this->assertStringContainsString("@include('admin._order-popup-isolated-print')", $driverView);
         $this->assertStringContainsString("@include('admin._order-popup-isolated-print')", $ordersView);
         $this->assertStringNotContainsString('window.print();', $driverView);

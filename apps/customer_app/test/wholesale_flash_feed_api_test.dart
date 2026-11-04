@@ -6,7 +6,9 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
-  test('guest wholesale Flash uses public B2B feed, never retail nor Van checkout', () async {
+  test(
+      'guest wholesale Flash uses public B2B feed, never retail nor Van checkout',
+      () async {
     final requests = <http.Request>[];
     final api = HttpStorefrontApi(
       baseUrl: 'https://api.example.test',

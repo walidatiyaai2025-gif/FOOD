@@ -105,7 +105,9 @@ abstract interface class CustomerWholesaleProductTermsApi {
 }
 
 class HttpCustomerActionApi
-    implements CustomerActionApi, CustomerSellingUnitActionApi,
+    implements
+        CustomerActionApi,
+        CustomerSellingUnitActionApi,
         CustomerWholesaleProductTermsApi {
   HttpCustomerActionApi({
     required this.baseUrl,
@@ -280,7 +282,8 @@ class HttpCustomerActionApi
     required int storeId,
     required int productId,
     required double quantity,
-  }) => _submitCartItem(
+  }) =>
+      _submitCartItem(
         storeId: storeId,
         productId: productId,
         quantity: quantity,
@@ -292,7 +295,8 @@ class HttpCustomerActionApi
     required int productId,
     required double quantity,
     required String sellingUnitCode,
-  }) => _submitCartItem(
+  }) =>
+      _submitCartItem(
         storeId: storeId,
         productId: productId,
         quantity: quantity,

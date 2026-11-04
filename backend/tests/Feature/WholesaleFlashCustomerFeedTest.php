@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -19,8 +20,11 @@ final class WholesaleFlashCustomerFeedTest extends TestCase
     use RefreshDatabase;
 
     private int $storeId;
+
     private int $productId;
+
     private FlashOffer $offer;
+
     private FlashOfferProduct $line;
 
     protected function setUp(): void
@@ -133,7 +137,7 @@ final class WholesaleFlashCustomerFeedTest extends TestCase
 
     public function test_november_wholesale_flash_is_visible_in_customer_app_but_van_only(): void
     {
-        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-11-04 22:45:00'));
+        $this->travelTo(Carbon::parse('2026-11-04 22:45:00'));
 
         $this->getJson('/api/v1/b2b/flash-offers/public?store_id='.$this->storeId)
             ->assertOk()
@@ -147,14 +151,14 @@ final class WholesaleFlashCustomerFeedTest extends TestCase
             ->assertJsonPath('data.0.products.0.available_quantity', 20)
             ->assertJsonPath('data.0.fulfillment_channel', 'van');
 
-        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-12-01 00:00:00'));
+        $this->travelTo(Carbon::parse('2026-12-01 00:00:00'));
         $this->getJson('/api/v1/b2b/flash-offers/public?store_id='.$this->storeId)
             ->assertOk()->assertJsonCount(0, 'data');
     }
 
     public function test_b2b_targeted_offers_are_private_and_stock_exhaustion_is_not_advertised(): void
     {
-        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-11-04 22:45:00'));
+        $this->travelTo(Carbon::parse('2026-11-04 22:45:00'));
         $user = User::factory()->create(['is_active' => true]);
         $legacy = Customer::query()->create([
             'user_id' => $user->id,

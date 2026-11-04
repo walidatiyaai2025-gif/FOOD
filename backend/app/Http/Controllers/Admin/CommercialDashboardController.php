@@ -613,10 +613,8 @@ final class CommercialDashboardController extends Controller
             $existingLines = $offerId > 0
                 ? DB::table('flash_offer_products')->where('flash_offer_id', $offerId)->lockForUpdate()->get()
                 : collect();
-            $oldByKey = $existingLines->keyBy(static fn (object $line): string =>
-                (int) $line->product_id.'|'.strtoupper((string) $line->selling_unit_code));
-            $newByKey = collect($products)->keyBy(static fn (array $line): string =>
-                (int) $line['product_id'].'|'.strtoupper((string) $line['selling_unit_code']));
+            $oldByKey = $existingLines->keyBy(static fn (object $line): string => (int) $line->product_id.'|'.strtoupper((string) $line->selling_unit_code));
+            $newByKey = collect($products)->keyBy(static fn (array $line): string => (int) $line['product_id'].'|'.strtoupper((string) $line['selling_unit_code']));
 
             foreach ($existingLines as $oldLine) {
                 $key = (int) $oldLine->product_id.'|'.strtoupper((string) $oldLine->selling_unit_code);
@@ -656,6 +654,7 @@ final class CommercialDashboardController extends Controller
                         ->where('flash_offer_id', $offerId)
                         ->where('id', $previousLine->id)
                         ->update([...$product, 'updated_at' => now()]);
+
                     continue;
                 }
                 DB::table('flash_offer_products')->insert([
@@ -753,6 +752,7 @@ final class CommercialDashboardController extends Controller
         if ($request->routeIs('admin.commercial.wholesale-flash-offers*')) {
             abort_if($requestedStore > 0
                 && $scope->storeChannel($requestedStore) !== 'b2b', 404);
+
             return $this->authorizedStore($request, $permission, $allowEmptyStore, 'b2b');
         }
         // Bookmarked B2C GET links for an authorized wholesale store are
@@ -792,6 +792,7 @@ final class CommercialDashboardController extends Controller
             'support_access' => $request->boolean('support_access') ? 1 : null,
             'offer' => $offerId,
         ], static fn ($value): bool => $value !== null && $value !== '');
+
         return redirect()->route(
             'admin.commercial.wholesale-flash-offers'.($suffix === '' ? '' : '.'.$suffix),
             $params,

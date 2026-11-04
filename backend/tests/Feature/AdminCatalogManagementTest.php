@@ -37,7 +37,6 @@ class AdminCatalogManagementTest extends TestCase
             ->assertSee('.sidebar{grid-column:2;grid-row:1;direction:rtl;', false);
     }
 
-
     public function test_app_products_tab_only_lists_in_stock_products_and_saves_per_store_order(): void
     {
         $admin = $this->superAdmin('en');

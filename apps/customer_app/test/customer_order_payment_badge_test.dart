@@ -37,7 +37,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('fully paid shows green amount with no red remaining', (tester) async {
+  testWidgets('fully paid shows green amount with no red remaining',
+      (tester) async {
     await pumpBadge(
       tester,
       state: 'fully_settled',
@@ -47,16 +48,21 @@ void main() {
     );
 
     expect(find.text('مدفوع بالكامل'), findsOneWidget);
-    expect(find.byKey(const ValueKey('customer-order-paid-79')), findsOneWidget);
-    expect(find.byKey(const ValueKey('customer-order-remaining-79')), findsNothing);
     expect(
-      tester.widget<Text>(find.byKey(const ValueKey('customer-order-paid-79')))
-          .style!.color,
+        find.byKey(const ValueKey('customer-order-paid-79')), findsOneWidget);
+    expect(find.byKey(const ValueKey('customer-order-remaining-79')),
+        findsNothing);
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('customer-order-paid-79')))
+          .style!
+          .color,
       CustomerUiColors.success,
     );
   });
 
-  testWidgets('partial payment shows paid green and remaining red', (tester) async {
+  testWidgets('partial payment shows paid green and remaining red',
+      (tester) async {
     await pumpBadge(
       tester,
       state: 'partially_settled',
@@ -67,18 +73,25 @@ void main() {
 
     expect(find.text('مدفوع جزئياً'), findsOneWidget);
     expect(
-      tester.widget<Text>(find.byKey(const ValueKey('customer-order-paid-79')))
-          .style!.color,
+      tester
+          .widget<Text>(find.byKey(const ValueKey('customer-order-paid-79')))
+          .style!
+          .color,
       CustomerUiColors.success,
     );
     expect(
-      tester.widget<Text>(find.byKey(const ValueKey('customer-order-remaining-79')))
-          .style!.color,
+      tester
+          .widget<Text>(
+              find.byKey(const ValueKey('customer-order-remaining-79')))
+          .style!
+          .color,
       CustomerUiColors.destructive,
     );
   });
 
-  testWidgets('English labels work and missing financial data never appears paid', (tester) async {
+  testWidgets(
+      'English labels work and missing financial data never appears paid',
+      (tester) async {
     await pumpBadge(
       tester,
       state: 'unpaid',
@@ -87,14 +100,16 @@ void main() {
       remaining: 90,
     );
     expect(find.text('Unpaid'), findsOneWidget);
-    expect(find.byKey(const ValueKey('customer-order-remaining-79')), findsOneWidget);
+    expect(find.byKey(const ValueKey('customer-order-remaining-79')),
+        findsOneWidget);
 
     await pumpBadge(
       tester,
       state: '',
       locale: const Locale('en'),
     );
-    expect(find.byKey(const ValueKey('customer-order-payment-badge-79')), findsNothing);
+    expect(find.byKey(const ValueKey('customer-order-payment-badge-79')),
+        findsNothing);
     expect(find.text('Fully paid'), findsNothing);
   });
 }

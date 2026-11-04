@@ -9,7 +9,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
-  test('completion gateway posts proof and status in one multipart request', () async {
+  test('completion gateway posts proof and status in one multipart request',
+      () async {
     final directory = await Directory.systemTemp.createTemp('foodex-proof-');
     addTearDown(() => directory.delete(recursive: true));
     final file = File('${directory.path}/proof.jpg');
@@ -46,7 +47,8 @@ void main() {
     expect(captured?.method, 'POST');
     expect(captured?.url.path, '/api/v1/driver/assignments/31/status');
     expect(captured?.headers['Authorization'], 'Bearer driver-token');
-    expect(captured?.headers['content-type'], startsWith('multipart/form-data;'));
+    expect(
+        captured?.headers['content-type'], startsWith('multipart/form-data;'));
     expect(captured?.body, contains('name="status"'));
     expect(captured?.body, contains('delivered'));
     expect(captured?.body, contains('name="note"'));
@@ -57,8 +59,10 @@ void main() {
     expect(result.status, 'delivered');
   });
 
-  test('missing temporary proof photo fails before any network request', () async {
-    final directory = await Directory.systemTemp.createTemp('foodex-lost-proof-');
+  test('missing temporary proof photo fails before any network request',
+      () async {
+    final directory =
+        await Directory.systemTemp.createTemp('foodex-lost-proof-');
     addTearDown(() => directory.delete(recursive: true));
     final missing = '${directory.path}/no-longer-there.jpg';
     var sent = false;
@@ -97,7 +101,8 @@ void main() {
 
   test('live driver repository surfaces fresh GPS HTTP 428 before completing',
       () async {
-    final directory = await Directory.systemTemp.createTemp('foodex-live-proof-');
+    final directory =
+        await Directory.systemTemp.createTemp('foodex-live-proof-');
     addTearDown(() => directory.delete(recursive: true));
     final proof = File('${directory.path}/proof.jpg');
     await proof.writeAsBytes([1, 2, 3, 4]);
@@ -119,7 +124,8 @@ void main() {
     );
 
     await expectLater(
-      repository.transitionWithProof(31, DriverChannel.b2c, 'delivered', proof.path),
+      repository.transitionWithProof(
+          31, DriverChannel.b2c, 'delivered', proof.path),
       throwsA(isA<DriverApiException>().having(
         (error) => error.message,
         'message',

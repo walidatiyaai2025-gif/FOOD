@@ -46,7 +46,10 @@ abstract interface class WholesaleSellingUnitCommerceApi {
 }
 
 class HttpWholesaleCommerceApi
-    implements WholesaleCommerceApi, WholesaleQuoteApi, WholesaleSellingUnitCommerceApi {
+    implements
+        WholesaleCommerceApi,
+        WholesaleQuoteApi,
+        WholesaleSellingUnitCommerceApi {
   HttpWholesaleCommerceApi({
     required this.baseUrl,
     required this.token,

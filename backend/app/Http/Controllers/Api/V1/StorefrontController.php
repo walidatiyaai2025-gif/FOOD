@@ -9,9 +9,10 @@ use App\Services\B2bAccountLedgerService;
 use App\Services\B2bPricingMode;
 use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
+use App\Services\MinimumOrderPolicy;
 use App\Services\SmartOrderingAttributionService;
-use App\Services\WholesalePrincipal;
 use App\Services\WholesaleAppCatalogPolicy;
+use App\Services\WholesalePrincipal;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -538,7 +539,7 @@ final class StorefrontController extends Controller
             'credit_limit' => (float) $finance['credit_limit'],
             'available_credit_line' => (float) $finance['available_credit_line'],
             'purchasing_power' => (float) $finance['purchasing_power'],
-            'minimum_order_egp' => app(\App\Services\MinimumOrderPolicy::class)->minimumForStore($storeId),
+            'minimum_order_egp' => app(MinimumOrderPolicy::class)->minimumForStore($storeId),
             'currency' => $finance['currency'],
         ]);
     }

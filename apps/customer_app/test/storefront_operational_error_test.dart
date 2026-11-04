@@ -42,7 +42,8 @@ void main() {
     );
   });
 
-  test('cart HTTP 500 reports server fault instead of misleading pricing text', () {
+  test('cart HTTP 500 reports server fault instead of misleading pricing text',
+      () {
     const error = WholesaleCommerceException(
       'Server Error',
       statusCode: 500,

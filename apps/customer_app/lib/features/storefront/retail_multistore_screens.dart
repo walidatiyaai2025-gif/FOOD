@@ -1374,7 +1374,8 @@ class _RetailProductDetailsDesignScreenState
     }
 
     if (!selectedUnit.isBase) {
-      throw StateError('Selling-unit checkout is not available in this session.');
+      throw StateError(
+          'Selling-unit checkout is not available in this session.');
     }
 
     return actionApi.addCartItem(
@@ -1486,8 +1487,10 @@ class _RetailProductDetailsDesignScreenState
                     const SizedBox(height: 18),
                     if (product.sellingUnits.isNotEmpty) ...[
                       Semantics(
-                        label: Localizations.localeOf(context).languageCode == 'ar'
-                            ? 'اختر وحدة البيع' : 'Select selling unit',
+                        label:
+                            Localizations.localeOf(context).languageCode == 'ar'
+                                ? 'اختر وحدة البيع'
+                                : 'Select selling unit',
                         child: Wrap(
                           key: const ValueKey('retail-selling-unit-options'),
                           spacing: 8,
@@ -1495,14 +1498,15 @@ class _RetailProductDetailsDesignScreenState
                           children: [
                             for (final unit in product.sellingUnits)
                               ChoiceChip(
-                                key: ValueKey('retail-selling-unit-${unit.code}'),
+                                key: ValueKey(
+                                    'retail-selling-unit-${unit.code}'),
                                 label: Text(
                                   unit.name +
                                       (unit.price == null
                                           ? ''
                                           : ' · ' +
-                                              foodexMoneyText(
-                                                  unit.price!, product.currency)),
+                                              foodexMoneyText(unit.price!,
+                                                  product.currency)),
                                 ),
                                 selected: (selectedSellingUnitCode ??
                                         product.sellingUnits.first.code) ==

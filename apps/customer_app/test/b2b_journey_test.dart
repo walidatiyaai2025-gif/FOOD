@@ -735,10 +735,14 @@ void main() {
       await tester.tap(offers);
       await _pumpCustomerFrames(tester);
 
-      expect(find.byKey(const ValueKey('wholesale-offers-screen')), findsOneWidget);
-      expect(find.byKey(const ValueKey('wholesale-catalog-screen')), findsNothing);
-      expect(find.byKey(const ValueKey('wholesale-offers-heading')), findsOneWidget);
-      expect(find.byKey(const ValueKey('wholesale-product-name-42')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-offers-screen')),
+          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('wholesale-catalog-screen')), findsNothing);
+      expect(find.byKey(const ValueKey('wholesale-offers-heading')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-product-name-42')),
+          findsOneWidget);
       expect(api.lastPath, '/api/v1/b2b/products?store_id=70');
       expect(tester.takeException(), isNull);
     },
@@ -774,8 +778,10 @@ void main() {
       await tester.tap(viewAll);
       await _pumpCustomerFrames(tester);
 
-      expect(find.byKey(const ValueKey('wholesale-offers-screen')), findsOneWidget);
-      expect(find.byKey(const ValueKey('wholesale-catalog-screen')), findsNothing);
+      expect(find.byKey(const ValueKey('wholesale-offers-screen')),
+          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('wholesale-catalog-screen')), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
@@ -801,9 +807,11 @@ void main() {
         ),
       );
       await _pumpCustomerFrames(tester);
-      expect(find.byKey(const ValueKey('wholesale-offers-empty')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('wholesale-offers-empty')), findsOneWidget);
       expect(api.paths, contains('/api/v1/b2b/flash-offers?store_id=70'));
-      expect(find.byKey(const ValueKey('wholesale-flash-product-91')), findsNothing);
+      expect(find.byKey(const ValueKey('wholesale-flash-product-91')),
+          findsNothing);
 
       api.flashOffers = {
         'fulfillment_channel': 'van',
@@ -832,15 +840,21 @@ void main() {
       };
       await tester.tap(find.byKey(const ValueKey('wholesale-offers-refresh')));
       await _pumpCustomerFrames(tester);
-      expect(find.byKey(const ValueKey('wholesale-flash-heading')), findsOneWidget);
-      expect(find.byKey(const ValueKey('wholesale-flash-product-91')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-flash-heading')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-flash-product-91')),
+          findsOneWidget);
       expect(find.text('مكرونات'), findsOneWidget);
-      expect(find.byKey(const ValueKey('wholesale-flash-price-91')), findsOneWidget);
-      expect(find.byKey(const ValueKey('wholesale-flash-van-only')), findsOneWidget);
-      expect(find.byKey(const ValueKey('wholesale-offers-empty')), findsNothing);
+      expect(find.byKey(const ValueKey('wholesale-flash-price-91')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-flash-van-only')),
+          findsOneWidget);
       expect(
-        api.paths.where((path) =>
-            path == '/api/v1/b2b/flash-offers?store_id=70').length,
+          find.byKey(const ValueKey('wholesale-offers-empty')), findsNothing);
+      expect(
+        api.paths
+            .where((path) => path == '/api/v1/b2b/flash-offers?store_id=70')
+            .length,
         greaterThanOrEqualTo(2),
       );
       expect(tester.takeException(), isNull);
@@ -892,13 +906,19 @@ void main() {
       await _pumpCustomerFrames(tester);
 
       expect(api.lastPath, '/api/v1/b2b/products?store_id=70');
-      expect(find.byKey(const ValueKey('wholesale-offers-screen')), findsOneWidget);
-      expect(find.byKey(const ValueKey('wholesale-catalog-screen')), findsNothing);
-      expect(find.byKey(const ValueKey('wholesale-offers-heading')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-offers-screen')),
+          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('wholesale-catalog-screen')), findsNothing);
+      expect(find.byKey(const ValueKey('wholesale-offers-heading')),
+          findsOneWidget);
       expect(find.text('العروض المتاحة'), findsOneWidget);
-      expect(find.byKey(const ValueKey('wholesale-product-name-42')), findsOneWidget);
-      expect(find.byKey(const ValueKey('wholesale-product-name-43')), findsNothing);
-      expect(find.byKey(const ValueKey('customer-footer-offers')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-product-name-42')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-product-name-43')),
+          findsNothing);
+      expect(
+          find.byKey(const ValueKey('customer-footer-offers')), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -928,9 +948,12 @@ void main() {
       );
       await _pumpCustomerFrames(tester);
 
-      expect(find.byKey(const ValueKey('wholesale-offers-screen')), findsOneWidget);
-      expect(find.byKey(const ValueKey('wholesale-offers-empty')), findsOneWidget);
-      expect(find.byKey(const ValueKey('wholesale-product-name-43')), findsNothing);
+      expect(find.byKey(const ValueKey('wholesale-offers-screen')),
+          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('wholesale-offers-empty')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-product-name-43')),
+          findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
@@ -2626,14 +2649,18 @@ void main() {
       final checkout = find.byKey(const ValueKey('b2b-cart-checkout'));
       await tester.ensureVisible(checkout);
       expect(
-        tester.widget<InkWell>(
-          find.descendant(of: checkout, matching: find.byType(InkWell)),
-        ).onTap,
+        tester
+            .widget<InkWell>(
+              find.descendant(of: checkout, matching: find.byType(InkWell)),
+            )
+            .onTap,
         isNull,
       );
-      expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')), findsOneWidget);
+      expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')),
+          findsOneWidget);
       expect(find.textContaining('400'), findsWidgets);
-      expect(find.byKey(const ValueKey('b2b-minimum-order-popup')), findsNothing);
+      expect(
+          find.byKey(const ValueKey('b2b-minimum-order-popup')), findsNothing);
       expect(commerce.checkoutCalls, 0);
 
       // Zero is an explicit admin policy, not a missing/fallback value.
@@ -2649,16 +2676,19 @@ void main() {
         ),
       );
       await _pumpCustomerFrames(tester);
-      expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')), findsNothing);
+      expect(
+          find.byKey(const ValueKey('b2b-cart-minimum-warning')), findsNothing);
       final enabledCheckout = find.byKey(const ValueKey('b2b-cart-checkout'));
       expect(enabledCheckout, findsOneWidget);
       expect(
-        tester.widget<InkWell>(
-          find.descendant(
-            of: enabledCheckout,
-            matching: find.byType(InkWell),
-          ),
-        ).onTap,
+        tester
+            .widget<InkWell>(
+              find.descendant(
+                of: enabledCheckout,
+                matching: find.byType(InkWell),
+              ),
+            )
+            .onTap,
         isNotNull,
       );
     },
@@ -2690,19 +2720,22 @@ void main() {
             find.descendant(of: checkout, matching: find.byType(InkWell)),
           );
       expect(button().onTap, isNull);
-      expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')), findsOneWidget);
+      expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')),
+          findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('b2b-cart-plus-41')));
       await _pumpCustomerFrames(tester);
       expect(commerce.cartValue['merchandise_total'], 1500.0);
       expect(button().onTap, isNotNull);
-      expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')), findsNothing);
+      expect(
+          find.byKey(const ValueKey('b2b-cart-minimum-warning')), findsNothing);
 
       await tester.tap(find.byKey(const ValueKey('b2b-cart-minus-41')));
       await _pumpCustomerFrames(tester);
       expect(commerce.cartValue['merchandise_total'], 1100.0);
       expect(button().onTap, isNull);
-      expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')), findsOneWidget);
+      expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')),
+          findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

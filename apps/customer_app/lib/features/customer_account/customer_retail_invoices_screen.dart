@@ -105,8 +105,10 @@ class _CustomerRetailInvoicesScreenState
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("${isArabic(context) ? 'الحالة: ' : 'Status: '}${data['status'] ?? '—'}"),
-                    Text("${isArabic(context) ? 'الإجمالي: ' : 'Total: '}${data['grand_total'] ?? '—'} ${data['currency'] ?? 'EGP'}"),
+                    Text(
+                        "${isArabic(context) ? 'الحالة: ' : 'Status: '}${data['status'] ?? '—'}"),
+                    Text(
+                        "${isArabic(context) ? 'الإجمالي: ' : 'Total: '}${data['grand_total'] ?? '—'} ${data['currency'] ?? 'EGP'}"),
                     const Divider(),
                     for (final line in items)
                       ListTile(
@@ -165,12 +167,14 @@ class _CustomerRetailInvoicesScreenState
               child: ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: list.length,
-                separatorBuilder: (_, __) => const SizedBox(height: CustomerUiSpacing.sm),
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: CustomerUiSpacing.sm),
                 itemBuilder: (context, index) {
                   final invoice = list[index];
                   return Card(
                     child: ListTile(
-                      key: ValueKey("retail-invoice-${invoice['id'] ?? 'unknown'}"),
+                      key: ValueKey(
+                          "retail-invoice-${invoice['id'] ?? 'unknown'}"),
                       title: Text(
                         invoice['invoice_number']?.toString() ?? '—',
                       ),

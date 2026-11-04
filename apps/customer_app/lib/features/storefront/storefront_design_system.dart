@@ -1603,7 +1603,8 @@ Future<void> showOperationalError(BuildContext context, Object error) {
           Icons.error_outline_rounded,
           color: Color(0xFFB42318),
         ),
-        title: Text(isArabic ? 'تعذر تنفيذ العملية' : 'Action could not be completed'),
+        title: Text(
+            isArabic ? 'تعذر تنفيذ العملية' : 'Action could not be completed'),
         content: Text(operationalErrorMessage(error, isArabic: isArabic)),
         actions: [
           FilledButton(

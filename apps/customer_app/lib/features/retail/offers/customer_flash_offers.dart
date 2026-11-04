@@ -65,9 +65,9 @@ class CustomerFlashProduct {
         productId: _int(map['product_id']),
         name: map['name']?.toString() ?? '',
         sku: map['sku']?.toString() ?? '',
-        sellingUnit: (map['selling_unit_name'] ??
-                map['selling_unit_code'] ??
-                '').toString(),
+        sellingUnit:
+            (map['selling_unit_name'] ?? map['selling_unit_code'] ?? '')
+                .toString(),
         flashPrice: _double(map['flash_price']),
         normalPrice: _double(map['normal_price']),
         availableQuantity: _int(map['available_quantity']),
@@ -229,11 +229,12 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
   @override
   Future<List<CustomerFlashOffer>> activeOffers({required int storeId}) async {
     final response = await _client.get(
-      Uri.parse('$baseUrl/api/v1/${token == null || token!.trim().isEmpty ? 'flash-offers/public' : 'flash-offers'}').replace(
+      Uri.parse(
+              '$baseUrl/api/v1/${token == null || token!.trim().isEmpty ? 'flash-offers/public' : 'flash-offers'}')
+          .replace(
         queryParameters: {
           'store_id': '$storeId',
-          if (token != null && token!.trim().isNotEmpty)
-            'channel': 'customer',
+          if (token != null && token!.trim().isNotEmpty) 'channel': 'customer',
         },
       ),
       headers: {..._headers, 'X-FOODEX-Store-ID': '$storeId'},
@@ -280,7 +281,8 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
       throw const RetailCommerceException('authentication_required');
     }
     final response = await _client.post(
-      Uri.parse('$baseUrl/api/v1/flash-offers/products/$offerProductId/reserve'),
+      Uri.parse(
+          '$baseUrl/api/v1/flash-offers/products/$offerProductId/reserve'),
       headers: {
         ..._headers,
         'Content-Type': 'application/json',
@@ -290,7 +292,8 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
         'store_id': storeId,
         'channel': 'customer',
         'quantity': quantity,
-        'idempotency_key': 'flash-reserve-$offerProductId-${DateTime.now().microsecondsSinceEpoch}',
+        'idempotency_key':
+            'flash-reserve-$offerProductId-${DateTime.now().microsecondsSinceEpoch}',
       }),
     );
     final body = _decode(response);
@@ -513,7 +516,8 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && mounted &&
+    if (state == AppLifecycleState.resumed &&
+        mounted &&
         (ModalRoute.of(context)?.isCurrent ?? true)) {
       unawaited(_load(silent: true));
     }
@@ -573,7 +577,8 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen>
                   actionLabel: _ar ? 'إعادة المحاولة' : 'Retry',
                   onAction: _load,
                 ),
-              if (!_busy && _error == null &&
+              if (!_busy &&
+                  _error == null &&
                   !_offers.any((offer) => offer.products.isNotEmpty))
                 CustomerStateView(
                   kind: CustomerStateKind.empty,
@@ -646,7 +651,8 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen>
                               Text(
                                 foodexMoneyText(
                                     product.flashPrice, offer.currency),
-                                key: ValueKey('flash-product-price-${product.id}'),
+                                key: ValueKey(
+                                    'flash-product-price-${product.id}'),
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleMedium

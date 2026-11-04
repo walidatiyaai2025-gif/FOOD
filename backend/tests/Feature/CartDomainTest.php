@@ -3,11 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\B2bAccount;
+use App\Models\Cart;
 use App\Models\Customer;
 use App\Models\User;
+use App\Services\CommerceQuoteService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -270,11 +273,11 @@ class CartDomainTest extends TestCase
             ->assertJsonPath('items.0.selling_unit_code', 'BOX-STABLE')
             ->assertJsonPath('subtotal', 0);
 
-        $cart = \App\Models\Cart::query()->findOrFail((int) $added->json('id'));
+        $cart = Cart::query()->findOrFail((int) $added->json('id'));
         try {
-            app(\App\Services\CommerceQuoteService::class)->quoteCart($cart, strict: true);
+            app(CommerceQuoteService::class)->quoteCart($cart, strict: true);
             $this->fail('Strict checkout must reject changed selling-unit conversions.');
-        } catch (\Illuminate\Validation\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             $this->assertArrayHasKey('items', $exception->errors());
         }
 

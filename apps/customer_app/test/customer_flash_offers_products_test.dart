@@ -50,14 +50,19 @@ void main() {
     ],
   };
 
-  test('guest reads only the public flash feed and maps available products', () async {
+  test('guest reads only the public flash feed and maps available products',
+      () async {
     final requests = <http.Request>[];
     final api = HttpCustomerFlashOffersApi(
       token: null,
       baseUrl: 'https://api.example.test',
       client: MockClient((request) async {
         requests.add(request);
-        return http.Response(jsonEncode({'data': [offer]}), 200);
+        return http.Response(
+            jsonEncode({
+              'data': [offer]
+            }),
+            200);
       }),
     );
     final offers = await api.activeOffers(storeId: 4);
@@ -70,7 +75,8 @@ void main() {
     expect(offers.single.products.first.normalPrice, 11);
   });
 
-  test('authenticated feed and reserve use the canonical offer-product route', () async {
+  test('authenticated feed and reserve use the canonical offer-product route',
+      () async {
     final urls = <String>[];
     final api = HttpCustomerFlashOffersApi(
       token: 'test-token',
@@ -80,19 +86,25 @@ void main() {
         expect(request.headers['Authorization'], 'Bearer test-token');
         if (request.method == 'GET') {
           expect(request.url.queryParameters['channel'], 'customer');
-          return http.Response(jsonEncode({'data': [offer]}), 200);
+          return http.Response(
+              jsonEncode({
+                'data': [offer]
+              }),
+              200);
         }
         final body = jsonDecode(request.body) as Map<String, dynamic>;
         expect(body['channel'], 'customer');
         expect(body['quantity'], 1);
         expect(body['idempotency_key'], startsWith('flash-reserve-57-'));
-        return http.Response(jsonEncode({
-          'id': '00000000-0000-4000-8000-000000000057',
-          'offer_id': 31,
-          'server_time': '2099-05-01T09:00:00Z',
-          'expires_at': '2099-05-01T09:05:00Z',
-          'status': 'active',
-        }), 201);
+        return http.Response(
+            jsonEncode({
+              'id': '00000000-0000-4000-8000-000000000057',
+              'offer_id': 31,
+              'server_time': '2099-05-01T09:00:00Z',
+              'expires_at': '2099-05-01T09:05:00Z',
+              'status': 'active',
+            }),
+            201);
       }),
     );
     expect((await api.activeOffers(storeId: 4)).single.id, 31);
@@ -108,7 +120,9 @@ void main() {
     ]);
   });
 
-  testWidgets('Offers page shows each eligible flash product and guest login action', (tester) async {
+  testWidgets(
+      'Offers page shows each eligible flash product and guest login action',
+      (tester) async {
     tester.view.physicalSize = const Size(390, 950);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -155,7 +169,8 @@ class _ProductFlashApi implements CustomerFlashOffersApi {
       [offer];
 
   @override
-  Future<CustomerFlashReservation?> activeReservation({required int storeId}) async =>
+  Future<CustomerFlashReservation?> activeReservation(
+          {required int storeId}) async =>
       null;
 
   @override

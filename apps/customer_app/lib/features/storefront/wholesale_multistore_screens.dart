@@ -698,10 +698,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                       searchHint: context.tr(
                         'customer.products.search_name_sku_barcode',
                       ),
-                      onSearchSubmitted: (value) =>
-                          setState(() {
-                            future = _load(value);
-                          }),
+                      onSearchSubmitted: (value) => setState(() {
+                        future = _load(value);
+                      }),
                       onCart: () => Navigator.of(context)
                           .pushNamed('/b2b/cart?store=' + storeId.toString()),
                     ),
@@ -2837,8 +2836,8 @@ class _WholesaleFavoritesDesignScreenState
   }
 
   void _reload() => setState(() {
-    future = _load();
-  });
+        future = _load();
+      });
 
   List<Map<String, dynamic>> _rows(Object? raw) {
     final needle = search.text.trim().toLowerCase();
@@ -3138,8 +3137,8 @@ class WholesaleOffersDesignScreen extends StatefulWidget {
       _WholesaleOffersDesignScreenState();
 }
 
-class _WholesaleOffersDesignScreenState extends State<WholesaleOffersDesignScreen>
-    with WidgetsBindingObserver {
+class _WholesaleOffersDesignScreenState
+    extends State<WholesaleOffersDesignScreen> with WidgetsBindingObserver {
   late Future<Map<String, dynamic>> _feed;
   Timer? _autoRefresh;
   bool _isRefreshing = false;
@@ -3255,7 +3254,8 @@ class _WholesaleOffersDesignScreenState extends State<WholesaleOffersDesignScree
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && mounted &&
+    if (state == AppLifecycleState.resumed &&
+        mounted &&
         (ModalRoute.of(context)?.isCurrent ?? true)) {
       unawaited(_refresh());
     }
@@ -3316,7 +3316,9 @@ class _WholesaleOffersDesignScreenState extends State<WholesaleOffersDesignScree
                           children: [
                             Expanded(
                               child: Text(
-                                isArabic ? 'العروض المتاحة' : 'Available offers',
+                                isArabic
+                                    ? 'العروض المتاحة'
+                                    : 'Available offers',
                                 key: const ValueKey('wholesale-offers-heading'),
                                 style: const TextStyle(
                                   color: CustomerUiColors.ink,
@@ -3327,7 +3329,8 @@ class _WholesaleOffersDesignScreenState extends State<WholesaleOffersDesignScree
                             ),
                             IconButton(
                               key: const ValueKey('wholesale-offers-refresh'),
-                              tooltip: isArabic ? 'تحديث العروض' : 'Refresh offers',
+                              tooltip:
+                                  isArabic ? 'تحديث العروض' : 'Refresh offers',
                               icon: const Icon(Icons.refresh_rounded),
                               onPressed: () => unawaited(_refresh()),
                             ),
@@ -3345,15 +3348,14 @@ class _WholesaleOffersDesignScreenState extends State<WholesaleOffersDesignScree
                             ),
                           ),
                           const SizedBox(height: 10),
-                          ...flashRows.map((flashProduct) =>
-                              _wholesaleFlashProductCard(
-                                context,
-                                flashProduct,
-                                isArabic: isArabic,
-                              )),
+                          ...flashRows
+                              .map((flashProduct) => _wholesaleFlashProductCard(
+                                    context,
+                                    flashProduct,
+                                    isArabic: isArabic,
+                                  )),
                         ],
-                        if (storeId <= 0 ||
-                            (rows.isEmpty && flashRows.isEmpty))
+                        if (storeId <= 0 || (rows.isEmpty && flashRows.isEmpty))
                           FoodexEmptyState(
                             key: const ValueKey('wholesale-offers-empty'),
                             title: isArabic
@@ -3412,9 +3414,9 @@ Widget _wholesaleFlashProductCard(
   final id = intValue(product['id']);
   final title = (product['name'] ?? '').toString();
   final imageUrl = (product['image_url'] ?? '').toString();
-  final unitName = (product['selling_unit_name'] ??
-          product['selling_unit_code'] ?? '')
-      .toString();
+  final unitName =
+      (product['selling_unit_name'] ?? product['selling_unit_code'] ?? '')
+          .toString();
   final currency = (product['currency'] ?? 'EGP').toString();
   final flashPrice = doubleValue(product['flash_price'], 0);
   final normalPrice = doubleValue(product['normal_price'], 0);
@@ -5122,9 +5124,9 @@ class _WholesaleProductDetailsDesignScreenState
         sellingUnitCode: code,
       );
     }
-    if (selectedUnit != null &&
-        selectedUnit['is_base'] != true) {
-      throw StateError('Selling-unit checkout is not supported in this session.');
+    if (selectedUnit != null && selectedUnit['is_base'] != true) {
+      throw StateError(
+          'Selling-unit checkout is not supported in this session.');
     }
     return actionApi.addCartItem(
       storeId: storeId,
@@ -5590,14 +5592,17 @@ class _WholesaleProductDetailsDesignScreenState
                       children: [
                         for (final unit in _sellingUnits(row))
                           ChoiceChip(
-                            key: ValueKey('wholesale-selling-unit-${unit['code']}'),
+                            key: ValueKey(
+                                'wholesale-selling-unit-${unit['code']}'),
                             label: Text(
-                              (unit['name']?.toString() ?? unit['code'].toString()) +
+                              (unit['name']?.toString() ??
+                                      unit['code'].toString()) +
                                   ' · ' +
                                   money(
                                     unit['price'] ??
                                         (doubleValue(row['account_price'], 0) *
-                                            doubleValue(unit['conversion_factor'], 1)),
+                                            doubleValue(
+                                                unit['conversion_factor'], 1)),
                                     currency: currency,
                                   ),
                             ),
@@ -5614,7 +5619,10 @@ class _WholesaleProductDetailsDesignScreenState
                                       selectedSellingUnitCode =
                                           unit['code']?.toString();
                                       quantity = factor *
-                                          math.max(1.0, (minimum / factor).ceilToDouble());
+                                          math.max(
+                                              1.0,
+                                              (minimum / factor)
+                                                  .ceilToDouble());
                                     });
                                   }
                                 : null,
@@ -6300,7 +6308,8 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                     key: const ValueKey('b2b-error'),
                     message: operationalErrorMessage(
                       snapshot.error!,
-                      isArabic: Localizations.localeOf(context).languageCode == 'ar',
+                      isArabic:
+                          Localizations.localeOf(context).languageCode == 'ar',
                     ),
                     onRetry: () => setState(() {
                       future = _load();
@@ -6585,8 +6594,8 @@ double _wholesaleMinimumRemaining(
       .toString()
       .toUpperCase();
   if (currency != 'EGP') return 0;
-  final minimum = minimumOverride ??
-      doubleValue(cart['minimum_order_egp'], 1500);
+  final minimum =
+      minimumOverride ?? doubleValue(cart['minimum_order_egp'], 1500);
   if (minimum <= 0) return 0;
 
   final quote = quoteOverride ??
@@ -8630,7 +8639,8 @@ class _WholesaleOrderDetailsDesignScreenState
                           ? Map<String, dynamic>.from(order['payment'] as Map)
                           : null;
                       final settlement = order['settlement'] is Map
-                          ? Map<String, dynamic>.from(order['settlement'] as Map)
+                          ? Map<String, dynamic>.from(
+                              order['settlement'] as Map)
                           : const <String, dynamic>{};
                       final accountCredit =
                           order['account_credit_impact'] is Map
@@ -8716,15 +8726,17 @@ class _WholesaleOrderDetailsDesignScreenState
                           if (settlement['payment_state'] != null) ...[
                             const SizedBox(height: 10),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
                               child: CustomerOrderPaymentBadge(
                                 orderId: orderId,
                                 currency: currency,
                                 paymentState:
                                     settlement['payment_state']?.toString(),
-                                paidAmount: _numberValue(settlement['paid_amount']),
-                                remainingAmount:
-                                    _numberValue(settlement['remaining_amount']),
+                                paidAmount:
+                                    _numberValue(settlement['paid_amount']),
+                                remainingAmount: _numberValue(
+                                    settlement['remaining_amount']),
                               ),
                             ),
                           ],

@@ -69,8 +69,7 @@ class HttpStorefrontApi implements StorefrontApi {
       final mainWholesale = publicPayload['main_wholesale_store'];
       final principalId = mainWholesale is Map
           ? int.tryParse(
-              (mainWholesale['id'] ?? mainWholesale['store_id'])
-                  ?.toString() ??
+              (mainWholesale['id'] ?? mainWholesale['store_id'])?.toString() ??
                   '',
             )
           : null;
@@ -123,10 +122,8 @@ class HttpStorefrontApi implements StorefrontApi {
       'wholesale_stores': publicPayload['wholesale_stores'],
       'entitlements': <String, dynamic>{
         ...entitlements,
-        'principal_wholesale_store_id':
-            (publicPayload['entitlements'] as Map?)?[
-                'principal_wholesale_store_id'
-              ],
+        'principal_wholesale_store_id': (publicPayload['entitlements']
+            as Map?)?['principal_wholesale_store_id'],
       },
     };
   }
@@ -158,7 +155,8 @@ class HttpStorefrontApi implements StorefrontApi {
   Future<Map<String, dynamic>> wholesaleFlashOffers(
     int storeId, {
     bool authenticated = false,
-  }) async => _asMap(await _get(
+  }) async =>
+      _asMap(await _get(
         authenticated && token != null && token!.isNotEmpty
             ? '/api/v1/b2b/flash-offers'
             : '/api/v1/b2b/flash-offers/public',
@@ -166,8 +164,7 @@ class HttpStorefrontApi implements StorefrontApi {
       ));
 
   @override
-  Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async =>
-      _asMap(
+  Future<Map<String, dynamic>> b2bCheckoutOptions(int storeId) async => _asMap(
         await _get(
           '/api/v1/b2b/checkout/options',
           query: {'store_id': '$storeId'},

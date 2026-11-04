@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\StorefrontRevision;
 use App\Models\User;
+use App\Services\WholesaleAppCatalogPolicy;
 use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -412,12 +413,11 @@ class WholesaleStorefrontBuilderTest extends TestCase
         ]);
     }
 
-
     public function test_wholesale_stock_only_toggle_applies_immediately_and_survives_design_publish(): void
     {
         $storeId = app(WholesalePrincipal::class)->storeId();
         $admin = $this->roleUser('B2B_ADMIN', 'wholesale-stock-filter@example.test');
-        $policy = app(\App\Services\WholesaleAppCatalogPolicy::class);
+        $policy = app(WholesaleAppCatalogPolicy::class);
 
         $this->actingAs($admin)->get(route('admin.b2b.module', ['module' => 'storefront']))
             ->assertOk()
@@ -499,7 +499,7 @@ class WholesaleStorefrontBuilderTest extends TestCase
             'show_in_stock_only' => 'not-a-boolean',
         ])->assertSessionHasErrors('show_in_stock_only');
 
-        $this->assertFalse(app(\App\Services\WholesaleAppCatalogPolicy::class)->showInStockOnly($storeId));
+        $this->assertFalse(app(WholesaleAppCatalogPolicy::class)->showInStockOnly($storeId));
 
         $retailTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
         $retailStoreId = (int) DB::table('stores')->insertGetId([

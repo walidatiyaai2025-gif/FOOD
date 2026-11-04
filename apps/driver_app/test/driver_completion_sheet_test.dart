@@ -7,7 +7,8 @@ import 'package:foodex_driver_app/features/delivery/completion/driver_completion
 import 'package:foodex_driver_app/features/delivery/completion/driver_proof_picker.dart';
 
 void main() {
-  testWidgets('delivered action stays server-gated and proof-gated', (tester) async {
+  testWidgets('delivered action stays server-gated and proof-gated',
+      (tester) async {
     final gateway = _RecordingGateway();
 
     await tester.pumpWidget(
@@ -93,9 +94,11 @@ void main() {
       findsNothing,
     );
     expect(
-      tester.widget<OutlinedButton>(
-        find.byKey(const ValueKey('driver-completion-proof-gallery')),
-      ).onPressed,
+      tester
+          .widget<OutlinedButton>(
+            find.byKey(const ValueKey('driver-completion-proof-gallery')),
+          )
+          .onPressed,
       isNotNull,
     );
   });
@@ -118,12 +121,14 @@ void main() {
         ),
       ),
     );
-    await tester.tap(find.byKey(const ValueKey('driver-completion-proof-gallery')));
+    await tester
+        .tap(find.byKey(const ValueKey('driver-completion-proof-gallery')));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('driver-completion-delivered')));
     await tester.pump();
     expect(find.textContaining('الموقع الدقيق'), findsOneWidget);
-    expect(find.byKey(const ValueKey('driver-completion-submit-error')), findsOneWidget);
+    expect(find.byKey(const ValueKey('driver-completion-submit-error')),
+        findsOneWidget);
   });
 
   testWidgets('unavailable server action is not rendered', (tester) async {
@@ -161,7 +166,8 @@ class _GpsRejectedGateway implements DriverCompletionGateway {
     required int assignmentId,
     required DriverCompletionDraft draft,
   }) async =>
-      throw const DriverCompletionException('driver_location_heartbeat_required');
+      throw const DriverCompletionException(
+          'driver_location_heartbeat_required');
 }
 
 class _RecordingGateway implements DriverCompletionGateway {

@@ -56,7 +56,7 @@ class InvoiceCompanyIdentityPresentationTest extends TestCase
         $this->assertIsString($partial);
 
         $this->assertStringContainsString('app(DocumentBrandingService::class)->identity()', $service);
-        $this->assertStringContainsString("app(\\App\\Services\\DocumentBrandingService::class)->identity()", $partial);
+        $this->assertStringContainsString('app(\\App\\Services\\DocumentBrandingService::class)->identity()', $partial);
         $this->assertStringContainsString("'Mobile'", $service);
         $this->assertStringContainsString("'Telephone'", $service);
         $this->assertStringContainsString("'موبايل'", $service);
