@@ -172,6 +172,12 @@ class GuestCatalogController extends Controller
             ->values()
             ->all();
 
+        $allowedSellingUnitCodes = collect(app(\App\Services\CommercialPolicyService::class)
+            ->sellingUnits((int) $item->id))
+            ->pluck('code')
+            ->map(static fn (string $code): string => strtoupper($code))
+            ->all();
+
         $sellingUnits = DB::table('product_selling_units')
             ->where('product_id', $item->id)
             ->where('is_active', true)
@@ -198,6 +204,8 @@ class GuestCatalogController extends Controller
                 'barcode' => $unit->barcode,
                 'is_base' => (bool) $unit->is_base,
             ])
+            ->filter(static fn (array $unit): bool =>
+                in_array(strtoupper((string) $unit['code']), $allowedSellingUnitCodes, true))
             ->values()
             ->all();
 
