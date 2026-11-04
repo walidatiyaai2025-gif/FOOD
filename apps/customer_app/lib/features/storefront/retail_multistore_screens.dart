@@ -1454,8 +1454,10 @@ class _RetailProductDetailsDesignScreenState
                       minimum: 1,
                       palette: FoodexPalette.grocery,
                       label: context.tr('customer.action.add_cart'),
-                      checkoutLabel: Localizations.localeOf(context).languageCode == 'ar'
-                          ? 'إتمام الطلب' : 'Checkout',
+                      checkoutLabel:
+                          Localizations.localeOf(context).languageCode == 'ar'
+                              ? 'إتمام الطلب'
+                              : 'Checkout',
                       onCheckout: product.isAvailable
                           ? () async {
                               try {
@@ -1469,7 +1471,9 @@ class _RetailProductDetailsDesignScreenState
                                   channel: CustomerCommerceChannel.retail,
                                   storeId: storeId,
                                 );
-                                final checkout = CustomerRouteLocations.retailCheckout(scope);
+                                final checkout =
+                                    CustomerRouteLocations.retailCheckout(
+                                        scope);
                                 Navigator.of(context).pushNamed(
                                   widget.session.isAuthenticated
                                       ? checkout
