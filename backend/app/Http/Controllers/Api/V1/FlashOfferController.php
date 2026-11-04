@@ -455,7 +455,10 @@ final class FlashOfferController extends Controller
             $allocation = $entry->allocation_base === null
                 ? $offerRemaining
                 : min($offerRemaining, max(0.0, (float) $entry->allocation_base - (float) ($used->get($entry->getKey()) ?? 0)));
-            if ($item === null || $unit === null || (int) $unit->product_id !== $productId
+            // Legacy Flash records can have a canonical unit code without
+            // selling_unit_id; honor their stored conversion/pricing snapshot.
+            if ($item === null || ($entry->selling_unit_id !== null
+                && ($unit === null || (int) $unit->product_id !== $productId))
                 || $conversion <= 0 || min($stock, $allocation, $customerRemaining) + 0.0001 < $conversion) {
                 continue;
             }
@@ -472,11 +475,11 @@ final class FlashOfferController extends Controller
                 'name' => (string) $item->name,
                 'sku' => (string) ($item->sku ?? ''),
                 'image_url' => $path === '' ? null : (preg_match('~^https?://~i', $path) ? $path : url('/'.ltrim($path, '/'))),
-                'selling_unit_id' => (int) $entry->selling_unit_id,
+                'selling_unit_id' => $entry->selling_unit_id === null ? null : (int) $entry->selling_unit_id,
                 'selling_unit_code' => (string) $entry->selling_unit_code,
-                'selling_unit_name' => (string) $unit->name,
+                'selling_unit_name' => (string) ($unit?->name ?? $entry->selling_unit_code),
                 'conversion_factor' => $conversion,
-                'normal_price' => $unit->price === null
+                'normal_price' => $unit?->price === null
                     ? round((float) $item->price * $conversion, 3) : (float) $unit->price,
                 'flash_price' => (float) $entry->flash_price,
                 'available_quantity' => (int) floor(min($stock, $allocation, $customerRemaining) / $conversion),
