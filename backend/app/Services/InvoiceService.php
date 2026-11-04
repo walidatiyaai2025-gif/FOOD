@@ -422,11 +422,20 @@ final class InvoiceService
         $logo = $brand['logo_data_uri'] !== null
             ? '<img src="'.$e($brand['logo_data_uri']).'" height="48" alt="FOODEX">'
             : '<strong>FOODEX</strong>';
-        $brandingHeader = '<table cellpadding="5" style="border-bottom:1px solid #166534">'
-            .'<tr><td width="24%">'.$logo.'</td><td width="76%">'
+        $contactLines = [];
+        if (trim((string) $brand['phone_secondary']) !== '') {
+            $contactLines[] = '<b>'.($ar ? 'موبايل' : 'Mobile').':</b> '.$e($brand['phone_secondary']);
+        }
+        if (trim((string) $brand['phone_primary']) !== '') {
+            $contactLines[] = '<b>'.($ar ? 'تليفون' : 'Telephone').':</b> '.$e($brand['phone_primary']);
+        }
+
+        // Keep all company details directly beneath the logo in Arabic and English PDFs.
+        $brandingHeader = '<table cellpadding="4" style="border-bottom:2px solid #166534">'
+            .'<tr><td width="100%">'.$logo.'<br>'
             .'<strong>'.$e($brand['name']).'</strong><br>'
-            .$e($brand['address']).'<br>'
-            .$e($brand['phone_primary']).' / '.$e($brand['phone_secondary'])
+            .$e($brand['address'])
+            .($contactLines === [] ? '' : '<br>'.implode('<br>', $contactLines))
             .'</td></tr></table><br>';
 
         return '<div style="font-family:dejavusans;">'.$brandingHeader.'<h1>'.$e($labels['title']).'</h1>'
