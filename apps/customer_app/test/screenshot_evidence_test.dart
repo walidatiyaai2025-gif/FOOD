@@ -1910,16 +1910,16 @@ class _EvidenceWholesaleCommerceApi implements WholesaleCommerceApi {
   @override
   Future<Object?> cart(int storeId) async => {
         'store_id': storeId,
-        'subtotal': 725.0,
+        'subtotal': 1812.5,
         'currency': 'EGP',
         'items': [
           {
             'id': 501,
             'product_id': 42,
             'name': 'كرتونة طماطم FOODEX',
-            'quantity': 10,
+            'quantity': 25,
             'unit_price': 72.5,
-            'line_total': 725.0,
+            'line_total': 1812.5,
             'minimum_order_quantity': 5,
             'ordering_increment': 5,
             'pack_size': 12,
@@ -1957,6 +1957,6 @@ class _EvidenceWholesaleCommerceApi implements WholesaleCommerceApi {
         'store_id': storeId,
         'status': 'pending',
         'currency': 'EGP',
-        'grand_total': 725.0,
+        'grand_total': 1812.5,
       };
 }
