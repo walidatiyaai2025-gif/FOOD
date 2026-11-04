@@ -85,7 +85,18 @@ abstract interface class CustomerActionApi {
   });
 }
 
-class HttpCustomerActionApi implements CustomerActionApi {
+/// Optional selling-unit API; legacy fake customer actions remain compatible.
+abstract interface class CustomerSellingUnitActionApi {
+  Future<Object?> addCartSellingUnit({
+    required int storeId,
+    required int productId,
+    required double quantity,
+    required String sellingUnitCode,
+  });
+}
+
+class HttpCustomerActionApi
+    implements CustomerActionApi, CustomerSellingUnitActionApi {
   HttpCustomerActionApi({
     required this.baseUrl,
     this.token,
@@ -259,6 +270,30 @@ class HttpCustomerActionApi implements CustomerActionApi {
     required int storeId,
     required int productId,
     required double quantity,
+  }) => _submitCartItem(
+        storeId: storeId,
+        productId: productId,
+        quantity: quantity,
+      );
+
+  @override
+  Future<Object?> addCartSellingUnit({
+    required int storeId,
+    required int productId,
+    required double quantity,
+    required String sellingUnitCode,
+  }) => _submitCartItem(
+        storeId: storeId,
+        productId: productId,
+        quantity: quantity,
+        sellingUnitCode: sellingUnitCode,
+      );
+
+  Future<Object?> _submitCartItem({
+    required int storeId,
+    required int productId,
+    required double quantity,
+    String? sellingUnitCode,
   }) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/cart/items'),
@@ -267,6 +302,7 @@ class HttpCustomerActionApi implements CustomerActionApi {
         'store_id': storeId,
         'product_id': productId,
         'quantity': quantity,
+        if (sellingUnitCode != null) 'selling_unit_code': sellingUnitCode,
       }),
     );
 
