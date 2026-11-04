@@ -374,7 +374,11 @@ class HttpCustomerActionApi
       } else if (body is Map && body['message'] is String) {
         code = body['message'] as String;
       }
-      throw CustomerActionException(code, fieldErrors: _validationErrors(body));
+      throw CustomerActionException(
+        code,
+        statusCode: response.statusCode,
+        fieldErrors: _validationErrors(body),
+      );
     }
 
     return body;
@@ -400,10 +404,12 @@ class CustomerActionException implements Exception {
   const CustomerActionException(
     this.code, {
     this.fieldErrors = const <String, List<String>>{},
+    this.statusCode,
   });
 
   final String code;
   final Map<String, List<String>> fieldErrors;
+  final int? statusCode;
 
   @override
   String toString() => code;
