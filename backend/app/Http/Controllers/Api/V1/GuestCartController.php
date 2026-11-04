@@ -637,8 +637,16 @@ class GuestCartController extends Controller
                     'currency' => $currency,
                     'image_url' => $this->assetUrl($primaryImages->get((int) $line['product_id'])),
                 ],
-                'quantity' => (float) $line['quantity'],
-                'unit_price_snapshot' => $line['unit_price'],
+                'quantity' => isset($line['selling_unit_quantity'])
+                    ? (float) $line['selling_unit_quantity']
+                    : (float) $line['quantity'],
+                'base_quantity' => (float) $line['quantity'],
+                'selling_unit_code' => $line['selling_unit_code'] ?? null,
+                'selling_unit_name' => $line['selling_unit_name'] ?? null,
+                'selling_unit_conversion_factor' => (float) ($line['quantity_conversion_factor'] ?? 1),
+                'unit_price_snapshot' => isset($line['selling_unit_quantity']) && (float) $line['selling_unit_quantity'] > 0
+                    ? round((float) $line['line_subtotal'] / (float) $line['selling_unit_quantity'], 3)
+                    : $line['unit_price'],
                 'line_total' => $line['line_total'],
                 'is_available' => (bool) $line['is_available'],
                 'available_quantity' => $line['available_quantity'],
