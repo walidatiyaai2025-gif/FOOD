@@ -745,6 +745,8 @@ final class CommercialDashboardController extends Controller
         $requestedStore = $request->integer('store_id');
         $scope = app(OperationalTenantScope::class);
         if ($request->routeIs('admin.commercial.wholesale-flash-offers*')) {
+            abort_if($requestedStore > 0
+                && $scope->storeChannel($requestedStore) !== 'b2b', 404);
             return $this->authorizedStore($request, $permission, $allowEmptyStore, 'b2b');
         }
         // Bookmarked B2C GET links for an authorized wholesale store are
@@ -780,7 +782,7 @@ final class CommercialDashboardController extends Controller
 
         $params = array_filter([
             'store_id' => $storeId,
-            'edit' => $request->query('edit'),
+            'edit' => $request->integer('edit') > 0 ? $request->integer('edit') : null,
             'support_access' => $request->boolean('support_access') ? 1 : null,
             'offer' => $offerId,
         ], static fn ($value): bool => $value !== null && $value !== '');
