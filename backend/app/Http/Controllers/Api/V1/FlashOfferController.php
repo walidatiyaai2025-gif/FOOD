@@ -395,6 +395,7 @@ final class FlashOfferController extends Controller
         float $customerRemaining,
     ): array {
         $storeId = (int) $offer->store_id;
+        $storeChannel = app(\App\Services\OperationalTenantScope::class)->storeChannel($storeId);
         $ids = $offerProducts->pluck('product_id')->map(static fn ($id): int => (int) $id)->unique();
         if ($ids->isEmpty()) {
             return [];
@@ -407,6 +408,7 @@ final class FlashOfferController extends Controller
                     ->where('store_products.store_id', $storeId);
             })
             ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', $storeChannel)
             ->where('catalogs.is_active', true)
             ->where('catalogs.is_migration_quarantine', false)
             ->where('products.is_active', true)
@@ -479,8 +481,9 @@ final class FlashOfferController extends Controller
                 'selling_unit_code' => (string) $entry->selling_unit_code,
                 'selling_unit_name' => (string) ($unit?->name ?? $entry->selling_unit_code),
                 'conversion_factor' => $conversion,
+                // Match FlashCheckoutService's normal_unit_price exactly.
                 'normal_price' => $unit?->price === null
-                    ? round((float) $item->price * $conversion, 3) : (float) $unit->price,
+                    ? round((float) $item->price, 3) : (float) $unit->price,
                 'flash_price' => (float) $entry->flash_price,
                 'available_quantity' => (int) floor(min($stock, $allocation, $customerRemaining) / $conversion),
             ];
