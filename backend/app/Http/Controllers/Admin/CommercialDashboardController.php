@@ -386,8 +386,11 @@ final class CommercialDashboardController extends Controller
             'channels' => $this->storedJsonList($row->channels),
             'customerPopupEnabled' => $this->flags->customerFlashPopupEnabled(),
             'supportAccess' => $request->boolean('support_access'),
+            'flashRoutePrefix' => $this->flashRoutePrefix($storeId),
+            'storeChannel' => app(OperationalTenantScope::class)->storeChannel($storeId),
             'navGroups' => $this->navigation->groupsFor($user),
-            'navContext' => 'b2c_promotions',
+            'navContext' => $this->flashRoutePrefix($storeId) === 'admin.commercial.wholesale-flash-offers'
+                ? 'b2b_products' : 'b2c_promotions',
         ]);
     }
 
@@ -442,8 +445,11 @@ final class CommercialDashboardController extends Controller
             'liveReservedBase' => $liveReservedBase,
             'confirmedBase' => $confirmedBase,
             'supportAccess' => $request->boolean('support_access'),
+            'flashRoutePrefix' => $this->flashRoutePrefix($storeId),
+            'storeChannel' => app(OperationalTenantScope::class)->storeChannel($storeId),
             'navGroups' => $this->navigation->groupsFor($user),
-            'navContext' => 'b2c_promotions',
+            'navContext' => $this->flashRoutePrefix($storeId) === 'admin.commercial.wholesale-flash-offers'
+                ? 'b2b_products' : 'b2c_promotions',
         ]);
     }
 
