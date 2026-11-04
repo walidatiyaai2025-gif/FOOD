@@ -181,41 +181,59 @@ final class CommerceQuoteService
             $selectedUnitCode = trim((string) ($item['selling_unit_code'] ?? ''));
             if ($selectedUnitCode !== '') {
                 $sellingQuantity = (float) ($item['selling_unit_quantity'] ?? 0);
-                if ($sellingQuantity <= 0) {
-                    throw ValidationException::withMessages([
-                        'items' => ['The cart selling quantity is invalid.'],
-                    ]);
+                $unitIssue = $sellingQuantity <= 0 ? 'The cart selling quantity is invalid.' : null;
+                $unit = null;
+
+                if ($unitIssue === null) {
+                    try {
+                        $unit = app(CommercialPolicyService::class)
+                            ->sellingUnit($productId, $selectedUnitCode, $sellingQuantity);
+                    } catch (\DomainException|\InvalidArgumentException $exception) {
+                        $unitIssue = $exception->getMessage();
+                    }
                 }
 
-                try {
-                    $unit = app(CommercialPolicyService::class)
-                        ->sellingUnit($productId, $selectedUnitCode, $sellingQuantity);
-                } catch (\DomainException|\InvalidArgumentException $exception) {
-                    throw ValidationException::withMessages([
-                        'items' => [$exception->getMessage()],
-                    ]);
+                if ($unit !== null && abs((float) $unit['base_quantity'] - $quantity) > 0.0005) {
+                    $unitIssue = 'The selling-unit conversion changed. Re-add the product to update your cart.';
                 }
 
-                if (abs((float) $unit['base_quantity'] - $quantity) > 0.0005) {
-                    throw ValidationException::withMessages([
-                        'items' => ['The selling-unit conversion changed. Re-add the product to update your cart.'],
-                    ]);
-                }
+                if ($unitIssue !== null) {
+                    if ($strict) {
+                        throw ValidationException::withMessages(['items' => [$unitIssue]]);
+                    }
 
-                $line['selling_unit_code'] = $unit['code'];
-                $line['selling_unit_name'] = $unit['name'];
-                $line['selling_unit_quantity'] = $sellingQuantity;
-                $line['selling_unit_sku'] = $unit['sku'];
-                $line['selling_unit_barcode'] = $unit['barcode'];
-                $line['quantity_conversion_factor'] = (float) $unit['conversion_factor'];
+                    // A stale selling-unit line must remain visible/removable in
+                    // cart review. It must never contribute to the quote total or
+                    // silently become purchasable after a catalog change.
+                    $line['selling_unit_code'] = $selectedUnitCode;
+                    $line['selling_unit_quantity'] = $sellingQuantity;
+                    $line['selling_unit_name'] = null;
+                    $line['is_available'] = false;
+                    $line['availability_state'] = 'SELLING_UNIT_INVALID';
+                    $line['commercial_status'] = 'UNAVAILABLE';
+                    $line['commercial_reason_codes'] = array_values(array_unique([
+                        ...($line['commercial_reason_codes'] ?? []),
+                        'SELLING_UNIT_INVALID',
+                    ]));
+                    $line['unit_price'] = null;
+                    $line['line_subtotal'] = null;
+                    $line['line_total'] = null;
+                } else {
+                    $line['selling_unit_code'] = $unit['code'];
+                    $line['selling_unit_name'] = $unit['name'];
+                    $line['selling_unit_quantity'] = $sellingQuantity;
+                    $line['selling_unit_sku'] = $unit['sku'];
+                    $line['selling_unit_barcode'] = $unit['barcode'];
+                    $line['quantity_conversion_factor'] = (float) $unit['conversion_factor'];
 
-                if ($line['is_available'] && $unit['price'] !== null) {
-                    $line['unit_price'] = round(
-                        (float) $unit['price'] / (float) $unit['conversion_factor'],
-                        3,
-                    );
-                    $line['line_subtotal'] = round($line['unit_price'] * $quantity, 3);
-                    $line['line_total'] = $line['line_subtotal'];
+                    if ($line['is_available'] && $unit['price'] !== null) {
+                        $line['unit_price'] = round(
+                            (float) $unit['price'] / (float) $unit['conversion_factor'],
+                            3,
+                        );
+                        $line['line_subtotal'] = round($line['unit_price'] * $quantity, 3);
+                        $line['line_total'] = $line['line_subtotal'];
+                    }
                 }
             }
 
