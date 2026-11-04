@@ -22,6 +22,34 @@
 .wsf-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);gap:16px;margin-bottom:16px}.wsf-card{background:#fff;border:1px solid var(--foodex-border);border-radius:18px;padding:16px}.wsf-card h3{margin:0 0 6px}.wsf-muted{color:#667085;font-size:.9rem}.wsf-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.wsf-form .wide{grid-column:1/-1}.wsf-card label{display:grid;gap:5px;font-size:.82rem;font-weight:700}.wsf-card input,.wsf-card select,.wsf-card textarea{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:9px 10px;background:#fff}.wsf-card input[type=color]{padding:3px;height:42px}.wsf-card input[type=checkbox]{width:auto}.wsf-preview{background:var(--wsf-bg);border:1px solid #e5e7eb;border-radius:24px;padding:16px;min-height:430px;overflow:hidden}.wsf-preview-head{display:flex;align-items:center;gap:10px;color:#fff;background:linear-gradient(135deg,var(--wsf-dark),var(--wsf-primary));border-radius:18px;padding:14px}.wsf-logo{width:50px;height:50px;border-radius:14px;background:#fff;object-fit:cover}.wsf-badge{background:var(--wsf-accent);color:var(--foodex-green-dark);border-radius:999px;padding:5px 9px;font-size:.72rem;font-weight:800}.wsf-hero{margin-top:12px;border-radius:18px;padding:20px;color:#fff;background:linear-gradient(135deg,var(--wsf-primary),var(--wsf-dark));min-height:125px}.wsf-chip-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.wsf-chip{background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:6px 9px;font-size:.75rem}.wsf-list{display:grid;gap:10px}.wsf-item{border:1px solid #e5e7eb;border-radius:14px;padding:12px}.wsf-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}.wsf-danger{border:1px solid #fecaca;background:#fff1f2;color:#b91c1c;border-radius:9px;padding:7px 10px;cursor:pointer}.wsf-thumb{width:96px;height:58px;border-radius:10px;object-fit:cover;border:1px solid #e5e7eb}.wsf-item-head{display:flex;justify-content:space-between;gap:10px;align-items:center}.wsf-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;color:#667085}@media(max-width:980px){.wsf-grid{grid-template-columns:1fr}.wsf-form{grid-template-columns:1fr}.wsf-form .wide{grid-column:auto}}
 </style>
 
+<section class="wsf-card" data-wholesale-stock-visibility style="margin-bottom:16px">
+    <h3>{{ app()->getLocale()==='ar' ? 'ظهور المنتجات في تطبيق العميل' : 'Product visibility in the Customer app' }}</h3>
+    <p class="wsf-muted">{{ app()->getLocale()==='ar'
+        ? 'تحكم في عرض منتجات الجملة وفق الكمية المتاحة بعد خصم الكمية المحجوزة. يظهر الإعداد في التطبيق بعد نشر المسودة.'
+        : 'Control wholesale product visibility using available inventory after reservations. Publish the draft for the app to use this setting.' }}</p>
+    <form method="post" action="{{ route('admin.b2b.storefront.stock-visibility') }}" class="wsf-actions" style="align-items:center;gap:14px" data-wholesale-stock-visibility-form>
+        @csrf @method('PUT')
+        <input type="hidden" name="store_id" value="{{ $sfStoreId }}">
+        <input type="hidden" name="show_in_stock_only" value="0">
+        <label for="wholesale-stock-only-checkbox" style="display:flex;align-items:center;gap:10px;min-height:44px;flex:1;font-size:1rem">
+            <input id="wholesale-stock-only-checkbox" type="checkbox" name="show_in_stock_only" value="1"
+                   @checked(old('show_in_stock_only', $sfSettings['show_in_stock_only'] ?? false))
+                   @unless($canManageStorefront) disabled @endunless
+                   style="width:22px;height:22px;flex-shrink:0">
+            <span>{{ app()->getLocale()==='ar' ? 'إظهار المنتجات المتاح لها مخزون فقط' : 'Show only products with available stock' }}</span>
+        </label>
+        @if($canManageStorefront)
+            <button class="foodex-primary" type="submit" style="min-height:44px" data-wholesale-stock-visibility-save>
+                {{ app()->getLocale()==='ar'?'حفظ في المسودة':'Save to Draft' }}
+            </button>
+        @endif
+    </form>
+    @error('show_in_stock_only')<p role="alert" style="color:#b91c1c;font-weight:700">{{ $message }}</p>@enderror
+    <small class="wsf-muted">{{ app()->getLocale()==='ar'
+        ? 'عند إلغاء تحديد المربع تظهر جميع المنتجات النشطة بما فيها الأصناف النافدة. لا يتغير الإعداد المنشور حتى الضغط على نشر المسودة.'
+        : 'Unchecked: all active products, including out-of-stock ones. Published behavior changes only after Publish Draft.' }}</small>
+</section>
+
 <section class="wsf-card" data-wholesale-minimum-order style="margin-bottom:16px">
     <h3>{{ app()->getLocale()==='ar' ? 'الحد الأدنى لطلبات الجملة' : 'Wholesale minimum order value' }}</h3>
     <p class="wsf-muted">{{ app()->getLocale()==='ar'
@@ -71,12 +99,6 @@
                 <label>{{ app()->getLocale()==='ar'?'عنوان الهيرو بالإنجليزية':'English hero title' }}<input name="brand_subtitle_en" value="{{ $sfSettings['brand_subtitle_en'] ?? '' }}" maxlength="500" placeholder="Best prices for retailers"></label>
                 <label>{{ app()->getLocale()==='ar'?'زر الهيرو بالعربية':'Arabic hero CTA' }}<input name="hero_cta_ar" value="{{ $sfSettings['hero_cta_ar'] ?? '' }}" maxlength="120" placeholder="تصفح الكتالوج"></label>
                 <label>{{ app()->getLocale()==='ar'?'زر الهيرو بالإنجليزية':'English hero CTA' }}<input name="hero_cta_en" value="{{ $sfSettings['hero_cta_en'] ?? '' }}" maxlength="120" placeholder="Browse catalog"></label>
-                <label class="wide" style="display:flex;align-items:center;gap:10px;min-height:44px">
-                    <input type="hidden" name="show_in_stock_only" value="0">
-                    <input type="checkbox" name="show_in_stock_only" value="1" @checked((bool)($sfSettings['show_in_stock_only'] ?? false)) style="width:20px;height:20px">
-                    <span>{{ app()->getLocale()==='ar'?'إظهار المنتجات المتاح لها مخزون فقط':'Show only products with available stock' }}</span>
-                </label>
-                <p class="wsf-muted wide" style="margin:0">{{ app()->getLocale()==='ar'?'عند إلغاء التفعيل تظهر جميع المنتجات النشطة بما فيها النافدة. يسري التغيير على التطبيق بعد نشر المسودة.':'When disabled, all active products are shown, including out-of-stock items. The app changes after publishing the Draft.' }}</p>
             </div>
             <div class="wsf-actions"><button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ المسودة':'Save Draft' }}</button></div>
         </form>

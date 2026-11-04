@@ -98,6 +98,32 @@ final class StorefrontDraftEditorController extends Controller
         ));
     }
 
+    public function wholesaleStockVisibility(Request $request): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $data = $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
+            'show_in_stock_only' => ['required', 'boolean'],
+        ]);
+        $storeId = (int) $data['store_id'];
+        $this->authorizeWholesale($actor, $storeId, 'settings.manage');
+
+        // Patch only the stock-visibility key. Branding, colors and logo stay unchanged.
+        $this->drafts->updateSettings(
+            $actor,
+            $storeId,
+            'b2b',
+            ['branding' => ['show_in_stock_only' => (bool) $data['show_in_stock_only']]],
+            null,
+            $request,
+        );
+
+        return back()->with('status', $this->msg(
+            'تم حفظ إعداد ظهور المنتجات في المسودة. انشر المسودة لتطبيقه على تطبيق العميل.',
+            'Product visibility saved to Draft. Publish the Draft to apply it to the Customer app.',
+        ));
+    }
+
     public function wholesaleWebSettings(Request $request): RedirectResponse
     {
         $actor = $this->actor($request);
@@ -522,7 +548,9 @@ final class StorefrontDraftEditorController extends Controller
         }
 
         if ($wholesale) {
-            $branding['show_in_stock_only'] = (bool) ($data['show_in_stock_only'] ?? false);
+            if (array_key_exists('show_in_stock_only', $data)) {
+                $branding['show_in_stock_only'] = (bool) $data['show_in_stock_only'];
+            }
         }
 
         return [

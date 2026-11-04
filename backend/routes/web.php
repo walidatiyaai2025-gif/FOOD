@@ -659,6 +659,7 @@ Route::prefix('admin')
         Route::put('/b2b/settings', [B2bWorkspaceController::class, 'saveSetting'])->name('b2b.settings.save');
         Route::put('/b2b/storefront/minimum-order', [B2bWorkspaceController::class, 'saveWholesaleMinimumOrder'])->name('b2b.storefront.minimum-order');
         Route::put('/b2b/storefront/settings', [StorefrontDraftEditorController::class, 'wholesaleSettings'])->name('b2b.storefront.settings');
+        Route::put('/b2b/storefront/stock-visibility', [StorefrontDraftEditorController::class, 'wholesaleStockVisibility'])->name('b2b.storefront.stock-visibility');
         Route::post('/b2b/storefront/sections', [StorefrontDraftEditorController::class, 'wholesaleSectionStore'])->name('b2b.storefront.sections.store');
         Route::patch('/b2b/storefront/sections/{section}', [StorefrontDraftEditorController::class, 'wholesaleSectionUpdate'])->name('b2b.storefront.sections.update');
         Route::delete('/b2b/storefront/sections/{section}', [StorefrontDraftEditorController::class, 'wholesaleSectionDestroy'])->name('b2b.storefront.sections.destroy');

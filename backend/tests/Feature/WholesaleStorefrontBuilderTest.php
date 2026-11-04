@@ -420,11 +420,12 @@ class WholesaleStorefrontBuilderTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.b2b.module', ['module' => 'storefront']))
             ->assertOk()
-            ->assertSee('Show only products with available stock');
+            ->assertSee('Show only products with available stock')
+            ->assertSee('data-wholesale-stock-visibility', false)
+            ->assertSeeInOrder(['Product visibility in the Customer app', 'Wholesale minimum order value']);
 
-        $this->actingAs($admin)->put(route('admin.b2b.storefront.settings'), [
+        $this->actingAs($admin)->put(route('admin.b2b.storefront.stock-visibility'), [
             'store_id' => $storeId,
-            'theme_code' => 'wholesale_b2b',
             'show_in_stock_only' => 1,
         ])->assertSessionHasNoErrors();
 
@@ -437,15 +438,24 @@ class WholesaleStorefrontBuilderTest extends TestCase
             ->firstOrFail();
         $this->assertTrue((bool) $draft->payload['settings']['branding']['show_in_stock_only']);
 
+        // Saving other storefront settings must not reset the independently managed toggle.
+        $this->actingAs($admin)->put(route('admin.b2b.storefront.settings'), [
+            'store_id' => $storeId,
+            'theme_code' => 'wholesale_b2b',
+            'brand_title_en' => 'Updated wholesale branding',
+        ])->assertSessionHasNoErrors();
+        $draft->refresh();
+        $this->assertTrue((bool) $draft->payload['settings']['branding']['show_in_stock_only']);
+        $this->assertSame('Updated wholesale branding', $draft->payload['settings']['branding']['brand_title_en']);
+
         $this->actingAs($admin)->post(route('admin.b2b.storefront.publish'), [
             'store_id' => $storeId,
         ])->assertSessionHasNoErrors();
 
         $this->assertTrue(app(\App\Services\WholesaleAppCatalogPolicy::class)->showInStockOnly($storeId));
 
-        $this->actingAs($admin)->put(route('admin.b2b.storefront.settings'), [
+        $this->actingAs($admin)->put(route('admin.b2b.storefront.stock-visibility'), [
             'store_id' => $storeId,
-            'theme_code' => 'wholesale_b2b',
             'show_in_stock_only' => 0,
         ])->assertSessionHasNoErrors();
 
