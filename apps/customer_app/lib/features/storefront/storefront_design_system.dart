@@ -8,6 +8,7 @@ import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
 import '../../core/api/customer_action_api.dart';
+import '../../core/api/wholesale_commerce_api.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../core/theme/customer_display_preferences.dart';
@@ -1485,6 +1486,37 @@ String operationalErrorMessage(Object error, {required bool isArabic}) {
   final generic = isArabic
       ? 'تعذر تنفيذ العملية. حاول مجددًا، وإذا استمرت المشكلة تواصل مع الدعم.'
       : 'Unable to complete the action. Try again or contact support.';
+  if (error is WholesaleCommerceException) {
+    final status = error.statusCode;
+    if (status == 401) {
+      return isArabic
+          ? 'انتهت جلسة العميل. سجّل الدخول مجددًا لفتح السلة.'
+          : 'Your session expired. Sign in again to view the cart.';
+    }
+    if (status == 403) {
+      return isArabic
+          ? 'حساب الجملة غير مخوّل لعرض هذه السلة. راجع اعتماد الحساب والمتجر.'
+          : 'Your Wholesale account is not authorized for this cart. Check account and store access.';
+    }
+    if (status == 404) {
+      return isArabic
+          ? 'متجر الجملة المحدد غير متاح. ارجع للرئيسية وحدد المتجر مجددًا.'
+          : 'This Wholesale store is unavailable. Return home and select your store again.';
+    }
+    if (status == 409 || status == 422) {
+      return isArabic
+          ? 'تغيرت بيانات أحد أصناف السلة أو وحدة البيع. حدّث السلة وراجع الأصناف غير المتاحة.'
+          : 'A cart item or selling unit has changed. Refresh the cart and review unavailable items.';
+    }
+    if (status != null && status >= 500) {
+      return isArabic
+          ? 'فشل الخادم في تحميل السلة (HTTP $status). أعد المحاولة أو راجع سجل الخادم.'
+          : 'The server could not load your cart (HTTP $status). Retry or check server logs.';
+    }
+    return isArabic
+        ? 'تعذر الاتصال بخدمة السلة. تحقق من تشغيل الخادم والاتصال ثم أعد المحاولة.'
+        : 'Unable to reach the cart service. Check the server and connection, then retry.';
+  }
   if (error is CustomerActionException) {
     final code = error.code.trim();
     final normalized = code.toLowerCase();
@@ -1502,6 +1534,11 @@ String operationalErrorMessage(Object error, {required bool isArabic}) {
       return isArabic
           ? 'لا يسمح حسابك بتنفيذ هذا الطلب. راجع صلاحيات حسابك.'
           : 'Your account cannot perform this action. Check account access.';
+    }
+    if (error.statusCode != null && error.statusCode! >= 500) {
+      return isArabic
+          ? 'خدمة السلة غير متاحة الآن (HTTP ${error.statusCode}). راجع تشغيل الخادم وحاول مجددًا.'
+          : 'The cart service is unavailable (HTTP ${error.statusCode}). Check the server and retry.';
     }
     if (normalized == 'store_required') {
       return isArabic
