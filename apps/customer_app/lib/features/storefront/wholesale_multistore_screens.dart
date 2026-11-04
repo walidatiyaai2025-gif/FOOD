@@ -4634,8 +4634,11 @@ class _WholesaleProductDetailsDesignScreenState
     final selectedUnit = _selectedUnit(row);
     final code = selectedUnit?['code']?.toString();
     final actionApi = widget.actionApi;
-    if (code != null && actionApi is CustomerSellingUnitActionApi) {
-      return actionApi.addCartSellingUnit(
+    final sellingUnitApi = actionApi is CustomerSellingUnitActionApi
+        ? actionApi as CustomerSellingUnitActionApi
+        : null;
+    if (code != null && sellingUnitApi != null) {
+      return sellingUnitApi.addCartSellingUnit(
         storeId: storeId,
         productId: productId,
         quantity: baseQuantity / _sellingFactor(row),
@@ -5134,7 +5137,7 @@ class _WholesaleProductDetailsDesignScreenState
                                       selectedSellingUnitCode =
                                           unit['code']?.toString();
                                       quantity = factor *
-                                          math.max(1, (minimum / factor).ceil());
+                                          math.max(1.0, (minimum / factor).ceilToDouble());
                                     });
                                   }
                                 : null,
