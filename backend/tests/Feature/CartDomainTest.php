@@ -233,6 +233,58 @@ class CartDomainTest extends TestCase
             ->assertUnprocessable();
     }
 
+    public function test_stale_selling_unit_remains_removable_during_cart_review_but_strict_checkout_fails(): void
+    {
+        DB::table('product_selling_units')->insert([
+            'product_id' => $this->productId,
+            'unit_id' => null,
+            'code' => 'BOX-STABLE',
+            'name' => 'Box',
+            'conversion_factor' => 3,
+            'price' => 4.5,
+            'sku' => 'CART-001-BOX',
+            'is_base' => false,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Sanctum::actingAs($this->b2cUser);
+        $added = $this->postJson('/api/v1/cart/items', [
+            'store_id' => $this->b2cStoreId,
+            'product_id' => $this->productId,
+            'quantity' => 1,
+            'selling_unit_code' => 'BOX-STABLE',
+        ])->assertCreated();
+
+        DB::table('product_selling_units')
+            ->where('product_id', $this->productId)
+            ->where('code', 'BOX-STABLE')
+            ->update(['conversion_factor' => 4, 'updated_at' => now()]);
+
+        $this->getJson("/api/v1/cart?store={$this->b2cStoreId}")
+            ->assertOk()
+            ->assertJsonPath('has_unavailable_items', true)
+            ->assertJsonPath('items.0.is_available', false)
+            ->assertJsonPath('items.0.availability_state', 'SELLING_UNIT_INVALID')
+            ->assertJsonPath('items.0.selling_unit_code', 'BOX-STABLE')
+            ->assertJsonPath('subtotal', 0);
+
+        $cart = \App\Models\Cart::query()->findOrFail((int) $added->json('id'));
+        try {
+            app(\App\Services\CommerceQuoteService::class)->quoteCart($cart, strict: true);
+            $this->fail('Strict checkout must reject changed selling-unit conversions.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->assertArrayHasKey('items', $exception->errors());
+        }
+
+        $itemId = (int) $added->json('items.0.id');
+        $this->deleteJson("/api/v1/cart/items/{$itemId}")->assertNoContent();
+        $this->getJson("/api/v1/cart?store={$this->b2cStoreId}")
+            ->assertOk()
+            ->assertJsonCount(0, 'items');
+    }
+
     public function test_authenticated_cart_items_are_customer_owned(): void
     {
         Sanctum::actingAs($this->b2cUser);
