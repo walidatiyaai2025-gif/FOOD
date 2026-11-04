@@ -3362,7 +3362,7 @@ class _WholesaleOffersDesignScreenState extends State<WholesaleOffersDesignScree
                             subtitle: isArabic
                                 ? 'ستظهر هنا منتجات الجملة المتاحة التي عليها خصومات أو عروض.'
                                 : 'Available wholesale products with eligible discounts or promotions appear here.',
-                          )
+                          ),
                         if (rows.isNotEmpty) ...[
                           if (flashRows.isNotEmpty) ...[
                             const SizedBox(height: 16),
