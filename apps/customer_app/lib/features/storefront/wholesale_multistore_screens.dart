@@ -4686,7 +4686,8 @@ class _WholesaleProductDetailsDesignScreenState
     return null;
   }
 
-  Future<void> _addProduct(Map<String, dynamic> row, {bool checkoutAfterAdd = false}) async {
+  Future<void> _addProduct(Map<String, dynamic> row,
+      {bool checkoutAfterAdd = false}) async {
     if (!widget.session.isAuthenticated) {
       await _beginWholesaleAddHandoff(
         context: context,
@@ -5065,10 +5066,12 @@ class _WholesaleProductDetailsDesignScreenState
                         : context.tr('customer.action.add_cart'),
                     checkoutLabel:
                         Localizations.localeOf(context).languageCode == 'ar'
-                            ? 'إتمام الطلب' : 'Checkout',
+                            ? 'إتمام الطلب'
+                            : 'Checkout',
                     onCheckout: isAvailable && !revalidating
                         ? () async {
-                            final issue = _quantityIssue(context, row, quantity!);
+                            final issue =
+                                _quantityIssue(context, row, quantity!);
                             if (issue != null) {
                               ScaffoldMessenger.of(context)
                                   .showSnackBar(SnackBar(content: Text(issue)));
@@ -6009,7 +6012,8 @@ class _CartTotalPanel extends StatelessWidget {
     final delivery = quote['delivery_total'];
     final tax = quote['tax_total'];
     final total = quote['grand_total'] ?? cart['grand_total'] ?? subtotal;
-    final merchandiseEstimate = doubleValue(subtotal, 0) - doubleValue(discount, 0);
+    final merchandiseEstimate =
+        doubleValue(subtotal, 0) - doubleValue(discount, 0);
     final minimumMissing = currency.toUpperCase() == 'EGP'
         ? (1500 - merchandiseEstimate).clamp(0, double.infinity).toDouble()
         : 0.0;
@@ -6050,8 +6054,8 @@ class _CartTotalPanel extends StatelessWidget {
           const SizedBox(height: 9),
           Text(
             (Localizations.localeOf(context).languageCode == 'ar'
-                ? 'الحد الأدنى 1500 جنيه. أضف منتجات بقيمة '
-                : 'Minimum EGP 1,500. Add products worth ') +
+                    ? 'الحد الأدنى 1500 جنيه. أضف منتجات بقيمة '
+                    : 'Minimum EGP 1,500. Add products worth ') +
                 money(minimumMissing, currency: currency),
             key: const ValueKey('b2b-cart-minimum-warning'),
             style: TextStyle(
