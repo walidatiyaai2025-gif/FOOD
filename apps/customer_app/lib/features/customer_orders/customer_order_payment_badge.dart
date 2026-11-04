@@ -47,8 +47,9 @@ class CustomerOrderPaymentBadge extends StatelessWidget {
         child: Text(
           '$title: ${foodexMoneyText(amount, currency)}',
           key: ValueKey('customer-order-$key-$orderId'),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          maxLines: 2,
+          softWrap: true,
+          overflow: TextOverflow.clip,
           style: TextStyle(
             color: color,
             fontSize: compact ? 10.5 : 12,
@@ -74,7 +75,9 @@ class CustomerOrderPaymentBadge extends StatelessWidget {
             fontWeight: FontWeight.w800,
           ),
         ),
-        if (paidAmount != null)
+        if (paidAmount != null &&
+            paidAmount! > 0.0001 &&
+            (fully || partial))
           amountLine(
             'paid',
             ar ? 'المدفوع' : 'Paid',
