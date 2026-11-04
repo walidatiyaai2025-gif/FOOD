@@ -364,7 +364,7 @@ class RetailCustomerJourneyScreen extends StatelessWidget {
         return withShell(
           CustomerRetailDestination.invoices,
           CustomerRetailInvoicesScreen(
-            api: invoiceApi,
+            api: invoiceApi as CustomerRetailInvoiceApi,
             storeId: storeId,
           ),
         );
