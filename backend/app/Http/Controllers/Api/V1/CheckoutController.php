@@ -291,9 +291,9 @@ class CheckoutController extends Controller
                 OrderItem::query()->create([
                     'order_id' => $order->getKey(),
                     ...$snapshot,
-                    'selling_unit_quantity' => $snapshot['quantity'],
+                    'selling_unit_quantity' => $snapshot['selling_unit_quantity'] ?? $snapshot['quantity'],
                     'base_quantity' => $snapshot['quantity'],
-                    'conversion_factor_snapshot' => 1,
+                    'conversion_factor_snapshot' => $snapshot['quantity_conversion_factor'] ?? 1,
                 ]);
 
                 try {
@@ -303,6 +303,8 @@ class CheckoutController extends Controller
                         (int) $snapshot['product_id'],
                         (float) $snapshot['quantity'],
                         'customer',
+                        null,
+                        $snapshot['selling_unit_code_snapshot'] ?? null,
                     );
                 } catch (\DomainException $exception) {
                     throw ValidationException::withMessages([
