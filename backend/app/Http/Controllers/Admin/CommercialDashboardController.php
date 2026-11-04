@@ -289,7 +289,7 @@ final class CommercialDashboardController extends Controller
 
     public function flashOffers(Request $request): View
     {
-        [$user, $storeId] = $this->authorizedStore($request, 'promotions.view', true);
+        [$user, $storeId] = $this->authorizedFlashStore($request, 'promotions.view', true);
         $lookups = $this->flashOfferLookups($storeId, $user);
 
         $editingOffer = null;
@@ -350,7 +350,7 @@ final class CommercialDashboardController extends Controller
 
     public function flashPreview(Request $request, int $offer): View
     {
-        [$user, $storeId] = $this->authorizedStore($request, 'promotions.view');
+        [$user, $storeId] = $this->authorizedFlashStore($request, 'promotions.view');
         $row = $this->flashOfferRow($storeId, $offer);
         $products = DB::table('flash_offer_products')
             ->leftJoin('products', 'products.id', '=', 'flash_offer_products.product_id')
@@ -387,7 +387,7 @@ final class CommercialDashboardController extends Controller
 
     public function flashAnalytics(Request $request, int $offer): View
     {
-        [$user, $storeId] = $this->authorizedStore($request, 'promotions.view');
+        [$user, $storeId] = $this->authorizedFlashStore($request, 'promotions.view');
         $row = $this->flashOfferRow($storeId, $offer);
 
         $reservationStats = DB::table('flash_reservations')
@@ -440,7 +440,7 @@ final class CommercialDashboardController extends Controller
 
     public function saveFlashOffer(Request $request): RedirectResponse
     {
-        [$user, $storeId] = $this->authorizedStore($request, 'promotions.manage');
+        [$user, $storeId] = $this->authorizedFlashStore($request, 'promotions.manage');
         $data = $request->validate([
             'offer_id' => ['nullable', 'integer'],
             'name' => ['required', 'string', 'max:255'],
@@ -627,7 +627,7 @@ final class CommercialDashboardController extends Controller
 
     public function flashAction(Request $request, int $offer): RedirectResponse
     {
-        [$user, $storeId] = $this->authorizedStore($request, 'promotions.manage');
+        [$user, $storeId] = $this->authorizedFlashStore($request, 'promotions.manage');
         $data = $request->validate(['action' => ['required', 'in:schedule,activate,pause,resume,end,cancel,kill_on,kill_off']]);
         $row = DB::table('flash_offers')->where('store_id', $storeId)->where('id', $offer)->first();
         abort_unless($row !== null, 404);
@@ -650,6 +650,30 @@ final class CommercialDashboardController extends Controller
         $this->audit->record('commercial.flash_offer.action', $user, null, (array) $row, [...(array) $row, ...$changes, 'store_id' => $storeId], $request);
 
         return back()->with('status', __('commercial.status.flash_action_applied'));
+    }
+
+    /**
+     * Flash offers serve both retail customers and B2B Van offers. Preserve the
+     * explicitly selected, authorized store channel rather than silently
+     * replacing a wholesale store with the first retail store.
+     *
+     * @return array{0: User, 1: int}
+     */
+    private function authorizedFlashStore(Request $request, string $permission, bool $allowEmptyStore = false): array
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $requestedStore = $request->integer('store_id');
+        $scope = app(OperationalTenantScope::class);
+        if ($requestedStore > 0
+            && in_array($requestedStore, $scope->allowedStoreIds($user, $permission, 'b2b'), true)
+        ) {
+            // An explicit B2B store remains B2B throughout read, save, preview
+            // and status changes. No cross-tenant/cross-channel fallback.
+            return $this->authorizedStore($request, $permission, $allowEmptyStore, 'b2b');
+        }
+
+        return $this->authorizedStore($request, $permission, $allowEmptyStore, 'b2c');
     }
 
     /** @return array{0: User, 1: int} */
@@ -924,12 +948,18 @@ final class CommercialDashboardController extends Controller
      */
     private function flashOfferLookups(int $storeId, User $user): array
     {
+        $channel = app(OperationalTenantScope::class)->storeChannel($storeId);
         $flashProducts = DB::table('store_products')
             ->join('products', 'products.id', '=', 'store_products.product_id')
-            ->leftJoin('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->where('store_products.store_id', $storeId)
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', $channel)
+            ->where('catalogs.is_active', true)
+            ->where('catalogs.is_migration_quarantine', false)
             ->where('store_products.is_active', true)
             ->where('products.is_active', true)
+            ->whereNotNull('store_products.price')
             ->orderBy('products.name')
             ->get([
                 'products.id',
