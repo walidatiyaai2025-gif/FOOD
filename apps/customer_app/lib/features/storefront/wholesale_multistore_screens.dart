@@ -5605,6 +5605,7 @@ class WholesaleCartDesignScreen extends StatefulWidget {
     required this.location,
     required this.api,
     required this.commerceApi,
+    this.storefrontApi,
     this.session,
     this.onLocaleChanged,
     this.onLogout,
@@ -5614,6 +5615,7 @@ class WholesaleCartDesignScreen extends StatefulWidget {
   final String location;
   final B2bApi? api;
   final WholesaleCommerceApi? commerceApi;
+  final StorefrontApi? storefrontApi;
   final CustomerSession? session;
   final ValueChanged<Locale>? onLocaleChanged;
   final Future<void> Function()? onLogout;
@@ -5655,15 +5657,23 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
     super.dispose();
   }
 
-  Future<Object?> _load() {
-    if (widget.commerceApi != null && storeId > 0) {
+  Future<Object?> _load() async {
+    if (storeId <= 0) {
+      storeId = await resolveWholesaleStoreId(
+        location: widget.location,
+        storefrontApi: widget.storefrontApi,
+      );
+    }
+    if (storeId <= 0) {
+      throw const WholesaleCommerceException(
+        'No authorized Wholesale store was selected.',
+        statusCode: 422,
+      );
+    }
+    if (widget.commerceApi != null) {
       return widget.commerceApi!.cart(storeId);
     }
-    var endpoint = '/api/v1/cart';
-    if (storeId > 0) {
-      endpoint += '?store=' + storeId.toString();
-    }
-    return widget.api?.get(endpoint) ?? Future<Object?>.value(null);
+    return widget.api?.get('/api/v1/cart?store=$storeId');
   }
 
   Future<void> _mutate(
@@ -6476,7 +6486,7 @@ class WholesaleCheckoutDesignScreen extends StatefulWidget {
 
 class _WholesaleCheckoutDesignScreenState
     extends State<WholesaleCheckoutDesignScreen> with WidgetsBindingObserver {
-  late final int storeId = wholesaleStoreId(widget.location);
+  late int storeId = wholesaleStoreId(widget.location);
   late Future<_CheckoutPayload> future = _load();
   late final String idempotencyKey;
   int? addressId;
@@ -6532,6 +6542,18 @@ class _WholesaleCheckoutDesignScreenState
   }
 
   Future<_CheckoutPayload> _load() async {
+    if (storeId <= 0) {
+      storeId = await resolveWholesaleStoreId(
+        location: widget.location,
+        storefrontApi: widget.storefrontApi,
+      );
+    }
+    if (storeId <= 0) {
+      throw const WholesaleCommerceException(
+        'No authorized Wholesale store was selected.',
+        statusCode: 422,
+      );
+    }
     final options = widget.storefrontApi == null
         ? const <String, dynamic>{}
         : await widget.storefrontApi!.b2bCheckoutOptions(storeId);
