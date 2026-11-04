@@ -6136,28 +6136,43 @@ Future<void> _showWholesaleMinimumPopup(
   final isAr = Localizations.localeOf(context).languageCode == 'ar';
   return showDialog<void>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
-      key: const ValueKey('b2b-minimum-order-popup'),
-      icon: const Icon(Icons.warning_amber_rounded, color: Color(0xFFB91C1C), size: 42),
-      title: Text(
-        isAr ? 'لم تصل إلى الحد الأدنى لقيمة الطلب' : 'Minimum order not reached',
-        textAlign: TextAlign.center,
-        style: const TextStyle(color: Color(0xFFB91C1C), fontWeight: FontWeight.w900),
-      ),
-      content: Text(
-        isAr
-            ? 'الحد الأدنى للطلب هو ${foodexMoneyText(minimum, 'EGP')}. أضف منتجات بقيمة ${foodexMoneyText(remaining, 'EGP')} لإتمام الطلب.'
-            : 'Minimum order is ${foodexMoneyText(minimum, 'EGP')}. Add ${foodexMoneyText(remaining, 'EGP')} in products to continue.',
-        textAlign: TextAlign.center,
-        style: const TextStyle(color: Color(0xFF991B1B), fontWeight: FontWeight.w700),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(),
-          child: Text(isAr ? 'حسنًا' : 'OK'),
+    builder: (dialogContext) {
+      final errorColor = Theme.of(dialogContext).colorScheme.error;
+      return AlertDialog(
+        key: const ValueKey('b2b-minimum-order-popup'),
+        icon: Icon(
+          Icons.warning_amber_rounded,
+          color: errorColor,
+          size: 42,
         ),
-      ],
-    ),
+        title: Text(
+          isAr
+              ? 'لم تصل إلى الحد الأدنى لقيمة الطلب'
+              : 'Minimum order not reached',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: errorColor,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        content: Text(
+          isAr
+              ? 'الحد الأدنى للطلب هو ${foodexMoneyText(minimum, 'EGP')}. أضف منتجات بقيمة ${foodexMoneyText(remaining, 'EGP')} لإتمام الطلب.'
+              : 'Minimum order is ${foodexMoneyText(minimum, 'EGP')}. Add ${foodexMoneyText(remaining, 'EGP')} in products to continue.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: errorColor,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(isAr ? 'حسنًا' : 'OK'),
+          ),
+        ],
+      );
+    },
   );
 }
 
