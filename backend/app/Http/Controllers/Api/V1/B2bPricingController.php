@@ -207,6 +207,7 @@ class B2bPricingController extends Controller
             'pack_size' => $pricing['pack_size'],
             'case_size' => $pricing['case_size'],
             'pack_label' => $pricing['pack_label'],
+            'selling_units' => app(\App\Services\CommercialPolicyService::class)->sellingUnits($product),
             'price_tier' => $tiersEnabled ? (string) ($row->price_tier ?? '') : null,
             'pricing_tiers_enabled' => $tiersEnabled,
             ...$availability,
