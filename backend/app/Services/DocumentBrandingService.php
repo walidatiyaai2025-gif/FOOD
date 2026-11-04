@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 /** Central company identity for PDFs, reports and printable documents. */
 final class DocumentBrandingService
