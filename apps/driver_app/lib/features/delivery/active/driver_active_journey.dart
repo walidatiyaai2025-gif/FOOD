@@ -569,8 +569,8 @@ class _DriverActiveJourneyPageState extends State<DriverActiveJourneyPage>
             key: const Key('driver-credit-delivered-with-balance'),
             content: Text(
               (Localizations.localeOf(context).languageCode == 'ar'
-                  ? 'تم التسليم — متبقي '
-                  : 'Delivered — balance due ') +
+                      ? 'تم التسليم — متبقي '
+                      : 'Delivered — balance due ') +
                   foodexMoneyText(due.remainingAmount, due.currency),
             ),
           ),
