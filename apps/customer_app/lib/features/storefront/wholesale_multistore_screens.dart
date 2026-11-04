@@ -6322,19 +6322,11 @@ class _CartTotalPanel extends StatelessWidget {
           height: 52,
           child: _WholesaleWaveCheckoutButton(
             key: const ValueKey('b2b-cart-checkout'),
-            enabled: enabled,
+            // Keep checkout visibly disabled until the server-quoted
+            // merchandise amount reaches the configured B2B minimum.
+            enabled: enabled && minimumMissing <= 0.0001,
             label: context.tr('b2b.action.checkout'),
-            onPressed: () {
-              if (minimumMissing > 0.0001) {
-                unawaited(_showWholesaleMinimumPopup(
-                  context,
-                  minimum: minimum,
-                  remaining: minimumMissing,
-                ));
-                return;
-              }
-              onCheckout();
-            },
+            onPressed: onCheckout,
           ),
         ),
       ],
@@ -6903,6 +6895,15 @@ class _WholesaleCheckoutDesignScreenState
                   }
                 }
 
+                final minimum = doubleValue(
+                  data['minimum_order_egp'] ?? cart['minimum_order_egp'],
+                  1500,
+                );
+                final minimumMissing = _wholesaleMinimumRemaining(
+                  cart,
+                  quoteOverride: appliedQuote,
+                  minimumOverride: minimum,
+                );
                 final creditInsufficient = paymentMethod == 'account_credit' &&
                     grandTotal > purchasingPower + .0001;
                 final couponReady = _normalizedCoupon.isEmpty ||
@@ -6910,6 +6911,7 @@ class _WholesaleCheckoutDesignScreenState
                 final canSubmit = widget.commerceApi != null &&
                     items.isNotEmpty &&
                     !hasUnavailable &&
+                    minimumMissing <= 0.0001 &&
                     addressId != null &&
                     paymentMethod != null &&
                     couponReady &&
@@ -7106,6 +7108,20 @@ class _WholesaleCheckoutDesignScreenState
                       cart: cart,
                       quoteOverride: appliedQuote,
                     ),
+                    if (minimumMissing > 0.0001) ...[
+                      const SizedBox(height: 9),
+                      Text(
+                        (Localizations.localeOf(context).languageCode == 'ar'
+                                ? 'الحد الأدنى ${money(minimum, currency: 'EGP')}. أضف منتجات بقيمة '
+                                : 'Minimum ${money(minimum, currency: 'EGP')}. Add products worth ') +
+                            money(minimumMissing, currency: 'EGP'),
+                        key: const ValueKey('b2b-checkout-minimum-warning'),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 18),
                     SizedBox(
                       height: 54,
