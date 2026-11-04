@@ -143,8 +143,8 @@
         </header>
     <div class="commercial-tabs" aria-label="{{ __('commercial.tabs.aria') }}">
         <a class="{{ $section === 'sales-control' ? 'active' : '' }}" href="{{ route('admin.commercial.sales-control', $scope) }}">{{ __('commercial.tabs.sales_control') }}</a>
-        <a class="{{ $section === 'flash-offers' ? 'active' : '' }}" href="{{ route('admin.commercial.flash-offers', $scope) }}">{{ __('commercial.tabs.flash_offers') }}</a>
-        <a href="{{ route('admin.b2c.module', ['module' => $section === 'sales-control' ? 'products' : 'promotions'] + $scope) }}">{{ __('commercial.tabs.back_store') }}</a>
+        <a class="{{ $section === 'flash-offers' ? 'active' : '' }}" href="{{ route($flashRoutePrefix, $scope) }}">{{ __('commercial.tabs.flash_offers') }}</a>
+        <a href="{{ route($storeChannel === 'b2b' ? 'admin.b2b.module' : 'admin.b2c.module', ['module' => $section === 'sales-control' ? 'products' : 'promotions'] + $scope) }}">{{ __('commercial.tabs.back_store') }}</a>
     </div>
 
     <section class="contract-banner {{ $contractReady ? '' : 'pending' }}" data-contract-ready="{{ $contractReady ? '1' : '0' }}">
@@ -534,7 +534,7 @@
                     <p class="muted">{{ __('commercial.flash.form_description') }}</p>
                 </div>
                 @if($editingOffer)
-                    <a class="flash-secondary" href="{{ route('admin.commercial.flash-offers', $scope) }}">{{ __('commercial.flash.create_new') }}</a>
+                    <a class="flash-secondary" href="{{ route($flashRoutePrefix, $scope) }}">{{ __('commercial.flash.create_new') }}</a>
                 @endif
             </div>
             @if($editingOffer && \Illuminate\Support\Carbon::parse($editingOffer->ends_at)->lessThanOrEqualTo(now()))
@@ -543,7 +543,7 @@
                 </p>
             @endif
             @if($storeId > 0)
-            <form method="post" action="{{ route('admin.commercial.flash-offers.save', $scope) }}" class="control-list" data-flash-wizard-form novalidate>
+            <form method="post" action="{{ route($flashRoutePrefix.'.save, $scope) }}" class="control-list" data-flash-wizard-form novalidate>
                 @csrf
                 @if($editingOffer)<input type="hidden" name="offer_id" value="{{ $editingOffer->id }}">@endif
                 <div class="flash-wizard-progress foodex-stepper" data-flash-wizard-progress aria-label="{{ __('commercial.flash.form_description') }}">
@@ -768,7 +768,7 @@
                 </section>
 
                 <div class="flash-form-actions">
-                    @if($editingOffer)<a class="flash-secondary" href="{{ route('admin.commercial.flash-offers', $scope) }}">{{ __('commercial.flash.cancel_edit') }}</a>@endif
+                    @if($editingOffer)<a class="flash-secondary" href="{{ route($flashRoutePrefix, $scope) }}">{{ __('commercial.flash.cancel_edit') }}</a>@endif
                     <button type="submit" class="foodex-primary">{{ $editingOffer ? __('commercial.flash.save_changes') : __('commercial.flash.create_offer') }}</button>
                 </div>
             </form>
@@ -796,7 +796,7 @@
                         @if($flashEnded)
                             <small role="status" data-flash-expired-message style="color:#b91c1c;font-weight:700">
                                 {{ __('commercial.flash.expired_not_visible') }}
-                                <a href="{{ route('admin.commercial.flash-offers', ['edit'=>$offer->id] + $scope) }}">{{ __('commercial.flash.edit_dates') }}</a>
+                                <a href="{{ route($flashRoutePrefix, ['edit'=>$offer->id] + $scope) }}">{{ __('commercial.flash.edit_dates') }}</a>
                             </small>
                         @elseif($flashUpcoming)
                             <small role="status" data-flash-upcoming-message>{{ __('commercial.flash.upcoming_not_visible') }}</small>
@@ -807,14 +807,14 @@
                     </div>
                     <div class="flash-row-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                         <a class="flash-secondary" data-flash-edit-offer="{{ $offer->id }}"
-                           href="{{ route('admin.commercial.flash-offers', ['edit'=>$offer->id] + $scope) }}#flash-offer-form">{{ __('commercial.flash.edit') }}</a>
+                           href="{{ route($flashRoutePrefix, ['edit'=>$offer->id] + $scope) }}#flash-offer-form">{{ __('commercial.flash.edit') }}</a>
                     <details class="foodex-ops-actions" data-flash-offer-actions>
                         <summary aria-label="{{ __('commercial.flash.actions_menu') }}">⋮</summary>
                         <div class="foodex-ops-menu">
-                            <a href="{{ route('admin.commercial.flash-offers', ['edit'=>$offer->id] + $scope) }}">{{ __('commercial.flash.edit') }}</a>
-                            <a href="{{ route('admin.commercial.flash-offers.preview', ['offer'=>$offer->id] + $scope) }}">{{ __('commercial.flash.preview') }}</a>
-                            <a href="{{ route('admin.commercial.flash-offers.analytics', ['offer'=>$offer->id] + $scope) }}">{{ __('commercial.flash.analytics') }}</a>
-                            <form method="post" action="{{ route('admin.commercial.flash-offers.action', ['offer'=>$offer->id] + $scope) }}">@csrf
+                            <a href="{{ route($flashRoutePrefix, ['edit'=>$offer->id] + $scope) }}">{{ __('commercial.flash.edit') }}</a>
+                            <a href="{{ route($flashRoutePrefix.'.preview, ['offer'=>$offer->id] + $scope) }}">{{ __('commercial.flash.preview') }}</a>
+                            <a href="{{ route($flashRoutePrefix.'.analytics, ['offer'=>$offer->id] + $scope) }}">{{ __('commercial.flash.analytics') }}</a>
+                            <form method="post" action="{{ route($flashRoutePrefix.'.action, ['offer'=>$offer->id] + $scope) }}">@csrf
                                 <select name="action" aria-label="{{ __('commercial.flash.action') }}">@foreach(['schedule','activate','pause','resume','end','cancel','kill_on','kill_off'] as $action)<option value="{{ $action }}">{{ __('commercial.flash.actions.'.$action) }}</option>@endforeach</select>
                                 <button type="submit">{{ __('commercial.flash.apply') }}</button>
                             </form>
