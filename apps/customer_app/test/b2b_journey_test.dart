@@ -2237,6 +2237,80 @@ void main() {
   );
 
   testWidgets(
+    'B2B cart shows a red popup for configurable minimum and accepts zero',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final cart = <String, dynamic>{
+        'store_id': 7,
+        'channel': 'b2b',
+        'currency': 'EGP',
+        'minimum_order_egp': 1500.0,
+        'merchandise_total': 1100.0,
+        'subtotal': 1100.0,
+        'quote': {'grand_total': 1100.0},
+        'has_unavailable_items': false,
+        'items': [
+          {
+            'id': 41,
+            'product': {'id': 401, 'name': 'Wholesale item', 'sku': 'WS-401'},
+            'quantity': 1.0,
+            'unit_price_snapshot': 1100.0,
+            'line_total': 1100.0,
+            'is_available': true,
+            'minimum_order_quantity': 1.0,
+            'ordering_increment': 1.0,
+          },
+        ],
+      };
+      final commerce = _C13WholesaleCommerceApi(cartValue: cart);
+
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          locale: const Locale('ar'),
+          initialRoute: '/b2b/cart?store_id=7',
+          storefrontApi: const _CheckoutStorefrontApi(),
+          wholesaleCommerceApi: commerce,
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      final checkout = find.byKey(const ValueKey('b2b-cart-checkout'));
+      await tester.ensureVisible(checkout);
+      await tester.tap(checkout);
+      await _pumpCustomerFrames(tester);
+      expect(find.byKey(const ValueKey('b2b-minimum-order-popup')), findsOneWidget);
+      expect(find.text('لم تصل إلى الحد الأدنى لقيمة الطلب'), findsOneWidget);
+      expect(commerce.checkoutCalls, 0);
+
+      await tester.tap(find.text('حسنًا'));
+      await _pumpCustomerFrames(tester);
+
+      // Zero is an explicit admin policy, not a missing/fallback value.
+      cart['minimum_order_egp'] = 0.0;
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          locale: const Locale('ar'),
+          initialRoute: '/b2b/cart?store_id=7',
+          storefrontApi: const _CheckoutStorefrontApi(),
+          wholesaleCommerceApi: commerce,
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+      expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')), findsNothing);
+      expect(find.byKey(const ValueKey('b2b-cart-checkout')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'C13 checkout prevents double submit with one stable attempt key',
     (tester) async {
       tester.view.physicalSize = const Size(900, 1900);
@@ -2252,6 +2326,7 @@ void main() {
         cartValue: {
           'store_id': 7,
           'currency': 'EGP',
+          'minimum_order_egp': 0.0,
           'subtotal': 10.0,
           'has_unavailable_items': false,
           'quote': {'grand_total': 10.0},
