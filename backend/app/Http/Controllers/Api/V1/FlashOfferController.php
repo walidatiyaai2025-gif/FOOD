@@ -99,6 +99,79 @@ final class FlashOfferController extends Controller
         ]);
     }
 
+    /**
+     * Wholesale Customer App: show Van-only promotions without enabling
+     * direct B2B customer checkout or exposing another customer's targeting.
+     */
+    public function wholesaleIndex(
+        Request $request,
+        FlashOfferService $flash,
+        CommercialPolicyService $commercialPolicy,
+        CustomerDomainResolver $customers,
+        CommerceQuoteService $quotes,
+    ): JsonResponse {
+        $user = $this->user($request);
+        $data = $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
+        ]);
+        $storeId = (int) $data['store_id'];
+        $this->assertPrincipalWholesaleStore($storeId);
+        $customer = $customers->b2bFromRequest($user, $request);
+        $legacyCustomerId = $customer->legacy_customer_id === null
+            ? null : (int) $customer->legacy_customer_id;
+
+        $offers = $flash->activeOffers($storeId, 'van', (int) $user->getKey());
+        return response()->json([
+            'server_time' => now()->toAtomString(),
+            'fulfillment_channel' => 'van',
+            'data' => $offers->map(fn (FlashOffer $offer): array => $this->offerPayload(
+                $offer, $user, $legacyCustomerId, $commercialPolicy, $quotes, 'van',
+            ))->filter(static fn (array $offer): bool => $offer['products'] !== [])->values(),
+        ]);
+    }
+
+    /**
+     * Guest-visible wholesale promotions are strictly untargeted and
+     * informational: Van-only fulfillment remains authoritative.
+     */
+    public function publicWholesaleIndex(
+        Request $request,
+        FlashOfferService $flash,
+        CommercialPolicyService $commercialPolicy,
+        CommerceQuoteService $quotes,
+    ): JsonResponse {
+        $data = $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
+        ]);
+        $storeId = (int) $data['store_id'];
+        $this->assertPrincipalWholesaleStore($storeId);
+        $offers = $flash->activeOffers($storeId, 'van')
+            ->filter(static fn (FlashOffer $offer): bool =>
+                (array) ($offer->audience_customer_ids ?? []) === []
+                && (array) ($offer->audience_customer_group_ids ?? []) === []
+                && (array) ($offer->audience_regions ?? []) === []
+                && (array) ($offer->audience_routes ?? []) === []);
+
+        return response()->json([
+            'server_time' => now()->toAtomString(),
+            'fulfillment_channel' => 'van',
+            'data' => $offers->map(fn (FlashOffer $offer): array => $this->offerPayload(
+                $offer, null, null, $commercialPolicy, $quotes, 'van',
+            ))->filter(static fn (array $offer): bool => $offer['products'] !== [])->values(),
+        ]);
+    }
+
+    private function assertPrincipalWholesaleStore(int $storeId): void
+    {
+        abort_unless(DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $storeId)
+            ->where('stores.code', \App\Services\WholesalePrincipal::STORE_CODE)
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2B')
+            ->exists(), 404);
+    }
+
     public function event(
         Request $request,
         FlashOffer $offer,
@@ -285,6 +358,7 @@ final class FlashOfferController extends Controller
         ?int $legacyCustomerId,
         CommercialPolicyService $commercialPolicy,
         CommerceQuoteService $quotes,
+        string $policyChannel = 'customer',
     ): array {
         $products = $offer->products;
         $first = $products->first();
@@ -328,7 +402,7 @@ final class FlashOfferController extends Controller
                 $decision = $commercialPolicy->evaluate(
                     (int) $first->product_id,
                     $legacyCustomerId,
-                    'customer',
+                    $policyChannel,
                     max(0.001, (float) $first->conversion_factor),
                 );
                 $eligible = (bool) $decision['allowed'];
@@ -342,12 +416,13 @@ final class FlashOfferController extends Controller
         $remainingAllocation = min($offerRemaining, $firstProductRemaining);
         $availableProducts = $this->availableFlashProducts(
             $offer, $products, $legacyCustomerId, $commercialPolicy,
-            $offerRemaining, $customerRemaining,
+            $offerRemaining, $customerRemaining, $policyChannel,
         );
 
         return [
             'id' => (int) $offer->getKey(),
             'store_id' => (int) $offer->store_id,
+            'fulfillment_channel' => $policyChannel === 'van' ? 'van' : 'driver',
             'title_ar' => (string) $offer->title_ar,
             'title_en' => (string) $offer->title_en,
             'body_ar' => $offer->body_ar,
@@ -393,6 +468,7 @@ final class FlashOfferController extends Controller
         CommercialPolicyService $commercialPolicy,
         float $offerRemaining,
         float $customerRemaining,
+        string $policyChannel = 'customer',
     ): array {
         $storeId = (int) $offer->store_id;
         $storeChannel = app(\App\Services\OperationalTenantScope::class)->storeChannel($storeId);
@@ -465,7 +541,7 @@ final class FlashOfferController extends Controller
                 continue;
             }
             if ($legacyCustomerId !== null) {
-                $decision = $commercialPolicy->evaluate($productId, $legacyCustomerId, 'customer', $conversion);
+                $decision = $commercialPolicy->evaluate($productId, $legacyCustomerId, $policyChannel, $conversion);
                 if (! (bool) $decision['allowed']) {
                     continue;
                 }
