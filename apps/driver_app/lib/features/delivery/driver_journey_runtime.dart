@@ -274,9 +274,16 @@ class _DriverRepositoryCompletionGateway implements DriverCompletionGateway {
     } on DriverOfflineException {
       throw const DriverCompletionException('network_unavailable');
     } on DriverApiException catch (error) {
+      const recognized = <String>{
+        'driver_location_heartbeat_required',
+        'proof_file_missing',
+        'proof_too_large',
+        'proof_upload_validation_failed',
+        'delivery_validation_failed',
+        'stale_assignment',
+      };
       throw DriverCompletionException(
-        'driver_api_error',
-        message: error.message,
+        recognized.contains(error.message) ? error.message : 'driver_api_error',
       );
     }
 
