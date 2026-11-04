@@ -258,13 +258,7 @@ class CustomerPersistentFooter extends StatelessWidget {
             queryParameters: scope!.toQueryParameters(),
           ).toString();
         case CustomerFooterDestination.offers:
-          return Uri(
-            path: CustomerRoutePaths.b2bProducts,
-            queryParameters: <String, String>{
-              ...scope!.toQueryParameters(),
-              'section': 'offers',
-            },
-          ).toString();
+          return CustomerRouteLocations.wholesaleOffers(scope!);
         case CustomerFooterDestination.cart:
           return CustomerRouteLocations.wholesaleCart(scope!);
         case CustomerFooterDestination.orders:
@@ -287,7 +281,7 @@ class CustomerPersistentFooter extends StatelessWidget {
       case CustomerFooterDestination.products:
         return CustomerRoutePaths.b2bProducts;
       case CustomerFooterDestination.offers:
-        return '/b2b/products?section=offers';
+        return CustomerRoutePaths.b2bOffers;
       case CustomerFooterDestination.cart:
         return CustomerRoutePaths.b2bCart;
       case CustomerFooterDestination.orders:
