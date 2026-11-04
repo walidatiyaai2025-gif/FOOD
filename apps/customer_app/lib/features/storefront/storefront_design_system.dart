@@ -447,9 +447,9 @@ class FoodexWholesaleHeader extends StatelessWidget {
                       (value) => _defaultSearch(context, value),
                   onChanged: onSearchChanged,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                   decoration: InputDecoration(
                     isDense: true,
                     filled: true,
@@ -518,7 +518,8 @@ class FoodexWholesaleHeader extends StatelessWidget {
               Semantics(
                 button: true,
                 label: Localizations.localeOf(context).languageCode == 'ar'
-                    ? 'المفضلة' : 'Favorites',
+                    ? 'المفضلة'
+                    : 'Favorites',
                 child: _FoodexWholesaleHeaderIcon(
                   key: const ValueKey('customer-header-favorites'),
                   icon: Icons.favorite_border_rounded,
