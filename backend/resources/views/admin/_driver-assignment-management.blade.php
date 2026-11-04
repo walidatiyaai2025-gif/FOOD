@@ -151,12 +151,27 @@
     </div>
     <div data-driver-orders-body style="padding:16px;max-height:calc(88vh - 64px);overflow:auto"></div>
 </dialog>
+<dialog id="driver-order-details-dialog-{{ $channel }}" data-driver-order-details-dialog aria-label="{{ __('order_operations.popup.details') }}"
+        style="width:min(920px,94vw);max-height:88vh;border:0;border-radius:16px;padding:0;box-shadow:0 24px 60px rgba(15,23,42,.25)">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--foodex-border);display:flex;gap:12px;align-items:center;justify-content:space-between">
+        <strong>{{ __('order_operations.popup.details') }}</strong>
+        <div style="display:flex;align-items:center;gap:10px">
+            <a data-driver-order-full class="foodex-action-secondary" href="{{ route('admin.operations.orders.index') }}" target="_blank" rel="noopener">{{ app()->getLocale()==='ar' ? 'فتح صفحة الطلب' : 'Open order page' }}</a>
+            <button type="button" class="btn foodex-driver-premium-secondary" data-driver-order-details-close aria-label="{{ app()->getLocale()==='ar' ? 'إغلاق' : 'Close' }}">×</button>
+        </div>
+    </div>
+    <div data-driver-order-details-body style="padding:16px;overflow:auto;max-height:calc(88vh - 64px)"></div>
+</dialog>
 <script>
 (() => {
     const dialog = document.getElementById(@json('driver-orders-dialog-'.$channel));
     if (!dialog || dialog.dataset.ready === '1') return;
     dialog.dataset.ready = '1';
     const body = dialog.querySelector('[data-driver-orders-body]');
+    const detailsDialog = document.getElementById(@json('driver-order-details-dialog-'.$channel));
+    const detailsBody = detailsDialog?.querySelector('[data-driver-order-details-body]');
+    const detailsLink = detailsDialog?.querySelector('[data-driver-order-full]');
+
     const loadingText = @json(app()->getLocale()==='ar'?'جاري تحميل الطلبات...':'Loading driver orders...');
     const failedText = @json(app()->getLocale()==='ar'?'تعذر تحميل طلبات السائق.':'Unable to load driver orders.');
 
@@ -176,6 +191,31 @@
         }
     };
 
+    const showOrderDetails = async (target) => {
+        if (!detailsDialog || !detailsBody || !target) return;
+        detailsLink.href = target.dataset.fullUrl;
+        detailsBody.textContent = loadingText;
+        if (!detailsDialog.open && typeof detailsDialog.showModal === 'function') {
+            detailsDialog.showModal();
+        }
+        try {
+            const response = await fetch(target.href, {
+                headers: {'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest'},
+                credentials: 'same-origin',
+            });
+            if (!response.ok) throw new Error('http_' + response.status);
+            detailsBody.innerHTML = await response.text();
+        } catch (_) {
+            detailsBody.textContent = failedText;
+        }
+    };
+
+    detailsDialog?.addEventListener('click', (event) => {
+        if (event.target.closest('[data-driver-order-details-close]')) {
+            detailsDialog.close();
+        }
+    });
+
     document.addEventListener('click', (event) => {
         const trigger = event.target.closest('[data-driver-orders-open]');
         if (!trigger) return;
@@ -184,6 +224,12 @@
     });
 
     dialog.addEventListener('click', (event) => {
+        const orderLink = event.target.closest('[data-driver-order-detail]');
+        if (orderLink) {
+            event.preventDefault();
+            showOrderDetails(orderLink);
+            return;
+        }
         if (event.target.closest('[data-driver-orders-close]')) {
             dialog.close();
             return;
