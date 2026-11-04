@@ -2361,7 +2361,7 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
         ? widget.row['name'].toString().trim()
         : context.tr('customer.products.title');
     final productImageUrl = widget.row['image_url']?.toString();
-    final actionFailedMessage = context.tr('customer.error.action_failed');
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     setState(() => busy = true);
     try {
@@ -2388,7 +2388,9 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
             SnackBar(
               key: ValueKey('wholesale-cart-add-error-$id'),
               behavior: SnackBarBehavior.floating,
-              content: Text(actionFailedMessage),
+              content: Text(
+                operationalErrorMessage(error, isArabic: isArabic),
+              ),
             ),
           );
       }
@@ -5809,7 +5811,10 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                 if (snapshot.hasError) {
                   return FoodexErrorState(
                     key: const ValueKey('b2b-error'),
-                    message: context.tr('b2b.cart.subtitle'),
+                    message: operationalErrorMessage(
+                      snapshot.error!,
+                      isArabic: Localizations.localeOf(context).languageCode == 'ar',
+                    ),
                     onRetry: () => setState(() => future = _load()),
                   );
                 }
