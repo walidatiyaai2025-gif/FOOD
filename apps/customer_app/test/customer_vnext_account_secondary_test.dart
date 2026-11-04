@@ -153,7 +153,7 @@ void main() {
 void _noop() {}
 
 final _flashReservation = CustomerFlashReservation(
-  id: 5,
+  id: '00000000-0000-4000-8000-000000000005',
   offerId: 9,
   expiresAt: DateTime.utc(2099, 1, 1, 12),
   serverTime: DateTime.utc(2099, 1, 1, 11),
