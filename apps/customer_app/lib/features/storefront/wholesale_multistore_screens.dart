@@ -3102,6 +3102,7 @@ class WholesaleCatalogDesignScreen extends StatefulWidget {
     required this.actionApi,
     this.favoritesApi,
     this.pendingActionStore,
+    this.offersOnly = false,
     this.onLocaleChanged,
     this.onLogout,
     super.key,
@@ -3114,6 +3115,7 @@ class WholesaleCatalogDesignScreen extends StatefulWidget {
   final CustomerActionApi actionApi;
   final B2cRetailFavoritesApi? favoritesApi;
   final CustomerPendingActionStore? pendingActionStore;
+  final bool offersOnly;
   final ValueChanged<Locale>? onLocaleChanged;
   final Future<void> Function()? onLogout;
 
@@ -3153,8 +3155,8 @@ class _WholesaleCatalogDesignScreenState
     selectedCategoryId =
         categoryId != null && categoryId > 0 ? categoryId : null;
     selectedBrandId = brandId != null && brandId > 0 ? brandId : null;
-    browseMode = query['browse']?.trim();
-    sectionFilter = query['section']?.trim();
+    browseMode = widget.offersOnly ? null : query['browse']?.trim();
+    sectionFilter = widget.offersOnly ? 'offers' : query['section']?.trim();
     productFilterIds = (query['product_ids'] ?? '')
         .split(',')
         .map((value) => int.tryParse(value.trim()))
@@ -3626,7 +3628,7 @@ class _WholesaleCatalogDesignScreenState
                 !productFilterIds.contains(intValue(row['id']))) {
               return false;
             }
-            if (productFilterIds.isEmpty &&
+            if ((widget.offersOnly || productFilterIds.isEmpty) &&
                 sectionFilter != null &&
                 sectionFilter!.isNotEmpty &&
                 !_wholesaleRowMatchesSection(row, sectionFilter!)) {
@@ -3663,7 +3665,9 @@ class _WholesaleCatalogDesignScreenState
                   : responseCurrency.trim().toUpperCase();
 
           return Scaffold(
-            key: const ValueKey('wholesale-catalog-screen'),
+            key: ValueKey(widget.offersOnly
+                ? 'wholesale-offers-screen'
+                : 'wholesale-catalog-screen'),
             backgroundColor: Theme.of(context).brightness == Brightness.dark
                 ? Theme.of(context).scaffoldBackgroundColor
                 : palette.background,
@@ -3671,7 +3675,9 @@ class _WholesaleCatalogDesignScreenState
               child: Column(
                 children: [
                   FoodexWholesaleHeader(
-                    title: title,
+                    title: widget.offersOnly
+                        ? (localeCode == 'ar' ? 'عروض الجملة' : 'Wholesale Offers')
+                        : title,
                     logoUrl: branding['logo_url']?.toString(),
                     address: branding['address']?.toString(),
                     palette: palette,
@@ -3696,7 +3702,31 @@ class _WholesaleCatalogDesignScreenState
                       key: const ValueKey('wholesale-catalog-scroll-body'),
                       padding: EdgeInsets.zero,
                       children: [
-                        if (categories.isNotEmpty)
+                        if (widget.offersOnly) ...[
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+                            child: Text(
+                              localeCode == 'ar' ? 'العروض المتاحة' : 'Available offers',
+                              key: const ValueKey('wholesale-offers-heading'),
+                              style: const TextStyle(
+                                color: CustomerUiColors.ink,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          if (visibleRows.isEmpty)
+                            FoodexEmptyState(
+                              key: const ValueKey('wholesale-offers-empty'),
+                              title: localeCode == 'ar'
+                                  ? 'لا توجد عروض متاحة حاليًا'
+                                  : 'No available offers right now',
+                              subtitle: localeCode == 'ar'
+                                  ? 'ستظهر هنا منتجات الجملة التي لديها عروض أو خصومات مؤهلة.'
+                                  : 'Eligible discounted wholesale products will appear here.',
+                            ),
+                        ],
+                        if (!widget.offersOnly && categories.isNotEmpty)
                           SizedBox(
                             key: const ValueKey('wholesale-catalog-categories'),
                             height: 76,
@@ -3737,7 +3767,7 @@ class _WholesaleCatalogDesignScreenState
                               ],
                             ),
                           ),
-                        if (brands.isNotEmpty &&
+                        if (!widget.offersOnly && brands.isNotEmpty &&
                             (browseMode == 'brands' || selectedBrandId != null))
                           SizedBox(
                             key: const ValueKey('wholesale-catalog-brands'),
@@ -4017,7 +4047,8 @@ class _WholesaleCatalogDesignScreenState
                               ),
                             ),
                           ),
-                        _WholesaleProductGrid(
+                        if (!widget.offersOnly || visibleRows.isNotEmpty)
+                          _WholesaleProductGrid(
                           rows: displayedRows,
                           storeId: storeId,
                           sourceLocation: widget.location,
