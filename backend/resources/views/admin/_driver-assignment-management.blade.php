@@ -144,6 +144,197 @@
 @endif
 
 
+<style data-driver-order-print-style>
+/* The driver drilldown reuses the order-operations popup HTML on a different page.
+   Scope its presentation here; order-operations page CSS is not loaded on B2B/B2C Drivers. */
+[data-driver-order-details-dialog] {
+    width: min(920px, 96vw) !important;
+    max-width: 96vw;
+    max-height: min(88vh, 960px);
+    padding: 0 !important;
+    border: 1px solid var(--foodex-border, #dbe3e8) !important;
+    border-radius: 16px;
+    background: var(--foodex-surface, #fff);
+    color: var(--foodex-ink, #17271d);
+}
+[data-driver-order-details-dialog]::backdrop { background: rgba(15, 23, 42, .55); }
+[data-driver-order-details-head] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--foodex-border, #dbe3e8);
+}
+[data-driver-order-details-body] {
+    padding: 18px;
+    overflow-y: auto;
+    max-height: calc(88vh - 76px);
+}
+[data-driver-order-details-dialog] .order-print-header,
+[data-driver-order-details-dialog] .order-print-footer { display: none; }
+[data-driver-order-details-dialog] .order-popup-content { display: grid; gap: 14px; min-width: 0; }
+[data-driver-order-details-dialog] .order-popup-toolbar {
+    display: flex;
+    justify-content: flex-start;
+    margin: 0;
+}
+[data-driver-order-details-dialog] .order-popup-toolbar .foodex-primary {
+    min-height: 40px;
+    padding: 8px 18px;
+    cursor: pointer;
+}
+[data-driver-order-details-dialog] .order-popup-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+}
+[data-driver-order-details-dialog] .order-popup-summary > div,
+[data-driver-order-details-dialog] .order-popup-facts > div {
+    display: grid;
+    align-content: start;
+    gap: 5px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--foodex-border, #dbe3e8);
+    border-radius: 10px;
+    background: var(--foodex-surface-soft, var(--foodex-palette-f8fafc, #f8fafc));
+}
+[data-driver-order-details-dialog] .order-popup-summary small,
+[data-driver-order-details-dialog] .order-popup-facts span {
+    color: var(--foodex-muted, #64748b);
+    font-size: .75rem;
+}
+[data-driver-order-details-dialog] .order-popup-summary strong,
+[data-driver-order-details-dialog] .order-popup-facts strong {
+    font-size: .9rem;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+}
+[data-driver-order-details-dialog] .is-paid { color: var(--foodex-green-dark, #12652d); }
+[data-driver-order-details-dialog] .is-unpaid { color: var(--foodex-danger-text, #b42318); }
+[data-driver-order-details-dialog] .order-popup-section {
+    min-width: 0;
+    margin: 0;
+    padding: 14px;
+    border: 1px solid var(--foodex-border, #dbe3e8);
+    border-radius: 12px;
+}
+[data-driver-order-details-dialog] .order-popup-section h3 {
+    margin: 0 0 12px;
+    font-size: 1rem;
+    color: var(--foodex-ink, #17271d);
+}
+[data-driver-order-details-dialog] .order-popup-section p {
+    margin: 0 0 8px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+[data-driver-order-details-dialog] .order-popup-facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+[data-driver-order-details-dialog] .order-popup-table-wrap { width: 100%; overflow-x: auto; }
+[data-driver-order-details-dialog] .order-popup-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .84rem;
+}
+[data-driver-order-details-dialog] .order-popup-table th,
+[data-driver-order-details-dialog] .order-popup-table td {
+    padding: 10px;
+    text-align: start;
+    border-bottom: 1px solid var(--foodex-border, #dbe3e8);
+    vertical-align: top;
+}
+[data-driver-order-details-dialog] .order-popup-table th {
+    background: var(--foodex-surface-soft, var(--foodex-palette-f8fafc, #f8fafc));
+}
+@media (max-width: 600px) {
+    [data-driver-order-details-head] { padding: 10px 12px; }
+    [data-driver-order-details-body] { padding: 12px; }
+    [data-driver-order-details-dialog] .order-popup-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    [data-driver-order-details-dialog] .order-popup-facts { grid-template-columns: 1fr; }
+    [data-driver-order-details-dialog] .order-popup-summary > div { padding: 9px; }
+}
+@media print {
+    @page { size: A4; margin: 14mm; }
+    body * { visibility: hidden !important; }
+    [data-driver-order-details-dialog][open],
+    [data-driver-order-details-dialog][open] * { visibility: visible !important; }
+    [data-driver-order-details-dialog]::backdrop { display: none !important; }
+    [data-driver-order-details-dialog][open] {
+        display: block !important;
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100% !important;
+        max-width: none !important;
+        max-height: none !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: #fff !important;
+        color: #111 !important;
+    }
+    [data-driver-order-details-head],
+    [data-driver-order-details-dialog] [data-no-print] { display: none !important; }
+    [data-driver-order-details-body] {
+        max-height: none !important;
+        overflow: visible !important;
+        padding: 0 !important;
+    }
+    [data-driver-order-details-dialog] .order-popup-content { gap: 9px; }
+    [data-driver-order-details-dialog] .order-print-header {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #12652d;
+    }
+    [data-driver-order-details-dialog] .order-print-header > div:first-child { display: none; }
+    [data-driver-order-details-dialog] .order-print-type { display: grid; gap: 4px; }
+    [data-driver-order-details-dialog] .order-print-brand {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 7px;
+    }
+    [data-driver-order-details-dialog] .order-print-brand img {
+        display: block;
+        max-height: 55px;
+        max-width: 140px;
+        object-fit: contain;
+    }
+    [data-driver-order-details-dialog] .order-popup-summary > div,
+    [data-driver-order-details-dialog] .order-popup-facts > div,
+    [data-driver-order-details-dialog] .order-popup-section {
+        border-color: #d0d6d3 !important;
+        background: #fff !important;
+        break-inside: avoid;
+    }
+    [data-driver-order-details-dialog] .order-popup-summary strong,
+    [data-driver-order-details-dialog] .order-popup-facts strong { color: #111 !important; }
+    [data-driver-order-details-dialog] .order-popup-table thead { display: table-header-group; }
+    [data-driver-order-details-dialog] .order-print-footer {
+        display: flex !important;
+        gap: 6px;
+        justify-content: flex-end;
+        border-top: 1px solid #d0d6d3;
+        padding-top: 8px;
+        margin-top: 8px;
+        font-size: 10pt;
+    }
+}
+</style>
 <dialog id="driver-orders-dialog-{{ $channel }}" data-driver-orders-dialog style="width:min(980px,94vw);max-height:88vh;border:0;border-radius:16px;padding:0;box-shadow:0 24px 60px rgba(15,23,42,.22)">
     <div style="padding:14px 16px;border-bottom:1px solid var(--foodex-border);display:flex;justify-content:space-between;align-items:center;gap:12px">
         <strong>{{ app()->getLocale()==='ar'?'طلبات السائق':'Driver orders' }}</strong>
@@ -152,15 +343,15 @@
     <div data-driver-orders-body style="padding:16px;max-height:calc(88vh - 64px);overflow:auto"></div>
 </dialog>
 <dialog id="driver-order-details-dialog-{{ $channel }}" data-driver-order-details-dialog aria-label="{{ __('order_operations.popup.details') }}"
-        style="width:min(920px,94vw);max-height:88vh;border:0;border-radius:16px;padding:0;box-shadow:0 24px 60px rgba(15,23,42,.25)">
-    <div style="padding:14px 16px;border-bottom:1px solid var(--foodex-border);display:flex;gap:12px;align-items:center;justify-content:space-between">
+        dir="{{ app()->getLocale()==='ar' ? 'rtl' : 'ltr' }}">
+    <div data-driver-order-details-head>
         <strong>{{ __('order_operations.popup.details') }}</strong>
         <div style="display:flex;align-items:center;gap:10px">
             <a data-driver-order-full class="foodex-action-secondary" href="{{ route('admin.operations.orders.index') }}" target="_blank" rel="noopener">{{ app()->getLocale()==='ar' ? 'فتح صفحة الطلب' : 'Open order page' }}</a>
             <button type="button" class="btn foodex-driver-premium-secondary" data-driver-order-details-close aria-label="{{ app()->getLocale()==='ar' ? 'إغلاق' : 'Close' }}">×</button>
         </div>
     </div>
-    <div data-driver-order-details-body style="padding:16px;overflow:auto;max-height:calc(88vh - 64px)"></div>
+    <div data-driver-order-details-body></div>
 </dialog>
 <script>
 (() => {
@@ -211,6 +402,20 @@
     };
 
     detailsDialog?.addEventListener('click', (event) => {
+        if (event.target.closest('[data-order-popup-print]')) {
+            event.preventDefault();
+            const locale = document.documentElement.lang || 'en';
+            const printedAt = new Intl.DateTimeFormat(locale, {
+                dateStyle: 'full',
+                timeStyle: 'medium',
+                timeZone: 'Asia/Kuwait',
+            }).format(new Date());
+            detailsBody?.querySelectorAll('[data-order-print-time]').forEach((node) => {
+                node.textContent = printedAt;
+            });
+            window.print();
+            return;
+        }
         if (event.target.closest('[data-driver-order-details-close]')) {
             detailsDialog.close();
         }
