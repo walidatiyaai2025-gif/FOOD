@@ -446,14 +446,24 @@ class FoodexWholesaleHeader extends StatelessWidget {
                   onSubmitted: onSearchSubmitted ??
                       (value) => _defaultSearch(context, value),
                   onChanged: onSearchChanged,
-                  style: const TextStyle(fontSize: 12),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                   decoration: InputDecoration(
                     isDense: true,
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).colorScheme.surface,
                     hintText: searchHint,
-                    hintStyle: const TextStyle(fontSize: 11),
-                    prefixIcon: const Icon(Icons.search_rounded, size: 16),
+                    hintStyle: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                     prefixIconConstraints: const BoxConstraints(
                       minWidth: 34,
                       minHeight: 34,
