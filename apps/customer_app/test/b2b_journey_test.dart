@@ -2504,6 +2504,11 @@ void main() {
               'order_number': 'B2B-91',
               'status': 'ready',
               'grand_total': 42.5,
+              'settlement': {
+                'payment_state': 'partially_settled',
+                'paid_amount': 12.5,
+                'remaining_amount': 30.0,
+              },
               'currency': 'KWD',
               'created_at': '2026-10-01T20:00:00+00:00',
               'store': {'id': 1, 'name': 'FOODEX Wholesale'},
@@ -2541,6 +2546,15 @@ void main() {
       expect(find.text('FOODEX Wholesale'), findsNothing);
       expect(find.text('جاهز'), findsOneWidget);
       expect(find.text('KWD 42.5'), findsOneWidget);
+      expect(find.text('مدفوع جزئياً'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('customer-order-paid-91')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('customer-order-remaining-91')),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('#91'));
       await _pumpCustomerFrames(tester);
