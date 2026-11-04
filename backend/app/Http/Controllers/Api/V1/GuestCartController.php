@@ -113,11 +113,27 @@ class GuestCartController extends Controller
             'store_id' => ['required', 'integer', 'min:1'],
             'product_id' => ['required', 'integer', 'min:1'],
             'quantity' => ['required', 'numeric', 'gt:0'],
+            'selling_unit_code' => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9_-]+$/'],
         ]);
 
         $storeId = (int) $validated['store_id'];
         $productId = (int) $validated['product_id'];
-        $quantity = (float) $validated['quantity'];
+        $sellingQuantity = (float) $validated['quantity'];
+        $sellingUnitCode = trim((string) ($validated['selling_unit_code'] ?? ''));
+        $selectedUnit = null;
+        if ($sellingUnitCode !== '') {
+            try {
+                $selectedUnit = app(\App\Services\CommercialPolicyService::class)
+                    ->sellingUnit($productId, $sellingUnitCode, $sellingQuantity);
+            } catch (\DomainException|\InvalidArgumentException $exception) {
+                throw ValidationException::withMessages([
+                    'selling_unit_code' => [$exception->getMessage()],
+                ]);
+            }
+        }
+        $quantity = $selectedUnit === null
+            ? $sellingQuantity
+            : (float) $selectedUnit['base_quantity'];
         $user = $this->apiUser($request);
         $token = $this->guestToken($request, false);
 
@@ -167,6 +183,12 @@ class GuestCartController extends Controller
             'product_id' => $productId,
         ]);
 
+        if ($item->exists && trim((string) ($item->selling_unit_code ?? '')) !== $sellingUnitCode) {
+            throw ValidationException::withMessages([
+                'selling_unit_code' => ['Remove the existing product line before changing its selling unit.'],
+            ]);
+        }
+
         $newQuantity = ($item->exists ? (float) $item->quantity : 0.0) + $quantity;
         if ($user instanceof User && $channel === 'b2b') {
             abort_unless(is_array($pricing), 500, 'B2B pricing context is unavailable.');
@@ -175,6 +197,11 @@ class GuestCartController extends Controller
         $this->assertQuantityAvailable($state['available_quantity'], $newQuantity);
 
         $item->quantity = $newQuantity;
+        $item->selling_unit_code = $sellingUnitCode === '' ? null : $sellingUnitCode;
+        $item->selling_unit_quantity = $selectedUnit === null
+            ? null
+            : round((float) ($item->exists ? $item->selling_unit_quantity : 0) + $sellingQuantity, 3);
+        $item->selling_unit_conversion_factor = $selectedUnit['conversion_factor'] ?? null;
         $item->unit_price_snapshot = $state['price'];
         $item->save();
 
@@ -200,7 +227,23 @@ class GuestCartController extends Controller
             true,
         );
 
-        $quantity = (float) $validated['quantity'];
+        $sellingQuantity = (float) $validated['quantity'];
+        $sellingUnitCode = trim((string) ($cartItem->selling_unit_code ?? ''));
+        if ($sellingUnitCode !== '') {
+            try {
+                $selectedUnit = app(\App\Services\CommercialPolicyService::class)
+                    ->sellingUnit((int) $cartItem->product_id, $sellingUnitCode, $sellingQuantity);
+            } catch (\DomainException|\InvalidArgumentException $exception) {
+                throw ValidationException::withMessages([
+                    'quantity' => [$exception->getMessage()],
+                ]);
+            }
+            $quantity = (float) $selectedUnit['base_quantity'];
+            $cartItem->selling_unit_quantity = $sellingQuantity;
+            $cartItem->selling_unit_conversion_factor = $selectedUnit['conversion_factor'];
+        } else {
+            $quantity = $sellingQuantity;
+        }
         if ((string) $cart->channel === 'b2b' && $cart->b2b_customer_id !== null) {
             $customer = B2bCustomer::query()->findOrFail((int) $cart->b2b_customer_id);
             $pricing = app(B2bPriceResolver::class)->resolve($customer, (int) $cart->store_id, (int) $cartItem->product_id);
@@ -333,12 +376,23 @@ class GuestCartController extends Controller
                     'product_id' => $guestItem->product_id,
                 ]);
 
+                if ($targetItem->exists && trim((string) ($targetItem->selling_unit_code ?? ''))
+                    !== trim((string) ($guestItem->selling_unit_code ?? ''))) {
+                    abort(409, 'Cart merge requires one selling unit per product. Remove a conflicting line first.');
+                }
+
                 $quantity = ($targetItem->exists ? (float) $targetItem->quantity : 0.0)
                     + (float) $guestItem->quantity;
 
                 $this->assertQuantityAvailable($state['available_quantity'], $quantity);
 
                 $targetItem->quantity = $quantity;
+                $targetItem->selling_unit_code = $guestItem->selling_unit_code;
+                $targetItem->selling_unit_quantity = $guestItem->selling_unit_code === null
+                    ? null
+                    : round((float) ($targetItem->exists ? $targetItem->selling_unit_quantity : 0)
+                        + (float) $guestItem->selling_unit_quantity, 3);
+                $targetItem->selling_unit_conversion_factor = $guestItem->selling_unit_conversion_factor;
                 $targetItem->unit_price_snapshot = $state['price'];
                 $targetItem->save();
             }
