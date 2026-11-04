@@ -21,9 +21,15 @@ body{background:var(--foodex-background);color:var(--foodex-ink);margin:0;font-f
 </style>
 </head>
 <body>
-<main class="document-wrap">
+<div class="foodex-admin-layout" data-foodex-mobile-web-page="document-branding">
+<aside class="sidebar">@include('admin._sidebar')</aside>
+<main class="foodex-admin-main foodex-admin-page">
+@include('admin._global-header')
+<div class="document-wrap">
+<div class="foodex-page-toolbar">
 <h1>{{ __('document_branding.heading') }}</h1>
 <p>{{ __('document_branding.intro') }}</p>
+</div>
 @if(session('status'))<div class="document-feedback" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())
 <div class="document-feedback" role="alert">
@@ -63,6 +69,8 @@ body{background:var(--foodex-background);color:var(--foodex-ink);margin:0;font-f
 </div>
 </form>
 </section>
+</div>
 </main>
+</div>
 </body>
 </html>
