@@ -5130,7 +5130,7 @@ class _WholesaleProductDetailsDesignScreenState
                                 ? (selected) {
                                     if (!selected) return;
                                     final factor = math.max(
-                                      1,
+                                      1.0,
                                       doubleValue(unit['conversion_factor'], 1),
                                     );
                                     setState(() {
