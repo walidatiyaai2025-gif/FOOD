@@ -82,6 +82,50 @@ void main() {
     expect(session.activeStoreId, 7);
   });
 
+  test('wholesale quick add reads live customer minimum and stock before posting',
+      () async {
+    final requests = <String>[];
+    final api = HttpCustomerActionApi(
+      baseUrl: 'https://foodex.example',
+      token: 'customer-token',
+      client: MockClient((request) async {
+        requests.add('${request.method} ${request.url.path}');
+        if (request.method == 'GET') {
+          expect(request.url.queryParameters['store_id'], '7');
+          expect(request.headers['X-FOODEX-Customer-Domain'], 'b2b');
+          expect(request.headers['Authorization'], 'Bearer customer-token');
+          return http.Response(
+            jsonEncode({
+              'id': 42,
+              'minimum_order_quantity': 5,
+              'ordering_increment': 5,
+              'available_quantity': 12,
+              'is_available': true,
+            }),
+            200,
+          );
+        }
+        final data = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(data['quantity'], 5);
+        expect(data['product_id'], 42);
+        expect(data['store_id'], 7);
+        return http.Response('{"items":[]}', 201);
+      }),
+    );
+
+    final terms = await api.wholesaleProductTerms(storeId: 7, productId: 42);
+    expect(terms['minimum_order_quantity'], 5);
+    await api.addCartItem(
+      storeId: 7,
+      productId: 42,
+      quantity: (terms['minimum_order_quantity'] as num).toDouble(),
+    );
+    expect(requests, [
+      'GET /api/v1/b2b/products/42',
+      'POST /api/v1/cart/items',
+    ]);
+  });
+
   test('selected carton posts canonical selling unit to authoritative cart', () async {
     final api = HttpCustomerActionApi(
       baseUrl: 'https://foodex.example',
