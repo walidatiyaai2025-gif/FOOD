@@ -28,7 +28,7 @@ $printTitle = __('order_operations.popup.'.$kind);
         </div>
     </header>
 
-    @if($kind === 'invoice')
+    @if(in_array($kind, ['details', 'invoice'], true))
         @include('admin._invoice-company-identity')
     @endif
 
