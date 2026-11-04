@@ -1352,7 +1352,7 @@ class _RetailProductDetailsDesignScreenState
   Widget build(BuildContext context) => Directionality(
         textDirection: Directionality.of(context),
         child: Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: FoodexUnifiedHeaderSurface(
             title: 'FOODEX',
             location: widget.location,
