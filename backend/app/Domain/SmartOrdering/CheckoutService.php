@@ -218,6 +218,8 @@ final class CheckoutService
             );
             $quote = $merchandising['quote'];
 
+            app(\App\Services\MinimumOrderPolicy::class)->assertEligible($quote);
+
             $subtotal = round((float) $quote['subtotal'], 3);
             $discount = round(min($subtotal, max(0.0, (float) $quote['discount_total'])), 3);
             $delivery = round(max(
