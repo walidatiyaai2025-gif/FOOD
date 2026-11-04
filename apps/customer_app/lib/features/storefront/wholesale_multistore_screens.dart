@@ -6106,20 +6106,23 @@ double _wholesaleMinimumRemaining(
       (doubleValue(quote['subtotal'] ?? cart['subtotal'], 0) -
           doubleValue(quote['discount_total'], 0));
 
-  // Free delivery is not a merchandise discount.
-  for (final key in <String>['promotion', 'coupon']) {
-    final discount = quote[key];
-    if (discount is! Map) continue;
-    final type = (discount['type'] ?? discount['discount_type'] ?? '')
-        .toString()
-        .toLowerCase();
-    if (type == 'free_shipping') {
-      merchandise += doubleValue(
-        quote[key == 'promotion'
-            ? 'promotion_discount_total'
-            : 'coupon_discount_total'],
-        0,
-      );
+  // The cart's server-derived merchandise_total already excludes delivery.
+  // Only compensate when recomputing from a coupon-adjusted quote.
+  if (directMerchandise == null) {
+    for (final key in <String>['promotion', 'coupon']) {
+      final discount = quote[key];
+      if (discount is! Map) continue;
+      final type = (discount['type'] ?? discount['discount_type'] ?? '')
+          .toString()
+          .toLowerCase();
+      if (type == 'free_shipping') {
+        merchandise += doubleValue(
+          quote[key == 'promotion'
+              ? 'promotion_discount_total'
+              : 'coupon_discount_total'],
+          0,
+        );
+      }
     }
   }
   return math.max(0, minimum - math.max(0, merchandise)).toDouble();
@@ -6247,11 +6250,11 @@ class _CartTotalPanel extends StatelessWidget {
             label: context.tr('b2b.action.checkout'),
             onPressed: () {
               if (minimumMissing > 0.0001) {
-                _showWholesaleMinimumPopup(
+                unawaited(_showWholesaleMinimumPopup(
                   context,
                   minimum: minimum,
                   remaining: minimumMissing,
-                );
+                ));
                 return;
               }
               onCheckout();
