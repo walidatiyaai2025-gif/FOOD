@@ -4686,7 +4686,7 @@ class _WholesaleProductDetailsDesignScreenState
     return null;
   }
 
-  Future<void> _addProduct(Map<String, dynamic> row) async {
+  Future<void> _addProduct(Map<String, dynamic> row, {bool checkoutAfterAdd = false}) async {
     if (!widget.session.isAuthenticated) {
       await _beginWholesaleAddHandoff(
         context: context,
@@ -4764,6 +4764,12 @@ class _WholesaleProductDetailsDesignScreenState
         productId: productId,
         quantity: selectedQuantity,
       );
+      if (checkoutAfterAdd && mounted) {
+        Navigator.of(context).pushNamed(
+          '/b2b/checkout?store_id=$storeId&channel=wholesale',
+        );
+        return;
+      }
       if (mounted &&
           confirmationMessenger != null &&
           confirmationMessenger.mounted) {
@@ -5057,6 +5063,20 @@ class _WholesaleProductDetailsDesignScreenState
                     label: revalidating
                         ? context.tr('b2b.product.revalidating')
                         : context.tr('customer.action.add_cart'),
+                    checkoutLabel:
+                        Localizations.localeOf(context).languageCode == 'ar'
+                            ? 'إتمام الطلب' : 'Checkout',
+                    onCheckout: isAvailable && !revalidating
+                        ? () async {
+                            final issue = _quantityIssue(context, row, quantity!);
+                            if (issue != null) {
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(SnackBar(content: Text(issue)));
+                              return;
+                            }
+                            await _addProduct(row, checkoutAfterAdd: true);
+                          }
+                        : null,
                     onChanged: isAvailable && !revalidating
                         ? (value) {
                             if (availableQuantity != null &&
