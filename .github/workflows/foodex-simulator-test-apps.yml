@@ -33,7 +33,7 @@ jobs:
         working-directory: apps/${{ matrix.app }}_app
     steps:
       - name: Checkout exact commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
