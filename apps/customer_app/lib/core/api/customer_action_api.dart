@@ -404,4 +404,7 @@ class CustomerActionException implements Exception {
 
   final String code;
   final Map<String, List<String>> fieldErrors;
+
+  @override
+  String toString() => code;
 }
