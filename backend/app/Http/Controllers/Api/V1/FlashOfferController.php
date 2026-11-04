@@ -429,8 +429,8 @@ final class FlashOfferController extends Controller
             'title_en' => (string) $offer->title_en,
             'body_ar' => $offer->body_ar,
             'body_en' => $offer->body_en,
-            'title' => ($user?->locale ?? 'ar') === 'ar' ? (string) $offer->title_ar : (string) $offer->title_en,
-            'body' => ($user?->locale ?? 'ar') === 'ar' ? (string) ($offer->body_ar ?? '') : (string) ($offer->body_en ?? ''),
+            'title' => ($user->locale ?? 'ar') === 'ar' ? (string) $offer->title_ar : (string) $offer->title_en,
+            'body' => ($user->locale ?? 'ar') === 'ar' ? (string) ($offer->body_ar ?? '') : (string) ($offer->body_en ?? ''),
             'currency' => (string) $quotes->directPurchaseTotals((int) $offer->store_id, 0)['currency'],
             'flash_price' => $flashPrice,
             'normal_price' => $normalPrice,
@@ -548,7 +548,7 @@ final class FlashOfferController extends Controller
                     continue;
                 }
             }
-            $path = trim((string) ($images->get($productId)?->path ?? ''));
+            $path = trim((string) ($images->get($productId)->path ?? ''));
             $result[] = [
                 'id' => (int) $entry->getKey(),
                 'product_id' => $productId,
@@ -557,7 +557,7 @@ final class FlashOfferController extends Controller
                 'image_url' => $path === '' ? null : (preg_match('~^https?://~i', $path) ? $path : url('/'.ltrim($path, '/'))),
                 'selling_unit_id' => $entry->selling_unit_id === null ? null : (int) $entry->selling_unit_id,
                 'selling_unit_code' => (string) $entry->selling_unit_code,
-                'selling_unit_name' => (string) ($unit?->name ?? $entry->selling_unit_code),
+                'selling_unit_name' => (string) ($unit->name ?? $entry->selling_unit_code),
                 'conversion_factor' => $conversion,
                 // Match FlashCheckoutService's normal_unit_price exactly.
                 'normal_price' => $unit?->price === null

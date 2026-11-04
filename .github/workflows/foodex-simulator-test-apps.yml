@@ -22,7 +22,10 @@ concurrency:
 jobs:
   build-simulator-app:
     name: "${{ matrix.app }} — iOS Simulator ZIP"
-    runs-on: macos-latest
+    # Customer's native CocoaPods dependencies fail to link the arm64 simulator
+    # framework (Pods_Runner). Test on a supported Intel macOS runner instead.
+    # Driver stays on the existing Apple Silicon runner.
+    runs-on: ${{ matrix.app == 'customer' && 'macos-26-intel' || 'macos-latest' }}
     timeout-minutes: 45
     strategy:
       fail-fast: false

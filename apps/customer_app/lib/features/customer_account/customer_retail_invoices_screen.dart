@@ -66,14 +66,19 @@ class _CustomerRetailInvoicesScreenState
   String invoiceStatus(BuildContext context, Object? rawStatus) {
     final status = rawStatus?.toString().trim().toLowerCase();
     final key = switch (status) {
-      'paid' || 'fully_settled' || 'settled' =>
-        'customer.invoice.status.paid',
-      'partially_paid' || 'partially_settled' =>
+      'paid' || 'fully_settled' || 'settled' => 'customer.invoice.status.paid',
+      'partially_paid' ||
+      'partially_settled' =>
         'customer.invoice.status.partial',
-      'issued' || 'pending' || 'due' || 'unpaid' =>
+      'issued' ||
+      'pending' ||
+      'due' ||
+      'unpaid' =>
         'customer.invoice.status.due',
       'overdue' => 'customer.invoice.status.overdue',
-      'cancelled' || 'canceled' || 'void' =>
+      'cancelled' ||
+      'canceled' ||
+      'void' =>
         'customer.invoice.status.cancelled',
       _ => 'customer.invoice.status.unknown',
     };
@@ -117,6 +122,14 @@ class _CustomerRetailInvoicesScreenState
               final statusText = invoiceStatus(context, data['status']);
               final amountText = data['grand_total']?.toString() ?? '—';
               final currencyText = data['currency']?.toString() ?? 'EGP';
+              final statusLine = <String>[
+                context.tr('customer.invoice.status_label'),
+                statusText,
+              ].join(': ');
+              final totalLine = <String>[
+                context.tr('customer.invoice.total'),
+                <String>[amountText, currencyText].join(' '),
+              ].join(': ');
               final items = data['items'] is List
                   ? (data['items'] as List).whereType<Map>().toList()
                   : const <Map>[];
@@ -125,8 +138,8 @@ class _CustomerRetailInvoicesScreenState
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("${context.tr('customer.invoice.status_label')}: $statusText"),
-                    Text("${context.tr('customer.invoice.total')}: $amountText $currencyText"),
+                    Text(statusLine),
+                    Text(totalLine),
                     const Divider(),
                     for (final line in items)
                       ListTile(

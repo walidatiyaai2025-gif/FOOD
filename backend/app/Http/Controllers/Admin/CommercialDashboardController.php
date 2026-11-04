@@ -791,7 +791,7 @@ final class CommercialDashboardController extends Controller
             'edit' => $request->integer('edit') > 0 ? $request->integer('edit') : null,
             'support_access' => $request->boolean('support_access') ? 1 : null,
             'offer' => $offerId,
-        ], static fn ($value): bool => $value !== null && $value !== '');
+        ], static fn ($value): bool => $value !== null);
 
         return redirect()->route(
             'admin.commercial.wholesale-flash-offers'.($suffix === '' ? '' : '.'.$suffix),

@@ -102,7 +102,7 @@ final class CommerceQuoteService
     /**
      * Quote arbitrary server-authorized lines. Client-submitted prices are intentionally absent.
      *
-     * @param  list<array{product_id:int|string,quantity:int|float|string,cart_item_id?:int|string}>  $items
+     * @param  list<array{product_id:int|string,quantity:int|float|string,cart_item_id?:int|string,selling_unit_code?:string|null,selling_unit_quantity?:float|int|string|null}>  $items
      * @return array<string, mixed>
      */
     public function quote(
@@ -197,7 +197,8 @@ final class CommerceQuoteService
                     $unitIssue = 'The selling-unit conversion changed. Re-add the product to update your cart.';
                 }
 
-                if ($unitIssue !== null) {
+                if ($unitIssue !== null || $unit === null) {
+                    $unitIssue ??= 'The selected selling unit is unavailable.';
                     if ($strict) {
                         throw ValidationException::withMessages(['items' => [$unitIssue]]);
                     }

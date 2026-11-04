@@ -38,10 +38,6 @@ final class CatalogZipImportService
             'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl+Y9sAAAAASUVORK5CYII=',
             true,
         );
-        if (! is_string($png)) {
-            throw new RuntimeException('Unable to build sample catalog image.');
-        }
-
         $workbook = $this->buildWorkbook([
             'Products' => [
                 ['sku', 'name', 'description', 'category_code', 'brand_code', 'unit_code', 'price', 'is_active', 'image_files'],
