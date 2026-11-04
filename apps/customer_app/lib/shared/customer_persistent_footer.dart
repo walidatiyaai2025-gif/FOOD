@@ -118,6 +118,8 @@ class CustomerPersistentFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isRetail = commerceContext?.isRetail == true && !forceWholesale;
+
     // Canonical five destinations: Home, Shopping, Offers, Orders, Invoices.
     // Favorites now lives beside Notifications in the shared customer header.
     final items = <_FooterItem>[
