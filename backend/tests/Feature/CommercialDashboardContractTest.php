@@ -494,16 +494,16 @@ class CommercialDashboardContractTest extends TestCase
         $superAdmin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
 
         $this->actingAs($superAdmin)
-            ->get(route('admin.commercial.flash-offers', ['store_id' => $wholesaleStoreId]))
+            ->get(route('admin.commercial.wholesale-flash-offers', ['store_id' => $wholesaleStoreId]))
             ->assertOk()
             ->assertSee('data-flash-product-search', false)
             ->assertSee('data-flash-products-available-count', false)
             ->assertSee('value="'.$wholesaleProduct.'" data-product-context="wholesale"', false)
             ->assertDontSee('value="'.$retailProduct.'" data-product-context="retail"', false)
-            ->assertSee(route('admin.commercial.flash-offers.save', ['store_id' => $wholesaleStoreId]), false);
+            ->assertSee(route('admin.commercial.wholesale-flash-offers.save', ['store_id' => $wholesaleStoreId]), false);
 
         $this->actingAs($superAdmin)
-            ->post(route('admin.commercial.flash-offers.save', ['store_id' => $wholesaleStoreId]), [
+            ->post(route('admin.commercial.wholesale-flash-offers.save', ['store_id' => $wholesaleStoreId]), [
                 'name' => 'Wholesale Scoped Flash',
                 'title_ar' => 'عرض الجملة',
                 'title_en' => 'Wholesale Flash',
@@ -538,6 +538,47 @@ class CommercialDashboardContractTest extends TestCase
             ->assertOk()
             ->assertSee('value="'.$retailProduct.'" data-product-context="retail"', false)
             ->assertDontSee('value="'.$wholesaleProduct.'" data-product-context="wholesale"', false);
+    }
+
+    public function test_b2b_flash_routes_are_canonical_and_retail_mutations_cannot_target_wholesale(): void
+    {
+        [, $wholesaleStoreId] = $this->wholesaleManager();
+        [, $retailStoreId] = $this->retailManager();
+        $this->flashProduct($wholesaleStoreId, 'b2b');
+        $this->flashProduct($retailStoreId);
+
+        $admin = User::query()->create([
+            'name' => 'Wholesale Flash Route Admin',
+            'email' => 'flash-route-admin@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $admin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $wholesale = route('admin.commercial.wholesale-flash-offers', ['store_id' => $wholesaleStoreId]);
+        $retail = route('admin.commercial.flash-offers', ['store_id' => $retailStoreId]);
+        $this->assertStringContainsString('/admin/b2b/commercial/flash-offers', $wholesale);
+        $this->assertStringContainsString('/admin/b2c/commercial/flash-offers', $retail);
+
+        $this->actingAs($admin)->get($wholesale)->assertOk()
+            ->assertSee(route('admin.commercial.wholesale-flash-offers.save', ['store_id' => $wholesaleStoreId]), false)
+            ->assertSee('value="van"', false);
+        $this->actingAs($admin)->get($retail)->assertOk()
+            ->assertSee(route('admin.commercial.flash-offers.save', ['store_id' => $retailStoreId]), false);
+
+        // Previously published B2C deep links for a B2B store canonicalize.
+        $this->actingAs($admin)->get(route('admin.commercial.flash-offers', [
+            'store_id' => $wholesaleStoreId, 'edit' => 0,
+        ]))->assertRedirect($wholesale);
+
+        $this->actingAs($admin)->post(route('admin.commercial.flash-offers.save', [
+            'store_id' => $wholesaleStoreId,
+        ]), [])->assertNotFound();
+
+        $this->actingAs($admin)->post(route('admin.commercial.wholesale-flash-offers.save', [
+            'store_id' => $retailStoreId,
+        ]), [])->assertNotFound();
     }
 
     public function test_flash_offers_show_an_actionable_empty_state_when_current_store_has_no_products(): void
