@@ -2,11 +2,11 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.119",
-  "minimum_current_version": "1.0.118",
-  "source_base": "b4808030679cfffa08a792dfd61be2185eecad92",
-  "source_commit": "0975fd0c228741681d29233f778066e373347b52",
-  "sha256": "4943ae1997ae8da78343127ca5fc4a2b5d39c13d6fbe564f55f393f78ba91905",
+  "target_version": "1.0.122",
+  "minimum_current_version": "1.0.119",
+  "source_base": "0975fd0c228741681d29233f778066e373347b52",
+  "source_commit": "2d5501e37fc428e4bc499eeabbb47733d794003b",
+  "sha256": "b4d85fced19e7f130855cd6b2b6067059983d19ebb471858bb2dc46121b8114b",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/0001_01_01_000000_create_users_table.php",
@@ -232,13 +232,13 @@
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Add a discoverable Wallet tab to the shared Driver B2C bottom navigation on Home, Deliveries, Notifications and Wallet. Retain the Home Wallet entry point and per-order collected and remaining payment details. Preserve B2B isolation, authenticated driver/store-scoped collections and Arabic/English localization. Verify mobile route accessibility at small viewports and Arabic/English navigation with regression tests. Rebuild synchronized Customer, Driver, Van APKs, Dashboard Update and Laravel Setup with version 1.0.119 and verified source identity using the canonical Release Factory.",
+  "release_notes": "Preserve previously published v1.0.120 and v1.0.121 tags, Releases and assets without retargeting, deletion or replacement. The v1.0.121 Release was published from pre-merge source 275c5c81379c7269b12f48374dd71e64b39044ce, not the authoritative protected-main squash merge 7d0caef1175ca778f98790abc8c56b0eca7a1600. Restrict Trial Distribution to tester Actions artifacts; canonical immutable GitHub Releases and the generated distribution branch are published exclusively by Release Factory after protected-main integration. Carry forward the validated Driver B2B/B2C Wallet, encrypted Remember Me, biometric-only saved-session unlock, premium responsive Driver Home, Customer and Van applications, and Laravel Dashboard without changes to business logic, authorization or finance calculations. Promote Dashboard, Customer, Driver and Van to 1.0.122 (Android build 122). Require exact-head CI, clean Laravel Setup install, source-locked APK x3, Dashboard ZIP/JSON/SHA256, immutable GitHub Release, generated distribution and protected-main registry sync before distribution. See #2466, #2464 and #2458.",
   "dashboard_fields": {
-    "target_version": "1.0.119",
-    "minimum_current_version": "1.0.118",
-    "source_commit": "0975fd0c228741681d29233f778066e373347b52",
-    "sha256": "4943ae1997ae8da78343127ca5fc4a2b5d39c13d6fbe564f55f393f78ba91905",
+    "target_version": "1.0.122",
+    "minimum_current_version": "1.0.119",
+    "source_commit": "2d5501e37fc428e4bc499eeabbb47733d794003b",
+    "sha256": "b4d85fced19e7f130855cd6b2b6067059983d19ebb471858bb2dc46121b8114b",
     "contains_migrations": true,
-    "release_notes": "Add a discoverable Wallet tab to the shared Driver B2C bottom navigation on Home, Deliveries, Notifications and Wallet. Retain the Home Wallet entry point and per-order collected and remaining payment details. Preserve B2B isolation, authenticated driver/store-scoped collections and Arabic/English localization. Verify mobile route accessibility at small viewports and Arabic/English navigation with regression tests. Rebuild synchronized Customer, Driver, Van APKs, Dashboard Update and Laravel Setup with version 1.0.119 and verified source identity using the canonical Release Factory."
+    "release_notes": "Preserve previously published v1.0.120 and v1.0.121 tags, Releases and assets without retargeting, deletion or replacement. The v1.0.121 Release was published from pre-merge source 275c5c81379c7269b12f48374dd71e64b39044ce, not the authoritative protected-main squash merge 7d0caef1175ca778f98790abc8c56b0eca7a1600. Restrict Trial Distribution to tester Actions artifacts; canonical immutable GitHub Releases and the generated distribution branch are published exclusively by Release Factory after protected-main integration. Carry forward the validated Driver B2B/B2C Wallet, encrypted Remember Me, biometric-only saved-session unlock, premium responsive Driver Home, Customer and Van applications, and Laravel Dashboard without changes to business logic, authorization or finance calculations. Promote Dashboard, Customer, Driver and Van to 1.0.122 (Android build 122). Require exact-head CI, clean Laravel Setup install, source-locked APK x3, Dashboard ZIP/JSON/SHA256, immutable GitHub Release, generated distribution and protected-main registry sync before distribution. See #2466, #2464 and #2458."
   }
 }
