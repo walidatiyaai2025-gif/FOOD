@@ -1365,7 +1365,7 @@ class _RetailProductDetailsDesignScreenState
     );
     final actionApi = widget.actionApi;
     if (actionApi is CustomerSellingUnitActionApi) {
-      return actionApi.addCartSellingUnit(
+      return (actionApi as CustomerSellingUnitActionApi).addCartSellingUnit(
         storeId: storeId,
         productId: productId,
         quantity: quantity,
