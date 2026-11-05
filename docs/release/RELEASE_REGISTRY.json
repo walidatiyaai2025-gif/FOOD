@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.119",
+  "current_version": "1.0.123",
   "releases": [
     {
       "version": "1.0.40",
@@ -265,7 +265,7 @@
       "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "5c8a4f63f133ff4cd0e8f333adf3676f61d31ab217417cc84b7fae3ba1d66c44",
-      "note": "FOODEX 1.0.74 synchronized release for completed Customer VNext #1323 and Mobile Smart Store Analytics #1354\u2013#1359. Dashboard update is directly deployable over 1.0.73; Customer/Driver/Van source identities are synchronized at 1.0.74+74. Production Launch/reset safeguards remain fail-closed."
+      "note": "FOODEX 1.0.74 synchronized release for completed Customer VNext #1323 and Mobile Smart Store Analytics #1354–#1359. Dashboard update is directly deployable over 1.0.73; Customer/Driver/Van source identities are synchronized at 1.0.74+74. Production Launch/reset safeguards remain fail-closed."
     },
     {
       "version": "1.0.75",
@@ -374,6 +374,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "4943ae1997ae8da78343127ca5fc4a2b5d39c13d6fbe564f55f393f78ba91905",
       "note": "FOODEX 1.0.119 synchronized release automatically registered by Release Factory from source 0975fd0c228741681d29233f778066e373347b52. Dashboard update is directly deployable over 1.0.118; Customer 1.0.119+119 is frozen/carried forward; Driver/Van are synchronized at 1.0.119+119."
+    },
+    {
+      "version": "1.0.123",
+      "state": "published",
+      "registration": "registry-repair",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.123.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "8bfd1a1fcdc02f6df8e3c76074a57422318c34f068cc255f37df23e5806485e3",
+      "note": "Repair of the protected-main release registry after official FOODEX v1.0.123 publication from exact protected-main source 138c20abc2d70423dce4e5d1c174640a4ede5f8d. Exact ZIP and manifests reused as immutable Git objects from official Release Factory distribution; v1.0.120/121/122 published assets remain unchanged."
     }
   ]
 }

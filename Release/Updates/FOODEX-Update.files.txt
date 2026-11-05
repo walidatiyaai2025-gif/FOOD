@@ -406,6 +406,7 @@ backend/app/Http/Controllers/Admin/CommercialDashboardController.php
 backend/app/Http/Controllers/Admin/CouponManagementController.php
 backend/app/Http/Controllers/Admin/Customer360Controller.php
 backend/app/Http/Controllers/Admin/CustomerServiceWorkspaceController.php
+backend/app/Http/Controllers/Admin/DocumentBrandingController.php
 backend/app/Http/Controllers/Admin/DriverLiveTrackingDashboardController.php
 backend/app/Http/Controllers/Admin/DriverOrdersController.php
 backend/app/Http/Controllers/Admin/EnterpriseActionCenterController.php
@@ -812,6 +813,7 @@ backend/app/Services/DatabaseTranslationLoader.php
 backend/app/Services/DeliveryExecutionService.php
 backend/app/Services/DeliverySettlementService.php
 backend/app/Services/DemoDataManager.php
+backend/app/Services/DocumentBrandingService.php
 backend/app/Services/DriverCollectionReportService.php
 backend/app/Services/DriverDeliveryEvidenceService.php
 backend/app/Services/DriverLocationEnforcementPolicy.php
@@ -861,6 +863,7 @@ backend/app/Services/LoginAttemptThrottle.php
 backend/app/Services/LookupScopeService.php
 backend/app/Services/ManagementReportService.php
 backend/app/Services/MarketingImageService.php
+backend/app/Services/MinimumOrderPolicy.php
 backend/app/Services/MobileReleaseArtifactMirror.php
 backend/app/Services/MobileStoreAnalyticsService.php
 backend/app/Services/NotificationAudience.php
@@ -877,6 +880,7 @@ backend/app/Services/OrderOperationsRowContext.php
 backend/app/Services/OrderTerritoryRoutingService.php
 backend/app/Services/PdfDocumentFactory.php
 backend/app/Services/PlatformCustomerService.php
+backend/app/Services/PriorCreditDeliveryGuard.php
 backend/app/Services/ProductAvailabilityService.php
 backend/app/Services/ProductSkuGenerator.php
 backend/app/Services/ProductionDatasetSnapshot.php
@@ -924,6 +928,7 @@ backend/app/Services/VanRegistryService.php
 backend/app/Services/VanRuntimeContextResolver.php
 backend/app/Services/VanRuntimeVisitScope.php
 backend/app/Services/VanVisitLifecycleService.php
+backend/app/Services/WholesaleAppCatalogPolicy.php
 backend/app/Services/WholesalePrincipal.php
 backend/app/Support/AdminNavigation.php
 backend/app/Support/B2cWorkspaceLandingResolver.php
@@ -1418,6 +1423,8 @@ backend/database/migrations/2026_10_26_223000_optimize_order_operations_dashboar
 backend/database/migrations/2026_10_27_082000_backfill_customer_service_order_dispatch_permission.php
 backend/database/migrations/2026_10_27_170000_repair_customer_service_dispatch_role_metadata.php
 backend/database/migrations/2026_10_27_171000_create_user_permission_overrides.php
+backend/database/migrations/2026_11_04_181500_add_customer_cart_selling_unit_context.php
+backend/database/migrations/2026_11_04_211500_add_app_display_order_to_store_products.php
 backend/database/seeders/BuiltInJobRoleSeeder.php
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
@@ -1452,6 +1459,7 @@ backend/lang/ar/commercial.php
 backend/lang/ar/coupons.php
 backend/lang/ar/customer_360.php
 backend/lang/ar/customer_service_workspace.php
+backend/lang/ar/document_branding.php
 backend/lang/ar/engagement_destinations.php
 backend/lang/ar/enterprise_action_center.php
 backend/lang/ar/enterprise_bi_ui.php
@@ -1517,6 +1525,7 @@ backend/lang/en/commercial.php
 backend/lang/en/coupons.php
 backend/lang/en/customer_360.php
 backend/lang/en/customer_service_workspace.php
+backend/lang/en/document_branding.php
 backend/lang/en/engagement_destinations.php
 backend/lang/en/enterprise_action_center.php
 backend/lang/en/enterprise_bi_ui.php
@@ -1716,6 +1725,7 @@ backend/resources/views/admin/_executive-overview.blade.php
 backend/resources/views/admin/_field-operations-finance.blade.php
 backend/resources/views/admin/_global-header.blade.php
 backend/resources/views/admin/_global-search.blade.php
+backend/resources/views/admin/_invoice-company-identity.blade.php
 backend/resources/views/admin/_live-notifications.blade.php
 backend/resources/views/admin/_merchant-intelligence-dashboard.blade.php
 backend/resources/views/admin/_module-dashboard-filters.blade.php
@@ -1726,6 +1736,7 @@ backend/resources/views/admin/_order-new-wizard.blade.php
 backend/resources/views/admin/_order-operation-popup.blade.php
 backend/resources/views/admin/_order-operations-header-filters.blade.php
 backend/resources/views/admin/_order-operations-order-filters.blade.php
+backend/resources/views/admin/_order-popup-isolated-print.blade.php
 backend/resources/views/admin/_premium-icon.blade.php
 backend/resources/views/admin/_premium-sidebar.blade.php
 backend/resources/views/admin/_restaurant-management-launcher.blade.php
@@ -1776,6 +1787,7 @@ backend/resources/views/admin/customer-360-show.blade.php
 backend/resources/views/admin/customer-report-replica.blade.php
 backend/resources/views/admin/customer-service-workspace.blade.php
 backend/resources/views/admin/demo-data.blade.php
+backend/resources/views/admin/document-branding.blade.php
 backend/resources/views/admin/driver-live-tracking.blade.php
 backend/resources/views/admin/enterprise-action-center.blade.php
 backend/resources/views/admin/enterprise-bi.blade.php
