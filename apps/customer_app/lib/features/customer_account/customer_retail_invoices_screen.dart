@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../storefront/storefront_design_system.dart';
+
 import '../../core/api/b2c_account_api.dart';
 import '../../core/localization/app_translations.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
@@ -52,7 +54,9 @@ class _CustomerRetailInvoicesScreenState
   }
 
   Future<void> refresh() async {
-    setState(() => invoices = widget.api.invoicesForStore(widget.storeId));
+    setState(() {
+      invoices = widget.api.invoicesForStore(widget.storeId);
+    });
     try {
       await invoices;
     } catch (_) {
@@ -165,8 +169,9 @@ class _CustomerRetailInvoicesScreenState
   @override
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('retail-invoices-screen'),
-        appBar: AppBar(title: Text(context.tr('customer.nav.invoices'))),
-        body: FutureBuilder<Object?>(
+        body: FoodexUnifiedHeaderSurface(
+          title: context.tr('customer.nav.invoices'),
+          child: FutureBuilder<Object?>(
           future: invoices,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
@@ -210,7 +215,7 @@ class _CustomerRetailInvoicesScreenState
                         invoice['invoice_number']?.toString() ?? '—',
                       ),
                       subtitle: Text(
-                        "${invoice['issued_at'] ?? ''} · ${invoice['status'] ?? ''}",
+                        "${invoice['issued_at'] ?? ''} · ${invoiceStatus(context, invoice['status'])}",
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -224,6 +229,7 @@ class _CustomerRetailInvoicesScreenState
               ),
             );
           },
+        ),
         ),
       );
 }
