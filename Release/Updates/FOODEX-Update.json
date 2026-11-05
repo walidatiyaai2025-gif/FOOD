@@ -2,11 +2,11 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.123",
-  "minimum_current_version": "1.0.122",
-  "source_base": "2d5501e37fc428e4bc499eeabbb47733d794003b",
-  "source_commit": "138c20abc2d70423dce4e5d1c174640a4ede5f8d",
-  "sha256": "8bfd1a1fcdc02f6df8e3c76074a57422318c34f068cc255f37df23e5806485e3",
+  "target_version": "1.0.124",
+  "minimum_current_version": "1.0.123",
+  "source_base": "138c20abc2d70423dce4e5d1c174640a4ede5f8d",
+  "source_commit": "67f3d542674398fd606f0c1339515e547ff6da07",
+  "sha256": "02eb7634801b0e2027556d6a97c0da2f77b092411744b42dcfed8fd5df7f631f",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/0001_01_01_000000_create_users_table.php",
@@ -225,22 +225,23 @@
     "backend/database/migrations/2026_10_27_170000_repair_customer_service_dispatch_role_metadata.php",
     "backend/database/migrations/2026_10_27_171000_create_user_permission_overrides.php",
     "backend/database/migrations/2026_11_04_181500_add_customer_cart_selling_unit_context.php",
-    "backend/database/migrations/2026_11_04_211500_add_app_display_order_to_store_products.php"
+    "backend/database/migrations/2026_11_04_211500_add_app_display_order_to_store_products.php",
+    "backend/database/migrations/2026_11_05_092000_enable_existing_wholesale_flash_customer_app_discovery.php"
   ],
   "delta": {
-    "file_count": 1984,
-    "source_file_count": 1867,
+    "file_count": 1985,
+    "source_file_count": 1868,
     "files_manifest": "FOODEX-Update.files.txt"
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Deliver #2470 / PR #2471 changes to the Laravel Dashboard and backend: configurable B2B minimum order (1,500 EGP initial / zero disabled), authoritative stock-only visibility, selling-unit cart/checkout, invoice/print identity and finance/payment state. Restore B2B/B2C Flash Offers products and Customer offers navigation; refine Customer order/payment display, Driver order details and proof-of-delivery, localized screens and B2B Van-only vs B2C Driver-only operation. Repair Customer iOS simulator dependencies by converging on the compatible mobile_scanner Apple Vision implementation and retaining fully green exact-head Customer/Driver simulator validation. Publish cumulative Dashboard upgrade for existing 1.0.121 installations with secure backup, manifest/checksum and migrations plus a clean-setup ZIP, synchronized Customer/Driver/Van Android artifacts at 1.0.123+123, immutable v1.0.123 GitHub Release assets and final registry sync after release acceptance.",
+  "release_notes": "Merge owner-approved #2476 / PR #2477: enable independent Customer mobile App visibility for B2B Flash Offers in the wholesale Offers page without selecting individual audience members. Existing Van-only offers migrate safely to Customer App discovery without removing any configured targeting. Keep mandatory B2B Van-only ordering, delivery, pricing and inventory authority; do not enable B2B Customer Flash checkout or retail push/popups. Preserve B2C Driver-only routing and strict wholesale/retail data isolation. Include bilingual Dashboard controls, optional customer visibility switch, authenticated and guest B2B feed filtering, privacy/stock checks and regression tests covering empty audience, existing offers, and rejected direct Customer reservations. Publish immutable v1.0.124 from final protected-main SHA with exact-source Customer/Driver/Van version identities (1.0.124+124), Laravel Setup ZIP, verified Dashboard Update ZIP with signed package provenance, checksum, versioned manifest, no-loss upgrade, clean install, recovery checks and protected-main registry synchronization. Existing v1.0.123 assets remain unchanged.",
   "dashboard_fields": {
-    "target_version": "1.0.123",
-    "minimum_current_version": "1.0.122",
-    "source_commit": "138c20abc2d70423dce4e5d1c174640a4ede5f8d",
-    "sha256": "8bfd1a1fcdc02f6df8e3c76074a57422318c34f068cc255f37df23e5806485e3",
+    "target_version": "1.0.124",
+    "minimum_current_version": "1.0.123",
+    "source_commit": "67f3d542674398fd606f0c1339515e547ff6da07",
+    "sha256": "02eb7634801b0e2027556d6a97c0da2f77b092411744b42dcfed8fd5df7f631f",
     "contains_migrations": true,
-    "release_notes": "Deliver #2470 / PR #2471 changes to the Laravel Dashboard and backend: configurable B2B minimum order (1,500 EGP initial / zero disabled), authoritative stock-only visibility, selling-unit cart/checkout, invoice/print identity and finance/payment state. Restore B2B/B2C Flash Offers products and Customer offers navigation; refine Customer order/payment display, Driver order details and proof-of-delivery, localized screens and B2B Van-only vs B2C Driver-only operation. Repair Customer iOS simulator dependencies by converging on the compatible mobile_scanner Apple Vision implementation and retaining fully green exact-head Customer/Driver simulator validation. Publish cumulative Dashboard upgrade for existing 1.0.121 installations with secure backup, manifest/checksum and migrations plus a clean-setup ZIP, synchronized Customer/Driver/Van Android artifacts at 1.0.123+123, immutable v1.0.123 GitHub Release assets and final registry sync after release acceptance."
+    "release_notes": "Merge owner-approved #2476 / PR #2477: enable independent Customer mobile App visibility for B2B Flash Offers in the wholesale Offers page without selecting individual audience members. Existing Van-only offers migrate safely to Customer App discovery without removing any configured targeting. Keep mandatory B2B Van-only ordering, delivery, pricing and inventory authority; do not enable B2B Customer Flash checkout or retail push/popups. Preserve B2C Driver-only routing and strict wholesale/retail data isolation. Include bilingual Dashboard controls, optional customer visibility switch, authenticated and guest B2B feed filtering, privacy/stock checks and regression tests covering empty audience, existing offers, and rejected direct Customer reservations. Publish immutable v1.0.124 from final protected-main SHA with exact-source Customer/Driver/Van version identities (1.0.124+124), Laravel Setup ZIP, verified Dashboard Update ZIP with signed package provenance, checksum, versioned manifest, no-loss upgrade, clean install, recovery checks and protected-main registry synchronization. Existing v1.0.123 assets remain unchanged."
   }
 }
