@@ -172,64 +172,64 @@ class _CustomerRetailInvoicesScreenState
         body: FoodexUnifiedHeaderSurface(
           title: context.tr('customer.nav.invoices'),
           child: FutureBuilder<Object?>(
-          future: invoices,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(isArabic(context)
-                        ? 'تعذر تحميل الفواتير'
-                        : 'Could not load invoices'),
-                    _invoiceRetry(context, refresh, isArabic(context)),
-                  ],
+            future: invoices,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(isArabic(context)
+                          ? 'تعذر تحميل الفواتير'
+                          : 'Could not load invoices'),
+                      _invoiceRetry(context, refresh, isArabic(context)),
+                    ],
+                  ),
+                );
+              }
+              final list = rows(snapshot.data);
+              if (list.isEmpty) {
+                return Center(
+                  child: Text(isArabic(context)
+                      ? 'لا توجد فواتير لهذا المتجر'
+                      : 'No invoices for this store'),
+                );
+              }
+              return RefreshIndicator(
+                onRefresh: refresh,
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: list.length,
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: CustomerUiSpacing.sm),
+                  itemBuilder: (context, index) {
+                    final invoice = list[index];
+                    return Card(
+                      child: ListTile(
+                        key: ValueKey(
+                            "retail-invoice-${invoice['id'] ?? 'unknown'}"),
+                        title: Text(
+                          invoice['invoice_number']?.toString() ?? '—',
+                        ),
+                        subtitle: Text(
+                          "${invoice['issued_at'] ?? ''} · ${invoiceStatus(context, invoice['status'])}",
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: Text(
+                          "${invoice['grand_total'] ?? '—'} ${invoice['currency'] ?? 'EGP'}",
+                        ),
+                        onTap: () => showInvoice(invoice),
+                      ),
+                    );
+                  },
                 ),
               );
-            }
-            final list = rows(snapshot.data);
-            if (list.isEmpty) {
-              return Center(
-                child: Text(isArabic(context)
-                    ? 'لا توجد فواتير لهذا المتجر'
-                    : 'No invoices for this store'),
-              );
-            }
-            return RefreshIndicator(
-              onRefresh: refresh,
-              child: ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: list.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: CustomerUiSpacing.sm),
-                itemBuilder: (context, index) {
-                  final invoice = list[index];
-                  return Card(
-                    child: ListTile(
-                      key: ValueKey(
-                          "retail-invoice-${invoice['id'] ?? 'unknown'}"),
-                      title: Text(
-                        invoice['invoice_number']?.toString() ?? '—',
-                      ),
-                      subtitle: Text(
-                        "${invoice['issued_at'] ?? ''} · ${invoiceStatus(context, invoice['status'])}",
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: Text(
-                        "${invoice['grand_total'] ?? '—'} ${invoice['currency'] ?? 'EGP'}",
-                      ),
-                      onTap: () => showInvoice(invoice),
-                    ),
-                  );
-                },
-              ),
-            );
-          },
-        ),
+            },
+          ),
         ),
       );
 }

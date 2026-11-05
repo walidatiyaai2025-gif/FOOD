@@ -405,50 +405,49 @@ class FoodexWholesaleHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final actions = <Widget>[
-            ...trailingActions,
-            if (trailingActions.isNotEmpty) const SizedBox(width: 4),
-            if (isAuthenticated) ...[
-              Semantics(
-                button: true,
-                label: Localizations.localeOf(context).languageCode == 'ar'
-                    ? 'المفضلة'
-                    : 'Favorites',
-                child: _FoodexWholesaleHeaderIcon(
-                  key: const ValueKey('customer-header-favorites'),
-                  icon: Icons.favorite_border_rounded,
-                  onTap: () => _defaultFavorites(context),
-                ),
-              ),
-              const SizedBox(width: 4),
-              _FoodexWholesaleHeaderIcon(
-                key: notificationKey,
-                icon: Icons.notifications_none_rounded,
-                onTap: onNotifications ?? () => _defaultNotifications(context),
-              ),
-              const SizedBox(width: 4),
-              ValueListenableBuilder<int>(
-                valueListenable: foodexWholesaleCartProductCount,
-                builder: (context, count, _) => _FoodexWholesaleHeaderIcon(
-                  key: cartKey,
-                  icon: Icons.shopping_cart_outlined,
-                  badgeCount: count,
-                  onTap: onCart ?? () => _defaultCart(context),
-                ),
-              ),
-              const SizedBox(width: 4),
-              _FoodexWholesaleAccountMenu(
-                onLocaleChanged: onLocaleChanged,
-                onLogout: onLogout,
-              ),
-            ],
-
+      ...trailingActions,
+      if (trailingActions.isNotEmpty) const SizedBox(width: 4),
+      if (isAuthenticated) ...[
+        Semantics(
+          button: true,
+          label: Localizations.localeOf(context).languageCode == 'ar'
+              ? 'المفضلة'
+              : 'Favorites',
+          child: _FoodexWholesaleHeaderIcon(
+            key: const ValueKey('customer-header-favorites'),
+            icon: Icons.favorite_border_rounded,
+            onTap: () => _defaultFavorites(context),
+          ),
+        ),
+        const SizedBox(width: 4),
+        _FoodexWholesaleHeaderIcon(
+          key: notificationKey,
+          icon: Icons.notifications_none_rounded,
+          onTap: onNotifications ?? () => _defaultNotifications(context),
+        ),
+        const SizedBox(width: 4),
+        ValueListenableBuilder<int>(
+          valueListenable: foodexWholesaleCartProductCount,
+          builder: (context, count, _) => _FoodexWholesaleHeaderIcon(
+            key: cartKey,
+            icon: Icons.shopping_cart_outlined,
+            badgeCount: count,
+            onTap: onCart ?? () => _defaultCart(context),
+          ),
+        ),
+        const SizedBox(width: 4),
+        _FoodexWholesaleAccountMenu(
+          onLocaleChanged: onLocaleChanged,
+          onLogout: onLogout,
+        ),
+      ],
     ];
     return Container(
-        key: const ValueKey('foodex-wholesale-shared-header'),
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-        color: palette.primaryDark,
-        child: LayoutBuilder(
-          builder: (context, constraints) => Row(
+      key: const ValueKey('foodex-wholesale-shared-header'),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      color: palette.primaryDark,
+      child: LayoutBuilder(
+        builder: (context, constraints) => Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (leading != null) ...[
@@ -564,9 +563,9 @@ class FoodexWholesaleHeader extends StatelessWidget {
               ),
             if (constraints.maxWidth >= 420) ...actions,
           ],
-          ),
         ),
-      );
+      ),
+    );
   }
 }
 
