@@ -21,7 +21,7 @@ void main() {
     for (final entry in customerVNextScreenRegistry) {
       expect(
         entry.ownerIssue,
-        anyOf(inInclusiveRange(1324, 1329), 1356),
+        anyOf(inInclusiveRange(1324, 1329), 1356, 2470),
       );
       expect(entry.evidence, contains(CustomerScreenEvidence.ar));
       expect(entry.evidence, contains(CustomerScreenEvidence.en));
