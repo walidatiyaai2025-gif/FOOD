@@ -496,8 +496,10 @@ final class CommercialDashboardController extends Controller
         ]);
 
         $channels = collect($data['channels'])->map(static fn ($item): string => (string) $item)->unique()->values()->all();
+        // Customer is a wholesale Offers page display channel, never B2B checkout.
+        // Van remains mandatory for wholesale order execution and delivery.
         if (app(OperationalTenantScope::class)->storeChannel($storeId) === 'b2b'
-            && $channels !== ['van']) {
+            && ! in_array('van', $channels, true)) {
             throw ValidationException::withMessages([
                 'channels' => [__('commercial.validation.wholesale_flash_van_only')],
             ]);

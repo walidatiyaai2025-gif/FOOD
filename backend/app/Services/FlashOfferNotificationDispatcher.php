@@ -43,6 +43,13 @@ final class FlashOfferNotificationDispatcher
             }
 
             foreach (['customer', 'van'] as $channel) {
+                // Wholesale Customer App visibility is an Offers-page setting,
+                // not permission for a retail-targeted push or popup.
+                if ($channel === 'customer'
+                    && app(OperationalTenantScope::class)->storeChannel((int) $offer->store_id) === 'b2b') {
+                    continue;
+                }
+
                 if (($channel === 'van' && ! $this->flags->vanOffersEnabled())
                     || ! in_array($channel, (array) $offer->channels, true)) {
                     continue;

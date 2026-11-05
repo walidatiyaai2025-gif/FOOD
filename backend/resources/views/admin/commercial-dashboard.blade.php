@@ -504,7 +504,7 @@
         @endif
     @else
         @php
-            $selectedFlashChannels = collect(old('channels', $editingOffer ? (json_decode((string)$editingOffer->channels, true) ?: []) : ($storeChannel === 'b2b' ? ['van'] : ['customer','van'])));
+            $selectedFlashChannels = collect(old('channels', $editingOffer ? (json_decode((string)$editingOffer->channels, true) ?: []) : ($storeChannel === 'b2b' ? ['van','customer'] : ['customer','van'])));
             $selectedCustomerIds = collect(old('audience_customer_ids', $editingOffer ? (json_decode((string)$editingOffer->audience_customer_ids, true) ?: []) : []))->map(fn($id)=>(int)$id);
             $selectedGroupIds = collect(old('audience_customer_group_ids', $editingOffer ? (json_decode((string)$editingOffer->audience_customer_group_ids, true) ?: []) : []))->map(fn($id)=>(int)$id);
             $selectedRegions = collect(old('audience_regions', $editingOffer ? (json_decode((string)$editingOffer->audience_regions, true) ?: []) : []));
@@ -593,11 +593,20 @@
                     @if($storeChannel === 'b2b')
                         <p class="muted" data-flash-wholesale-van-note>{{ __('commercial.flash.wholesale_van_only') }}</p>
                     @endif
-                    <div class="commercial-choice-grid">
-                        @foreach($storeChannel === 'b2b' ? ['van'] : ['customer','van'] as $channel)
-                            <label class="commercial-choice"><input type="checkbox" name="channels[]" value="{{ $channel }}" @checked($selectedFlashChannels->contains($channel))><span>{{ __('commercial.channels.'.$channel) }}</span></label>
-                        @endforeach
-                    </div>
+                    @if($storeChannel === 'b2b')
+                        {{-- Display-only Customer App visibility; Van fulfillment is mandatory. --}}
+                        <input type="hidden" name="channels[]" value="van">
+                        <div class="commercial-choice-grid">
+                            <label class="commercial-choice"><input type="checkbox" name="channels[]" value="customer" data-flash-wholesale-customer-app @checked($selectedFlashChannels->contains('customer'))><span>{{ __('commercial.flash.wholesale_customer_app_label') }}</span></label>
+                            <div class="commercial-choice"><span>{{ __('commercial.flash.wholesale_van_fulfillment') }}</span></div>
+                        </div>
+                    @else
+                        <div class="commercial-choice-grid">
+                            @foreach(['customer','van'] as $channel)
+                                <label class="commercial-choice"><input type="checkbox" name="channels[]" value="{{ $channel }}" @checked($selectedFlashChannels->contains($channel))><span>{{ __('commercial.channels.'.$channel) }}</span></label>
+                            @endforeach
+                        </div>
+                    @endif
                 </section>
 
                 <section class="flash-form-section" data-flash-wizard-step="2">
@@ -807,6 +816,11 @@
                         @if($storeChannel === 'b2b' && !in_array('van', $flashChannels, true))
                             <small role="alert" data-flash-wholesale-channel-missing style="color:var(--foodex-danger-text, firebrick);font-weight:800">
                                 {{ __('commercial.flash.wholesale_van_channel_missing') }}
+                                <a href="{{ route($flashRoutePrefix, ['edit'=>$offer->id] + $scope) }}#flash-offer-form">{{ __('commercial.flash.edit') }}</a>
+                            </small>
+                        @elseif($storeChannel === 'b2b' && !in_array('customer', $flashChannels, true))
+                            <small role="status" data-flash-wholesale-customer-channel-missing style="color:var(--foodex-warning-text, darkorange)">
+                                {{ __('commercial.flash.wholesale_customer_channel_missing') }}
                                 <a href="{{ route($flashRoutePrefix, ['edit'=>$offer->id] + $scope) }}#flash-offer-form">{{ __('commercial.flash.edit') }}</a>
                             </small>
                         @elseif($storeChannel === 'b2c' && !in_array('customer', $flashChannels, true))

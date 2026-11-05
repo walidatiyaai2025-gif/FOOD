@@ -540,6 +540,76 @@ class CommercialDashboardContractTest extends TestCase
             ->assertDontSee('value="'.$wholesaleProduct.'" data-product-context="wholesale"', false);
     }
 
+    public function test_wholesale_flash_customer_app_visibility_is_optional_without_targeting_individual_customers(): void
+    {
+        [, $storeId] = $this->wholesaleManager();
+        $manager = User::query()->create([
+            'name' => 'Wholesale Flash Display Admin',
+            'email' => 'wholesale-flash-display-admin@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $manager->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+        $productId = $this->flashProduct($storeId, 'b2b');
+        $url = route('admin.commercial.wholesale-flash-offers', ['store_id' => $storeId]);
+        $save = route('admin.commercial.wholesale-flash-offers.save', ['store_id' => $storeId]);
+
+        $this->actingAs($manager)->get($url)
+            ->assertOk()
+            ->assertSee('data-flash-wholesale-customer-app', false)
+            ->assertSee('value="van"', false)
+            ->assertSee('Customer App — Wholesale Offers page');
+
+        $payload = [
+            'name' => 'Wholesale App Promotion',
+            'title_ar' => 'عرض الجملة للتطبيق',
+            'title_en' => 'Wholesale App Promotion',
+            'status' => 'active',
+            'starts_at' => now()->subMinute()->format('Y-m-d H:i:s'),
+            'ends_at' => now()->addHour()->format('Y-m-d H:i:s'),
+            'timezone' => 'Asia/Kuwait',
+            'channels' => ['van', 'customer'],
+            'allocation_mode' => 'shared',
+            'reservation_seconds' => 300,
+            'retry_count' => 0,
+            'cooldown_seconds' => 0,
+            'priority' => 0,
+            'popup_frequency' => 'once_per_session',
+            'products' => [[
+                'product_id' => $productId,
+                'selling_unit_code' => 'PIECE',
+                'flash_price' => 8,
+                'allocation_base' => 20,
+            ]],
+        ];
+
+        $this->actingAs($manager)->post($save, $payload)
+            ->assertRedirect()->assertSessionDoesntHaveErrors();
+
+        $offer = DB::table('flash_offers')->where('store_id', $storeId)
+            ->where('name', 'Wholesale App Promotion')->first();
+        $this->assertNotNull($offer);
+        $this->assertSame(['van', 'customer'], json_decode((string) $offer->channels, true));
+        $this->assertNull($offer->audience_customer_ids);
+        $this->assertNull($offer->audience_customer_group_ids);
+        $this->assertNull($offer->audience_regions);
+        $this->assertNull($offer->audience_routes);
+
+        // A wholesale promotion can never omit its mandatory Van channel.
+        $this->actingAs($manager)->post($save, [...$payload, 'channels' => ['customer']])
+            ->assertRedirect()->assertSessionHasErrors('channels');
+
+        // Disable only Customer App visibility: keep the offer available to Van.
+        $this->actingAs($manager)->post($save, [
+            ...$payload, 'offer_id' => (int) $offer->id, 'channels' => ['van'],
+        ])->assertRedirect()->assertSessionDoesntHaveErrors();
+        $this->assertSame(['van'], json_decode((string) DB::table('flash_offers')
+            ->where('id', $offer->id)->value('channels'), true));
+        $this->actingAs($manager)->get($url.'?edit='.$offer->id)
+            ->assertOk()->assertSee('data-flash-wholesale-customer-channel-missing', false);
+    }
+
     public function test_b2b_flash_routes_are_canonical_and_retail_mutations_cannot_target_wholesale(): void
     {
         [, $wholesaleStoreId] = $this->wholesaleManager();

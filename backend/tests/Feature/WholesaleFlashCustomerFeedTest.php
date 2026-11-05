@@ -7,12 +7,14 @@ use App\Models\Customer;
 use App\Models\FlashOffer;
 use App\Models\FlashOfferProduct;
 use App\Models\User;
+use App\Services\FlashOfferService;
 use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 final class WholesaleFlashCustomerFeedTest extends TestCase
@@ -113,7 +115,7 @@ final class WholesaleFlashCustomerFeedTest extends TestCase
             'starts_at' => '2026-11-01 21:07:00',
             'ends_at' => '2026-11-30 21:07:00',
             'timezone' => 'Asia/Kuwait',
-            'channels' => ['van'],
+            'channels' => ['van', 'customer'],
             'allocation_mode' => 'shared',
             'reservation_seconds' => 300,
             'retry_count' => 0,
@@ -154,6 +156,76 @@ final class WholesaleFlashCustomerFeedTest extends TestCase
         $this->travelTo(Carbon::parse('2026-12-01 00:00:00'));
         $this->getJson('/api/v1/b2b/flash-offers/public?store_id='.$this->storeId)
             ->assertOk()->assertJsonCount(0, 'data');
+    }
+
+    public function test_customer_app_visibility_can_be_disabled_without_disabling_van_and_never_allows_b2b_checkout(): void
+    {
+        $this->travelTo(Carbon::parse('2026-11-04 22:45:00'));
+
+        // Van remains enabled but the Customer App Offers page must not show it.
+        $this->offer->update(['channels' => ['van']]);
+        $this->getJson('/api/v1/b2b/flash-offers/public?store_id='.$this->storeId)
+            ->assertOk()->assertJsonCount(0, 'data');
+
+        // Display checkbox restores untargeted visibility to every wholesale
+        // Customer App visitor without selecting any individual customer.
+        $this->offer->update(['channels' => ['van', 'customer']]);
+        $this->getJson('/api/v1/b2b/flash-offers/public?store_id='.$this->storeId)
+            ->assertOk()
+            ->assertJsonPath('data.0.id', (int) $this->offer->id)
+            ->assertJsonPath('data.0.fulfillment_channel', 'van');
+
+        $user = User::factory()->create(['is_active' => true]);
+        $legacy = Customer::query()->create([
+            'user_id' => $user->id,
+            'type' => 'b2b',
+            'name' => 'Untargeted Wholesale Buyer',
+        ]);
+        B2bCustomer::query()->create([
+            'legacy_customer_id' => $legacy->id,
+            'user_id' => $user->id,
+            'name' => 'Untargeted Wholesale Buyer',
+        ]);
+        Sanctum::actingAs($user, ['app:customer']);
+        $this->getJson('/api/v1/b2b/flash-offers?store_id='.$this->storeId)
+            ->assertOk()
+            ->assertJsonPath('data.0.id', (int) $this->offer->id)
+            ->assertJsonPath('fulfillment_channel', 'van');
+
+        try {
+            app(FlashOfferService::class)->reserve(
+                (int) $user->id, (int) $this->line->id, 1, 'customer', 'b2b-display-only',
+            );
+            $this->fail('Wholesale Customer Flash checkout must never be allowed.');
+        } catch (HttpException $exception) {
+            $this->assertSame(403, $exception->getStatusCode());
+            $this->assertSame('WHOLESALE_VAN_ONLY', $exception->getMessage());
+        }
+
+        $this->assertDatabaseMissing('flash_reservations', [
+            'flash_offer_id' => $this->offer->id,
+            'channel' => 'customer',
+        ]);
+    }
+
+    public function test_existing_van_only_offer_is_backfilled_without_losing_customer_targeting(): void
+    {
+        $this->offer->update([
+            'channels' => ['van'],
+            'audience_customer_ids' => [123],
+        ]);
+
+        $migration = require database_path(
+            'migrations/2026_11_05_092000_enable_existing_wholesale_flash_customer_app_discovery.php',
+        );
+        $migration->up();
+        $this->assertSame(['van', 'customer'], $this->offer->fresh()->channels);
+        $this->assertSame([123], $this->offer->fresh()->audience_customer_ids);
+
+        // Safe to retry: never rewrite existing audience or channel choices.
+        $migration->up();
+        $this->assertSame(['van', 'customer'], $this->offer->fresh()->channels);
+        $this->assertSame([123], $this->offer->fresh()->audience_customer_ids);
     }
 
     public function test_b2b_targeted_offers_are_private_and_stock_exhaustion_is_not_advertised(): void

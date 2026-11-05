@@ -292,6 +292,12 @@ final class FlashOfferService
 
     private function assertFeatureAndAudience(FlashOffer $offer, string $channel, int $userId): void
     {
+        // Customer on a B2B offer is Offers-page discovery only, never checkout.
+        if ($channel === 'customer'
+            && app(OperationalTenantScope::class)->storeChannel((int) $offer->store_id) === 'b2b') {
+            throw new HttpException(403, 'WHOLESALE_VAN_ONLY');
+        }
+
         if (! $this->flags->flashOffersEnabled()
             || ($channel === 'van' && ! $this->flags->vanOffersEnabled())) {
             throw new HttpException(409, 'FLASH_NOT_ACTIVE');
