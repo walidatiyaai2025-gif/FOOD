@@ -7,12 +7,14 @@ use App\Models\Customer;
 use App\Models\FlashOffer;
 use App\Models\FlashOfferProduct;
 use App\Models\User;
+use App\Services\FlashOfferService;
 use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 final class WholesaleFlashCustomerFeedTest extends TestCase
@@ -191,11 +193,11 @@ final class WholesaleFlashCustomerFeedTest extends TestCase
             ->assertJsonPath('fulfillment_channel', 'van');
 
         try {
-            app(\\App\\Services\\FlashOfferService::class)->reserve(
+            app(FlashOfferService::class)->reserve(
                 (int) $user->id, (int) $this->line->id, 1, 'customer', 'b2b-display-only',
             );
             $this->fail('Wholesale Customer Flash checkout must never be allowed.');
-        } catch (\\Symfony\\Component\\HttpKernel\\Exception\\HttpException $exception) {
+        } catch (HttpException $exception) {
             $this->assertSame(403, $exception->getStatusCode());
             $this->assertSame('WHOLESALE_VAN_ONLY', $exception->getMessage());
         }
