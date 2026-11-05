@@ -20,7 +20,9 @@ class AdminMobileWebAllPagesTest extends TestCase
             }
 
             $content = file_get_contents($file->getPathname());
-            if (! is_string($content) || ! str_contains(strtolower($content), '<!doctype html>')) {
+            // Partial templates may embed a doctype inside isolated-print JavaScript.
+            if (! is_string($content) || str_starts_with($file->getFilename(), '_')
+                || ! str_contains(strtolower($content), '<!doctype html>')) {
                 continue;
             }
 

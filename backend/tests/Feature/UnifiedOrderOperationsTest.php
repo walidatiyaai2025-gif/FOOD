@@ -712,8 +712,11 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('data-order-popup-url', $view);
         $this->assertStringContainsString('data-order-timeline-icon', $view);
         $this->assertStringContainsString('order-financial-action is-timeline', $view);
-        $this->assertStringContainsString('window.print()', $view);
-        $this->assertStringContainsString('data-order-print-time', $view);
+        $isolatedPrint = file_get_contents(resource_path('views/admin/_order-popup-isolated-print.blade.php'));
+        $this->assertIsString($isolatedPrint);
+        $this->assertStringContainsString("@include('admin._order-popup-isolated-print')", $view);
+        $this->assertStringContainsString('printWindow.print()', $isolatedPrint);
+        $this->assertStringContainsString('data-order-print-time', $isolatedPrint);
         $this->assertStringContainsString('order-delivered-merged', $view);
         $this->assertStringContainsString('order-cancelled-merged', $view);
         $this->assertStringContainsString('order-status-merged', $view);

@@ -19,6 +19,7 @@ class WholesaleMinimumOrderTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+        config()->set('checkout.minimum_merchandise_total_egp', 1500);
     }
 
     public function test_admin_changes_minimum_immediately_and_zero_disables_b2b_checkout_gate(): void
@@ -84,7 +85,7 @@ class WholesaleMinimumOrderTest extends TestCase
         $retail = $this->roleUser('B2C_STORE_ADMIN');
         $this->actingAs($retail)->put(route('admin.b2b.storefront.minimum-order'), [
             'minimum_order_egp' => '0',
-        ])->assertNotFound();
+        ])->assertForbidden();
 
         $this->assertSame(1500.0, app(MinimumOrderPolicy::class)->minimumForStore($storeId));
     }

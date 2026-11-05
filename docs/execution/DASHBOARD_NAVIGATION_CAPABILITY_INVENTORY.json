@@ -516,6 +516,7 @@
       "capability": "Configuration",
       "route": [
         "admin.settings.index",
+        "admin.documents.branding.index",
         "admin.assistant-settings.index",
         "admin.assistant-overview.index",
         "admin.assistant-intelligence.index",
@@ -530,6 +531,7 @@
       ],
       "route_path": [
         "/admin/settings",
+        "/admin/settings/documents",
         "/admin/settings/assistant",
         "/admin/assistant/intelligence",
         "/admin/settings/app-versions",
@@ -1213,6 +1215,38 @@
       "remediation_owner": null,
       "remediation_scope": null,
       "notes": null
+    },
+    {
+      "id": "b2b.commercial_flash_offers",
+      "domain": "Wholesale / Commercial",
+      "capability": "Wholesale Flash Offers management",
+      "route": [
+        "admin.commercial.wholesale-flash-offers"
+      ],
+      "route_path": [
+        "/admin/b2b/commercial/flash-offers"
+      ],
+      "controller_view": "CommercialDashboardController::flashOffers; admin.commercial-dashboard",
+      "role_persona": "B2B admin and authorized platform operations",
+      "permission_entitlement": "promotions.view; B2B store scope",
+      "navigation_owner": "Commercial / Wholesale",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Marketing & Communications → Wholesale Flash Offers",
+      "parent_context": "Wholesale commercial marketing",
+      "ar_label": "العروض السريعة للجملة",
+      "en_label": "Wholesale Flash Offers",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Wholesale Flash Offers marketing item remains active",
+      "back_path": "Marketing & Communications → Wholesale Flash Offers",
+      "status": "NAV_OK",
+      "evidence": [
+        "backend/app/Support/AdminNavigation.php",
+        "backend/resources/views/admin/commercial-dashboard.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "B2B only. Retail flash management remains a separate scoped route."
     },
     {
       "id": "b2c.commercial_storefront",

@@ -591,7 +591,7 @@ class CommercialDashboardContractTest extends TestCase
             ->assertSee('data-flash-products-available-count data-count="0"', false)
             ->assertSee('data-flash-products-empty', false)
             ->assertSee('No active priced products exist in this store catalog.')
-            ->assertSee(route('admin.catalog.index', ['tab' => 'products', 'store_id' => $storeId]), false);
+            ->assertSee(route('admin.catalog.index', ['tab' => 'products', 'store_id' => $storeId]));
     }
 
     public function test_retail_manager_cannot_read_or_save_wholesale_flash_products(): void
