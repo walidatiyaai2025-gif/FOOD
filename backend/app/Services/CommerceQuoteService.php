@@ -197,8 +197,7 @@ final class CommerceQuoteService
                     $unitIssue = 'The selling-unit conversion changed. Re-add the product to update your cart.';
                 }
 
-                if ($unitIssue !== null || $unit === null) {
-                    $unitIssue ??= 'The selected selling unit is unavailable.';
+                if ($unitIssue !== null) {
                     if ($strict) {
                         throw ValidationException::withMessages(['items' => [$unitIssue]]);
                     }
