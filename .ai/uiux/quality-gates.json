@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "purpose": "Surface-specific authority, interaction, scalability and evidence gates that complement static UI pattern scanning.",
+  "purpose": "Surface-specific authority, interaction, scalability and code-based QA; screenshot-proof workflows retired.",
   "surfaces": {
     "dashboard": {
       "authority_sources": [
@@ -17,9 +17,6 @@
           "backend/tests/Feature/PremiumDashboardAcceptanceTest.php"
         ]
       },
-      "evidence_workflows": [
-        ".github/workflows/ui-visual-qa.yml"
-      ],
       "context_tests": [
         "backend/tests/Feature/TenantContextTest.php",
         "backend/tests/Feature/AdminResponsiveLayoutTest.php",
@@ -39,12 +36,6 @@
         "apps/customer_app/test/retail_commerce_test.dart",
         "apps/customer_app/test/customer_orders_ui_v3_test.dart"
       ],
-      "evidence_tests": [
-        "apps/customer_app/test/screenshot_evidence_test.dart"
-      ],
-      "evidence_workflows": [
-        ".github/workflows/mobile-screenshot-capture.yml"
-      ],
       "context_tests": [
         "apps/customer_app/test/customer_route_authority_test.dart"
       ]
@@ -60,12 +51,6 @@
       "interaction_tests": [
         "apps/driver_app/test/driver_wallet_page_test.dart"
       ],
-      "evidence_tests": [
-        "apps/driver_app/test/screenshot_evidence_test.dart"
-      ],
-      "evidence_workflows": [
-        ".github/workflows/mobile-screenshot-capture.yml"
-      ],
       "context_tests": [
         "apps/driver_app/test/navigation_test.dart"
       ]
@@ -80,12 +65,6 @@
       ],
       "interaction_tests": [
         "apps/van_app/test/van_wallet_page_test.dart"
-      ],
-      "evidence_tests": [
-        "apps/van_app/test/screenshot_evidence_test.dart"
-      ],
-      "evidence_workflows": [
-        ".github/workflows/mobile-screenshot-capture.yml"
       ],
       "context_tests": [
         "apps/van_app/test/app_test.dart"

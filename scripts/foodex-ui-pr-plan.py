@@ -105,40 +105,13 @@ def golden_candidates(surface: str, root: Path = ROOT) -> list[str]:
     return result
 
 
-def inventory_errors(rows: list[tuple[str, str]], signatures: dict, matrix: dict) -> list[str]:
-    changed = {path for _, path in rows}
-    errors: list[str] = []
-    new_by_surface: dict[str, list[str]] = {}
-    for status, path in rows:
-        if status != "A":
-            continue
-        surface = screen_surface(path, signatures)
-        if surface:
-            new_by_surface.setdefault(surface, []).append(path)
-    for surface, screens in sorted(new_by_surface.items()):
-        inventory = matrix.get("surfaces", {}).get(surface, {}).get("evidence_inventory")
-        if not inventory:
-            errors.append(f"{surface}: no evidence inventory configured for new screens {screens}")
-        elif inventory not in changed:
-            errors.append(
-                f"{surface}: new screen(s) require evidence inventory update in {inventory}: {', '.join(screens)}"
-            )
-    return errors
-
-
 def validate_matrix(matrix: dict, root: Path = ROOT) -> list[str]:
     errors: list[str] = []
     for surface, data in matrix.get("surfaces", {}).items():
-        for key in ("workflow", "evidence_inventory"):
-            rel = data.get(key)
-            if not isinstance(rel, str) or not (root / rel).is_file():
-                errors.append(f"{surface}: invalid {key}: {rel}")
         if not data.get("locales"):
             errors.append(f"{surface}: visual matrix locales are empty")
         if not data.get("viewports"):
             errors.append(f"{surface}: visual matrix viewports are empty")
-        if not data.get("required_ci_job"):
-            errors.append(f"{surface}: required_ci_job is missing")
         if surface == "dashboard":
             expected = {
                 "desktop-1280", "compact-1024", "tablet-768", "mobile-430",
@@ -179,7 +152,7 @@ def build_plan(rows: list[tuple[str, str]], root: Path = ROOT) -> dict:
             changed_ui.setdefault(surface, []).append({"status": "M", "path": "shared-mobile-design-system"})
 
     surfaces = sorted(changed_ui)
-    errors = validate_matrix(matrix, root) + inventory_errors(rows, signatures, matrix)
+    errors = validate_matrix(matrix, root)
     plans = {}
     for surface in surfaces:
         plans[surface] = {

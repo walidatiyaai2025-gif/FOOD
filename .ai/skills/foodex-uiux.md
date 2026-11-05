@@ -297,7 +297,7 @@ For any page/screen task, the worker may say "complete", "done", "جاهز", or 
 1. applicable automated feature/design guards pass;
 2. `uiux-audit.md` verdict is PASS;
 3. required AR/EN and responsive runtime evidence exists;
-4. evidence workflow/path triggers actually cover the changed UI;
+4. functional/route/permission tests cover the changed UI;
 5. no required interaction is still UNKNOWN.
 
 Generic green CI alone is not a substitute for this UI acceptance gate.
@@ -350,7 +350,7 @@ Read:
 - `.ai/skills/ui-pr-evidence-plan.md`
 - `.ai/uiux/visual-evidence-matrix.json`
 
-New screens must satisfy the surface structural signature and be added to the owning runtime screenshot inventory. Applicable Web/Mobile visual evidence jobs are part of Required CI.
+New screens must satisfy structural signatures, functional route coverage, localization and responsive review. Screenshot capture inventories and visual-evidence CI jobs are not mandatory.
 
 ## 17. Business journey learning and short-prompt routing
 

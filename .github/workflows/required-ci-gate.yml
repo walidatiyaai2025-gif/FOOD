@@ -279,18 +279,6 @@ jobs:
     if: ${{ needs.changes.outputs.backend_dashboard_only != 'true' && needs.changes.outputs.van == 'true' }}
     uses: ./.github/workflows/van-app-ci.yml
 
-  dashboard-visual-evidence:
-    name: Required Dashboard visual evidence
-    needs: changes
-    if: ${{ needs.changes.outputs.dashboard_ui == 'true' }}
-    uses: ./.github/workflows/ui-visual-qa.yml
-
-  mobile-visual-evidence:
-    name: Required Mobile visual evidence
-    needs: changes
-    if: ${{ needs.changes.outputs.backend_dashboard_only != 'true' && (needs.changes.outputs.mobile_ui == 'true' || startsWith(github.head_ref, 'test/1359-')) }}
-    uses: ./.github/workflows/mobile-screenshot-capture.yml
-
   localization-quality:
     name: Localization quality
     needs: changes
@@ -300,25 +288,11 @@ jobs:
       head_sha: ${{ github.event.pull_request.head.sha }}
       run_mobile_runtime: ${{ needs.changes.outputs.backend_dashboard_only != 'true' && (needs.changes.outputs.customer == 'true' || needs.changes.outputs.driver == 'true' || needs.changes.outputs.van == 'true') }}
 
-  app-preview-visual-parity:
-    name: APP-PREVIEW visual runtime parity
-    needs: changes
-    if: ${{ needs.changes.outputs.backend_dashboard_only != 'true' && needs.changes.outputs.app_preview_visual == 'true' }}
-    uses: ./.github/workflows/app-preview-visual-parity.yml
-
   preview-runtime-distribution:
     name: Preview runtime distribution
     needs: changes
     if: ${{ needs.changes.outputs.backend_dashboard_only != 'true' && needs.changes.outputs.preview_runtime_distribution == 'true' }}
     uses: ./.github/workflows/preview-runtime-distribution.yml
-
-  screenshot-evidence:
-    name: Runtime screenshot evidence
-    needs: changes
-    if: ${{ needs.changes.outputs.mobile_prod_ux_acceptance == 'true' || startsWith(github.head_ref, 'test/1359-') || github.head_ref == 'test/175-runtime-screenshot-evidence' || github.head_ref == 'ci/184-screenshot-evidence-guards' }}
-    permissions:
-      contents: write
-    uses: ./.github/workflows/screenshot-evidence.yml
 
   operational-completion-e2e:
     name: Operational completion integrated gate
@@ -385,11 +359,7 @@ jobs:
       - driver-validation
       - van-validation
       - localization-quality
-      - dashboard-visual-evidence
-      - mobile-visual-evidence
-      - app-preview-visual-parity
       - preview-runtime-distribution
-      - screenshot-evidence
       - operational-completion-e2e
       - c13-integrated-e2e
       - enterprise-performance
@@ -410,16 +380,8 @@ jobs:
           VAN_CHANGED: ${{ needs.changes.outputs.van }}
           VAN_RESULT: ${{ needs.van-validation.result }}
           LOCALIZATION_RESULT: ${{ needs.localization-quality.result }}
-          DASHBOARD_UI_CHANGED: ${{ needs.changes.outputs.dashboard_ui }}
-          DASHBOARD_VISUAL_RESULT: ${{ needs.dashboard-visual-evidence.result }}
-          MOBILE_UI_CHANGED: ${{ needs.changes.outputs.mobile_ui }}
-          MOBILE_VISUAL_RESULT: ${{ needs.mobile-visual-evidence.result }}
-          APP_PREVIEW_VISUAL_CHANGED: ${{ needs.changes.outputs.app_preview_visual }}
-          APP_PREVIEW_VISUAL_RESULT: ${{ needs.app-preview-visual-parity.result }}
           PREVIEW_RUNTIME_DISTRIBUTION_CHANGED: ${{ needs.changes.outputs.preview_runtime_distribution }}
           PREVIEW_RUNTIME_DISTRIBUTION_RESULT: ${{ needs.preview-runtime-distribution.result }}
-          SCREENSHOT_RESULT: ${{ needs.screenshot-evidence.result }}
-          MOBILE_PROD_UX_ACCEPTANCE: ${{ needs.changes.outputs.mobile_prod_ux_acceptance }}
           OPERATIONAL_COMPLETION_E2E: ${{ needs.changes.outputs.operational_completion_e2e }}
           OPERATIONAL_COMPLETION_E2E_RESULT: ${{ needs.operational-completion-e2e.result }}
           C13_INTEGRATED_E2E: ${{ needs.changes.outputs.c13_integrated_e2e }}
@@ -461,9 +423,6 @@ jobs:
             CUSTOMER_CHANGED=false
             DRIVER_CHANGED=false
             VAN_CHANGED=false
-            MOBILE_UI_CHANGED=false
-            MOBILE_PROD_UX_ACCEPTANCE=false
-            APP_PREVIEW_VISUAL_CHANGED=false
             PREVIEW_RUNTIME_DISTRIBUTION_CHANGED=false
           fi
 
@@ -472,19 +431,9 @@ jobs:
           require_applicable_success "$DRIVER_CHANGED" "Driver validation" "$DRIVER_RESULT"
           require_applicable_success "$VAN_CHANGED" "Van validation" "$VAN_RESULT"
           require_success "Localization quality" "$LOCALIZATION_RESULT"
-          require_applicable_success "$DASHBOARD_UI_CHANGED" "Dashboard visual evidence" "$DASHBOARD_VISUAL_RESULT"
-          require_applicable_success "$MOBILE_UI_CHANGED" "Mobile visual evidence" "$MOBILE_VISUAL_RESULT"
-          require_applicable_success "$APP_PREVIEW_VISUAL_CHANGED" "APP-PREVIEW visual runtime parity" "$APP_PREVIEW_VISUAL_RESULT"
           require_applicable_success "$PREVIEW_RUNTIME_DISTRIBUTION_CHANGED" "Preview runtime distribution" "$PREVIEW_RUNTIME_DISTRIBUTION_RESULT"
           require_applicable_success "$OPERATIONAL_COMPLETION_E2E" "Operational completion integrated gate" "$OPERATIONAL_COMPLETION_E2E_RESULT"
           require_applicable_success "$C13_INTEGRATED_E2E" "C13 integrated Customer journey gate" "$C13_INTEGRATED_E2E_RESULT"
           require_applicable_success "$ENTERPRISE_PERFORMANCE_CHANGED" "Enterprise performance certification" "$ENTERPRISE_PERFORMANCE_RESULT"
-
-          if [[ "$MOBILE_PROD_UX_ACCEPTANCE" == "true" || "${{ github.head_ref }}" == test/1359-* || "${{ github.head_ref }}" == "test/175-runtime-screenshot-evidence" || "${{ github.head_ref }}" == "ci/184-screenshot-evidence-guards" ]]; then
-            require_success "Runtime screenshot evidence" "$SCREENSHOT_RESULT"
-          elif [[ "$SCREENSHOT_RESULT" != "skipped" && "$SCREENSHOT_RESULT" != "success" ]]; then
-            echo "::error::Runtime screenshot evidence had unexpected result: $SCREENSHOT_RESULT"
-            exit 1
-          fi
 
           echo "All required validations for changed areas passed."

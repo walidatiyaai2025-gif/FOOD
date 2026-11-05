@@ -202,7 +202,6 @@ flutter test test/customer_route_authority_test.dart
 flutter test test/customer_navigation_test.dart
 flutter test test/customer_ui_v3_design_system_test.dart
 flutter test test/customer_orders_ui_v3_test.dart
-flutter test test/screenshot_evidence_test.dart
 ```
 
 Driver operational examples, from `apps/driver_app/`:
@@ -210,14 +209,12 @@ Driver operational examples, from `apps/driver_app/`:
 ```bash
 flutter test test/navigation_test.dart
 flutter test test/driver_active_journey_test.dart
-flutter test test/screenshot_evidence_test.dart
 ```
 
 Van visual/runtime evidence, from `apps/van_app/`:
 
 ```bash
 flutter test test/app_test.dart
-flutter test test/screenshot_evidence_test.dart
 ```
 
 Choose additional feature-specific tests based on changed code.
@@ -291,7 +288,7 @@ Advisory:
 
 Run `scripts/foodex-ui-pr-plan.py --strict`.
 
-A new screen without an owning screenshot/capture inventory update is FAIL. Applicable Dashboard/Mobile visual evidence jobs must pass inside Required CI.
+New screens require functional, route, localization and structural coverage; screenshot inventories and screenshot-specific CI jobs are retired (#2472).
 
 ## 15. Business journey / casebook gate
 

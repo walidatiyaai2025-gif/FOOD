@@ -23,11 +23,6 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') || startsWith(github.head_ref, 'test/1359-') }}
     uses: ./.github/workflows/driver-app-ci.yml
 
-  runtime-evidence:
-    name: Runtime screenshot evidence
-    if: ${{ github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') || startsWith(github.head_ref, 'test/1359-') }}
-    uses: ./.github/workflows/screenshot-evidence.yml
-
   release-gate:
     name: Platform Customer commerce release gate
     if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.head_ref == 'test/414-platform-customer-commerce-e2e' || startsWith(github.head_ref, 'feat/436-') || startsWith(github.head_ref, 'test/682-') || startsWith(github.head_ref, 'feat/683-') || startsWith(github.head_ref, 'test/725-') || startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') || startsWith(github.head_ref, 'test/1359-')) }}
@@ -35,7 +30,6 @@ jobs:
       - backend-validation
       - customer-validation
       - driver-validation
-      - runtime-evidence
     runs-on: ubuntu-latest
     steps:
       - name: Require every release surface to pass
@@ -44,10 +38,9 @@ jobs:
           BACKEND_RESULT: ${{ needs.backend-validation.result }}
           CUSTOMER_RESULT: ${{ needs.customer-validation.result }}
           DRIVER_RESULT: ${{ needs.driver-validation.result }}
-          EVIDENCE_RESULT: ${{ needs.runtime-evidence.result }}
         run: |
           set -euo pipefail
-          for pair in             "backend:$BACKEND_RESULT"             "customer:$CUSTOMER_RESULT"             "driver:$DRIVER_RESULT"             "runtime-evidence:$EVIDENCE_RESULT"; do
+          for pair in             "backend:$BACKEND_RESULT"             "customer:$CUSTOMER_RESULT"             "driver:$DRIVER_RESULT"; do
             name="${pair%%:*}"
             result="${pair#*:}"
             if [[ "$result" != "success" ]]; then
@@ -312,7 +305,6 @@ jobs:
             echo "backend_validation=${{ needs.backend-validation.result }}"
             echo "customer_validation=${{ needs.customer-validation.result }}"
             echo "driver_validation=${{ needs.driver-validation.result }}"
-            echo "runtime_evidence=${{ needs.runtime-evidence.result }}"
             echo "journeys=12"
             echo "pcx09_address_lifecycle_contracts=${{ startsWith(github.head_ref, 'feat/436-') || startsWith(github.ref_name, 'feat/436-') }}"
             echo "commerce_isolation_convergence=${{ startsWith(github.head_ref, 'test/743-') || startsWith(github.head_ref, 'test/775-') || startsWith(github.head_ref, 'test/873-') || startsWith(github.head_ref, 'test/1333-') }}"

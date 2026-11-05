@@ -1,11 +1,8 @@
 {
   "schema_version": 1,
-  "purpose": "Minimum runtime visual evidence expected when a FOODEX UI surface changes.",
+  "purpose": "Optional viewport/localization UI review reference; screenshot evidence workflows and CI proof obligations retired.",
   "surfaces": {
     "dashboard": {
-      "workflow": ".github/workflows/ui-visual-qa.yml",
-      "required_ci_job": "dashboard-visual-evidence",
-      "evidence_inventory": "scripts/capture_web_screenshots.mjs",
       "locales": [
         "ar",
         "en"
@@ -54,9 +51,6 @@
       ]
     },
     "customer": {
-      "workflow": ".github/workflows/mobile-screenshot-capture.yml",
-      "required_ci_job": "mobile-visual-evidence",
-      "evidence_inventory": "apps/customer_app/test/screenshot_evidence_test.dart",
       "locales": [
         "ar",
         "en"
@@ -76,9 +70,6 @@
       ]
     },
     "driver": {
-      "workflow": ".github/workflows/mobile-screenshot-capture.yml",
-      "required_ci_job": "mobile-visual-evidence",
-      "evidence_inventory": "apps/driver_app/test/screenshot_evidence_test.dart",
       "locales": [
         "ar",
         "en"
@@ -98,9 +89,6 @@
       ]
     },
     "van": {
-      "workflow": ".github/workflows/mobile-screenshot-capture.yml",
-      "required_ci_job": "mobile-visual-evidence",
-      "evidence_inventory": "apps/van_app/test/screenshot_evidence_test.dart",
       "locales": [
         "ar",
         "en"
