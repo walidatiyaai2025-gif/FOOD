@@ -297,7 +297,7 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
       }),
     );
     final body = _decode(response);
-    final data = body is Map ? body['data'] : body;
+    final data = body is Map && body['data'] is Map ? body['data'] : body;
     if (data is! Map) {
       throw const RetailCommerceException('invalid_flash_reservation_response');
     }
