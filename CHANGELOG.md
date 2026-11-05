@@ -1,3 +1,10 @@
+## 1.0.123 - Owner commerce, Customer and Driver convergence
+
+- Deliver #2470 / PR #2471 changes to the Laravel Dashboard and backend: configurable B2B minimum order (1,500 EGP initial / zero disabled), authoritative stock-only visibility, selling-unit cart/checkout, invoice/print identity and finance/payment state.
+- Restore B2B/B2C Flash Offers products and Customer offers navigation; refine Customer order/payment display, Driver order details and proof-of-delivery, localized screens and B2B Van-only vs B2C Driver-only operation.
+- Repair Customer iOS simulator dependencies by converging on the compatible mobile_scanner Apple Vision implementation and retaining fully green exact-head Customer/Driver simulator validation.
+- Publish cumulative Dashboard upgrade for existing 1.0.121 installations with secure backup, manifest/checksum and migrations plus a clean-setup ZIP, synchronized Customer/Driver/Van Android artifacts at 1.0.123+123, immutable v1.0.123 GitHub Release assets and final registry sync after release acceptance.
+
 ## 1.0.122 - Protected-main publication recovery after pre-merge 1.0.121 collision
 
 - Preserve previously published v1.0.120 and v1.0.121 tags, Releases and assets without retargeting, deletion or replacement. The v1.0.121 Release was published from pre-merge source 275c5c81379c7269b12f48374dd71e64b39044ce, not the authoritative protected-main squash merge 7d0caef1175ca778f98790abc8c56b0eca7a1600.
