@@ -42,6 +42,8 @@ final class FlashOfferController extends Controller
         $legacyCustomerId = null;
 
         if ($channel === 'customer') {
+            // Wholesale mobile discovery has its own /b2b/flash-offers feed.
+            abort_if(app(OperationalTenantScope::class)->storeChannel($storeId) === 'b2b', 404);
             [$customer] = $customers->forStore($user, $storeId, $request);
             $legacyCustomerId = $customers->legacyId($customer);
         }
@@ -122,7 +124,8 @@ final class FlashOfferController extends Controller
         $legacyCustomerId = $customer->legacy_customer_id === null
             ? null : (int) $customer->legacy_customer_id;
 
-        $offers = $flash->activeOffers($storeId, 'van', (int) $user->getKey());
+        $offers = $flash->activeOffers($storeId, 'van', (int) $user->getKey())
+            ->filter(static fn (FlashOffer $offer): bool => in_array('customer', (array) $offer->channels, true));
 
         return response()->json([
             'server_time' => now()->toAtomString(),
@@ -149,6 +152,7 @@ final class FlashOfferController extends Controller
         $storeId = (int) $data['store_id'];
         $this->assertPrincipalWholesaleStore($storeId);
         $offers = $flash->activeOffers($storeId, 'van')
+            ->filter(static fn (FlashOffer $offer): bool => in_array('customer', (array) $offer->channels, true))
             ->filter(static fn (FlashOffer $offer): bool => (array) ($offer->audience_customer_ids ?? []) === []
                 && (array) ($offer->audience_customer_group_ids ?? []) === []
                 && (array) ($offer->audience_regions ?? []) === []
