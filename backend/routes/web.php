@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\CatalogManagementController;
 use App\Http\Controllers\Admin\CommercialDashboardController;
 use App\Http\Controllers\Admin\Customer360Controller;
 use App\Http\Controllers\Admin\CustomerServiceWorkspaceController;
+use App\Http\Controllers\Admin\DocumentBrandingController;
 use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
 use App\Http\Controllers\Admin\DriverOrdersController;
 use App\Http\Controllers\Admin\EnterpriseActionCenterController;
@@ -351,6 +352,8 @@ Route::prefix('admin')
             ->middleware('throttle:30,1')
             ->name('enterprise-saved-views.destroy');
         Route::get('/settings', SettingsCenterController::class)->name('settings.index');
+        Route::get('/settings/documents', [DocumentBrandingController::class, 'index'])->name('documents.branding.index');
+        Route::put('/settings/documents', [DocumentBrandingController::class, 'update'])->middleware('throttle:20,1')->name('documents.branding.update');
         Route::get('/settings/whatsapp', [WhatsAppFoundationController::class, 'index'])->name('whatsapp.index');
         Route::put('/settings/whatsapp', [WhatsAppFoundationController::class, 'update'])->middleware('throttle:30,1')->name('whatsapp.update');
         Route::get('/settings/whatsapp/connections', [WhatsAppConnectionController::class, 'index'])->name('whatsapp.connections.index');
@@ -654,7 +657,9 @@ Route::prefix('admin')
         Route::patch('/b2b/drivers/{driver}/password', [B2bWorkspaceController::class, 'resetDriverPassword'])->whereNumber('driver')->name('b2b.drivers.password');
         Route::put('/b2b/settings/pricing-tiers', [B2bWorkspaceController::class, 'savePricingMode'])->name('b2b.settings.pricing-tiers');
         Route::put('/b2b/settings', [B2bWorkspaceController::class, 'saveSetting'])->name('b2b.settings.save');
+        Route::put('/b2b/storefront/minimum-order', [B2bWorkspaceController::class, 'saveWholesaleMinimumOrder'])->name('b2b.storefront.minimum-order');
         Route::put('/b2b/storefront/settings', [StorefrontDraftEditorController::class, 'wholesaleSettings'])->name('b2b.storefront.settings');
+        Route::put('/b2b/storefront/stock-visibility', [StorefrontDraftEditorController::class, 'wholesaleStockVisibility'])->name('b2b.storefront.stock-visibility');
         Route::post('/b2b/storefront/sections', [StorefrontDraftEditorController::class, 'wholesaleSectionStore'])->name('b2b.storefront.sections.store');
         Route::patch('/b2b/storefront/sections/{section}', [StorefrontDraftEditorController::class, 'wholesaleSectionUpdate'])->name('b2b.storefront.sections.update');
         Route::delete('/b2b/storefront/sections/{section}', [StorefrontDraftEditorController::class, 'wholesaleSectionDestroy'])->name('b2b.storefront.sections.destroy');
@@ -682,6 +687,13 @@ Route::prefix('admin')
         Route::get('/b2b/commercial/sales-control', [CommercialDashboardController::class, 'salesControl'])->name('commercial.sales-control');
         Route::get('/b2b/commercial/sales-control/products', [CommercialDashboardController::class, 'searchSalesControlProducts'])->name('commercial.sales-control.products');
         Route::put('/b2b/commercial/sales-control/{product}', [CommercialDashboardController::class, 'saveSalesControl'])->whereNumber('product')->name('commercial.sales-control.save');
+        // Wholesale Flash management is a B2B workspace. Must precede
+        // /b2b/{module}, which otherwise catches the commercial prefix.
+        Route::get('/b2b/commercial/flash-offers', [CommercialDashboardController::class, 'flashOffers'])->name('commercial.wholesale-flash-offers');
+        Route::get('/b2b/commercial/flash-offers/{offer}/preview', [CommercialDashboardController::class, 'flashPreview'])->whereNumber('offer')->name('commercial.wholesale-flash-offers.preview');
+        Route::get('/b2b/commercial/flash-offers/{offer}/analytics', [CommercialDashboardController::class, 'flashAnalytics'])->whereNumber('offer')->name('commercial.wholesale-flash-offers.analytics');
+        Route::post('/b2b/commercial/flash-offers', [CommercialDashboardController::class, 'saveFlashOffer'])->name('commercial.wholesale-flash-offers.save');
+        Route::post('/b2b/commercial/flash-offers/{offer}/action', [CommercialDashboardController::class, 'flashAction'])->whereNumber('offer')->name('commercial.wholesale-flash-offers.action');
         Route::get('/b2b/{module}', [B2bWorkspaceController::class, 'show'])->name('b2b.module');
         Route::get('/b2c/dashboard', [B2cWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2c.dashboard');
         Route::get('/restaurant/wholesale-purchases', [RestaurantWholesalePurchasesController::class, 'index'])->name('restaurant.wholesale-purchases.index');
@@ -755,6 +767,7 @@ Route::prefix('admin')
         Route::post('/catalog/products', [CatalogManagementController::class, 'storeProduct'])->name('catalog.products.store');
         Route::patch('/catalog/products/{product}', [CatalogManagementController::class, 'updateProduct'])->name('catalog.products.update');
         Route::patch('/catalog/products/{product}/inline', [CatalogManagementController::class, 'updateProductInline'])->whereNumber('product')->name('catalog.products.inline');
+        Route::patch('/catalog/products/{product}/app-order', [CatalogManagementController::class, 'reorderAppProduct'])->whereNumber('product')->name('catalog.products.app-order');
         Route::patch('/catalog/products/{product}/grid-image', [CatalogManagementController::class, 'replaceProductGridImage'])->whereNumber('product')->name('catalog.products.grid-image');
         Route::patch('/catalog/products/{product}/price', [CatalogManagementController::class, 'updateProductPrice'])->whereNumber('product')->name('catalog.products.price');
         Route::patch('/catalog/products/{product}/status', [CatalogManagementController::class, 'toggleProductStatus'])->name('catalog.products.status');

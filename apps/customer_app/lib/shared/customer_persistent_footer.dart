@@ -8,6 +8,7 @@ import '../core/theme/customer_ui_v3_tokens.dart';
 enum CustomerFooterDestination {
   home,
   products,
+  offers,
   cart,
   orders,
   favorites,
@@ -117,79 +118,50 @@ class CustomerPersistentFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isWholesale = commerceContext?.isWholesale ?? forceWholesale;
-    final isRetail = commerceContext?.isRetail == true;
-    final items = isWholesale
-        ? <_FooterItem>[
-            _FooterItem(
-              destination: CustomerFooterDestination.home,
-              label: context.tr('customer.nav.home'),
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.products,
-              label: context.tr('customer.nav.shopping'),
-              icon: Icons.shopping_cart_outlined,
-              activeIcon: Icons.shopping_cart_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.orders,
-              label: context.tr('customer.profile.orders'),
-              icon: Icons.receipt_long_outlined,
-              activeIcon: Icons.receipt_long_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.favorites,
-              label: context.tr('customer.profile.favorites'),
-              icon: Icons.favorite_border_rounded,
-              activeIcon: Icons.favorite_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.invoices,
-              label: context.tr('customer.nav.invoices'),
-              icon: Icons.description_outlined,
-              activeIcon: Icons.description_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.account,
-              label: context.tr('customer.nav.more'),
-              icon: Icons.more_horiz_rounded,
-              activeIcon: Icons.more_horiz_rounded,
-            ),
-          ]
-        : <_FooterItem>[
-            _FooterItem(
-              destination: CustomerFooterDestination.home,
-              label: context.tr('customer.nav.home'),
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.products,
-              label: context.tr('customer.nav.products'),
-              icon: Icons.grid_view_outlined,
-              activeIcon: Icons.grid_view_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.cart,
-              label: context.tr('customer.nav.cart'),
-              icon: Icons.shopping_bag_outlined,
-              activeIcon: Icons.shopping_bag_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.orders,
-              label: context.tr('customer.profile.orders'),
-              icon: Icons.receipt_long_outlined,
-              activeIcon: Icons.receipt_long_rounded,
-            ),
-            _FooterItem(
-              destination: CustomerFooterDestination.account,
-              label: context.tr('customer.nav.profile'),
-              icon: Icons.person_outline_rounded,
-              activeIcon: Icons.person_rounded,
-            ),
-          ];
+    final isRetail = commerceContext?.isRetail == true && !forceWholesale;
+    // Six destinations must remain legible on compact 320px devices.
+    final compact = MediaQuery.sizeOf(context).width < 390;
+
+    // Canonical six destinations: Home, Shopping, Offers, Orders, Invoices, More.
+    // Favorites now lives beside Notifications in the shared customer header.
+    final items = <_FooterItem>[
+      _FooterItem(
+        destination: CustomerFooterDestination.home,
+        label: context.tr('customer.nav.home'),
+        icon: Icons.home_outlined,
+        activeIcon: Icons.home_rounded,
+      ),
+      _FooterItem(
+        destination: CustomerFooterDestination.products,
+        label: context.tr('customer.nav.shopping'),
+        icon: Icons.grid_view_outlined,
+        activeIcon: Icons.grid_view_rounded,
+      ),
+      _FooterItem(
+        destination: CustomerFooterDestination.offers,
+        label: context.tr('customer.nav.offers'),
+        icon: Icons.local_offer_outlined,
+        activeIcon: Icons.local_offer_rounded,
+      ),
+      _FooterItem(
+        destination: CustomerFooterDestination.orders,
+        label: context.tr('customer.profile.orders'),
+        icon: Icons.receipt_long_outlined,
+        activeIcon: Icons.receipt_long_rounded,
+      ),
+      _FooterItem(
+        destination: CustomerFooterDestination.invoices,
+        label: context.tr('customer.nav.invoices'),
+        icon: Icons.description_outlined,
+        activeIcon: Icons.description_rounded,
+      ),
+      _FooterItem(
+        destination: CustomerFooterDestination.account,
+        label: context.tr('customer.nav.more'),
+        icon: Icons.more_horiz_rounded,
+        activeIcon: Icons.more_horiz_rounded,
+      ),
+    ];
 
     return Material(
       key: const ValueKey('customer-persistent-footer'),
@@ -224,6 +196,7 @@ class CustomerPersistentFooter extends StatelessWidget {
                           item: item,
                           active: item.destination == activeDestination,
                           enabled: !disabled,
+                          compact: compact,
                           onTap: disabled ||
                                   (isRetail &&
                                       item.destination == activeDestination &&
@@ -251,10 +224,15 @@ class CustomerPersistentFooter extends StatelessWidget {
     if (scope?.isRetail == true) {
       switch (destination) {
         case CustomerFooterDestination.home:
-          return CustomerRoutePaths.b2bHome;
+          return CustomerRouteLocations.retailHome(scope!);
         case CustomerFooterDestination.products:
           return Uri(
             path: CustomerRoutePaths.products,
+            queryParameters: scope!.toQueryParameters(),
+          ).toString();
+        case CustomerFooterDestination.offers:
+          return Uri(
+            path: CustomerRoutePaths.offers,
             queryParameters: scope!.toQueryParameters(),
           ).toString();
         case CustomerFooterDestination.cart:
@@ -264,7 +242,7 @@ class CustomerPersistentFooter extends StatelessWidget {
         case CustomerFooterDestination.favorites:
           return CustomerRouteLocations.retailFavorites(scope!);
         case CustomerFooterDestination.invoices:
-          return CustomerRouteLocations.retailProfile(scope!);
+          return CustomerRouteLocations.retailInvoices(scope!);
         case CustomerFooterDestination.account:
           return CustomerRouteLocations.retailProfile(scope!);
       }
@@ -279,6 +257,8 @@ class CustomerPersistentFooter extends StatelessWidget {
             path: CustomerRoutePaths.b2bProducts,
             queryParameters: scope!.toQueryParameters(),
           ).toString();
+        case CustomerFooterDestination.offers:
+          return CustomerRouteLocations.wholesaleOffers(scope!);
         case CustomerFooterDestination.cart:
           return CustomerRouteLocations.wholesaleCart(scope!);
         case CustomerFooterDestination.orders:
@@ -300,6 +280,8 @@ class CustomerPersistentFooter extends StatelessWidget {
         return CustomerRoutePaths.b2bHome;
       case CustomerFooterDestination.products:
         return CustomerRoutePaths.b2bProducts;
+      case CustomerFooterDestination.offers:
+        return CustomerRoutePaths.b2bOffers;
       case CustomerFooterDestination.cart:
         return CustomerRoutePaths.b2bCart;
       case CustomerFooterDestination.orders:
@@ -334,12 +316,14 @@ class _FooterButton extends StatelessWidget {
     required this.active,
     required this.enabled,
     required this.onTap,
+    required this.compact,
     super.key,
   });
 
   final _FooterItem item;
   final bool active;
   final bool enabled;
+  final bool compact;
   final VoidCallback? onTap;
 
   @override
@@ -375,7 +359,7 @@ class _FooterButton extends StatelessWidget {
                 AnimatedContainer(
                   duration: duration,
                   curve: CustomerUiMotion.emphasisCurve,
-                  width: active ? 58 : 46,
+                  width: compact ? (active ? 44 : 38) : (active ? 58 : 46),
                   height: 42,
                   decoration: BoxDecoration(
                     color:
@@ -384,7 +368,7 @@ class _FooterButton extends StatelessWidget {
                   ),
                   child: Icon(
                     active ? item.activeIcon : item.icon,
-                    size: active ? 27 : 24,
+                    size: compact ? (active ? 24 : 22) : (active ? 27 : 24),
                     color: active
                         ? CustomerUiColors.deepGreenStrong
                         : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -405,7 +389,7 @@ class _FooterButton extends StatelessWidget {
                               : Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight:
                               active ? FontWeight.w900 : FontWeight.w700,
-                          fontSize: 10.5,
+                          fontSize: compact ? 9.5 : 10.5,
                           height: 1.05,
                         ),
                   ),

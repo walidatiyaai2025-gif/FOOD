@@ -51,11 +51,11 @@
 
         <nav class="commercial-tabs" aria-label="{{ __('commercial.tabs.aria') }}">
             <a href="{{ route('admin.commercial.sales-control', $scope) }}">{{ __('commercial.tabs.sales_control') }}</a>
-            <a class="active" href="{{ route('admin.commercial.flash-offers', $scope) }}">{{ __('commercial.tabs.flash_offers') }}</a>
-            <a href="{{ route('admin.b2c.module', ['module' => 'promotions'] + $scope) }}">{{ __('commercial.tabs.back_store') }}</a>
+            <a class="active" href="{{ route($flashRoutePrefix, $scope) }}">{{ __('commercial.tabs.flash_offers') }}</a>
+            <a href="{{ route($storeChannel === 'b2b' ? 'admin.b2b.module' : 'admin.b2c.module', ['module' => $storeChannel === 'b2b' ? 'products' : 'promotions'] + $scope) }}">{{ __('commercial.tabs.back_store') }}</a>
         </nav>
 
-        <a href="{{ route('admin.commercial.flash-offers', $scope) }}">← {{ __('commercial.analytics.back') }}</a>
+        <a href="{{ route($flashRoutePrefix, $scope) }}">← {{ __('commercial.analytics.back') }}</a>
 
         <div class="analytics-grid">
             <section class="metric"><span>{{ __('commercial.analytics.reservations') }}</span><strong>{{ $reservationCount }}</strong></section>

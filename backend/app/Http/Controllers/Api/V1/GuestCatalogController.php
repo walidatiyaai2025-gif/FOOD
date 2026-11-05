@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\Promotion;
 use App\Models\Store;
+use App\Services\CommercialPolicyService;
 use App\Services\ProductAvailabilityService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -172,6 +173,12 @@ class GuestCatalogController extends Controller
             ->values()
             ->all();
 
+        $allowedSellingUnitCodes = collect(app(CommercialPolicyService::class)
+            ->sellingUnits((int) $item->id))
+            ->pluck('code')
+            ->map(static fn (string $code): string => strtoupper($code))
+            ->all();
+
         $sellingUnits = DB::table('product_selling_units')
             ->where('product_id', $item->id)
             ->where('is_active', true)
@@ -198,6 +205,7 @@ class GuestCatalogController extends Controller
                 'barcode' => $unit->barcode,
                 'is_base' => (bool) $unit->is_base,
             ])
+            ->filter(static fn (array $unit): bool => in_array(strtoupper((string) $unit['code']), $allowedSellingUnitCodes, true))
             ->values()
             ->all();
 

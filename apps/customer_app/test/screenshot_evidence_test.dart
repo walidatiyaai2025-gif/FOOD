@@ -83,6 +83,11 @@ void main() {
       session: _b2cWholesale,
     ),
     const _CaptureCase(
+      '02_MultiStore/10_retail_invoices__ar.png',
+      '/invoices?channel=retail&store_id=7',
+      session: _b2c,
+    ),
+    const _CaptureCase(
       '02_MultiStore/09_wholesale_orders__ar.png',
       '/b2b/orders?channel=wholesale&store_id=70',
       session: _b2cWholesale,
@@ -1304,7 +1309,8 @@ class _EvidenceCatalogApi implements B2cCatalogApi {
       );
 }
 
-class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
+class _EvidenceAccountApi
+    implements B2cAccountApi, B2cRetailFavoritesApi, CustomerRetailInvoiceApi {
   const _EvidenceAccountApi([this.localeCode = 'ar']);
 
   final String localeCode;
@@ -1361,6 +1367,42 @@ class _EvidenceAccountApi implements B2cAccountApi, B2cRetailFavoritesApi {
             'currency': 'KWD',
           },
         ],
+      };
+
+  @override
+  Future<Object?> invoicesForStore(int storeId) async => {
+        'data': [
+          {
+            'id': 31,
+            'store_id': storeId,
+            'invoice_number': 'FOODEX-INV-31',
+            'issued_at': '2026-11-04',
+            'status': 'issued',
+            'grand_total': 1860.00,
+            'currency': 'EGP',
+          },
+        ],
+      };
+
+  @override
+  Future<Object?> invoiceForStore(int storeId, int invoiceId) async => {
+        'data': {
+          'id': invoiceId,
+          'store_id': storeId,
+          'invoice_number': 'FOODEX-INV-31',
+          'status': 'issued',
+          'grand_total': 1860.00,
+          'currency': 'EGP',
+          'items': [
+            {
+              'product_id': 42,
+              'name': _isEn ? 'FOODEX Rice Carton' : 'كرتونة أرز فودكس',
+              'quantity': 2,
+              'unit_price': 930.00,
+              'line_total': 1860.00,
+            },
+          ],
+        },
       };
 
   @override
@@ -1868,16 +1910,16 @@ class _EvidenceWholesaleCommerceApi implements WholesaleCommerceApi {
   @override
   Future<Object?> cart(int storeId) async => {
         'store_id': storeId,
-        'subtotal': 725.0,
+        'subtotal': 1812.5,
         'currency': 'EGP',
         'items': [
           {
             'id': 501,
             'product_id': 42,
             'name': 'كرتونة طماطم FOODEX',
-            'quantity': 10,
+            'quantity': 25,
             'unit_price': 72.5,
-            'line_total': 725.0,
+            'line_total': 1812.5,
             'minimum_order_quantity': 5,
             'ordering_increment': 5,
             'pack_size': 12,
@@ -1915,6 +1957,6 @@ class _EvidenceWholesaleCommerceApi implements WholesaleCommerceApi {
         'store_id': storeId,
         'status': 'pending',
         'currency': 'EGP',
-        'grand_total': 725.0,
+        'grand_total': 1812.5,
       };
 }

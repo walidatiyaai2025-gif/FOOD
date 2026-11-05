@@ -19,6 +19,7 @@ final class DeliveryExecutionService
         private readonly OrderInventoryReservationService $reservations,
         private readonly OperationalLookupService $lookups,
         private readonly DeliverySettlementService $settlements,
+        private readonly PriorCreditDeliveryGuard $previousCredit,
     ) {}
 
     /** @return list<string> */
@@ -130,6 +131,10 @@ final class DeliveryExecutionService
         ?UploadedFile $proofImage,
         bool $hasStoredDeliveryProof = false,
     ): void {
+        if (in_array($targetStatus, ['out_for_delivery', 'delivered'], true)) {
+            $this->previousCredit->assertNoEarlierDebt($order);
+        }
+
         if ($targetStatus === 'delivered') {
             $deliveryInvoice = Invoice::query()
                 ->where('order_id', $order->getKey())

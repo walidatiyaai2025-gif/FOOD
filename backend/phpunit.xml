@@ -15,6 +15,8 @@
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
+        <!-- Legacy low-value fixtures opt out; MinimumOrderPolicyTest and CheckoutDomainTest explicitly enable the EGP 1500 production policy. -->
+        <env name="FOODEX_MINIMUM_ORDER_EGP" value="0"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

@@ -164,6 +164,54 @@ class OrderDomainTest extends TestCase
         $this->getJson('/api/v1/orders')->assertForbidden();
     }
 
+    public function test_my_orders_lists_expose_paid_and_remaining_amounts_for_b2b_and_b2c(): void
+    {
+        $partial = $this->makeOrder($this->b2bCustomer, $this->b2bStoreId, 'b2b');
+        $full = $this->makeOrder($this->b2bCustomer, $this->b2bStoreId, 'b2b');
+        $retail = $this->makeOrder($this->b2cCustomer, $this->b2cStoreId, 'b2c');
+
+        foreach ([
+            [$partial, 1.0],
+            [$full, 2.5],
+            [$retail, 1.0],
+        ] as [$order, $amount]) {
+            DB::table('payments')->insert([
+                'order_id' => $order->id,
+                'invoice_id' => null,
+                'provider' => 'cash_on_delivery',
+                'provider_reference' => 'MY-ORDERS-'.(int) $order->id,
+                'status' => 'paid',
+                'amount' => $amount,
+                'currency' => 'KWD',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        Sanctum::actingAs($this->b2bUser);
+        $response = $this->getJson('/api/v1/b2b/orders')->assertOk();
+        $rows = collect($response->json('data'));
+        $this->assertCount(2, $rows);
+
+        $part = $rows->firstWhere('id', $partial->id);
+        $this->assertSame('partially_settled', $part['settlement']['payment_state']);
+        $this->assertEqualsWithDelta(1.0, $part['settlement']['paid_amount'], 0.001);
+        $this->assertEqualsWithDelta(1.5, $part['settlement']['remaining_amount'], 0.001);
+
+        $all = $rows->firstWhere('id', $full->id);
+        $this->assertSame('fully_settled', $all['settlement']['payment_state']);
+        $this->assertEqualsWithDelta(2.5, $all['settlement']['paid_amount'], 0.001);
+        $this->assertEqualsWithDelta(0.0, $all['settlement']['remaining_amount'], 0.001);
+
+        Sanctum::actingAs($this->b2cUser);
+        $retailRows = $this->getJson('/api/v1/orders')->assertOk()->json('data');
+        $this->assertCount(1, $retailRows);
+        $this->assertSame($retail->id, $retailRows[0]['id']);
+        $this->assertSame('partially_settled', $retailRows[0]['settlement']['payment_state']);
+        $this->assertEqualsWithDelta(1.0, $retailRows[0]['settlement']['paid_amount'], 0.001);
+        $this->assertEqualsWithDelta(1.5, $retailRows[0]['settlement']['remaining_amount'], 0.001);
+    }
+
     public function test_customer_order_list_exposes_authoritative_status_counts_and_filtered_totals(): void
     {
         $pending = $this->makeOrder(

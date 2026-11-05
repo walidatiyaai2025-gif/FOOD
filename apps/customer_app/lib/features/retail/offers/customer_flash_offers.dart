@@ -34,6 +34,47 @@ class CustomerFlashSellingUnit {
       );
 }
 
+/// A single purchasable Flash offer line (one product and selling unit).
+/// This ID is the flash_offer_products ID, not the parent offer ID.
+class CustomerFlashProduct {
+  const CustomerFlashProduct({
+    required this.id,
+    required this.productId,
+    required this.name,
+    required this.sku,
+    required this.sellingUnit,
+    required this.flashPrice,
+    required this.normalPrice,
+    required this.availableQuantity,
+    this.imageUrl,
+  });
+
+  final int id;
+  final int productId;
+  final String name;
+  final String sku;
+  final String sellingUnit;
+  final double flashPrice;
+  final double normalPrice;
+  final int availableQuantity;
+  final String? imageUrl;
+
+  factory CustomerFlashProduct.fromMap(Map<String, dynamic> map) =>
+      CustomerFlashProduct(
+        id: _int(map['id']),
+        productId: _int(map['product_id']),
+        name: map['name']?.toString() ?? '',
+        sku: map['sku']?.toString() ?? '',
+        sellingUnit:
+            (map['selling_unit_name'] ?? map['selling_unit_code'] ?? '')
+                .toString(),
+        flashPrice: _double(map['flash_price']),
+        normalPrice: _double(map['normal_price']),
+        availableQuantity: _int(map['available_quantity']),
+        imageUrl: map['image_url']?.toString(),
+      );
+}
+
 class CustomerFlashOffer {
   const CustomerFlashOffer({
     required this.id,
@@ -48,6 +89,7 @@ class CustomerFlashOffer {
     required this.remainingCustomerLimit,
     required this.eligible,
     required this.sellingUnits,
+    this.products = const <CustomerFlashProduct>[],
     this.imageUrl,
   });
 
@@ -63,6 +105,7 @@ class CustomerFlashOffer {
   final int remainingCustomerLimit;
   final bool eligible;
   final List<CustomerFlashSellingUnit> sellingUnits;
+  final List<CustomerFlashProduct> products;
   final String? imageUrl;
 
   Duration remainingAfter(Duration elapsedSinceServerSample) {
@@ -94,6 +137,16 @@ class CustomerFlashOffer {
               ))
           .where((unit) => unit.id > 0)
           .toList(growable: false),
+      products: _list(map['products'])
+          .whereType<Map>()
+          .map((row) => CustomerFlashProduct.fromMap(
+                Map<String, dynamic>.from(row),
+              ))
+          .where((product) =>
+              product.id > 0 &&
+              product.productId > 0 &&
+              product.availableQuantity > 0)
+          .toList(growable: false),
       imageUrl: map['image_url']?.toString(),
     );
   }
@@ -108,7 +161,7 @@ class CustomerFlashReservation {
     required this.status,
   });
 
-  final int id;
+  final String id;
   final int offerId;
   final DateTime expiresAt;
   final DateTime serverTime;
@@ -127,7 +180,7 @@ class CustomerFlashReservation {
 
   factory CustomerFlashReservation.fromMap(Map<String, dynamic> map) =>
       CustomerFlashReservation(
-        id: _int(map['id']),
+        id: map['id']?.toString() ?? '',
         offerId: _int(map['offer_id']),
         expiresAt: _date(map['expires_at']),
         serverTime: _date(map['server_time']),
@@ -140,19 +193,18 @@ abstract interface class CustomerFlashOffersApi {
   Future<CustomerFlashReservation?> activeReservation({required int storeId});
   Future<CustomerFlashReservation> reserve({
     required int storeId,
-    required int offerId,
+    required int offerProductId,
     required int quantity,
-    int? sellingUnitId,
   });
   Future<RetailCheckoutOptions> checkoutOptions({required int storeId});
   Future<RetailCreatedOrder> confirm({
     required int storeId,
-    required int reservationId,
+    required String reservationId,
     required int addressId,
     required String paymentMethod,
     required String idempotencyKey,
   });
-  Future<void> release({required int reservationId});
+  Future<void> release({required String reservationId});
 }
 
 class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
@@ -177,8 +229,13 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
   @override
   Future<List<CustomerFlashOffer>> activeOffers({required int storeId}) async {
     final response = await _client.get(
-      Uri.parse('$baseUrl/api/v1/flash-offers/active').replace(
-        queryParameters: {'store_id': '$storeId', 'channel': 'customer'},
+      Uri.parse(
+              '$baseUrl/api/v1/${token == null || token!.trim().isEmpty ? 'flash-offers/public' : 'flash-offers'}')
+          .replace(
+        queryParameters: {
+          'store_id': '$storeId',
+          if (token != null && token!.trim().isNotEmpty) 'channel': 'customer',
+        },
       ),
       headers: {..._headers, 'X-FOODEX-Store-ID': '$storeId'},
     );
@@ -211,21 +268,21 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
     final reservation = CustomerFlashReservation.fromMap(
       Map<String, dynamic>.from(data),
     );
-    return reservation.id > 0 && reservation.active ? reservation : null;
+    return reservation.id.isNotEmpty && reservation.active ? reservation : null;
   }
 
   @override
   Future<CustomerFlashReservation> reserve({
     required int storeId,
-    required int offerId,
+    required int offerProductId,
     required int quantity,
-    int? sellingUnitId,
   }) async {
     if (token == null || token!.trim().isEmpty) {
       throw const RetailCommerceException('authentication_required');
     }
     final response = await _client.post(
-      Uri.parse('$baseUrl/api/v1/flash-offers/$offerId/reservations'),
+      Uri.parse(
+          '$baseUrl/api/v1/flash-offers/products/$offerProductId/reserve'),
       headers: {
         ..._headers,
         'Content-Type': 'application/json',
@@ -235,12 +292,12 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
         'store_id': storeId,
         'channel': 'customer',
         'quantity': quantity,
-        if (sellingUnitId != null && sellingUnitId > 0)
-          'selling_unit_id': sellingUnitId,
+        'idempotency_key':
+            'flash-reserve-$offerProductId-${DateTime.now().microsecondsSinceEpoch}',
       }),
     );
     final body = _decode(response);
-    final data = body is Map ? body['data'] : body;
+    final data = body is Map && body['data'] is Map ? body['data'] : body;
     if (data is! Map) {
       throw const RetailCommerceException('invalid_flash_reservation_response');
     }
@@ -262,7 +319,7 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
   @override
   Future<RetailCreatedOrder> confirm({
     required int storeId,
-    required int reservationId,
+    required String reservationId,
     required int addressId,
     required String paymentMethod,
     required String idempotencyKey,
@@ -288,8 +345,8 @@ class HttpCustomerFlashOffersApi implements CustomerFlashOffersApi {
   }
 
   @override
-  Future<void> release({required int reservationId}) async {
-    if (reservationId <= 0) return;
+  Future<void> release({required String reservationId}) async {
+    if (reservationId.isEmpty) return;
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/flash-reservations/$reservationId/release'),
       headers: {..._headers, 'Content-Type': 'application/json'},
@@ -339,21 +396,28 @@ class CustomerFlashOffersScreen extends StatefulWidget {
       _CustomerFlashOffersScreenState();
 }
 
-class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
+class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen>
+    with WidgetsBindingObserver {
   List<CustomerFlashOffer> _offers = const [];
   CustomerFlashReservation? _reservation;
   Object? _error;
   bool _busy = true;
   Timer? _ticker;
+  Timer? _autoRefresh;
+  int _loadGeneration = 0;
   final Stopwatch _serverClock = Stopwatch();
-  final Map<int, int> _selectedUnits = <int, int>{};
 
   bool get _ar => Localizations.localeOf(context).languageCode == 'ar';
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _serverClock.start();
+    _autoRefresh = Timer.periodic(const Duration(seconds: 45), (_) {
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      unawaited(_load(silent: true));
+    });
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       final reservation = _reservation;
@@ -367,28 +431,36 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
+  Future<void> _load({bool silent = false}) async {
+    final generation = ++_loadGeneration;
+    if (!silent) {
+      setState(() {
+        _busy = true;
+        _error = null;
+      });
+    }
     try {
       final results = await Future.wait<Object?>([
         widget.api.activeOffers(storeId: widget.storeId),
         widget.api.activeReservation(storeId: widget.storeId),
       ]);
-      if (!mounted) return;
+      if (!mounted || generation != _loadGeneration) return;
       _serverClock
         ..reset()
         ..start();
       setState(() {
         _offers = results[0] as List<CustomerFlashOffer>;
         _reservation = results[1] as CustomerFlashReservation?;
+        _error = null;
       });
     } catch (error) {
-      if (mounted) setState(() => _error = error);
+      if (mounted && generation == _loadGeneration) {
+        setState(() => _error = error);
+      }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted && generation == _loadGeneration && !silent) {
+        setState(() => _busy = false);
+      }
     }
   }
 
@@ -405,7 +477,7 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
     if (mounted) await _load();
   }
 
-  Future<void> _buyNow(CustomerFlashOffer offer) async {
+  Future<void> _buyNow(CustomerFlashProduct product) async {
     if (!widget.isAuthenticated) {
       widget.onAuthenticationRequired();
       return;
@@ -417,12 +489,8 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
     try {
       final reservation = await widget.api.reserve(
         storeId: widget.storeId,
-        offerId: offer.id,
+        offerProductId: product.id,
         quantity: 1,
-        sellingUnitId: _selectedUnits[offer.id] ??
-            (offer.sellingUnits.isNotEmpty
-                ? offer.sellingUnits.first.id
-                : null),
       );
       if (!mounted) return;
       setState(() => _reservation = reservation);
@@ -435,8 +503,32 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant CustomerFlashOffersScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.storeId != widget.storeId ||
+        oldWidget.api != widget.api ||
+        oldWidget.isAuthenticated != widget.isAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_load());
+      });
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        mounted &&
+        (ModalRoute.of(context)?.isCurrent ?? true)) {
+      unawaited(_load(silent: true));
+    }
+  }
+
+  @override
   void dispose() {
+    ++_loadGeneration;
+    _autoRefresh?.cancel();
     _ticker?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -449,6 +541,12 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
         title: _ar ? 'العروض السريعة' : 'Flash Offers',
         searchHint: context.tr('customer.products.search_name_sku_barcode'),
         trailingActions: [
+          IconButton(
+            key: const ValueKey('customer-flash-offers-refresh'),
+            tooltip: _ar ? 'تحديث العروض' : 'Refresh offers',
+            onPressed: () => unawaited(_load()),
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+          ),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: Colors.white),
             onPressed: widget.onOpenNormalOffers,
@@ -458,6 +556,8 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
         child: RefreshIndicator(
           onRefresh: _load,
           child: ListView(
+            key: const ValueKey('customer-flash-offers-list'),
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             children: [
               if (_reservation != null)
@@ -477,7 +577,9 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
                   actionLabel: _ar ? 'إعادة المحاولة' : 'Retry',
                   onAction: _load,
                 ),
-              if (!_busy && _offers.isEmpty)
+              if (!_busy &&
+                  _error == null &&
+                  !_offers.any((offer) => offer.products.isNotEmpty))
                 CustomerStateView(
                   kind: CustomerStateKind.empty,
                   title: _ar
@@ -485,116 +587,111 @@ class _CustomerFlashOffersScreenState extends State<CustomerFlashOffersScreen> {
                       : 'No active Flash Offers right now.',
                   icon: Icons.local_offer_outlined,
                 ),
-              ..._offers.map((offer) {
+              ..._offers.expand((offer) {
                 final remaining = offer.remainingAfter(_serverClock.elapsed);
-                final canBuy = offer.eligible &&
-                    offer.remainingAllocation > 0 &&
-                    offer.remainingCustomerLimit > 0 &&
-                    remaining > Duration.zero;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: CustomerUiSpacing.sm),
-                  child: CustomerAccountSurfaceCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (offer.imageUrl != null &&
-                            offer.imageUrl!.isNotEmpty)
-                          ClipRRect(
-                            borderRadius:
-                                BorderRadius.circular(CustomerUiRadii.md),
-                            child: Image.network(
-                              offer.imageUrl!,
-                              height: 150,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  const SizedBox.shrink(),
+                return offer.products.map((product) {
+                  final canBuy = product.availableQuantity > 0 &&
+                      remaining > Duration.zero;
+                  return Padding(
+                    key: ValueKey('flash-product-card-${product.id}'),
+                    padding: const EdgeInsets.only(
+                      bottom: CustomerUiSpacing.sm,
+                    ),
+                    child: CustomerAccountSurfaceCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (product.imageUrl != null &&
+                              product.imageUrl!.isNotEmpty)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(
+                                CustomerUiRadii.md,
+                              ),
+                              child: Image.network(
+                                product.imageUrl!,
+                                height: 142,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    const Icon(Icons.inventory_2_outlined),
+                              ),
                             ),
+                          Text(
+                            product.name,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w900),
                           ),
-                        const SizedBox(height: 10),
-                        Text(
-                          offer.title,
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                        ),
-                        if (offer.body.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Text(offer.body),
-                        ],
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
+                          if (product.sku.isNotEmpty)
                             Text(
-                              foodexMoneyText(offer.flashPrice, offer.currency),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                              product.sku,
+                              style: Theme.of(context).textTheme.bodySmall,
                             ),
-                            if (offer.normalPrice > offer.flashPrice) ...[
-                              const SizedBox(width: 10),
+                          if (product.sellingUnit.isNotEmpty)
+                            Text(
+                              '${_ar ? 'وحدة البيع' : 'Selling unit'}: ${product.sellingUnit}',
+                            ),
+                          const SizedBox(height: 6),
+                          Text(
+                            offer.title,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          if (offer.body.isNotEmpty)
+                            Text(
+                              offer.body,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
                               Text(
                                 foodexMoneyText(
-                                    offer.normalPrice, offer.currency),
-                                style: const TextStyle(
-                                  decoration: TextDecoration.lineThrough,
-                                ),
-                              ),
-                            ],
-                            const Spacer(),
-                            Text(_duration(remaining)),
-                          ],
-                        ),
-                        if (offer.sellingUnits.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          DropdownButtonFormField<int>(
-                            initialValue: _selectedUnits[offer.id] ??
-                                offer.sellingUnits.first.id,
-                            decoration: InputDecoration(
-                              labelText: _ar ? 'وحدة البيع' : 'Selling unit',
-                            ),
-                            items: offer.sellingUnits
-                                .map(
-                                  (unit) => DropdownMenuItem<int>(
-                                    value: unit.id,
-                                    child: Text(
-                                      unit.label.isEmpty
-                                          ? (_ar ? 'وحدة' : 'Unit')
-                                          : unit.label,
+                                    product.flashPrice, offer.currency),
+                                key: ValueKey(
+                                    'flash-product-price-${product.id}'),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      color: CustomerUiColors.deepGreen,
+                                      fontWeight: FontWeight.w900,
                                     ),
+                              ),
+                              if (product.normalPrice > product.flashPrice)
+                                Text(
+                                  foodexMoneyText(
+                                      product.normalPrice, offer.currency),
+                                  style: const TextStyle(
+                                    decoration: TextDecoration.lineThrough,
                                   ),
-                                )
-                                .toList(growable: false),
-                            onChanged: _busy
-                                ? null
-                                : (value) {
-                                    if (value == null) return;
-                                    setState(
-                                        () => _selectedUnits[offer.id] = value);
-                                  },
+                                ),
+                              Text(_duration(remaining)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _ar
+                                ? 'المتاح: ${product.availableQuantity}'
+                                : 'Available: ${product.availableQuantity}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton(
+                            key: ValueKey('flash-buy-now-${product.id}'),
+                            onPressed: canBuy && !_busy
+                                ? () => _buyNow(product)
+                                : null,
+                            child: Text(_ar ? 'اشترِ الآن' : 'Buy now'),
                           ),
                         ],
-                        const SizedBox(height: 8),
-                        Text(
-                          _ar
-                              ? 'المتبقي لك: ${offer.remainingCustomerLimit} · المتاح: ${offer.remainingAllocation}'
-                              : 'Your remaining limit: ${offer.remainingCustomerLimit} · Available: ${offer.remainingAllocation}',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton(
-                          key: ValueKey('flash-buy-now-${offer.id}'),
-                          onPressed:
-                              canBuy && !_busy ? () => _buyNow(offer) : null,
-                          child: Text(_ar ? 'اشترِ الآن' : 'BUY NOW'),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                );
+                  );
+                });
               }),
             ],
           ),

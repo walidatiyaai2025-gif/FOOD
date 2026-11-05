@@ -98,6 +98,29 @@ final class StorefrontDraftEditorController extends Controller
         ));
     }
 
+    public function wholesaleStockVisibility(Request $request): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $data = $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
+            'show_in_stock_only' => ['required', 'boolean'],
+        ]);
+        $storeId = (int) $data['store_id'];
+        $this->authorizeWholesale($actor, $storeId, 'settings.manage');
+
+        $this->drafts->saveWholesaleStockVisibility(
+            $actor,
+            $storeId,
+            (bool) $data['show_in_stock_only'],
+            $request,
+        );
+
+        return back()->with('status', $this->msg(
+            'تم حفظ إعداد ظهور المنتجات وتطبيقه فورًا على تطبيق العميل.',
+            'Product visibility saved and applied to the Customer app immediately.',
+        ));
+    }
+
     public function wholesaleWebSettings(Request $request): RedirectResponse
     {
         $actor = $this->actor($request);

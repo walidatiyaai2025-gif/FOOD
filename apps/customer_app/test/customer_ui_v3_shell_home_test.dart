@@ -107,9 +107,11 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey('retail-shell-nav-account')),
+        find.byKey(const ValueKey('retail-shell-nav-invoices')),
         findsOneWidget,
       );
+      expect(find.byKey(const ValueKey('retail-shell-nav-offers')),
+          findsOneWidget);
       expect(tester.takeException(), isNull);
 
       await tester.enterText(
@@ -352,7 +354,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(pushedRoute, isNotNull);
     final homeUri = Uri.parse(pushedRoute!);
-    expect(homeUri.path, '/b2b/home');
+    expect(homeUri.path, '/retail/17/home');
   });
 
   testWidgets(

@@ -28,7 +28,9 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   local_auth: ^2.3.0
   share_plus: ^13.3.0
-  mobile_scanner: ^5.2.3
+  # v7 uses Apple Vision on iOS instead of ML Kit, avoiding the conflicting
+  # GoogleDataTransport pod and the v6 simulator native-module failure.
+  mobile_scanner: 7.4.4
   geolocator: ^14.1.1
   flutter_map: ^8.2.1
   latlong2: ^0.9.1

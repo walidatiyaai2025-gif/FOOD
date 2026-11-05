@@ -1,0 +1,89 @@
+name: FOODEX Customer + Driver Simulator Test Apps
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/2470-owner-commerce-driver-customer
+    paths:
+      - '.github/workflows/foodex-simulator-test-apps.yml'
+      - 'apps/customer_app/**'
+      - 'apps/driver_app/**'
+      - 'packages/**'
+      - 'scripts/configure-mobile-native.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: foodex-simulator-test-apps-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-simulator-app:
+    name: "${{ matrix.app }} — iOS Simulator ZIP"
+    # Customer's native CocoaPods dependencies fail to link the arm64 simulator
+    # framework (Pods_Runner). Test on a supported Intel macOS runner instead.
+    # Driver stays on the existing Apple Silicon runner.
+    runs-on: ${{ matrix.app == 'customer' && 'macos-26-intel' || 'macos-latest' }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [customer, driver]
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}_app
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v7
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.5'
+          channel: stable
+          cache: true
+      - name: Generate iOS and configure FOODEX permissions
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Customer still depends on CocoaPods-only plugins. Flutter 3.47 enables
+          # SwiftPM by default, and the mixed integration failed to link
+          # Pods_Runner in the simulator on the exact PR head. Keep this
+          # opt-out scoped to the Customer simulator build, not Driver/release.
+          if [[ "${{ matrix.app }}" == customer ]]; then
+            flutter config --no-enable-swift-package-manager
+          fi
+          flutter create --platforms=ios --project-name "foodex_${{ matrix.app }}_app" .
+          python3 ../../scripts/configure-mobile-native.py --app "${{ matrix.app }}" --app-dir . --platform ios
+          flutter pub get
+      - name: Test reported regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ matrix.app }}" == customer ]]; then
+            flutter test test/customer_action_api_test.dart test/storefront_operational_error_test.dart
+          else
+            flutter test test/driver_completion_api_test.dart test/driver_completion_sheet_test.dart
+          fi
+      - name: Build iPhone Simulator app (local API)
+        run: flutter build ios --simulator --debug --dart-define=FOODEX_API_BASE_URL=http://127.0.0.1:8000
+      - name: Verify compiled iOS app and package
+        shell: bash
+        run: |
+          set -euo pipefail
+          app=build/ios/iphonesimulator/Runner.app
+          test -d "$app"
+          plist="$app/Info.plist"
+          if [[ "${{ matrix.app }}" == driver ]]; then
+            /usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$plist"
+            /usr/libexec/PlistBuddy -c 'Print :NSPhotoLibraryUsageDescription' "$plist"
+          fi
+          ditto -c -k --sequesterRsrc --keepParent "$app" "$RUNNER_TEMP/FOODEX-${{ matrix.app }}-iOS-Simulator.zip"
+      - name: Upload simulator test app
+        uses: actions/upload-artifact@v4
+        with:
+          name: FOODEX-${{ matrix.app }}-iOS-Simulator-${{ github.sha }}
+          path: ${{ runner.temp }}/FOODEX-${{ matrix.app }}-iOS-Simulator.zip
+          retention-days: 7
+          if-no-files-found: error

@@ -287,9 +287,12 @@ final class CommercialDashboardController extends Controller
             ->with('status', __('commercial.status.sales_control_saved'));
     }
 
-    public function flashOffers(Request $request): View
+    public function flashOffers(Request $request): View|RedirectResponse
     {
-        [$user, $storeId] = $this->authorizedStore($request, 'promotions.view', true);
+        [$user, $storeId] = $this->authorizedFlashStore($request, 'promotions.view', true);
+        if ($redirect = $this->wholesaleFlashCanonicalRedirect($request, $storeId)) {
+            return $redirect;
+        }
         $lookups = $this->flashOfferLookups($storeId, $user);
 
         $editingOffer = null;
@@ -348,9 +351,12 @@ final class CommercialDashboardController extends Controller
         ]);
     }
 
-    public function flashPreview(Request $request, int $offer): View
+    public function flashPreview(Request $request, int $offer): View|RedirectResponse
     {
-        [$user, $storeId] = $this->authorizedStore($request, 'promotions.view');
+        [$user, $storeId] = $this->authorizedFlashStore($request, 'promotions.view');
+        if ($redirect = $this->wholesaleFlashCanonicalRedirect($request, $storeId, 'preview', $offer)) {
+            return $redirect;
+        }
         $row = $this->flashOfferRow($storeId, $offer);
         $products = DB::table('flash_offer_products')
             ->leftJoin('products', 'products.id', '=', 'flash_offer_products.product_id')
@@ -380,14 +386,20 @@ final class CommercialDashboardController extends Controller
             'channels' => $this->storedJsonList($row->channels),
             'customerPopupEnabled' => $this->flags->customerFlashPopupEnabled(),
             'supportAccess' => $request->boolean('support_access'),
+            'flashRoutePrefix' => $this->flashRoutePrefix($storeId),
+            'storeChannel' => app(OperationalTenantScope::class)->storeChannel($storeId),
             'navGroups' => $this->navigation->groupsFor($user),
-            'navContext' => 'b2c_promotions',
+            'navContext' => $this->flashRoutePrefix($storeId) === 'admin.commercial.wholesale-flash-offers'
+                ? 'b2b_products' : 'b2c_promotions',
         ]);
     }
 
-    public function flashAnalytics(Request $request, int $offer): View
+    public function flashAnalytics(Request $request, int $offer): View|RedirectResponse
     {
-        [$user, $storeId] = $this->authorizedStore($request, 'promotions.view');
+        [$user, $storeId] = $this->authorizedFlashStore($request, 'promotions.view');
+        if ($redirect = $this->wholesaleFlashCanonicalRedirect($request, $storeId, 'analytics', $offer)) {
+            return $redirect;
+        }
         $row = $this->flashOfferRow($storeId, $offer);
 
         $reservationStats = DB::table('flash_reservations')
@@ -433,14 +445,17 @@ final class CommercialDashboardController extends Controller
             'liveReservedBase' => $liveReservedBase,
             'confirmedBase' => $confirmedBase,
             'supportAccess' => $request->boolean('support_access'),
+            'flashRoutePrefix' => $this->flashRoutePrefix($storeId),
+            'storeChannel' => app(OperationalTenantScope::class)->storeChannel($storeId),
             'navGroups' => $this->navigation->groupsFor($user),
-            'navContext' => 'b2c_promotions',
+            'navContext' => $this->flashRoutePrefix($storeId) === 'admin.commercial.wholesale-flash-offers'
+                ? 'b2b_products' : 'b2c_promotions',
         ]);
     }
 
     public function saveFlashOffer(Request $request): RedirectResponse
     {
-        [$user, $storeId] = $this->authorizedStore($request, 'promotions.manage');
+        [$user, $storeId] = $this->authorizedFlashStore($request, 'promotions.manage');
         $data = $request->validate([
             'offer_id' => ['nullable', 'integer'],
             'name' => ['required', 'string', 'max:255'],
@@ -481,6 +496,12 @@ final class CommercialDashboardController extends Controller
         ]);
 
         $channels = collect($data['channels'])->map(static fn ($item): string => (string) $item)->unique()->values()->all();
+        if (app(OperationalTenantScope::class)->storeChannel($storeId) === 'b2b'
+            && $channels !== ['van']) {
+            throw ValidationException::withMessages([
+                'channels' => [__('commercial.validation.wholesale_flash_van_only')],
+            ]);
+        }
         $audienceCustomerIds = collect($data['audience_customer_ids'] ?? [])->map(static fn ($id): int => (int) $id)->filter()->unique()->values()->all();
         $audienceCustomerGroupIds = collect($data['audience_customer_group_ids'] ?? [])->map(static fn ($id): int => (int) $id)->filter()->unique()->values()->all();
         $audienceRegions = collect($data['audience_regions'] ?? [])->map(static fn ($item): string => trim((string) $item))->filter()->unique()->values()->all();
@@ -525,6 +546,19 @@ final class CommercialDashboardController extends Controller
                     ? (float) $product['allocation_base']
                     : null,
             ];
+        }
+
+        // A row represents a product and a selling unit. Duplicate lines
+        // would make a subsequent edit ambiguous and could change reservations.
+        $productUnitKeys = [];
+        foreach ($products as $index => $product) {
+            $key = (int) $product['product_id'].'|'.strtoupper((string) $product['selling_unit_code']);
+            if (isset($productUnitKeys[$key])) {
+                throw ValidationException::withMessages([
+                    "products.$index.selling_unit_code" => [__('commercial.validation.flash_duplicate_product_unit')],
+                ]);
+            }
+            $productUnitKeys[$key] = true;
         }
 
         DB::transaction(function () use (
@@ -574,14 +608,55 @@ final class CommercialDashboardController extends Controller
                 'kill_switch' => $request->boolean('kill_switch'),
                 'updated_at' => now(),
             ];
+            // Preserve FlashOfferProduct IDs: reservations have foreign keys to
+            // these rows and must survive edits to titles, dates and channel.
+            $existingLines = $offerId > 0
+                ? DB::table('flash_offer_products')->where('flash_offer_id', $offerId)->lockForUpdate()->get()
+                : collect();
+            $oldByKey = $existingLines->keyBy(static fn (object $line): string => (int) $line->product_id.'|'.strtoupper((string) $line->selling_unit_code));
+            $newByKey = collect($products)->keyBy(static fn (array $line): string => (int) $line['product_id'].'|'.strtoupper((string) $line['selling_unit_code']));
+
+            foreach ($existingLines as $oldLine) {
+                $key = (int) $oldLine->product_id.'|'.strtoupper((string) $oldLine->selling_unit_code);
+                $nextLine = $newByKey->get($key);
+                $hasReservationHistory = DB::table('flash_reservations')
+                    ->where('flash_offer_product_id', $oldLine->id)->exists();
+                if (! $hasReservationHistory) {
+                    continue;
+                }
+
+                // A sold/reserved unit cannot be removed or silently repriced.
+                $changed = $nextLine === null
+                    || (int) ($nextLine['selling_unit_id'] ?? 0) !== (int) ($oldLine->selling_unit_id ?? 0)
+                    || abs((float) $nextLine['conversion_factor'] - (float) $oldLine->conversion_factor) > 0.0001
+                    || abs((float) $nextLine['flash_price'] - (float) $oldLine->flash_price) > 0.0001
+                    || (($nextLine['allocation_base'] ?? null) === null) !== ($oldLine->allocation_base === null)
+                    || (($nextLine['allocation_base'] ?? null) !== null
+                        && abs((float) $nextLine['allocation_base'] - (float) $oldLine->allocation_base) > 0.0001);
+                if ($changed) {
+                    throw ValidationException::withMessages([
+                        'products' => [__('commercial.validation.flash_reserved_product_locked')],
+                    ]);
+                }
+            }
+
             if ($offerId === 0) {
                 $offerId = (int) DB::table('flash_offers')->insertGetId([...$payload, 'created_by' => $user->getAuthIdentifier(), 'created_at' => now()]);
             } else {
                 DB::table('flash_offers')->where('id', $offerId)->update($payload);
             }
 
-            DB::table('flash_offer_products')->where('flash_offer_id', $offerId)->delete();
             foreach ($products as $product) {
+                $key = (int) $product['product_id'].'|'.strtoupper((string) $product['selling_unit_code']);
+                $previousLine = $oldByKey->get($key);
+                if ($previousLine !== null) {
+                    DB::table('flash_offer_products')
+                        ->where('flash_offer_id', $offerId)
+                        ->where('id', $previousLine->id)
+                        ->update([...$product, 'updated_at' => now()]);
+
+                    continue;
+                }
                 DB::table('flash_offer_products')->insert([
                     'flash_offer_id' => $offerId,
                     ...$product,
@@ -589,13 +664,22 @@ final class CommercialDashboardController extends Controller
                     'updated_at' => now(),
                 ]);
             }
+            foreach ($existingLines as $oldLine) {
+                $key = (int) $oldLine->product_id.'|'.strtoupper((string) $oldLine->selling_unit_code);
+                if (! $newByKey->has($key)) {
+                    DB::table('flash_offer_products')
+                        ->where('flash_offer_id', $offerId)
+                        ->where('id', $oldLine->id)
+                        ->delete();
+                }
+            }
 
             $after = (array) DB::table('flash_offers')->where('id', $offerId)->first();
             $this->audit->record('commercial.flash_offer.saved', $user, null, $before, [...$after, 'store_id' => $storeId], $request);
         });
 
         return redirect()
-            ->route('admin.commercial.flash-offers', ['store_id' => $storeId] + ($request->boolean('support_access') ? ['support_access' => 1] : []))
+            ->route($this->flashRoutePrefix($storeId), ['store_id' => $storeId] + ($request->boolean('support_access') ? ['support_access' => 1] : []))
             ->with('status', __('commercial.status.flash_offer_saved'));
     }
 
@@ -627,7 +711,7 @@ final class CommercialDashboardController extends Controller
 
     public function flashAction(Request $request, int $offer): RedirectResponse
     {
-        [$user, $storeId] = $this->authorizedStore($request, 'promotions.manage');
+        [$user, $storeId] = $this->authorizedFlashStore($request, 'promotions.manage');
         $data = $request->validate(['action' => ['required', 'in:schedule,activate,pause,resume,end,cancel,kill_on,kill_off']]);
         $row = DB::table('flash_offers')->where('store_id', $storeId)->where('id', $offer)->first();
         abort_unless($row !== null, 404);
@@ -650,6 +734,69 @@ final class CommercialDashboardController extends Controller
         $this->audit->record('commercial.flash_offer.action', $user, null, (array) $row, [...(array) $row, ...$changes, 'store_id' => $storeId], $request);
 
         return back()->with('status', __('commercial.status.flash_action_applied'));
+    }
+
+    /**
+     * Flash offers serve both retail customers and B2B Van offers. Preserve the
+     * explicitly selected, authorized store channel rather than silently
+     * replacing a wholesale store with the first retail store.
+     *
+     * @return array{0: User, 1: int}
+     */
+    private function authorizedFlashStore(Request $request, string $permission, bool $allowEmptyStore = false): array
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $requestedStore = $request->integer('store_id');
+        $scope = app(OperationalTenantScope::class);
+        if ($request->routeIs('admin.commercial.wholesale-flash-offers*')) {
+            abort_if($requestedStore > 0
+                && $scope->storeChannel($requestedStore) !== 'b2b', 404);
+
+            return $this->authorizedStore($request, $permission, $allowEmptyStore, 'b2b');
+        }
+        // Bookmarked B2C GET links for an authorized wholesale store are
+        // canonicalized to B2B. Never allow a B2C POST to mutate B2B records.
+        if ($request->isMethod('GET')
+            && $requestedStore > 0
+            && in_array($requestedStore, $scope->allowedStoreIds($user, $permission, 'b2b'), true)
+        ) {
+            return $this->authorizedStore($request, $permission, $allowEmptyStore, 'b2b');
+        }
+
+        return $this->authorizedStore($request, $permission, $allowEmptyStore, 'b2c');
+    }
+
+    private function flashRoutePrefix(int $storeId): string
+    {
+        return $storeId > 0
+            && app(OperationalTenantScope::class)->storeChannel($storeId) === 'b2b'
+                ? 'admin.commercial.wholesale-flash-offers'
+                : 'admin.commercial.flash-offers';
+    }
+
+    private function wholesaleFlashCanonicalRedirect(
+        Request $request,
+        int $storeId,
+        string $suffix = '',
+        ?int $offerId = null,
+    ): ?RedirectResponse {
+        if ($storeId <= 0 || $this->flashRoutePrefix($storeId) !== 'admin.commercial.wholesale-flash-offers'
+            || $request->routeIs('admin.commercial.wholesale-flash-offers*')) {
+            return null;
+        }
+
+        $params = array_filter([
+            'store_id' => $storeId,
+            'edit' => $request->integer('edit') > 0 ? $request->integer('edit') : null,
+            'support_access' => $request->boolean('support_access') ? 1 : null,
+            'offer' => $offerId,
+        ], static fn ($value): bool => $value !== null);
+
+        return redirect()->route(
+            'admin.commercial.wholesale-flash-offers'.($suffix === '' ? '' : '.'.$suffix),
+            $params,
+        );
     }
 
     /** @return array{0: User, 1: int} */
@@ -924,12 +1071,18 @@ final class CommercialDashboardController extends Controller
      */
     private function flashOfferLookups(int $storeId, User $user): array
     {
+        $channel = app(OperationalTenantScope::class)->storeChannel($storeId);
         $flashProducts = DB::table('store_products')
             ->join('products', 'products.id', '=', 'store_products.product_id')
-            ->leftJoin('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->where('store_products.store_id', $storeId)
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', $channel)
+            ->where('catalogs.is_active', true)
+            ->where('catalogs.is_migration_quarantine', false)
             ->where('store_products.is_active', true)
             ->where('products.is_active', true)
+            ->whereNotNull('store_products.price')
             ->orderBy('products.name')
             ->get([
                 'products.id',
@@ -1075,8 +1228,11 @@ final class CommercialDashboardController extends Controller
             'storeId' => $storeId,
             'section' => $section,
             'supportAccess' => $supportAccess,
+            'storeChannel' => $storeId > 0 ? app(OperationalTenantScope::class)->storeChannel($storeId) : 'b2c',
+            'flashRoutePrefix' => $this->flashRoutePrefix($storeId),
             'navGroups' => $this->navigation->groupsFor($user),
-            'navContext' => $section === 'sales-control' ? 'b2b_products' : 'b2c_promotions',
+            'navContext' => $section === 'sales-control' || $this->flashRoutePrefix($storeId) === 'admin.commercial.wholesale-flash-offers'
+                ? 'b2b_products' : 'b2c_promotions',
         ]);
     }
 }

@@ -27,6 +27,7 @@ import '../../core/theme/customer_display_preferences.dart';
 import '../../core/theme/customer_ui_v3_tokens.dart';
 import '../../shared/customer_favorite_button.dart';
 import '../checkout/customer_checkout_vnext_components.dart';
+import '../customer_orders/customer_order_payment_badge.dart';
 import 'storefront_design_system.dart';
 
 Future<int> resolveWholesaleStoreId({
@@ -175,7 +176,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
-      setState(() => future = _load(search.text));
+      setState(() {
+        future = _load(search.text);
+      });
     }
   }
 
@@ -273,7 +276,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
     syncFoodexWholesaleCartProductCount(null);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      setState(() => future = _load(search.text));
+      setState(() {
+        future = _load(search.text);
+      });
     });
   }
 
@@ -323,7 +328,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                   child: FoodexErrorState(
                     key: const ValueKey('b2b-error'),
                     message: 'تعذر تحميل متجر الجملة.',
-                    onRetry: () => setState(() => future = _load(search.text)),
+                    onRetry: () => setState(() {
+                      future = _load(search.text);
+                    }),
                   ),
                 ),
               );
@@ -431,6 +438,18 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                     ...filters,
                   },
                 ).toString(),
+              );
+            }
+
+            void openOffers() {
+              if (storeId <= 0) return;
+              Navigator.of(context).pushNamed(
+                CustomerRouteLocations.wholesaleOffers(
+                  CustomerCommerceContext(
+                    channel: CustomerCommerceChannel.wholesale,
+                    storeId: storeId,
+                  ),
+                ),
               );
             }
 
@@ -562,12 +581,14 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                               textScale: .8,
                               spacingScale: .25,
                               onAction: storeId > 0
-                                  ? () => openCatalog(
-                                        _wholesaleSectionFilters(
-                                          section,
-                                          rows: sectionRows,
-                                        ),
-                                      )
+                                  ? (type == 'offers'
+                                      ? openOffers
+                                      : () => openCatalog(
+                                            _wholesaleSectionFilters(
+                                              section,
+                                              rows: sectionRows,
+                                            ),
+                                          ))
                                   : null,
                               trailing: cardSizeControl,
                             ),
@@ -677,8 +698,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                       searchHint: context.tr(
                         'customer.products.search_name_sku_barcode',
                       ),
-                      onSearchSubmitted: (value) =>
-                          setState(() => future = _load(value)),
+                      onSearchSubmitted: (value) => setState(() {
+                        future = _load(value);
+                      }),
                       onCart: () => Navigator.of(context)
                           .pushNamed('/b2b/cart?store=' + storeId.toString()),
                     ),
@@ -2361,14 +2383,43 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
         ? widget.row['name'].toString().trim()
         : context.tr('customer.products.title');
     final productImageUrl = widget.row['image_url']?.toString();
-    final actionFailedMessage = context.tr('customer.error.action_failed');
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     setState(() => busy = true);
     try {
+      var quantityToAdd = minimum;
+      final actionApi = widget.actionApi;
+      final termsApi = actionApi is CustomerWholesaleProductTermsApi
+          ? actionApi as CustomerWholesaleProductTermsApi
+          : null;
+      if (termsApi != null) {
+        // Homepage merchandising may be cached or guest-scoped. The actual
+        // active customer's live B2B limits must authorize every quick add.
+        final terms = await termsApi.wholesaleProductTerms(
+          storeId: widget.storeId,
+          productId: id,
+        );
+        quantityToAdd = math.max(
+          1.0,
+          doubleValue(terms['minimum_order_quantity'], minimum),
+        );
+        final available = terms['available_quantity'] == null
+            ? null
+            : doubleValue(terms['available_quantity'], 0);
+        if (terms['is_available'] == false ||
+            terms['availability_state'] == 'OUT_OF_STOCK' ||
+            (available != null && available + .0001 < quantityToAdd)) {
+          throw const CustomerActionException(
+            'stock_unavailable',
+            statusCode: 409,
+          );
+        }
+      }
+
       final cartPayload = await widget.actionApi.addCartItem(
         storeId: widget.storeId,
         productId: id,
-        quantity: minimum,
+        quantity: quantityToAdd,
       );
       syncFoodexWholesaleCartProductCount(cartPayload);
       if (overlay != null && overlay.mounted) {
@@ -2388,7 +2439,9 @@ class _WholesaleProductCardState extends State<_WholesaleProductCard> {
             SnackBar(
               key: ValueKey('wholesale-cart-add-error-$id'),
               behavior: SnackBarBehavior.floating,
-              content: Text(actionFailedMessage),
+              content: Text(
+                operationalErrorMessage(error, isArabic: isArabic),
+              ),
             ),
           );
       }
@@ -2782,7 +2835,9 @@ class _WholesaleFavoritesDesignScreenState
     };
   }
 
-  void _reload() => setState(() => future = _load());
+  void _reload() => setState(() {
+        future = _load();
+      });
 
   List<Map<String, dynamic>> _rows(Object? raw) {
     final needle = search.text.trim().toLowerCase();
@@ -3047,6 +3102,430 @@ Future<void> _beginWholesaleAddHandoff({
     CustomerRouteLocations.authHandoff(
       context: commerceContext,
       next: nextLocation,
+    ),
+  );
+}
+
+/// Canonical Wholesale Offers screen. It deliberately does NOT reuse the
+/// shopping/catalog screen or interpret a 'section=offers' query parameter.
+class WholesaleOffersDesignScreen extends StatefulWidget {
+  const WholesaleOffersDesignScreen({
+    required this.location,
+    required this.session,
+    required this.api,
+    required this.storefrontApi,
+    required this.actionApi,
+    this.favoritesApi,
+    this.pendingActionStore,
+    this.onLocaleChanged,
+    this.onLogout,
+    super.key,
+  });
+
+  final String location;
+  final CustomerSession session;
+  final B2bApi? api;
+  final StorefrontApi? storefrontApi;
+  final CustomerActionApi actionApi;
+  final B2cRetailFavoritesApi? favoritesApi;
+  final CustomerPendingActionStore? pendingActionStore;
+  final ValueChanged<Locale>? onLocaleChanged;
+  final Future<void> Function()? onLogout;
+
+  @override
+  State<WholesaleOffersDesignScreen> createState() =>
+      _WholesaleOffersDesignScreenState();
+}
+
+class _WholesaleOffersDesignScreenState
+    extends State<WholesaleOffersDesignScreen> with WidgetsBindingObserver {
+  late Future<Map<String, dynamic>> _feed;
+  Timer? _autoRefresh;
+  bool _isRefreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _feed = _load();
+    WidgetsBinding.instance.addObserver(this);
+    _autoRefresh = Timer.periodic(const Duration(seconds: 45), (_) {
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      unawaited(_refresh());
+    });
+  }
+
+  Future<Map<String, dynamic>> _load() async {
+    final storeId = await resolveWholesaleStoreId(
+      location: widget.location,
+      storefrontApi: widget.storefrontApi,
+    );
+    if (storeId <= 0) {
+      return {'store_id': 0, 'rows': <Map<String, dynamic>>[]};
+    }
+
+    // The marketing Flash feed is NOT the ordinary product catalogue.
+    // Read Van-channel B2B offers, with targeted visibility checked server-side.
+    Object? flashResponse;
+    if (widget.session.isAuthenticated && widget.api != null) {
+      flashResponse = await widget.api!.get(
+        '/api/v1/b2b/flash-offers?store_id=$storeId',
+      );
+    } else if (widget.storefrontApi is HttpStorefrontApi) {
+      flashResponse = await (widget.storefrontApi as HttpStorefrontApi)
+          .wholesaleFlashOffers(storeId,
+              authenticated: widget.session.isAuthenticated);
+    } else if (widget.api != null) {
+      // Test adapters can implement the anonymous endpoint directly.
+      flashResponse = await widget.api!.get(
+        '/api/v1/b2b/flash-offers/public?store_id=$storeId',
+      );
+    }
+
+    final flashProducts = <Map<String, dynamic>>[];
+    for (final offer in dataRows(flashResponse)) {
+      if (offer['fulfillment_channel'] != null &&
+          offer['fulfillment_channel'] != 'van') {
+        continue;
+      }
+      for (final product in mapRows(offer['products'])) {
+        if (intValue(product['id']) <= 0 ||
+            intValue(product['available_quantity']) <= 0) {
+          continue;
+        }
+        flashProducts.add({
+          ...product,
+          'offer_id': offer['id'],
+          'offer_title_ar': offer['title_ar'],
+          'offer_title_en': offer['title_en'],
+          'offer_ends_at': offer['ends_at'],
+          'currency': offer['currency'] ?? 'EGP',
+          'fulfillment_channel': 'van',
+        });
+      }
+    }
+
+    Object? ordinaryResponse;
+    if (widget.api != null && widget.session.isAuthenticated) {
+      ordinaryResponse = await widget.api!.get(
+        '/api/v1/b2b/products?store_id=$storeId',
+      );
+    } else if (widget.storefrontApi != null) {
+      final storefront = await widget.storefrontApi!.wholesaleHome(storeId);
+      ordinaryResponse = storefront['products'];
+    }
+    final regularDiscounts = dataRows(ordinaryResponse)
+        .where((row) =>
+            _wholesaleRowMatchesSection(row, 'offers') &&
+            _wholesaleProductIsAvailable(row))
+        .toList(growable: false);
+
+    return {
+      'store_id': storeId,
+      'flash_products': flashProducts,
+      'rows': regularDiscounts,
+    };
+  }
+
+  Future<void> _refresh() async {
+    if (!mounted || _isRefreshing) return;
+    _isRefreshing = true;
+    final pending = _load();
+    setState(() {
+      _feed = pending;
+    });
+    try {
+      await pending;
+    } catch (_) {
+      // FutureBuilder renders the error with its explicit retry action.
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant WholesaleOffersDesignScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.location != widget.location ||
+        oldWidget.api != widget.api ||
+        oldWidget.storefrontApi != widget.storefrontApi) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_refresh());
+      });
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        mounted &&
+        (ModalRoute.of(context)?.isCurrent ?? true)) {
+      unawaited(_refresh());
+    }
+  }
+
+  @override
+  void dispose() {
+    _autoRefresh?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    const palette = FoodexPalette.wholesale;
+    return Scaffold(
+      key: const ValueKey('wholesale-offers-screen'),
+      backgroundColor: palette.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            FoodexWholesaleHeader(
+              title: isArabic ? 'عروض الجملة' : 'Wholesale offers',
+              palette: palette,
+              location: widget.location,
+              isAuthenticated: widget.session.isAuthenticated,
+              onLocaleChanged: widget.onLocaleChanged,
+              onLogout: widget.onLogout,
+            ),
+            Expanded(
+              child: FutureBuilder<Map<String, dynamic>>(
+                future: _feed,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return FoodexErrorState(
+                      key: const ValueKey('wholesale-offers-error'),
+                      message: context.tr('b2b.catalog.load_error'),
+                      onRetry: _refresh,
+                    );
+                  }
+
+                  final payload = snapshot.data ?? const <String, dynamic>{};
+                  final storeId = intValue(payload['store_id']);
+                  final rows = mapRows(payload['rows']);
+                  final flashRows = mapRows(payload['flash_products']);
+                  return RefreshIndicator(
+                    onRefresh: _refresh,
+                    child: ListView(
+                      key: const ValueKey('wholesale-offers-list'),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(12, 14, 12, 24),
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                isArabic
+                                    ? 'العروض المتاحة'
+                                    : 'Available offers',
+                                key: const ValueKey('wholesale-offers-heading'),
+                                style: const TextStyle(
+                                  color: CustomerUiColors.ink,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              key: const ValueKey('wholesale-offers-refresh'),
+                              tooltip:
+                                  isArabic ? 'تحديث العروض' : 'Refresh offers',
+                              icon: const Icon(Icons.refresh_rounded),
+                              onPressed: () => unawaited(_refresh()),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (flashRows.isNotEmpty) ...[
+                          Text(
+                            isArabic ? 'العروض السريعة' : 'Flash offers',
+                            key: const ValueKey('wholesale-flash-heading'),
+                            style: const TextStyle(
+                              color: CustomerUiColors.ink,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          ...flashRows
+                              .map((flashProduct) => _wholesaleFlashProductCard(
+                                    context,
+                                    flashProduct,
+                                    isArabic: isArabic,
+                                  )),
+                        ],
+                        if (storeId <= 0 || (rows.isEmpty && flashRows.isEmpty))
+                          FoodexEmptyState(
+                            key: const ValueKey('wholesale-offers-empty'),
+                            title: isArabic
+                                ? 'لا توجد عروض متاحة حاليًا'
+                                : 'No available offers right now',
+                            subtitle: isArabic
+                                ? 'ستظهر هنا منتجات الجملة المتاحة التي عليها خصومات أو عروض.'
+                                : 'Available wholesale products with eligible discounts or promotions appear here.',
+                          ),
+                        if (rows.isNotEmpty) ...[
+                          if (flashRows.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            Text(
+                              isArabic ? 'خصومات أخرى' : 'Other discounts',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                          _WholesaleProductGrid(
+                            rows: rows,
+                            storeId: storeId,
+                            sourceLocation: widget.location,
+                            session: widget.session,
+                            actionApi: widget.actionApi,
+                            pendingActionStore: widget.pendingActionStore,
+                            palette: palette,
+                            favoritesApi: widget.favoritesApi,
+                            showCommerceActions: true,
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Promotional price is informational for B2B customers. Van execution is
+/// the only supported wholesale fulfillment path; never route to Driver or
+/// use a normal Customer cart to claim a Flash price.
+Widget _wholesaleFlashProductCard(
+  BuildContext context,
+  Map<String, dynamic> product, {
+  required bool isArabic,
+}) {
+  const palette = FoodexPalette.wholesale;
+  final id = intValue(product['id']);
+  final title = (product['name'] ?? '').toString();
+  final imageUrl = (product['image_url'] ?? '').toString();
+  final unitName =
+      (product['selling_unit_name'] ?? product['selling_unit_code'] ?? '')
+          .toString();
+  final currency = (product['currency'] ?? 'EGP').toString();
+  final flashPrice = doubleValue(product['flash_price'], 0);
+  final normalPrice = doubleValue(product['normal_price'], 0);
+  final endsAt = DateTime.tryParse((product['offer_ends_at'] ?? '').toString());
+  final label = isArabic
+      ? (product['offer_title_ar'] ?? product['offer_title_en'] ?? '')
+      : (product['offer_title_en'] ?? product['offer_title_ar'] ?? '');
+
+  return Card(
+    key: ValueKey('wholesale-flash-product-$id'),
+    margin: const EdgeInsets.only(bottom: 12),
+    color: Colors.white,
+    elevation: 0,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: BorderSide(color: palette.soft),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (imageUrl.isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                imageUrl,
+                height: 125,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.inventory_2_outlined, size: 60),
+              ),
+            ),
+          if (label.toString().isNotEmpty)
+            Text(label.toString(),
+                style: TextStyle(color: palette.primary, fontSize: 12)),
+          const SizedBox(height: 5),
+          Text(title,
+              style: const TextStyle(
+                color: CustomerUiColors.ink,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              )),
+          if (unitName.isNotEmpty)
+            Text(
+              '${isArabic ? 'وحدة البيع' : 'Selling unit'}: $unitName',
+              style: TextStyle(color: palette.muted),
+            ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                foodexMoneyText(flashPrice, currency),
+                key: ValueKey('wholesale-flash-price-$id'),
+                style: TextStyle(
+                  color: palette.primary,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 19,
+                ),
+              ),
+              if (normalPrice > flashPrice)
+                Text(
+                  foodexMoneyText(normalPrice, currency),
+                  style: TextStyle(
+                    color: palette.muted,
+                    decoration: TextDecoration.lineThrough,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Text(
+            isArabic
+                ? 'المتاح: ${intValue(product['available_quantity'])}'
+                : 'Available: ${intValue(product['available_quantity'])}',
+            style: TextStyle(color: palette.muted),
+          ),
+          if (endsAt != null)
+            Text(
+              '${isArabic ? 'ينتهي' : 'Ends'}: ${endsAt.toLocal()}',
+              style: TextStyle(color: palette.muted, fontSize: 11),
+            ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.local_shipping_outlined,
+                  color: palette.primary, size: 18),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  isArabic
+                      ? 'عرض جملة — الطلب والتوصيل من خلال الفان فقط'
+                      : 'Wholesale offer — ordering and delivery via Van only',
+                  key: const ValueKey('wholesale-flash-van-only'),
+                  style: TextStyle(
+                    color: palette.primaryDark,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     ),
   );
 }
@@ -3318,7 +3797,9 @@ class _WholesaleCatalogDesignScreenState
                 child: FoodexErrorState(
                   key: const ValueKey('b2b-catalog-error'),
                   message: context.tr('b2b.catalog.load_error'),
-                  onRetry: () => setState(() => future = _load(search.text)),
+                  onRetry: () => setState(() {
+                    future = _load(search.text);
+                  }),
                 ),
               ),
             );
@@ -4473,6 +4954,7 @@ class _WholesaleProductDetailsDesignScreenState
   late final int productId = productIdFromLocation(widget.location);
   late Future<Object?> future = _loadProduct();
   double? quantity;
+  String? selectedSellingUnitCode;
   Map<String, dynamic>? _lastProduct;
   Timer? _stockRefreshTimer;
   bool stale = false;
@@ -4607,6 +5089,54 @@ class _WholesaleProductDetailsDesignScreenState
         .toList(growable: false);
   }
 
+  List<Map<String, dynamic>> _sellingUnits(Map<String, dynamic> row) =>
+      (row['selling_units'] as List? ?? const <Object>[])
+          .whereType<Map>()
+          .map((unit) => Map<String, dynamic>.from(unit))
+          .where((unit) => (unit['code']?.toString() ?? '').isNotEmpty)
+          .toList(growable: false);
+
+  Map<String, dynamic>? _selectedUnit(Map<String, dynamic> row) {
+    final units = _sellingUnits(row);
+    if (units.isEmpty) return null;
+    for (final unit in units) {
+      if (unit['code']?.toString() == selectedSellingUnitCode) return unit;
+    }
+    return units.first;
+  }
+
+  double _sellingFactor(Map<String, dynamic> row) =>
+      math.max(1.0, doubleValue(_selectedUnit(row)?['conversion_factor'], 1));
+
+  Future<Object?> _submitUnitCartItem(
+    double baseQuantity,
+    Map<String, dynamic> row,
+  ) {
+    final selectedUnit = _selectedUnit(row);
+    final code = selectedUnit?['code']?.toString();
+    final actionApi = widget.actionApi;
+    final sellingUnitApi = actionApi is CustomerSellingUnitActionApi
+        ? actionApi as CustomerSellingUnitActionApi
+        : null;
+    if (code != null && sellingUnitApi != null) {
+      return sellingUnitApi.addCartSellingUnit(
+        storeId: storeId,
+        productId: productId,
+        quantity: baseQuantity / _sellingFactor(row),
+        sellingUnitCode: code,
+      );
+    }
+    if (selectedUnit != null && selectedUnit['is_base'] != true) {
+      throw StateError(
+          'Selling-unit checkout is not supported in this session.');
+    }
+    return actionApi.addCartItem(
+      storeId: storeId,
+      productId: productId,
+      quantity: baseQuantity,
+    );
+  }
+
   void _retry() {
     if (!mounted) return;
     setState(() {
@@ -4628,6 +5158,7 @@ class _WholesaleProductDetailsDesignScreenState
       'case_size',
       'pack_label',
       'available_quantity',
+      'selling_units',
       'is_available',
       'availability_state',
       'currency',
@@ -4686,7 +5217,8 @@ class _WholesaleProductDetailsDesignScreenState
     return null;
   }
 
-  Future<void> _addProduct(Map<String, dynamic> row) async {
+  Future<void> _addProduct(Map<String, dynamic> row,
+      {bool checkoutAfterAdd = false}) async {
     if (!widget.session.isAuthenticated) {
       await _beginWholesaleAddHandoff(
         context: context,
@@ -4759,11 +5291,13 @@ class _WholesaleProductDetailsDesignScreenState
       final confirmationClose =
           MaterialLocalizations.of(context).closeButtonTooltip;
 
-      await widget.actionApi.addCartItem(
-        storeId: storeId,
-        productId: productId,
-        quantity: selectedQuantity,
-      );
+      await _submitUnitCartItem(selectedQuantity, row);
+      if (checkoutAfterAdd && mounted) {
+        Navigator.of(context).pushNamed(
+          '/b2b/checkout?store_id=$storeId&channel=wholesale',
+        );
+        return;
+      }
       if (mounted &&
           confirmationMessenger != null &&
           confirmationMessenger.mounted) {
@@ -4869,7 +5403,11 @@ class _WholesaleProductDetailsDesignScreenState
                 .001,
                 doubleValue(row['ordering_increment'], 1),
               );
+              final sellingUnitFactor = _sellingFactor(row);
               quantity ??= minimum;
+              if (quantity! + .0001 < sellingUnitFactor) {
+                quantity = sellingUnitFactor;
+              }
               final images = (row['images'] as List? ?? const <Object>[])
                   .whereType<String>()
                   .where((value) => value.trim().isNotEmpty)
@@ -5048,19 +5586,83 @@ class _WholesaleProductDetailsDesignScreenState
                     ),
                   ],
                   const SizedBox(height: 14),
+                  if (_sellingUnits(row).isNotEmpty) ...[
+                    Wrap(
+                      key: const ValueKey('wholesale-selling-unit-options'),
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final unit in _sellingUnits(row))
+                          ChoiceChip(
+                            key: ValueKey(
+                                'wholesale-selling-unit-${unit['code']}'),
+                            label: Text(
+                              (unit['name']?.toString() ??
+                                      unit['code'].toString()) +
+                                  ' · ' +
+                                  money(
+                                    unit['price'] ??
+                                        (doubleValue(row['account_price'], 0) *
+                                            doubleValue(
+                                                unit['conversion_factor'], 1)),
+                                    currency: currency,
+                                  ),
+                            ),
+                            selected:
+                                _selectedUnit(row)?['code'] == unit['code'],
+                            onSelected: isAvailable && !revalidating
+                                ? (selected) {
+                                    if (!selected) return;
+                                    final factor = math.max(
+                                      1.0,
+                                      doubleValue(unit['conversion_factor'], 1),
+                                    );
+                                    setState(() {
+                                      selectedSellingUnitCode =
+                                          unit['code']?.toString();
+                                      quantity = factor *
+                                          math.max(
+                                              1.0,
+                                              (minimum / factor)
+                                                  .ceilToDouble());
+                                    });
+                                  }
+                                : null,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   FoodexQuantityCta(
                     key: const ValueKey('customer-add-cart'),
-                    quantity: quantity!,
-                    increment: increment,
-                    minimum: minimum,
+                    quantity: quantity! / sellingUnitFactor,
+                    increment: math.max(1.0, increment / sellingUnitFactor),
+                    minimum: math.max(1.0, minimum / sellingUnitFactor),
                     palette: FoodexPalette.wholesale,
                     label: revalidating
                         ? context.tr('b2b.product.revalidating')
                         : context.tr('customer.action.add_cart'),
+                    checkoutLabel:
+                        Localizations.localeOf(context).languageCode == 'ar'
+                            ? 'إتمام الطلب'
+                            : 'Checkout',
+                    onCheckout: isAvailable && !revalidating
+                        ? () async {
+                            final issue =
+                                _quantityIssue(context, row, quantity!);
+                            if (issue != null) {
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(SnackBar(content: Text(issue)));
+                              return;
+                            }
+                            await _addProduct(row, checkoutAfterAdd: true);
+                          }
+                        : null,
                     onChanged: isAvailable && !revalidating
                         ? (value) {
+                            final baseValue = value * sellingUnitFactor;
                             if (availableQuantity != null &&
-                                value > availableQuantity + .0001) {
+                                baseValue > availableQuantity + .0001) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
@@ -5072,7 +5674,7 @@ class _WholesaleProductDetailsDesignScreenState
                               );
                               return;
                             }
-                            setState(() => quantity = value);
+                            setState(() => quantity = baseValue);
                           }
                         : null,
                     onPressed: isAvailable && !revalidating
@@ -5461,6 +6063,7 @@ class WholesaleCartDesignScreen extends StatefulWidget {
     required this.location,
     required this.api,
     required this.commerceApi,
+    this.storefrontApi,
     this.session,
     this.onLocaleChanged,
     this.onLogout,
@@ -5470,6 +6073,7 @@ class WholesaleCartDesignScreen extends StatefulWidget {
   final String location;
   final B2bApi? api;
   final WholesaleCommerceApi? commerceApi;
+  final StorefrontApi? storefrontApi;
   final CustomerSession? session;
   final ValueChanged<Locale>? onLocaleChanged;
   final Future<void> Function()? onLogout;
@@ -5511,15 +6115,23 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
     super.dispose();
   }
 
-  Future<Object?> _load() {
-    if (widget.commerceApi != null && storeId > 0) {
+  Future<Object?> _load() async {
+    if (storeId <= 0) {
+      storeId = await resolveWholesaleStoreId(
+        location: widget.location,
+        storefrontApi: widget.storefrontApi,
+      );
+    }
+    if (storeId <= 0) {
+      throw const WholesaleCommerceException(
+        'No authorized Wholesale store was selected.',
+        statusCode: 422,
+      );
+    }
+    if (widget.commerceApi != null) {
       return widget.commerceApi!.cart(storeId);
     }
-    var endpoint = '/api/v1/cart';
-    if (storeId > 0) {
-      endpoint += '?store=' + storeId.toString();
-    }
-    return widget.api?.get(endpoint) ?? Future<Object?>.value(null);
+    return widget.api?.get('/api/v1/cart?store=$storeId');
   }
 
   Future<void> _mutate(
@@ -5544,7 +6156,9 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
       if (mounted) {
         await showOperationalError(context, error);
         if (mounted) {
-          setState(() => future = _load());
+          setState(() {
+            future = _load();
+          });
         }
       }
     }
@@ -5694,8 +6308,14 @@ class _WholesaleCartDesignScreenState extends State<WholesaleCartDesignScreen>
                 if (snapshot.hasError) {
                   return FoodexErrorState(
                     key: const ValueKey('b2b-error'),
-                    message: context.tr('b2b.cart.subtitle'),
-                    onRetry: () => setState(() => future = _load()),
+                    message: operationalErrorMessage(
+                      snapshot.error!,
+                      isArabic:
+                          Localizations.localeOf(context).languageCode == 'ar',
+                    ),
+                    onRetry: () => setState(() {
+                      future = _load();
+                    }),
                   );
                 }
 
@@ -5967,6 +6587,100 @@ class _CartLine extends StatelessWidget {
   }
 }
 
+double _wholesaleMinimumRemaining(
+  Map<String, dynamic> cart, {
+  Map<String, dynamic>? quoteOverride,
+  double? minimumOverride,
+}) {
+  final currency = (quoteOverride?['currency'] ?? cart['currency'] ?? 'EGP')
+      .toString()
+      .toUpperCase();
+  if (currency != 'EGP') return 0;
+  final minimum =
+      minimumOverride ?? doubleValue(cart['minimum_order_egp'], 1500);
+  if (minimum <= 0) return 0;
+
+  final quote = quoteOverride ??
+      (cart['quote'] is Map
+          ? Map<String, dynamic>.from(cart['quote'] as Map)
+          : <String, dynamic>{});
+  final directMerchandise = quoteOverride == null
+      ? double.tryParse((cart['merchandise_total'] ?? '').toString())
+      : null;
+  var merchandise = directMerchandise ??
+      (doubleValue(quote['subtotal'] ?? cart['subtotal'], 0) -
+          doubleValue(quote['discount_total'], 0));
+
+  // The cart's server-derived merchandise_total already excludes delivery.
+  // Only compensate when recomputing from a coupon-adjusted quote.
+  if (directMerchandise == null) {
+    for (final key in <String>['promotion', 'coupon']) {
+      final discount = quote[key];
+      if (discount is! Map) continue;
+      final type = (discount['type'] ?? discount['discount_type'] ?? '')
+          .toString()
+          .toLowerCase();
+      if (type == 'free_shipping') {
+        merchandise += doubleValue(
+          quote[key == 'promotion'
+              ? 'promotion_discount_total'
+              : 'coupon_discount_total'],
+          0,
+        );
+      }
+    }
+  }
+  return math.max(0, minimum - math.max(0, merchandise)).toDouble();
+}
+
+Future<void> _showWholesaleMinimumPopup(
+  BuildContext context, {
+  required double minimum,
+  required double remaining,
+}) {
+  final isAr = Localizations.localeOf(context).languageCode == 'ar';
+  return showDialog<void>(
+    context: context,
+    builder: (dialogContext) {
+      final errorColor = Theme.of(dialogContext).colorScheme.error;
+      return AlertDialog(
+        key: const ValueKey('b2b-minimum-order-popup'),
+        icon: Icon(
+          Icons.warning_amber_rounded,
+          color: errorColor,
+          size: 42,
+        ),
+        title: Text(
+          isAr
+              ? 'لم تصل إلى الحد الأدنى لقيمة الطلب'
+              : 'Minimum order not reached',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: errorColor,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        content: Text(
+          isAr
+              ? 'الحد الأدنى للطلب هو ${foodexMoneyText(minimum, 'EGP')}. أضف منتجات بقيمة ${foodexMoneyText(remaining, 'EGP')} لإتمام الطلب.'
+              : 'Minimum order is ${foodexMoneyText(minimum, 'EGP')}. Add ${foodexMoneyText(remaining, 'EGP')} in products to continue.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: errorColor,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(isAr ? 'حسنًا' : 'OK'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 class _CartTotalPanel extends StatelessWidget {
   const _CartTotalPanel({
     required this.cart,
@@ -5989,6 +6703,8 @@ class _CartTotalPanel extends StatelessWidget {
     final delivery = quote['delivery_total'];
     final tax = quote['tax_total'];
     final total = quote['grand_total'] ?? cart['grand_total'] ?? subtotal;
+    final minimum = doubleValue(cart['minimum_order_egp'], 1500);
+    final minimumMissing = _wholesaleMinimumRemaining(cart);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -6022,6 +6738,20 @@ class _CartTotalPanel extends StatelessWidget {
             ),
           ],
         ),
+        if (minimumMissing > 0.0001) ...[
+          const SizedBox(height: 9),
+          Text(
+            (Localizations.localeOf(context).languageCode == 'ar'
+                    ? 'الحد الأدنى ${money(minimum, currency: currency)}. أضف منتجات بقيمة '
+                    : 'Minimum ${money(minimum, currency: currency)}. Add products worth ') +
+                money(minimumMissing, currency: currency),
+            key: const ValueKey('b2b-cart-minimum-warning'),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.error,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
         const SizedBox(height: 9),
         Text(
           context.tr('b2b.cart.revalidation'),
@@ -6036,7 +6766,9 @@ class _CartTotalPanel extends StatelessWidget {
           height: 52,
           child: _WholesaleWaveCheckoutButton(
             key: const ValueKey('b2b-cart-checkout'),
-            enabled: enabled,
+            // Keep checkout visibly disabled until the server-quoted
+            // merchandise amount reaches the configured B2B minimum.
+            enabled: enabled && minimumMissing <= 0.0001,
             label: context.tr('b2b.action.checkout'),
             onPressed: onCheckout,
           ),
@@ -6209,7 +6941,7 @@ class WholesaleCheckoutDesignScreen extends StatefulWidget {
 
 class _WholesaleCheckoutDesignScreenState
     extends State<WholesaleCheckoutDesignScreen> with WidgetsBindingObserver {
-  late final int storeId = wholesaleStoreId(widget.location);
+  late int storeId = wholesaleStoreId(widget.location);
   late Future<_CheckoutPayload> future = _load();
   late final String idempotencyKey;
   int? addressId;
@@ -6218,6 +6950,7 @@ class _WholesaleCheckoutDesignScreenState
   bool applyingCoupon = false;
   String? appliedCouponCode;
   Map<String, dynamic>? appliedQuote;
+  _CheckoutPayload? _latestCheckoutPayload;
   Map<String, dynamic>? createdOrder;
   final note = TextEditingController();
   final coupon = TextEditingController();
@@ -6235,7 +6968,9 @@ class _WholesaleCheckoutDesignScreenState
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted && !submitting) {
-      setState(() => future = _load());
+      setState(() {
+        future = _load();
+      });
     }
   }
 
@@ -6264,6 +6999,18 @@ class _WholesaleCheckoutDesignScreenState
   }
 
   Future<_CheckoutPayload> _load() async {
+    if (storeId <= 0) {
+      storeId = await resolveWholesaleStoreId(
+        location: widget.location,
+        storefrontApi: widget.storefrontApi,
+      );
+    }
+    if (storeId <= 0) {
+      throw const WholesaleCommerceException(
+        'No authorized Wholesale store was selected.',
+        statusCode: 422,
+      );
+    }
     final options = widget.storefrontApi == null
         ? const <String, dynamic>{}
         : await widget.storefrontApi!.b2bCheckoutOptions(storeId);
@@ -6274,7 +7021,9 @@ class _WholesaleCheckoutDesignScreenState
         ? Map<String, dynamic>.from(rawCart)
         : <String, dynamic>{};
 
-    return _CheckoutPayload(options: options, cart: cart);
+    final payload = _CheckoutPayload(options: options, cart: cart);
+    _latestCheckoutPayload = payload;
+    return payload;
   }
 
   String _paymentLabel(BuildContext context, String method) {
@@ -6367,6 +7116,28 @@ class _WholesaleCheckoutDesignScreenState
       return;
     }
 
+    final payload = _latestCheckoutPayload;
+    if (payload != null) {
+      final minimum = doubleValue(
+        payload.options['minimum_order_egp'] ??
+            payload.cart['minimum_order_egp'],
+        1500,
+      );
+      final remaining = _wholesaleMinimumRemaining(
+        payload.cart,
+        quoteOverride: appliedQuote,
+        minimumOverride: minimum,
+      );
+      if (remaining > 0.0001) {
+        await _showWholesaleMinimumPopup(
+          context,
+          minimum: minimum,
+          remaining: remaining,
+        );
+        return;
+      }
+    }
+
     setState(() => submitting = true);
     try {
       final result = await api.checkout(
@@ -6394,7 +7165,9 @@ class _WholesaleCheckoutDesignScreenState
       setState(() => submitting = false);
       await showOperationalError(context, error);
       if (mounted) {
-        setState(() => future = _load());
+        setState(() {
+          future = _load();
+        });
       }
     }
   }
@@ -6509,7 +7282,9 @@ class _WholesaleCheckoutDesignScreenState
                   return FoodexErrorState(
                     key: const ValueKey('b2b-checkout-error'),
                     message: context.tr('b2b.cart.subtitle'),
-                    onRetry: () => setState(() => future = _load()),
+                    onRetry: () => setState(() {
+                      future = _load();
+                    }),
                   );
                 }
 
@@ -6564,6 +7339,15 @@ class _WholesaleCheckoutDesignScreenState
                   }
                 }
 
+                final minimum = doubleValue(
+                  data['minimum_order_egp'] ?? cart['minimum_order_egp'],
+                  1500,
+                );
+                final minimumMissing = _wholesaleMinimumRemaining(
+                  cart,
+                  quoteOverride: appliedQuote,
+                  minimumOverride: minimum,
+                );
                 final creditInsufficient = paymentMethod == 'account_credit' &&
                     grandTotal > purchasingPower + .0001;
                 final couponReady = _normalizedCoupon.isEmpty ||
@@ -6571,6 +7355,7 @@ class _WholesaleCheckoutDesignScreenState
                 final canSubmit = widget.commerceApi != null &&
                     items.isNotEmpty &&
                     !hasUnavailable &&
+                    minimumMissing <= 0.0001 &&
                     addressId != null &&
                     paymentMethod != null &&
                     couponReady &&
@@ -6767,6 +7552,20 @@ class _WholesaleCheckoutDesignScreenState
                       cart: cart,
                       quoteOverride: appliedQuote,
                     ),
+                    if (minimumMissing > 0.0001) ...[
+                      const SizedBox(height: 9),
+                      Text(
+                        (Localizations.localeOf(context).languageCode == 'ar'
+                                ? 'الحد الأدنى ${money(minimum, currency: 'EGP')}. أضف منتجات بقيمة '
+                                : 'Minimum ${money(minimum, currency: 'EGP')}. Add products worth ') +
+                            money(minimumMissing, currency: 'EGP'),
+                        key: const ValueKey('b2b-checkout-minimum-warning'),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 18),
                     SizedBox(
                       height: 54,
@@ -7841,6 +8640,10 @@ class _WholesaleOrderDetailsDesignScreenState
                       final payment = order['payment'] is Map
                           ? Map<String, dynamic>.from(order['payment'] as Map)
                           : null;
+                      final settlement = order['settlement'] is Map
+                          ? Map<String, dynamic>.from(
+                              order['settlement'] as Map)
+                          : const <String, dynamic>{};
                       final accountCredit =
                           order['account_credit_impact'] is Map
                               ? Map<String, dynamic>.from(
@@ -7901,7 +8704,9 @@ class _WholesaleOrderDetailsDesignScreenState
                                 context.tr('b2b.order.status'),
                                 _orderStatusText(context, status),
                               ),
-                              if (payment != null)
+                              // The latest transaction state is not the
+                              // same thing as the full order settlement.
+                              if (payment != null && settlement.isEmpty)
                                 (
                                   context.tr('b2b.order.payment_status'),
                                   _paymentStatusText(
@@ -7920,6 +8725,23 @@ class _WholesaleOrderDetailsDesignScreenState
                               ),
                             ],
                           ),
+                          if (settlement['payment_state'] != null) ...[
+                            const SizedBox(height: 10),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: CustomerOrderPaymentBadge(
+                                orderId: orderId,
+                                currency: currency,
+                                paymentState:
+                                    settlement['payment_state']?.toString(),
+                                paidAmount:
+                                    _numberValue(settlement['paid_amount']),
+                                remainingAmount: _numberValue(
+                                    settlement['remaining_amount']),
+                              ),
+                            ),
+                          ],
                           if (address != null) ...[
                             const SizedBox(height: 2),
                             _OrderDetailCard(
@@ -8882,6 +9704,13 @@ class _OrderCard extends StatelessWidget {
         .toUpperCase();
     final total = row['grand_total'] ?? row['total'];
     final totalLabel = _compactOrderAmount(total, currency);
+    final settlement = row['settlement'] is Map
+        ? Map<String, dynamic>.from(row['settlement'] as Map)
+        : const <String, dynamic>{};
+    final paymentState = settlement['payment_state']?.toString();
+    final paid = _numberValue(settlement['paid_amount']);
+    final remaining = _numberValue(settlement['remaining_amount']);
+    final fullyPaid = paymentState == 'fully_settled';
     final title =
         row['display_order_number']?.toString().trim().isNotEmpty == true
             ? row['display_order_number'].toString().trim()
@@ -8991,12 +9820,25 @@ class _OrderCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style:
                             Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: palette.primary,
+                                  color: fullyPaid
+                                      ? CustomerUiColors.success
+                                      : palette.primary,
                                   fontSize: compact ? 12.8 : 14.5,
                                   fontWeight: FontWeight.w900,
                                   height: 1.05,
                                 ),
                       ),
+                      if (paymentState != null) ...[
+                        SizedBox(height: compact ? 5 : 7),
+                        CustomerOrderPaymentBadge(
+                          orderId: id,
+                          currency: currency,
+                          paymentState: paymentState,
+                          paidAmount: paid,
+                          remainingAmount: remaining,
+                          compact: compact,
+                        ),
+                      ],
                     ],
                   ),
                 ),

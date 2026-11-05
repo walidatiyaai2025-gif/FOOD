@@ -52,11 +52,13 @@ final class CommerceQuoteService
         $items = CartItem::query()
             ->where('cart_id', $cart->getKey())
             ->orderBy('id')
-            ->get(['id', 'product_id', 'quantity'])
+            ->get(['id', 'product_id', 'quantity', 'selling_unit_code', 'selling_unit_quantity', 'selling_unit_conversion_factor'])
             ->map(static fn (CartItem $item): array => [
                 'cart_item_id' => (int) $item->getKey(),
                 'product_id' => (int) $item->product_id,
                 'quantity' => (float) $item->quantity,
+                'selling_unit_code' => $item->selling_unit_code,
+                'selling_unit_quantity' => $item->selling_unit_quantity === null ? null : (float) $item->selling_unit_quantity,
             ])
             ->all();
 
@@ -100,7 +102,7 @@ final class CommerceQuoteService
     /**
      * Quote arbitrary server-authorized lines. Client-submitted prices are intentionally absent.
      *
-     * @param  list<array{product_id:int|string,quantity:int|float|string,cart_item_id?:int|string}>  $items
+     * @param  list<array{product_id:int|string,quantity:int|float|string,cart_item_id?:int|string,selling_unit_code?:string|null,selling_unit_quantity?:float|int|string|null}>  $items
      * @return array<string, mixed>
      */
     public function quote(
@@ -175,6 +177,65 @@ final class CommerceQuoteService
                 $strict,
                 $b2bContext,
             );
+
+            $selectedUnitCode = trim((string) ($item['selling_unit_code'] ?? ''));
+            if ($selectedUnitCode !== '') {
+                $sellingQuantity = (float) ($item['selling_unit_quantity'] ?? 0);
+                $unitIssue = $sellingQuantity <= 0 ? 'The cart selling quantity is invalid.' : null;
+                $unit = null;
+
+                if ($unitIssue === null) {
+                    try {
+                        $unit = app(CommercialPolicyService::class)
+                            ->sellingUnit($productId, $selectedUnitCode, $sellingQuantity);
+                    } catch (\DomainException|\InvalidArgumentException $exception) {
+                        $unitIssue = $exception->getMessage();
+                    }
+                }
+
+                if ($unit !== null && abs((float) $unit['base_quantity'] - $quantity) > 0.0005) {
+                    $unitIssue = 'The selling-unit conversion changed. Re-add the product to update your cart.';
+                }
+
+                if ($unitIssue !== null) {
+                    if ($strict) {
+                        throw ValidationException::withMessages(['items' => [$unitIssue]]);
+                    }
+
+                    // A stale selling-unit line must remain visible/removable in
+                    // cart review. It must never contribute to the quote total or
+                    // silently become purchasable after a catalog change.
+                    $line['selling_unit_code'] = $selectedUnitCode;
+                    $line['selling_unit_quantity'] = $sellingQuantity;
+                    $line['selling_unit_name'] = null;
+                    $line['is_available'] = false;
+                    $line['availability_state'] = 'SELLING_UNIT_INVALID';
+                    $line['commercial_status'] = 'UNAVAILABLE';
+                    $line['commercial_reason_codes'] = array_values(array_unique([
+                        ...($line['commercial_reason_codes'] ?? []),
+                        'SELLING_UNIT_INVALID',
+                    ]));
+                    $line['unit_price'] = null;
+                    $line['line_subtotal'] = null;
+                    $line['line_total'] = null;
+                } else {
+                    $line['selling_unit_code'] = $unit['code'];
+                    $line['selling_unit_name'] = $unit['name'];
+                    $line['selling_unit_quantity'] = $sellingQuantity;
+                    $line['selling_unit_sku'] = $unit['sku'];
+                    $line['selling_unit_barcode'] = $unit['barcode'];
+                    $line['quantity_conversion_factor'] = (float) $unit['conversion_factor'];
+
+                    if ($line['is_available'] && $unit['price'] !== null) {
+                        $line['unit_price'] = round(
+                            (float) $unit['price'] / (float) $unit['conversion_factor'],
+                            3,
+                        );
+                        $line['line_subtotal'] = round($line['unit_price'] * $quantity, 3);
+                        $line['line_total'] = $line['line_subtotal'];
+                    }
+                }
+            }
 
             if (array_key_exists('cart_item_id', $item)) {
                 $line['cart_item_id'] = (int) $item['cart_item_id'];
@@ -332,6 +393,11 @@ final class CommerceQuoteService
             'name_snapshot' => (string) $line['name'],
             'quantity' => (float) $line['quantity'],
             'quantity_conversion_factor' => (float) ($line['quantity_conversion_factor'] ?? 1),
+            'selling_unit_code_snapshot' => $line['selling_unit_code'] ?? null,
+            'selling_unit_name_snapshot' => $line['selling_unit_name'] ?? null,
+            'selling_unit_sku_snapshot' => $line['selling_unit_sku'] ?? null,
+            'selling_unit_barcode_snapshot' => $line['selling_unit_barcode'] ?? null,
+            'selling_unit_quantity' => $line['selling_unit_quantity'] ?? null,
             'unit_price' => (float) $line['unit_price'],
             'base_unit_price_snapshot' => $line['base_unit_price'] === null ? null : (float) $line['base_unit_price'],
             'line_discount_total' => (float) ($line['line_discount_total'] ?? 0),

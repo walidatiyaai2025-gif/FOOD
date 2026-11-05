@@ -722,6 +722,20 @@ final class StorefrontRevisionService
         $settings = (array) $normalized['settings'];
         $branding = (array) ($settings['branding'] ?? []);
         if ($channel === 'b2b') {
+            // Stock visibility is saved immediately outside storefront revisions.
+            // Publishing or rolling back a design revision must never revert it.
+            $liveBranding = $this->decodeJson(
+                DB::table('storefront_settings')->where('store_id', $storeId)->value('branding'),
+            );
+            if (array_key_exists('show_in_stock_only', $liveBranding)) {
+                $branding['show_in_stock_only'] = filter_var(
+                    $liveBranding['show_in_stock_only'],
+                    FILTER_VALIDATE_BOOLEAN,
+                );
+            } else {
+                unset($branding['show_in_stock_only']);
+            }
+
             foreach ([
                 'public_web_enabled',
                 'facebook_url',

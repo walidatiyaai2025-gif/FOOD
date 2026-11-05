@@ -256,6 +256,21 @@ final class CommercialPolicyService
      */
     public function sellingUnits(int $productId): array
     {
+        $policy = $this->flags->commercialRulesEnabled()
+            ? DB::table('product_commercial_policies')
+                ->where('product_id', $productId)
+                ->first(['break_pack_policy', 'break_pack_unit_code'])
+            : null;
+        $mode = strtolower(trim((string) ($policy->break_pack_policy ?? 'mixed')));
+        $requiredCode = trim((string) ($policy->break_pack_unit_code ?? ''));
+        $allowed = static fn (array $unit): bool => match ($mode) {
+            'full-pack-only' => ! $unit['is_base'] && $unit['conversion_factor'] > 1.0001,
+            'loose-only' => $unit['is_base'],
+            'one-unit-type' => $requiredCode !== ''
+                && strcasecmp((string) $unit['code'], $requiredCode) === 0,
+            default => true,
+        };
+
         $units = DB::table('product_selling_units')
             ->where('product_id', $productId)
             ->where('is_active', true)
@@ -277,7 +292,7 @@ final class CommercialPolicyService
                 return [];
             }
 
-            return [[
+            $fallback = [
                 'code' => (string) $base->code,
                 'name' => (string) $base->name,
                 'conversion_factor' => 1.0,
@@ -285,7 +300,9 @@ final class CommercialPolicyService
                 'sku' => $base->sku === null ? null : (string) $base->sku,
                 'barcode' => null,
                 'is_base' => true,
-            ]];
+            ];
+
+            return $allowed($fallback) ? [$fallback] : [];
         }
 
         return $units
@@ -298,6 +315,7 @@ final class CommercialPolicyService
                 'barcode' => $unit->barcode === null ? null : (string) $unit->barcode,
                 'is_base' => (bool) $unit->is_base,
             ])
+            ->filter($allowed)
             ->values()
             ->all();
     }

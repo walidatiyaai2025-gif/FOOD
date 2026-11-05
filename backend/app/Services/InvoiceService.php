@@ -355,8 +355,16 @@ final class InvoiceService
                     'product_id' => $item->product_id === null ? null : (int) $item->product_id,
                     'sku' => $item->sku_snapshot,
                     'name' => (string) $item->description,
-                    'quantity' => (float) $item->quantity,
-                    'unit_price' => (float) $item->unit_price,
+                    'quantity' => (float) (data_get($item->line_snapshot, 'selling_unit_quantity') ?? $item->quantity),
+                    'base_quantity' => (float) $item->quantity,
+                    'selling_unit_code' => data_get($item->line_snapshot, 'selling_unit_code'),
+                    'selling_unit_name' => data_get($item->line_snapshot, 'selling_unit_name'),
+                    'unit_price' => data_get($item->line_snapshot, 'selling_unit_code') === null
+                        ? (float) $item->unit_price
+                        : round(
+                            (float) $item->unit_price * (float) data_get($item->line_snapshot, 'conversion_factor', 1),
+                            3,
+                        ),
                     'discount_total' => (float) ($item->line_discount_total ?? 0),
                     'tax_total' => (float) ($item->line_tax_total ?? 0),
                     'line_total' => (float) $item->line_total,
@@ -403,12 +411,34 @@ final class InvoiceService
 
         $rows = '';
         foreach ((array) ($data['items'] ?? []) as $item) {
-            $rows .= '<tr><td>'.$e($item['name']).'<br><small>'.$e($item['sku']).'</small></td>'
+            $rows .= '<tr><td>'.$e($item['name']).'<br><small>'.$e($item['sku'])
+                .($item['selling_unit_name'] === null ? '' : ' · '.$e($item['selling_unit_name']))
+                .'</small></td>'
                 .'<td>'.$e($item['quantity']).'</td><td>'.$money($item['unit_price']).'</td>'
                 .'<td>'.$money($item['line_total']).' '.$e($data['currency']).'</td></tr>';
         }
 
-        return '<div style="font-family:dejavusans;"><h1>'.$e($labels['title']).'</h1>'
+        $brand = app(DocumentBrandingService::class)->identity();
+        $logo = $brand['logo_data_uri'] !== null
+            ? '<img src="'.$e($brand['logo_data_uri']).'" height="48" alt="FOODEX">'
+            : '<strong>FOODEX</strong>';
+        $contactLines = [];
+        if (trim((string) $brand['phone_secondary']) !== '') {
+            $contactLines[] = '<b>'.($ar ? 'موبايل' : 'Mobile').':</b> '.$e($brand['phone_secondary']);
+        }
+        if (trim((string) $brand['phone_primary']) !== '') {
+            $contactLines[] = '<b>'.($ar ? 'تليفون' : 'Telephone').':</b> '.$e($brand['phone_primary']);
+        }
+
+        // Keep all company details directly beneath the logo in Arabic and English PDFs.
+        $brandingHeader = '<table cellpadding="4" width="100%" style="border-bottom:2px solid #166534">'
+            .'<tr><td width="100%" align="center" style="text-align:center">'.$logo.'<br>'
+            .'<strong>'.$e($brand['name']).'</strong><br>'
+            .$e($brand['address'])
+            .($contactLines === [] ? '' : '<br>'.implode('<br>', $contactLines))
+            .'</td></tr></table><br>';
+
+        return '<div style="font-family:dejavusans;">'.$brandingHeader.'<h1>'.$e($labels['title']).'</h1>'
             .'<table cellpadding="4"><tr><td><b>'.$e($labels['invoice']).':</b> '.$e($data['display_invoice_number'] ?? $data['invoice_number']).'</td>'
             .'<td><b>'.$e($labels['date']).':</b> '.$e($data['issued_at']).'</td></tr>'
             .'<tr><td><b>'.$e($labels['order']).':</b> '.$e($data['display_order_number'] ?? $data['order_number']).'</td>'

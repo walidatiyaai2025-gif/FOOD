@@ -28,6 +28,10 @@ $printTitle = __('order_operations.popup.'.$kind);
         </div>
     </header>
 
+    @if(in_array($kind, ['details', 'invoice'], true))
+        @include('admin._invoice-company-identity')
+    @endif
+
     <div class="order-popup-toolbar" data-no-print>
         <button type="button" class="foodex-primary" data-order-popup-print>{{ __('order_operations.popup.print') }}</button>
     </div>

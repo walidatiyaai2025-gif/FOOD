@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/localization/driver_translations.dart';
 import 'driver_completion_contract.dart';
@@ -66,6 +67,7 @@ class _DriverCompletionDecisionSheetState
   DriverCompletionValidationError? _validationError;
   Object? _submitError;
   bool _submitting = false;
+  bool _pickingProof = false;
 
   @override
   void initState() {
@@ -76,27 +78,36 @@ class _DriverCompletionDecisionSheetState
     );
   }
 
-  bool get _canDeliver =>
-      widget.availableStatuses.contains(DriverCompletionTarget.delivered.status);
+  bool get _canDeliver => widget.availableStatuses
+      .contains(DriverCompletionTarget.delivered.status);
 
   bool get _canFail =>
       widget.availableStatuses.contains(DriverCompletionTarget.failed.status);
 
   Future<void> _pickProof({required bool camera}) async {
-    if (_submitting) return;
-
-    final attachment = camera
-        ? await widget.proofPicker.pickCamera()
-        : await widget.proofPicker.pickGallery();
-    if (!mounted || attachment == null) return;
-
+    if (_submitting || _pickingProof) return;
     setState(() {
-      _draft = _draft.copyWith(proof: attachment);
-      _validationError = attachment.isWithinSizeLimit
-          ? null
-          : DriverCompletionValidationError.proofTooLarge;
+      _pickingProof = true;
       _submitError = null;
     });
+    try {
+      final attachment = camera
+          ? await widget.proofPicker.pickCamera()
+          : await widget.proofPicker.pickGallery();
+      if (!mounted || attachment == null) return;
+      setState(() {
+        _draft = _draft.copyWith(proof: attachment);
+        _validationError = attachment.isWithinSizeLimit
+            ? null
+            : DriverCompletionValidationError.proofTooLarge;
+        _submitError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _submitError = error);
+    } finally {
+      if (mounted) setState(() => _pickingProof = false);
+    }
   }
 
   void _removeProof() {
@@ -174,8 +185,9 @@ class _DriverCompletionDecisionSheetState
     final validationText = _validationError == null
         ? null
         : _validationMessage(context, _validationError!);
-    final submitText =
-        _submitError == null ? null : _submitErrorMessage(context, _submitError!);
+    final submitText = _submitError == null
+        ? null
+        : _submitErrorMessage(context, _submitError!);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -288,8 +300,9 @@ class _DriverCompletionDecisionSheetState
                 Expanded(
                   child: OutlinedButton.icon(
                     key: const ValueKey('driver-completion-proof-camera'),
-                    onPressed:
-                        _submitting ? null : () => _pickProof(camera: true),
+                    onPressed: (_submitting || _pickingProof)
+                        ? null
+                        : () => _pickProof(camera: true),
                     icon: const Icon(Icons.photo_camera_rounded),
                     label: Text(context.tr('driver.proof.camera')),
                   ),
@@ -298,8 +311,9 @@ class _DriverCompletionDecisionSheetState
                 Expanded(
                   child: OutlinedButton.icon(
                     key: const ValueKey('driver-completion-proof-gallery'),
-                    onPressed:
-                        _submitting ? null : () => _pickProof(camera: false),
+                    onPressed: (_submitting || _pickingProof)
+                        ? null
+                        : () => _pickProof(camera: false),
                     icon: const Icon(Icons.photo_library_rounded),
                     label: Text(context.tr('driver.proof.gallery')),
                   ),
@@ -448,9 +462,36 @@ String _validationMessage(
     };
 
 String _submitErrorMessage(BuildContext context, Object error) {
+  if (error is PlatformException) {
+    final code = error.code.toLowerCase();
+    if (code.contains('permission') ||
+        code.contains('denied') ||
+        code.contains('restricted')) {
+      return context.tr('driver.completion.photo_permission_denied');
+    }
+    return context.tr('driver.completion.photo_picker_failed');
+  }
+  if (error is MissingPluginException) {
+    return context.tr('driver.completion.photo_picker_failed');
+  }
   if (error is DriverCompletionException) {
-    if (error.code == 'network_unavailable') {
-      return context.tr('driver.offline');
+    switch (error.code) {
+      case 'network_unavailable':
+        return context.tr('driver.offline');
+      case 'proof_file_missing':
+        return context.tr('driver.completion.proof_file_missing');
+      case 'proof_too_large':
+        return context.tr('driver.completion.proof_too_large');
+      case 'proof_upload_failed':
+        return context.tr('driver.completion.proof_upload_failed');
+      case 'driver_location_heartbeat_required':
+        return context.tr('driver.completion.location_required');
+      case 'proof_upload_validation_failed':
+        return context.tr('driver.completion.proof_validation_failed');
+      case 'delivery_validation_failed':
+        return context.tr('driver.completion.validation_failed');
+      case 'stale_assignment':
+        return context.tr('driver.completion.stale_assignment');
     }
   }
   return context.tr('driver.completion.submit_failed');

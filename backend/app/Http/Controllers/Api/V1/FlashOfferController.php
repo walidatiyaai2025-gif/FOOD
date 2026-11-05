@@ -12,9 +12,12 @@ use App\Services\CommercialPolicyService;
 use App\Services\CustomerDomainResolver;
 use App\Services\FlashCheckoutService;
 use App\Services\FlashOfferService;
+use App\Services\OperationalTenantScope;
+use App\Services\WholesalePrincipal;
 use App\Support\DisplayNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -61,6 +64,114 @@ final class FlashOfferController extends Controller
                 ))
                 ->values(),
         ]);
+    }
+
+    /**
+     * Guest catalog for the retail Offers tab. Never expose targeted Flash
+     * campaigns to anonymous users; checkout and eligibility remain gated.
+     */
+    public function publicIndex(
+        Request $request,
+        FlashOfferService $flash,
+        CommercialPolicyService $commercialPolicy,
+        CommerceQuoteService $quotes,
+    ): JsonResponse {
+        $data = $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
+        ]);
+        $storeId = (int) $data['store_id'];
+        abort_unless(DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $storeId)
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2C')
+            ->exists(), 404);
+
+        $offers = $flash->activeOffers($storeId, 'customer')
+            ->filter(static fn (FlashOffer $offer): bool => (array) ($offer->audience_customer_ids ?? []) === []
+                && (array) ($offer->audience_customer_group_ids ?? []) === []
+                && (array) ($offer->audience_regions ?? []) === []
+                && (array) ($offer->audience_routes ?? []) === []);
+
+        return response()->json([
+            'server_time' => now()->toAtomString(),
+            'data' => $offers->map(fn (FlashOffer $offer): array => $this->offerPayload(
+                $offer, null, null, $commercialPolicy, $quotes,
+            ))->filter(static fn (array $offer): bool => $offer['products'] !== [])->values(),
+        ]);
+    }
+
+    /**
+     * Wholesale Customer App: show Van-only promotions without enabling
+     * direct B2B customer checkout or exposing another customer's targeting.
+     */
+    public function wholesaleIndex(
+        Request $request,
+        FlashOfferService $flash,
+        CommercialPolicyService $commercialPolicy,
+        CustomerDomainResolver $customers,
+        CommerceQuoteService $quotes,
+    ): JsonResponse {
+        $user = $this->user($request);
+        $data = $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
+        ]);
+        $storeId = (int) $data['store_id'];
+        $this->assertPrincipalWholesaleStore($storeId);
+        $customer = $customers->b2bFromRequest($user, $request);
+        $legacyCustomerId = $customer->legacy_customer_id === null
+            ? null : (int) $customer->legacy_customer_id;
+
+        $offers = $flash->activeOffers($storeId, 'van', (int) $user->getKey());
+
+        return response()->json([
+            'server_time' => now()->toAtomString(),
+            'fulfillment_channel' => 'van',
+            'data' => $offers->map(fn (FlashOffer $offer): array => $this->offerPayload(
+                $offer, $user, $legacyCustomerId, $commercialPolicy, $quotes, 'van',
+            ))->filter(static fn (array $offer): bool => $offer['products'] !== [])->values(),
+        ]);
+    }
+
+    /**
+     * Guest-visible wholesale promotions are strictly untargeted and
+     * informational: Van-only fulfillment remains authoritative.
+     */
+    public function publicWholesaleIndex(
+        Request $request,
+        FlashOfferService $flash,
+        CommercialPolicyService $commercialPolicy,
+        CommerceQuoteService $quotes,
+    ): JsonResponse {
+        $data = $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
+        ]);
+        $storeId = (int) $data['store_id'];
+        $this->assertPrincipalWholesaleStore($storeId);
+        $offers = $flash->activeOffers($storeId, 'van')
+            ->filter(static fn (FlashOffer $offer): bool => (array) ($offer->audience_customer_ids ?? []) === []
+                && (array) ($offer->audience_customer_group_ids ?? []) === []
+                && (array) ($offer->audience_regions ?? []) === []
+                && (array) ($offer->audience_routes ?? []) === []);
+
+        return response()->json([
+            'server_time' => now()->toAtomString(),
+            'fulfillment_channel' => 'van',
+            'data' => $offers->map(fn (FlashOffer $offer): array => $this->offerPayload(
+                $offer, null, null, $commercialPolicy, $quotes, 'van',
+            ))->filter(static fn (array $offer): bool => $offer['products'] !== [])->values(),
+        ]);
+    }
+
+    private function assertPrincipalWholesaleStore(int $storeId): void
+    {
+        abort_unless(DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $storeId)
+            ->where('stores.code', WholesalePrincipal::STORE_CODE)
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2B')
+            ->exists(), 404);
     }
 
     public function event(
@@ -245,10 +356,11 @@ final class FlashOfferController extends Controller
     /** @return array<string,mixed> */
     private function offerPayload(
         FlashOffer $offer,
-        User $user,
+        ?User $user,
         ?int $legacyCustomerId,
         CommercialPolicyService $commercialPolicy,
         CommerceQuoteService $quotes,
+        string $policyChannel = 'customer',
     ): array {
         $products = $offer->products;
         $first = $products->first();
@@ -258,7 +370,7 @@ final class FlashOfferController extends Controller
             ->sum('reserved_base_quantity');
         $customerUsed = (float) FlashReservation::query()
             ->where('flash_offer_id', $offer->getKey())
-            ->where('user_id', $user->getKey())
+            ->where('user_id', $user?->getKey() ?? 0)
             ->whereIn('status', ['active', 'confirmed'])
             ->sum('reserved_base_quantity');
 
@@ -292,7 +404,7 @@ final class FlashOfferController extends Controller
                 $decision = $commercialPolicy->evaluate(
                     (int) $first->product_id,
                     $legacyCustomerId,
-                    'customer',
+                    $policyChannel,
                     max(0.001, (float) $first->conversion_factor),
                 );
                 $eligible = (bool) $decision['allowed'];
@@ -304,16 +416,21 @@ final class FlashOfferController extends Controller
         }
 
         $remainingAllocation = min($offerRemaining, $firstProductRemaining);
+        $availableProducts = $this->availableFlashProducts(
+            $offer, $products, $legacyCustomerId, $commercialPolicy,
+            $offerRemaining, $customerRemaining, $policyChannel,
+        );
 
         return [
             'id' => (int) $offer->getKey(),
             'store_id' => (int) $offer->store_id,
+            'fulfillment_channel' => $policyChannel === 'van' ? 'van' : 'driver',
             'title_ar' => (string) $offer->title_ar,
             'title_en' => (string) $offer->title_en,
             'body_ar' => $offer->body_ar,
             'body_en' => $offer->body_en,
-            'title' => $user->locale === 'ar' ? (string) $offer->title_ar : (string) $offer->title_en,
-            'body' => $user->locale === 'ar' ? (string) ($offer->body_ar ?? '') : (string) ($offer->body_en ?? ''),
+            'title' => ($user->locale ?? 'ar') === 'ar' ? (string) $offer->title_ar : (string) $offer->title_en,
+            'body' => ($user->locale ?? 'ar') === 'ar' ? (string) ($offer->body_ar ?? '') : (string) ($offer->body_en ?? ''),
             'currency' => (string) $quotes->directPurchaseTotals((int) $offer->store_id, 0)['currency'],
             'flash_price' => $flashPrice,
             'normal_price' => $normalPrice,
@@ -335,16 +452,122 @@ final class FlashOfferController extends Controller
                 'conversion_factor' => (float) $product->conversion_factor,
                 'flash_price' => (float) $product->flash_price,
             ])->values(),
-            'products' => $products->map(static fn (FlashOfferProduct $product): array => [
-                'id' => (int) $product->getKey(),
-                'product_id' => (int) $product->product_id,
-                'selling_unit_id' => $product->selling_unit_id === null ? null : (int) $product->selling_unit_id,
-                'selling_unit_code' => $product->selling_unit_code,
-                'conversion_factor' => (float) $product->conversion_factor,
-                'flash_price' => (float) $product->flash_price,
-                'allocation_base' => $product->allocation_base === null ? null : (float) $product->allocation_base,
-            ])->values(),
+            'products' => $availableProducts,
         ];
+    }
+
+    /**
+     * The list is product-level, store-scoped and uses live remaining stock.
+     * Do not show offers with inactive/unpriced/cross-store products.
+     *
+     * @param  Collection<int, FlashOfferProduct>  $offerProducts
+     * @return list<array<string, mixed>>
+     */
+    private function availableFlashProducts(
+        FlashOffer $offer,
+        Collection $offerProducts,
+        ?int $legacyCustomerId,
+        CommercialPolicyService $commercialPolicy,
+        float $offerRemaining,
+        float $customerRemaining,
+        string $policyChannel = 'customer',
+    ): array {
+        $storeId = (int) $offer->store_id;
+        $storeChannel = app(OperationalTenantScope::class)->storeChannel($storeId);
+        $ids = $offerProducts->pluck('product_id')->map(static fn ($id): int => (int) $id)->unique();
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        $catalog = DB::table('products')
+            ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
+            ->join('store_products', function ($join) use ($storeId): void {
+                $join->on('store_products.product_id', '=', 'products.id')
+                    ->where('store_products.store_id', $storeId);
+            })
+            ->where('catalogs.store_id', $storeId)
+            ->where('catalogs.channel', $storeChannel)
+            ->where('catalogs.is_active', true)
+            ->where('catalogs.is_migration_quarantine', false)
+            ->where('products.is_active', true)
+            ->where('store_products.is_active', true)
+            ->whereNotNull('store_products.price')
+            ->whereIn('products.id', $ids)
+            ->get(['products.id', 'products.name', 'products.sku', 'store_products.price'])
+            ->keyBy('id');
+
+        $images = DB::table('product_images')
+            ->whereIn('product_id', $ids)
+            ->orderByDesc('is_primary')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get(['product_id', 'path'])
+            ->unique('product_id')
+            ->keyBy('product_id');
+        $unitIds = $offerProducts->pluck('selling_unit_id')->filter()->unique();
+        $units = DB::table('product_selling_units')
+            ->whereIn('id', $unitIds)
+            ->where('is_active', true)
+            ->get(['id', 'product_id', 'name', 'price'])
+            ->keyBy('id');
+        $inventory = DB::table('inventories')
+            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+            ->where('warehouses.store_id', $storeId)
+            ->where('warehouses.is_active', true)
+            ->whereIn('inventories.product_id', $ids)
+            ->groupBy('inventories.product_id')
+            ->selectRaw('inventories.product_id, SUM(CASE WHEN inventories.quantity > inventories.reserved_quantity THEN inventories.quantity - inventories.reserved_quantity ELSE 0 END) AS available')
+            ->pluck('available', 'product_id');
+        $used = FlashReservation::query()
+            ->whereIn('flash_offer_product_id', $offerProducts->pluck('id'))
+            ->whereIn('status', ['active', 'confirmed'])
+            ->groupBy('flash_offer_product_id')
+            ->selectRaw('flash_offer_product_id, SUM(reserved_base_quantity) AS used_base')
+            ->pluck('used_base', 'flash_offer_product_id');
+
+        $result = [];
+        foreach ($offerProducts as $entry) {
+            $productId = (int) $entry->product_id;
+            $item = $catalog->get($productId);
+            $unit = $units->get((int) $entry->selling_unit_id);
+            $conversion = (float) $entry->conversion_factor;
+            $stock = (float) ($inventory->get($productId) ?? 0);
+            $allocation = $entry->allocation_base === null
+                ? $offerRemaining
+                : min($offerRemaining, max(0.0, (float) $entry->allocation_base - (float) ($used->get($entry->getKey()) ?? 0)));
+            // Legacy Flash records can have a canonical unit code without
+            // selling_unit_id; honor their stored conversion/pricing snapshot.
+            if ($item === null || ($entry->selling_unit_id !== null
+                && ($unit === null || (int) $unit->product_id !== $productId))
+                || $conversion <= 0 || min($stock, $allocation, $customerRemaining) + 0.0001 < $conversion) {
+                continue;
+            }
+            if ($legacyCustomerId !== null) {
+                $decision = $commercialPolicy->evaluate($productId, $legacyCustomerId, $policyChannel, $conversion);
+                if (! (bool) $decision['allowed']) {
+                    continue;
+                }
+            }
+            $path = trim((string) ($images->get($productId)->path ?? ''));
+            $result[] = [
+                'id' => (int) $entry->getKey(),
+                'product_id' => $productId,
+                'name' => (string) $item->name,
+                'sku' => (string) ($item->sku ?? ''),
+                'image_url' => $path === '' ? null : (preg_match('~^https?://~i', $path) ? $path : url('/'.ltrim($path, '/'))),
+                'selling_unit_id' => $entry->selling_unit_id === null ? null : (int) $entry->selling_unit_id,
+                'selling_unit_code' => (string) $entry->selling_unit_code,
+                'selling_unit_name' => (string) ($unit->name ?? $entry->selling_unit_code),
+                'conversion_factor' => $conversion,
+                // Match FlashCheckoutService's normal_unit_price exactly.
+                'normal_price' => $unit?->price === null
+                    ? round((float) $item->price, 3) : (float) $unit->price,
+                'flash_price' => (float) $entry->flash_price,
+                'available_quantity' => (int) floor(min($stock, $allocation, $customerRemaining) / $conversion),
+            ];
+        }
+
+        return $result;
     }
 
     /** @return array<string,mixed> */

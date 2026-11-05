@@ -6,6 +6,8 @@ import '../../../shared/customer_persistent_footer.dart';
 enum CustomerRetailDestination {
   home,
   products,
+  offers,
+  invoices,
   cart,
   orders,
   account,
@@ -41,6 +43,10 @@ class CustomerRetailShell extends StatelessWidget {
         return CustomerFooterDestination.home;
       case CustomerRetailDestination.products:
         return CustomerFooterDestination.products;
+      case CustomerRetailDestination.offers:
+        return CustomerFooterDestination.offers;
+      case CustomerRetailDestination.invoices:
+        return CustomerFooterDestination.invoices;
       case CustomerRetailDestination.cart:
         return CustomerFooterDestination.cart;
       case CustomerRetailDestination.orders:

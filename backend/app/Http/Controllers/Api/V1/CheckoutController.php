@@ -24,6 +24,7 @@ use App\Services\CustomerAddressService;
 use App\Services\CustomerDomainResolver;
 use App\Services\DashboardOperationalNotifier;
 use App\Services\InvoiceService;
+use App\Services\MinimumOrderPolicy;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\SmartOrderingAttributionService;
 use App\Support\DisplayNumber;
@@ -177,6 +178,8 @@ class CheckoutController extends Controller
                 true,
             );
 
+            app(MinimumOrderPolicy::class)->assertEligible($quote);
+
             if ($channel === 'b2b' && $paymentMethod === 'account_credit') {
                 abort_unless($customer instanceof B2bCustomer, 500);
 
@@ -288,9 +291,9 @@ class CheckoutController extends Controller
                 OrderItem::query()->create([
                     'order_id' => $order->getKey(),
                     ...$snapshot,
-                    'selling_unit_quantity' => $snapshot['quantity'],
+                    'selling_unit_quantity' => $snapshot['selling_unit_quantity'] ?? $snapshot['quantity'],
                     'base_quantity' => $snapshot['quantity'],
-                    'conversion_factor_snapshot' => 1,
+                    'conversion_factor_snapshot' => $snapshot['quantity_conversion_factor'] ?? 1,
                 ]);
 
                 try {
@@ -300,6 +303,8 @@ class CheckoutController extends Controller
                         (int) $snapshot['product_id'],
                         (float) $snapshot['quantity'],
                         'customer',
+                        null,
+                        $snapshot['selling_unit_code_snapshot'] ?? null,
                     );
                 } catch (\DomainException $exception) {
                     throw ValidationException::withMessages([

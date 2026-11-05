@@ -421,6 +421,8 @@ return [
     'app_preview' => 'معاينة التطبيقات',
     'commercial_sales_control' => 'التحكم في مبيعات المنتجات',
     'flash_offers' => 'العروض السريعة',
+    'flash_offers_wholesale' => 'العروض السريعة — الجملة',
+    'flash_offers_retail' => 'العروض السريعة — التجزئة',
     'preview_center' => [
         'title' => 'معاينة التطبيقات',
         'description' => 'اختر سياق تطبيق العميل أو السائق الحقيقي واستضف Flutter runtime المشترك بدون تكرار منطق تطبيقات الجوال داخل لوحة الإدارة.',

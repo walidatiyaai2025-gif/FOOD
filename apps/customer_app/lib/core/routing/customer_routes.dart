@@ -9,6 +9,7 @@ abstract final class CustomerRoutePaths {
   static const retailHome = '/retail/:store/home';
   static const retailProductDetails = '/retail/:store/products/:product';
   static const offers = '/offers';
+  static const invoices = '/invoices';
   static const products = '/products';
   static const productDetails = '/products/:id';
   static const categories = '/categories';
@@ -30,6 +31,7 @@ abstract final class CustomerRoutePaths {
   static const b2bPurchaseReports = '/b2b/reports/purchases';
   static const b2bTopProducts = '/b2b/products/top';
   static const b2bProducts = '/b2b/products';
+  static const b2bOffers = '/b2b/offers';
   static const b2bProductDetails = '/b2b/products/:id';
   static const b2bInvoices = '/b2b/invoices';
   static const b2bInvoiceDetails = '/b2b/invoices/:id';
@@ -102,6 +104,11 @@ abstract final class CustomerRouteLocations {
     return _scoped(CustomerRoutePaths.profile, context);
   }
 
+  static String retailInvoices(CustomerCommerceContext context) {
+    _requireChannel(context, CustomerCommerceChannel.retail);
+    return _scoped(CustomerRoutePaths.invoices, context);
+  }
+
   static String retailOrders(CustomerCommerceContext context) {
     _requireChannel(context, CustomerCommerceChannel.retail);
     return _scoped(CustomerRoutePaths.orders, context);
@@ -152,6 +159,11 @@ abstract final class CustomerRouteLocations {
       '/b2b/products/$productId',
       context,
     );
+  }
+
+  static String wholesaleOffers(CustomerCommerceContext context) {
+    _requireChannel(context, CustomerCommerceChannel.wholesale);
+    return _scoped(CustomerRoutePaths.b2bOffers, context);
   }
 
   static String wholesaleCart(CustomerCommerceContext context) {
@@ -439,6 +451,12 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
     channel: CustomerChannel.b2c,
   ),
   CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.invoices,
+    label: 'customer.nav.invoices',
+    channel: CustomerChannel.b2c,
+    requiresAuth: true,
+  ),
+  CustomerRouteDefinition(
     pattern: CustomerRoutePaths.products,
     label: 'B2C products',
     channel: CustomerChannel.b2c,
@@ -547,6 +565,11 @@ const customerRouteDefinitions = <CustomerRouteDefinition>[
   CustomerRouteDefinition(
     pattern: CustomerRoutePaths.b2bProducts,
     label: 'B2B products',
+    channel: CustomerChannel.b2b,
+  ),
+  CustomerRouteDefinition(
+    pattern: CustomerRoutePaths.b2bOffers,
+    label: 'customer.nav.offers',
     channel: CustomerChannel.b2b,
   ),
   CustomerRouteDefinition(

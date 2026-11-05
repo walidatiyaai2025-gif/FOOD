@@ -221,6 +221,10 @@ final class ReportExportService
         $align = $rtl ? 'right' : 'left';
         $dir = $rtl ? 'rtl' : 'ltr';
         $html = '<div dir="'.$dir.'" style="text-align:'.$align.';font-family:dejavusans;">';
+        $brand = app(DocumentBrandingService::class)->identity();
+        if ($brand['logo_data_uri'] !== null) {
+            $html .= '<img src="'.$this->html($brand['logo_data_uri']).'" height="40" alt="FOODEX"><br>';
+        }
         foreach ($this->summaryLines($report, $locale) as $line) {
             $html .= '<div style="margin-bottom:4px;">'.$this->html((string) $line).'</div>';
         }
@@ -284,8 +288,11 @@ final class ReportExportService
     private function summaryLines(array $report, string $locale): array
     {
         $filters = (array) ($report['filters'] ?? []);
+        $brand = app(DocumentBrandingService::class)->identity();
         $lines = [
-            'FOODEX',
+            $brand['name'],
+            $brand['address'],
+            $brand['phone_primary'].' / '.$brand['phone_secondary'],
             (string) __("reports.families.{$report['report']}"),
             (string) __('reports.generated_at').': '.(string) ($report['generated_at'] ?? ''),
             (string) __('reports.period').': '.(string) ($filters['from'] ?? '').' → '.(string) ($filters['to'] ?? ''),

@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
+import '../../core/api/customer_action_api.dart';
+import '../../core/api/wholesale_commerce_api.dart';
 import '../../core/routing/customer_commerce_context.dart';
 import '../../core/routing/customer_routes.dart';
 import '../../core/theme/customer_display_preferences.dart';
@@ -336,6 +338,38 @@ class FoodexWholesaleHeader extends StatelessWidget {
     }
   }
 
+  void _defaultFavorites(BuildContext context) {
+    final scope = _scope(context);
+    if (scope?.isWholesale == true) {
+      Navigator.of(context).pushNamed(
+        CustomerRouteLocations.wholesaleFavorites(scope!),
+      );
+      return;
+    }
+    if (scope?.isRetail == true) {
+      Navigator.of(context).pushNamed(
+        CustomerRouteLocations.retailFavorites(scope!),
+      );
+      return;
+    }
+    final current = _currentLocation(context);
+    if (current != null &&
+        Uri.tryParse(current)?.path.startsWith('/b2b') == true) {
+      final uri = Uri.parse(current);
+      final storeId =
+          uri.queryParameters['store_id'] ?? uri.queryParameters['store'];
+      Navigator.of(context).pushNamed(
+        Uri(
+          path: CustomerRoutePaths.b2bFavorites,
+          queryParameters: <String, String>{
+            if (storeId != null && storeId.isNotEmpty) 'store_id': storeId,
+            'channel': 'wholesale',
+          },
+        ).toString(),
+      );
+    }
+  }
+
   void _defaultCart(BuildContext context) {
     final scope = _scope(context);
     if (scope?.isWholesale == true) {
@@ -369,11 +403,51 @@ class FoodexWholesaleHeader extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => Container(
-        key: const ValueKey('foodex-wholesale-shared-header'),
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-        color: palette.primaryDark,
-        child: Row(
+  Widget build(BuildContext context) {
+    final actions = <Widget>[
+      ...trailingActions,
+      if (trailingActions.isNotEmpty) const SizedBox(width: 4),
+      if (isAuthenticated) ...[
+        Semantics(
+          button: true,
+          label: Localizations.localeOf(context).languageCode == 'ar'
+              ? 'المفضلة'
+              : 'Favorites',
+          child: _FoodexWholesaleHeaderIcon(
+            key: const ValueKey('customer-header-favorites'),
+            icon: Icons.favorite_border_rounded,
+            onTap: () => _defaultFavorites(context),
+          ),
+        ),
+        const SizedBox(width: 4),
+        _FoodexWholesaleHeaderIcon(
+          key: notificationKey,
+          icon: Icons.notifications_none_rounded,
+          onTap: onNotifications ?? () => _defaultNotifications(context),
+        ),
+        const SizedBox(width: 4),
+        ValueListenableBuilder<int>(
+          valueListenable: foodexWholesaleCartProductCount,
+          builder: (context, count, _) => _FoodexWholesaleHeaderIcon(
+            key: cartKey,
+            icon: Icons.shopping_cart_outlined,
+            badgeCount: count,
+            onTap: onCart ?? () => _defaultCart(context),
+          ),
+        ),
+        const SizedBox(width: 4),
+        _FoodexWholesaleAccountMenu(
+          onLocaleChanged: onLocaleChanged,
+          onLogout: onLogout,
+        ),
+      ],
+    ];
+    return Container(
+      key: const ValueKey('foodex-wholesale-shared-header'),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      color: palette.primaryDark,
+      child: LayoutBuilder(
+        builder: (context, constraints) => Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (leading != null) ...[
@@ -414,14 +488,24 @@ class FoodexWholesaleHeader extends StatelessWidget {
                   onSubmitted: onSearchSubmitted ??
                       (value) => _defaultSearch(context, value),
                   onChanged: onSearchChanged,
-                  style: const TextStyle(fontSize: 12),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                   decoration: InputDecoration(
                     isDense: true,
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).colorScheme.surface,
                     hintText: searchHint,
-                    hintStyle: const TextStyle(fontSize: 11),
-                    prefixIcon: const Icon(Icons.search_rounded, size: 16),
+                    hintStyle: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                     prefixIconConstraints: const BoxConstraints(
                       minWidth: 34,
                       minHeight: 34,
@@ -470,33 +554,19 @@ class FoodexWholesaleHeader extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
-            ...trailingActions,
-            if (trailingActions.isNotEmpty) const SizedBox(width: 4),
-            if (isAuthenticated) ...[
-              _FoodexWholesaleHeaderIcon(
-                key: notificationKey,
-                icon: Icons.notifications_none_rounded,
-                onTap: onNotifications ?? () => _defaultNotifications(context),
-              ),
-              const SizedBox(width: 4),
-              ValueListenableBuilder<int>(
-                valueListenable: foodexWholesaleCartProductCount,
-                builder: (context, count, _) => _FoodexWholesaleHeaderIcon(
-                  key: cartKey,
-                  icon: Icons.shopping_cart_outlined,
-                  badgeCount: count,
-                  onTap: onCart ?? () => _defaultCart(context),
+            if (constraints.maxWidth < 420)
+              Flexible(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(mainAxisSize: MainAxisSize.min, children: actions),
                 ),
               ),
-              const SizedBox(width: 4),
-              _FoodexWholesaleAccountMenu(
-                onLocaleChanged: onLocaleChanged,
-                onLogout: onLogout,
-              ),
-            ],
+            if (constraints.maxWidth >= 420) ...actions,
           ],
         ),
-      );
+      ),
+    );
+  }
 }
 
 class FoodexUnifiedHeaderSurface extends StatelessWidget {
@@ -1224,6 +1294,8 @@ class FoodexQuantityCta extends StatelessWidget {
     required this.label,
     required this.onChanged,
     required this.onPressed,
+    this.onCheckout,
+    this.checkoutLabel,
     super.key,
   });
 
@@ -1234,6 +1306,8 @@ class FoodexQuantityCta extends StatelessWidget {
   final String label;
   final ValueChanged<double>? onChanged;
   final VoidCallback? onPressed;
+  final VoidCallback? onCheckout;
+  final String? checkoutLabel;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -1281,6 +1355,22 @@ class FoodexQuantityCta extends StatelessWidget {
               ),
             ),
           ),
+          if (onCheckout != null) ...[
+            const SizedBox(width: 8),
+            Expanded(
+              child: SizedBox(
+                height: 52,
+                child: OutlinedButton(
+                  key: const ValueKey('customer-checkout-now'),
+                  onPressed: onCheckout,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(checkoutLabel ?? 'Checkout'),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       );
 }
@@ -1404,27 +1494,142 @@ class FoodexDetailAccordion extends StatelessWidget {
       );
 }
 
-Future<void> showOperationalError(BuildContext context, Object error) =>
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          icon: const Icon(
-            Icons.error_outline_rounded,
-            color: Color(0xFFB42318),
-          ),
-          title: const Text('تعذر تنفيذ العملية'),
-          content: Text(error.toString().replaceFirst('Exception: ', '')),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('حسنًا'),
-            ),
-          ],
+/// Show safe, actionable server-side validation instead of an opaque Dart type.
+/// The backend remains authoritative for price, stock and commercial rules.
+String operationalErrorMessage(Object error, {required bool isArabic}) {
+  final generic = isArabic
+      ? 'تعذر تنفيذ العملية. حاول مجددًا، وإذا استمرت المشكلة تواصل مع الدعم.'
+      : 'Unable to complete the action. Try again or contact support.';
+  if (error is WholesaleCommerceException) {
+    final status = error.statusCode;
+    if (status == 401) {
+      return isArabic
+          ? 'انتهت جلسة العميل. سجّل الدخول مجددًا لفتح السلة.'
+          : 'Your session expired. Sign in again to view the cart.';
+    }
+    if (status == 403) {
+      return isArabic
+          ? 'حساب الجملة غير مخوّل لعرض هذه السلة. راجع اعتماد الحساب والمتجر.'
+          : 'Your Wholesale account is not authorized for this cart. Check account and store access.';
+    }
+    if (status == 404) {
+      return isArabic
+          ? 'متجر الجملة المحدد غير متاح. ارجع للرئيسية وحدد المتجر مجددًا.'
+          : 'This Wholesale store is unavailable. Return home and select your store again.';
+    }
+    if (status == 409 || status == 422) {
+      return isArabic
+          ? 'تغيرت بيانات أحد أصناف السلة أو وحدة البيع. حدّث السلة وراجع الأصناف غير المتاحة.'
+          : 'A cart item or selling unit has changed. Refresh the cart and review unavailable items.';
+    }
+    if (status != null && status >= 500) {
+      return isArabic
+          ? 'فشل الخادم في تحميل السلة (HTTP $status). أعد المحاولة أو راجع سجل الخادم.'
+          : 'The server could not load your cart (HTTP $status). Retry or check server logs.';
+    }
+    return isArabic
+        ? 'تعذر الاتصال بخدمة السلة. تحقق من تشغيل الخادم والاتصال ثم أعد المحاولة.'
+        : 'Unable to reach the cart service. Check the server and connection, then retry.';
+  }
+  if (error is CustomerActionException) {
+    final code = error.code.trim();
+    final normalized = code.toLowerCase();
+    if (error.statusCode == 401 ||
+        normalized == 'authentication_required' ||
+        normalized == 'unauthenticated' ||
+        normalized == 'http_401') {
+      return isArabic
+          ? 'انتهت جلسة تسجيل الدخول. سجل الدخول مجددًا ثم حاول مرة أخرى.'
+          : 'Your session has expired. Sign in again and retry.';
+    }
+    if (error.statusCode == 403 ||
+        normalized == 'http_403' ||
+        normalized == 'forbidden') {
+      return isArabic
+          ? 'لا يسمح حسابك بتنفيذ هذا الطلب. راجع صلاحيات حسابك.'
+          : 'Your account cannot perform this action. Check account access.';
+    }
+    if (error.statusCode != null && error.statusCode! >= 500) {
+      return isArabic
+          ? 'خدمة السلة غير متاحة الآن (HTTP ${error.statusCode}). راجع تشغيل الخادم وحاول مجددًا.'
+          : 'The cart service is unavailable (HTTP ${error.statusCode}). Check the server and retry.';
+    }
+    if (normalized == 'store_required') {
+      return isArabic
+          ? 'اختر متجرًا قبل إضافة المنتج إلى السلة.'
+          : 'Select a store before adding this product to the cart.';
+    }
+    if (error.statusCode == 409 ||
+        normalized == 'http_409' ||
+        normalized == 'stale_cart' ||
+        normalized == 'stock_unavailable') {
+      return isArabic
+          ? 'تغير السعر أو المخزون أو شروط البيع. حدّث المنتج وراجع الكمية ثم حاول مجددًا.'
+          : 'Price, stock, or sale terms changed. Refresh the item and review the quantity.';
+    }
+    final sellingUnitMessages = error.fieldErrors['selling_unit_code'];
+    if (sellingUnitMessages != null &&
+        sellingUnitMessages.any(
+          (message) => message.toLowerCase().contains('existing product line'),
+        )) {
+      return isArabic
+          ? 'هذا المنتج موجود في السلة بوحدة بيع مختلفة. راجع السلة واحذف السطر القديم قبل تغيير الوحدة.'
+          : 'This product is already in the cart with another selling unit. Remove its existing cart line before changing units.';
+    }
+    for (final messages in error.fieldErrors.values) {
+      for (final message in messages) {
+        final text = message.trim();
+        if (text.isNotEmpty && text.length <= 240) return text;
+      }
+    }
+    // Some legacy endpoints put a user-readable message in "message" instead
+    // of "code". Never show raw Dart exception identities or server internals.
+    if (code.length <= 200 &&
+        (code.runes.any((value) => value >= 0x0600 && value <= 0x06FF) ||
+            (code.contains(' ') &&
+                !code.contains('Exception') &&
+                !code.contains('StackTrace')))) {
+      return code;
+    }
+    if (RegExp(r'^[A-Za-z0-9_-]{1,60}$').hasMatch(code)) {
+      return '$generic ($code)';
+    }
+    return generic;
+  }
+  final text = error.toString().replaceFirst('Exception: ', '').trim();
+  if (text.isEmpty ||
+      text.startsWith('Instance of ') ||
+      text.contains('StackTrace') ||
+      text.length > 240) {
+    return generic;
+  }
+  return text;
+}
+
+Future<void> showOperationalError(BuildContext context, Object error) {
+  final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+  return showDialog<void>(
+    context: context,
+    builder: (dialogContext) => Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: AlertDialog(
+        icon: const Icon(
+          Icons.error_outline_rounded,
+          color: Color(0xFFB42318),
         ),
+        title: Text(
+            isArabic ? 'تعذر تنفيذ العملية' : 'Action could not be completed'),
+        content: Text(operationalErrorMessage(error, isArabic: isArabic)),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(isArabic ? 'حسنًا' : 'OK'),
+          ),
+        ],
       ),
-    );
+    ),
+  );
+}
 
 List<Map<String, dynamic>> mapRows(Object? value) =>
     (value as List? ?? const <Object>[])

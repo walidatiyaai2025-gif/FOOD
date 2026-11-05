@@ -183,7 +183,12 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
   }
 
   Future<void> _contactUs() async {
-    if (widget.api is! CustomerContactApi) return;
+    if (widget.api is! CustomerContactApi) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('customer.contact.error'))),
+      );
+      return;
+    }
     final contactApi = widget.api as CustomerContactApi;
 
     Object? profile;
@@ -252,6 +257,11 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
                     : error.code),
           ),
         ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('customer.contact.error'))),
       );
     }
   }

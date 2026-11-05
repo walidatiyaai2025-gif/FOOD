@@ -1224,7 +1224,7 @@ class _B2bDashboardRemoteStateState extends State<_B2bDashboardRemoteState>
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => Navigator.of(context)
-              .pushNamed(_scopedRoute(CustomerRoutePaths.b2bTopProducts)),
+              .pushNamed(_scopedRoute(CustomerRoutePaths.b2bOffers)),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             child: Row(

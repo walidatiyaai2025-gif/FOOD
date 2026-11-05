@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -53,13 +54,26 @@ class HttpDriverCompletionGateway implements DriverCompletionGateway {
 
     final proof = draft.proof;
     if (proof != null) {
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'proof_image',
-          proof.path,
-          filename: proof.fileName,
-        ),
-      );
+      try {
+        // The image-picker file is temporary and may have been purged before
+        // upload. Validate its current size rather than trusting picker metadata.
+        final actualSize = await File(proof.path).length();
+        if (actualSize <= 0) {
+          throw const DriverCompletionException('proof_file_missing');
+        }
+        if (actualSize > DriverProofAttachment.maxBytes) {
+          throw const DriverCompletionException('proof_too_large');
+        }
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'proof_image',
+            proof.path,
+            filename: proof.fileName,
+          ),
+        );
+      } on FileSystemException {
+        throw const DriverCompletionException('proof_file_missing');
+      }
     }
 
     final http.Response response;
@@ -141,7 +155,8 @@ String? _message(Object? decoded) {
   return null;
 }
 
-String _validationCode(DriverCompletionValidationError error) => switch (error) {
+String _validationCode(DriverCompletionValidationError error) =>
+    switch (error) {
       DriverCompletionValidationError.proofRequired => 'proof_required',
       DriverCompletionValidationError.proofTooLarge => 'proof_too_large',
       DriverCompletionValidationError.failureReasonRequired =>

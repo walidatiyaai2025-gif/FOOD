@@ -358,6 +358,31 @@ class _RetailCartScreenState extends State<RetailCartScreen>
                                 ),
                               ],
                             ),
+                            if (cart.currency.toUpperCase() == 'EGP' &&
+                                cart.subtotal - cart.discountTotal < 1500) ...[
+                              const SizedBox(height: CustomerUiSpacing.sm),
+                              Text(
+                                (Localizations.localeOf(context).languageCode ==
+                                            'ar'
+                                        ? 'الحد الأدنى 1500 جنيه. أضف منتجات بقيمة '
+                                        : 'Minimum EGP 1,500. Add products worth ') +
+                                    foodexMoneyText(
+                                      1500 -
+                                          (cart.subtotal - cart.discountTotal),
+                                      cart.currency,
+                                    ),
+                                key: const ValueKey(
+                                    'retail-cart-minimum-warning'),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color:
+                                          Theme.of(context).colorScheme.error,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                            ],
                             if (cart.hasUnavailableItems) ...[
                               const SizedBox(height: CustomerUiSpacing.sm),
                               Text(

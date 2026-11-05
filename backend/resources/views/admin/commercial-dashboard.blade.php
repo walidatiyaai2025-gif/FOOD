@@ -143,8 +143,8 @@
         </header>
     <div class="commercial-tabs" aria-label="{{ __('commercial.tabs.aria') }}">
         <a class="{{ $section === 'sales-control' ? 'active' : '' }}" href="{{ route('admin.commercial.sales-control', $scope) }}">{{ __('commercial.tabs.sales_control') }}</a>
-        <a class="{{ $section === 'flash-offers' ? 'active' : '' }}" href="{{ route('admin.commercial.flash-offers', $scope) }}">{{ __('commercial.tabs.flash_offers') }}</a>
-        <a href="{{ route('admin.b2c.module', ['module' => $section === 'sales-control' ? 'products' : 'promotions'] + $scope) }}">{{ __('commercial.tabs.back_store') }}</a>
+        <a class="{{ $section === 'flash-offers' ? 'active' : '' }}" href="{{ route($flashRoutePrefix, $scope) }}">{{ __('commercial.tabs.flash_offers') }}</a>
+        <a href="{{ route($storeChannel === 'b2b' ? 'admin.b2b.module' : 'admin.b2c.module', ['module' => $section === 'sales-control' ? 'products' : 'promotions'] + $scope) }}">{{ __('commercial.tabs.back_store') }}</a>
     </div>
 
     <section class="contract-banner {{ $contractReady ? '' : 'pending' }}" data-contract-ready="{{ $contractReady ? '1' : '0' }}">
@@ -504,7 +504,7 @@
         @endif
     @else
         @php
-            $selectedFlashChannels = collect(old('channels', $editingOffer ? (json_decode((string)$editingOffer->channels, true) ?: []) : ['customer','van']));
+            $selectedFlashChannels = collect(old('channels', $editingOffer ? (json_decode((string)$editingOffer->channels, true) ?: []) : ($storeChannel === 'b2b' ? ['van'] : ['customer','van'])));
             $selectedCustomerIds = collect(old('audience_customer_ids', $editingOffer ? (json_decode((string)$editingOffer->audience_customer_ids, true) ?: []) : []))->map(fn($id)=>(int)$id);
             $selectedGroupIds = collect(old('audience_customer_group_ids', $editingOffer ? (json_decode((string)$editingOffer->audience_customer_group_ids, true) ?: []) : []))->map(fn($id)=>(int)$id);
             $selectedRegions = collect(old('audience_regions', $editingOffer ? (json_decode((string)$editingOffer->audience_regions, true) ?: []) : []));
@@ -527,18 +527,23 @@
             ])->values()->all()]);
         @endphp
 
-        <section class="commercial-card" data-flash-offer-form>
+        <section class="commercial-card" id="flash-offer-form" data-flash-offer-form>
             <div class="feature-flags-head">
                 <div>
                     <h2>{{ $editingOffer ? __('commercial.flash.edit_title') : __('commercial.flash.create_title') }}</h2>
                     <p class="muted">{{ __('commercial.flash.form_description') }}</p>
                 </div>
                 @if($editingOffer)
-                    <a class="flash-secondary" href="{{ route('admin.commercial.flash-offers', $scope) }}">{{ __('commercial.flash.create_new') }}</a>
+                    <a class="flash-secondary" href="{{ route($flashRoutePrefix, $scope) }}">{{ __('commercial.flash.create_new') }}</a>
                 @endif
             </div>
+            @if($editingOffer && \Illuminate\Support\Carbon::parse($editingOffer->ends_at)->lessThanOrEqualTo(now()))
+                <p role="alert" data-flash-edit-expired style="color:var(--foodex-danger-text, firebrick);font-weight:700">
+                    {{ __('commercial.flash.edit_expired_help') }}
+                </p>
+            @endif
             @if($storeId > 0)
-            <form method="post" action="{{ route('admin.commercial.flash-offers.save', $scope) }}" class="control-list" data-flash-wizard-form novalidate>
+            <form method="post" action="{{ route($flashRoutePrefix.'.save', $scope) }}" class="control-list" data-flash-wizard-form novalidate>
                 @csrf
                 @if($editingOffer)<input type="hidden" name="offer_id" value="{{ $editingOffer->id }}">@endif
                 <div class="flash-wizard-progress foodex-stepper" data-flash-wizard-progress aria-label="{{ __('commercial.flash.form_description') }}">
@@ -585,8 +590,11 @@
 
                 <section class="flash-form-section" data-flash-wizard-step="1">
                     <h3>{{ __('commercial.flash.channels') }}</h3>
+                    @if($storeChannel === 'b2b')
+                        <p class="muted" data-flash-wholesale-van-note>{{ __('commercial.flash.wholesale_van_only') }}</p>
+                    @endif
                     <div class="commercial-choice-grid">
-                        @foreach(['customer','van'] as $channel)
+                        @foreach($storeChannel === 'b2b' ? ['van'] : ['customer','van'] as $channel)
                             <label class="commercial-choice"><input type="checkbox" name="channels[]" value="{{ $channel }}" @checked($selectedFlashChannels->contains($channel))><span>{{ __('commercial.channels.'.$channel) }}</span></label>
                         @endforeach
                     </div>
@@ -679,7 +687,23 @@
                         <div><h3>{{ __('commercial.flash.products') }}</h3><p class="muted">{{ __('commercial.flash.products_hint') }}</p></div>
                         <button type="button" class="flash-secondary" data-flash-product-add>{{ __('commercial.flash.add_product') }}</button>
                     </div>
+                    <div class="muted" data-flash-products-available-count data-count="{{ $flashProducts->count() }}">
+                        {{ __('commercial.flash.products_available_count', ['count' => $flashProducts->count()]) }}
+                    </div>
+                    @if($flashProducts->isEmpty())
+                        <div class="commercial-empty" data-flash-products-empty role="status">
+                            <div>
+                                <strong>{{ __('commercial.flash.products_empty') }}</strong>
+                                <p><a class="flash-secondary" href="{{ route('admin.catalog.index', ['tab' => 'products', 'store_id' => $storeId]) }}">{{ __('commercial.flash.products_manage') }}</a></p>
+                            </div>
+                        </div>
+                    @endif
                     <div class="flash-product-context">
+                        @if($flashProducts->isNotEmpty())
+                            <label>{{ __('commercial.flash.products_search') }}
+                                <input type="search" data-flash-product-search placeholder="{{ __('commercial.flash.products_search') }}" autocomplete="off">
+                            </label>
+                        @endif
                         <label>{{ __('commercial.flash.product_context') }}
                             <select data-flash-product-context>
                                 <option value="all">{{ __('commercial.flash.context_all') }}</option>
@@ -747,7 +771,7 @@
                 </section>
 
                 <div class="flash-form-actions">
-                    @if($editingOffer)<a class="flash-secondary" href="{{ route('admin.commercial.flash-offers', $scope) }}">{{ __('commercial.flash.cancel_edit') }}</a>@endif
+                    @if($editingOffer)<a class="flash-secondary" href="{{ route($flashRoutePrefix, $scope) }}">{{ __('commercial.flash.cancel_edit') }}</a>@endif
                     <button type="submit" class="foodex-primary">{{ $editingOffer ? __('commercial.flash.save_changes') : __('commercial.flash.create_offer') }}</button>
                 </div>
             </form>
@@ -759,20 +783,52 @@
         <section class="commercial-card">
             <h2>{{ __('commercial.flash.current_offers') }}</h2>
             @forelse($flashOffers as $offer)
-                <div class="control-row">
-                    <span>{{ $offer->name }} · <strong>{{ __('commercial.flash.statuses.'.$offer->status) }}</strong> · {{ $offer->starts_at }} → {{ $offer->ends_at }}</span>
+                @php
+                    $flashNow = now();
+                    $flashStart = \Illuminate\Support\Carbon::parse($offer->starts_at);
+                    $flashEnd = \Illuminate\Support\Carbon::parse($offer->ends_at);
+                    $flashLiveStatus = in_array((string) $offer->status, ['active', 'scheduled', 'paused', 'sold_out'], true);
+                    $flashEnded = $flashLiveStatus && $flashEnd->lessThanOrEqualTo($flashNow);
+                    $flashUpcoming = $flashLiveStatus && ! $flashEnded && $flashStart->greaterThan($flashNow);
+                    $effectiveFlashStatus = $flashEnded ? 'expired' : ($flashUpcoming ? 'scheduled' : (string) $offer->status);
+                    $flashChannels = json_decode((string) ($offer->channels ?? '[]'), true) ?: [];
+                @endphp
+                <div class="control-row" data-flash-offer-row="{{ $offer->id }}">
+                    <div style="display:grid;gap:5px;min-width:0">
+                        <span>{{ $offer->name }} · <strong data-flash-effective-status="{{ $effectiveFlashStatus }}">{{ __('commercial.flash.statuses.'.$effectiveFlashStatus) }}</strong> · {{ $offer->starts_at }} → {{ $offer->ends_at }}</span>
+                        @if($flashEnded)
+                            <small role="status" data-flash-expired-message style="color:var(--foodex-danger-text, firebrick);font-weight:700">
+                                {{ __('commercial.flash.expired_not_visible') }}
+                                <a href="{{ route($flashRoutePrefix, ['edit'=>$offer->id] + $scope) }}">{{ __('commercial.flash.edit_dates') }}</a>
+                            </small>
+                        @elseif($flashUpcoming)
+                            <small role="status" data-flash-upcoming-message>{{ __('commercial.flash.upcoming_not_visible') }}</small>
+                        @endif
+                        @if($storeChannel === 'b2b' && !in_array('van', $flashChannels, true))
+                            <small role="alert" data-flash-wholesale-channel-missing style="color:var(--foodex-danger-text, firebrick);font-weight:800">
+                                {{ __('commercial.flash.wholesale_van_channel_missing') }}
+                                <a href="{{ route($flashRoutePrefix, ['edit'=>$offer->id] + $scope) }}#flash-offer-form">{{ __('commercial.flash.edit') }}</a>
+                            </small>
+                        @elseif($storeChannel === 'b2c' && !in_array('customer', $flashChannels, true))
+                            <small role="status" data-flash-customer-channel-missing style="color:var(--foodex-warning-text, darkorange)">{{ __('commercial.flash.customer_channel_missing') }}</small>
+                        @endif
+                    </div>
+                    <div class="flash-row-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                        <a class="flash-secondary" data-flash-edit-offer="{{ $offer->id }}"
+                           href="{{ route($flashRoutePrefix, ['edit'=>$offer->id] + $scope) }}#flash-offer-form">{{ __('commercial.flash.edit') }}</a>
                     <details class="foodex-ops-actions" data-flash-offer-actions>
                         <summary aria-label="{{ __('commercial.flash.actions_menu') }}">⋮</summary>
                         <div class="foodex-ops-menu">
-                            <a href="{{ route('admin.commercial.flash-offers', ['edit'=>$offer->id] + $scope) }}">{{ __('commercial.flash.edit') }}</a>
-                            <a href="{{ route('admin.commercial.flash-offers.preview', ['offer'=>$offer->id] + $scope) }}">{{ __('commercial.flash.preview') }}</a>
-                            <a href="{{ route('admin.commercial.flash-offers.analytics', ['offer'=>$offer->id] + $scope) }}">{{ __('commercial.flash.analytics') }}</a>
-                            <form method="post" action="{{ route('admin.commercial.flash-offers.action', ['offer'=>$offer->id] + $scope) }}">@csrf
+                            <a href="{{ route($flashRoutePrefix, ['edit'=>$offer->id] + $scope) }}">{{ __('commercial.flash.edit') }}</a>
+                            <a href="{{ route($flashRoutePrefix.'.preview', ['offer'=>$offer->id] + $scope) }}">{{ __('commercial.flash.preview') }}</a>
+                            <a href="{{ route($flashRoutePrefix.'.analytics', ['offer'=>$offer->id] + $scope) }}">{{ __('commercial.flash.analytics') }}</a>
+                            <form method="post" action="{{ route($flashRoutePrefix.'.action', ['offer'=>$offer->id] + $scope) }}">@csrf
                                 <select name="action" aria-label="{{ __('commercial.flash.action') }}">@foreach(['schedule','activate','pause','resume','end','cancel','kill_on','kill_off'] as $action)<option value="{{ $action }}">{{ __('commercial.flash.actions.'.$action) }}</option>@endforeach</select>
                                 <button type="submit">{{ __('commercial.flash.apply') }}</button>
                             </form>
                         </div>
                     </details>
+                    </div>
                 </div>
             @empty
                 <p class="muted">{{ __('commercial.flash.no_offers') }}</p>
@@ -1210,12 +1266,17 @@
     });
 
     const productContext = document.querySelector('[data-flash-product-context]');
+    const productSearch = document.querySelector('[data-flash-product-search]');
     const applyProductContext = () => {
         const context = productContext?.value || 'all';
+        const term = (productSearch?.value || '').trim().toLocaleLowerCase();
         document.querySelectorAll('[data-flash-product]').forEach((select) => {
             [...select.options].forEach((option) => {
                 if (!option.value) return;
-                const matches = context === 'all' || option.dataset.productContext === context;
+                const contextMatches = context === 'all' || option.dataset.productContext === context;
+                const searchMatches = term === '' || option.textContent.toLocaleLowerCase().includes(term);
+                // Never silently clear a selected product while searching.
+                const matches = contextMatches && (searchMatches || option.selected);
                 option.hidden = !matches;
                 option.disabled = !matches;
             });
@@ -1227,6 +1288,7 @@
         });
     };
     productContext?.addEventListener('change', applyProductContext);
+    productSearch?.addEventListener('input', applyProductContext);
     window.addEventListener('click', (event) => {
         if (event.target instanceof Element && event.target.closest('[data-flash-product-add]')) {
             requestAnimationFrame(applyProductContext);

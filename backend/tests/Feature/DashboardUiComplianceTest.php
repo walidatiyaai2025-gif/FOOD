@@ -47,7 +47,10 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('order-financial-action is-timeline', $view);
         $this->assertStringContainsString('order-print-header', $view);
         $this->assertStringContainsString('order-print-footer', $view);
-        $this->assertStringContainsString('data-order-print-time', $view);
+        $isolatedPrint = file_get_contents(resource_path('views/admin/_order-popup-isolated-print.blade.php'));
+        $this->assertIsString($isolatedPrint);
+        $this->assertStringContainsString("@include('admin._order-popup-isolated-print')", $view);
+        $this->assertStringContainsString('data-order-print-time', $isolatedPrint);
         $popup = file_get_contents(resource_path('views/admin/_order-operation-popup.blade.php'));
         $this->assertIsString($popup);
         $this->assertStringContainsString("asset('brand/foodex-economical-group.webp')", $popup);

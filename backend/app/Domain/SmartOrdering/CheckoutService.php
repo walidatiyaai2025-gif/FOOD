@@ -16,6 +16,7 @@ use App\Services\B2cCustomerService;
 use App\Services\CommerceQuoteService;
 use App\Services\CommercialPolicyService;
 use App\Services\CouponRedemptionService;
+use App\Services\MinimumOrderPolicy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -217,6 +218,8 @@ final class CheckoutService
                 true,
             );
             $quote = $merchandising['quote'];
+
+            app(MinimumOrderPolicy::class)->assertEligible($quote);
 
             $subtotal = round((float) $quote['subtotal'], 3);
             $discount = round(min($subtotal, max(0.0, (float) $quote['discount_total'])), 3);

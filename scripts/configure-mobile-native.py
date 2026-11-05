@@ -809,6 +809,14 @@ def patch_ios(app_dir: Path, bundle_id: str, label: str) -> None:
             'to unlock your saved customer session on this device.'
         )
     elif bundle_id == IDENTITIES['driver']['bundle_id']:
+        # ImagePicker opens native camera and photo-library controllers.
+        # iOS terminates the app if the relevant privacy usage keys are absent.
+        plist['NSCameraUsageDescription'] = (
+            'FOODEX Driver uses the camera to capture proof of delivery.'
+        )
+        plist['NSPhotoLibraryUsageDescription'] = (
+            'FOODEX Driver accesses photos you select as proof of delivery.'
+        )
         plist['NSLocationWhenInUseUsageDescription'] = (
             'FOODEX Driver requires your precise location while you use the app '
             'and during an active delivery so live driver position can continue '

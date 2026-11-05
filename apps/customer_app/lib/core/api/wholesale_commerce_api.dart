@@ -36,8 +36,20 @@ abstract interface class WholesaleCommerceApi {
   });
 }
 
+abstract interface class WholesaleSellingUnitCommerceApi {
+  Future<Object?> addSellingUnitItem(
+    int storeId,
+    int productId,
+    double quantity,
+    String sellingUnitCode,
+  );
+}
+
 class HttpWholesaleCommerceApi
-    implements WholesaleCommerceApi, WholesaleQuoteApi {
+    implements
+        WholesaleCommerceApi,
+        WholesaleQuoteApi,
+        WholesaleSellingUnitCommerceApi {
   HttpWholesaleCommerceApi({
     required this.baseUrl,
     required this.token,
@@ -93,6 +105,24 @@ class HttpWholesaleCommerceApi
           'store_id': storeId,
           'product_id': productId,
           'quantity': quantity,
+        },
+      );
+
+  @override
+  Future<Object?> addSellingUnitItem(
+    int storeId,
+    int productId,
+    double quantity,
+    String sellingUnitCode,
+  ) =>
+      _request(
+        'POST',
+        '/api/v1/cart/items',
+        body: {
+          'store_id': storeId,
+          'product_id': productId,
+          'quantity': quantity,
+          'selling_unit_code': sellingUnitCode,
         },
       );
 

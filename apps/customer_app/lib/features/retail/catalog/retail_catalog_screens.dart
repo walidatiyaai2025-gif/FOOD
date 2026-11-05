@@ -341,7 +341,7 @@ class _RetailCatalogCategoriesScreenState
   @override
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('retail-catalog-categories'),
-        backgroundColor: CustomerUiColors.mint,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: FoodexUnifiedHeaderSurface(
           title: context.tr('customer.home.title'),
           searchHint: context.tr('customer.products.search_name_sku_barcode'),
@@ -554,7 +554,7 @@ class _RetailCatalogOffersScreenState extends State<RetailCatalogOffersScreen>
   @override
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('retail-catalog-offers'),
-        backgroundColor: CustomerUiColors.mint,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: FoodexUnifiedHeaderSurface(
           title: context.tr('customer.home.title'),
           searchHint: context.tr('customer.products.search_name_sku_barcode'),
@@ -914,7 +914,7 @@ class _RetailCatalogProductsScreenState
   @override
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('retail-catalog-products'),
-        backgroundColor: CustomerUiColors.mint,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: FoodexUnifiedHeaderSurface(
           title: context.tr('customer.home.title'),
           searchHint: context.tr('customer.products.search_name_sku_barcode'),
@@ -1448,7 +1448,7 @@ class _RetailCatalogProductScreenState extends State<RetailCatalogProductScreen>
   @override
   Widget build(BuildContext context) => Scaffold(
         key: const ValueKey('retail-catalog-product'),
-        backgroundColor: CustomerUiColors.mint,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: FoodexUnifiedHeaderSurface(
           title: context.tr('customer.home.title'),
           searchHint: context.tr('customer.products.search_name_sku_barcode'),

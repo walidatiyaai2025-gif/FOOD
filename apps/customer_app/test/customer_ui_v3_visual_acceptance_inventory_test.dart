@@ -16,7 +16,8 @@ import 'package:foodex_customer_app/features/retail/customer_ui_v3/customer_reta
 /// and runtime screenshot evidence on the same candidate.
 void main() {
   group('Customer UI V3 full-journey visual acceptance inventory', () {
-    test('covers every mandatory journey milestone with routable locations', () {
+    test('covers every mandatory journey milestone with routable locations',
+        () {
       final ids = _journeyCases.map((item) => item.id).toList();
       expect(ids.toSet(), hasLength(ids.length));
 
@@ -97,7 +98,9 @@ void main() {
       );
     });
 
-    test('AppBar titles keep the bilingual V3 font instead of platform fallback', () {
+    test(
+        'AppBar titles keep the bilingual V3 font instead of platform fallback',
+        () {
       final theme = FoodexTheme.light();
 
       expect(theme.appBarTheme.titleTextStyle?.fontFamily, isNotNull);
@@ -107,7 +110,8 @@ void main() {
       );
     });
 
-    test('locks AR/EN, phone widths, text scale, state and motion coverage', () {
+    test('locks AR/EN, phone widths, text scale, state and motion coverage',
+        () {
       expect(_visualContract.locales, <String>{'ar', 'en'});
       expect(_visualContract.viewportWidths, <int>{320, 360, 390, 430});
       expect(_visualContract.textScales, containsAll(<double>{1.0, 1.3}));
@@ -124,9 +128,8 @@ void main() {
     });
 
     test('requires representative state coverage across the journey', () {
-      final allStates = _journeyCases
-          .expand((item) => item.requiredStates)
-          .toSet();
+      final allStates =
+          _journeyCases.expand((item) => item.requiredStates).toSet();
 
       expect(
         allStates,
@@ -218,7 +221,7 @@ void main() {
         final normal = tester
             .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
             .toList();
-        expect(normal, hasLength(5));
+        expect(normal, hasLength(6));
         expect(
           normal.map((widget) => widget.duration).toSet(),
           <Duration>{CustomerUiMotion.standard},
@@ -234,7 +237,7 @@ void main() {
         final reduced = tester
             .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
             .toList();
-        expect(reduced, hasLength(5));
+        expect(reduced, hasLength(6));
         expect(
           reduced.map((widget) => widget.duration).toSet(),
           <Duration>{Duration.zero},
@@ -549,7 +552,6 @@ const _journeyCases = <_VisualCase>[
     ownerLane: _VisualOwnerLane.account,
   ),
 ];
-
 
 const _requiredRuntimeScreenshotRoutes = <String>{
   '/retail/7/home',

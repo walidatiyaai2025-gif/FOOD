@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodex_driver_app/core/localization/driver_translations.dart';
 import 'package:foodex_driver_app/features/delivery/completion/driver_completion_contract.dart';
@@ -6,7 +7,8 @@ import 'package:foodex_driver_app/features/delivery/completion/driver_completion
 import 'package:foodex_driver_app/features/delivery/completion/driver_proof_picker.dart';
 
 void main() {
-  testWidgets('delivered action stays server-gated and proof-gated', (tester) async {
+  testWidgets('delivered action stays server-gated and proof-gated',
+      (tester) async {
     final gateway = _RecordingGateway();
 
     await tester.pumpWidget(
@@ -57,6 +59,78 @@ void main() {
     expect(gateway.calls.single.proof?.fileName, 'proof.jpg');
   });
 
+  testWidgets('photo access denial displays actionable recovery guidance',
+      (tester) async {
+    await tester.pumpWidget(
+      DriverTranslations(
+        locale: const Locale('en'),
+        overrides: const {},
+        child: MaterialApp(
+          home: Scaffold(
+            body: DriverCompletionDecisionSheet(
+              assignmentId: 31,
+              availableStatuses: const ['delivered'],
+              gateway: _RecordingGateway(),
+              proofPicker: _PermissionDeniedProofPicker(),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('driver-completion-proof-gallery')),
+    );
+    await tester.pump();
+
+    expect(
+      find.text(
+        'Allow camera or photo access for FOODEX Driver in iPhone Settings, then retry.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('driver-completion-proof-attached')),
+      findsNothing,
+    );
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.byKey(const ValueKey('driver-completion-proof-gallery')),
+          )
+          .onPressed,
+      isNotNull,
+    );
+  });
+
+  testWidgets('delivery GPS rejection shows specific help after proof picker',
+      (tester) async {
+    await tester.pumpWidget(
+      DriverTranslations(
+        locale: const Locale('ar'),
+        overrides: const {},
+        child: MaterialApp(
+          home: Scaffold(
+            body: DriverCompletionDecisionSheet(
+              assignmentId: 31,
+              availableStatuses: const ['delivered'],
+              gateway: _GpsRejectedGateway(),
+              proofPicker: const _FakeProofPicker(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester
+        .tap(find.byKey(const ValueKey('driver-completion-proof-gallery')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('driver-completion-delivered')));
+    await tester.pump();
+    expect(find.textContaining('الموقع الدقيق'), findsOneWidget);
+    expect(find.byKey(const ValueKey('driver-completion-submit-error')),
+        findsOneWidget);
+  });
+
   testWidgets('unavailable server action is not rendered', (tester) async {
     await tester.pumpWidget(
       DriverTranslations(
@@ -86,6 +160,16 @@ void main() {
   });
 }
 
+class _GpsRejectedGateway implements DriverCompletionGateway {
+  @override
+  Future<DriverCompletionResult> submit({
+    required int assignmentId,
+    required DriverCompletionDraft draft,
+  }) async =>
+      throw const DriverCompletionException(
+          'driver_location_heartbeat_required');
+}
+
 class _RecordingGateway implements DriverCompletionGateway {
   final List<DriverCompletionDraft> calls = [];
 
@@ -97,6 +181,16 @@ class _RecordingGateway implements DriverCompletionGateway {
     calls.add(draft);
     throw const DriverCompletionException('test_stop');
   }
+}
+
+class _PermissionDeniedProofPicker implements DriverProofPicker {
+  @override
+  Future<DriverProofAttachment?> pickCamera() async =>
+      throw PlatformException(code: 'camera_access_denied');
+
+  @override
+  Future<DriverProofAttachment?> pickGallery() async =>
+      throw PlatformException(code: 'photo_access_denied');
 }
 
 class _FakeProofPicker implements DriverProofPicker {

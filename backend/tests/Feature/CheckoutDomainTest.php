@@ -151,6 +151,38 @@ class CheckoutDomainTest extends TestCase
         Sanctum::actingAs($this->user);
     }
 
+    public function test_egp_minimum_rejects_a_short_cart_and_accepts_qualifying_total(): void
+    {
+        config()->set('checkout.minimum_merchandise_total_egp', 1500);
+
+        $this->addCartItem(2);
+
+        $this->withHeader('Idempotency-Key', 'minimum-test-block-1500')
+            ->postJson('/api/v1/checkout', [
+                'store_id' => $this->storeId,
+                'address_id' => $this->address->id,
+                'payment_method' => 'cash_on_delivery',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['cart']);
+
+        $this->assertDatabaseCount('orders', 0);
+
+        DB::table('store_products')
+            ->where('store_id', $this->storeId)
+            ->where('product_id', $this->productId)
+            ->update(['price' => 750]);
+
+        $this->withHeader('Idempotency-Key', 'minimum-test-accept-1500')
+            ->postJson('/api/v1/checkout', [
+                'store_id' => $this->storeId,
+                'address_id' => $this->address->id,
+                'payment_method' => 'cash_on_delivery',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('subtotal', 1500);
+    }
+
     public function test_customer_order_and_payment_checkout_are_unchanged_while_whatsapp_is_disabled(): void
     {
         $policy = app(RuntimePolicy::class);

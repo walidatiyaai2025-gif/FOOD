@@ -46,8 +46,8 @@ void main() {
       for (final destination in [
         'home',
         'products',
+        'offers',
         'orders',
-        'favorites',
         'invoices',
         'account',
       ]) {
@@ -61,7 +61,7 @@ void main() {
       expect(find.byKey(const ValueKey('customer-footer-cart')), findsNothing);
       expect(find.text('Shopping'), findsOneWidget);
       expect(find.text('My orders'), findsOneWidget);
-      expect(find.text('Favorites'), findsOneWidget);
+      expect(find.text('Offers'), findsOneWidget);
       expect(find.text('Invoices'), findsOneWidget);
       expect(find.text('More'), findsOneWidget);
 
@@ -81,16 +81,30 @@ void main() {
           .pop();
       await tester.pumpAndSettle();
       await tester.tap(
-        find.byKey(const ValueKey('customer-footer-favorites')),
+        find.byKey(const ValueKey('customer-footer-offers')),
       );
       await tester.pumpAndSettle();
 
-      final favoritesRoute = Uri.parse(
+      final offersRoute = Uri.parse(
         tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
       );
-      expect(favoritesRoute.path, CustomerRoutePaths.b2bFavorites);
-      expect(favoritesRoute.queryParameters['store_id'], '70');
-      expect(favoritesRoute.queryParameters['channel'], 'wholesale');
+      expect(offersRoute.path, CustomerRoutePaths.b2bOffers);
+      expect(offersRoute.queryParameters.containsKey('section'), isFalse);
+      expect(offersRoute.path, isNot(route.path));
+      expect(offersRoute.queryParameters['store_id'], '70');
+      expect(offersRoute.queryParameters['channel'], 'wholesale');
+
+      Navigator.of(tester.element(find.byKey(const ValueKey('route-name'))))
+          .pop();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('customer-footer-account')));
+      await tester.pumpAndSettle();
+      final moreRoute = Uri.parse(
+        tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
+      );
+      expect(moreRoute.path, CustomerRoutePaths.b2bProfile);
+      expect(moreRoute.queryParameters['store_id'], '70');
+      expect(moreRoute.queryParameters['channel'], 'wholesale');
     },
   );
 
@@ -186,8 +200,8 @@ void main() {
       for (final destination in [
         'home',
         'products',
+        'offers',
         'orders',
-        'favorites',
         'invoices',
         'account',
       ]) {
@@ -210,6 +224,66 @@ void main() {
         tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data,
         '/b2b/invoices',
       );
+
+      Navigator.of(tester.element(find.byKey(const ValueKey('route-name'))))
+          .pop();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('customer-footer-account')));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data,
+        CustomerRoutePaths.b2bProfile,
+      );
+    },
+  );
+
+  testWidgets(
+    'Retail footer More navigates to the scoped profile without losing store context',
+    (tester) async {
+      const retail = CustomerCommerceContext(
+        channel: CustomerCommerceChannel.retail,
+        storeId: 9,
+      );
+      await tester.pumpWidget(
+        AppTranslations(
+          locale: const Locale('ar'),
+          overrides: const {},
+          child: MaterialApp(
+            home: const Scaffold(
+              body: Column(
+                children: [
+                  Spacer(),
+                  CustomerPersistentFooter(
+                    commerceContext: retail,
+                    activeDestination: CustomerFooterDestination.orders,
+                  ),
+                ],
+              ),
+            ),
+            onGenerateRoute: (settings) => MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => Scaffold(
+                body: Text(
+                  settings.name ?? '',
+                  key: const ValueKey('route-name'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('المزيد'), findsOneWidget);
+      expect(find.byKey(const ValueKey('customer-footer-account')),
+          findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('customer-footer-account')));
+      await tester.pumpAndSettle();
+      final route = Uri.parse(
+        tester.widget<Text>(find.byKey(const ValueKey('route-name'))).data!,
+      );
+      expect(route.path, CustomerRoutePaths.profile);
+      expect(route.queryParameters['store_id'], '9');
+      expect(route.queryParameters['channel'], 'retail');
     },
   );
 
@@ -264,6 +338,7 @@ void main() {
         );
         for (final destination in [
           'products',
+          'offers',
           'orders',
           'invoices',
           'account',

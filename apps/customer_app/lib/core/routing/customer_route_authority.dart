@@ -35,6 +35,7 @@ CustomerRouteAuthority customerRouteAuthorityFor(
     case CustomerRoutePaths.marketplace:
     case CustomerRoutePaths.b2bHome:
     case CustomerRoutePaths.b2bProducts:
+    case CustomerRoutePaths.b2bOffers:
     case CustomerRoutePaths.b2bCart:
     case CustomerRoutePaths.b2bCheckout:
     case CustomerRoutePaths.b2bOrders:
@@ -54,6 +55,7 @@ CustomerRouteAuthority customerRouteAuthorityFor(
     case CustomerRoutePaths.retailHome:
     case CustomerRoutePaths.retailProductDetails:
     case CustomerRoutePaths.offers:
+    case CustomerRoutePaths.invoices:
     case CustomerRoutePaths.products:
     case CustomerRoutePaths.productDetails:
     case CustomerRoutePaths.categories:

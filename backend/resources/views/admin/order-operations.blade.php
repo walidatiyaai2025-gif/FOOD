@@ -1058,6 +1058,7 @@ document.querySelectorAll('.order-inline-picker').forEach(function(form){
     sync();
 });
 </script>
+@include('admin._order-popup-isolated-print')
 <script>
 (() => {
     const dialog = document.querySelector('[data-order-popup-dialog]');
@@ -1107,16 +1108,9 @@ document.querySelectorAll('.order-inline-picker').forEach(function(form){
         }
 
         if (event.target.closest('[data-order-popup-print]')) {
-            const locale = document.documentElement.lang || 'en';
-            const value = new Intl.DateTimeFormat(locale, {
-                dateStyle: 'full',
-                timeStyle: 'medium',
-                timeZone: 'Asia/Kuwait',
-            }).format(new Date());
-            dialog.querySelectorAll('[data-order-print-time]').forEach((node) => {
-                node.textContent = value;
-            });
-            window.print();
+            event.preventDefault();
+            window.FoodexOrderPopupPrint?.(body);
+            return;
         }
     });
 

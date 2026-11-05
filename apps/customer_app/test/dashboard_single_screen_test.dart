@@ -253,7 +253,7 @@ void main() {
       'invoice-count': CustomerRoutePaths.b2bInvoices,
       'order-count': CustomerRoutePaths.b2bOrders,
       'active-orders': CustomerRoutePaths.b2bOrders,
-      'offers': CustomerRoutePaths.b2bTopProducts,
+      'offers': CustomerRoutePaths.b2bOffers,
       'notifications': CustomerRoutePaths.b2bNotifications,
     };
     for (final entry in destinations.entries) {

@@ -85,7 +85,30 @@ abstract interface class CustomerActionApi {
   });
 }
 
-class HttpCustomerActionApi implements CustomerActionApi {
+/// Optional selling-unit API; legacy fake customer actions remain compatible.
+abstract interface class CustomerSellingUnitActionApi {
+  Future<Object?> addCartSellingUnit({
+    required int storeId,
+    required int productId,
+    required double quantity,
+    required String sellingUnitCode,
+  });
+}
+
+/// Optional canonical B2B price/stock read before a home-card quick add.
+/// Preview/fake action APIs do not have to implement this extension.
+abstract interface class CustomerWholesaleProductTermsApi {
+  Future<Map<String, dynamic>> wholesaleProductTerms({
+    required int storeId,
+    required int productId,
+  });
+}
+
+class HttpCustomerActionApi
+    implements
+        CustomerActionApi,
+        CustomerSellingUnitActionApi,
+        CustomerWholesaleProductTermsApi {
   HttpCustomerActionApi({
     required this.baseUrl,
     this.token,
@@ -259,6 +282,50 @@ class HttpCustomerActionApi implements CustomerActionApi {
     required int storeId,
     required int productId,
     required double quantity,
+  }) =>
+      _submitCartItem(
+        storeId: storeId,
+        productId: productId,
+        quantity: quantity,
+      );
+
+  @override
+  Future<Object?> addCartSellingUnit({
+    required int storeId,
+    required int productId,
+    required double quantity,
+    required String sellingUnitCode,
+  }) =>
+      _submitCartItem(
+        storeId: storeId,
+        productId: productId,
+        quantity: quantity,
+        sellingUnitCode: sellingUnitCode,
+      );
+
+  @override
+  Future<Map<String, dynamic>> wholesaleProductTerms({
+    required int storeId,
+    required int productId,
+  }) async {
+    _requireToken();
+    final response = await _client.get(
+      Uri.parse('$baseUrl/api/v1/b2b/products/$productId?store_id=$storeId'),
+      headers: {
+        ..._headersForStore(storeId),
+        'X-FOODEX-Customer-Domain': 'b2b',
+      },
+    );
+    final body = _decode(response);
+    if (body is Map) return Map<String, dynamic>.from(body);
+    throw const CustomerActionException('invalid_wholesale_product_terms');
+  }
+
+  Future<Object?> _submitCartItem({
+    required int storeId,
+    required int productId,
+    required double quantity,
+    String? sellingUnitCode,
   }) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/cart/items'),
@@ -267,6 +334,7 @@ class HttpCustomerActionApi implements CustomerActionApi {
         'store_id': storeId,
         'product_id': productId,
         'quantity': quantity,
+        if (sellingUnitCode != null) 'selling_unit_code': sellingUnitCode,
       }),
     );
 
@@ -338,7 +406,11 @@ class HttpCustomerActionApi implements CustomerActionApi {
       } else if (body is Map && body['message'] is String) {
         code = body['message'] as String;
       }
-      throw CustomerActionException(code, fieldErrors: _validationErrors(body));
+      throw CustomerActionException(
+        code,
+        statusCode: response.statusCode,
+        fieldErrors: _validationErrors(body),
+      );
     }
 
     return body;
@@ -364,8 +436,13 @@ class CustomerActionException implements Exception {
   const CustomerActionException(
     this.code, {
     this.fieldErrors = const <String, List<String>>{},
+    this.statusCode,
   });
 
   final String code;
   final Map<String, List<String>> fieldErrors;
+  final int? statusCode;
+
+  @override
+  String toString() => code;
 }

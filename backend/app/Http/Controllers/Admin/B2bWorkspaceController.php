@@ -32,6 +32,7 @@ use App\Services\DashboardOperationalNotifier;
 use App\Services\FieldOperationsFinanceService;
 use App\Services\LookupScopeService;
 use App\Services\ManagementReportService;
+use App\Services\MinimumOrderPolicy;
 use App\Services\OperationalTenantScope;
 use App\Services\ProductSkuGenerator;
 use App\Services\ReportExportService;
@@ -831,6 +832,44 @@ class B2bWorkspaceController extends Controller
         return back()->with('status', $this->msg(
             $enabled ? 'تم تفعيل شرائح التسعير.' : 'تم إيقاف شرائح التسعير واعتماد سعر المنتج.',
             $enabled ? 'Pricing tiers enabled.' : 'Pricing tiers disabled; product base price is authoritative.',
+        ));
+    }
+
+    public function saveWholesaleMinimumOrder(Request $request, MinimumOrderPolicy $minimumOrders): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $data = $request->validate([
+            'minimum_order_egp' => ['required', 'numeric', 'min:0', 'max:99999999.99', 'decimal:0,2'],
+        ]);
+        $storeId = $this->principal->storeId();
+        $this->operationalScope->assertStore($actor, $storeId, 'settings.manage', 'b2b');
+
+        $previous = $minimumOrders->minimumForStore($storeId);
+        $minimum = round((float) $data['minimum_order_egp'], 2);
+        DB::table('settings')->updateOrInsert(
+            ['store_id' => $storeId, 'key' => MinimumOrderPolicy::WHOLESALE_SETTING_KEY],
+            [
+                'value' => json_encode($minimum, JSON_THROW_ON_ERROR),
+                'is_secret' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
+        $this->audit->record('b2b.checkout.minimum_order.updated', $actor, null, [
+            'store_id' => $storeId,
+            'minimum_order_egp' => $previous,
+        ], [
+            'store_id' => $storeId,
+            'minimum_order_egp' => $minimum,
+        ], $request);
+
+        return back()->with('status', $this->msg(
+            $minimum == 0.0
+                ? 'تم إلغاء الحد الأدنى لطلبات الجملة.'
+                : 'تم حفظ الحد الأدنى لطلبات الجملة وتطبيقه فوراً.',
+            $minimum == 0.0
+                ? 'Wholesale minimum order disabled.'
+                : 'Wholesale minimum order saved and applied immediately.',
         ));
     }
 

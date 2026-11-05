@@ -206,6 +206,95 @@ class B2bPricingTest extends TestCase
         $this->getJson("/api/v1/b2b/products/{$productId}?store_id={$storeId}")->assertForbidden();
     }
 
+    public function test_wholesale_app_order_and_stock_only_setting_control_product_feed(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$storeId, $firstId, $tierId] = $this->catalog();
+        $this->setPricingTiers($storeId, false);
+
+        $first = DB::table('products')->where('id', $firstId)->firstOrFail();
+        $secondId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $first->catalog_id,
+            'unit_id' => $first->unit_id,
+            'sku' => 'B2B-SECOND-ORDER',
+            'name' => 'Second Wholesale Product',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('store_products')->insert([
+            'store_id' => $storeId,
+            'product_id' => $secondId,
+            'price' => 12,
+            'is_active' => true,
+            'app_display_order' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('store_products')->where('store_id', $storeId)->where('product_id', $firstId)
+            ->update(['app_display_order' => 2]);
+        $warehouseId = (int) DB::table('warehouses')->where('store_id', $storeId)->value('id');
+        DB::table('inventories')->insert([
+            'warehouse_id' => $warehouseId,
+            'product_id' => $secondId,
+            'quantity' => 3,
+            'reserved_quantity' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $buyer = User::query()->create([
+            'name' => 'Order Buyer',
+            'email' => 'app-order-buyer@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        $customer = Customer::query()->create([
+            'user_id' => $buyer->id,
+            'type' => 'b2b',
+            'name' => 'Order Buyer',
+            'email' => $buyer->email,
+        ]);
+        B2bAccount::query()->create([
+            'customer_id' => $customer->id,
+            'price_tier_id' => $tierId,
+            'company_name' => 'Order Buyer Co',
+            'status' => 'active',
+        ]);
+        Sanctum::actingAs($buyer);
+
+        $endpoint = "/api/v1/b2b/products?store_id={$storeId}";
+        $this->getJson($endpoint)->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.id', $secondId)
+            ->assertJsonPath('data.1.id', $firstId);
+
+        // With filtering off, an active out-of-stock product remains browsable.
+        DB::table('inventories')->where('product_id', $firstId)->update(['reserved_quantity' => 10]);
+        $this->getJson($endpoint)->assertOk()->assertJsonCount(2, 'data');
+
+        DB::table('storefront_settings')->insert([
+            'store_id' => $storeId,
+            'theme_code' => 'wholesale_b2b',
+            'branding' => json_encode(['show_in_stock_only' => true], JSON_THROW_ON_ERROR),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->getJson($endpoint)->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $secondId);
+
+        $this->getJson("/api/v1/wholesale/stores/{$storeId}/storefront")
+            ->assertOk()
+            ->assertJsonCount(1, 'products')
+            ->assertJsonPath('products.0.id', $secondId);
+
+        DB::table('storefront_settings')->where('store_id', $storeId)->update([
+            'branding' => json_encode(['show_in_stock_only' => false], JSON_THROW_ON_ERROR),
+        ]);
+        $this->getJson($endpoint)->assertOk()->assertJsonCount(2, 'data');
+    }
+
     private function catalog(): array
     {
         $type = (int) DB::table('store_types')->where('code', 'B2B')->value('id');

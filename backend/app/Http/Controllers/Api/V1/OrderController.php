@@ -100,9 +100,15 @@ class OrderController extends Controller
                 ->latest('id')
                 ->paginate((int) ($validated['per_page'] ?? 20));
 
+            $pageOrders = $paginator->getCollection();
+            $settlements = app(DeliverySettlementService::class)->summarizeMany($pageOrders->all());
+
             return response()->json([
-                'data' => collect($paginator->items())
-                    ->map(fn (Order $order): array => $this->orderSummaryPayload($order))
+                'data' => $pageOrders
+                    ->map(fn (Order $order): array => $this->orderSummaryPayload(
+                        $order,
+                        $settlements[(int) $order->getKey()] ?? null,
+                    ))
                     ->values()
                     ->all(),
                 'meta' => [
@@ -135,9 +141,15 @@ class OrderController extends Controller
             ->latest('id')
             ->paginate((int) ($validated['per_page'] ?? 20));
 
+        $pageOrders = $paginator->getCollection();
+        $settlements = app(DeliverySettlementService::class)->summarizeMany($pageOrders->all());
+
         return response()->json([
-            'data' => collect($paginator->items())
-                ->map(fn (Order $order): array => $this->orderSummaryPayload($order))
+            'data' => $pageOrders
+                ->map(fn (Order $order): array => $this->orderSummaryPayload(
+                    $order,
+                    $settlements[(int) $order->getKey()] ?? null,
+                ))
                 ->values()
                 ->all(),
             'meta' => [
@@ -537,7 +549,8 @@ class OrderController extends Controller
         return $result;
     }
 
-    private function orderSummaryPayload(Order $order): array
+    /** @param array<string, mixed>|null $settlement */
+    private function orderSummaryPayload(Order $order, ?array $settlement = null): array
     {
         $store = $order->relationLoaded('store') ? $order->store : null;
 
@@ -558,6 +571,8 @@ class OrderController extends Controller
             'status' => (string) $order->status,
             'currency' => (string) $order->currency,
             'grand_total' => (float) $order->grand_total,
+            // Finance authority: do not derive paid/outstanding from the order total.
+            'settlement' => $settlement,
             'item_count' => (int) ($order->items_count ?? 0),
             'next_statuses' => $this->availableTransitionsForOrder($order),
             'is_terminal' => in_array(

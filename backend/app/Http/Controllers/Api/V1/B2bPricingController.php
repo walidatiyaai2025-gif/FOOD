@@ -9,8 +9,10 @@ use App\Models\B2bPriceRule;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\B2bPricingMode;
+use App\Services\CommercialPolicyService;
 use App\Services\CustomerDomainResolver;
 use App\Services\ProductAvailabilityService;
+use App\Services\WholesaleAppCatalogPolicy;
 use App\Services\WholesalePrincipal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,6 +26,7 @@ class B2bPricingController extends Controller
         private readonly B2bPriceResolver $prices,
         private readonly B2bPricingMode $pricingMode,
         private readonly WholesalePrincipal $principal,
+        private readonly WholesaleAppCatalogPolicy $appCatalog,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -207,6 +210,7 @@ class B2bPricingController extends Controller
             'pack_size' => $pricing['pack_size'],
             'case_size' => $pricing['case_size'],
             'pack_label' => $pricing['pack_label'],
+            'selling_units' => app(CommercialPolicyService::class)->sellingUnits($product),
             'price_tier' => $tiersEnabled ? (string) ($row->price_tier ?? '') : null,
             'pricing_tiers_enabled' => $tiersEnabled,
             ...$availability,
@@ -267,6 +271,10 @@ class B2bPricingController extends Controller
             ->when($categoryId !== null, fn ($query) => $query->where('products.category_id', $categoryId))
             ->when($brandId !== null, fn ($query) => $query->where('products.brand_id', $brandId));
 
+        if ($this->appCatalog->showInStockOnly($storeId)) {
+            $this->appCatalog->restrictToAvailableStock($query, $storeId);
+        }
+
         if ($tiersEnabled) {
             $query->join('b2b_price_rules', function ($join) use ($account, $storeId): void {
                 $join->on('b2b_price_rules.product_id', '=', 'products.id')
@@ -277,6 +285,8 @@ class B2bPricingController extends Controller
         }
 
         $baseRows = $query
+            ->orderByRaw('CASE WHEN store_products.app_display_order IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('store_products.app_display_order')
             ->orderBy('products.id')
             ->get([
                 'products.id',

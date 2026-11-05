@@ -82,6 +82,12 @@ const customerVNextScreenRegistry = <CustomerScreenRegistryEntry>[
     evidence: _fullEvidence,
   ),
   CustomerScreenRegistryEntry(
+    routePattern: CustomerRoutePaths.invoices,
+    ownerIssue: 2470,
+    surface: 'retail invoices',
+    evidence: _fullEvidence,
+  ),
+  CustomerScreenRegistryEntry(
     routePattern: CustomerRoutePaths.products,
     ownerIssue: 1326,
     surface: 'catalog/search',
@@ -199,6 +205,12 @@ const customerVNextScreenRegistry = <CustomerScreenRegistryEntry>[
     routePattern: CustomerRoutePaths.b2bProducts,
     ownerIssue: 1326,
     surface: 'wholesale catalog/search',
+    evidence: _fullEvidence,
+  ),
+  CustomerScreenRegistryEntry(
+    routePattern: CustomerRoutePaths.b2bOffers,
+    ownerIssue: 2470,
+    surface: 'wholesale offers',
     evidence: _fullEvidence,
   ),
   CustomerScreenRegistryEntry(

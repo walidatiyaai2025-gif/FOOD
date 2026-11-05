@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodex_customer_app/core/auth/customer_session.dart';
 import 'package:foodex_customer_app/core/routing/customer_route_authority.dart';
 import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 
@@ -40,6 +41,27 @@ void main() {
         '/orders?channel=retail&store_id=7',
       ),
       CustomerRouteAuthority.retailJourney,
+    );
+  });
+
+  test('Offers has a dedicated wholesale route with the correct owner', () {
+    final offers = definition(CustomerRoutePaths.b2bOffers);
+    final shopping = definition(CustomerRoutePaths.b2bProducts);
+    const location = '/b2b/offers?channel=wholesale&store_id=70';
+
+    expect(offers.pattern, isNot(shopping.pattern));
+    expect(offers.matches(location), isTrue);
+    expect(shopping.matches(location), isFalse);
+    expect(
+      customerRouteAuthorityFor(offers, location),
+      CustomerRouteAuthority.multiStore,
+    );
+    expect(
+      safeCustomerReturnLocation(
+        location,
+        channel: CustomerChannel.b2b,
+      ),
+      location,
     );
   });
 

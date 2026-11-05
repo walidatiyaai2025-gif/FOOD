@@ -11,6 +11,8 @@ import '../../core/theme/customer_ui_v3_tokens.dart';
 import '../../core/engagement/live_ad_service.dart';
 import '../../core/engagement/notification_campaign_popup_service.dart';
 import '../../core/localization/app_translations.dart';
+import '../../core/routing/customer_commerce_context.dart';
+import '../../core/routing/customer_routes.dart';
 import '../../shared/customer_favorite_button.dart';
 import 'storefront_design_system.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
@@ -1345,12 +1347,49 @@ class _RetailProductDetailsDesignScreenState
   late final int storeId = retailStoreId(widget.location);
   late final int productId = productIdFromLocation(widget.location);
   double quantity = 1;
+  String? selectedSellingUnitCode;
+
+  Future<Object?> _addProduct(B2cProduct product) {
+    if (product.sellingUnits.isEmpty) {
+      return widget.actionApi.addCartItem(
+        storeId: storeId,
+        productId: productId,
+        quantity: quantity,
+      );
+    }
+
+    final code = selectedSellingUnitCode ?? product.sellingUnits.first.code;
+    final selectedUnit = product.sellingUnits.firstWhere(
+      (unit) => unit.code == code,
+      orElse: () => product.sellingUnits.first,
+    );
+    final actionApi = widget.actionApi;
+    if (actionApi is CustomerSellingUnitActionApi) {
+      return (actionApi as CustomerSellingUnitActionApi).addCartSellingUnit(
+        storeId: storeId,
+        productId: productId,
+        quantity: quantity,
+        sellingUnitCode: selectedUnit.code,
+      );
+    }
+
+    if (!selectedUnit.isBase) {
+      throw StateError(
+          'Selling-unit checkout is not available in this session.');
+    }
+
+    return actionApi.addCartItem(
+      storeId: storeId,
+      productId: productId,
+      quantity: quantity,
+    );
+  }
 
   @override
   Widget build(BuildContext context) => Directionality(
         textDirection: Directionality.of(context),
         child: Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: FoodexUnifiedHeaderSurface(
             title: 'FOODEX',
             location: widget.location,
@@ -1446,23 +1485,90 @@ class _RetailProductDetailsDesignScreenState
                       ),
                     ),
                     const SizedBox(height: 18),
+                    if (product.sellingUnits.isNotEmpty) ...[
+                      Semantics(
+                        label:
+                            Localizations.localeOf(context).languageCode == 'ar'
+                                ? 'اختر وحدة البيع'
+                                : 'Select selling unit',
+                        child: Wrap(
+                          key: const ValueKey('retail-selling-unit-options'),
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final unit in product.sellingUnits)
+                              ChoiceChip(
+                                key: ValueKey(
+                                    'retail-selling-unit-${unit.code}'),
+                                label: Text(
+                                  unit.name +
+                                      (unit.price == null
+                                          ? ''
+                                          : ' · ' +
+                                              foodexMoneyText(unit.price!,
+                                                  product.currency)),
+                                ),
+                                selected: (selectedSellingUnitCode ??
+                                        product.sellingUnits.first.code) ==
+                                    unit.code,
+                                onSelected: product.isAvailable
+                                    ? (value) {
+                                        if (value) {
+                                          setState(() {
+                                            selectedSellingUnitCode = unit.code;
+                                            quantity = 1;
+                                          });
+                                        }
+                                      }
+                                    : null,
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     FoodexQuantityCta(
                       quantity: quantity,
                       increment: 1,
                       minimum: 1,
                       palette: FoodexPalette.grocery,
-                      label: 'إضافة إلى السلة',
+                      label: context.tr('customer.action.add_cart'),
+                      checkoutLabel:
+                          Localizations.localeOf(context).languageCode == 'ar'
+                              ? 'إتمام الطلب'
+                              : 'Checkout',
+                      onCheckout: product.isAvailable
+                          ? () async {
+                              try {
+                                await _addProduct(product);
+                                if (!context.mounted) return;
+                                final scope = CustomerCommerceContext(
+                                  channel: CustomerCommerceChannel.retail,
+                                  storeId: storeId,
+                                );
+                                final checkout =
+                                    CustomerRouteLocations.retailCheckout(
+                                        scope);
+                                Navigator.of(context).pushNamed(
+                                  widget.session.isAuthenticated
+                                      ? checkout
+                                      : CustomerRouteLocations.authHandoff(
+                                          context: scope, next: checkout),
+                                );
+                              } catch (error) {
+                                if (context.mounted) {
+                                  await showOperationalError(context, error);
+                                }
+                              }
+                            }
+                          : null,
                       onChanged: product.isAvailable
                           ? (value) => setState(() => quantity = value)
                           : null,
                       onPressed: product.isAvailable
                           ? () async {
                               try {
-                                await widget.actionApi.addCartItem(
-                                  storeId: storeId,
-                                  productId: productId,
-                                  quantity: quantity,
-                                );
+                                await _addProduct(product);
                               } catch (error) {
                                 if (context.mounted) {
                                   await showOperationalError(context, error);

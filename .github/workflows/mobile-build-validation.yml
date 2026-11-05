@@ -210,6 +210,14 @@ jobs:
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$plist")" = "$EXPECTED_DISPLAY"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist")" = "$EXPECTED_BUNDLE"
           if [[ "${{ inputs.app }}" == "driver" ]]; then
+            # Check the compiled app, not just the generated source plist:
+            # missing privacy keys cause an iOS process termination on photo pick.
+            camera_usage="$(/usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$plist")"
+            photo_usage="$(/usr/libexec/PlistBuddy -c 'Print :NSPhotoLibraryUsageDescription' "$plist")"
+            test -n "$camera_usage"
+            test -n "$photo_usage"
+            echo "$camera_usage" | grep -F 'FOODEX Driver'
+            echo "$photo_usage" | grep -F 'FOODEX Driver'
             location_usage="$(/usr/libexec/PlistBuddy -c 'Print :NSLocationWhenInUseUsageDescription' "$plist")"
             test -n "$location_usage"
             echo "$location_usage" | grep -F 'FOODEX Driver'

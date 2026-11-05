@@ -136,6 +136,21 @@ class MultiStoreDesignScreen extends StatelessWidget {
           ),
           CustomerFooterDestination.products,
         );
+      case CustomerRoutePaths.b2bOffers:
+        return withFooter(
+          WholesaleOffersDesignScreen(
+            location: location,
+            session: session,
+            api: b2bApi,
+            storefrontApi: storefrontApi,
+            actionApi: actionApi,
+            favoritesApi: wholesaleFavoritesApi,
+            pendingActionStore: pendingActionStore,
+            onLocaleChanged: onLocaleChanged,
+            onLogout: onLogout,
+          ),
+          CustomerFooterDestination.offers,
+        );
       case CustomerRoutePaths.b2bProductDetails:
         return withFooter(
           WholesaleProductDetailsDesignScreen(
@@ -157,6 +172,7 @@ class MultiStoreDesignScreen extends StatelessWidget {
             location: location,
             api: b2bApi,
             commerceApi: wholesaleApi,
+            storefrontApi: storefrontApi,
             session: currentSession?.call() ?? session,
             onLocaleChanged: onLocaleChanged,
             onLogout: onLogout,

@@ -698,6 +698,267 @@ void main() {
   );
 
   testWidgets(
+    'Offers footer from wholesale home opens Offers screen, never Shopping',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final api = _FakeB2bApi({
+        'data': [
+          {
+            'id': 42,
+            'name': 'Promoted Wholesale Water',
+            'sku': 'PROMO-42',
+            'account_price': 75,
+            'promotion': {'id': 6},
+            'is_available': true,
+            'available_quantity': 12,
+          },
+        ],
+      });
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: '/b2b/home?channel=wholesale&store_id=70',
+          b2bApi: api,
+          storefrontApi: _FakeWholesaleStorefrontApi(),
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      final offers = find.byKey(const ValueKey('customer-footer-offers'));
+      expect(offers, findsOneWidget);
+      await tester.tap(offers);
+      await _pumpCustomerFrames(tester);
+
+      expect(find.byKey(const ValueKey('wholesale-offers-screen')),
+          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('wholesale-catalog-screen')), findsNothing);
+      expect(find.byKey(const ValueKey('wholesale-offers-heading')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-product-name-42')),
+          findsOneWidget);
+      expect(api.lastPath, '/api/v1/b2b/products?store_id=70');
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Wholesale home offers View All opens Offers screen, not Shopping',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: '/b2b/home?channel=wholesale&store_id=70',
+          b2bApi: _FakeB2bApi(const {'data': <Object>[]}),
+          storefrontApi: _FakeWholesaleStorefrontApi(),
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      final viewAll = find.byKey(const ValueKey('section-action-عروض الحساب'));
+      await tester.scrollUntilVisible(
+        viewAll,
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(viewAll, findsOneWidget);
+      await tester.tap(viewAll);
+      await _pumpCustomerFrames(tester);
+
+      expect(find.byKey(const ValueKey('wholesale-offers-screen')),
+          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('wholesale-catalog-screen')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Wholesale Flash Pasta appears after manual refresh from canonical B2B offer API',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final api = _MutableWholesaleFlashApi();
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          locale: const Locale('ar'),
+          initialRoute: '/b2b/offers?channel=wholesale&store_id=70',
+          b2bApi: api,
+          storefrontApi: _FakeWholesaleStorefrontApi(),
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+      expect(
+          find.byKey(const ValueKey('wholesale-offers-empty')), findsOneWidget);
+      expect(api.paths, contains('/api/v1/b2b/flash-offers?store_id=70'));
+      expect(find.byKey(const ValueKey('wholesale-flash-product-91')),
+          findsNothing);
+
+      api.flashOffers = {
+        'fulfillment_channel': 'van',
+        'data': [
+          {
+            'id': 7,
+            'title_ar': 'عرض مكرونات',
+            'title_en': 'Pasta Flash',
+            'ends_at': '2026-11-30T21:07:00+03:00',
+            'currency': 'EGP',
+            'fulfillment_channel': 'van',
+            'products': [
+              {
+                'id': 91,
+                'product_id': 30,
+                'name': 'مكرونات',
+                'sku': 'PASTA-30',
+                'selling_unit_name': 'كرتونة',
+                'flash_price': 100.0,
+                'normal_price': 120.0,
+                'available_quantity': 5,
+              },
+            ],
+          },
+        ],
+      };
+      await tester.tap(find.byKey(const ValueKey('wholesale-offers-refresh')));
+      await _pumpCustomerFrames(tester);
+      expect(find.byKey(const ValueKey('wholesale-flash-heading')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-flash-product-91')),
+          findsOneWidget);
+      expect(find.text('مكرونات'), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-flash-price-91')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-flash-van-only')),
+          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('wholesale-offers-empty')), findsNothing);
+      expect(
+        api.paths
+            .where((path) => path == '/api/v1/b2b/flash-offers?store_id=70')
+            .length,
+        greaterThanOrEqualTo(2),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Wholesale Offers is a distinct page with only discounted products',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final api = _FakeB2bApi({
+        'data': [
+          {
+            'id': 42,
+            'name': 'Flash Wholesale Water',
+            'sku': 'OFFER-42',
+            'account_price': 50,
+            'promotion': {'id': 3},
+            'minimum_order_quantity': 1,
+            'is_available': true,
+            'available_quantity': 10,
+          },
+          {
+            'id': 43,
+            'name': 'Regular Wholesale Rice',
+            'sku': 'REGULAR-43',
+            'account_price': 100,
+            'minimum_order_quantity': 1,
+            'is_available': true,
+            'available_quantity': 10,
+          },
+        ],
+      });
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          locale: const Locale('ar'),
+          initialRoute: '/b2b/offers?channel=wholesale&store_id=70',
+          b2bApi: api,
+          storefrontApi: _FakeWholesaleStorefrontApi(),
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      expect(api.lastPath, '/api/v1/b2b/products?store_id=70');
+      expect(find.byKey(const ValueKey('wholesale-offers-screen')),
+          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('wholesale-catalog-screen')), findsNothing);
+      expect(find.byKey(const ValueKey('wholesale-offers-heading')),
+          findsOneWidget);
+      expect(find.text('العروض المتاحة'), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-product-name-42')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-product-name-43')),
+          findsNothing);
+      expect(
+          find.byKey(const ValueKey('customer-footer-offers')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Wholesale Offers shows a real empty state instead of shopping',
+    (tester) async {
+      final api = _FakeB2bApi({
+        'data': [
+          {
+            'id': 43,
+            'name': 'Regular Wholesale Rice',
+            'sku': 'REGULAR-43',
+            'account_price': 100,
+            'is_available': true,
+          },
+        ],
+      });
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: '/b2b/offers?channel=wholesale&store_id=70',
+          b2bApi: api,
+          storefrontApi: _FakeWholesaleStorefrontApi(),
+          actionApi: _FakeCustomerActionApi(),
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      expect(find.byKey(const ValueKey('wholesale-offers-screen')),
+          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('wholesale-offers-empty')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wholesale-product-name-43')),
+          findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'Wholesale shopping resolves principal store on first open without store id',
     (tester) async {
       final storefront = _FakeWholesaleStorefrontApi();
@@ -1063,7 +1324,7 @@ void main() {
   );
 
   testWidgets(
-    'Wholesale View All keeps fallback section products visible',
+    'Wholesale View All opens the canonical wholesale offers screen',
     (tester) async {
       final storefront = _FakeWholesaleStorefrontApi();
       final api = _FakeB2bApi({
@@ -1106,14 +1367,11 @@ void main() {
       await _pumpCustomerFrames(tester);
 
       expect(
-        find.byKey(const ValueKey('wholesale-catalog-screen')),
+        find.byKey(const ValueKey('wholesale-offers-screen')),
         findsOneWidget,
       );
-      expect(find.text('Bulk Water'), findsWidgets);
-      expect(
-        find.byKey(const ValueKey('wholesale-product-grid')),
-        findsOneWidget,
-      );
+      // Ordinary products are not misrepresented as active promotions.
+      expect(find.text('Bulk Water'), findsNothing);
     },
   );
 
@@ -1360,6 +1618,56 @@ void main() {
         find.byKey(const ValueKey('wholesale-cart-add-hover')),
         findsNothing,
       );
+    },
+  );
+
+  testWidgets(
+    'B2B quick add uses live per-account minimum instead of stale grid quantity',
+    (tester) async {
+      final productList = _FakeB2bApi({
+        'data': [
+          {
+            'id': 42,
+            'sku': 'B2B-QA-42',
+            'name': 'Quick Add Product',
+            'store_id': 7,
+            'account_price': 20,
+            'minimum_order_quantity': 1,
+            'ordering_increment': 1,
+            'available_quantity': 20,
+            'is_available': true,
+            'availability_state': 'AVAILABLE',
+          },
+        ],
+      });
+      final actionApi = _RevalidatingQuickAddActionApi();
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          locale: const Locale('ar'),
+          initialRoute: '/b2b/products?store_id=7',
+          b2bApi: productList,
+          storefrontApi: _FakeWholesaleStorefrontApi(),
+          actionApi: actionApi,
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      final add = find.byKey(const ValueKey('wholesale-product-add-42'));
+      expect(add, findsOneWidget);
+      await tester.tap(add);
+      await _pumpCustomerFrames(tester);
+
+      expect(actionApi.termsCalls, 1);
+      expect(actionApi.addCalls, 1);
+      expect(actionApi.lastStoreId, 7);
+      expect(actionApi.lastProductId, 42);
+      expect(actionApi.lastQuantity, 5);
+      expect(
+        find.byKey(const ValueKey('wholesale-cart-add-hover')),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 11));
     },
   );
 
@@ -1815,7 +2123,7 @@ void main() {
     await tester.pumpWidget(
       const FoodexCustomerApp(
         session: b2b,
-        initialRoute: '/b2b/cart',
+        initialRoute: '/b2b/cart?channel=wholesale&store_id=70',
         b2bApi: _StaticB2bApi(),
       ),
     );
@@ -2154,6 +2462,60 @@ void main() {
   );
 
   testWidgets(
+    'Wholesale cart retry after HTTP failure never returns a Future from setState',
+    (tester) async {
+      final commerce = _FailFirstWholesaleCartApi();
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: '/b2b/cart?store_id=7',
+          locale: const Locale('ar'),
+          wholesaleCommerceApi: commerce,
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      final failure = find.byKey(const ValueKey('b2b-error'));
+      expect(failure, findsOneWidget);
+      expect(find.textContaining('HTTP 503'), findsOneWidget);
+      final retry = find.descendant(
+        of: failure,
+        matching: find.byType(OutlinedButton),
+      );
+      expect(retry, findsOneWidget);
+
+      await tester.tap(retry);
+      await _pumpCustomerFrames(tester);
+      expect(tester.takeException(), isNull);
+      expect(commerce.attempts, 2);
+      expect(find.byKey(const ValueKey('b2b-cart-data')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Wholesale cart without store_id resolves principal from selection before GET',
+    (tester) async {
+      final commerce = _ReorderWholesaleCommerceApi();
+      final storefront = _FakeWholesaleStorefrontApi();
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          initialRoute: '/b2b/cart',
+          locale: const Locale('ar'),
+          storefrontApi: storefront,
+          wholesaleCommerceApi: commerce,
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      expect(storefront.selectionCalls, greaterThanOrEqualTo(1));
+      expect(commerce.lastCartStoreId, 70);
+      expect(find.byKey(const ValueKey('b2b-cart-data')), findsOneWidget);
+      expect(find.byKey(const ValueKey('b2b-error')), findsNothing);
+    },
+  );
+
+  testWidgets(
     'C13 checkout exposes financial position and blocks insufficient account credit',
     (tester) async {
       tester.view.physicalSize = const Size(900, 1900);
@@ -2237,6 +2599,215 @@ void main() {
   );
 
   testWidgets(
+    'B2B checkout is disabled below the configured minimum and accepts zero',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final cart = <String, dynamic>{
+        'store_id': 7,
+        'channel': 'b2b',
+        'currency': 'EGP',
+        'minimum_order_egp': 1500.0,
+        'merchandise_total': 1100.0,
+        'subtotal': 1100.0,
+        'quote': {'grand_total': 1100.0},
+        'has_unavailable_items': false,
+        'items': [
+          {
+            'id': 41,
+            'product': {'id': 401, 'name': 'Wholesale item', 'sku': 'WS-401'},
+            'quantity': 1.0,
+            'unit_price_snapshot': 1100.0,
+            'line_total': 1100.0,
+            'is_available': true,
+            'minimum_order_quantity': 1.0,
+            'ordering_increment': 1.0,
+          },
+        ],
+      };
+      final commerce = _C13WholesaleCommerceApi(cartValue: cart);
+
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          locale: const Locale('ar'),
+          initialRoute: '/b2b/cart?store_id=7',
+          storefrontApi: const _CheckoutStorefrontApi(),
+          wholesaleCommerceApi: commerce,
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      final checkout = find.byKey(const ValueKey('b2b-cart-checkout'));
+      await tester.ensureVisible(checkout);
+      expect(
+        tester
+            .widget<InkWell>(
+              find.descendant(of: checkout, matching: find.byType(InkWell)),
+            )
+            .onTap,
+        isNull,
+      );
+      expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')),
+          findsOneWidget);
+      expect(find.textContaining('400'), findsWidgets);
+      expect(
+          find.byKey(const ValueKey('b2b-minimum-order-popup')), findsNothing);
+      expect(commerce.checkoutCalls, 0);
+
+      // Zero is an explicit admin policy, not a missing/fallback value.
+      cart['minimum_order_egp'] = 0.0;
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          locale: const Locale('ar'),
+          initialRoute: '/b2b/cart?store_id=7',
+          storefrontApi: const _CheckoutStorefrontApi(),
+          wholesaleCommerceApi: commerce,
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+      expect(
+          find.byKey(const ValueKey('b2b-cart-minimum-warning')), findsNothing);
+      final enabledCheckout = find.byKey(const ValueKey('b2b-cart-checkout'));
+      expect(enabledCheckout, findsOneWidget);
+      expect(
+        tester
+            .widget<InkWell>(
+              find.descendant(
+                of: enabledCheckout,
+                matching: find.byType(InkWell),
+              ),
+            )
+            .onTap,
+        isNotNull,
+      );
+    },
+  );
+
+  testWidgets(
+    'B2B cart checkout turns on exactly at minimum and off when quantity drops',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final commerce = _MinimumThresholdWholesaleCommerceApi();
+      await tester.pumpWidget(
+        FoodexCustomerApp(
+          session: b2b,
+          locale: const Locale('en'),
+          initialRoute: '/b2b/cart?store_id=7',
+          wholesaleCommerceApi: commerce,
+        ),
+      );
+      await _pumpCustomerFrames(tester);
+
+      final checkout = find.byKey(const ValueKey('b2b-cart-checkout'));
+      await tester.ensureVisible(checkout);
+      InkWell button() => tester.widget<InkWell>(
+            find.descendant(of: checkout, matching: find.byType(InkWell)),
+          );
+      expect(button().onTap, isNull);
+      expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')),
+          findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('b2b-cart-plus-41')));
+      await _pumpCustomerFrames(tester);
+      expect(commerce.cartValue['merchandise_total'], 1500.0);
+      expect(button().onTap, isNotNull);
+      expect(
+          find.byKey(const ValueKey('b2b-cart-minimum-warning')), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('b2b-cart-minus-41')));
+      await _pumpCustomerFrames(tester);
+      expect(commerce.cartValue['merchandise_total'], 1100.0);
+      expect(button().onTap, isNull);
+      expect(find.byKey(const ValueKey('b2b-cart-minimum-warning')),
+          findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'B2B checkout confirmation stays dim below server minimum',
+    (tester) async {
+      tester.view.physicalSize = const Size(900, 1900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final cart = <String, dynamic>{
+        'store_id': 7,
+        'channel': 'b2b',
+        'currency': 'EGP',
+        'minimum_order_egp': 1500.0,
+        'merchandise_total': 1100.0,
+        'subtotal': 1100.0,
+        'quote': {'grand_total': 1100.0},
+        'has_unavailable_items': false,
+        'items': [
+          {
+            'id': 41,
+            'product': {'id': 401, 'name': 'Eligible item'},
+            'quantity': 1.0,
+            'is_available': true,
+          },
+        ],
+      };
+      final commerce = _C13WholesaleCommerceApi(cartValue: cart);
+      Future<void> openCheckout() async {
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpWidget(
+          FoodexCustomerApp(
+            session: b2b,
+            locale: const Locale('ar'),
+            initialRoute: '/b2b/checkout?store_id=7',
+            storefrontApi: const _CheckoutStorefrontApi(),
+            wholesaleCommerceApi: commerce,
+          ),
+        );
+        await _pumpCustomerFrames(tester);
+      }
+
+      await openCheckout();
+      final submit = find.byKey(const ValueKey('b2b-checkout-submit'));
+      await tester.ensureVisible(submit);
+      InkWell button() => tester.widget<InkWell>(
+            find.descendant(of: submit, matching: find.byType(InkWell)),
+          );
+      expect(button().onTap, isNull);
+      expect(
+        find.byKey(const ValueKey('b2b-checkout-minimum-warning')),
+        findsOneWidget,
+      );
+      expect(commerce.checkoutCalls, 0);
+
+      // Equal to the active policy threshold means the button unlocks.
+      cart['merchandise_total'] = 1500.0;
+      cart['subtotal'] = 1500.0;
+      cart['quote'] = {'grand_total': 1500.0};
+      await openCheckout();
+      await tester.ensureVisible(submit);
+      expect(button().onTap, isNotNull);
+      expect(
+        find.byKey(const ValueKey('b2b-checkout-minimum-warning')),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'C13 checkout prevents double submit with one stable attempt key',
     (tester) async {
       tester.view.physicalSize = const Size(900, 1900);
@@ -2252,6 +2823,7 @@ void main() {
         cartValue: {
           'store_id': 7,
           'currency': 'EGP',
+          'minimum_order_egp': 0.0,
           'subtotal': 10.0,
           'has_unavailable_items': false,
           'quote': {'grand_total': 10.0},
@@ -2379,6 +2951,11 @@ void main() {
               'order_number': 'B2B-91',
               'status': 'ready',
               'grand_total': 42.5,
+              'settlement': {
+                'payment_state': 'partially_settled',
+                'paid_amount': 12.5,
+                'remaining_amount': 30.0,
+              },
               'currency': 'KWD',
               'created_at': '2026-10-01T20:00:00+00:00',
               'store': {'id': 1, 'name': 'FOODEX Wholesale'},
@@ -2416,6 +2993,15 @@ void main() {
       expect(find.text('FOODEX Wholesale'), findsNothing);
       expect(find.text('جاهز'), findsOneWidget);
       expect(find.text('KWD 42.5'), findsOneWidget);
+      expect(find.text('مدفوع جزئياً'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('customer-order-paid-91')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('customer-order-remaining-91')),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('#91'));
       await _pumpCustomerFrames(tester);
@@ -4298,11 +4884,13 @@ class _CheckoutStorefrontApi implements StorefrontApi {
 
 class _ReorderWholesaleCommerceApi implements WholesaleCommerceApi {
   int cartCalls = 0;
+  int? lastCartStoreId;
   final List<String> addCalls = <String>[];
 
   @override
   Future<Object?> cart(int storeId) async {
     cartCalls++;
+    lastCartStoreId = storeId;
     return {
       'store_id': storeId,
       'currency': 'KWD',
@@ -4347,6 +4935,59 @@ class _ReorderWholesaleCommerceApi implements WholesaleCommerceApi {
     required String idempotencyKey,
   }) async =>
       const <String, Object?>{};
+}
+
+class _MinimumThresholdWholesaleCommerceApi extends _C13WholesaleCommerceApi {
+  _MinimumThresholdWholesaleCommerceApi()
+      : super(cartValue: {
+          'store_id': 7,
+          'channel': 'b2b',
+          'currency': 'EGP',
+          'minimum_order_egp': 1500.0,
+          'merchandise_total': 1100.0,
+          'subtotal': 1100.0,
+          'quote': {'grand_total': 1100.0},
+          'has_unavailable_items': false,
+          'items': [
+            {
+              'id': 41,
+              'product': {'id': 401, 'name': 'Wholesale item', 'sku': 'WS-401'},
+              'quantity': 1.0,
+              'unit_price_snapshot': 1100.0,
+              'line_total': 1100.0,
+              'available_quantity': 10.0,
+              'is_available': true,
+              'minimum_order_quantity': 1.0,
+              'ordering_increment': 1.0,
+            },
+          ],
+        });
+
+  @override
+  Future<Object?> updateItem(int itemId, double quantity) async {
+    final items = cartValue['items'] as List;
+    final item = items.first as Map<String, dynamic>;
+    item['quantity'] = quantity;
+    final nextTotal = 1100.0 + (quantity - 1) * 400.0;
+    item['line_total'] = nextTotal;
+    cartValue['merchandise_total'] = nextTotal;
+    cartValue['subtotal'] = nextTotal;
+    cartValue['quote'] = {'grand_total': nextTotal};
+    return Map<String, dynamic>.from(cartValue);
+  }
+}
+
+class _FailFirstWholesaleCartApi extends _ReorderWholesaleCommerceApi {
+  int attempts = 0;
+
+  @override
+  Future<Object?> cart(int storeId) async {
+    attempts++;
+    if (attempts == 1) {
+      throw const WholesaleCommerceException('Server Error', statusCode: 503);
+    }
+    return super.cart(storeId);
+  }
 }
 
 class _FakeWholesaleCommerceApi implements WholesaleCommerceApi {
@@ -4509,6 +5150,23 @@ class _FakeB2bApi implements B2bApi {
   }
 }
 
+class _MutableWholesaleFlashApi implements B2bApi {
+  Map<String, dynamic> flashOffers = {'data': <Object>[]};
+  final List<String> paths = <String>[];
+
+  @override
+  Future<Object?> get(String path) async {
+    paths.add(path);
+    if (path.startsWith('/api/v1/b2b/flash-offers?')) {
+      return flashOffers;
+    }
+    if (path.startsWith('/api/v1/b2b/products?')) {
+      return {'data': <Object>[]};
+    }
+    throw StateError('Unexpected wholesale route: $path');
+  }
+}
+
 class _PathB2bApi implements B2bApi {
   _PathB2bApi(this.responses);
 
@@ -4627,6 +5285,28 @@ class _CountingCustomerActionApi implements CustomerActionApi {
     required String idempotencyKey,
   }) async =>
       null;
+}
+
+class _RevalidatingQuickAddActionApi extends _CountingCustomerActionApi
+    implements CustomerWholesaleProductTermsApi {
+  int termsCalls = 0;
+
+  @override
+  Future<Map<String, dynamic>> wholesaleProductTerms({
+    required int storeId,
+    required int productId,
+  }) async {
+    termsCalls++;
+    expect(storeId, 7);
+    expect(productId, 42);
+    return {
+      'id': productId,
+      'minimum_order_quantity': 5,
+      'ordering_increment': 5,
+      'available_quantity': 10,
+      'is_available': true,
+    };
+  }
 }
 
 class _MemoryPendingActionStore implements CustomerPendingActionStore {

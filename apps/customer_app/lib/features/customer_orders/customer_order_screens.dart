@@ -6,9 +6,12 @@ import 'package:foodex_customer_app/shared/foodex_wave_loading.dart';
 
 import '../../core/api/customer_action_api.dart';
 import '../../core/localization/app_translations.dart';
+import '../../core/routing/customer_commerce_context.dart';
+import '../../core/routing/customer_routes.dart';
 import '../../core/network/customer_data_mode.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'customer_order_models.dart';
+import 'customer_order_payment_badge.dart';
 import 'customer_orders_api.dart';
 import 'package:foodex_formatting/foodex_formatting.dart';
 
@@ -1257,13 +1260,25 @@ class _OrderCard extends StatelessWidget {
                           maxLines: 1,
                           style:
                               Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: CustomerUiColors.success,
+                                    color: order.paymentState == 'fully_settled'
+                                        ? CustomerUiColors.success
+                                        : CustomerUiColors.ink,
                                     fontWeight: FontWeight.w900,
                                     fontSize: 15.5,
                                     height: 1.05,
                                   ),
                         ),
                       ),
+                      if (order.paymentState != null) ...[
+                        const SizedBox(height: 6),
+                        CustomerOrderPaymentBadge(
+                          orderId: order.id,
+                          currency: order.currency,
+                          paymentState: order.paymentState,
+                          paidAmount: order.paidAmount,
+                          remainingAmount: order.invoiceOutstandingAmount,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -1546,6 +1561,26 @@ class _OrderItems extends StatelessWidget {
           .map(
             (item) => ListTile(
               contentPadding: EdgeInsets.zero,
+              key: ValueKey('customer-order-item-product-${item.productId}'),
+              enabled: item.productId > 0 && details.summary.storeId > 0,
+              onTap: item.productId <= 0 || details.summary.storeId <= 0
+                  ? null
+                  : () {
+                      final wholesale =
+                          details.summary.channel.toLowerCase() == 'b2b';
+                      final scope = CustomerCommerceContext(
+                        channel: wholesale
+                            ? CustomerCommerceChannel.wholesale
+                            : CustomerCommerceChannel.retail,
+                        storeId: details.summary.storeId,
+                      );
+                      final productLocation = wholesale
+                          ? CustomerRouteLocations.wholesaleProduct(
+                              scope, item.productId)
+                          : CustomerRouteLocations.retailProduct(
+                              scope, item.productId);
+                      Navigator.of(context).pushNamed(productLocation);
+                    },
               title: Text(item.name.isEmpty ? item.sku : item.name),
               subtitle: Text(
                 '${context.tr('customer.cart.quantity')}: ${_quantity(item.quantity)}',
@@ -1679,8 +1714,10 @@ class _PaymentSummary extends StatelessWidget {
               title: Text(isArabic ? 'المبلغ المحصّل' : 'Collected amount'),
               trailing: Text(
                 foodexMoneyText(collected, details.summary.currency),
-                style:
-                    TextStyle(color: paymentColor, fontWeight: FontWeight.w800),
+                style: const TextStyle(
+                  color: CustomerUiColors.success,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
         ],
@@ -1703,7 +1740,10 @@ class _PaymentSummary extends StatelessWidget {
             title: Text(context.tr('customer.order.payment.remaining')),
             trailing: Text(
               foodexMoneyText(outstanding, details.summary.currency),
-              style: const TextStyle(fontWeight: FontWeight.w800),
+              style: const TextStyle(
+                color: CustomerUiColors.destructive,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         if (receipts.isNotEmpty) ...[
