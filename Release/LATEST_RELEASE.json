@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "version": "1.0.123",
-  "build_number": 123,
-  "source_commit": "138c20abc2d70423dce4e5d1c174640a4ede5f8d",
+  "version": "1.0.124",
+  "build_number": 124,
+  "source_commit": "67f3d542674398fd606f0c1339515e547ff6da07",
   "dashboard_update": {
     "directory": "Updates",
     "package": "FOODEX-Update.zip",
@@ -11,34 +11,34 @@
   "android_apps": [
     {
       "app": "customer",
-      "version": "1.0.123",
-      "build_number": 123,
-      "file": "FOODEX-Customer-1.0.123.apk",
+      "version": "1.0.124",
+      "build_number": 124,
+      "file": "FOODEX-Customer-1.0.124.apk",
       "latest_alias": "FOODEX-Customer.apk",
       "bytes": 83181161,
-      "sha256": "0d70a8ee06a285f0e0099d541031c961dbe12ddbdaf4a6fb7bbe1ecc8404499f",
-      "release_version": "1.0.123",
+      "sha256": "82f8cef756416f1b289b5db2219db4c56c92fee214a9896c61bca7fd3dc71a43",
+      "release_version": "1.0.124",
       "lineage_mode": "synchronized",
-      "source_commit": "138c20abc2d70423dce4e5d1c174640a4ede5f8d",
-      "tree_sha": "75cad062cf1f7eaa85dc3c839d4e6c4dc6a30ca9"
+      "source_commit": "67f3d542674398fd606f0c1339515e547ff6da07",
+      "tree_sha": "b52dec35e8d9b9445ab1e75ce96f7c6af27d0792"
     },
     {
       "app": "driver",
-      "version": "1.0.123",
-      "build_number": 123,
-      "file": "FOODEX-Driver-1.0.123.apk",
+      "version": "1.0.124",
+      "build_number": 124,
+      "file": "FOODEX-Driver-1.0.124.apk",
       "latest_alias": "FOODEX-Driver.apk",
       "bytes": 59418011,
-      "sha256": "420b2f93e4cc5909db8397502642be3c950d368b649a0043f039dcd973f5cc25"
+      "sha256": "b2fa19f564ae208cb0adabbd641d49ad12fcbe692876b12d0765a3f733a0d333"
     },
     {
       "app": "van",
-      "version": "1.0.123",
-      "build_number": 123,
-      "file": "FOODEX-Van-1.0.123.apk",
+      "version": "1.0.124",
+      "build_number": 124,
+      "file": "FOODEX-Van-1.0.124.apk",
       "latest_alias": "FOODEX-Van.apk",
       "bytes": 59194666,
-      "sha256": "1e51ccbdc5208838210d222a7c0abcb43ed1a8b2bc4649e30d5316fd228e0751"
+      "sha256": "e54d2b4772bbcde964850bccf1f3f75a633b4fda26b95857a7e80e48d3ba8d88"
     }
   ]
 }
