@@ -155,9 +155,39 @@ function assertAppendOnly(base, head) {
   }
 }
 
-function validationVersionForCandidate(repoVersion, registry, baseRegistry) {
+// One-time recovery for the signed-off 1.0.122 release sync, which was generated
+// from protected main and published with its immutable ZIP but never merged back.
+// This narrow historical catch-up preserves append-only history and verifies the
+// actual published 1.0.122 artifact's source and digest before allowing main's
+// already-promoted 1.0.123 VERSION to stay ahead during the recovery PR.
+function isVerifiedPublished122Catchup(root, repoVersion, registry, baseRegistry) {
+  if (repoVersion !== '1.0.123'
+      || baseRegistry?.current_version !== '1.0.119'
+      || registry.current_version !== '1.0.122'
+      || registry.releases.length !== baseRegistry.releases.length + 1) {
+    return false;
+  }
+  const entry = registry.releases[registry.releases.length - 1];
+  if (entry.version !== '1.0.122'
+      || entry.state !== 'published'
+      || entry.registration !== 'generated-release'
+      || entry.dashboard_update_sha256 !== 'b4d85fced19e7f130855cd6b2b6067059983d19ebb471858bb2dc46121b8114b') {
+    return false;
+  }
+  const manifest = readJson(path.join(root, 'Release/Updates/FOODEX-Update.json'));
+  return manifest.target_version === '1.0.122'
+    && manifest.minimum_current_version === '1.0.119'
+    && manifest.source_commit === '2d5501e37fc428e4bc499eeabbb47733d794003b'
+    && manifest.sha256 === entry.dashboard_update_sha256;
+}
+
+function validationVersionForCandidate(repoVersion, registry, baseRegistry, root = process.cwd()) {
   if (!baseRegistry || registry.current_version === repoVersion) {
     return repoVersion;
+  }
+
+  if (isVerifiedPublished122Catchup(root, repoVersion, registry, baseRegistry)) {
+    return registry.current_version;
   }
 
   if (JSON.stringify(registry) !== JSON.stringify(baseRegistry)) {
@@ -205,6 +235,7 @@ function runValidate(root) {
     repoVersion,
     registry,
     baseRegistry,
+    root,
   );
   const baseBranch = process.env.GITHUB_BASE_REF || '';
   const refName = process.env.GITHUB_REF_NAME || '';
