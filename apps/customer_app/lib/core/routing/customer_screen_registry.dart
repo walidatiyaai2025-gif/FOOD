@@ -208,6 +208,12 @@ const customerVNextScreenRegistry = <CustomerScreenRegistryEntry>[
     evidence: _fullEvidence,
   ),
   CustomerScreenRegistryEntry(
+    routePattern: CustomerRoutePaths.b2bOffers,
+    ownerIssue: 2470,
+    surface: 'wholesale offers',
+    evidence: _fullEvidence,
+  ),
+  CustomerScreenRegistryEntry(
     routePattern: CustomerRoutePaths.b2bProductDetails,
     ownerIssue: 1326,
     surface: 'wholesale product details',
