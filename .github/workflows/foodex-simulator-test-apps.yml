@@ -47,6 +47,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Customer still depends on CocoaPods-only plugins. Flutter 3.47 enables
+          # SwiftPM by default, and the mixed integration failed to link
+          # Pods_Runner in the simulator on the exact PR head. Keep this
+          # opt-out scoped to the Customer simulator build, not Driver/release.
+          if [[ "${{ matrix.app }}" == customer ]]; then
+            flutter config --no-enable-swift-package-manager
+          fi
           flutter create --platforms=ios --project-name "foodex_${{ matrix.app }}_app" .
           python3 ../../scripts/configure-mobile-native.py --app "${{ matrix.app }}" --app-dir . --platform ios
           flutter pub get
