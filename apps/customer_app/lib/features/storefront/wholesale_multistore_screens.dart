@@ -3230,7 +3230,9 @@ class _WholesaleOffersDesignScreenState
     if (!mounted || _isRefreshing) return;
     _isRefreshing = true;
     final pending = _load();
-    setState(() => _feed = pending);
+    setState(() {
+      _feed = pending;
+    });
     try {
       await pending;
     } catch (_) {
