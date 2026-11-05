@@ -1324,7 +1324,7 @@ void main() {
   );
 
   testWidgets(
-    'Wholesale View All keeps fallback section products visible',
+    'Wholesale View All opens the canonical wholesale offers screen',
     (tester) async {
       final storefront = _FakeWholesaleStorefrontApi();
       final api = _FakeB2bApi({
@@ -1367,14 +1367,11 @@ void main() {
       await _pumpCustomerFrames(tester);
 
       expect(
-        find.byKey(const ValueKey('wholesale-catalog-screen')),
+        find.byKey(const ValueKey('wholesale-offers-screen')),
         findsOneWidget,
       );
-      expect(find.text('Bulk Water'), findsWidgets);
-      expect(
-        find.byKey(const ValueKey('wholesale-product-grid')),
-        findsOneWidget,
-      );
+      // Ordinary products are not misrepresented as active promotions.
+      expect(find.text('Bulk Water'), findsNothing);
     },
   );
 
@@ -2126,7 +2123,7 @@ void main() {
     await tester.pumpWidget(
       const FoodexCustomerApp(
         session: b2b,
-        initialRoute: '/b2b/cart',
+        initialRoute: '/b2b/cart?channel=wholesale&store_id=70',
         b2bApi: _StaticB2bApi(),
       ),
     );
