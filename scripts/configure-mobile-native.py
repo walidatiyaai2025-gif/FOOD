@@ -785,6 +785,32 @@ def patch_ios(app_dir: Path, bundle_id: str, label: str) -> None:
         return f'PRODUCT_BUNDLE_IDENTIFIER = {bundle_id}{suffix};'
 
     text = re.sub(r'PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);', bundle_replacement, text)
+    # mobile_scanner 6.x uses ML Kit 7 on iOS and requires iOS 15.5.
+    # Keep CocoaPods and the generated Xcode project on the same minimum.
+    # Scope this platform change to Customer; do not alter Driver targets.
+    if bundle_id == IDENTITIES['customer']['bundle_id']:
+        target = '15.5'
+        text, replacements = re.subn(
+            r'IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;',
+            f'IPHONEOS_DEPLOYMENT_TARGET = {target};',
+            text,
+        )
+        if replacements == 0:
+            raise RuntimeError('Generated Customer iOS deployment target not found')
+        podfile = ios / 'Podfile'
+        if not podfile.exists():
+            raise RuntimeError('Generated Customer iOS Podfile not found')
+        podfile_text = podfile.read_text()
+        podfile_text, replacements = re.subn(
+            r"(?m)^\s*#?\s*platform\s+:ios,\s*['\"][0-9.]+['\"]\s*$",
+            f"platform :ios, '{target}'",
+            podfile_text,
+            count=1,
+        )
+        if replacements == 0:
+            podfile_text = f"platform :ios, '{target}'\n" + podfile_text
+        podfile.write_text(podfile_text)
+
     if 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;' not in text:
         text = text.replace(
             'CODE_SIGN_STYLE = Automatic;',
