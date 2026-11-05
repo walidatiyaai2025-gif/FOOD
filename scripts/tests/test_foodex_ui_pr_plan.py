@@ -14,38 +14,16 @@ spec.loader.exec_module(module)
 
 
 class FoodexUiPrPlanTest(unittest.TestCase):
-    def test_new_customer_screen_requires_evidence_inventory_change(self):
-        signatures = {
-            "surfaces": {
-                "customer": {"screen_regex": r"^apps/customer_app/lib/.*_screen\.dart$"}
-            }
-        }
-        matrix = {
-            "surfaces": {
-                "customer": {"evidence_inventory": "apps/customer_app/test/screenshot_evidence_test.dart"}
-            }
-        }
-        rows = [("A", "apps/customer_app/lib/new_screen.dart")]
-        errors = module.inventory_errors(rows, signatures, matrix)
-        self.assertEqual(1, len(errors))
-        self.assertIn("screenshot_evidence_test.dart", errors[0])
+    def test_no_screenshot_ci_dependency_in_matrix(self):
+        self.assertEqual([], module.validate_matrix(
+            {"surfaces": {"customer": {"locales": ["ar", "en"], "viewports": ["430x932"]}}}
+        ))
 
-    def test_new_customer_screen_passes_when_inventory_changes(self):
-        signatures = {
-            "surfaces": {
-                "customer": {"screen_regex": r"^apps/customer_app/lib/.*_screen\.dart$"}
-            }
-        }
-        matrix = {
-            "surfaces": {
-                "customer": {"evidence_inventory": "apps/customer_app/test/screenshot_evidence_test.dart"}
-            }
-        }
-        rows = [
-            ("A", "apps/customer_app/lib/new_screen.dart"),
-            ("M", "apps/customer_app/test/screenshot_evidence_test.dart"),
-        ]
-        self.assertEqual([], module.inventory_errors(rows, signatures, matrix))
+    def test_matrix_still_requires_locales_and_viewports(self):
+        errors = module.validate_matrix(
+            {"surfaces": {"customer": {"locales": [], "viewports": []}}}
+        )
+        self.assertEqual(2, len(errors))
 
     def test_ui_surface_detection(self):
         self.assertEqual("dashboard", module.ui_surface("backend/resources/views/admin/orders.blade.php"))

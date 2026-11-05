@@ -3,7 +3,7 @@
 
 This gate is deliberately conservative: it enforces machine-verifiable reuse
 and anti-regression rules on the PR diff. It complements, and never replaces,
-runtime screenshot/interaction evidence.
+functional runtime/interaction verification; screenshot artifacts are optional.
 """
 from __future__ import annotations
 
@@ -289,7 +289,7 @@ def run_audit(base: str, head: str, root: Path = ROOT) -> tuple[list[Finding], d
         "findings": [asdict(item) for item in findings],
         "static_compliance_score": score,
         "threshold": threshold,
-        "runtime_evidence_required_separately": bool(ui_rows),
+        "runtime_evidence_required_separately": False,
         "required_quality_gates": required_quality_gates(surfaces, root),
         "ok": ok,
     }

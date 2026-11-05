@@ -93,7 +93,7 @@ Use the current surface's real width targets and density rules. Do not make desk
 ### 8. Verify real behavior
 Test the actual route/screen, not only static source.
 
-For visual/interaction requirements, provide the runtime evidence required by the owning Issue/matrix.
+For visual/interaction requirements, verify the actual runtime and relevant functional tests; screenshot proof workflows are retired.
 
 ## Completion rule
 

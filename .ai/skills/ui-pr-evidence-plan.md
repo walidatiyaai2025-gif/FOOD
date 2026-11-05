@@ -1,86 +1,13 @@
-# Skill: FOODEX UI PR Evidence Plan
+# FOODEX UI PR Coverage Plan
 
-Use before requesting merge for any UI change.
-
-## 1. Generate exact-diff plan
+Use the exact-diff planner for affected surfaces, viewport/locale coverage and structural/functional requirements:
 
 ```bash
-python3 scripts/foodex-ui-pr-plan.py \
-  --base <base-sha> \
-  --head <head-sha> \
-  --strict \
-  --output artifacts/foodex-ui-pr-evidence-plan.json
+python3 scripts/foodex-ui-pr-plan.py --base <base-sha> --head <head-sha> --strict --output artifacts/foodex-ui-pr-evidence-plan.json
 ```
 
-The plan derives from the real PR diff and publishes:
-- affected UI surfaces;
-- changed/new screens;
-- Golden Page candidates;
-- route/context/quality gates;
-- visual locales/viewports/states;
-- Required CI visual job;
-- evidence-inventory changes required for new screens.
+Record placement (Reuse → Extend → Compose → New Screen), route and discoverability, scope/permissions, AR/RTL and EN/LTR, desktop/tablet/mobile accessibility and functionality. Verify interactive states through relevant route, widget, integration and backend tests.
 
-Before merge, cross-check the PR against `docs/design-reference/UI_PLACEMENT_SCREEN_PATTERN_CONTRACT.md`. The PR must record the final canonical parent/route, placement type, primary pattern and **Reuse / Extend / Compose / New Screen** decision. If it adds a new screen, the PR must state why the first three options are insufficient. If navigation changes, record the navigation impact and business-domain owner.
+The viewport/locale matrix is reference metadata, **not** a screenshot inventory or mandatory proof workflow. A new screen no longer requires additions to capture scripts. `dashboard-visual-evidence`, `mobile-visual-evidence`, `app-preview-visual-parity` and `screenshot-evidence` are retired and must not block Required CI.
 
-For every business-facing capability, record discoverability evidence even when the route itself is unchanged:
-- domain, role, capability and canonical route;
-- navigation owner/type and visible entry point;
-- parent surface, permission and active context;
-- user path: where the user starts → what they click → where they land;
-- fallback/back path;
-- mobile + desktop discoverability;
-- Arabic/RTL + English/LTR behavior.
-
-`DIRECT_URL_ONLY` is not accepted for a normal business capability. Do not compensate by adding an unnecessary Sidebar item; the correct navigation type may be a hub, tab, contextual action, Admin Settings entry or workflow step.
-
-Responsive/locale evidence is explicit, not implied:
-- **Desktop** — compact desktop and normal desktop composition as applicable;
-- **Tablet** — 768px-class composition;
-- **Mobile** — applicable narrow widths and no missing business capability;
-- **Arabic / RTL** — runtime/layout evidence;
-- **English / LTR** — runtime/layout evidence;
-- required permission and loading/empty/error/disabled/stale states where applicable.
-
-## 2. New screen evidence inventory
-
-A new user-facing screen is not accepted without adding it to runtime evidence capture.
-
-For a new:
-- Dashboard page -> update `scripts/capture_web_screenshots.mjs`;
-- Customer screen -> update Customer `screenshot_evidence_test.dart`;
-- Driver screen -> update Driver `screenshot_evidence_test.dart`;
-- Van screen -> update Van `screenshot_evidence_test.dart`.
-
-This prevents "new screen exists but visual CI never sees it".
-
-## 3. Required visual jobs
-
-UI runtime evidence is part of Required CI:
-- Dashboard changes -> `dashboard-visual-evidence`;
-- Customer/Driver/Van changes -> `mobile-visual-evidence`.
-
-A green generic unit-test gate cannot substitute for these jobs.
-
-## 4. Evidence matrix
-
-Read `.ai/uiux/visual-evidence-matrix.json`.
-
-At minimum, use the matrix's AR/EN and viewport expectations. Add the conditional state that proves the task:
-- empty/error;
-- stale/offline;
-- menu/modal/sheet;
-- map/chart;
-- transaction/assignment state.
-
-## 5. Completion
-
-PASS only when the exact PR head has:
-- placement/pattern decision recorded and consistent with route authority;
-- new-screen/Sidebar justification present when applicable;
-- Desktop + Tablet + Mobile evidence present for the affected responsive surface;
-- Arabic/RTL + English/LTR evidence present;
-- structural audit PASS;
-- evidence-plan strict validation PASS;
-- applicable Required CI visual job PASS;
-- functional/authorization/mutation gates PASS.
+Manual screenshots are optional. Keep functional checks, security and release validation mandatory.

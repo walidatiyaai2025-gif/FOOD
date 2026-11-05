@@ -21,26 +21,16 @@ class B2BVanContractSyncTest(unittest.TestCase):
         )
         self.assertTrue(any("/van/orders:" in error for error in errors), errors)
 
-    def test_visual_gate_requires_mobile_and_dashboard_evidence(self) -> None:
-        errors = contract.validate_visual_workflow(
-            "mobile_ui: ${{ steps.filter.outputs.mobile_ui }}\n"
-            "dashboard_ui: ${{ steps.filter.outputs.dashboard_ui }}\n",
-            {
-                "areas": {
-                    "mobile_ui": {
-                        "path_regex": "apps/(customer_app|driver_app|van_app)/lib/.*\\.dart$"
-                    },
-                    "dashboard_ui": {
-                        "path_regex": "backend/resources/views/admin/"
-                    },
-                }
-            },
+    def test_screenshot_workflows_are_retired(self) -> None:
+        self.assertEqual(
+            [], contract.validate_no_screenshot_workflow("name: required-ci-gate\n", {})
         )
-        self.assertTrue(
-            any("mobile-screenshot-capture.yml" in error for error in errors),
-            errors,
+        errors = contract.validate_no_screenshot_workflow(
+            "name: required-ci-gate\n"
+            "uses: ./.github/workflows/ui-visual-qa.yml\n"
+            "uses: ./.github/workflows/mobile-screenshot-capture.yml\n", {}
         )
-        self.assertTrue(any("ui-visual-qa.yml" in error for error in errors), errors)
+        self.assertEqual(2, len(errors))
 
     def test_release_lineage_requires_source_commit_validator(self) -> None:
         errors = contract.validate_release_lineage(
