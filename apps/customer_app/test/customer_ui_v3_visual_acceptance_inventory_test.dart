@@ -218,7 +218,7 @@ void main() {
         final normal = tester
             .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
             .toList();
-        expect(normal, hasLength(5));
+        expect(normal, hasLength(6));
         expect(
           normal.map((widget) => widget.duration).toSet(),
           <Duration>{CustomerUiMotion.standard},
@@ -234,7 +234,7 @@ void main() {
         final reduced = tester
             .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
             .toList();
-        expect(reduced, hasLength(5));
+        expect(reduced, hasLength(6));
         expect(
           reduced.map((widget) => widget.duration).toSet(),
           <Duration>{Duration.zero},
