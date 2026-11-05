@@ -354,7 +354,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(pushedRoute, isNotNull);
     final homeUri = Uri.parse(pushedRoute!);
-    expect(homeUri.path, '/b2b/home');
+    expect(homeUri.path, '/retail/17/home');
   });
 
   testWidgets(
