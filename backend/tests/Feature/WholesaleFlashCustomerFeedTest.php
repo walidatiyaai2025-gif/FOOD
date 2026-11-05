@@ -208,6 +208,26 @@ final class WholesaleFlashCustomerFeedTest extends TestCase
         ]);
     }
 
+    public function test_existing_van_only_offer_is_backfilled_without_losing_customer_targeting(): void
+    {
+        $this->offer->update([
+            'channels' => ['van'],
+            'audience_customer_ids' => [123],
+        ]);
+
+        $migration = require database_path(
+            'migrations/2026_11_05_092000_enable_existing_wholesale_flash_customer_app_discovery.php',
+        );
+        $migration->up();
+        $this->assertSame(['van', 'customer'], $this->offer->fresh()->channels);
+        $this->assertSame([123], $this->offer->fresh()->audience_customer_ids);
+
+        // Safe to retry: never rewrite existing audience or channel choices.
+        $migration->up();
+        $this->assertSame(['van', 'customer'], $this->offer->fresh()->channels);
+        $this->assertSame([123], $this->offer->fresh()->audience_customer_ids);
+    }
+
     public function test_b2b_targeted_offers_are_private_and_stock_exhaustion_is_not_advertised(): void
     {
         $this->travelTo(Carbon::parse('2026-11-04 22:45:00'));
