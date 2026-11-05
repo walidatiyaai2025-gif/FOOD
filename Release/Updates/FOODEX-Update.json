@@ -2,11 +2,11 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.122",
-  "minimum_current_version": "1.0.119",
-  "source_base": "0975fd0c228741681d29233f778066e373347b52",
-  "source_commit": "2d5501e37fc428e4bc499eeabbb47733d794003b",
-  "sha256": "b4d85fced19e7f130855cd6b2b6067059983d19ebb471858bb2dc46121b8114b",
+  "target_version": "1.0.123",
+  "minimum_current_version": "1.0.122",
+  "source_base": "2d5501e37fc428e4bc499eeabbb47733d794003b",
+  "source_commit": "138c20abc2d70423dce4e5d1c174640a4ede5f8d",
+  "sha256": "8bfd1a1fcdc02f6df8e3c76074a57422318c34f068cc255f37df23e5806485e3",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/0001_01_01_000000_create_users_table.php",
@@ -223,22 +223,24 @@
     "backend/database/migrations/2026_10_26_223000_optimize_order_operations_dashboard_indexes.php",
     "backend/database/migrations/2026_10_27_082000_backfill_customer_service_order_dispatch_permission.php",
     "backend/database/migrations/2026_10_27_170000_repair_customer_service_dispatch_role_metadata.php",
-    "backend/database/migrations/2026_10_27_171000_create_user_permission_overrides.php"
+    "backend/database/migrations/2026_10_27_171000_create_user_permission_overrides.php",
+    "backend/database/migrations/2026_11_04_181500_add_customer_cart_selling_unit_context.php",
+    "backend/database/migrations/2026_11_04_211500_add_app_display_order_to_store_products.php"
   ],
   "delta": {
-    "file_count": 1972,
-    "source_file_count": 1855,
+    "file_count": 1984,
+    "source_file_count": 1867,
     "files_manifest": "FOODEX-Update.files.txt"
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Preserve previously published v1.0.120 and v1.0.121 tags, Releases and assets without retargeting, deletion or replacement. The v1.0.121 Release was published from pre-merge source 275c5c81379c7269b12f48374dd71e64b39044ce, not the authoritative protected-main squash merge 7d0caef1175ca778f98790abc8c56b0eca7a1600. Restrict Trial Distribution to tester Actions artifacts; canonical immutable GitHub Releases and the generated distribution branch are published exclusively by Release Factory after protected-main integration. Carry forward the validated Driver B2B/B2C Wallet, encrypted Remember Me, biometric-only saved-session unlock, premium responsive Driver Home, Customer and Van applications, and Laravel Dashboard without changes to business logic, authorization or finance calculations. Promote Dashboard, Customer, Driver and Van to 1.0.122 (Android build 122). Require exact-head CI, clean Laravel Setup install, source-locked APK x3, Dashboard ZIP/JSON/SHA256, immutable GitHub Release, generated distribution and protected-main registry sync before distribution. See #2466, #2464 and #2458.",
+  "release_notes": "Deliver #2470 / PR #2471 changes to the Laravel Dashboard and backend: configurable B2B minimum order (1,500 EGP initial / zero disabled), authoritative stock-only visibility, selling-unit cart/checkout, invoice/print identity and finance/payment state. Restore B2B/B2C Flash Offers products and Customer offers navigation; refine Customer order/payment display, Driver order details and proof-of-delivery, localized screens and B2B Van-only vs B2C Driver-only operation. Repair Customer iOS simulator dependencies by converging on the compatible mobile_scanner Apple Vision implementation and retaining fully green exact-head Customer/Driver simulator validation. Publish cumulative Dashboard upgrade for existing 1.0.121 installations with secure backup, manifest/checksum and migrations plus a clean-setup ZIP, synchronized Customer/Driver/Van Android artifacts at 1.0.123+123, immutable v1.0.123 GitHub Release assets and final registry sync after release acceptance.",
   "dashboard_fields": {
-    "target_version": "1.0.122",
-    "minimum_current_version": "1.0.119",
-    "source_commit": "2d5501e37fc428e4bc499eeabbb47733d794003b",
-    "sha256": "b4d85fced19e7f130855cd6b2b6067059983d19ebb471858bb2dc46121b8114b",
+    "target_version": "1.0.123",
+    "minimum_current_version": "1.0.122",
+    "source_commit": "138c20abc2d70423dce4e5d1c174640a4ede5f8d",
+    "sha256": "8bfd1a1fcdc02f6df8e3c76074a57422318c34f068cc255f37df23e5806485e3",
     "contains_migrations": true,
-    "release_notes": "Preserve previously published v1.0.120 and v1.0.121 tags, Releases and assets without retargeting, deletion or replacement. The v1.0.121 Release was published from pre-merge source 275c5c81379c7269b12f48374dd71e64b39044ce, not the authoritative protected-main squash merge 7d0caef1175ca778f98790abc8c56b0eca7a1600. Restrict Trial Distribution to tester Actions artifacts; canonical immutable GitHub Releases and the generated distribution branch are published exclusively by Release Factory after protected-main integration. Carry forward the validated Driver B2B/B2C Wallet, encrypted Remember Me, biometric-only saved-session unlock, premium responsive Driver Home, Customer and Van applications, and Laravel Dashboard without changes to business logic, authorization or finance calculations. Promote Dashboard, Customer, Driver and Van to 1.0.122 (Android build 122). Require exact-head CI, clean Laravel Setup install, source-locked APK x3, Dashboard ZIP/JSON/SHA256, immutable GitHub Release, generated distribution and protected-main registry sync before distribution. See #2466, #2464 and #2458."
+    "release_notes": "Deliver #2470 / PR #2471 changes to the Laravel Dashboard and backend: configurable B2B minimum order (1,500 EGP initial / zero disabled), authoritative stock-only visibility, selling-unit cart/checkout, invoice/print identity and finance/payment state. Restore B2B/B2C Flash Offers products and Customer offers navigation; refine Customer order/payment display, Driver order details and proof-of-delivery, localized screens and B2B Van-only vs B2C Driver-only operation. Repair Customer iOS simulator dependencies by converging on the compatible mobile_scanner Apple Vision implementation and retaining fully green exact-head Customer/Driver simulator validation. Publish cumulative Dashboard upgrade for existing 1.0.121 installations with secure backup, manifest/checksum and migrations plus a clean-setup ZIP, synchronized Customer/Driver/Van Android artifacts at 1.0.123+123, immutable v1.0.123 GitHub Release assets and final registry sync after release acceptance."
   }
 }
