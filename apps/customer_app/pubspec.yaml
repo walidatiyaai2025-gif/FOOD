@@ -28,7 +28,9 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   local_auth: ^2.3.0
   share_plus: ^13.3.0
-  mobile_scanner: ^5.2.3
+  # v5 pins ML Kit / GoogleDataTransport <10 on iOS, conflicting with
+  # Firebase Messaging 11.x (GoogleDataTransport 10.x). v6 uses ML Kit 7.
+  mobile_scanner: ^6.0.11
   geolocator: ^14.1.1
   flutter_map: ^8.2.1
   latlong2: ^0.9.1
