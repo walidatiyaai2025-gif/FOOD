@@ -1,3 +1,10 @@
+## 1.0.124 - Wholesale Flash Offers Customer App visibility and synchronized production release
+
+- Merge owner-approved #2476 / PR #2477: enable independent Customer mobile App visibility for B2B Flash Offers in the wholesale Offers page without selecting individual audience members. Existing Van-only offers migrate safely to Customer App discovery without removing any configured targeting.
+- Keep mandatory B2B Van-only ordering, delivery, pricing and inventory authority; do not enable B2B Customer Flash checkout or retail push/popups. Preserve B2C Driver-only routing and strict wholesale/retail data isolation.
+- Include bilingual Dashboard controls, optional customer visibility switch, authenticated and guest B2B feed filtering, privacy/stock checks and regression tests covering empty audience, existing offers, and rejected direct Customer reservations.
+- Publish immutable v1.0.124 from final protected-main SHA with exact-source Customer/Driver/Van version identities (1.0.124+124), Laravel Setup ZIP, verified Dashboard Update ZIP with signed package provenance, checksum, versioned manifest, no-loss upgrade, clean install, recovery checks and protected-main registry synchronization. Existing v1.0.123 assets remain unchanged.
+
 ## 1.0.123 - Owner commerce, Customer and Driver convergence
 
 - Deliver #2470 / PR #2471 changes to the Laravel Dashboard and backend: configurable B2B minimum order (1,500 EGP initial / zero disabled), authoritative stock-only visibility, selling-unit cart/checkout, invoice/print identity and finance/payment state.
