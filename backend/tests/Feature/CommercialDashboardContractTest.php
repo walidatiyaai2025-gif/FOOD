@@ -542,7 +542,15 @@ class CommercialDashboardContractTest extends TestCase
 
     public function test_wholesale_flash_customer_app_visibility_is_optional_without_targeting_individual_customers(): void
     {
-        [$manager, $storeId] = $this->wholesaleManager();
+        [, $storeId] = $this->wholesaleManager();
+        $manager = User::query()->create([
+            'name' => 'Wholesale Flash Display Admin',
+            'email' => 'wholesale-flash-display-admin@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $manager->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
         $productId = $this->flashProduct($storeId, 'b2b');
         $url = route('admin.commercial.wholesale-flash-offers', ['store_id' => $storeId]);
         $save = route('admin.commercial.wholesale-flash-offers.save', ['store_id' => $storeId]);
