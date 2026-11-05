@@ -181,7 +181,7 @@ function isVerifiedPublished122Catchup(root, repoVersion, registry, baseRegistry
     && manifest.sha256 === entry.dashboard_update_sha256;
 }
 
-function validationVersionForCandidate(root, repoVersion, registry, baseRegistry) {
+function validationVersionForCandidate(repoVersion, registry, baseRegistry, root = process.cwd()) {
   if (!baseRegistry || registry.current_version === repoVersion) {
     return repoVersion;
   }
@@ -232,10 +232,10 @@ function runValidate(root) {
   const baseRef = process.env.GITHUB_BASE_REF ? 'origin/' + process.env.GITHUB_BASE_REF : null;
   const baseRegistry = baseRef ? registryFromGit(root, baseRef) : null;
   const validationVersion = validationVersionForCandidate(
-    root,
     repoVersion,
     registry,
     baseRegistry,
+    root,
   );
   const baseBranch = process.env.GITHUB_BASE_REF || '';
   const refName = process.env.GITHUB_REF_NAME || '';
