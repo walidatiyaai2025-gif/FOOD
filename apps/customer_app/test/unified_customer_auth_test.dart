@@ -421,6 +421,7 @@ void main() {
     await tester.ensureVisible(
       find.byKey(const ValueKey('unified-auth-submit')),
     );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
     await tester.pumpAndSettle();
 
