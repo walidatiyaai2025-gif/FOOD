@@ -105,8 +105,12 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
         $this->assertSame('admin.b2c.customer-groups.index', $retailItems->get('b2c_customer_groups')['route']);
         $this->assertFalse($retailItems->has('customer_groups'));
 
-        $this->actingAs($wholesale)->get(route('admin.b2b.customer-groups.index'))->assertOk();
-        $this->actingAs($retail)->get(route('admin.b2c.customer-groups.index'))->assertOk();
+        $this->actingAs($wholesale)->get(route('admin.b2b.customer-groups.index'))
+            ->assertOk()
+            ->assertViewHas('navContext', 'customer_groups');
+        $this->actingAs($retail)->get(route('admin.b2c.customer-groups.index'))
+            ->assertOk()
+            ->assertViewHas('navContext', 'b2c_customer_groups');
     }
 
     public function test_retail_store_admin_sidebar_excludes_platform_only_navigation(): void
