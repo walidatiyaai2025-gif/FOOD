@@ -119,6 +119,7 @@ class AdminNavigation
                     : null,
             ]),
             $this->group('accounts', 'admin.nav_groups.accounts', '◎', [
+                $this->routeItemScoped($user, 'customer_groups', 'customer_groups.title', 'admin.b2b.customer-groups.index', 'customers.view'),
                 $this->routeItemScoped($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'customers.view')
                     ?? $this->routeItem($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'b2b.accounts.view'),
                 $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'customers', 'admin.b2c_workspace.modules.customers', 'customers.view'),
