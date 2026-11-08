@@ -37,11 +37,15 @@ QUEUE_CONNECTION=sync
 ENV
 php artisan key:generate --force
 php artisan migrate --force --no-interaction
+# Seed the 124 canonical RBAC baseline before injecting partial 125 failures.
+php artisan db:seed --class='Database\Seeders\CoreReferenceSeeder' --force --no-interaction
 
 # Reproduce the actual failure state: v125 migration created the audit table
 # but crashed before Laravel wrote the migration ledger row.
 git -C "$repo_root" show v1.0.125:backend/database/migrations/2026_11_08_070000_create_order_customer_service_discounts.php > "$workspace/original-migration.php"
+git -C "$repo_root" show v1.0.125:backend/database/migrations/2026_11_08_071000_create_platform_owner_registry.php > "$workspace/original-owner-migration.php"
 RECOVERY_ORIGINAL_MIGRATION="$workspace/original-migration.php" \
+RECOVERY_ORIGINAL_OWNER_MIGRATION="$workspace/original-owner-migration.php" \
 php <<'PHP'
 <?php
 use Illuminate\Support\Facades\DB;
@@ -91,8 +95,24 @@ DB::table('order_customer_service_discounts')->insert([
     'order_status'=>'pending',
     'created_at'=>$now, 'updated_at'=>$now,
 ]);
-if (DB::table('migrations')->where('migration', '2026_11_08_070000_create_order_customer_service_discounts')->exists()) {
-    throw new RuntimeException('This test must start with missing migration ledger entry');
+// Reproduce a second real-world partial update: owner registry exists,
+// but the migration ledger entry was never committed.
+(require getenv('RECOVERY_ORIGINAL_OWNER_MIGRATION'))->up();
+DB::table('platform_owner_registry')->insert([
+    'id' => 1,
+    'user_id' => $user,
+    'provisioned_at' => $now,
+    'created_at' => $now,
+    'updated_at' => $now,
+]);
+if (DB::table('migrations')->whereIn('migration', [
+    '2026_11_08_070000_create_order_customer_service_discounts',
+    '2026_11_08_071000_create_platform_owner_registry',
+])->exists()) {
+    throw new RuntimeException('This test must start with missing migration ledger entries');
+}
+if (DB::table('permissions')->where('code', 'orders.customer_service_discount')->exists()) {
+    throw new RuntimeException('Baseline v124 unexpectedly contains the v125 discount permission');
 }
 file_put_contents(storage_path('app/recovery-125-uploads-marker.txt'), 'must survive');
 PHP
@@ -124,8 +144,25 @@ if (! $row || (string) $row->reason !== 'preserve discount audit across interrup
 if (! DB::table('migrations')->where('migration', '2026_11_08_070000_create_order_customer_service_discounts')->exists()) {
     throw new RuntimeException('Recovery migration ledger was not recorded');
 }
+$registry = DB::table('platform_owner_registry')->first();
+if (! $registry || (int) $registry->id !== 1 || ! DB::table('users')->where('id', (int) $registry->user_id)->exists()) {
+    throw new RuntimeException('Preexisting owner identity not preserved');
+}
+foreach ([
+    '2026_11_08_071000_create_platform_owner_registry',
+    '2026_11_08_072000_restore_customer_service_discount_permission',
+] as $migration) {
+    if (! DB::table('migrations')->where('migration', $migration)->exists()) {
+        throw new RuntimeException('Required recovery migration missing: '.$migration);
+    }
+}
+if (! DB::table('permissions')->where('code', 'orders.customer_service_discount')->exists()) {
+    throw new RuntimeException('New 125 permission was not backfilled before role seeding');
+}
 PHP
 
+# Exercise the exact role reconciliation step that failed in production.
+php artisan db:seed --class='Database\Seeders\BuiltInJobRoleSeeder' --force --no-interaction
 php artisan migrate --force --no-interaction
 test "$before_env_hash" = "$(sha256sum .env | cut -d' ' -f1)"
 test "$before_marker_hash" = "$(sha256sum storage/app/recovery-125-uploads-marker.txt | cut -d' ' -f1)"

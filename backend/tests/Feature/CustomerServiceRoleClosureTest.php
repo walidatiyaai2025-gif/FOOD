@@ -350,6 +350,16 @@ final class CustomerServiceRoleClosureTest extends TestCase
             'user_id' => $manager->id,
         ]);
 
+        // The compact orders grid opens an accessible checkbox dialog instead of
+        // squeezing a three-row HTML multiselect into a 27px dropdown.
+        $this->actingAs($manager)
+            ->get(route('admin.operations.orders.index', ['channel' => 'b2b']))
+            ->assertOk()
+            ->assertSee('data-order-cs-open="cs-team-dialog-'.$orderId.'"', false)
+            ->assertSee('id="cs-team-dialog-'.$orderId.'"', false)
+            ->assertSee('type="checkbox" name="assigned_user_ids[]"', false)
+            ->assertDontSee('multiple size="3"', false);
+
         $secondAgent = $this->userWithRole('CUSTOMER_SERVICE_AGENT');
         $this->actingAs($manager)
             ->patch(route('admin.operations.orders.customer-service-owner', ['order' => $orderId]), [

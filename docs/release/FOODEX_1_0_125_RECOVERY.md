@@ -19,3 +19,10 @@ Download exclusively from the official FOODEX GitHub recovery release. Verify th
 Use the Super Admin System Updates interface with the recovery Update ZIP, its SHA-256, target `1.0.125`, and minimum installed version `1.0.124`. The updater must create and verify its backup before making changes. Do not use old `v1.0.125` or `v1.0.126` ZIPs, do not overwrite `.env`, production `storage/`, uploads, or database tables, and stop on a preflight/backup failure.
 
 Passing GitHub CI does **not** prove that the live cPanel host has been upgraded. Verify the dashboard version, functional pages and migration history on the live host after installation.
+
+## Recovery revision r2 — 2026-11-08
+- Fixes the clipped 27px multi-agent Customer Service assignment control on the Orders grid. Managers use a responsive, accessible checkbox dialog, preserving active assignments and permitting explicit unassignment with an optional reason. No change to the authorized multi-assignment API.
+- Makes the `platform_owner_registry` migration idempotent for a validated existing owner table, preserving identity data and failing closed if columns, keys, or the protected owner record are inconsistent.
+- Backfills the single new v125 `orders.customer_service_discount` permission through an idempotent migration **before** the role-seeder child process. Does not depend on stale pre-upgrade config cache or a manual phpMyAdmin repair.
+- Updates the actual 124→125 MySQL Update ZIP acceptance to reproduce both interrupted tables and the missing permission, checking owner identity and audit data retention and running the same BuiltInJobRoleSeeder that failed on the live host.
+- New distinct prerelease tag: `recovery-125-20261108-r2`. Previous `v1.0.125`, `recovery-125-20261108`, and v1.0.126 releases remain immutable.
