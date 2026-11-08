@@ -85,6 +85,12 @@ jobs:
           wrapper.write_text(updated, encoding="utf-8")
           print(f"Gradle distribution origin pinned to {urlparse(pinned).hostname}; version unchanged.")
           PY
+      - name: Route Maven Central through Google-hosted mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.gradle"
+          install -m 0600 "$GITHUB_WORKSPACE/scripts/gradle-maven-mirror.init.gradle" "$HOME/.gradle/init.gradle"
       - name: Build once
         shell: bash
         env:

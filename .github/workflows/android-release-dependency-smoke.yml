@@ -1,0 +1,67 @@
+name: FOODEX Android Release Dependency Smoke
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/mobile-release-build.yml"
+      - ".github/workflows/android-release-dependency-smoke.yml"
+      - "scripts/gradle-maven-mirror.init.gradle"
+
+permissions:
+  contents: read
+
+jobs:
+  identity:
+    name: Resolve current synchronized mobile identity
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.identity.outputs.version }}
+      build_number: ${{ steps.identity.outputs.build_number }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import re
+          from pathlib import Path
+
+          versions = []
+          for app in ("customer", "driver", "van"):
+              source = (Path("apps") / f"{app}_app/pubspec.yaml").read_text(encoding="utf-8")
+              entry = next((line.split(":", 1)[1].strip() for line in source.splitlines() if line.startswith("version:")), "")
+              parts = entry.split("+")
+              if len(parts) != 2 or not parts[1].isdigit() or len(parts[0].split(".")) != 3 or not all(part.isdigit() for part in parts[0].split(".")):
+                  raise SystemExit(f"Invalid {app} version identity")
+              versions.append(tuple(parts))
+          if len(set(versions)) != 1:
+              raise SystemExit("Only synchronized mobile identities may use this release build gate")
+          print(f"version={versions[0][0]}")
+          print(f"build_number={versions[0][1]}")
+          PY
+
+  android:
+    name: Build immutable Android artifact (${{ matrix.app }})
+    needs: identity
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: customer
+            project: foodex_customer_app
+            display: Customer
+          - app: driver
+            project: foodex_driver_app
+            display: Driver
+          - app: van
+            project: foodex_van_app
+            display: Van
+    uses: ./.github/workflows/mobile-release-build.yml
+    with:
+      app: ${{ matrix.app }}
+      project: ${{ matrix.project }}
+      display: ${{ matrix.display }}
+      version: ${{ needs.identity.outputs.version }}
+      build_number: ${{ needs.identity.outputs.build_number }}
