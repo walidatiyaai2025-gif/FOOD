@@ -283,6 +283,7 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
 
         return (int) DB::table('stores')->insertGetId([
             'store_type_id' => $typeId,
+            'business_profile' => $type === 'B2C' ? 'RETAIL_STORE' : null,
             'code' => $code,
             'name' => $code,
             'is_active' => true,
