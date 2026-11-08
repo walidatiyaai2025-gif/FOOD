@@ -20,19 +20,68 @@ concurrency:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   build-update:
     name: Build dashboard update package
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: foodex_ci_only
+          MYSQL_DATABASE: foodex_recovery_125
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pfoodex_ci_only"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     steps:
       - name: Checkout release source
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
+      # The already-published v1.0.125 tag is immutable. This branch is an
+      # isolated, narrowly scoped recovery candidate, never a replacement tag.
+      - name: Enforce immutable 1.0.125 recovery source
+        if: github.ref_name == 'release/1.0.125-recovery-update'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(tr -d '[:space:]' < VERSION)" = 1.0.125
+          git fetch origin tag v1.0.125 --no-recurse-submodules
+          git merge-base --is-ancestor v1.0.125 HEAD
+          python3 - <<'PY'
+          import subprocess
+          allowed = {
+              ".github/workflows/release-update-bundle.yml",
+              "backend/database/migrations/2026_11_08_070000_create_order_customer_service_discounts.php",
+              "backend/tests/Feature/OrderCustomerServiceDiscountMigrationRecoveryTest.php",
+              "scripts/ci-125-recovery-upgrade.sh",
+              "scripts/ci-125-recovery-fresh-setup.sh",
+              "scripts/ci-assemble-125-recovery.py",
+              "docs/release/FOODEX_1_0_125_RECOVERY.md",
+          }
+          paths = set(subprocess.check_output(
+              ["git", "diff", "--name-only", "v1.0.125..HEAD"], text=True
+          ).splitlines())
+          disallowed = paths - allowed
+          assert not disallowed, f"Recovery changed non-allowlisted paths: {sorted(disallowed)}"
+          expected = "backend/database/migrations/2026_11_08_070000_create_order_customer_service_discounts.php"
+          assert expected in paths, "Recovery migration repair is missing."
+          PY
+          # Never package altered mobile identities, lockfiles or repository
+          # VERSION under a recovery label without a separate release review.
+          test "$(git rev-parse HEAD:VERSION)" = "$(git rev-parse v1.0.125:VERSION)"
+          test "$(git rev-parse HEAD:backend/composer.json)" = "$(git rev-parse v1.0.125:backend/composer.json)"
+
       - name: Reject reuse of a version already registered on main
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref_name != 'release/1.0.125-recovery-update'
         shell: bash
         run: |
           set -euo pipefail
@@ -135,7 +184,7 @@ jobs:
       - name: Resolve cumulative update boundary
         shell: bash
         env:
-          FOODEX_UPDATE_MINIMUM_VERSION: "1.0.6"
+          FOODEX_UPDATE_MINIMUM_VERSION: ${{ github.ref_name == 'release/1.0.125-recovery-update' && '1.0.124' || '1.0.6' }}
         run: |
           set -euo pipefail
           current_version="$(tr -d '[:space:]' < VERSION)"
@@ -274,8 +323,127 @@ jobs:
           print("Update bundle verified:", digest)
           PY
 
+      - name: Verify exact 125 recovery payload identity
+        if: github.ref_name == 'release/1.0.125-recovery-update'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(unzip -p dist/update/FOODEX-Update.zip VERSION | tr -d '[:space:]')" = "1.0.125"
+          unzip -p dist/update/FOODEX-Update.zip \
+            backend/database/migrations/2026_11_08_070000_create_order_customer_service_discounts.php \
+            | cmp - backend/database/migrations/2026_11_08_070000_create_order_customer_service_discounts.php
+          python3 - <<'PY'
+          import json
+          m=json.load(open("dist/update/FOODEX-Update.json"))
+          assert m["target_version"] == "1.0.125"
+          assert m["minimum_current_version"] == "1.0.124"
+          assert m["source_commit"] == __import__("subprocess").check_output(
+              ["git", "rev-parse", "HEAD"], text=True).strip()
+          assert m["contains_migrations"] is True
+          PY
+
+      - name: Configure PHP for recovery regression test
+        if: github.ref_name == 'release/1.0.125-recovery-update'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, sqlite3, pdo_mysql, mysqli, zip
+          tools: composer:v2
+          coverage: none
+
+      - name: Run existing-table recovery regression tests
+        if: github.ref_name == 'release/1.0.125-recovery-update'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd backend
+          composer install --no-interaction --prefer-dist --no-progress
+          php artisan test --filter OrderCustomerServiceDiscountMigrationRecoveryTest
+
+      - name: Acceptance test 124 to 125 interrupted MySQL migration using exact ZIP
+        if: github.ref_name == 'release/1.0.125-recovery-update'
+        shell: bash
+        run: bash scripts/ci-125-recovery-upgrade.sh
+
+      - name: Verify installer and update rollback orchestration tests
+        if: github.ref_name == 'release/1.0.125-recovery-update'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd backend
+          php artisan test --filter 'InstallerWorkflowTest|UpdateManagerTest'
+
+      - name: Build full 125 Recovery Setup ZIP with production dependencies
+        if: github.ref_name == 'release/1.0.125-recovery-update'
+        shell: bash
+        run: |
+          set -euo pipefail
+          composer install --working-dir=backend --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
+          stage="$(mktemp -d)"
+          mkdir -p "$stage/backend" dist/recovery
+          rsync -a backend/ "$stage/backend/" \
+            --exclude='.env' --exclude='tests/' --exclude='docs/' \
+            --exclude='.phpunit.cache/' --exclude='storage/logs/*' \
+            --exclude='storage/app/system/*'
+          rm -f "$stage/backend/bootstrap/cache/"*.php
+          cp VERSION "$stage/VERSION"
+          cp Release/INSTALL-FIRST.txt "$stage/INSTALL-FIRST.txt"
+          output="$GITHUB_WORKSPACE/dist/recovery/FOODEX-125-Recovery-Setup.zip"
+          (cd "$stage" && zip -qr "$output" .)
+          test -s "$output"
+          unzip -Z1 "$output" | grep -F 'backend/vendor/autoload.php' > /dev/null
+          ! unzip -Z1 "$output" | grep -Eq '(^|/)\.env$'
+          sha256sum "$output" > dist/recovery/FOODEX-125-Recovery-Setup.sha256.txt
+
+      - name: Fresh MySQL migration from actual Recovery Setup ZIP
+        if: github.ref_name == 'release/1.0.125-recovery-update'
+        shell: bash
+        run: bash scripts/ci-125-recovery-fresh-setup.sh
+
+      - name: Write complete recovery build provenance
+        if: github.ref_name == 'release/1.0.125-recovery-update'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          root=Path("dist/recovery")
+          setup=root/"FOODEX-125-Recovery-Setup.zip"
+          update=Path("dist/update/FOODEX-Update.zip")
+          identity={
+              "release_kind":"125-recovery",
+              "target_version":"1.0.125",
+              "tested_upgrade_from":"1.0.124",
+              "immutable_source_tag":"v1.0.125",
+              "source_commit":subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip(),
+              "workflow_run":os.getenv("GITHUB_RUN_ID"),
+              "setup_zip":setup.name,
+              "setup_sha256":hashlib.sha256(setup.read_bytes()).hexdigest(),
+              "update_zip":update.name,
+              "update_sha256":hashlib.sha256(update.read_bytes()).hexdigest(),
+              "provenance":"GitHub Actions Sigstore OIDC build attestations",
+              "production_status":"candidate: requires human verification of updater trust and host-specific backup/recovery",
+          }
+          (root/"RECOVERY_BUILD_INFO.json").write_text(json.dumps(identity,indent=2)+"\n")
+          PY
+
+      - name: Attest self-contained 125 Recovery Setup ZIP
+        if: github.ref_name == 'release/1.0.125-recovery-update'
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: dist/recovery/FOODEX-125-Recovery-Setup.zip
+
+      # GitHub's Sigstore/OIDC attestation binds the artifact digest to this
+      # exact workflow identity and commit without inventing a signing secret.
+      # This does not upgrade the legacy 124 dashboard's SHA-only verifier.
+      - name: Attest recovered ZIP with GitHub OIDC identity
+        if: github.ref_name == 'release/1.0.125-recovery-update'
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: dist/update/FOODEX-Update.zip
+
       - name: Publish generated package to release branch
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref_name != 'release/1.0.125-recovery-update'
         run: |
           cp dist/update/FOODEX-Update.zip Release/Updates/FOODEX-Update.zip
           cp dist/update/FOODEX-Update.json Release/Updates/FOODEX-Update.json
@@ -297,11 +465,138 @@ jobs:
       - name: Upload FOODEX update artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FOODEX-Update-${{ env.CURRENT_VERSION }}
+          name: ${{ github.ref_name == 'release/1.0.125-recovery-update' && 'FOODEX-125-Recovery-Candidate' || format('FOODEX-Update-{0}', env.CURRENT_VERSION) }}
           path: |
             dist/update/FOODEX-Update.zip
             dist/update/FOODEX-Update.json
             dist/update/FOODEX-Update.sha256.txt
             dist/update/FOODEX-Update.files.txt
+            dist/recovery/FOODEX-125-Recovery-Setup.zip
+            dist/recovery/FOODEX-125-Recovery-Setup.sha256.txt
+            dist/recovery/RECOVERY_BUILD_INFO.json
           if-no-files-found: error
           retention-days: 30
+
+  recovery-mobile:
+    name: Rebuild synchronized v125 recovery Android apps
+    if: github.ref_name == 'release/1.0.125-recovery-update'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: customer
+            project: foodex_customer_app
+            display: Customer
+          - app: driver
+            project: foodex_driver_app
+            display: Driver
+          - app: van
+            project: foodex_van_app
+            display: Van
+    uses: ./.github/workflows/mobile-release-build.yml
+    with:
+      app: ${{ matrix.app }}
+      project: ${{ matrix.project }}
+      display: ${{ matrix.display }}
+      version: '1.0.125'
+      build_number: '125'
+
+  recovery-assemble:
+    name: Verify three-app 125 Recovery and publish separate prerelease
+    needs: [build-update, recovery-mobile]
+    if: github.ref_name == 'release/1.0.125-recovery-update'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Download signed Update and Setup recovery artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: FOODEX-125-Recovery-Candidate
+          path: staged/recovery
+      - name: Download exact-head three app APK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-mobile-*-${{ github.sha }}
+          path: staged/mobile
+          merge-multiple: true
+      - name: Assemble and verify complete immutable v125 recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/ci-assemble-125-recovery.py
+          python3 scripts/write-trial-bundle-manifest.py \
+            --version 1.0.125 \
+            --source-commit "$GITHUB_SHA" \
+            --run-number "$GITHUB_RUN_NUMBER" \
+            --mobile-build-number 125 \
+            --customer-version 1.0.125 \
+            --customer-build-number 125 \
+            --customer-source-commit "$GITHUB_SHA" \
+            --customer-tree-sha "$(git rev-parse HEAD:apps/customer_app)" \
+            --customer-lineage synchronized \
+            --api-base-url https://foodex.50sols.com \
+            --customer Release/FOODEX-Customer-1.0.125.apk \
+            --driver Release/FOODEX-Driver-1.0.125.apk \
+            --van Release/FOODEX-Van-1.0.125.apk \
+            --setup Release/FOODEX-Laravel-Setup.zip \
+            --output Release/BUILD_INFO.json
+          python3 scripts/validate_release_artifact_contract.py \
+            --release-dir Release \
+            --version 1.0.125 \
+            --build-number 125 \
+            --source-commit "$GITHUB_SHA"
+
+      - name: Attest APKs from exactly the recovery source SHA
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            Release/FOODEX-Customer-1.0.125.apk
+            Release/FOODEX-Driver-1.0.125.apk
+            Release/FOODEX-Van-1.0.125.apk
+
+      - name: Upload entire version-pinned recovery artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FOODEX-125-Recovery-Full-${{ github.sha }}
+          path: Release/
+          if-no-files-found: error
+          retention-days: 30
+
+      # Non-v* prerelease: the original v1.0.125 assets stay immutable,
+      # and v1.0.126 remains the canonical latest GitHub Release.
+      - name: Publish separate recovery GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="recovery-125-20261108"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Recovery tag already exists; refusing to replace its artifacts."
+            exit 1
+          fi
+          gh release create "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "FOODEX v1.0.125 Recovery for installed v1.0.124" \
+            --notes-file Release/RECOVERY_RELEASE_NOTES.md \
+            --prerelease --latest=false \
+            Release/FOODEX-Customer-1.0.125.apk \
+            Release/FOODEX-Driver-1.0.125.apk \
+            Release/FOODEX-Van-1.0.125.apk \
+            Release/FOODEX-Laravel-Setup.zip \
+            Release/Updates/FOODEX-Update.zip \
+            Release/Updates/FOODEX-Update.json \
+            Release/Updates/FOODEX-Update.sha256.txt \
+            Release/Updates/FOODEX-Update.files.txt \
+            Release/LATEST_RELEASE.json \
+            Release/BUILD_INFO.json \
+            Release/RECOVERY_BUILD_INFO.json \
+            Release/FRESH_INSTALL_EVIDENCE.json \
+            Release/RECOVERY_RELEASE_NOTES.md
