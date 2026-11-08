@@ -56,6 +56,32 @@
                 <button type="submit">{{ __('customer_groups.search') }}</button>
             </form>
         </section>
+        @if($canManage && $groups->count() > 0 && $customers->isNotEmpty())
+        <section class="cg-card" data-customer-group-bulk>
+            <h2>{{ __('customer_groups.bulk_title') }}</h2>
+            <p class="cg-muted">{{ __('customer_groups.bulk_help') }}</p>
+            <form method="post" action="{{ route($groupRoutePrefix.'.bulk-members') }}" class="cg-row">
+                @csrf
+                <input type="hidden" name="store_id" value="{{ $storeId }}">
+                <label>{{ __('customer_groups.select_groups') }}
+                    <select name="group_ids[]" multiple size="5" required aria-label="{{ __('customer_groups.select_groups') }}">
+                        @foreach($groups as $group)
+                            <option value="{{ $group->id }}">{{ $group->name }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label>{{ __('customer_groups.select_customers') }}
+                    <select name="customer_ids[]" multiple size="5" required aria-label="{{ __('customer_groups.select_customers') }}">
+                        @foreach($customers as $customer)
+                            <option value="{{ $customer->id }}">{{ $customer->name }} · {{ $customer->email }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <button type="submit" name="operation" value="add">{{ __('customer_groups.add') }}</button>
+                <button type="submit" name="operation" value="remove">{{ __('customer_groups.remove') }}</button>
+            </form>
+        </section>
+        @endif
         <details class="cg-card" data-customer-group-scope>
             <summary>{{ __('customer_groups.available_customers') }} ({{ $customers->count() }})</summary>
             <ul>

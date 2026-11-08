@@ -199,6 +199,92 @@ final class CustomerGroupManagementController extends Controller
         return back()->with('status', __('customer_groups.members_saved'));
     }
 
+    /**
+     * Apply a commutative add/remove delta across multiple groups in one
+     * transaction. No replacement of unrelated members or groups is permitted.
+     */
+    public function bulkMembers(Request $request): RedirectResponse
+    {
+        [$actor, $storeId, $channel] = $this->authorizedStore($request, 'customers.manage');
+        $data = $request->validate([
+            'group_ids' => ['required', 'array', 'min:1', 'max:20'],
+            'group_ids.*' => ['required', 'integer', 'distinct', 'exists:commercial_customer_groups,id'],
+            'customer_ids' => ['required', 'array', 'min:1', 'max:300'],
+            'customer_ids.*' => ['required', 'integer', 'distinct', 'exists:customers,id'],
+            'operation' => ['required', 'in:add,remove'],
+        ]);
+        $groupIds = array_map('intval', $data['group_ids']);
+        $customerIds = array_map('intval', $data['customer_ids']);
+
+        DB::transaction(function () use ($actor, $storeId, $channel, $groupIds, $customerIds, $data, $request): void {
+            // Lock all groups in deterministic order to serialize concurrent
+            // bulk writes without corrupting membership or another tenant.
+            $allowedGroups = DB::table('commercial_customer_groups')
+                ->where('store_id', $storeId)
+                ->whereIn('id', $groupIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->pluck('id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+            if (count($allowedGroups) !== count($groupIds)) {
+                throw ValidationException::withMessages([
+                    'group_ids' => [__('customer_groups.group_scope_error')],
+                ]);
+            }
+
+            $allowedCustomers = DB::table($channel === 'b2b' ? 'b2b_customers' : 'b2c_customers')
+                ->whereIn('legacy_customer_id', $customerIds)
+                ->when($channel === 'b2c', fn ($query) => $query->where('store_id', $storeId))
+                ->pluck('legacy_customer_id')
+                ->map(static fn ($id): int => (int) $id)
+                ->unique()
+                ->all();
+            if (count($allowedCustomers) !== count($customerIds)) {
+                throw ValidationException::withMessages([
+                    'customer_ids' => [__('customer_groups.customer_scope_error')],
+                ]);
+            }
+
+            foreach ($allowedGroups as $groupId) {
+                $query = DB::table('commercial_customer_group_members')
+                    ->where('customer_group_id', $groupId);
+                $before = (clone $query)->orderBy('customer_id')
+                    ->pluck('customer_id')->map(static fn ($id): int => (int) $id)->all();
+
+                if ($data['operation'] === 'remove') {
+                    (clone $query)->whereIn('customer_id', $customerIds)->delete();
+                } else {
+                    $rows = array_map(static fn (int $id): array => [
+                        'customer_group_id' => $groupId,
+                        'customer_id' => $id,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ], $customerIds);
+                    DB::table('commercial_customer_group_members')->insertOrIgnore($rows);
+                }
+
+                $after = (clone $query)->orderBy('customer_id')
+                    ->pluck('customer_id')->map(static fn ($id): int => (int) $id)->all();
+                if ($before !== $after) {
+                    $this->audit->record('customers.group.members_updated', $actor, null, [
+                        'store_id' => $storeId,
+                        'group_id' => $groupId,
+                        'customer_ids' => $before,
+                    ], [
+                        'store_id' => $storeId,
+                        'group_id' => $groupId,
+                        'customer_ids' => $after,
+                        'operation' => $data['operation'],
+                        'bulk' => true,
+                    ], $request);
+                }
+            }
+        }, 3);
+
+        return back()->with('status', __('customer_groups.members_saved'));
+    }
+
     /** @return array{User,int,string} */
     private function authorizedStore(Request $request, string $permission): array
     {

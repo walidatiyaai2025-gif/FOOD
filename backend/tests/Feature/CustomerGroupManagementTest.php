@@ -158,6 +158,88 @@ class CustomerGroupManagementTest extends TestCase
             ])->assertNotFound();
     }
 
+    public function test_bulk_customer_group_assignment_is_atomic_idempotent_and_store_scoped(): void
+    {
+        $admin = $this->admin();
+        $storeId = app(WholesalePrincipal::class)->storeId();
+        $first = app(B2bCustomerService::class)->create(['name' => 'Bulk Customer One']);
+        $second = app(B2bCustomerService::class)->create(['name' => 'Bulk Customer Two']);
+
+        foreach (['Bulk Preferred', 'Bulk Campaign'] as $name) {
+            $this->actingAs($admin)
+                ->post(route('admin.b2b.customer-groups.store'), [
+                    'store_id' => $storeId,
+                    'name' => $name,
+                    'priority' => 1,
+                ])->assertRedirect();
+        }
+
+        $groups = DB::table('commercial_customer_groups')
+            ->where('store_id', $storeId)->orderBy('id')->pluck('id')->all();
+        $this->assertCount(2, $groups);
+
+        $route = route('admin.b2b.customer-groups.bulk-members');
+        $payload = [
+            'store_id' => $storeId,
+            'group_ids' => $groups,
+            'customer_ids' => [(int) $first->legacy_customer_id, (int) $second->legacy_customer_id],
+            'operation' => 'add',
+        ];
+        $this->actingAs($admin)->post($route, $payload)->assertRedirect();
+        $this->actingAs($admin)->post($route, $payload)->assertRedirect();
+        $this->assertSame(4, DB::table('commercial_customer_group_members')
+            ->whereIn('customer_group_id', $groups)->count());
+
+        $this->actingAs($admin)->post($route, [
+            'store_id' => $storeId,
+            'group_ids' => [$groups[0]],
+            'customer_ids' => [(int) $first->legacy_customer_id],
+            'operation' => 'remove',
+        ])->assertRedirect();
+        $this->assertDatabaseMissing('commercial_customer_group_members', [
+            'customer_group_id' => $groups[0],
+            'customer_id' => (int) $first->legacy_customer_id,
+        ]);
+        $this->assertDatabaseHas('commercial_customer_group_members', [
+            'customer_group_id' => $groups[1],
+            'customer_id' => (int) $first->legacy_customer_id,
+        ]);
+
+        $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $foreignStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId,
+            'code' => 'GROUP-BULK-FOREIGN',
+            'name' => 'Foreign Bulk Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignGroupId = (int) DB::table('commercial_customer_groups')->insertGetId([
+            'store_id' => $foreignStoreId,
+            'name' => 'Forbidden Foreign Group',
+            'priority' => 1,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->actingAs($admin)->post($route, [
+            'store_id' => $storeId,
+            'group_ids' => [$groups[0], $foreignGroupId],
+            'customer_ids' => [(int) $first->legacy_customer_id],
+            'operation' => 'add',
+        ])->assertSessionHasErrors('group_ids');
+
+        $this->assertDatabaseMissing('commercial_customer_group_members', [
+            'customer_group_id' => $groups[0],
+            'customer_id' => (int) $first->legacy_customer_id,
+        ]);
+        $this->assertDatabaseMissing('commercial_customer_group_members', [
+            'customer_group_id' => $foreignGroupId,
+            'customer_id' => (int) $first->legacy_customer_id,
+        ]);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'customers.group.members_updated']);
+    }
+
     private function admin(): User
     {
         $admin = User::query()->create([

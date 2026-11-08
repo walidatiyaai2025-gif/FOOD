@@ -687,6 +687,7 @@ Route::prefix('admin')
         Route::get('/b2b/settings-permissions', [B2bWorkspaceController::class, 'show'])->defaults('module', 'settings')->name('b2b.settings-permissions');
         Route::get('/b2b/customers/groups', [CustomerGroupManagementController::class, 'index'])->name('b2b.customer-groups.index');
         Route::post('/b2b/customers/groups', [CustomerGroupManagementController::class, 'store'])->middleware('throttle:30,1')->name('b2b.customer-groups.store');
+        Route::post('/b2b/customers/groups/bulk-members', [CustomerGroupManagementController::class, 'bulkMembers'])->middleware('throttle:20,1')->name('b2b.customer-groups.bulk-members');
         Route::patch('/b2b/customers/groups/{group}', [CustomerGroupManagementController::class, 'update'])->whereNumber('group')->middleware('throttle:30,1')->name('b2b.customer-groups.update');
         Route::post('/b2b/customers/groups/{group}/members', [CustomerGroupManagementController::class, 'members'])->whereNumber('group')->middleware('throttle:30,1')->name('b2b.customer-groups.members');
         Route::get('/b2b/commercial/sales-control', [CommercialDashboardController::class, 'salesControl'])->name('commercial.sales-control');
@@ -702,6 +703,7 @@ Route::prefix('admin')
         Route::get('/b2b/{module}', [B2bWorkspaceController::class, 'show'])->name('b2b.module');
         Route::get('/b2c/customers/groups', [CustomerGroupManagementController::class, 'index'])->defaults('group_channel', 'b2c')->name('b2c.customer-groups.index');
         Route::post('/b2c/customers/groups', [CustomerGroupManagementController::class, 'store'])->defaults('group_channel', 'b2c')->middleware('throttle:30,1')->name('b2c.customer-groups.store');
+        Route::post('/b2c/customers/groups/bulk-members', [CustomerGroupManagementController::class, 'bulkMembers'])->defaults('group_channel', 'b2c')->middleware('throttle:20,1')->name('b2c.customer-groups.bulk-members');
         Route::patch('/b2c/customers/groups/{group}', [CustomerGroupManagementController::class, 'update'])->whereNumber('group')->defaults('group_channel', 'b2c')->middleware('throttle:30,1')->name('b2c.customer-groups.update');
         Route::post('/b2c/customers/groups/{group}/members', [CustomerGroupManagementController::class, 'members'])->whereNumber('group')->defaults('group_channel', 'b2c')->middleware('throttle:30,1')->name('b2c.customer-groups.members');
         Route::get('/b2c/dashboard', [B2cWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2c.dashboard');
