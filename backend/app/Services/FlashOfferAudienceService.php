@@ -119,14 +119,24 @@ final class FlashOfferAudienceService
             ->value('store_types.code');
 
         $domain = strtoupper((string) $channel) === 'B2C' ? 'b2c_customers' : 'b2b_customers';
-        $domainUsers = DB::table($domain)
+        // Legacy customer IDs alone are not tenant identity. Resolve only
+        // customers present in the offer's authorized B2B/B2C domain first.
+        $domainCustomers = DB::table($domain)
             ->whereIn('legacy_customer_id', $memberIds)
             ->when($domain === 'b2c_customers', fn ($query) => $query->where('store_id', (int) $offer->store_id))
-            ->whereNotNull('user_id')
-            ->pluck('user_id')
+            ->get(['legacy_customer_id', 'user_id']);
+        $validLegacyIds = $domainCustomers->pluck('legacy_customer_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()->values()->all();
+        if ($validLegacyIds === []) {
+            return [];
+        }
+
+        $domainUsers = $domainCustomers->pluck('user_id')
+            ->filter(static fn ($id): bool => $id !== null)
             ->map(static fn ($id): int => (int) $id);
 
-        return collect($this->usersForCustomers($memberIds))
+        return collect($this->usersForCustomers($validLegacyIds))
             ->merge($domainUsers)
             ->filter(static fn (int $id): bool => $id > 0)
             ->unique()->values()->all();
