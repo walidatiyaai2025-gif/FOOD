@@ -44,11 +44,11 @@ git -C "$repo_root" show v1.0.125:backend/database/migrations/2026_11_08_070000_
 RECOVERY_ORIGINAL_MIGRATION="$workspace/original-migration.php" \
 php <<'PHP'
 <?php
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 require 'vendor/autoload.php';
 $app = require 'bootstrap/app.php';
-$app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Schema;
+$app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 $now = date('Y-m-d H:i:s');
 $user = DB::table('users')->insertGetId([
@@ -108,11 +108,11 @@ php artisan optimize:clear
 php artisan migrate --force --no-interaction
 php <<'PHP'
 <?php
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 require 'vendor/autoload.php';
 $app = require 'bootstrap/app.php';
-$app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Schema;
+$app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 if (! Schema::hasTable('order_customer_service_discounts')) {
     throw new RuntimeException('Recovered audit table missing');
 }
