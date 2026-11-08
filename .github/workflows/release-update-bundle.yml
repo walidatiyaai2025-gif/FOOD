@@ -70,6 +70,7 @@ jobs:
               "backend/lang/ar/order_operations.php",
               "backend/lang/en/order_operations.php",
               "backend/tests/Feature/CustomerServiceRoleClosureTest.php",
+              "backend/tests/Feature/UnifiedOrderOperationsTest.php",
               "backend/database/migrations/2026_11_08_071000_create_platform_owner_registry.php",
               "backend/database/migrations/2026_11_08_072000_restore_customer_service_discount_permission.php",
           }
