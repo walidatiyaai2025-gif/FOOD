@@ -2,11 +2,11 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.125",
-  "minimum_current_version": "1.0.124",
-  "source_base": "67f3d542674398fd606f0c1339515e547ff6da07",
-  "source_commit": "6450869fd863073047d2599d8d70e04e283a0cf3",
-  "sha256": "a82dd3a3dff902d56075c6b830eedee7642f62a46a3669e279932110153c867e",
+  "target_version": "1.0.126",
+  "minimum_current_version": "1.0.125",
+  "source_base": "1a4d2ba341424c816040a7185a9ab1df59c3d574",
+  "source_commit": "74ed7f7f4e2fa91590f5e1a8565249156d860fdc",
+  "sha256": "2d1cb70ed17453209b0203bb09e9f0495368dcd3a283fb2982915063562b5ddb",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/0001_01_01_000000_create_users_table.php",
@@ -237,13 +237,13 @@
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Issue #2482 / PR #2483: introduce tenant/channel-scoped B2B and B2C customer-group management using canonical commercial groups and memberships, with many-to-many targeting, multi-group bulk add/remove, audit history and cross-tenant access denial. Allow multiple active Customer Service assignees per order with historical attribution, scope checks and a shared operations UI. Preserve the wholesale VAN ONLY and retail DRIVER ONLY fulfillment contracts. Apply controlled percentage concessions during the authorized Customer Service pending step, with required reason, idempotent revisions, bounded monetary calculations, rejection of issued invoices/paid orders/dispatch and customer notifications. Extend current wholesale Customer App home to consume published B2B storefront content; draft and public published revisions remain separate. Add an internally provisioned, singleton registered PLATFORM_OWNER authority, with audit, restricted role management and availability diagnostics; do not grant owner privileges to regular Super Admin. Production release target: Dashboard 1.0.124 → 1.0.125. Synchronized Customer, Driver and Van 1.0.125+125 binaries, Laravel Setup ZIP, Dashboard Update ZIP, version manifest, SHA-256 and release notes must be built by Release Factory from the final protected-main source commit. Passing PR CI alone is not publication or live-deployment evidence.",
+  "release_notes": "Register Customer Groups links in the Customers & Accounts admin sidebar for permitted B2B and B2C roles, with tenant-scoped navigation and AR/EN labels. Restore the visible, accessible **Sign up / إنشاء حساب** action immediately beneath the Customer App's primary sign-in button on the canonical business entry screen. Tap opens the existing bilingual self-service registration form (name, email, phone, password and confirmation); registration is handled by the existing authoritative `POST /api/v1/auth/register` endpoint with standard platform-account protections. Preserve login, remember-me, biometric sign-in, the unified customer account and existing wholesale/retail order routing. Add Arabic/English widget coverage for action placement, registration and return to login. Publish as the **next immutable patch release 1.0.126** after the already-published v1.0.125; never overwrite or falsely relabel signed v1.0.125 assets. Release Factory must generate the synchronized Setup/Update ZIPs, manifest and all three 1.0.126+126 APKs from the final protected-main commit.",
   "dashboard_fields": {
-    "target_version": "1.0.125",
-    "minimum_current_version": "1.0.124",
-    "source_commit": "6450869fd863073047d2599d8d70e04e283a0cf3",
-    "sha256": "a82dd3a3dff902d56075c6b830eedee7642f62a46a3669e279932110153c867e",
+    "target_version": "1.0.126",
+    "minimum_current_version": "1.0.125",
+    "source_commit": "74ed7f7f4e2fa91590f5e1a8565249156d860fdc",
+    "sha256": "2d1cb70ed17453209b0203bb09e9f0495368dcd3a283fb2982915063562b5ddb",
     "contains_migrations": true,
-    "release_notes": "Issue #2482 / PR #2483: introduce tenant/channel-scoped B2B and B2C customer-group management using canonical commercial groups and memberships, with many-to-many targeting, multi-group bulk add/remove, audit history and cross-tenant access denial. Allow multiple active Customer Service assignees per order with historical attribution, scope checks and a shared operations UI. Preserve the wholesale VAN ONLY and retail DRIVER ONLY fulfillment contracts. Apply controlled percentage concessions during the authorized Customer Service pending step, with required reason, idempotent revisions, bounded monetary calculations, rejection of issued invoices/paid orders/dispatch and customer notifications. Extend current wholesale Customer App home to consume published B2B storefront content; draft and public published revisions remain separate. Add an internally provisioned, singleton registered PLATFORM_OWNER authority, with audit, restricted role management and availability diagnostics; do not grant owner privileges to regular Super Admin. Production release target: Dashboard 1.0.124 → 1.0.125. Synchronized Customer, Driver and Van 1.0.125+125 binaries, Laravel Setup ZIP, Dashboard Update ZIP, version manifest, SHA-256 and release notes must be built by Release Factory from the final protected-main source commit. Passing PR CI alone is not publication or live-deployment evidence."
+    "release_notes": "Register Customer Groups links in the Customers & Accounts admin sidebar for permitted B2B and B2C roles, with tenant-scoped navigation and AR/EN labels. Restore the visible, accessible **Sign up / إنشاء حساب** action immediately beneath the Customer App's primary sign-in button on the canonical business entry screen. Tap opens the existing bilingual self-service registration form (name, email, phone, password and confirmation); registration is handled by the existing authoritative `POST /api/v1/auth/register` endpoint with standard platform-account protections. Preserve login, remember-me, biometric sign-in, the unified customer account and existing wholesale/retail order routing. Add Arabic/English widget coverage for action placement, registration and return to login. Publish as the **next immutable patch release 1.0.126** after the already-published v1.0.125; never overwrite or falsely relabel signed v1.0.125 assets. Release Factory must generate the synchronized Setup/Update ZIPs, manifest and all three 1.0.126+126 APKs from the final protected-main commit."
   }
 }
