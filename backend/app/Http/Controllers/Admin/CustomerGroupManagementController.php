@@ -59,7 +59,7 @@ final class CustomerGroupManagementController extends Controller
             'counts' => $counts,
             'customers' => $customers,
             'members' => $members,
-            'canManage' => in_array($storeId, $this->scope->allowedStoreIds($actor, 'catalog.manage', 'b2b'), true),
+            'canManage' => in_array($storeId, $this->scope->allowedStoreIds($actor, 'customers.manage', 'b2b'), true),
             'navGroups' => $this->navigation->groupsFor($actor),
             'navContext' => 'b2b_customers',
         ]);
@@ -67,7 +67,7 @@ final class CustomerGroupManagementController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        [$actor, $storeId] = $this->authorizedStore($request, 'catalog.manage');
+        [$actor, $storeId] = $this->authorizedStore($request, 'customers.manage');
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'priority' => ['nullable', 'integer', 'between:-1000,1000'],
@@ -91,7 +91,7 @@ final class CustomerGroupManagementController extends Controller
 
     public function update(Request $request, int $group): RedirectResponse
     {
-        [$actor, $storeId] = $this->authorizedStore($request, 'catalog.manage');
+        [$actor, $storeId] = $this->authorizedStore($request, 'customers.manage');
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'priority' => ['nullable', 'integer', 'between:-1000,1000'],
@@ -129,7 +129,7 @@ final class CustomerGroupManagementController extends Controller
 
     public function members(Request $request, int $group): RedirectResponse
     {
-        [$actor, $storeId] = $this->authorizedStore($request, 'catalog.manage');
+        [$actor, $storeId] = $this->authorizedStore($request, 'customers.manage');
         $data = $request->validate([
             'customer_ids' => ['sometimes', 'array', 'max:300'],
             'customer_ids.*' => ['required', 'integer', 'distinct', 'exists:customers,id'],
