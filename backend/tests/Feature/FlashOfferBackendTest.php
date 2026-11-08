@@ -496,6 +496,35 @@ class FlashOfferBackendTest extends TestCase
         } catch (HttpException $exception) {
             $this->assertSame('CUSTOMER_NOT_ELIGIBLE', $exception->getMessage());
         }
+
+        // An offer cannot target a group from an unrelated Retail merchant,
+        // even if a legacy customer ID has been inserted into that group.
+        $foreignStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'code' => 'FLASH-GROUP-FOREIGN',
+            'name' => 'Foreign Audience Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignGroupId = (int) DB::table('commercial_customer_groups')->insertGetId([
+            'store_id' => $foreignStoreId,
+            'name' => 'Foreign Audience Group',
+            'priority' => 1,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('commercial_customer_group_members')->insert([
+            'customer_group_id' => $foreignGroupId,
+            'customer_id' => $legacy->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $offer->update(['audience_customer_group_ids' => [$foreignGroupId]]);
+        $this->assertFalse(
+            app(FlashOfferAudienceService::class)->isEligible($offer->fresh(), (int) $this->user->id),
+        );
     }
 
     private function flag(string $key, bool $enabled): void
