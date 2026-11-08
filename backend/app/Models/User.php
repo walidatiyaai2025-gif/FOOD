@@ -55,7 +55,9 @@ class User extends Authenticatable
         // verification only when the internal role is actually present.
         if ($roleCode === 'SUPER_ADMIN' && $storeId === null) {
             $codes = $this->roles()
-                ->whereIn('roles.code', ['SUPER_ADMIN', 'PLATFORM_OWNER'])
+                ->where(fn ($query) => $query
+                    ->where('roles.code', 'SUPER_ADMIN')
+                    ->orWhere('roles.code', 'PLATFORM_OWNER'))
                 ->where('roles.is_active', true)
                 ->where('roles.scope', 'global')
                 ->pluck('roles.code');
