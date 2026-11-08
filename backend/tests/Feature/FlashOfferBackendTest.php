@@ -9,6 +9,7 @@ use App\Models\FlashOffer;
 use App\Models\FlashOfferProduct;
 use App\Models\User;
 use App\Models\VanVisit;
+use App\Services\FlashOfferAudienceService;
 use App\Services\FlashOfferService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
