@@ -781,7 +781,7 @@ class AdminNavigation
         $memoKey = (int) $user->getKey();
 
         return $this->superAdminMemo[$memoKey]
-            ??= ($user->isPlatformOwner() || $user->hasRole('SUPER_ADMIN'))
+            ??= ($user->isPlatformOwner() || $user->hasRole('SUPER_ADMIN'));
     }
 
     private function hasPermission(User $user, string $permission): bool
