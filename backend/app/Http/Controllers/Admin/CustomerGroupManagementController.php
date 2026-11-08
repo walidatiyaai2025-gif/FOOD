@@ -129,14 +129,14 @@ final class CustomerGroupManagementController extends Controller
 
     public function members(Request $request, int $group): RedirectResponse
     {
-        [, $storeId] = $this->authorizedStore($request, 'catalog.manage');
+        [$actor, $storeId] = $this->authorizedStore($request, 'catalog.manage');
         $data = $request->validate([
             'customer_ids' => ['sometimes', 'array', 'max:300'],
             'customer_ids.*' => ['required', 'integer', 'distinct', 'exists:customers,id'],
             'operation' => ['required', 'in:add,remove'],
         ]);
         $ids = array_map('intval', $data['customer_ids'] ?? []);
-        DB::transaction(function () use ($storeId, $group, $ids, $data): void {
+        DB::transaction(function () use ($actor, $storeId, $group, $ids, $data, $request): void {
             $target = DB::table('commercial_customer_groups')
                 ->where('id', $group)->where('store_id', $storeId)->lockForUpdate()->first(['id']);
             abort_if($target === null, 404);
@@ -151,20 +151,39 @@ final class CustomerGroupManagementController extends Controller
                 ]);
             }
 
+            $previousMemberIds = DB::table('commercial_customer_group_members')
+                ->where('customer_group_id', $group)->orderBy('customer_id')
+                ->pluck('customer_id')->map(static fn ($id): int => (int) $id)->all();
+
             if ($data['operation'] === 'remove') {
                 DB::table('commercial_customer_group_members')
                     ->where('customer_group_id', $group)->whereIn('customer_id', $ids)->delete();
-                return;
+            } else {
+                $rows = array_map(static fn (int $id): array => [
+                    'customer_group_id' => $group,
+                    'customer_id' => $id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ], $ids);
+                if ($rows !== []) {
+                    DB::table('commercial_customer_group_members')->insertOrIgnore($rows);
+                }
             }
 
-            $rows = array_map(static fn (int $id): array => [
-                'customer_group_id' => $group,
-                'customer_id' => $id,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ], $ids);
-            if ($rows !== []) {
-                DB::table('commercial_customer_group_members')->insertOrIgnore($rows);
+            $nextMemberIds = DB::table('commercial_customer_group_members')
+                ->where('customer_group_id', $group)->orderBy('customer_id')
+                ->pluck('customer_id')->map(static fn ($id): int => (int) $id)->all();
+            if ($previousMemberIds !== $nextMemberIds) {
+                $this->audit->record('customers.group.members_updated', $actor, null, [
+                    'store_id' => $storeId,
+                    'group_id' => $group,
+                    'customer_ids' => $previousMemberIds,
+                ], [
+                    'store_id' => $storeId,
+                    'group_id' => $group,
+                    'customer_ids' => $nextMemberIds,
+                    'operation' => $data['operation'],
+                ], $request);
             }
         }, 3);
 
