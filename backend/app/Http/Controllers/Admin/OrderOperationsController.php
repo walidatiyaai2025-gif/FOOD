@@ -30,6 +30,7 @@ use App\Services\OperationalLookupService;
 use App\Services\OperationalTenantScope;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderLifecycleNotificationService;
+use App\Services\OrderCustomerServiceDiscountService;
 use App\Services\OrderManualDispatchService;
 use App\Services\OrderOperationsRowContext;
 use App\Services\SalesOrderOperationsDashboardService;
@@ -1742,6 +1743,48 @@ final class OrderOperationsController extends Controller
             $assignedUserIds === [] ? 'تم إلغاء إسناد الطلب من فريق خدمة العملاء.' : 'تم تحديث فريق خدمة العملاء للطلب.',
             $assignedUserIds === [] ? 'Customer Service assignment removed.' : 'Order Customer Service team updated.',
         ));
+    }
+
+    public function applyCustomerServiceDiscount(
+        Request $request,
+        int $order,
+        OrderCustomerServiceDiscountService $discounts,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $model = $this->managedOrder($actor, $order, 'orders.view');
+        $storeId = (int) $model->store_id;
+        abort_unless($actor->is_active
+            && $actor->hasPermission('orders.customer_service_discount', $storeId), 403);
+        $this->scope->assertStore(
+            $actor, $storeId, 'orders.customer_service_discount', strtolower((string) $model->channel),
+        );
+
+        // Agents can change only orders assigned to them. Supervisors and
+        // managers retain their existing scoped team-level authority.
+        if ($actor->hasRole('CUSTOMER_SERVICE_AGENT')
+            && ! $actor->hasRole('CUSTOMER_SERVICE_MANAGER')
+            && ! $actor->hasRole('CUSTOMER_SERVICE_SUPERVISOR')
+            && ! $actor->hasRole('SUPER_ADMIN')) {
+            abort_unless(DB::table('order_customer_service_assignments')
+                ->where('order_id', $model->getKey())
+                ->where('assigned_user_id', $actor->getKey())
+                ->whereNull('unassigned_at')
+                ->exists(), 403);
+        }
+
+        $validated = $request->validate([
+            'percentage' => ['required', 'numeric', 'between:0,100', 'decimal:0,3'],
+            'reason' => ['required', 'string', 'min:5', 'max:500'],
+            'idempotency_key' => ['required', 'uuid'],
+        ]);
+        $applied = $discounts->apply(
+            $model, $actor, (float) $validated['percentage'],
+            trim((string) $validated['reason']), (string) $validated['idempotency_key'], $request,
+        );
+
+        return back()->with('status', $applied
+            ? $this->msg('تم تطبيق الخصم وإرسال إشعار للعميل.', 'Discount applied and customer notified.')
+            : $this->msg('تم تجاهل الطلب المكرر دون تغيير الإجمالي.', 'Duplicate discount request safely ignored.'));
     }
 
     public function reassign(
