@@ -11,6 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -77,9 +78,22 @@ class User extends Authenticatable
             ->exists();
     }
 
+    /**
+     * Platform Owner is not inferred from role assignment alone. The one-owner
+     * registry must be written by the internal bootstrap, never from RBAC UI.
+     */
+    public function isPlatformOwner(): bool
+    {
+        return (bool) $this->is_active
+            && $this->hasRole('PLATFORM_OWNER')
+            && Schema::hasTable('platform_owner_registry')
+            && DB::table('platform_owner_registry')
+                ->where('id', 1)->where('user_id', $this->getKey())->exists();
+    }
+
     public function hasPermission(string $permissionCode, ?int $storeId = null): bool
     {
-        if ($this->hasRole('SUPER_ADMIN')) {
+        if ($this->isPlatformOwner() || $this->hasRole('SUPER_ADMIN')) {
             return true;
         }
 
@@ -164,7 +178,7 @@ class User extends Authenticatable
     /** @return list<string> */
     public function inheritedPermissionCodes(?int $storeId = null): array
     {
-        if ($this->hasRole('SUPER_ADMIN')) {
+        if ($this->isPlatformOwner() || $this->hasRole('SUPER_ADMIN')) {
             return array_keys((array) config('permissions.abilities', []));
         }
 
@@ -212,7 +226,7 @@ class User extends Authenticatable
     /** @return list<string> */
     public function effectivePermissionCodes(?int $storeId = null): array
     {
-        if ($this->hasRole('SUPER_ADMIN')) {
+        if ($this->isPlatformOwner() || $this->hasRole('SUPER_ADMIN')) {
             return array_keys((array) config('permissions.abilities', []));
         }
 
