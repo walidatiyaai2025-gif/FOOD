@@ -82,6 +82,82 @@ class CustomerGroupManagementTest extends TestCase
         $this->assertDatabaseHas('commercial_customer_groups', ['id' => $id, 'name' => 'Scoped']);
     }
 
+    public function test_retail_groups_are_strictly_isolated_by_store_and_customer_identity(): void
+    {
+        $retailRoleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
+        $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $storeA = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId, 'code' => 'GROUP-STORE-A',
+            'name' => 'Group Store A', 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $storeB = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId, 'code' => 'GROUP-STORE-B',
+            'name' => 'Group Store B', 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $retailAdmin = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        DB::table('user_store_roles')->insert([
+            'user_id' => $retailAdmin->id,
+            'store_id' => $storeA,
+            'role_id' => $retailRoleId,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $legacyIds = [];
+        foreach ([$storeA, $storeB] as $index => $storeId) {
+            $legacyId = (int) DB::table('customers')->insertGetId([
+                'type' => 'b2c', 'name' => 'Retail Group Customer '.($index + 1),
+                'phone' => '5550080'.($index + 1),
+                'email' => 'retailgroup'.($index + 1).'@example.test',
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            DB::table('b2c_customers')->insert([
+                'legacy_customer_id' => $legacyId, 'store_id' => $storeId,
+                'name' => 'Retail Group Customer '.($index + 1),
+                'phone' => '5550080'.($index + 1),
+                'email' => 'retailgroup'.($index + 1).'@example.test',
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $legacyIds[] = $legacyId;
+        }
+
+        $this->actingAs($retailAdmin)
+            ->get(route('admin.b2c.customer-groups.index', ['store_id' => $storeA]))
+            ->assertOk()
+            ->assertSee('Retail Group Customer 1')
+            ->assertDontSee('Retail Group Customer 2');
+
+        $this->actingAs($retailAdmin)
+            ->post(route('admin.b2c.customer-groups.store'), [
+                'store_id' => $storeA, 'name' => 'Retail Segments', 'priority' => 5,
+            ])
+            ->assertRedirect();
+        $group = (int) DB::table('commercial_customer_groups')
+            ->where('store_id', $storeA)->where('name', 'Retail Segments')->value('id');
+
+        $this->actingAs($retailAdmin)
+            ->post(route('admin.b2c.customer-groups.members', ['group' => $group]), [
+                'store_id' => $storeA,
+                'operation' => 'add', 'customer_ids' => [$legacyIds[0]],
+            ])->assertRedirect();
+        $this->assertDatabaseHas('commercial_customer_group_members', [
+            'customer_group_id' => $group, 'customer_id' => $legacyIds[0],
+        ]);
+
+        $this->actingAs($retailAdmin)
+            ->post(route('admin.b2c.customer-groups.members', ['group' => $group]), [
+                'store_id' => $storeA,
+                'operation' => 'add', 'customer_ids' => [$legacyIds[1]],
+            ])->assertSessionHasErrors('customer_ids');
+
+        $this->actingAs($retailAdmin)
+            ->patch(route('admin.b2c.customer-groups.update', ['group' => $group]), [
+                'store_id' => $storeB, 'name' => 'Tampered',
+                'priority' => 0, 'is_active' => 1,
+            ])->assertNotFound();
+    }
+
     private function admin(): User
     {
         $admin = User::query()->create([
