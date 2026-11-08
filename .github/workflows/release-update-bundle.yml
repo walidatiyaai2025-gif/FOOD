@@ -366,6 +366,7 @@ jobs:
         if: github.ref_name == 'release/1.0.125-recovery-update'
         shell: bash
         run: |
+          set -euo pipefail
           cd backend
           php artisan test --filter 'InstallerWorkflowTest|UpdateManagerTest'
 
@@ -387,51 +388,8 @@ jobs:
           output="$GITHUB_WORKSPACE/dist/recovery/FOODEX-125-Recovery-Setup.zip"
           (cd "$stage" && zip -qr "$output" .)
           test -s "$output"
-          unzip -Z1 "$output" | grep -q 'backend/vendor/autoload.php'
-          ! unzip -Z1 "$output" | grep -Eq '(^|/)\.env
-      # exact workflow identity and commit without inventing a signing secret.
-      # This does not upgrade the legacy 124 dashboard's SHA-only verifier.
-      - name: Attest recovered ZIP with GitHub OIDC identity
-        if: github.ref_name == 'release/1.0.125-recovery-update'
-        uses: actions/attest-build-provenance@v3
-        with:
-          subject-path: dist/update/FOODEX-Update.zip
-
-      - name: Publish generated package to release branch
-        if: github.event_name == 'push' && github.ref_name != 'release/1.0.125-recovery-update'
-        run: |
-          cp dist/update/FOODEX-Update.zip Release/Updates/FOODEX-Update.zip
-          cp dist/update/FOODEX-Update.json Release/Updates/FOODEX-Update.json
-          cp dist/update/FOODEX-Update.sha256.txt Release/Updates/FOODEX-Update.sha256.txt
-          cp dist/update/FOODEX-Update.files.txt Release/Updates/FOODEX-Update.files.txt
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Release/Updates/FOODEX-Update.zip \
-                  Release/Updates/FOODEX-Update.json \
-                  Release/Updates/FOODEX-Update.sha256.txt \
-                  Release/Updates/FOODEX-Update.files.txt
-          if git diff --cached --quiet; then
-            echo "Generated update package is already published."
-          else
-            git commit -m "release: publish generated FOODEX ${CURRENT_VERSION} cumulative update bundle"
-            git push origin "HEAD:release/${CURRENT_VERSION}-update"
-          fi
-
-      - name: Upload FOODEX update artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ github.ref_name == 'release/1.0.125-recovery-update' && 'FOODEX-125-Recovery-Candidate' || format('FOODEX-Update-{0}', env.CURRENT_VERSION) }}
-          path: |
-            dist/update/FOODEX-Update.zip
-            dist/update/FOODEX-Update.json
-            dist/update/FOODEX-Update.sha256.txt
-            dist/update/FOODEX-Update.files.txt
-            dist/recovery/FOODEX-125-Recovery-Setup.zip
-            dist/recovery/FOODEX-125-Recovery-Setup.sha256.txt
-            dist/recovery/RECOVERY_BUILD_INFO.json
-          if-no-files-found: error
-          retention-days: 30
-
+          unzip -Z1 "$output" | grep -F 'backend/vendor/autoload.php' > /dev/null
+          ! unzip -Z1 "$output" | grep -Eq '(^|/)\.env$'
           sha256sum "$output" > dist/recovery/FOODEX-125-Recovery-Setup.sha256.txt
 
       - name: Fresh MySQL migration from actual Recovery Setup ZIP
@@ -510,5 +468,8 @@ jobs:
             dist/update/FOODEX-Update.json
             dist/update/FOODEX-Update.sha256.txt
             dist/update/FOODEX-Update.files.txt
+            dist/recovery/FOODEX-125-Recovery-Setup.zip
+            dist/recovery/FOODEX-125-Recovery-Setup.sha256.txt
+            dist/recovery/RECOVERY_BUILD_INFO.json
           if-no-files-found: error
           retention-days: 30
