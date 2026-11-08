@@ -78,6 +78,36 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
         $this->assertFalse($keys->contains('whatsapp_supervisor'));
     }
 
+    public function test_customer_groups_sidebar_entries_are_registered_and_scoped_to_authorized_channel(): void
+    {
+        $items = app(\App\Services\AdminSidebarManager::class)->registry()['items'];
+        $this->assertSame('accounts', $items['customer_groups']['group']);
+        $this->assertSame('accounts', $items['b2c_customer_groups']['group']);
+        $this->assertSame('customer_groups.wholesale_title', $items['customer_groups']['label']);
+        $this->assertSame('customer_groups.retail_title', $items['b2c_customer_groups']['label']);
+
+        $wholesale = $this->globalUser('B2B_ADMIN', 'nav-groups-wholesale@example.test');
+        $wholesaleGroups = collect(app(AdminNavigation::class)->groupsFor($wholesale))
+            ->firstWhere('key', 'accounts');
+        $this->assertIsArray($wholesaleGroups);
+        $wholesaleItems = collect($wholesaleGroups['children'])->keyBy('key');
+        $this->assertTrue($wholesaleItems->has('customer_groups'));
+        $this->assertSame('admin.b2b.customer-groups.index', $wholesaleItems->get('customer_groups')['route']);
+        $this->assertFalse($wholesaleItems->has('b2c_customer_groups'));
+
+        $retail = $this->retailAdmin('nav-groups-retail@example.test');
+        $retailGroups = collect(app(AdminNavigation::class)->groupsFor($retail))
+            ->firstWhere('key', 'accounts');
+        $this->assertIsArray($retailGroups);
+        $retailItems = collect($retailGroups['children'])->keyBy('key');
+        $this->assertTrue($retailItems->has('b2c_customer_groups'));
+        $this->assertSame('admin.b2c.customer-groups.index', $retailItems->get('b2c_customer_groups')['route']);
+        $this->assertFalse($retailItems->has('customer_groups'));
+
+        $this->actingAs($wholesale)->get(route('admin.b2b.customer-groups.index'))->assertOk();
+        $this->actingAs($retail)->get(route('admin.b2c.customer-groups.index'))->assertOk();
+    }
+
     public function test_retail_store_admin_sidebar_excludes_platform_only_navigation(): void
     {
         $user = $this->retailAdmin('nav-retail-isolated@example.test');

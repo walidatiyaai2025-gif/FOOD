@@ -6,3 +6,5 @@
 - **Stability:** preserves existing login, remembered session, biometric access, post-auth routing and the B2B VAN ONLY / B2C DRIVER ONLY fulfillment policies. Driver and Van functional behavior is unchanged.
 - **Release packaging:** from one final protected-main Git SHA produce a complete Laravel Setup ZIP, compatible Update ZIP, manifest, signature/integrity evidence, build info, release notes and synchronized Customer/Driver/Van 1.0.126+126 APKs. Verify full fresh-install and upgrade acceptance before publishing; do not overwrite the already-published v1.0.125 assets.
 - **Hosting:** applying the update on a deployed cPanel instance still requires verifiable install/update and post-deploy health checks; a published GitHub release alone does not prove that live hosting changed.
+
+- **Customer dashboard navigation:** the Customers & Accounts sidebar explicitly registers **Wholesale Customer Groups** and **Retail Customer Groups** after customer management, with role/store-scoped routes and matching AR/EN titles. The sidebar layout registry includes both entries so they can be managed and ordered consistently without exposing cross-tenant groups.

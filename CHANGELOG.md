@@ -1,4 +1,5 @@
 ## 1.0.126 - Customer signup entry restored under sign in (#2487)
+- Register Customer Groups links in the Customers & Accounts admin sidebar for permitted B2B and B2C roles, with tenant-scoped navigation and AR/EN labels.
 
 - Restore the visible, accessible **Sign up / إنشاء حساب** action immediately beneath the Customer App's primary sign-in button on the canonical business entry screen.
 - Tap opens the existing bilingual self-service registration form (name, email, phone, password and confirmation); registration is handled by the existing authoritative `POST /api/v1/auth/register` endpoint with standard platform-account protections.
