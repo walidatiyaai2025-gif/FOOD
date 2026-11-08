@@ -1,4 +1,4 @@
-# FOODEX 1.0.126 — Customer Sign up Hotfix
+# FOODEX 1.0.126 — Customer Sign up Hotfix — Release Notes
 
 ## Release identity
 - Dashboard and backend: `1.0.126`
