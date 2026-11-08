@@ -182,7 +182,7 @@ jobs:
       - name: Resolve cumulative update boundary
         shell: bash
         env:
-          FOODEX_UPDATE_MINIMUM_VERSION: "1.0.6"
+          FOODEX_UPDATE_MINIMUM_VERSION: ${{ github.ref_name == 'release/1.0.125-recovery-update' && '1.0.124' || '1.0.6' }}
         run: |
           set -euo pipefail
           current_version="$(tr -d '[:space:]' < VERSION)"
@@ -334,6 +334,7 @@ jobs:
           import json
           m=json.load(open("dist/update/FOODEX-Update.json"))
           assert m["target_version"] == "1.0.125"
+          assert m["minimum_current_version"] == "1.0.124"
           assert m["source_commit"] == __import__("subprocess").check_output(
               ["git", "rev-parse", "HEAD"], text=True).strip()
           assert m["contains_migrations"] is True
