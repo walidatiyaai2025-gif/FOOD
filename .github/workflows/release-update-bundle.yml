@@ -64,6 +64,8 @@ jobs:
               "backend/tests/Feature/OrderCustomerServiceDiscountMigrationRecoveryTest.php",
               "scripts/ci-125-recovery-upgrade.sh",
               "scripts/ci-125-recovery-fresh-setup.sh",
+              "scripts/ci-assemble-125-recovery.py",
+              "docs/release/FOODEX_1_0_125_RECOVERY.md",
           }
           paths = set(subprocess.check_output(
               ["git", "diff", "--name-only", "v1.0.125..HEAD"], text=True
@@ -474,3 +476,127 @@ jobs:
             dist/recovery/RECOVERY_BUILD_INFO.json
           if-no-files-found: error
           retention-days: 30
+
+  recovery-mobile:
+    name: Rebuild synchronized v125 recovery Android apps
+    if: github.ref_name == 'release/1.0.125-recovery-update'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: customer
+            project: foodex_customer_app
+            display: Customer
+          - app: driver
+            project: foodex_driver_app
+            display: Driver
+          - app: van
+            project: foodex_van_app
+            display: Van
+    uses: ./.github/workflows/mobile-release-build.yml
+    with:
+      app: ${{ matrix.app }}
+      project: ${{ matrix.project }}
+      display: ${{ matrix.display }}
+      version: '1.0.125'
+      build_number: '125'
+
+  recovery-assemble:
+    name: Verify three-app 125 Recovery and publish separate prerelease
+    needs: [build-update, recovery-mobile]
+    if: github.ref_name == 'release/1.0.125-recovery-update'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Download signed Update and Setup recovery artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: FOODEX-125-Recovery-Candidate
+          path: staged/recovery
+      - name: Download exact-head three app APK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-mobile-*-${{ github.sha }}
+          path: staged/mobile
+          merge-multiple: true
+      - name: Assemble and verify complete immutable v125 recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/ci-assemble-125-recovery.py
+          python3 scripts/write-trial-bundle-manifest.py \
+            --version 1.0.125 \
+            --source-commit "$GITHUB_SHA" \
+            --run-number "$GITHUB_RUN_NUMBER" \
+            --mobile-build-number 125 \
+            --customer-version 1.0.125 \
+            --customer-build-number 125 \
+            --customer-source-commit "$GITHUB_SHA" \
+            --customer-tree-sha "$(git rev-parse HEAD:apps/customer_app)" \
+            --customer-lineage synchronized \
+            --api-base-url https://foodex.50sols.com \
+            --customer Release/FOODEX-Customer-1.0.125.apk \
+            --driver Release/FOODEX-Driver-1.0.125.apk \
+            --van Release/FOODEX-Van-1.0.125.apk \
+            --setup Release/FOODEX-Laravel-Setup.zip \
+            --output Release/BUILD_INFO.json
+          python3 scripts/validate_release_artifact_contract.py \
+            --release-dir Release \
+            --version 1.0.125 \
+            --build-number 125 \
+            --source-commit "$GITHUB_SHA"
+
+      - name: Attest APKs from exactly the recovery source SHA
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            Release/FOODEX-Customer-1.0.125.apk
+            Release/FOODEX-Driver-1.0.125.apk
+            Release/FOODEX-Van-1.0.125.apk
+
+      - name: Upload entire version-pinned recovery artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FOODEX-125-Recovery-Full-${{ github.sha }}
+          path: Release/
+          if-no-files-found: error
+          retention-days: 30
+
+      # Non-v* prerelease: the original v1.0.125 assets stay immutable,
+      # and v1.0.126 remains the canonical latest GitHub Release.
+      - name: Publish separate recovery GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="recovery-125-20261108"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Recovery tag already exists; refusing to replace its artifacts."
+            exit 1
+          fi
+          gh release create "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "FOODEX v1.0.125 Recovery for installed v1.0.124" \
+            --notes-file Release/RECOVERY_RELEASE_NOTES.md \
+            --prerelease --latest=false \
+            Release/FOODEX-Customer-1.0.125.apk \
+            Release/FOODEX-Driver-1.0.125.apk \
+            Release/FOODEX-Van-1.0.125.apk \
+            Release/FOODEX-Laravel-Setup.zip \
+            Release/Updates/FOODEX-Update.zip \
+            Release/Updates/FOODEX-Update.json \
+            Release/Updates/FOODEX-Update.sha256.txt \
+            Release/Updates/FOODEX-Update.files.txt \
+            Release/LATEST_RELEASE.json \
+            Release/BUILD_INFO.json \
+            Release/RECOVERY_BUILD_INFO.json \
+            Release/FRESH_INSTALL_EVIDENCE.json \
+            Release/RECOVERY_RELEASE_NOTES.md
