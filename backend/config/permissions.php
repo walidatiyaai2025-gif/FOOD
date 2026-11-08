@@ -192,7 +192,7 @@ return [
             'reports.view', 'reports.export',
         ],
         'B2B_ADMIN' => [
-            'stores.view',
+            'stores.view', 'customers.view', 'customers.manage',
             'b2b.accounts.view', 'b2b.accounts.manage', 'b2b.pricing.view', 'b2b.pricing.manage',
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage',
             'lookups.view', 'lookups.manage',
