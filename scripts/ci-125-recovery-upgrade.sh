@@ -160,7 +160,7 @@ if (! DB::table('permissions')->where('code', 'orders.customer_service_discount'
 PHP
 
 # Exercise the exact role reconciliation step that failed in production.
-php artisan db:seed --class='Database\\Seeders\\BuiltInJobRoleSeeder' --force --no-interaction
+php artisan db:seed --class='Database\Seeders\BuiltInJobRoleSeeder' --force --no-interaction
 php artisan migrate --force --no-interaction
 test "$before_env_hash" = "$(sha256sum .env | cut -d' ' -f1)"
 test "$before_marker_hash" = "$(sha256sum storage/app/recovery-125-uploads-marker.txt | cut -d' ' -f1)"
