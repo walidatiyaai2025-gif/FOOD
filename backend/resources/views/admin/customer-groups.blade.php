@@ -17,11 +17,11 @@
         .cg-card{background:var(--foodex-surface);padding:16px;border:1px solid var(--foodex-border);border-radius:16px;margin-bottom:14px}
         .cg-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
         .cg-row>*{min-width:0}.cg-card label{display:grid;gap:5px;font-weight:700}
-        .cg-card input,.cg-card select{border:1px solid #cbd5e1;border-radius:9px;padding:10px;background:#fff;max-width:100%;box-sizing:border-box}
+        .cg-card input,.cg-card select{border:1px solid var(--foodex-border);border-radius:9px;padding:10px;background:#fff;max-width:100%;box-sizing:border-box}
         .cg-card select[multiple]{min-width:230px;max-width:100%;height:120px}
         .cg-card button{background:var(--foodex-action-green);color:#fff;border:0;border-radius:9px;padding:11px 18px;font-weight:800;cursor:pointer}
         .cg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px}
-        .cg-muted{color:var(--foodex-muted)}.cg-error{color:#b91c1c}
+        .cg-muted{color:var(--foodex-muted)}.cg-error{color:var(--foodex-danger-text,firebrick)}
         @media(max-width:850px){.cg-layout,.cg-layout[dir]{display:block}.cg-layout>.sidebar{position:relative}.cg-layout>main{padding:12px}}
     </style>
 </head>
