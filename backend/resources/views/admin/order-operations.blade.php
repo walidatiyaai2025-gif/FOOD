@@ -598,7 +598,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <td class="order-owner-cell {{ $rowDelivered ? 'is-complete' : '' }}" @if($rowDelivered) aria-disabled="true" data-order-customer-service-dimmed @endif>
     <div class="order-owner {{ $rowDelivered ? 'is-complete' : '' }}">
         @if($row['customer_service_owner'])
-            <strong>{{ $row['customer_service_owner'] }}</strong>
+            <strong>{{ implode('، ', $row['customer_service_owner_names'] ?? [$row['customer_service_owner']]) }}</strong>
             @if(trim((string)($row['customer_service_assignment_reason'] ?? '')) !== '')
                 <small data-order-saved-reason>{{ $businessLabel($row['customer_service_assignment_reason']) }}</small>
             @endif
@@ -606,15 +606,15 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             <span class="order-mini-chip">{{ __('order_operations.unassigned') }}</span>
         @endif
         @if(!$rowDelivered && $canAssignCustomerService && $row['can_manage'])
-            <form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" class="order-inline-picker" data-order-inline-customer-service-owner>
+            <form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" class="order-inline-picker">
                 @csrf @method('PATCH')
-                <select name="assigned_user_id" data-order-inline-picker-select data-initial-value="{{ (string)($row['customer_service_owner_id'] ?? '') }}" aria-label="{{ __('order_operations.customer_service_owner.assign_follow_up') }}">
-                    <option value="">{{ __('order_operations.customer_service_owner.remove_owner') }}</option>
+                <label class="visually-hidden" for="cs-team-{{ $row['id'] }}">{{ __('order_operations.customer_service_owner.assign_follow_up') }}</label>
+                <select id="cs-team-{{ $row['id'] }}" name="assigned_user_ids[]" multiple size="3" aria-label="{{ __('order_operations.customer_service_owner.assign_follow_up') }}">
                     @foreach($customerServiceAgents as $agent)
-                        <option value="{{ $agent->id }}" @selected((int)($row['customer_service_owner_id'] ?? 0)===(int)$agent->id)>{{ $agent->name }}</option>
+                        <option value="{{ $agent->id }}" @selected(in_array((int)$agent->id, $row['customer_service_owner_ids'] ?? [], true))>{{ $agent->name }}</option>
                     @endforeach
                 </select>
-                <button type="submit" data-order-inline-picker-submit aria-label="{{ __('order_operations.customer_service_owner.save') }}" title="{{ __('order_operations.customer_service_owner.save') }}" disabled>✓</button>
+                <button type="submit" aria-label="{{ __('order_operations.customer_service_owner.save') }}" title="{{ __('order_operations.customer_service_owner.save') }}">✓</button>
             </form>
         @endif
     </div>
