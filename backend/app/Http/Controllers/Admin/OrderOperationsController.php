@@ -1649,55 +1649,61 @@ final class OrderOperationsController extends Controller
         $model = $this->managedOrder($actor, $order, 'orders.manage');
 
         $validated = $request->validate([
-            'assigned_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            // The scalar contract remains supported for existing clients.
+            'assigned_user_id' => ['nullable', 'integer', 'exists:users,id', 'prohibited_with:assigned_user_ids'],
+            'assigned_user_ids' => ['sometimes', 'array', 'max:100'],
+            'assigned_user_ids.*' => ['required', 'integer', 'distinct', 'exists:users,id'],
             'reason' => ['nullable', 'string', 'max:500'],
         ]);
-        $assignedUserId = isset($validated['assigned_user_id'])
-            ? (int) $validated['assigned_user_id']
-            : null;
+        $isMultiAssignment = array_key_exists('assigned_user_ids', $validated);
+        $assignedUserIds = $isMultiAssignment
+            ? array_map('intval', $validated['assigned_user_ids'])
+            : (isset($validated['assigned_user_id']) ? [(int) $validated['assigned_user_id']] : []);
+        $assignedUserIds = array_values(array_unique($assignedUserIds));
         $reason = trim((string) ($validated['reason'] ?? ''));
 
-        if ($assignedUserId !== null) {
-            $allowed = $this->customerServiceTeam
-                ->members($actor)
-                ->where('is_active', true)
-                ->contains(fn (User $member): bool => (int) $member->getKey() === $assignedUserId);
-            abort_unless($allowed, 403);
-        }
+        $allowedUserIds = $this->customerServiceTeam
+            ->members($actor)
+            ->where('is_active', true)
+            ->map(static fn (User $member): int => (int) $member->getKey())
+            ->all();
+        abort_unless(array_diff($assignedUserIds, $allowedUserIds) === [], 403);
 
-        DB::transaction(function () use (
+        $changed = DB::transaction(function () use (
             $model,
             $actor,
-            $assignedUserId,
+            $assignedUserIds,
             $reason,
             $request,
             $audit,
-        ): void {
-            DB::table('orders')
-                ->where('id', $model->getKey())
-                ->lockForUpdate()
-                ->first(['id']);
+        ): bool {
+            DB::table('orders')->where('id', $model->getKey())->lockForUpdate()->first(['id']);
 
             $active = DB::table('order_customer_service_assignments')
                 ->where('order_id', $model->getKey())
                 ->whereNull('unassigned_at')
                 ->lockForUpdate()
-                ->latest('id')
-                ->first();
+                ->get(['id', 'assigned_user_id']);
+            $previousIds = $active->pluck('assigned_user_id')->map(static fn ($id): int => (int) $id)->unique()->sort()->values()->all();
+            $nextIds = $assignedUserIds;
+            sort($nextIds);
+            if ($previousIds === $nextIds) {
+                return false;
+            }
 
-            DB::table('order_customer_service_assignments')
-                ->where('order_id', $model->getKey())
-                ->whereNull('unassigned_at')
-                ->update([
-                    'unassigned_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-            $assignmentId = null;
-            if ($assignedUserId !== null) {
-                $assignmentId = (int) DB::table('order_customer_service_assignments')->insertGetId([
+            $removeIds = array_values(array_diff($previousIds, $nextIds));
+            $addIds = array_values(array_diff($nextIds, $previousIds));
+            if ($removeIds !== []) {
+                DB::table('order_customer_service_assignments')
+                    ->where('order_id', $model->getKey())
+                    ->whereNull('unassigned_at')
+                    ->whereIn('assigned_user_id', $removeIds)
+                    ->update(['unassigned_at' => now(), 'updated_at' => now()]);
+            }
+            foreach ($addIds as $userId) {
+                DB::table('order_customer_service_assignments')->insert([
                     'order_id' => (int) $model->getKey(),
-                    'assigned_user_id' => $assignedUserId,
+                    'assigned_user_id' => $userId,
                     'assigned_by_user_id' => (int) $actor->getKey(),
                     'reason' => $reason === '' ? null : $reason,
                     'assigned_at' => now(),
@@ -1711,26 +1717,28 @@ final class OrderOperationsController extends Controller
                 'order.customer_service_owner.changed',
                 $actor,
                 $model,
+                ['assigned_user_ids' => $previousIds],
                 [
-                    'assignment_id' => $active?->id,
-                    'assigned_user_id' => $active?->assigned_user_id,
-                ],
-                [
-                    'assignment_id' => $assignmentId,
-                    'assigned_user_id' => $assignedUserId,
+                    'assigned_user_ids' => $nextIds,
+                    'added_user_ids' => $addIds,
+                    'removed_user_ids' => $removeIds,
                     'reason' => $reason === '' ? null : $reason,
                 ],
                 $request,
             );
+
+            return true;
         }, 3);
 
-        $notifications->customerOrderChanged($model->fresh(), 'customer_service_updated', [
-            'assigned' => $assignedUserId !== null,
-        ]);
+        if ($changed) {
+            $notifications->customerOrderChanged($model->fresh(), 'customer_service_updated', [
+                'assigned' => $assignedUserIds !== [],
+            ]);
+        }
 
         return back()->with('status', $this->msg(
-            $assignedUserId === null ? 'تم إلغاء إسناد الطلب من فريق خدمة العملاء.' : 'تم إسناد الطلب لموظف خدمة العملاء.',
-            $assignedUserId === null ? 'Customer Service owner removed.' : 'Order assigned to Customer Service.',
+            $assignedUserIds === [] ? 'تم إلغاء إسناد الطلب من فريق خدمة العملاء.' : 'تم تحديث فريق خدمة العملاء للطلب.',
+            $assignedUserIds === [] ? 'Customer Service assignment removed.' : 'Order Customer Service team updated.',
         ));
     }
 
