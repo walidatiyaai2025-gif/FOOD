@@ -15,7 +15,7 @@ final class FlashOfferAudienceService
     {
         $dimensions = [
             [$this->integerList($offer->audience_customer_ids), fn (array $ids): array => $this->usersForCustomers($ids)],
-            [$this->integerList($offer->audience_customer_group_ids), fn (array $ids): array => $this->usersForGroups($ids)],
+            [$this->integerList($offer->audience_customer_group_ids), fn (array $ids): array => $this->usersForGroups($offer, $ids)],
             [$this->stringList($offer->audience_regions), fn (array $regions): array => $this->usersForRegions($regions)],
             [$this->stringList($offer->audience_routes), fn (array $routes): array => $this->usersForRoutes($offer, $routes)],
         ];
@@ -97,17 +97,39 @@ final class FlashOfferAudienceService
      * @param  list<int>  $ids
      * @return list<int>
      */
-    private function usersForGroups(array $ids): array
+    private function usersForGroups(FlashOffer $offer, array $ids): array
     {
-        return DB::table('commercial_customer_group_members')
-            ->join('customers', 'customers.id', '=', 'commercial_customer_group_members.customer_id')
-            ->whereIn('commercial_customer_group_members.customer_group_id', $ids)
-            ->whereNotNull('customers.user_id')
-            ->pluck('customers.user_id')
+        // Group targeting is evaluated only within its own store. Inactive
+        // groups and another merchant's IDs may not widen an audience.
+        $memberIds = DB::table('commercial_customer_group_members as members')
+            ->join('commercial_customer_groups as groups', 'groups.id', '=', 'members.customer_group_id')
+            ->whereIn('members.customer_group_id', $ids)
+            ->where('groups.store_id', (int) $offer->store_id)
+            ->where('groups.is_active', true)
+            ->pluck('members.customer_id')
             ->map(static fn ($id): int => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
+            ->unique()->values()->all();
+        if ($memberIds === []) {
+            return [];
+        }
+
+        $channel = DB::table('stores')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.id', $offer->store_id)
+            ->value('store_types.code');
+
+        $domain = strtoupper((string) $channel) === 'B2C' ? 'b2c_customers' : 'b2b_customers';
+        $domainUsers = DB::table($domain)
+            ->whereIn('legacy_customer_id', $memberIds)
+            ->when($domain === 'b2c_customers', fn ($query) => $query->where('store_id', (int) $offer->store_id))
+            ->whereNotNull('user_id')
+            ->pluck('user_id')
+            ->map(static fn ($id): int => (int) $id);
+
+        return collect($this->usersForCustomers($memberIds))
+            ->merge($domainUsers)
+            ->filter(static fn (int $id): bool => $id > 0)
+            ->unique()->values()->all();
     }
 
     /**
