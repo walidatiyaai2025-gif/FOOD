@@ -2,6 +2,8 @@
 
 return [ 
     'title' => 'Customer Groups',
+    'wholesale_title' => 'Wholesale Customer Groups',
+    'retail_title' => 'Retail Customer Groups',
     'description' => 'Organize Wholesale and Retail customers into overlapping groups for targeting, promotions, advertising and product controls.',
     'back_to_customers' => 'Back to Customer Management',
     'create' => 'Create Group',

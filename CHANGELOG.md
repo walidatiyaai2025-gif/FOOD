@@ -1,3 +1,11 @@
+## 1.0.126 - Customer signup entry restored under sign in (#2487)
+- Register Customer Groups links in the Customers & Accounts admin sidebar for permitted B2B and B2C roles, with tenant-scoped navigation and AR/EN labels.
+
+- Restore the visible, accessible **Sign up / إنشاء حساب** action immediately beneath the Customer App's primary sign-in button on the canonical business entry screen.
+- Tap opens the existing bilingual self-service registration form (name, email, phone, password and confirmation); registration is handled by the existing authoritative `POST /api/v1/auth/register` endpoint with standard platform-account protections.
+- Preserve login, remember-me, biometric sign-in, the unified customer account and existing wholesale/retail order routing. Add Arabic/English widget coverage for action placement, registration and return to login.
+- Publish as the **next immutable patch release 1.0.126** after the already-published v1.0.125; never overwrite or falsely relabel signed v1.0.125 assets. Release Factory must generate the synchronized Setup/Update ZIPs, manifest and all three 1.0.126+126 APKs from the final protected-main commit.
+
 ## 1.0.125 - Customer groups, multi-agent customer service, discount safeguards and wholesale home updates
 
 - Issue #2482 / PR #2483: introduce tenant/channel-scoped B2B and B2C customer-group management using canonical commercial groups and memberships, with many-to-many targeting, multi-group bulk add/remove, audit history and cross-tenant access denial.

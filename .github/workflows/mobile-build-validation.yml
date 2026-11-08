@@ -65,8 +65,59 @@ jobs:
           python3 ../../scripts/configure-mobile-native.py --app "${{ inputs.app }}" --app-dir . --platform android
           rm -f test/widget_test.dart
           flutter pub get
+      - name: Pin official Gradle CDN for generated Android wrapper
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from urllib.parse import urlparse
+          import re
+          wrapper = Path("android/gradle/wrapper/gradle-wrapper.properties")
+          if not wrapper.is_file():
+              raise SystemExit("Flutter did not generate the Gradle wrapper properties.")
+          source = wrapper.read_text(encoding="utf-8")
+          match = re.search(r"(?m)^distributionUrl=(.+)$", source)
+          if not match:
+              raise SystemExit("Gradle distribution URL is missing.")
+          original = match.group(1)
+          decoded = original.replace(r"\:", ":")
+          parsed = urlparse(decoded)
+          if (
+              parsed.scheme != "https"
+              or parsed.hostname not in ("services.gradle.org", "downloads.gradle.org")
+              or not re.fullmatch(r"/distributions/gradle-[0-9]+(?:\.[0-9]+)+(?:-all|-bin)\.zip", parsed.path)
+              or parsed.query or parsed.fragment
+          ):
+              raise SystemExit("Refusing unexpected Gradle distribution origin or version.")
+          pinned = decoded.replace("services.gradle.org", "downloads.gradle.org", 1)
+          updated = source[:match.start(1)] + pinned.replace(":", r"\:") + source[match.end(1):]
+          wrapper.write_text(updated, encoding="utf-8")
+          print(f"Gradle distribution origin pinned to {urlparse(pinned).hostname}; version unchanged.")
+          PY
+      - name: Route Maven Central through Google-hosted mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.gradle"
+          install -m 0600 "$GITHUB_WORKSPACE/scripts/gradle-maven-mirror.init.gradle" "$HOME/.gradle/init.gradle"
       - name: Build Android release validation APK
-        run: flutter build apk --release --build-number="$GITHUB_RUN_NUMBER" --dart-define=FOODEX_API_BASE_URL="$FOODEX_API_BASE_URL"
+        shell: bash
+        run: |
+          set -euo pipefail
+          log="$(mktemp)"
+          trap 'rm -f "$log"' EXIT
+          for attempt in 1 2 3; do
+            if flutter build apk --release --build-number="$GITHUB_RUN_NUMBER" --dart-define=FOODEX_API_BASE_URL="$FOODEX_API_BASE_URL" 2>&1 | tee "$log"; then
+              break
+            fi
+            if [[ "$attempt" -eq 3 ]] || ! grep -Eiq 'HTTP response code: 50[0-9]|Received status code 50[0-9]|(502|503|504) (Bad Gateway|Service Unavailable|Gateway Time-out)' "$log"; then
+              echo "::error::Android validation failed for a non-transient reason or retry limit reached."
+              exit 1
+            fi
+            echo "::warning::Transient Gradle/Maven HTTP 5xx (attempt ${attempt}/3); retrying identical build inputs."
+            sleep "$((attempt * 10))"
+          done
       - name: Verify production endpoint and native identity
         shell: bash
         run: |

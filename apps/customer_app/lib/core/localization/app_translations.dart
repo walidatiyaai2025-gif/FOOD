@@ -78,6 +78,7 @@ class AppTranslations extends InheritedWidget {
     'customer.brand.economic_group': 'مجموعة فودكس الاقتصادية',
     'customer.auth.title': 'تسجيل دخول العميل',
     'customer.auth.register_title': 'إنشاء حساب عميل',
+    'customer.auth.sign_up': 'إنشاء حساب',
     'customer.auth.subtitle':
         'حساب فودكس واحد للجملة والتجزئة؛ المتجر والسلة هما اللذان يحددان مسار الطلب.',
     'customer.auth.remember_me': 'تذكرني',
@@ -836,6 +837,7 @@ class AppTranslations extends InheritedWidget {
     'customer.brand.economic_group': 'FOODEX Economic Group',
     'customer.auth.title': 'Customer sign in',
     'customer.auth.register_title': 'Create customer account',
+    'customer.auth.sign_up': 'Sign up',
     'customer.auth.subtitle':
         'One FOODEX account works across Wholesale and Retail; the store and cart determine order routing.',
     'customer.auth.remember_me': 'Remember me',

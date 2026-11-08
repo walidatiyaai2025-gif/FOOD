@@ -67,7 +67,7 @@ final class CustomerGroupManagementController extends Controller
             'canManage' => in_array($storeId, $this->scope->allowedStoreIds($actor, 'customers.manage', $channel), true),
             'groupRoutePrefix' => 'admin.'.$channel.'.customer-groups',
             'navGroups' => $this->navigation->groupsFor($actor),
-            'navContext' => $channel.'_customer_groups',
+            'navContext' => $channel === 'b2b' ? 'customer_groups' : 'b2c_customer_groups',
         ]);
     }
 

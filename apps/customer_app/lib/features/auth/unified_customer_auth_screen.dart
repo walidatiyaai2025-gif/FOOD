@@ -1142,6 +1142,28 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                             ),
                                     ),
                                   ),
+                                  const SizedBox(height: 4),
+                                  TextButton.icon(
+                                    key: const ValueKey(
+                                      'customer-auth-sign-up',
+                                    ),
+                                    onPressed:
+                                        _busy ? null : () => _switchMode(true),
+                                    icon: const Icon(
+                                      Icons.person_add_alt_1_rounded,
+                                    ),
+                                    label: Text(
+                                      context.tr('customer.auth.sign_up'),
+                                    ),
+                                    style: TextButton.styleFrom(
+                                      minimumSize: const Size.fromHeight(48),
+                                      foregroundColor:
+                                          CustomerUiColors.deepGreenSoft,
+                                      textStyle: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
                                   const SizedBox(height: 8),
                                   OutlinedButton(
                                     key: const ValueKey(

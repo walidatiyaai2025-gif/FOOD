@@ -87,6 +87,68 @@ void main() {
     expect(completedPreferences?.biometricEnabled, isFalse);
   });
 
+  for (final locale in const <Locale>[Locale('en'), Locale('ar')]) {
+    testWidgets(
+      'Sign up appears directly below sign in and opens registration (${locale.languageCode})',
+      (tester) async {
+        await tester.pumpWidget(
+          _testApp(
+            locale: locale,
+            child: UnifiedCustomerAuthScreen(
+              nextRoute: CustomerRoutePaths.marketplace,
+              actionApi: const _SuccessfulActionApi(),
+              onAuthenticated: (_, __, ___) async {},
+              biometricAuthenticator:
+                  const _FakeBiometric(available: false, result: false),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final signInButton = find.byKey(const ValueKey('unified-auth-submit'));
+        final signUpButton =
+            find.byKey(const ValueKey('customer-auth-sign-up'));
+        expect(signInButton, findsOneWidget);
+        expect(signUpButton, findsOneWidget);
+        expect(
+          tester.getTopLeft(signUpButton).dy,
+          greaterThan(tester.getTopLeft(signInButton).dy),
+        );
+        expect(
+          find.text(locale.languageCode == 'ar' ? 'إنشاء حساب' : 'Sign up'),
+          findsOneWidget,
+        );
+
+        await tester.ensureVisible(signUpButton);
+        await tester.pumpAndSettle();
+        await tester.tap(signUpButton);
+        await tester.pumpAndSettle();
+
+        expect(signUpButton, findsNothing);
+        expect(find.byKey(const ValueKey('unified-auth-name')), findsOneWidget);
+        expect(
+            find.byKey(const ValueKey('unified-auth-phone')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('unified-auth-password-confirmation')),
+          findsOneWidget,
+        );
+        expect(
+            find.byKey(const ValueKey('unified-auth-submit')), findsOneWidget);
+
+        final signInTab =
+            find.text(locale.languageCode == 'ar' ? 'تسجيل الدخول' : 'Sign in');
+        await tester.ensureVisible(signInTab);
+        await tester.pumpAndSettle();
+        await tester.tap(signInTab);
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const ValueKey('customer-auth-sign-up')),
+            findsOneWidget);
+        expect(find.byKey(const ValueKey('unified-auth-name')), findsNothing);
+      },
+    );
+  }
+
   testWidgets('customer login removes app identity and remains Arabic RTL',
       (tester) async {
     await tester.pumpWidget(
@@ -359,6 +421,7 @@ void main() {
     await tester.ensureVisible(
       find.byKey(const ValueKey('unified-auth-submit')),
     );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('unified-auth-submit')));
     await tester.pumpAndSettle();
 
