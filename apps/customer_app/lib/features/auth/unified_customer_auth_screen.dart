@@ -1147,9 +1147,8 @@ class _UnifiedCustomerAuthScreenState extends State<UnifiedCustomerAuthScreen> {
                                     key: const ValueKey(
                                       'customer-auth-sign-up',
                                     ),
-                                    onPressed: _busy
-                                        ? null
-                                        : () => _switchMode(true),
+                                    onPressed:
+                                        _busy ? null : () => _switchMode(true),
                                     icon: const Icon(
                                       Icons.person_add_alt_1_rounded,
                                     ),

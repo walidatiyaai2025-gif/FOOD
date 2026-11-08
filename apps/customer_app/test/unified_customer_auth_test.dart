@@ -105,8 +105,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final signInButton =
-            find.byKey(const ValueKey('unified-auth-submit'));
+        final signInButton = find.byKey(const ValueKey('unified-auth-submit'));
         final signUpButton =
             find.byKey(const ValueKey('customer-auth-sign-up'));
         expect(signInButton, findsOneWidget);
@@ -126,16 +125,15 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(signUpButton, findsNothing);
-        expect(find.byKey(const ValueKey('unified-auth-name')),
-            findsOneWidget);
-        expect(find.byKey(const ValueKey('unified-auth-phone')),
-            findsOneWidget);
+        expect(find.byKey(const ValueKey('unified-auth-name')), findsOneWidget);
+        expect(
+            find.byKey(const ValueKey('unified-auth-phone')), findsOneWidget);
         expect(
           find.byKey(const ValueKey('unified-auth-password-confirmation')),
           findsOneWidget,
         );
-        expect(find.byKey(const ValueKey('unified-auth-submit')),
-            findsOneWidget);
+        expect(
+            find.byKey(const ValueKey('unified-auth-submit')), findsOneWidget);
 
         final signInTab =
             find.text(locale.languageCode == 'ar' ? 'تسجيل الدخول' : 'Sign in');
@@ -146,8 +144,7 @@ void main() {
 
         expect(find.byKey(const ValueKey('customer-auth-sign-up')),
             findsOneWidget);
-        expect(find.byKey(const ValueKey('unified-auth-name')),
-            findsNothing);
+        expect(find.byKey(const ValueKey('unified-auth-name')), findsNothing);
       },
     );
   }
