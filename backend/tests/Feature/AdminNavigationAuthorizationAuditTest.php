@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AdminSidebarManager;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -80,7 +81,7 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
 
     public function test_customer_groups_sidebar_entries_are_registered_and_scoped_to_authorized_channel(): void
     {
-        $items = app(\App\Services\AdminSidebarManager::class)->registry()['items'];
+        $items = app(AdminSidebarManager::class)->registry()['items'];
         $this->assertSame('accounts', $items['customer_groups']['group']);
         $this->assertSame('accounts', $items['b2c_customer_groups']['group']);
         $this->assertSame('customer_groups.wholesale_title', $items['customer_groups']['label']);
