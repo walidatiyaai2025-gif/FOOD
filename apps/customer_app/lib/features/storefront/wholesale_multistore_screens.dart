@@ -677,7 +677,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
               (section) => productSectionTypes
                   .contains(section['type']?.toString() ?? ''),
             );
-            if (rows.isNotEmpty && !hasProductSection) {
+            if (storefront['sections'] is! List &&
+                rows.isNotEmpty &&
+                !hasProductSection) {
               content.add(
                 FoodexSectionHeader(
                   title: context.tr('customer.products.title'),
