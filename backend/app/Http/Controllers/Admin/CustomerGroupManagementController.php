@@ -23,7 +23,7 @@ final class CustomerGroupManagementController extends Controller
 
     public function index(Request $request): View
     {
-        [$actor, $storeId] = $this->authorizedStore($request, 'customers.view');
+        [$actor, $storeId, $channel] = $this->authorizedStore($request, 'customers.view');
         $search = trim((string) $request->query('q', ''));
         $groups = DB::table('commercial_customer_groups')
             ->where('store_id', $storeId)
@@ -39,8 +39,13 @@ final class CustomerGroupManagementController extends Controller
             ->groupBy('customer_group_id')
             ->pluck('member_count', 'customer_group_id');
 
-        $legacyIds = DB::table('b2b_customers')->whereNotNull('legacy_customer_id')
-            ->pluck('legacy_customer_id')->map(static fn ($id): int => (int) $id)->all();
+        $legacyIdsQuery = DB::table($channel === 'b2b' ? 'b2b_customers' : 'b2c_customers')
+            ->whereNotNull('legacy_customer_id');
+        if ($channel === 'b2c') {
+            $legacyIdsQuery->where('store_id', $storeId);
+        }
+        $legacyIds = $legacyIdsQuery->pluck('legacy_customer_id')
+            ->map(static fn ($id): int => (int) $id)->all();
         $customers = DB::table('customers')
             ->whereIn('id', $legacyIds)
             ->orderBy('name')
@@ -59,15 +64,16 @@ final class CustomerGroupManagementController extends Controller
             'counts' => $counts,
             'customers' => $customers,
             'members' => $members,
-            'canManage' => in_array($storeId, $this->scope->allowedStoreIds($actor, 'customers.manage', 'b2b'), true),
+            'canManage' => in_array($storeId, $this->scope->allowedStoreIds($actor, 'customers.manage', $channel), true),
+            'groupRoutePrefix' => 'admin.'.$channel.'.customer-groups',
             'navGroups' => $this->navigation->groupsFor($actor),
-            'navContext' => 'b2b_customers',
+            'navContext' => $channel.'_customer_groups',
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        [$actor, $storeId] = $this->authorizedStore($request, 'customers.manage');
+        [$actor, $storeId, $channel] = $this->authorizedStore($request, 'customers.manage');
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'priority' => ['nullable', 'integer', 'between:-1000,1000'],
@@ -91,7 +97,7 @@ final class CustomerGroupManagementController extends Controller
 
     public function update(Request $request, int $group): RedirectResponse
     {
-        [$actor, $storeId] = $this->authorizedStore($request, 'customers.manage');
+        [$actor, $storeId, $channel] = $this->authorizedStore($request, 'customers.manage');
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'priority' => ['nullable', 'integer', 'between:-1000,1000'],
@@ -129,21 +135,24 @@ final class CustomerGroupManagementController extends Controller
 
     public function members(Request $request, int $group): RedirectResponse
     {
-        [$actor, $storeId] = $this->authorizedStore($request, 'customers.manage');
+        [$actor, $storeId, $channel] = $this->authorizedStore($request, 'customers.manage');
         $data = $request->validate([
             'customer_ids' => ['sometimes', 'array', 'max:300'],
             'customer_ids.*' => ['required', 'integer', 'distinct', 'exists:customers,id'],
             'operation' => ['required', 'in:add,remove'],
         ]);
         $ids = array_map('intval', $data['customer_ids'] ?? []);
-        DB::transaction(function () use ($actor, $storeId, $group, $ids, $data, $request): void {
+        DB::transaction(function () use ($actor, $storeId, $channel, $group, $ids, $data, $request): void {
             $target = DB::table('commercial_customer_groups')
                 ->where('id', $group)->where('store_id', $storeId)->lockForUpdate()->first(['id']);
             abort_if($target === null, 404);
 
-            $allowedIds = DB::table('b2b_customers')
-                ->whereIn('legacy_customer_id', $ids)
-                ->pluck('legacy_customer_id')
+            $allowedCustomers = DB::table($channel === 'b2b' ? 'b2b_customers' : 'b2c_customers')
+                ->whereIn('legacy_customer_id', $ids);
+            if ($channel === 'b2c') {
+                $allowedCustomers->where('store_id', $storeId);
+            }
+            $allowedIds = $allowedCustomers->pluck('legacy_customer_id')
                 ->map(static fn ($id): int => (int) $id)->all();
             if (count(array_unique($allowedIds)) !== count($ids)) {
                 throw ValidationException::withMessages([
@@ -190,18 +199,20 @@ final class CustomerGroupManagementController extends Controller
         return back()->with('status', __('customer_groups.members_saved'));
     }
 
-    /** @return array{User,int} */
+    /** @return array{User,int,string} */
     private function authorizedStore(Request $request, string $permission): array
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
+        $channel = (string) $request->route('group_channel', 'b2b');
+        abort_unless(in_array($channel, ['b2b', 'b2c'], true), 404);
         $storeId = $request->integer('store_id');
         if ($storeId <= 0) {
-            $storeId = (int) ($this->scope->allowedStoreIds($actor, $permission, 'b2b')[0] ?? 0);
+            $storeId = (int) ($this->scope->allowedStoreIds($actor, $permission, $channel)[0] ?? 0);
         }
         abort_unless($storeId > 0, 404);
-        $this->scope->assertStore($actor, $storeId, $permission, 'b2b');
+        $this->scope->assertStore($actor, $storeId, $permission, $channel);
 
-        return [$actor, $storeId];
+        return [$actor, $storeId, $channel];
     }
 }
