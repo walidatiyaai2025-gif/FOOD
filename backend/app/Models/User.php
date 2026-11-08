@@ -51,6 +51,12 @@ class User extends Authenticatable
             return $storeId === null && $this->isPlatformOwner();
         }
 
+        // A registered owner inherits legacy Super Admin route/UI gates,
+        // without permitting a Super Admin to impersonate owner authority.
+        if ($roleCode === 'SUPER_ADMIN' && $this->isPlatformOwner()) {
+            return true;
+        }
+
         if ($storeId === null) {
             return $this->roles()
                 ->where('roles.code', $roleCode)
