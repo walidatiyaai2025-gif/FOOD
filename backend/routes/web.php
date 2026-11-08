@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\BusinessManagementController;
 use App\Http\Controllers\Admin\CatalogManagementController;
 use App\Http\Controllers\Admin\CommercialDashboardController;
 use App\Http\Controllers\Admin\Customer360Controller;
+use App\Http\Controllers\Admin\CustomerGroupManagementController;
 use App\Http\Controllers\Admin\CustomerServiceWorkspaceController;
 use App\Http\Controllers\Admin\DocumentBrandingController;
 use App\Http\Controllers\Admin\DriverLiveTrackingDashboardController;
@@ -684,6 +685,10 @@ Route::prefix('admin')
             ->name('b2b.finance.remittances.review');
         Route::get('/b2b/pricing-approvals', [B2bWorkspaceController::class, 'show'])->defaults('module', 'pricing')->name('b2b.pricing-approvals');
         Route::get('/b2b/settings-permissions', [B2bWorkspaceController::class, 'show'])->defaults('module', 'settings')->name('b2b.settings-permissions');
+        Route::get('/b2b/customers/groups', [CustomerGroupManagementController::class, 'index'])->name('b2b.customer-groups.index');
+        Route::post('/b2b/customers/groups', [CustomerGroupManagementController::class, 'store'])->middleware('throttle:30,1')->name('b2b.customer-groups.store');
+        Route::patch('/b2b/customers/groups/{group}', [CustomerGroupManagementController::class, 'update'])->whereNumber('group')->middleware('throttle:30,1')->name('b2b.customer-groups.update');
+        Route::post('/b2b/customers/groups/{group}/members', [CustomerGroupManagementController::class, 'members'])->whereNumber('group')->middleware('throttle:30,1')->name('b2b.customer-groups.members');
         Route::get('/b2b/commercial/sales-control', [CommercialDashboardController::class, 'salesControl'])->name('commercial.sales-control');
         Route::get('/b2b/commercial/sales-control/products', [CommercialDashboardController::class, 'searchSalesControlProducts'])->name('commercial.sales-control.products');
         Route::put('/b2b/commercial/sales-control/{product}', [CommercialDashboardController::class, 'saveSalesControl'])->whereNumber('product')->name('commercial.sales-control.save');
