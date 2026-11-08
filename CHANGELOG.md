@@ -1,3 +1,10 @@
+## 1.0.127 - Direct 1.0.125 Dashboard upgrade, customer-service assignment and migration recovery
+- Fix the cramped Customer Service multi-assignee control on the Orders grid with an accessible RTL/LTR modal, prechecked current members, multi-selection and clear-all, preserving team scope, history and audit (PR #2496).
+- Forward-port the data-preserving platform_owner_registry interrupted-migration recovery and the missing orders.customer_service_discount permission backfill before BuiltInJobRoleSeeder (from Recovery 125 r2 PR #2497).
+- Build an immutable 1.0.127 Dashboard ZIP directly upgradeable from installed 1.0.125, including all 1.0.126 Dashboard/backend functionality; no intermediate 126 installation.
+- Exercise the exact 125→127 Update ZIP on MySQL with a partial owner registry migration, missing discount permission, live order, assignment, discount audit, .env and uploads preserved.
+- Ship one exact-commit full Laravel Setup ZIP with Composer production dependencies, signed OIDC build provenance, SHA-256 manifest and synchronized 1.0.127+127 Customer/Driver/Van APKs, with fresh install and upgrade acceptance.
+
 ## 1.0.126 - Customer signup entry restored under sign in (#2487)
 - Register Customer Groups links in the Customers & Accounts admin sidebar for permitted B2B and B2C roles, with tenant-scoped navigation and AR/EN labels.
 
