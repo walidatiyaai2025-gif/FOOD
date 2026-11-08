@@ -15,6 +15,7 @@ class CoreReferenceSeeder extends Seeder
 
     /** @var array<int, array{code:string,name:string,scope:string}> */
     private const ROLES = [
+        ['code' => 'PLATFORM_OWNER', 'name' => 'Internal Platform Owner', 'scope' => 'global'],
         ['code' => 'SUPER_ADMIN', 'name' => 'Platform Owner / Super Admin', 'scope' => 'global'],
         ['code' => 'CUSTOMER_SERVICE_AGENT', 'name' => 'Customer Service Agent', 'scope' => 'global'],
         ['code' => 'CUSTOMER_SERVICE_SUPERVISOR', 'name' => 'Customer Service Supervisor', 'scope' => 'global'],
