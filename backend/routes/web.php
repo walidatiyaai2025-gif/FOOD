@@ -700,6 +700,10 @@ Route::prefix('admin')
         Route::post('/b2b/commercial/flash-offers', [CommercialDashboardController::class, 'saveFlashOffer'])->name('commercial.wholesale-flash-offers.save');
         Route::post('/b2b/commercial/flash-offers/{offer}/action', [CommercialDashboardController::class, 'flashAction'])->whereNumber('offer')->name('commercial.wholesale-flash-offers.action');
         Route::get('/b2b/{module}', [B2bWorkspaceController::class, 'show'])->name('b2b.module');
+        Route::get('/b2c/customers/groups', [CustomerGroupManagementController::class, 'index'])->defaults('group_channel', 'b2c')->name('b2c.customer-groups.index');
+        Route::post('/b2c/customers/groups', [CustomerGroupManagementController::class, 'store'])->defaults('group_channel', 'b2c')->middleware('throttle:30,1')->name('b2c.customer-groups.store');
+        Route::patch('/b2c/customers/groups/{group}', [CustomerGroupManagementController::class, 'update'])->whereNumber('group')->defaults('group_channel', 'b2c')->middleware('throttle:30,1')->name('b2c.customer-groups.update');
+        Route::post('/b2c/customers/groups/{group}/members', [CustomerGroupManagementController::class, 'members'])->whereNumber('group')->defaults('group_channel', 'b2c')->middleware('throttle:30,1')->name('b2c.customer-groups.members');
         Route::get('/b2c/dashboard', [B2cWorkspaceController::class, 'show'])->defaults('module', 'dashboard')->name('b2c.dashboard');
         Route::get('/restaurant/wholesale-purchases', [RestaurantWholesalePurchasesController::class, 'index'])->name('restaurant.wholesale-purchases.index');
         Route::post('/restaurant/wholesale-purchases/cart/items', [RestaurantWholesalePurchasesController::class, 'addCartItem'])->name('restaurant.wholesale-purchases.cart.add');
