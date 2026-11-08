@@ -686,7 +686,11 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringNotContainsString('data-order-dispatch-locked', $view);
         $this->assertStringNotContainsString('is-dispatch-locked', $view);
         $this->assertStringNotContainsString('Available after order confirmation', $view);
-        $this->assertStringContainsString('data-order-inline-customer-service-owner', $view);
+        $this->assertStringContainsString('data-order-cs-open', $view);
+        $this->assertStringContainsString('data-order-cs-form', $view);
+        $this->assertStringContainsString('name="assigned_user_ids[]"', $view);
+        $this->assertStringContainsString('type="checkbox"', $view);
+        $this->assertStringNotContainsString('multiple size="3"', $view);
         $this->assertStringContainsString('data-order-inline-picker-select', $view);
         $this->assertStringContainsString('data-order-inline-picker-reason', $view);
         $this->assertStringContainsString('data-order-inline-picker-reason-wrap hidden', $view);
