@@ -386,12 +386,13 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
 
             // The published B2B storefront is the source of truth for the
             // current production wholesale Home, in the user's locale.
-            final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+            final isArabic =
+                Localizations.localeOf(context).languageCode == 'ar';
             String localizedCustom(String key, String fallback) {
-              final localized = custom['${key}_${isArabic ? 'ar' : 'en'}']
-                  ?.toString().trim();
-              final alternate = custom['${key}_${isArabic ? 'en' : 'ar'}']
-                  ?.toString().trim();
+              final localized =
+                  custom['${key}_${isArabic ? 'ar' : 'en'}']?.toString().trim();
+              final alternate =
+                  custom['${key}_${isArabic ? 'en' : 'ar'}']?.toString().trim();
               if (localized != null && localized.isNotEmpty) return localized;
               if (alternate != null && alternate.isNotEmpty) return alternate;
               return fallback;
@@ -418,7 +419,8 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                     const <Object>[])
                 .whereType<Map>()
                 .map((row) => Map<String, dynamic>.from(row))
-                .where((row) => row['is_active'] != false && row['is_visible'] != false)
+                .where((row) =>
+                    row['is_active'] != false && row['is_visible'] != false)
                 .toList(growable: true)
               ..sort(
                 (left, right) => intValue(left['sort_order'])
@@ -503,7 +505,8 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
               return type == 'hero' || type == 'banner_slider';
             });
             if (storefront['sections'] is! List &&
-                banners.isNotEmpty && !hasBannerSection) {
+                banners.isNotEmpty &&
+                !hasBannerSection) {
               content.add(
                 _WholesaleBannerCarousel(
                   banners: banners,
@@ -517,10 +520,12 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
 
             for (final section in effectiveSections) {
               final type = section['type']?.toString() ?? '';
-              final primaryTitle =
-                  section[isArabic ? 'title_ar' : 'title_en']?.toString().trim();
-              final alternateTitle =
-                  section[isArabic ? 'title_en' : 'title_ar']?.toString().trim();
+              final primaryTitle = section[isArabic ? 'title_ar' : 'title_en']
+                  ?.toString()
+                  .trim();
+              final alternateTitle = section[isArabic ? 'title_en' : 'title_ar']
+                  ?.toString()
+                  .trim();
               final configuredSectionTitle =
                   primaryTitle != null && primaryTitle.isNotEmpty
                       ? primaryTitle
