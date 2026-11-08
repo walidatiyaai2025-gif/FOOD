@@ -608,6 +608,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         @if(!$rowDelivered && $canAssignCustomerService && $row['can_manage'])
             <form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" class="order-inline-picker">
                 @csrf @method('PATCH')
+                <input type="hidden" name="replace_customer_service_assignments" value="1">
                 <label class="visually-hidden" for="cs-team-{{ $row['id'] }}">{{ __('order_operations.customer_service_owner.assign_follow_up') }}</label>
                 <select id="cs-team-{{ $row['id'] }}" name="assigned_user_ids[]" multiple size="3" aria-label="{{ __('order_operations.customer_service_owner.assign_follow_up') }}">
                     @foreach($customerServiceAgents as $agent)
