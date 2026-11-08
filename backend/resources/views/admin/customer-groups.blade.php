@@ -60,10 +60,14 @@
         @forelse($groups as $group)
             @php
                 $selectedMemberIds = ($members[$group->id] ?? collect())->pluck('customer_id')->map(fn($id)=>(int)$id)->all();
+                $visibleMemberNames = $customers->filter(fn($customer) => in_array((int)$customer->id, $selectedMemberIds, true))->pluck('name')->take(12)->all();
             @endphp
             <section class="cg-card" data-customer-group-id="{{ $group->id }}">
                 <h2>{{ $group->name }}</h2>
                 <p class="cg-muted">{{ __('customer_groups.members_count', ['count' => $counts[$group->id] ?? 0]) }}</p>
+                @if($visibleMemberNames !== [])
+                    <p class="cg-muted" data-customer-group-members>{{ implode('، ', $visibleMemberNames) }}</p>
+                @endif
                 @if($canManage)
                 <form method="post" action="{{ route($groupRoutePrefix.'.update', ['group'=>$group->id]) }}" class="cg-row">
                     @csrf @method('PATCH')
@@ -81,10 +85,11 @@
                     <label>{{ __('customer_groups.select_customers') }}
                         <select name="customer_ids[]" multiple size="5" aria-label="{{ __('customer_groups.select_customers') }}">
                             @foreach($customers as $customer)
-                            <option value="{{ $customer->id }}" @selected(in_array((int)$customer->id, $selectedMemberIds, true))>{{ $customer->name }} · {{ $customer->email }}</option>
+                            <option value="{{ $customer->id }}">{{ $customer->name }} · {{ $customer->email }}</option>
                             @endforeach
                         </select>
                     </label>
+                    <p class="cg-muted">{{ __('customer_groups.selection_hint') }}</p>
                     <div class="cg-row">
                         <button type="submit" name="operation" value="add">{{ __('customer_groups.add') }}</button>
                         <button type="submit" name="operation" value="remove">{{ __('customer_groups.remove') }}</button>
