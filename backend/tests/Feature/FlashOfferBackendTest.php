@@ -526,6 +526,39 @@ class FlashOfferBackendTest extends TestCase
         $this->assertFalse(
             app(FlashOfferAudienceService::class)->isEligible($offer->fresh(), (int) $this->user->id),
         );
+
+        // Even if an outdated/imported group row references another store's
+        // valid legacy customer, the target audience remains tenant-isolated.
+        $foreignUser = User::factory()->create(['is_active' => true]);
+        $foreignLegacy = Customer::query()->create([
+            'user_id' => $foreignUser->id,
+            'type' => 'b2c',
+            'name' => 'Other Merchant Customer',
+        ]);
+        B2cCustomer::query()->create([
+            'legacy_customer_id' => $foreignLegacy->id,
+            'store_id' => $foreignStoreId,
+            'user_id' => $foreignUser->id,
+            'name' => 'Other Merchant Customer',
+        ]);
+        DB::table('commercial_customer_group_members')->insert([
+            'customer_group_id' => $groupId,
+            'customer_id' => $foreignLegacy->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $offer->update([
+            'audience_customer_ids' => [],
+            'audience_customer_group_ids' => [$groupId],
+            'audience_regions' => [],
+            'audience_routes' => [],
+        ]);
+        $this->assertTrue(
+            app(FlashOfferAudienceService::class)->isEligible($offer->fresh(), (int) $this->user->id),
+        );
+        $this->assertFalse(
+            app(FlashOfferAudienceService::class)->isEligible($offer->fresh(), (int) $foreignUser->id),
+        );
     }
 
     private function flag(string $key, bool $enabled): void
