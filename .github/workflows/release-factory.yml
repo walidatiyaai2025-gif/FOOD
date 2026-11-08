@@ -23,6 +23,8 @@ permissions:
   contents: write
   actions: write
   pull-requests: write
+  id-token: write
+  attestations: write
 
 concurrency:
   group: foodex-release-factory-${{ github.ref_name }}
@@ -188,6 +190,17 @@ jobs:
           else
             base_ref="HEAD^"
             previous_version="$(git show "$base_ref":VERSION | tr -d '[:space:]')"
+          fi
+
+          # 127 is a cumulative recovery release for installed 125 dashboards.
+          # Registry is at 125, even though the immutable 126 tag is published.
+          # Build and test a 125->127 ZIP instead of a 126->127-only package.
+          if [[ "$version" == "1.0.127" ]]; then
+            git merge-base --is-ancestor v1.0.125 HEAD || {
+              echo "::error::v1.0.125 must be an ancestor of release 127."; exit 1;
+            }
+            base_ref="v1.0.125"
+            previous_version="1.0.125"
           fi
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
@@ -391,7 +404,20 @@ jobs:
     needs: [plan, previews]
     if: needs.plan.outputs.dashboard_only != 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: foodex_ci_only
+          MYSQL_DATABASE: foodex_upgrade_127
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pfoodex_ci_only"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
     steps:
       - uses: actions/checkout@v7
         with:
@@ -445,6 +471,18 @@ jobs:
         run: |
           python3 -m unittest scripts.tests.test_verify_release_capabilities -v
           python3 scripts/verify_release_capabilities.py --archive dist/update/FOODEX-Update.zip --target-version "$VERSION"
+      - name: Set up PHP for actual v125 to v127 ZIP acceptance
+        if: needs.plan.outputs.version == '1.0.127'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, mysqli, zip
+          tools: composer:v2
+          coverage: none
+      - name: Verify 125 to 127 Dashboard Update ZIP on real MySQL with preserved data
+        if: needs.plan.outputs.version == '1.0.127'
+        shell: bash
+        run: bash scripts/ci-127-upgrade.sh
       - uses: actions/upload-artifact@v4
         with:
           name: release-dashboard-update-${{ github.sha }}
@@ -505,6 +543,17 @@ jobs:
           cp release-input/fresh/Release/FRESH_INSTALL_EVIDENCE.json Release/FRESH_INSTALL_EVIDENCE.json
           cp release-input/update/FOODEX-Update.* Release/Updates/
 
+          # Retain canonical dashboard upload names and publish SemVer aliases.
+          # Each alias contains the exact same bytes already tested by CI.
+          cp Release/FOODEX-Laravel-Setup.zip "Release/FOODEX-Setup-v$CURRENT_VERSION.zip"
+          cp Release/Updates/FOODEX-Update.zip "Release/FOODEX-Update-v$CURRENT_VERSION.zip"
+          cp docs/release/RELEASE_NOTES.md Release/RELEASE_NOTES.md
+          (cd Release &&
+            sha256sum "FOODEX-Setup-v$CURRENT_VERSION.zip" > "FOODEX-Setup-v$CURRENT_VERSION.sha256.txt" &&
+            sha256sum "FOODEX-Update-v$CURRENT_VERSION.zip" > "FOODEX-Update-v$CURRENT_VERSION.sha256.txt")
+          cmp Release/FOODEX-Laravel-Setup.zip "Release/FOODEX-Setup-v$CURRENT_VERSION.zip"
+          cmp Release/Updates/FOODEX-Update.zip "Release/FOODEX-Update-v$CURRENT_VERSION.zip"
+
           python3 scripts/write-trial-bundle-manifest.py \
             --version "$CURRENT_VERSION" \
             --source-commit "$SOURCE_COMMIT" \
@@ -563,6 +612,17 @@ jobs:
           path: Release/
           if-no-files-found: error
           retention-days: 30
+      - name: Sign Setup ZIP, Update ZIP and APK provenance from exact release SHA
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            Release/FOODEX-Laravel-Setup.zip
+            Release/Updates/FOODEX-Update.zip
+            Release/FOODEX-Setup-v${{ needs.plan.outputs.version }}.zip
+            Release/FOODEX-Update-v${{ needs.plan.outputs.version }}.zip
+            Release/FOODEX-Customer-${{ needs.plan.outputs.version }}.apk
+            Release/FOODEX-Driver-${{ needs.plan.outputs.version }}.apk
+            Release/FOODEX-Van-${{ needs.plan.outputs.version }}.apk
       - name: Publish generated bundle branch
         if: ${{ github.event_name == 'push' || inputs.publish }}
         shell: bash
@@ -610,13 +670,13 @@ jobs:
             echo "::error::FOODEX $CURRENT_VERSION is already published from $published; refusing to replace immutable artifacts from $SOURCE_COMMIT."
             exit 1
           fi
-          notes="FOODEX $CURRENT_VERSION synchronized release from $SOURCE_COMMIT"
+          test -s Release/RELEASE_NOTES.md
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release edit "$tag" --title "FOODEX $CURRENT_VERSION" --notes "$notes"
+            gh release edit "$tag" --title "FOODEX $CURRENT_VERSION" --notes-file Release/RELEASE_NOTES.md
           else
-            gh release create "$tag" --target "$SOURCE_COMMIT" --title "FOODEX $CURRENT_VERSION" --notes "$notes"
+            gh release create "$tag" --target "$SOURCE_COMMIT" --title "FOODEX $CURRENT_VERSION" --notes-file Release/RELEASE_NOTES.md
           fi
-          gh release upload "$tag"             "Release/FOODEX-Customer-$CUSTOMER_VERSION.apk"             Release/FOODEX-Driver-$CURRENT_VERSION.apk             Release/FOODEX-Van-$CURRENT_VERSION.apk             Release/FOODEX-Laravel-Setup.zip             Release/LATEST_RELEASE.json             Release/BUILD_INFO.json             Release/Updates/FOODEX-Update.zip             Release/Updates/FOODEX-Update.json             Release/Updates/FOODEX-Update.sha256.txt             Release/Updates/FOODEX-Update.files.txt             --clobber
+          gh release upload "$tag"             "Release/FOODEX-Customer-$CUSTOMER_VERSION.apk"             Release/FOODEX-Driver-$CURRENT_VERSION.apk             Release/FOODEX-Van-$CURRENT_VERSION.apk             Release/FOODEX-Laravel-Setup.zip             Release/LATEST_RELEASE.json             Release/BUILD_INFO.json             Release/Updates/FOODEX-Update.zip             Release/Updates/FOODEX-Update.json             Release/Updates/FOODEX-Update.sha256.txt             Release/Updates/FOODEX-Update.files.txt             "Release/FOODEX-Setup-v$CURRENT_VERSION.zip"             "Release/FOODEX-Setup-v$CURRENT_VERSION.sha256.txt"             "Release/FOODEX-Update-v$CURRENT_VERSION.zip"             "Release/FOODEX-Update-v$CURRENT_VERSION.sha256.txt"             Release/RELEASE_NOTES.md             --clobber
 
       - name: Synchronize Dashboard update through protected main
         if: ${{ github.event_name == 'push' || inputs.publish }}

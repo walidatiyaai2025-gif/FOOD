@@ -33,6 +33,13 @@ RUNTIME_EXACT = {
 # from the selected cumulative base. This heals installations that previously received
 # an incomplete update package.
 RUNTIME_ALWAYS_INCLUDE = {
+    # Repair a live host after interrupted 125 update rollback, even if these
+    # files have no git diff relative to the cumulative source tag.
+    "backend/app/Providers/AppServiceProvider.php",
+    "backend/app/Services/SystemInspectorRecorder.php",
+    "backend/app/Services/BuiltInJobRoleCatalog.php",
+    "backend/database/seeders/BuiltInJobRoleSeeder.php",
+    "backend/config/permissions.php",
     "backend/app/Domain/Installer/InstallerWorkflow.php",
     "backend/app/Domain/Updater/LaravelUpdateRuntime.php",
     "backend/app/Http/Middleware/RunSchedulerHeartbeat.php",
