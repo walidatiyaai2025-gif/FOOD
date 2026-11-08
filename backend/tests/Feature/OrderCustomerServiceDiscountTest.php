@@ -127,6 +127,73 @@ class OrderCustomerServiceDiscountTest extends TestCase
         ]);
     }
 
+    public function test_retail_support_discount_is_restricted_to_its_own_store(): void
+    {
+        $retailType = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $supportRole = (int) Role::query()->where('code', 'RETAIL_CUSTOMER_SUPPORT')->value('id');
+        $support = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $orders = [];
+
+        foreach ([1, 2] as $number) {
+            $store = (int) DB::table('stores')->insertGetId([
+                'store_type_id' => $retailType,
+                'code' => 'CS-DISCOUNT-RETAIL-'.$number,
+                'name' => 'Retail CS '.$number,
+                'is_active' => true,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            if ($number === 1) {
+                DB::table('user_store_roles')->insert([
+                    'user_id' => $support->id, 'store_id' => $store,
+                    'role_id' => $supportRole,
+                    'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+
+            $legacyId = (int) DB::table('customers')->insertGetId([
+                'type' => 'b2c', 'name' => 'Retail CS Customer '.$number,
+                'email' => 'cs-discount-'.$number.'@example.test',
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $retailId = (int) DB::table('b2c_customers')->insertGetId([
+                'store_id' => $store, 'legacy_customer_id' => $legacyId,
+                'name' => 'Retail CS Customer '.$number,
+                'email' => 'cs-discount-'.$number.'@example.test',
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $orders[] = (int) DB::table('orders')->insertGetId([
+                'store_id' => $store, 'customer_id' => $legacyId,
+                'b2c_customer_id' => $retailId,
+                'order_number' => 'CS-RETAIL-ORDER-'.$number,
+                'channel' => 'b2c', 'status' => 'pending',
+                'currency' => 'EGP', 'subtotal' => 20,
+                'discount_total' => 0, 'delivery_total' => 0,
+                'tax_total' => 0, 'grand_total' => 20,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+
+        $payload = [
+            'percentage' => '12.5',
+            'reason' => 'Retail delivery experience recovery',
+            'idempotency_key' => (string) Str::uuid(),
+        ];
+        $this->actingAs($support)
+            ->post(route('admin.operations.orders.customer-service-discount', ['order' => $orders[0]]), $payload)
+            ->assertRedirect();
+        $this->assertDatabaseHas('orders', ['id' => $orders[0], 'grand_total' => 17.5]);
+        $this->assertDatabaseHas('order_customer_service_discounts', [
+            'order_id' => $orders[0], 'applied_by_user_id' => $support->id,
+        ]);
+
+        $payload['idempotency_key'] = (string) Str::uuid();
+        $this->actingAs($support)
+            ->post(route('admin.operations.orders.customer-service-discount', ['order' => $orders[1]]), $payload)
+            ->assertNotFound();
+        $this->assertDatabaseHas('orders', ['id' => $orders[1], 'grand_total' => 20]);
+        $this->assertDatabaseMissing('order_customer_service_discounts', ['order_id' => $orders[1]]);
+    }
+
     private function orderFor(?User $customerUser = null): int
     {
         $storeId = app(WholesalePrincipal::class)->storeId();
