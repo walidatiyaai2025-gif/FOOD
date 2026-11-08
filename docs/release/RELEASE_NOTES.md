@@ -1,20 +1,24 @@
-# FOODEX 1.0.124 — Synchronized Release Notes
+# FOODEX 1.0.125 — Synchronized Release Notes
 
 ## Identity
 
-- Dashboard / repository: `1.0.124`.
-- Customer App: `1.0.124+124`.
-- Driver App: `1.0.124+124`.
-- Van App: `1.0.124+124`.
-- Prior official tags and downloadable assets remain immutable.
+- Dashboard / repository: `1.0.125`.
+- Customer App: `1.0.125+125`.
+- Driver App: `1.0.125+125`.
+- Van App: `1.0.125+125`.
+- Immediate supported source: Dashboard `1.0.124`.
+- Prior immutable tags and assets are never overwritten with a different source commit.
 
 ## Changes
 
-- Enable Customer App — Wholesale Offers page visibility on B2B Flash Offers without requiring per-customer, customer-group, route or region targeting. Empty audience dimensions are unrestricted; the visibility switch remains independent from targeting.
-- Migrate legacy wholesale Van-only promotions to include Customer App discovery while retaining existing audience restrictions, offer products, expiry, quota and inventory conditions.
-- Preserve wholesale VAN ONLY ordering/fulfillment. Customer display selection never authorizes direct B2B Customer checkout or B2C Customer push notifications. Keep B2C DRIVER ONLY fulfillment and tenant isolation.
-- Build a synchronized release from the protected-main code containing PR #2477 / #2476 and completed v1.0.122→v1.0.123 registry recovery; do not alter historic releases.
+- Scoped B2B/B2C Customer Groups, many-to-many memberships, multi-group bulk assignment and promotion audience guardrails.
+- Multi-agent Customer Service assignment per order, preserving assignment records and role/store boundaries.
+- Pre-dispatch, reasoned Customer Service percent-discount revisions with server-side reconciliation, audit, idempotency and customer notification.
+- Current wholesale Customer Home storefront reads published management configuration rather than draft-only content.
+- Internally bootstrapped singleton Platform Owner with a protected registry and separate Super Admin authority.
+- Retain B2B VAN ONLY and B2C DRIVER ONLY dispatch constraints.
 
-## Production acceptance
+## Release acceptance
 
-The canonical Release Factory must build from the exact final protected-main source, pass Required CI and security/localization gates, clean-install the exact Laravel Setup ZIP, generate and verify the actual Dashboard Update ZIP/Manifest/SHA-256, confirm upgrade/recovery compatibility, and publish matching immutable GitHub Release assets. Protected-main registry synchronization must pass before marking 1.0.124 production-ready. Dashboard 1.0.123 is the immediate supported upgrade source; older installations must use the explicit intermediate paths in the published manifests. Never bypass installer/updater verification or skip a backup.
+Publish only when all Required CI checks on the exact final commit pass. Release Factory must produce and validate the real setup/install and update archives, checksums, manifests and all three mobile APKs from the protected-main source. Perform a clean ZIP install and in-place upgrade from `1.0.124` with protected data/uploads/environment, backup and recovery validation. Publishing GitHub assets does not itself verify the live cPanel deployment; prove the dashboard's running version separately.
+

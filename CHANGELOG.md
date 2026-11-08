@@ -1,3 +1,12 @@
+## 1.0.125 - Customer groups, multi-agent customer service, discount safeguards and wholesale home updates
+
+- Issue #2482 / PR #2483: introduce tenant/channel-scoped B2B and B2C customer-group management using canonical commercial groups and memberships, with many-to-many targeting, multi-group bulk add/remove, audit history and cross-tenant access denial.
+- Allow multiple active Customer Service assignees per order with historical attribution, scope checks and a shared operations UI. Preserve the wholesale VAN ONLY and retail DRIVER ONLY fulfillment contracts.
+- Apply controlled percentage concessions during the authorized Customer Service pending step, with required reason, idempotent revisions, bounded monetary calculations, rejection of issued invoices/paid orders/dispatch and customer notifications.
+- Extend current wholesale Customer App home to consume published B2B storefront content; draft and public published revisions remain separate.
+- Add an internally provisioned, singleton registered PLATFORM_OWNER authority, with audit, restricted role management and availability diagnostics; do not grant owner privileges to regular Super Admin.
+- Production release target: Dashboard 1.0.124 → 1.0.125. Synchronized Customer, Driver and Van 1.0.125+125 binaries, Laravel Setup ZIP, Dashboard Update ZIP, version manifest, SHA-256 and release notes must be built by Release Factory from the final protected-main source commit. Passing PR CI alone is not publication or live-deployment evidence.
+
 ## 1.0.124 - Wholesale Flash Offers Customer App visibility and synchronized production release
 
 - Merge owner-approved #2476 / PR #2477: enable independent Customer mobile App visibility for B2B Flash Offers in the wholesale Offers page without selecting individual audience members. Existing Van-only offers migrate safely to Customer App discovery without removing any configured targeting.
