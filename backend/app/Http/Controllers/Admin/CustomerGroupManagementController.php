@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +18,7 @@ final class CustomerGroupManagementController extends Controller
     public function __construct(
         private readonly OperationalTenantScope $scope,
         private readonly AdminNavigation $navigation,
+        private readonly AuditLogger $audit,
     ) {}
 
     public function index(Request $request): View
@@ -65,41 +67,62 @@ final class CustomerGroupManagementController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        [, $storeId] = $this->authorizedStore($request, 'catalog.manage');
+        [$actor, $storeId] = $this->authorizedStore($request, 'catalog.manage');
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'priority' => ['nullable', 'integer', 'between:-1000,1000'],
         ]);
-        DB::table('commercial_customer_groups')->insert([
-            'store_id' => $storeId,
-            'name' => trim($data['name']),
-            'priority' => (int) ($data['priority'] ?? 0),
-            'is_active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        DB::transaction(function () use ($actor, $storeId, $data, $request): void {
+            $groupId = DB::table('commercial_customer_groups')->insertGetId([
+                'store_id' => $storeId,
+                'name' => trim($data['name']),
+                'priority' => (int) ($data['priority'] ?? 0),
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $this->audit->record('customers.group.created', $actor, null, null, [
+                'store_id' => $storeId, 'group_id' => $groupId, 'name' => trim($data['name']),
+            ], $request);
+        });
 
         return back()->with('status', __('customer_groups.saved'));
     }
 
     public function update(Request $request, int $group): RedirectResponse
     {
-        [, $storeId] = $this->authorizedStore($request, 'catalog.manage');
+        [$actor, $storeId] = $this->authorizedStore($request, 'catalog.manage');
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'priority' => ['nullable', 'integer', 'between:-1000,1000'],
             'is_active' => ['required', 'boolean'],
         ]);
-        abort_unless(DB::table('commercial_customer_groups')
-            ->where('id', $group)->where('store_id', $storeId)->exists(), 404);
-        DB::table('commercial_customer_groups')
-            ->where('id', $group)->where('store_id', $storeId)
-            ->update([
+        DB::transaction(function () use ($actor, $storeId, $group, $data, $request): void {
+            $before = DB::table('commercial_customer_groups')
+                ->where('id', $group)->where('store_id', $storeId)
+                ->lockForUpdate()->first();
+            abort_if($before === null, 404);
+            $after = [
+                'store_id' => $storeId,
+                'group_id' => $group,
                 'name' => trim($data['name']),
                 'priority' => (int) ($data['priority'] ?? 0),
                 'is_active' => (bool) $data['is_active'],
-                'updated_at' => now(),
-            ]);
+            ];
+            DB::table('commercial_customer_groups')
+                ->where('id', $group)->where('store_id', $storeId)
+                ->update([
+                    'name' => $after['name'],
+                    'priority' => $after['priority'],
+                    'is_active' => $after['is_active'],
+                    'updated_at' => now(),
+                ]);
+            $this->audit->record('customers.group.updated', $actor, null, [
+                'store_id' => $storeId, 'group_id' => $group,
+                'name' => $before->name, 'priority' => $before->priority,
+                'is_active' => $before->is_active,
+            ], $after, $request);
+        });
 
         return back()->with('status', __('customer_groups.saved'));
     }
