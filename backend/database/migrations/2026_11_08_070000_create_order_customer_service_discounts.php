@@ -8,6 +8,33 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // A prior interrupted deployment may have created this table before Laravel
+        // recorded the migration. Never destroy production discount history.
+        if (Schema::hasTable('order_customer_service_discounts')) {
+            $requiredColumns = [
+                'id', 'order_id', 'applied_by_user_id', 'idempotency_key',
+                'revision', 'percentage', 'reason', 'prior_customer_service_discount',
+                'customer_service_discount', 'discount_total_before',
+                'discount_total_after', 'grand_total_before', 'grand_total_after',
+                'order_status', 'created_at', 'updated_at',
+            ];
+
+            $missingColumns = array_values(array_filter(
+                $requiredColumns,
+                static fn (string $column): bool => ! Schema::hasColumn('order_customer_service_discounts', $column)
+            ));
+
+            if ($missingColumns !== []) {
+                throw new RuntimeException(
+                    'Existing order_customer_service_discounts table is incompatible; missing columns: '
+                    . implode(', ', $missingColumns)
+                    . '. Stop the upgrade and inspect the schema without deleting data.'
+                );
+            }
+
+            return;
+        }
+
         Schema::create('order_customer_service_discounts', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('order_id')->constrained('orders')->cascadeOnDelete();
@@ -32,6 +59,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('order_customer_service_discounts');
+        // Intentionally non-destructive: the table may predate this migration in
+        // databases recovering from an interrupted release. Preserve audit data.
     }
 };
