@@ -118,6 +118,32 @@ html[dir="rtl"] .sales-ops-ranked-bars b{transform-origin:right center}html[dir=
 @media(max-width:600px){.filters{grid-template-columns:1fr}.sales-ops-ranked-bars a{grid-template-columns:1fr auto}.sales-ops-ranked-bars i{grid-column:1/-1}}
 @media(max-width:380px){.order-kpi-card,.sales-ops-exceptions{grid-template-columns:1fr}.order-kpi-item{min-height:102px}}
 @media(prefers-reduced-motion:reduce){.order-kpi-card::before,.order-tab-panel.charts-animate .sales-ops-bar-link,.order-tab-panel.charts-animate .sales-ops-ranked-bars b,.order-tab-panel.charts-animate [data-foodex-module-chart]{animation:none}.order-kpi-item,.order-workspace-tab,.order-analytics-subtab{transition:none}.order-kpi-item:hover,.order-workspace-tab:hover,.order-analytics-subtab:hover{transform:none}.sales-ops-bar-link{transform:none;opacity:1}.sales-ops-ranked-bars b{transform:none}}
+
+/* Multi-agent assignment uses a modal: never compress a native multiple select into a 27px pill. */
+.order-owner{min-width:0}
+.order-cs-open{display:flex;align-items:center;justify-content:center;gap:6px;max-width:100%;width:100%;min-height:30px;padding:5px 9px;border:1px solid var(--foodex-palette-cbd5e1);border-radius:999px;background:var(--foodex-palette-f1f5f9);color:var(--foodex-palette-334155);font-size:.67rem;font-weight:850;line-height:1.3;cursor:pointer;white-space:normal}
+.order-cs-open:hover,.order-cs-open:focus-visible{border-color:var(--foodex-action-green);outline-color:var(--foodex-action-green)}
+.order-cs-count{min-width:20px;padding:2px 5px;border-radius:999px;background:var(--foodex-palette-dbeafe);color:var(--foodex-palette-1d4ed8);font-variant-numeric:tabular-nums}
+.order-cs-dialog:not([open]){display:none}
+.order-cs-dialog[open]{display:block;width:min(490px,calc(100vw - 28px));max-width:calc(100vw - 28px);max-height:calc(100dvh - 40px);box-sizing:border-box;padding:0;margin:auto;border:1px solid var(--foodex-border);border-radius:16px;background:var(--foodex-surface,#fff);color:var(--foodex-ink);box-shadow:0 18px 60px rgba(15,23,42,.25);overflow:auto}
+.order-cs-dialog::backdrop{background:rgba(15,23,42,.53)}
+.order-cs-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--foodex-border)}
+.order-cs-head h3{min-width:0;margin:0;font-size:.92rem;line-height:1.4;overflow-wrap:anywhere}
+.order-cs-close{flex:0 0 30px;height:30px;border:1px solid var(--foodex-border);border-radius:50%;background:transparent;color:inherit;font-size:1.2rem;cursor:pointer}
+.order-cs-form{display:grid;gap:12px;padding:14px 16px}
+.order-cs-help{margin:0;color:var(--foodex-muted);font-size:.74rem}
+.order-cs-members{display:grid;gap:4px;max-height:min(330px,42dvh);overflow-y:auto;padding:6px;border:1px solid var(--foodex-border);border-radius:11px}
+.order-cs-member{display:flex;align-items:center;gap:10px;min-height:40px;padding:8px;border-radius:8px;font-size:.83rem;cursor:pointer}
+.order-cs-member:hover,.order-cs-member:focus-within{background:var(--foodex-palette-eaf7ef)}
+.order-cs-member input{flex:0 0 18px;width:18px;height:18px;margin:0;accent-color:var(--foodex-action-green)}
+.order-cs-member span{min-width:0;overflow-wrap:anywhere}
+.order-cs-empty{margin:8px;color:var(--foodex-muted)}
+.order-cs-reason{display:grid;gap:5px;font-size:.76rem;font-weight:800}
+.order-cs-reason input{min-width:0;box-sizing:border-box;width:100%;min-height:38px;padding:8px 10px;border:1px solid var(--foodex-border);border-radius:9px;background:var(--foodex-surface,#fff);color:inherit}
+.order-cs-footer{display:flex;justify-content:flex-end;gap:8px}
+.order-cs-footer button{min-height:38px;padding:7px 15px;border-radius:9px;font-size:.78rem;font-weight:900;cursor:pointer}
+.order-cs-cancel{border:1px solid var(--foodex-border);background:var(--foodex-surface,#fff);color:inherit}
+.order-cs-save{border:1px solid var(--foodex-action-green);background:var(--foodex-action-green);color:#fff}
 </style>
 </head>
 <body>
@@ -606,17 +632,43 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             <span class="order-mini-chip">{{ __('order_operations.unassigned') }}</span>
         @endif
         @if(!$rowDelivered && $canAssignCustomerService && $row['can_manage'])
-            <form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" class="order-inline-picker" data-order-inline-customer-service-owner>
-                @csrf @method('PATCH')
-                <input type="hidden" name="replace_customer_service_assignments" value="1">
-                <label class="visually-hidden" for="cs-team-{{ $row['id'] }}">{{ __('order_operations.customer_service_owner.assign_follow_up') }}</label>
-                <select id="cs-team-{{ $row['id'] }}" name="assigned_user_ids[]" multiple size="3" aria-label="{{ __('order_operations.customer_service_owner.assign_follow_up') }}">
-                    @foreach($customerServiceAgents as $agent)
-                        <option value="{{ $agent->id }}" @selected(in_array((int)$agent->id, $row['customer_service_owner_ids'] ?? [], true))>{{ $agent->name }}</option>
-                    @endforeach
-                </select>
-                <button type="submit" aria-label="{{ __('order_operations.customer_service_owner.save') }}" title="{{ __('order_operations.customer_service_owner.save') }}">✓</button>
-            </form>
+            <button type="button" class="order-cs-open" data-order-cs-open="cs-team-dialog-{{ $row['id'] }}"
+                aria-haspopup="dialog" aria-controls="cs-team-dialog-{{ $row['id'] }}">
+                {{ __('order_operations.customer_service_owner.choose_members') }}
+                @if(count($row['customer_service_owner_ids'] ?? []) > 0)
+                    <span class="order-cs-count">{{ count($row['customer_service_owner_ids']) }}</span>
+                @endif
+            </button>
+            <dialog id="cs-team-dialog-{{ $row['id'] }}" class="order-cs-dialog" aria-labelledby="cs-team-title-{{ $row['id'] }}">
+                <div class="order-cs-head">
+                    <h3 id="cs-team-title-{{ $row['id'] }}">{{ __('order_operations.customer_service_owner.assign_follow_up') }} · {{ $row['number'] }}</h3>
+                    <button type="button" class="order-cs-close" data-order-cs-close aria-label="{{ __('order_operations.customer_service_owner.cancel') }}">×</button>
+                </div>
+                <form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" class="order-cs-form" data-order-cs-form>
+                    @csrf @method('PATCH')
+                    {{-- Explicit replacement intent also permits clearing every assignment when no checkboxes are selected. --}}
+                    <input type="hidden" name="replace_customer_service_assignments" value="1">
+                    <p class="order-cs-help">{{ __('order_operations.customer_service_owner.select_multiple') }}</p>
+                    <div class="order-cs-members" role="group" aria-label="{{ __('order_operations.customer_service_owner.assign_follow_up') }}">
+                        @forelse($customerServiceAgents as $agent)
+                            <label class="order-cs-member">
+                                <input type="checkbox" name="assigned_user_ids[]" value="{{ $agent->id }}"
+                                    @checked(in_array((int)$agent->id, $row['customer_service_owner_ids'] ?? [], true))>
+                                <span>{{ $agent->name }}</span>
+                            </label>
+                        @empty
+                            <p class="order-cs-empty">{{ __('order_operations.customer_service_owner.no_members') }}</p>
+                        @endforelse
+                    </div>
+                    <label class="order-cs-reason">{{ __('order_operations.customer_service_owner.reason_label') }}
+                        <input type="text" name="reason" maxlength="500" placeholder="{{ __('order_operations.customer_service_owner.reason_placeholder') }}">
+                    </label>
+                    <div class="order-cs-footer">
+                        <button type="button" class="order-cs-cancel" data-order-cs-close>{{ __('order_operations.customer_service_owner.cancel') }}</button>
+                        <button type="submit" class="order-cs-save">{{ __('order_operations.customer_service_owner.save') }}</button>
+                    </div>
+                </form>
+            </dialog>
         @endif
     </div>
 </td>
@@ -1146,6 +1198,27 @@ document.querySelectorAll('.order-inline-picker').forEach(function(form){
     dialog.addEventListener('cancel', (event) => {
         event.preventDefault();
         dismiss();
+    });
+})();
+</script>
+
+<script>
+(() => {
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-order-cs-open]');
+        if (trigger) {
+            const dialog = document.getElementById(trigger.dataset.orderCsOpen);
+            if (dialog instanceof HTMLDialogElement) {
+                dialog.querySelector('[data-order-cs-form]')?.reset();
+                if (!dialog.open) dialog.showModal();
+            }
+            return;
+        }
+        const close = event.target.closest('[data-order-cs-close]');
+        if (close) close.closest('dialog.order-cs-dialog')?.close();
+    });
+    document.addEventListener('click', (event) => {
+        if (event.target.matches('dialog.order-cs-dialog')) event.target.close();
     });
 })();
 </script>
