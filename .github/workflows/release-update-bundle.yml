@@ -20,6 +20,8 @@ concurrency:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   build-update:
@@ -31,8 +33,38 @@ jobs:
         with:
           fetch-depth: 0
 
+      # The already-published v1.0.125 tag is immutable. This branch is an
+      # isolated, narrowly scoped recovery candidate, never a replacement tag.
+      - name: Enforce immutable 1.0.125 recovery source
+        if: github.ref_name == 'release/1.0.125-recovery-update'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(tr -d '[:space:]' < VERSION)" = 1.0.125
+          git fetch origin tag v1.0.125 --no-recurse-submodules
+          git merge-base --is-ancestor v1.0.125 HEAD
+          python3 - <<'PY'
+          import subprocess
+          allowed = {
+              ".github/workflows/release-update-bundle.yml",
+              "backend/database/migrations/2026_11_08_070000_create_order_customer_service_discounts.php",
+              "backend/tests/Feature/OrderCustomerServiceDiscountMigrationRecoveryTest.php",
+          }
+          paths = set(subprocess.check_output(
+              ["git", "diff", "--name-only", "v1.0.125..HEAD"], text=True
+          ).splitlines())
+          disallowed = paths - allowed
+          assert not disallowed, f"Recovery changed non-allowlisted paths: {sorted(disallowed)}"
+          expected = "backend/database/migrations/2026_11_08_070000_create_order_customer_service_discounts.php"
+          assert expected in paths, "Recovery migration repair is missing."
+          PY
+          # Never package altered mobile identities, lockfiles or repository
+          # VERSION under a recovery label without a separate release review.
+          test "$(git rev-parse HEAD:VERSION)" = "$(git rev-parse v1.0.125:VERSION)"
+          test "$(git rev-parse HEAD:backend/composer.json)" = "$(git rev-parse v1.0.125:backend/composer.json)"
+
       - name: Reject reuse of a version already registered on main
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref_name != 'release/1.0.125-recovery-update'
         shell: bash
         run: |
           set -euo pipefail
@@ -274,8 +306,53 @@ jobs:
           print("Update bundle verified:", digest)
           PY
 
+      - name: Verify exact 125 recovery payload identity
+        if: github.ref_name == 'release/1.0.125-recovery-update'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(unzip -p dist/update/FOODEX-Update.zip VERSION | tr -d '[:space:]')" = "1.0.125"
+          unzip -p dist/update/FOODEX-Update.zip \
+            backend/database/migrations/2026_11_08_070000_create_order_customer_service_discounts.php \
+            | cmp - backend/database/migrations/2026_11_08_070000_create_order_customer_service_discounts.php
+          python3 - <<'PY'
+          import json
+          m=json.load(open("dist/update/FOODEX-Update.json"))
+          assert m["target_version"] == "1.0.125"
+          assert m["source_commit"] == __import__("subprocess").check_output(
+              ["git", "rev-parse", "HEAD"], text=True).strip()
+          assert m["contains_migrations"] is True
+          PY
+
+      - name: Configure PHP for recovery regression test
+        if: github.ref_name == 'release/1.0.125-recovery-update'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, sqlite3, zip
+          tools: composer:v2
+          coverage: none
+
+      - name: Run existing-table recovery regression tests
+        if: github.ref_name == 'release/1.0.125-recovery-update'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd backend
+          composer install --no-interaction --prefer-dist --no-progress
+          php artisan test --filter OrderCustomerServiceDiscountMigrationRecoveryTest
+
+      # GitHub's Sigstore/OIDC attestation binds the artifact digest to this
+      # exact workflow identity and commit without inventing a signing secret.
+      # This does not upgrade the legacy 124 dashboard's SHA-only verifier.
+      - name: Attest recovered ZIP with GitHub OIDC identity
+        if: github.ref_name == 'release/1.0.125-recovery-update'
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: dist/update/FOODEX-Update.zip
+
       - name: Publish generated package to release branch
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref_name != 'release/1.0.125-recovery-update'
         run: |
           cp dist/update/FOODEX-Update.zip Release/Updates/FOODEX-Update.zip
           cp dist/update/FOODEX-Update.json Release/Updates/FOODEX-Update.json
@@ -297,7 +374,7 @@ jobs:
       - name: Upload FOODEX update artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FOODEX-Update-${{ env.CURRENT_VERSION }}
+          name: ${{ github.ref_name == 'release/1.0.125-recovery-update' && 'FOODEX-125-Recovery-Candidate' || format('FOODEX-Update-{0}', env.CURRENT_VERSION) }}
           path: |
             dist/update/FOODEX-Update.zip
             dist/update/FOODEX-Update.json
