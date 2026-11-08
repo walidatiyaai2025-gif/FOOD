@@ -66,6 +66,12 @@ jobs:
               "scripts/ci-125-recovery-fresh-setup.sh",
               "scripts/ci-assemble-125-recovery.py",
               "docs/release/FOODEX_1_0_125_RECOVERY.md",
+              "backend/resources/views/admin/order-operations.blade.php",
+              "backend/lang/ar/order_operations.php",
+              "backend/lang/en/order_operations.php",
+              "backend/tests/Feature/CustomerServiceRoleClosureTest.php",
+              "backend/database/migrations/2026_11_08_071000_create_platform_owner_registry.php",
+              "backend/database/migrations/2026_11_08_072000_restore_customer_service_discount_permission.php",
           }
           paths = set(subprocess.check_output(
               ["git", "diff", "--name-only", "v1.0.125..HEAD"], text=True
@@ -576,7 +582,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tag="recovery-125-20261108"
+          tag="recovery-125-20261108-r2"
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::error::Recovery tag already exists; refusing to replace its artifacts."
             exit 1
@@ -584,7 +590,7 @@ jobs:
           gh release create "$tag" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
-            --title "FOODEX v1.0.125 Recovery for installed v1.0.124" \
+            --title "FOODEX v1.0.125 Recovery r2 (UI & RBAC) for installed v1.0.124" \
             --notes-file Release/RECOVERY_RELEASE_NOTES.md \
             --prerelease --latest=false \
             Release/FOODEX-Customer-1.0.125.apk \
