@@ -99,6 +99,27 @@ final class StorefrontController extends Controller
         abort_if($storeRow === null, 404);
 
         $settings = DB::table('storefront_settings')->where('store_id', $store)->first();
+        // Public wholesale Home must use the exact published section contract
+        // consumed by the authenticated Customer Home. Drafts remain isolated.
+        $sections = DB::table('storefront_sections')
+            ->where('store_id', $store)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->map(static fn (object $section): array => [
+                'key' => (string) $section->section_key,
+                'type' => (string) $section->section_type,
+                'title_ar' => $section->title_ar,
+                'title_en' => $section->title_en,
+                'sort_order' => (int) $section->sort_order,
+                'config' => is_string($section->config)
+                    ? (json_decode($section->config, true) ?: [])
+                    : ((array) ($section->config ?? [])),
+            ])
+            ->values()
+            ->all();
+
         $banners = DB::table('banners')
             ->where('store_id', $store)
             ->where('is_active', true)
@@ -201,6 +222,7 @@ final class StorefrontController extends Controller
             ],
             'hero' => $banners[0] ?? null,
             'banners' => $banners,
+            'sections' => $sections,
             'products' => $products,
             'guest_browsing' => true,
             'checkout_requires_authentication' => true,

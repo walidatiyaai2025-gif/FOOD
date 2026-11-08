@@ -9,6 +9,7 @@ use App\Models\FlashOffer;
 use App\Models\FlashOfferProduct;
 use App\Models\User;
 use App\Models\VanVisit;
+use App\Services\FlashOfferAudienceService;
 use App\Services\FlashOfferService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -496,6 +497,68 @@ class FlashOfferBackendTest extends TestCase
         } catch (HttpException $exception) {
             $this->assertSame('CUSTOMER_NOT_ELIGIBLE', $exception->getMessage());
         }
+
+        // An offer cannot target a group from an unrelated Retail merchant,
+        // even if a legacy customer ID has been inserted into that group.
+        $foreignStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'code' => 'FLASH-GROUP-FOREIGN',
+            'name' => 'Foreign Audience Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignGroupId = (int) DB::table('commercial_customer_groups')->insertGetId([
+            'store_id' => $foreignStoreId,
+            'name' => 'Foreign Audience Group',
+            'priority' => 1,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('commercial_customer_group_members')->insert([
+            'customer_group_id' => $foreignGroupId,
+            'customer_id' => $legacy->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $offer->update(['audience_customer_group_ids' => [$foreignGroupId]]);
+        $this->assertFalse(
+            app(FlashOfferAudienceService::class)->isEligible($offer->fresh(), (int) $this->user->id),
+        );
+
+        // Even if an outdated/imported group row references another store's
+        // valid legacy customer, the target audience remains tenant-isolated.
+        $foreignUser = User::factory()->create(['is_active' => true]);
+        $foreignLegacy = Customer::query()->create([
+            'user_id' => $foreignUser->id,
+            'type' => 'b2c',
+            'name' => 'Other Merchant Customer',
+        ]);
+        B2cCustomer::query()->create([
+            'legacy_customer_id' => $foreignLegacy->id,
+            'store_id' => $foreignStoreId,
+            'user_id' => $foreignUser->id,
+            'name' => 'Other Merchant Customer',
+        ]);
+        DB::table('commercial_customer_group_members')->insert([
+            'customer_group_id' => $groupId,
+            'customer_id' => $foreignLegacy->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $offer->update([
+            'audience_customer_ids' => [],
+            'audience_customer_group_ids' => [$groupId],
+            'audience_regions' => [],
+            'audience_routes' => [],
+        ]);
+        $this->assertTrue(
+            app(FlashOfferAudienceService::class)->isEligible($offer->fresh(), (int) $this->user->id),
+        );
+        $this->assertFalse(
+            app(FlashOfferAudienceService::class)->isEligible($offer->fresh(), (int) $foreignUser->id),
+        );
     }
 
     private function flag(string $key, bool $enabled): void

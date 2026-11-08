@@ -45,6 +45,7 @@ final class RbacManager
 
     public function setUserActive(User $actor, User $target, bool $active, ?string $reason, Request $request): User
     {
+        abort_if($target->isPlatformOwner(), 403, 'Platform Owner status is internally managed.');
         if (! $active && $actor->is($target)) {
             throw ValidationException::withMessages(['is_active' => [__('admin.security.errors.self_deactivate')]]);
         }
@@ -79,6 +80,7 @@ final class RbacManager
      */
     public function replaceUserRoles(User $actor, User $target, array $globalRoleIds, array $storeRoles, Request $request): User
     {
+        abort_if($target->isPlatformOwner(), 403, 'Platform Owner roles are internally managed.');
         $this->preparePermissionMutation();
 
         $globalRoleIds = array_values(array_unique(array_map('intval', $globalRoleIds)));
@@ -407,6 +409,7 @@ final class RbacManager
     /** @param  array{name:string,description:?string,scope:string,is_active:bool,permission_ids:list<int>}  $values */
     public function updateRole(User $actor, Role $role, array $values, Request $request): Role
     {
+        abort_if($role->code === 'PLATFORM_OWNER', 403, 'Platform Owner role cannot be edited.');
         $this->preparePermissionMutation();
 
         if ($this->jobRoles->isBuiltIn((string) $role->code)) {
@@ -512,6 +515,7 @@ final class RbacManager
 
     private function assertActorCanGrantRole(User $actor, Role $role, ?int $storeId): void
     {
+        abort_if($role->code === 'PLATFORM_OWNER', 403, 'Platform Owner cannot be assigned through RBAC.');
         if ($actor->hasRole('SUPER_ADMIN')) {
             return;
         }

@@ -11,6 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -25,6 +26,8 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
+
+    private ?bool $platformOwnerMemo = null;
 
     protected $fillable = ['name', 'username', 'email', 'phone_e164', 'phone_verified_at', 'password', 'locale', 'is_active', 'is_platform_customer', 'deactivated_at', 'deactivation_reason', 'last_seen_at'];
 
@@ -44,6 +47,37 @@ class User extends Authenticatable
 
     public function hasRole(string $roleCode, ?int $storeId = null): bool
     {
+        if ($roleCode === 'PLATFORM_OWNER') {
+            return $storeId === null && $this->isPlatformOwner();
+        }
+
+        // One database lookup for normal users, and explicit owner registry
+        // verification only when the internal role is actually present.
+        if ($roleCode === 'SUPER_ADMIN' && $storeId === null) {
+            $codes = $this->roles()
+                ->where(fn ($query) => $query
+                    ->where('roles.code', 'SUPER_ADMIN')
+                    ->orWhere('roles.code', 'PLATFORM_OWNER'))
+                ->where('roles.is_active', true)
+                ->where('roles.scope', 'global')
+                ->pluck('roles.code');
+
+            if ($codes->contains('SUPER_ADMIN')) {
+                return true;
+            }
+            if (! $codes->contains('PLATFORM_OWNER')) {
+                $this->platformOwnerMemo = false;
+
+                return false;
+            }
+
+            return $this->isPlatformOwner();
+        }
+
+        if ($roleCode === 'SUPER_ADMIN' && $this->isPlatformOwner()) {
+            return true;
+        }
+
         if ($storeId === null) {
             return $this->roles()
                 ->where('roles.code', $roleCode)
@@ -73,8 +107,30 @@ class User extends Authenticatable
             ->where('roles.code', $roleCode)
             ->where('roles.is_active', true)
             ->where('roles.scope', 'global')
+            ->where('roles.code', '!=', 'PLATFORM_OWNER')
             ->whereIn('roles.code', $allowedGlobalRoles)
             ->exists();
+    }
+
+    /**
+     * Platform Owner is not inferred from role assignment alone. The one-owner
+     * registry must be written by the internal bootstrap, never from RBAC UI.
+     */
+    public function isPlatformOwner(): bool
+    {
+        if ($this->platformOwnerMemo !== null) {
+            return $this->platformOwnerMemo;
+        }
+
+        return $this->platformOwnerMemo = (bool) $this->is_active
+            && $this->roles()
+                ->where('roles.code', 'PLATFORM_OWNER')
+                ->where('roles.is_active', true)
+                ->where('roles.scope', 'global')
+                ->exists()
+            && Schema::hasTable('platform_owner_registry')
+            && DB::table('platform_owner_registry')
+                ->where('id', 1)->where('user_id', $this->getKey())->exists();
     }
 
     public function hasPermission(string $permissionCode, ?int $storeId = null): bool
@@ -121,6 +177,7 @@ class User extends Authenticatable
             return $this->roles()
                 ->where('roles.is_active', true)
                 ->where('roles.scope', 'global')
+                ->where('roles.code', '!=', 'PLATFORM_OWNER')
                 ->whereHas('permissions', fn ($query) => $query->where('code', $permissionCode))
                 ->get(['roles.id', 'roles.code'])
                 ->contains(fn (Role $role): bool => $catalog->roleContributesPermissions((string) $role->code, null));
@@ -170,7 +227,8 @@ class User extends Authenticatable
 
         $global = $this->roles()
             ->where('roles.is_active', true)
-            ->where('roles.scope', 'global');
+            ->where('roles.scope', 'global')
+            ->where('roles.code', '!=', 'PLATFORM_OWNER');
 
         if ($storeId !== null) {
             $channel = $this->storeChannel($storeId);

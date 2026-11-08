@@ -32,6 +32,7 @@ return [
     |
     */
     'roles' => [
+        'PLATFORM_OWNER' => ['domain'=>'administration','scope'=>'global','business_scope'=>'platform','level'=>'manager','required_modules'=>[],'optional_modules'=>[],'permissions'=>['*'],'sort'=>5],
         'SUPER_ADMIN' => ['domain'=>'administration','scope'=>'global','business_scope'=>'platform','level'=>'manager','required_modules'=>[],'optional_modules'=>[],'permissions'=>['*'],'sort'=>10],
         'SYSTEM_ADMINISTRATOR' => ['domain'=>'administration','scope'=>'global','business_scope'=>'platform','level'=>'specialist','required_modules'=>[],'optional_modules'=>[],'permissions'=>['platform.manage','settings.view','settings.manage','stores.view','stores.manage','translations.manage','system.update','mobile_settings.manage','push_settings.manage','sms_settings.manage'],'sort'=>20],
         'SECURITY_ADMINISTRATOR' => ['domain'=>'administration','scope'=>'global','business_scope'=>'platform','level'=>'specialist','required_modules'=>[],'optional_modules'=>[],'permissions'=>['security.view','roles.manage','users.view','users.roles.manage','users.status.manage','security.scopes.manage','security.approval_limits.manage','security.delegations.manage','security.approve'],'sort'=>30],

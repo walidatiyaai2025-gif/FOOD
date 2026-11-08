@@ -130,6 +130,7 @@ return [
         'support.view' => 'View customer support operations',
         'support.manage' => 'Manage customer support operations',
         'customer_service.team.manage' => 'Create and manage Customer Service agents and supervisors',
+        'orders.customer_service_discount' => 'Apply audited pre-dispatch percentage discounts with a mandatory reason',
         'notifications.view' => 'View notification administration',
         'notifications.manage' => 'Manage notification content and targeting',
         'coupons.view' => 'View coupon administration',
@@ -150,11 +151,12 @@ return [
     ],
 
     'roles' => [
+        'PLATFORM_OWNER' => ['*'],
         'SUPER_ADMIN' => ['*'],
         'CUSTOMER_SERVICE_MANAGER' => [
             'stores.view', 'support.view', 'support.manage', 'customer_service.team.manage',
             'customers.view', 'customers.edit', 'customers.manage',
-            'orders.view', 'orders.create', 'orders.edit', 'orders.approve', 'orders.manage', 'orders.dispatch',
+            'orders.view', 'orders.customer_service_discount', 'orders.create', 'orders.edit', 'orders.approve', 'orders.manage', 'orders.dispatch',
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage',
             'inventory.view', 'inventory.adjust', 'inventory.manage',
             'promotions.view', 'promotions.manage',
@@ -171,11 +173,11 @@ return [
         'CUSTOMER_SERVICE_AGENT' => [
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply',
             'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
-            'stores.view', 'customers.view', 'orders.view', 'orders.create', 'orders.dispatch',
+            'stores.view', 'customers.view', 'orders.view', 'orders.customer_service_discount', 'orders.create', 'orders.dispatch',
         ],
         'CUSTOMER_SERVICE_SUPERVISOR' => [
             'stores.view', 'customers.view', 'customers.edit', 'customers.manage',
-            'orders.view', 'orders.create', 'orders.dispatch',
+            'orders.view', 'orders.customer_service_discount', 'orders.create', 'orders.dispatch',
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage',
             'inventory.view', 'inventory.adjust', 'inventory.manage',
             'promotions.view', 'promotions.manage',
@@ -190,7 +192,7 @@ return [
             'reports.view', 'reports.export',
         ],
         'B2B_ADMIN' => [
-            'stores.view',
+            'stores.view', 'customers.view', 'customers.manage',
             'b2b.accounts.view', 'b2b.accounts.manage', 'b2b.pricing.view', 'b2b.pricing.manage',
             'catalog.view', 'catalog.create', 'catalog.edit', 'catalog.manage',
             'lookups.view', 'lookups.manage',
@@ -232,7 +234,7 @@ return [
         'FINANCE' => ['assistant.use', 'stores.view', 'finance.view', 'finance.manage', 'finance.post', 'reports.view', 'reports.export'],
         'CUSTOMER_SUPPORT' => [
             'assistant.use', 'stores.view', 'b2b.accounts.view', 'b2b.accounts.manage',
-            'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage', 'orders.dispatch',
+            'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.customer_service_discount', 'orders.manage', 'orders.dispatch',
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply', 'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
         ],
         'RETAIL_OPERATIONS' => [
@@ -246,7 +248,7 @@ return [
         ],
         'RETAIL_FINANCE' => ['assistant.use', 'finance.view', 'finance.manage', 'finance.post', 'reports.view', 'reports.export'],
         'RETAIL_CUSTOMER_SUPPORT' => [
-            'assistant.use', 'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.manage', 'orders.dispatch',
+            'assistant.use', 'support.view', 'support.manage', 'customers.view', 'customers.edit', 'customers.manage', 'orders.view', 'orders.customer_service_discount', 'orders.manage', 'orders.dispatch',
             'whatsapp.inbox.view', 'whatsapp.conversations.view', 'whatsapp.conversations.reply', 'whatsapp.conversations.assign', 'whatsapp.internal_notes.manage',
         ],
         'B2B_DRIVER' => ['deliveries.b2b.execute'],

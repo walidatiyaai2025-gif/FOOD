@@ -66,6 +66,7 @@ class AdminNavigation
     {
         $channels = $this->for($user);
         $isSuperAdmin = $this->isSuperAdmin($user);
+        $hideRetailWorkspaces = $isSuperAdmin && ! $user->isPlatformOwner();
         $canAccessPlatformErp = $this->canAccessPlatformErp($user);
         $canAccessPlatformNavigation = $canAccessPlatformErp;
         $useCustomerServiceDashboardProfile = $this->usesCustomerServiceDashboardProfile($user);
@@ -80,7 +81,7 @@ class AdminNavigation
                 $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemOpen('enterprise_workspaces', 'enterprise_workspaces.nav_title', 'admin.enterprise-workspaces.index')
                     : null,
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'dashboard', 'admin.premium_nav.dashboard', null),
+                $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'dashboard', 'admin.premium_nav.dashboard', null),
                 $this->module($user, $channels, 'b2b', 'dashboard', 'admin.channels.b2b', null),
                 $useCustomerServiceDashboardProfile
                     ? ($this->routeItemScoped($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'customers.view')
@@ -101,7 +102,7 @@ class AdminNavigation
             $this->group('stores', 'admin.nav_groups.stores', '⌂', [
                 $this->routeItem($user, 'retail_store_provisioning', 'admin.retail_store_provisioning', 'admin.retail-stores.index', 'platform.manage'),
                 $this->restaurantSaasItem($user),
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'storefront', 'admin.b2c_workspace.modules.storefront', 'stores.view'),
+                $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'storefront', 'admin.b2c_workspace.modules.storefront', 'stores.view'),
                 $this->module($user, $channels, 'b2b', 'storefront', 'admin.b2b_workspace.modules.storefront', 'settings.view'),
                 $this->module($user, $channels, 'b2b', 'web_storefront', 'admin.b2b_workspace.modules.web_storefront', 'settings.view'),
             ]),
@@ -111,17 +112,23 @@ class AdminNavigation
                     ? $this->routeItem($user, 'commercial_sales_control', 'admin.commercial_sales_control', 'admin.commercial.sales-control', 'catalog.view')
                     : null,
                 $this->routeItemScoped($user, 'lookup_management', 'admin.lookup_management', 'admin.lookups.index', 'lookups.view'),
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'products', 'admin.b2c_workspace.modules.products', 'catalog.view'),
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'inventory', 'admin.b2c_workspace.modules.inventory', 'inventory.view'),
+                $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'products', 'admin.b2c_workspace.modules.products', 'catalog.view'),
+                $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'inventory', 'admin.b2c_workspace.modules.inventory', 'inventory.view'),
                 $this->module($user, $channels, 'b2b', 'products', 'admin.b2b_sidebar.product_management', 'catalog.view'),
                 $useCustomerServiceDashboardProfile
                     ? $this->module($user, $channels, 'b2b', 'inventory', 'admin.b2b_sidebar.inventory_management', 'inventory.view')
                     : null,
             ]),
             $this->group('accounts', 'admin.nav_groups.accounts', '◎', [
+                isset($channels['b2b'])
+                    ? $this->routeItemScoped($user, 'customer_groups', 'customer_groups.title', 'admin.b2b.customer-groups.index', 'customers.view')
+                    : null,
+                isset($channels['b2c']) && ! $hideRetailWorkspaces
+                    ? $this->routeItemScoped($user, 'b2c_customer_groups', 'customer_groups.title', 'admin.b2c.customer-groups.index', 'customers.view')
+                    : null,
                 $this->routeItemScoped($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'customers.view')
                     ?? $this->routeItem($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'b2b.accounts.view'),
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'customers', 'admin.b2c_workspace.modules.customers', 'customers.view'),
+                $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'customers', 'admin.b2c_workspace.modules.customers', 'customers.view'),
             ]),
             $this->group('operations', 'admin.nav_groups.operations', '↻', [
                 $canAccessPlatformNavigation ? $this->whatsAppInboxItem($user) : null,
@@ -129,8 +136,8 @@ class AdminNavigation
                 $useCustomerServiceDashboardProfile
                     ? null
                     : $this->routeItemScoped($user, 'driver_live_tracking', 'admin.driver_live_tracking.title', 'admin.driver-live-tracking.index', 'drivers.tracking.view'),
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'incoming_orders', 'admin.b2c_workspace.modules.incoming_orders', 'orders.view'),
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'drivers', 'admin.b2c_workspace.modules.drivers', 'drivers.b2c.view'),
+                $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'incoming_orders', 'admin.b2c_workspace.modules.incoming_orders', 'orders.view'),
+                $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'drivers', 'admin.b2c_workspace.modules.drivers', 'drivers.b2c.view'),
                 $this->module($user, $channels, 'b2b', 'drivers', 'admin.b2b_workspace.modules.drivers', 'drivers.b2b.view'),
             ]),
             $this->group('field_operations', 'admin.nav_groups.field_operations', '⌖', $useCustomerServiceDashboardProfile ? [] : [
@@ -157,8 +164,8 @@ class AdminNavigation
                 isset($channels['b2c'])
                     ? $this->routeItem($user, 'commercial_flash_offers_retail', 'admin.flash_offers_retail', 'admin.commercial.flash-offers', 'promotions.view')
                     : null,
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'promotions', 'admin.b2c_workspace.modules.promotions', 'promotions.view'),
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'content', 'admin.b2c_workspace.modules.content', 'promotions.view'),
+                $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'promotions', 'admin.b2c_workspace.modules.promotions', 'promotions.view'),
+                $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'content', 'admin.b2c_workspace.modules.content', 'promotions.view'),
                 $useCustomerServiceDashboardProfile
                     ? $this->routeItemAdvertising($user, 'notification_campaigns', 'notifications.sidebar_campaigns', 'admin.notification-campaigns.index', 'notifications.view', 'advertising_enabled')
                     : null,
@@ -179,9 +186,9 @@ class AdminNavigation
             ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
                 $this->routeItem($user, 'reports_center', 'reports.title', 'admin.reports.index', 'reports.view'),
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2c', 'reports', 'admin.b2c_workspace.modules.reports', 'reports.view'),
+                $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'reports', 'admin.b2c_workspace.modules.reports', 'reports.view'),
                 $this->module($user, $channels, 'b2b', 'finance', 'admin.b2b_workspace.modules.finance', 'finance.view'),
-                $isSuperAdmin ? null : $this->module($user, $channels, 'b2b', 'reports', 'admin.b2b_workspace.modules.reports', 'reports.view'),
+                $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2b', 'reports', 'admin.b2b_workspace.modules.reports', 'reports.view'),
             ]),
             $this->group('applications', 'admin.nav_groups.applications', '▣', [
                 $this->routeItemScoped($user, 'app_preview', 'admin.app_preview', 'admin.app-preview.index', 'app_preview.view'),
@@ -193,6 +200,7 @@ class AdminNavigation
                 $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemOpen('administration_hub', 'admin.administration_hub.title', 'admin.administration.index')
                     : null,
+                $user->isPlatformOwner() ? $this->routeItemOpen('platform_owner_modules', 'platform_owner.modules', 'admin.enterprise-modules.index') : null,
                 $this->routeItem($user, 'sidebar_role_access', 'sidebar_admin.role_access_nav', 'admin.sidebar-access.roles', 'roles.manage'),
                 $this->routeItem($user, 'sidebar_layout', 'sidebar_admin.layout_nav', 'admin.sidebar-layout.index', 'roles.manage'),
             ]),
@@ -212,6 +220,7 @@ class AdminNavigation
                 'b2c_inventory',
                 'b2c_orders',
                 'b2c_customers',
+                'b2c_customer_groups',
                 'b2c_promotions',
                 'b2c_reports',
                 'b2c_settings',
@@ -447,6 +456,9 @@ class AdminNavigation
 
         if (! is_array($definition)) {
             return false;
+        }
+        if ($user->isPlatformOwner()) {
+            return true;
         }
 
         $globalRoles = array_values(array_filter((array) ($definition['global_roles'] ?? []), 'is_string'));
@@ -718,8 +730,20 @@ class AdminNavigation
         string $permission,
         array $params = [],
     ): ?array {
-        $item = $this->routeItemScoped($user, $key, $label, $route, $permission, $params);
+        if ($user->isPlatformOwner() && Route::has('admin.enterprise-modules.show')
+            && ! $this->enterpriseModules->isEnabled($moduleCode)) {
+            // Hard-disabled/uninstalled modules remain discoverable in their
+            // diagnostics, never as deceptively functional runtime links.
+            return [
+                'key' => $key,
+                'label' => $label,
+                'route' => 'admin.enterprise-modules.show',
+                'params' => ['module' => $moduleCode],
+                'permission' => null,
+            ];
+        }
 
+        $item = $this->routeItemScoped($user, $key, $label, $route, $permission, $params);
         if ($item === null || ! $this->enterpriseModuleAccessible($user, $moduleCode)) {
             return null;
         }
@@ -732,6 +756,10 @@ class AdminNavigation
         $memoKey = $user->getKey().'|'.$moduleCode;
         if (array_key_exists($memoKey, $this->enterpriseModuleAccessMemo)) {
             return $this->enterpriseModuleAccessMemo[$memoKey];
+        }
+
+        if ($user->isPlatformOwner()) {
+            return $this->enterpriseModuleAccessMemo[$memoKey] = true;
         }
 
         if (! $this->enterpriseModules->isEnabled($moduleCode)) {
@@ -759,7 +787,7 @@ class AdminNavigation
         $memoKey = (int) $user->getKey();
 
         return $this->superAdminMemo[$memoKey]
-            ??= $user->hasRole('SUPER_ADMIN');
+            ??= ($user->isPlatformOwner() || $user->hasRole('SUPER_ADMIN'));
     }
 
     private function hasPermission(User $user, string $permission): bool

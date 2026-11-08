@@ -28,6 +28,7 @@ use App\Services\DriverDeliveryEvidenceService;
 use App\Services\InvoiceService;
 use App\Services\OperationalLookupService;
 use App\Services\OperationalTenantScope;
+use App\Services\OrderCustomerServiceDiscountService;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderLifecycleNotificationService;
 use App\Services\OrderManualDispatchService;
@@ -1649,55 +1650,63 @@ final class OrderOperationsController extends Controller
         $model = $this->managedOrder($actor, $order, 'orders.manage');
 
         $validated = $request->validate([
-            'assigned_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            // The scalar contract remains supported for existing clients.
+            'assigned_user_id' => ['nullable', 'integer', 'exists:users,id', 'prohibits:assigned_user_ids'],
+            'assigned_user_ids' => ['sometimes', 'array', 'max:100'],
+            'replace_customer_service_assignments' => ['sometimes', 'boolean'],
+            'assigned_user_ids.*' => ['required', 'integer', 'distinct', 'exists:users,id'],
             'reason' => ['nullable', 'string', 'max:500'],
         ]);
-        $assignedUserId = isset($validated['assigned_user_id'])
-            ? (int) $validated['assigned_user_id']
-            : null;
+        $isMultiAssignment = $request->boolean('replace_customer_service_assignments')
+            || array_key_exists('assigned_user_ids', $validated);
+        $assignedUserIds = $isMultiAssignment
+            ? array_map('intval', $validated['assigned_user_ids'] ?? [])
+            : (isset($validated['assigned_user_id']) ? [(int) $validated['assigned_user_id']] : []);
+        $assignedUserIds = array_values(array_unique($assignedUserIds));
         $reason = trim((string) ($validated['reason'] ?? ''));
 
-        if ($assignedUserId !== null) {
-            $allowed = $this->customerServiceTeam
-                ->members($actor)
-                ->where('is_active', true)
-                ->contains(fn (User $member): bool => (int) $member->getKey() === $assignedUserId);
-            abort_unless($allowed, 403);
-        }
+        $allowedUserIds = $this->customerServiceTeam
+            ->members($actor)
+            ->where('is_active', true)
+            ->map(static fn (User $member): int => (int) $member->getKey())
+            ->all();
+        abort_unless(array_diff($assignedUserIds, $allowedUserIds) === [], 403);
 
-        DB::transaction(function () use (
+        $changed = DB::transaction(function () use (
             $model,
             $actor,
-            $assignedUserId,
+            $assignedUserIds,
             $reason,
             $request,
             $audit,
-        ): void {
-            DB::table('orders')
-                ->where('id', $model->getKey())
-                ->lockForUpdate()
-                ->first(['id']);
+        ): bool {
+            DB::table('orders')->where('id', $model->getKey())->lockForUpdate()->first(['id']);
 
             $active = DB::table('order_customer_service_assignments')
                 ->where('order_id', $model->getKey())
                 ->whereNull('unassigned_at')
                 ->lockForUpdate()
-                ->latest('id')
-                ->first();
+                ->get(['id', 'assigned_user_id']);
+            $previousIds = $active->pluck('assigned_user_id')->map(static fn ($id): int => (int) $id)->unique()->sort()->values()->all();
+            $nextIds = $assignedUserIds;
+            sort($nextIds);
+            if ($previousIds === $nextIds) {
+                return false;
+            }
 
-            DB::table('order_customer_service_assignments')
-                ->where('order_id', $model->getKey())
-                ->whereNull('unassigned_at')
-                ->update([
-                    'unassigned_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-            $assignmentId = null;
-            if ($assignedUserId !== null) {
-                $assignmentId = (int) DB::table('order_customer_service_assignments')->insertGetId([
+            $removeIds = array_values(array_diff($previousIds, $nextIds));
+            $addIds = array_values(array_diff($nextIds, $previousIds));
+            if ($removeIds !== []) {
+                DB::table('order_customer_service_assignments')
+                    ->where('order_id', $model->getKey())
+                    ->whereNull('unassigned_at')
+                    ->whereIn('assigned_user_id', $removeIds)
+                    ->update(['unassigned_at' => now(), 'updated_at' => now()]);
+            }
+            foreach ($addIds as $userId) {
+                DB::table('order_customer_service_assignments')->insert([
                     'order_id' => (int) $model->getKey(),
-                    'assigned_user_id' => $assignedUserId,
+                    'assigned_user_id' => $userId,
                     'assigned_by_user_id' => (int) $actor->getKey(),
                     'reason' => $reason === '' ? null : $reason,
                     'assigned_at' => now(),
@@ -1711,27 +1720,71 @@ final class OrderOperationsController extends Controller
                 'order.customer_service_owner.changed',
                 $actor,
                 $model,
+                ['assigned_user_ids' => $previousIds],
                 [
-                    'assignment_id' => $active?->id,
-                    'assigned_user_id' => $active?->assigned_user_id,
-                ],
-                [
-                    'assignment_id' => $assignmentId,
-                    'assigned_user_id' => $assignedUserId,
+                    'assigned_user_ids' => $nextIds,
+                    'added_user_ids' => $addIds,
+                    'removed_user_ids' => $removeIds,
                     'reason' => $reason === '' ? null : $reason,
                 ],
                 $request,
             );
+
+            return true;
         }, 3);
 
-        $notifications->customerOrderChanged($model->fresh(), 'customer_service_updated', [
-            'assigned' => $assignedUserId !== null,
-        ]);
+        if ($changed) {
+            $notifications->customerOrderChanged($model->fresh(), 'customer_service_updated', [
+                'assigned' => $assignedUserIds !== [],
+            ]);
+        }
 
         return back()->with('status', $this->msg(
-            $assignedUserId === null ? 'تم إلغاء إسناد الطلب من فريق خدمة العملاء.' : 'تم إسناد الطلب لموظف خدمة العملاء.',
-            $assignedUserId === null ? 'Customer Service owner removed.' : 'Order assigned to Customer Service.',
+            $assignedUserIds === [] ? 'تم إلغاء إسناد الطلب من فريق خدمة العملاء.' : 'تم تحديث فريق خدمة العملاء للطلب.',
+            $assignedUserIds === [] ? 'Customer Service assignment removed.' : 'Order Customer Service team updated.',
         ));
+    }
+
+    public function applyCustomerServiceDiscount(
+        Request $request,
+        int $order,
+        OrderCustomerServiceDiscountService $discounts,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $model = $this->managedOrder($actor, $order, 'orders.view');
+        $storeId = (int) $model->store_id;
+        abort_unless($actor->is_active
+            && $actor->hasPermission('orders.customer_service_discount', $storeId), 403);
+        $this->scope->assertStore(
+            $actor, $storeId, 'orders.customer_service_discount', strtolower((string) $model->channel),
+        );
+
+        // Agents can change only orders assigned to them. Supervisors and
+        // managers retain their existing scoped team-level authority.
+        if ($actor->hasRole('CUSTOMER_SERVICE_AGENT')
+            && ! $actor->hasRole('CUSTOMER_SERVICE_MANAGER')
+            && ! $actor->hasRole('CUSTOMER_SERVICE_SUPERVISOR')
+            && ! $actor->hasRole('SUPER_ADMIN')) {
+            abort_unless(DB::table('order_customer_service_assignments')
+                ->where('order_id', $model->getKey())
+                ->where('assigned_user_id', $actor->getKey())
+                ->whereNull('unassigned_at')
+                ->exists(), 403);
+        }
+
+        $validated = $request->validate([
+            'percentage' => ['required', 'numeric', 'between:0,100', 'decimal:0,3'],
+            'reason' => ['required', 'string', 'min:5', 'max:500'],
+            'idempotency_key' => ['required', 'uuid'],
+        ]);
+        $applied = $discounts->apply(
+            $model, $actor, (float) $validated['percentage'],
+            trim((string) $validated['reason']), (string) $validated['idempotency_key'], $request,
+        );
+
+        return back()->with('status', $applied
+            ? $this->msg('تم تطبيق الخصم وإرسال إشعار للعميل.', 'Discount applied and customer notified.')
+            : $this->msg('تم تجاهل الطلب المكرر دون تغيير الإجمالي.', 'Duplicate discount request safely ignored.'));
     }
 
     public function reassign(
@@ -1884,13 +1937,11 @@ final class OrderOperationsController extends Controller
                 ->get(['id', 'order_id', 'assigned_user_id', 'assigned_by_user_id', 'reason', 'assigned_at']) as $assignment
         ) {
             $orderId = (int) $assignment->order_id;
-            if (! isset($customerServiceAssignments[$orderId])) {
-                $customerServiceAssignments[$orderId] = $assignment;
-            }
+            $customerServiceAssignments[$orderId][] = $assignment;
         }
 
         $customerServiceUserIds = collect($customerServiceAssignments)
-            ->pluck('assigned_user_id')
+            ->flatMap(static fn (array $assignments) => collect($assignments)->pluck('assigned_user_id'))
             ->filter()
             ->map(static fn ($id): int => (int) $id)
             ->unique()
@@ -2129,13 +2180,19 @@ final class OrderOperationsController extends Controller
     ): array {
         $orderId = (int) $order->getKey();
 
-        $customerServiceAssignment = $context === null
+        $activeCustomerServiceAssignments = $context === null
             ? DB::table('order_customer_service_assignments')
                 ->where('order_id', $orderId)
                 ->whereNull('unassigned_at')
-                ->latest('id')
-                ->first(['id', 'assigned_user_id', 'reason', 'assigned_at'])
-            : ($context->customerServiceAssignments[$orderId] ?? null);
+                ->orderByDesc('id')
+                ->get(['id', 'assigned_user_id', 'reason', 'assigned_at'])
+                ->all()
+            : ($context->customerServiceAssignments[$orderId] ?? []);
+        $customerServiceAssignment = $activeCustomerServiceAssignments[0] ?? null;
+        $customerServiceOwnerIds = array_values(array_unique(array_map(
+            static fn ($assignment): int => (int) $assignment->assigned_user_id,
+            $activeCustomerServiceAssignments,
+        )));
         $customerServiceOwner = $customerServiceAssignment === null
             ? null
             : ($context === null
@@ -2343,6 +2400,13 @@ final class OrderOperationsController extends Controller
             'can_view_invoice' => $canViewInvoice,
             'can_manage' => $canManage,
             'can_edit' => $canEdit,
+            'customer_service_owner_ids' => $customerServiceOwnerIds,
+            'customer_service_owner_names' => array_values(array_filter(array_map(
+                fn (int $userId): ?string => $context === null
+                    ? DB::table('users')->where('id', $userId)->value('name')
+                    : ($context->customerServiceUsers[$userId]->name ?? null),
+                $customerServiceOwnerIds,
+            ))),
             'customer_service_owner_id' => $customerServiceOwner?->id === null ? null : (int) $customerServiceOwner->id,
             'customer_service_owner' => $customerServiceOwner?->name,
             'customer_service_owner_email' => $customerServiceOwner?->email,

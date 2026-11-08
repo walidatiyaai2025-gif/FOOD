@@ -45,6 +45,16 @@ final class OrderLifecycleNotificationService
                 'body_ar' => 'تم تحديث متابعة طلبك بواسطة خدمة العملاء.',
                 'body_en' => 'Customer Service updated the follow-up on your order.',
             ],
+            'customer_service_discount' => [
+                'title_ar' => 'خصم خدمة العملاء للطلب '.DisplayNumber::reference($order->getKey()),
+                'title_en' => 'Customer Service discount on order '.DisplayNumber::reference($order->getKey()),
+                'body_ar' => 'تم تطبيق خصم بنسبة '.(string) ($data['percentage'] ?? 0).'% على الطلب. الملاحظة: '
+                    .(string) ($data['reason'] ?? '').'. الإجمالي الجديد: '
+                    .(string) ($data['revised_total'] ?? '').' '.(string) ($data['currency'] ?? ''),
+                'body_en' => 'A '.(string) ($data['percentage'] ?? 0).'% discount was applied to your order. Reason: '
+                    .(string) ($data['reason'] ?? '').'. Revised total: '
+                    .(string) ($data['revised_total'] ?? '').' '.(string) ($data['currency'] ?? ''),
+            ],
             'invoice_updated' => [
                 'title_ar' => 'تحديث فاتورة الطلب '.DisplayNumber::reference($order->getKey()),
                 'title_en' => 'Order invoice updated '.DisplayNumber::reference($order->getKey()),

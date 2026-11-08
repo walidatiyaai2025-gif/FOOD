@@ -153,6 +153,12 @@ class WholesaleStorefrontBuilderTest extends TestCase
             ->assertJsonMissing(['title_en' => 'Best sellers'])
             ->assertJsonMissing(['title' => 'Wholesale Draft Hero']);
 
+        // The public guest API must not leak unpublished section changes.
+        $this->getJson('/api/v1/wholesale/stores/'.$storeId.'/storefront')
+            ->assertOk()
+            ->assertJsonMissing(['title_en' => 'Best sellers'])
+            ->assertJsonMissing(['title' => 'Wholesale Draft Hero']);
+
         $draftChecksum = $draft->checksum;
 
         $this->actingAs($admin)->post(route('admin.b2b.storefront.publish'), [
@@ -173,6 +179,18 @@ class WholesaleStorefrontBuilderTest extends TestCase
             'store_id' => $storeId,
             'title' => 'Wholesale Draft Hero',
         ]);
+
+        // Guest and authenticated Flutter Home use the same live section list.
+        $public = $this->getJson('/api/v1/wholesale/stores/'.$storeId.'/storefront')
+            ->assertOk()
+            ->assertJsonPath('theme.primary', '#6A2CA0')
+            ->assertJsonPath('branding.custom.hero_cta_ar', 'ابدأ الطلب')
+            ->assertJsonFragment([
+                'key' => 'best_sellers',
+                'type' => 'best_sellers',
+                'title_ar' => 'الأكثر مبيعاً',
+            ]);
+        $this->assertIsArray($public->json('sections'));
 
         $draft->refresh();
         $this->assertSame('published', $draft->status);

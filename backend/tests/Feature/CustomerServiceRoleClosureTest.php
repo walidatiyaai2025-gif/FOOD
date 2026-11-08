@@ -350,6 +350,37 @@ final class CustomerServiceRoleClosureTest extends TestCase
             'user_id' => $manager->id,
         ]);
 
+        $secondAgent = $this->userWithRole('CUSTOMER_SERVICE_AGENT');
+        $this->actingAs($manager)
+            ->patch(route('admin.operations.orders.customer-service-owner', ['order' => $orderId]), [
+                'assigned_user_ids' => [$agent->id, $secondAgent->id],
+                'reason' => 'Shared follow-up',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(2, DB::table('order_customer_service_assignments')
+            ->where('order_id', $orderId)->whereNull('unassigned_at')->count());
+
+        // Updating a team keeps retained assignments and closes only removed members.
+        $this->actingAs($manager)
+            ->patch(route('admin.operations.orders.customer-service-owner', ['order' => $orderId]), [
+                'assigned_user_ids' => [$secondAgent->id],
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('order_customer_service_assignments', [
+            'order_id' => $orderId, 'assigned_user_id' => $secondAgent->id, 'unassigned_at' => null,
+        ]);
+        $this->assertFalse(DB::table('order_customer_service_assignments')
+            ->where('order_id', $orderId)->where('assigned_user_id', $agent->id)
+            ->whereNull('unassigned_at')->exists());
+
+        $this->actingAs($manager)
+            ->patch(route('admin.operations.orders.customer-service-owner', ['order' => $orderId]), [
+                'assigned_user_ids' => [$secondAgent->id, $outsider->id],
+            ])
+            ->assertForbidden();
+
         $this->actingAs($manager)
             ->patch(route('admin.operations.orders.customer-service-owner', ['order' => $orderId]), [
                 'assigned_user_id' => $outsider->id,
@@ -363,6 +394,19 @@ final class CustomerServiceRoleClosureTest extends TestCase
             ])
             ->assertRedirect();
 
+        // Empty HTML multi-select submits no assigned_user_ids[] field;
+        // explicit replacement intent must still remove every active member.
+        $this->actingAs($manager)
+            ->patch(route('admin.operations.orders.customer-service-owner', ['order' => $orderId]), [
+                'assigned_user_ids' => [$agent->id, $secondAgent->id],
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($manager)
+            ->patch(route('admin.operations.orders.customer-service-owner', ['order' => $orderId]), [
+                'replace_customer_service_assignments' => '1',
+            ])
+            ->assertRedirect();
         $this->assertFalse(
             DB::table('order_customer_service_assignments')
                 ->where('order_id', $orderId)

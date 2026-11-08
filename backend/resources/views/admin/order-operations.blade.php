@@ -598,7 +598,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <td class="order-owner-cell {{ $rowDelivered ? 'is-complete' : '' }}" @if($rowDelivered) aria-disabled="true" data-order-customer-service-dimmed @endif>
     <div class="order-owner {{ $rowDelivered ? 'is-complete' : '' }}">
         @if($row['customer_service_owner'])
-            <strong>{{ $row['customer_service_owner'] }}</strong>
+            <strong>{{ implode('، ', $row['customer_service_owner_names'] ?? [$row['customer_service_owner']]) }}</strong>
             @if(trim((string)($row['customer_service_assignment_reason'] ?? '')) !== '')
                 <small data-order-saved-reason>{{ $businessLabel($row['customer_service_assignment_reason']) }}</small>
             @endif
@@ -608,13 +608,14 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         @if(!$rowDelivered && $canAssignCustomerService && $row['can_manage'])
             <form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" class="order-inline-picker" data-order-inline-customer-service-owner>
                 @csrf @method('PATCH')
-                <select name="assigned_user_id" data-order-inline-picker-select data-initial-value="{{ (string)($row['customer_service_owner_id'] ?? '') }}" aria-label="{{ __('order_operations.customer_service_owner.assign_follow_up') }}">
-                    <option value="">{{ __('order_operations.customer_service_owner.remove_owner') }}</option>
+                <input type="hidden" name="replace_customer_service_assignments" value="1">
+                <label class="visually-hidden" for="cs-team-{{ $row['id'] }}">{{ __('order_operations.customer_service_owner.assign_follow_up') }}</label>
+                <select id="cs-team-{{ $row['id'] }}" name="assigned_user_ids[]" multiple size="3" aria-label="{{ __('order_operations.customer_service_owner.assign_follow_up') }}">
                     @foreach($customerServiceAgents as $agent)
-                        <option value="{{ $agent->id }}" @selected((int)($row['customer_service_owner_id'] ?? 0)===(int)$agent->id)>{{ $agent->name }}</option>
+                        <option value="{{ $agent->id }}" @selected(in_array((int)$agent->id, $row['customer_service_owner_ids'] ?? [], true))>{{ $agent->name }}</option>
                     @endforeach
                 </select>
-                <button type="submit" data-order-inline-picker-submit aria-label="{{ __('order_operations.customer_service_owner.save') }}" title="{{ __('order_operations.customer_service_owner.save') }}" disabled>✓</button>
+                <button type="submit" aria-label="{{ __('order_operations.customer_service_owner.save') }}" title="{{ __('order_operations.customer_service_owner.save') }}">✓</button>
             </form>
         @endif
     </div>
@@ -637,6 +638,30 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <div class="order-detail-drawer-shell foodex-record-drawer-shell">
 <div class="order-detail-drawer-head foodex-record-drawer-header"><div><strong>{{ __('order_operations.view_order') }}</strong><div>{{ $detail['number'] }}</div></div><a class="order-detail-close foodex-record-drawer-close" href="{{ route('admin.operations.orders.index',$detailCloseQuery) }}" aria-label="{{ __('order_operations.detail.close') }}">×</a></div>
 <section class="detail-grid foodex-record-grid" data-order-actionable-detail>
+@if(($detail['status'] ?? '') === 'pending'
+    && $actor->is_active
+    && $actor->hasPermission('orders.customer_service_discount', (int)($detail['store_id'] ?? 0))
+    && (! $actor->hasRole('CUSTOMER_SERVICE_AGENT')
+        || $actor->hasRole('CUSTOMER_SERVICE_MANAGER')
+        || $actor->hasRole('CUSTOMER_SERVICE_SUPERVISOR')
+        || $actor->hasRole('SUPER_ADMIN')
+        || in_array((int) $actor->getKey(), $detail['customer_service_owner_ids'] ?? [], true)))
+<section class="foodex-card foodex-form" data-order-customer-service-discount style="grid-column:1/-1;padding:12px;border:1px solid var(--foodex-border);border-radius:12px">
+    <h3>{{ __('customer_service_discount.label') }}</h3>
+    <form method="post" action="{{ route('admin.operations.orders.customer-service-discount', ['order'=>$detail['id']]) }}" class="order-inline-picker" style="display:flex;flex-wrap:wrap;gap:10px;align-items:end">
+        @csrf
+        <input type="hidden" name="idempotency_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
+        <label style="display:grid;gap:4px">{{ __('customer_service_discount.percentage') }}
+            <input type="number" name="percentage" min="0" max="100" step="0.001" required value="{{ old('percentage', 0) }}" style="min-height:44px">
+        </label>
+        <label style="display:grid;gap:4px;flex:1;min-width:180px">{{ __('customer_service_discount.reason') }}
+            <textarea name="reason" minlength="5" maxlength="500" required placeholder="{{ __('customer_service_discount.note_placeholder') }}" style="min-height:44px;width:100%">{{ old('reason') }}</textarea>
+        </label>
+        <button class="foodex-primary" type="submit" style="min-height:44px">{{ __('customer_service_discount.apply') }}</button>
+    </form>
+</section>
+@endif
+
 @php
     $detailHasMapAction = !empty($detail['delivery_address']['has_coordinates']);
 @endphp

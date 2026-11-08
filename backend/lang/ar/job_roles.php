@@ -1,6 +1,7 @@
 <?php
 
 $roles = [
+    'PLATFORM_OWNER' => ['domain'=>'administration','name'=>'مالك المنصة الداخلي','description'=>'مالك المنصة المسجل داخليًا فقط، ولا يمكن إسناد الدور عبر إدارة الصلاحيات المعتادة.'],
     'SUPER_ADMIN' => ['domain'=>'administration','name'=>'مالك المنصة / المسؤول الأعلى','description'=>'يمتلك حوكمة المنصة بالكامل وصلاحيات الإدارة الطارئة الشاملة.'],
     'SYSTEM_ADMINISTRATOR' => ['domain'=>'administration','name'=>'مسؤول النظام','description'=>'يدير إعدادات منصة FOODEX والمتاجر والإصدارات والتكاملات وإعدادات النظام.'],
     'SECURITY_ADMINISTRATOR' => ['domain'=>'administration','name'=>'مسؤول الأمن والصلاحيات','description'=>'يدير المستخدمين والأدوار ونطاقات الأمن والاعتمادات وضوابط الوصول الحساس.'],
