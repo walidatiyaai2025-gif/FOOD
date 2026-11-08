@@ -424,7 +424,9 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
                 (left, right) => intValue(left['sort_order'])
                     .compareTo(intValue(right['sort_order'])),
               );
-            final effectiveSections = sections.isEmpty
+            // An explicit published empty/disabled section list is not the
+            // same as a legacy payload without a sections contract.
+            final effectiveSections = storefront['sections'] is! List
                 ? <Map<String, dynamic>>[
                     {'type': 'hero', 'sort_order': 10},
                     {
@@ -500,7 +502,8 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
               final type = section['type']?.toString() ?? '';
               return type == 'hero' || type == 'banner_slider';
             });
-            if (banners.isNotEmpty && !hasBannerSection) {
+            if (storefront['sections'] is! List &&
+                banners.isNotEmpty && !hasBannerSection) {
               content.add(
                 _WholesaleBannerCarousel(
                   banners: banners,
