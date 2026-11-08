@@ -1,24 +1,20 @@
-# FOODEX 1.0.125 — Synchronized Release Notes
+# FOODEX 1.0.126 — Customer Sign up Hotfix
 
-## Identity
-
-- Dashboard / repository: `1.0.125`.
-- Customer App: `1.0.125+125`.
-- Driver App: `1.0.125+125`.
-- Van App: `1.0.125+125`.
-- Immediate supported source: Dashboard `1.0.124`.
-- Prior immutable tags and assets are never overwritten with a different source commit.
+## Release identity
+- Dashboard and backend: `1.0.126`
+- Customer App: `1.0.126+126`
+- Driver App: `1.0.126+126`
+- Van App: `1.0.126+126`
+- Minimum direct Dashboard upgrade source: `1.0.125` when confirmed by signed release manifest.
 
 ## Changes
+- Restore **Sign up / إنشاء حساب** directly underneath **Sign in / تسجيل الدخول** in the Customer App login screen (Issue #2487).
+- The button opens the existing protected Customer self-registration flow rather than an external URL or placeholder.
+- Arabic and English, RTL/LTR, registration form navigation and return to login have widget regressions.
+- No changes to Driver/Van logic, customer authentication credential policy, wholesale VAN ONLY, retail DRIVER ONLY, or tenant isolation.
 
-- Scoped B2B/B2C Customer Groups, many-to-many memberships, multi-group bulk assignment and promotion audience guardrails.
-- Multi-agent Customer Service assignment per order, preserving assignment records and role/store boundaries.
-- Pre-dispatch, reasoned Customer Service percent-discount revisions with server-side reconciliation, audit, idempotency and customer notification.
-- Current wholesale Customer Home storefront reads published management configuration rather than draft-only content.
-- Internally bootstrapped singleton Platform Owner with a protected registry and separate Super Admin authority.
-- Retain B2B VAN ONLY and B2C DRIVER ONLY dispatch constraints.
-
-## Release acceptance
-
-Publish only when all Required CI checks on the exact final commit pass. Release Factory must produce and validate the real setup/install and update archives, checksums, manifests and all three mobile APKs from the protected-main source. Perform a clean ZIP install and in-place upgrade from `1.0.124` with protected data/uploads/environment, backup and recovery validation. Publishing GitHub assets does not itself verify the live cPanel deployment; prove the dashboard's running version separately.
+## Release assurance
+- v1.0.125 is immutable and remains unchanged. This follow-up patch is the safe way to distribute the signup fix.
+- Publish only after exact-head Required CI, Release Validation, Android release APK build and package authenticity checks, clean Setup ZIP installation, 1.0.125 → 1.0.126 Update ZIP upgrade, migrations and recovery tests.
+- Validate GitHub release artifacts and protected registry; separately prove the version deployed on the live cPanel dashboard.
 
