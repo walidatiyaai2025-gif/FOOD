@@ -384,26 +384,41 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
             final banners = mapRows(storefront['banners']);
             final palette = _wholesalePalette(theme);
 
-            final title =
-                custom['brand_title_ar']?.toString().trim().isNotEmpty == true
-                    ? custom['brand_title_ar'].toString()
-                    : (store['name']?.toString().trim().isNotEmpty == true
-                        ? store['name'].toString()
-                        : 'متجر الجملة');
-            final heroTitle =
-                custom['brand_subtitle_ar']?.toString().trim().isNotEmpty ==
-                        true
-                    ? custom['brand_subtitle_ar'].toString()
-                    : 'أفضل الأسعار لمتاجر التجزئة';
-            final heroCta =
-                custom['hero_cta_ar']?.toString().trim().isNotEmpty == true
-                    ? custom['hero_cta_ar'].toString()
-                    : 'تصفح الكتالوج';
+            // The published B2B storefront is the source of truth for the
+            // current production wholesale Home, in the user's locale.
+            final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+            String localizedCustom(String key, String fallback) {
+              final localized = custom['${key}_${isArabic ? 'ar' : 'en'}']
+                  ?.toString().trim();
+              final alternate = custom['${key}_${isArabic ? 'en' : 'ar'}']
+                  ?.toString().trim();
+              if (localized != null && localized.isNotEmpty) return localized;
+              if (alternate != null && alternate.isNotEmpty) return alternate;
+              return fallback;
+            }
+
+            final title = localizedCustom(
+              'brand_title',
+              store['name']?.toString().trim().isNotEmpty == true
+                  ? store['name'].toString()
+                  : (isArabic ? 'متجر الجملة' : 'Wholesale Store'),
+            );
+            final heroTitle = localizedCustom(
+              'brand_subtitle',
+              isArabic
+                  ? 'أفضل الأسعار لمتاجر التجزئة'
+                  : 'Best wholesale prices for retailers',
+            );
+            final heroCta = localizedCustom(
+              'hero_cta',
+              isArabic ? 'تصفح الكتالوج' : 'Browse catalog',
+            );
 
             final sections = (storefront['sections'] as List? ??
                     const <Object>[])
                 .whereType<Map>()
                 .map((row) => Map<String, dynamic>.from(row))
+                .where((row) => row['is_active'] != false && row['is_visible'] != false)
                 .toList(growable: true)
               ..sort(
                 (left, right) => intValue(left['sort_order'])
@@ -499,10 +514,16 @@ class _WholesaleHomeDesignScreenState extends State<WholesaleHomeDesignScreen>
 
             for (final section in effectiveSections) {
               final type = section['type']?.toString() ?? '';
+              final primaryTitle =
+                  section[isArabic ? 'title_ar' : 'title_en']?.toString().trim();
+              final alternateTitle =
+                  section[isArabic ? 'title_en' : 'title_ar']?.toString().trim();
               final configuredSectionTitle =
-                  section['title_ar']?.toString().trim().isNotEmpty == true
-                      ? section['title_ar'].toString()
-                      : _defaultWholesaleSectionTitle(type);
+                  primaryTitle != null && primaryTitle.isNotEmpty
+                      ? primaryTitle
+                      : alternateTitle != null && alternateTitle.isNotEmpty
+                          ? alternateTitle
+                          : _defaultWholesaleSectionTitle(type);
               final sectionTitle = type == 'brands' ||
                       configuredSectionTitle.trim() == 'منتجاتنا'
                   ? context.tr('b2b.home.our_brands')
