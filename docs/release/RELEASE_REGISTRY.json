@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy": "main-authoritative-append-only",
-  "current_version": "1.0.124",
+  "current_version": "1.0.125",
   "releases": [
     {
       "version": "1.0.40",
@@ -410,6 +410,18 @@
       "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
       "dashboard_update_sha256": "02eb7634801b0e2027556d6a97c0da2f77b092411744b42dcfed8fd5df7f631f",
       "note": "FOODEX 1.0.124 synchronized release automatically registered by Release Factory from source 67f3d542674398fd606f0c1339515e547ff6da07. Dashboard update is directly deployable over 1.0.123; Customer 1.0.124+124 is frozen/carried forward; Driver/Van are synchronized at 1.0.124+124."
+    },
+    {
+      "version": "1.0.125",
+      "state": "published",
+      "registration": "generated-release",
+      "release_notes": "docs/release/UPDATE_NOTES_1.0.125.md",
+      "dashboard_update_manifest": "Release/Updates/FOODEX-Update.json",
+      "dashboard_update_package": "Release/Updates/FOODEX-Update.zip",
+      "dashboard_update_checksum": "Release/Updates/FOODEX-Update.sha256.txt",
+      "dashboard_update_file_list": "Release/Updates/FOODEX-Update.files.txt",
+      "dashboard_update_sha256": "b4fd85f983469c754c50cbb2b3d3f6d6474545863d4ea41a7b3728cce36cfb52",
+      "note": "FOODEX 1.0.125 synchronized release automatically registered by Release Factory from source 1a4d2ba341424c816040a7185a9ab1df59c3d574. Dashboard update is directly deployable over 1.0.124; Customer 1.0.125+125 is frozen/carried forward; Driver/Van are synchronized at 1.0.125+125."
     }
   ]
 }
