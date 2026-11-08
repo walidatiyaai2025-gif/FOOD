@@ -33,14 +33,14 @@
         <header class="foodex-page-toolbar cg-card">
             <h1>{{ __('customer_groups.title') }}</h1>
             <p class="cg-muted">{{ __('customer_groups.description') }}</p>
-            <a href="{{ route('admin.b2b.module', ['module'=>'customers']) }}">{{ __('customer_groups.back_to_customers') }}</a>
+            <a href="{{ route('admin.'.(($groupRoutePrefix === 'admin.b2c.customer-groups') ? 'b2c' : 'b2b').'.module', ['module'=>'customers']) }}">{{ __('customer_groups.back_to_customers') }}</a>
         </header>
         @if(session('status'))<div class="cg-card" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="cg-card cg-error" role="alert">{{ $errors->first() }}</div>@endif
         @if($canManage)
         <section class="cg-card">
             <h2>{{ __('customer_groups.create') }}</h2>
-            <form method="post" action="{{ route('admin.b2b.customer-groups.store') }}" class="cg-row">
+            <form method="post" action="{{ route($groupRoutePrefix.'.store') }}" class="cg-row">
                 @csrf
                 <input type="hidden" name="store_id" value="{{ $storeId }}">
                 <label>{{ __('customer_groups.name') }}<input name="name" required maxlength="255"></label>
@@ -65,7 +65,7 @@
                 <h2>{{ $group->name }}</h2>
                 <p class="cg-muted">{{ __('customer_groups.members_count', ['count' => $counts[$group->id] ?? 0]) }}</p>
                 @if($canManage)
-                <form method="post" action="{{ route('admin.b2b.customer-groups.update', ['group'=>$group->id]) }}" class="cg-row">
+                <form method="post" action="{{ route($groupRoutePrefix.'.update', ['group'=>$group->id]) }}" class="cg-row">
                     @csrf @method('PATCH')
                     <input type="hidden" name="store_id" value="{{ $storeId }}">
                     <label>{{ __('customer_groups.name') }}<input name="name" value="{{ $group->name }}" required maxlength="255"></label>
@@ -75,7 +75,7 @@
                     </label>
                     <button type="submit">{{ __('customer_groups.save') }}</button>
                 </form>
-                <form method="post" action="{{ route('admin.b2b.customer-groups.members', ['group'=>$group->id]) }}">
+                <form method="post" action="{{ route($groupRoutePrefix.'.members', ['group'=>$group->id]) }}">
                     @csrf
                     <input type="hidden" name="store_id" value="{{ $storeId }}">
                     <label>{{ __('customer_groups.select_customers') }}
