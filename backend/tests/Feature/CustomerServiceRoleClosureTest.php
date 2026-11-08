@@ -394,6 +394,19 @@ final class CustomerServiceRoleClosureTest extends TestCase
             ])
             ->assertRedirect();
 
+        // Empty HTML multi-select submits no assigned_user_ids[] field;
+        // explicit replacement intent must still remove every active member.
+        $this->actingAs($manager)
+            ->patch(route('admin.operations.orders.customer-service-owner', ['order' => $orderId]), [
+                'assigned_user_ids' => [$agent->id, $secondAgent->id],
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($manager)
+            ->patch(route('admin.operations.orders.customer-service-owner', ['order' => $orderId]), [
+                'replace_customer_service_assignments' => '1',
+            ])
+            ->assertRedirect();
         $this->assertFalse(
             DB::table('order_customer_service_assignments')
                 ->where('order_id', $orderId)
