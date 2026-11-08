@@ -37,6 +37,8 @@ QUEUE_CONNECTION=sync
 ENV
 php artisan key:generate --force
 php artisan migrate --force --no-interaction
+# Seed the 124 canonical RBAC baseline before injecting partial 125 failures.
+php artisan db:seed --class='Database\Seeders\CoreReferenceSeeder' --force --no-interaction
 
 # Reproduce the actual failure state: v125 migration created the audit table
 # but crashed before Laravel wrote the migration ledger row.
