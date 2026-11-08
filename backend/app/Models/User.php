@@ -27,6 +27,8 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    private ?bool $platformOwnerMemo = null;
+
     protected $fillable = ['name', 'username', 'email', 'phone_e164', 'phone_verified_at', 'password', 'locale', 'is_active', 'is_platform_customer', 'deactivated_at', 'deactivation_reason', 'last_seen_at'];
 
     protected $hidden = ['password', 'remember_token'];
@@ -84,7 +86,11 @@ class User extends Authenticatable
      */
     public function isPlatformOwner(): bool
     {
-        return (bool) $this->is_active
+        if ($this->platformOwnerMemo !== null) {
+            return $this->platformOwnerMemo;
+        }
+
+        return $this->platformOwnerMemo = (bool) $this->is_active
             && $this->hasRole('PLATFORM_OWNER')
             && Schema::hasTable('platform_owner_registry')
             && DB::table('platform_owner_registry')
