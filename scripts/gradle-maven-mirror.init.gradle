@@ -1,0 +1,28 @@
+import java.net.URI
+import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+
+// Keep exact dependency versions and verification; reroute only Maven
+// Central's HTTPS origins to the Google-hosted Maven Central replica.
+// GitHub-backed Maven Central delivery has intermittently failed with 502.
+final URI alternateCentral = new URI('https://maven-central.storage-download.googleapis.com/maven2/')
+
+def rewriteRepository = { repository ->
+    if (repository instanceof MavenArtifactRepository) {
+        def source = repository.url.toString()
+        if (source == 'https://repo.maven.apache.org/maven2/' ||
+            source == 'https://repo.maven.apache.org/maven2' ||
+            source == 'https://repo1.maven.org/maven2/' ||
+            source == 'https://repo1.maven.org/maven2') {
+            repository.setUrl(alternateCentral)
+        }
+    }
+}
+
+gradle.beforeSettings { settings ->
+    settings.pluginManagement.repositories.all(rewriteRepository)
+    settings.dependencyResolutionManagement.repositories.all(rewriteRepository)
+}
+gradle.beforeProject { project ->
+    project.buildscript.repositories.all(rewriteRepository)
+    project.repositories.all(rewriteRepository)
+}

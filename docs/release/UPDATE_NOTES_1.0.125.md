@@ -15,3 +15,8 @@
 - Release Factory retains `1.0.125` and the exact source commit. The reusable mobile release builder pins the generated Gradle wrapper to the official `downloads.gradle.org` distribution CDN, preserving the generated version, ZIP identity, APK package IDs, and build numbers.
 - Only transient HTTP 5xx Gradle/Maven dependency download errors receive at most two retries. Compiler errors, unexpected wrapper URLs, integrity failures, and wrong APK identities remain hard failures. This repairs repeated external 504 failures seen in Release Factory run `42469823957` without weakening acceptance gates.
 - A change to the reusable mobile builder triggers Release Factory on protected `main`, so each built asset and fresh-install/upgrade verification still comes from the same finalized 1.0.125 source SHA.
+
+## Kotlin/Maven Central mirror recovery (#2484)
+
+- Release Factory uses a CI-only Gradle init script from `scripts/gradle-maven-mirror.init.gradle` to replace the two exact Maven Central HTTPS origins with the Google Cloud Storage Maven Central mirror, avoiding the GitHub-based Kotlin JAR CDN failing with HTTP 502/504 and read timeouts.
+- Version 1.0.125 remains unchanged, and no version assertions, package checks, signatures, or compiler errors are bypassed. This is a source-code fix; published package acceptance still requires all APKs and exact-ZIP tests to pass on the final protected-main SHA.
