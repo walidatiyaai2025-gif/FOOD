@@ -1,6 +1,6 @@
-@php $ar = app()->getLocale() === 'ar'; @endphp
+@php $direction = app()->getLocale() === 'ar' ? 'rtl' : 'ltr'; @endphp
 <!doctype html>
-<html lang="{{ app()->getLocale() }}" dir="{{ $ar ? 'rtl' : 'ltr' }}">
+<html lang="{{ app()->getLocale() }}" dir="{{ $direction }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -30,7 +30,7 @@
     <aside class="sidebar">@include('admin._sidebar', ['user'=>$user,'navGroups'=>$navGroups,'navContext'=>$navContext])</aside>
     <main class="foodex-admin-main foodex-admin-page">
         @include('admin._global-header')
-        <header class="cg-card">
+        <header class="foodex-page-toolbar cg-card">
             <h1>{{ __('customer_groups.title') }}</h1>
             <p class="cg-muted">{{ __('customer_groups.description') }}</p>
             <a href="{{ route('admin.b2b.module', ['module'=>'customers']) }}">{{ __('customer_groups.back_to_customers') }}</a>
