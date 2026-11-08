@@ -1892,13 +1892,11 @@ final class OrderOperationsController extends Controller
                 ->get(['id', 'order_id', 'assigned_user_id', 'assigned_by_user_id', 'reason', 'assigned_at']) as $assignment
         ) {
             $orderId = (int) $assignment->order_id;
-            if (! isset($customerServiceAssignments[$orderId])) {
-                $customerServiceAssignments[$orderId] = $assignment;
-            }
+            $customerServiceAssignments[$orderId][] = $assignment;
         }
 
         $customerServiceUserIds = collect($customerServiceAssignments)
-            ->pluck('assigned_user_id')
+            ->flatMap(static fn (array $assignments) => collect($assignments)->pluck('assigned_user_id'))
             ->filter()
             ->map(static fn ($id): int => (int) $id)
             ->unique()
@@ -2137,13 +2135,19 @@ final class OrderOperationsController extends Controller
     ): array {
         $orderId = (int) $order->getKey();
 
-        $customerServiceAssignment = $context === null
+        $activeCustomerServiceAssignments = $context === null
             ? DB::table('order_customer_service_assignments')
                 ->where('order_id', $orderId)
                 ->whereNull('unassigned_at')
-                ->latest('id')
-                ->first(['id', 'assigned_user_id', 'reason', 'assigned_at'])
-            : ($context->customerServiceAssignments[$orderId] ?? null);
+                ->orderByDesc('id')
+                ->get(['id', 'assigned_user_id', 'reason', 'assigned_at'])
+                ->all()
+            : ($context->customerServiceAssignments[$orderId] ?? []);
+        $customerServiceAssignment = $activeCustomerServiceAssignments[0] ?? null;
+        $customerServiceOwnerIds = array_values(array_unique(array_map(
+            static fn ($assignment): int => (int) $assignment->assigned_user_id,
+            $activeCustomerServiceAssignments,
+        )));
         $customerServiceOwner = $customerServiceAssignment === null
             ? null
             : ($context === null
@@ -2351,6 +2355,13 @@ final class OrderOperationsController extends Controller
             'can_view_invoice' => $canViewInvoice,
             'can_manage' => $canManage,
             'can_edit' => $canEdit,
+            'customer_service_owner_ids' => $customerServiceOwnerIds,
+            'customer_service_owner_names' => array_values(array_filter(array_map(
+                fn (int $userId): ?string => $context === null
+                    ? DB::table('users')->where('id', $userId)->value('name')
+                    : ($context->customerServiceUsers[$userId]->name ?? null),
+                $customerServiceOwnerIds,
+            ))),
             'customer_service_owner_id' => $customerServiceOwner?->id === null ? null : (int) $customerServiceOwner->id,
             'customer_service_owner' => $customerServiceOwner?->name,
             'customer_service_owner_email' => $customerServiceOwner?->email,
