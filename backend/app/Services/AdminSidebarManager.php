@@ -258,6 +258,13 @@ final class AdminSidebarManager
             return [];
         }
 
+        // The internally registered owner must see the authoritative module
+        // inventory even if an administrator hid a sidebar item/group. Disabled
+        // runtime modules still resolve to diagnostics in AdminNavigation.
+        if ($user->isPlatformOwner()) {
+            return $groups;
+        }
+
         $layout = $this->layoutData();
         $roleIds = $this->roleIdsForUser($user);
         $visibility = collect();
