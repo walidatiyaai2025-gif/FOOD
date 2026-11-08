@@ -47,6 +47,10 @@ class User extends Authenticatable
 
     public function hasRole(string $roleCode, ?int $storeId = null): bool
     {
+        if ($roleCode === 'PLATFORM_OWNER') {
+            return $storeId === null && $this->isPlatformOwner();
+        }
+
         if ($storeId === null) {
             return $this->roles()
                 ->where('roles.code', $roleCode)
@@ -76,6 +80,7 @@ class User extends Authenticatable
             ->where('roles.code', $roleCode)
             ->where('roles.is_active', true)
             ->where('roles.scope', 'global')
+            ->where('roles.code', '!=', 'PLATFORM_OWNER')
             ->whereIn('roles.code', $allowedGlobalRoles)
             ->exists();
     }
@@ -91,7 +96,11 @@ class User extends Authenticatable
         }
 
         return $this->platformOwnerMemo = (bool) $this->is_active
-            && $this->hasRole('PLATFORM_OWNER')
+            && $this->roles()
+                ->where('roles.code', 'PLATFORM_OWNER')
+                ->where('roles.is_active', true)
+                ->where('roles.scope', 'global')
+                ->exists()
             && Schema::hasTable('platform_owner_registry')
             && DB::table('platform_owner_registry')
                 ->where('id', 1)->where('user_id', $this->getKey())->exists();
@@ -141,6 +150,7 @@ class User extends Authenticatable
             return $this->roles()
                 ->where('roles.is_active', true)
                 ->where('roles.scope', 'global')
+                ->where('roles.code', '!=', 'PLATFORM_OWNER')
                 ->whereHas('permissions', fn ($query) => $query->where('code', $permissionCode))
                 ->get(['roles.id', 'roles.code'])
                 ->contains(fn (Role $role): bool => $catalog->roleContributesPermissions((string) $role->code, null));
@@ -190,7 +200,8 @@ class User extends Authenticatable
 
         $global = $this->roles()
             ->where('roles.is_active', true)
-            ->where('roles.scope', 'global');
+            ->where('roles.scope', 'global')
+            ->where('roles.code', '!=', 'PLATFORM_OWNER');
 
         if ($storeId !== null) {
             $channel = $this->storeChannel($storeId);
