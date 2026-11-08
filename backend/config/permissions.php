@@ -151,6 +151,7 @@ return [
     ],
 
     'roles' => [
+        'PLATFORM_OWNER' => ['*'],
         'SUPER_ADMIN' => ['*'],
         'CUSTOMER_SERVICE_MANAGER' => [
             'stores.view', 'support.view', 'support.manage', 'customer_service.team.manage',
