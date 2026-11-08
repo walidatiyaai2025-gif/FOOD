@@ -73,7 +73,7 @@ final class OrderCustomerServiceDiscountService
             $scale = $currency === 'KWD' ? 3 : 2;
             $subtotal = round((float) $locked->subtotal, $scale);
             $priorTotalDiscount = round((float) $locked->discount_total, $scale);
-            $priorCsDiscount = round((float) ($previous?->customer_service_discount ?? 0), $scale);
+            $priorCsDiscount = round((float) ($previous->customer_service_discount ?? 0), $scale);
             $baseDiscount = round($priorTotalDiscount - $priorCsDiscount, $scale);
             if ($subtotal < 0 || $baseDiscount < 0 || $baseDiscount > $subtotal
                 || $percentage < 0 || $percentage > 100) {
@@ -96,7 +96,7 @@ final class OrderCustomerServiceDiscountService
                 ]);
             }
 
-            $revision = ((int) ($previous?->revision ?? 0)) + 1;
+            $revision = ((int) ($previous->revision ?? 0)) + 1;
             $snapshot = (array) ($locked->pricing_snapshot ?? []);
             $snapshot['customer_service_discount'] = [
                 'revision' => $revision,
