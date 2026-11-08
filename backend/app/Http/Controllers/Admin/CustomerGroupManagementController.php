@@ -90,7 +90,9 @@ final class CustomerGroupManagementController extends Controller
             'priority' => ['nullable', 'integer', 'between:-1000,1000'],
             'is_active' => ['required', 'boolean'],
         ]);
-        $updated = DB::table('commercial_customer_groups')
+        abort_unless(DB::table('commercial_customer_groups')
+            ->where('id', $group)->where('store_id', $storeId)->exists(), 404);
+        DB::table('commercial_customer_groups')
             ->where('id', $group)->where('store_id', $storeId)
             ->update([
                 'name' => trim($data['name']),
@@ -98,7 +100,6 @@ final class CustomerGroupManagementController extends Controller
                 'is_active' => (bool) $data['is_active'],
                 'updated_at' => now(),
             ]);
-        abort_unless($updated, 404);
 
         return back()->with('status', __('customer_groups.saved'));
     }
