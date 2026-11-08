@@ -22,6 +22,7 @@ assets/wholesale/foodex-icon.png
 assets/wholesale/foodex-wholesale.css
 assets/wholesale/foodex-wholesale.js
 backend/app/Actions/README.md
+backend/app/Console/Commands/ProvisionPlatformOwner.php
 backend/app/Domain/Analytics/Diagnostics/DeterministicAnalyticsEngine.php
 backend/app/Domain/Analytics/Forecasting/DemandForecastEngine.php
 backend/app/Domain/Analytics/Forecasting/DemandForecastReplenishmentService.php
@@ -405,6 +406,7 @@ backend/app/Http/Controllers/Admin/CatalogManagementController.php
 backend/app/Http/Controllers/Admin/CommercialDashboardController.php
 backend/app/Http/Controllers/Admin/CouponManagementController.php
 backend/app/Http/Controllers/Admin/Customer360Controller.php
+backend/app/Http/Controllers/Admin/CustomerGroupManagementController.php
 backend/app/Http/Controllers/Admin/CustomerServiceWorkspaceController.php
 backend/app/Http/Controllers/Admin/DocumentBrandingController.php
 backend/app/Http/Controllers/Admin/DriverLiveTrackingDashboardController.php
@@ -871,6 +873,7 @@ backend/app/Services/NotificationAudienceReviewService.php
 backend/app/Services/NotificationCampaignDispatcher.php
 backend/app/Services/OperationalLookupService.php
 backend/app/Services/OperationalTenantScope.php
+backend/app/Services/OrderCustomerServiceDiscountService.php
 backend/app/Services/OrderDeliveryAddressSnapshotService.php
 backend/app/Services/OrderInventoryReservationService.php
 backend/app/Services/OrderLifecycleNotificationService.php
@@ -880,6 +883,7 @@ backend/app/Services/OrderOperationsRowContext.php
 backend/app/Services/OrderTerritoryRoutingService.php
 backend/app/Services/PdfDocumentFactory.php
 backend/app/Services/PlatformCustomerService.php
+backend/app/Services/PlatformOwnerProvisioner.php
 backend/app/Services/PriorCreditDeliveryGuard.php
 backend/app/Services/ProductAvailabilityService.php
 backend/app/Services/ProductSkuGenerator.php
@@ -1426,6 +1430,8 @@ backend/database/migrations/2026_10_27_171000_create_user_permission_overrides.p
 backend/database/migrations/2026_11_04_181500_add_customer_cart_selling_unit_context.php
 backend/database/migrations/2026_11_04_211500_add_app_display_order_to_store_products.php
 backend/database/migrations/2026_11_05_092000_enable_existing_wholesale_flash_customer_app_discovery.php
+backend/database/migrations/2026_11_08_070000_create_order_customer_service_discounts.php
+backend/database/migrations/2026_11_08_071000_create_platform_owner_registry.php
 backend/database/seeders/BuiltInJobRoleSeeder.php
 backend/database/seeders/CoreReferenceSeeder.php
 backend/database/seeders/DashboardDemoSeeder.php
@@ -1459,6 +1465,8 @@ backend/lang/ar/chatbot.php
 backend/lang/ar/commercial.php
 backend/lang/ar/coupons.php
 backend/lang/ar/customer_360.php
+backend/lang/ar/customer_groups.php
+backend/lang/ar/customer_service_discount.php
 backend/lang/ar/customer_service_workspace.php
 backend/lang/ar/document_branding.php
 backend/lang/ar/engagement_destinations.php
@@ -1485,6 +1493,7 @@ backend/lang/ar/module_dashboard.php
 backend/lang/ar/notifications.php
 backend/lang/ar/order_operations.php
 backend/lang/ar/pagination.php
+backend/lang/ar/platform_owner.php
 backend/lang/ar/production_dataset_switch.php
 backend/lang/ar/production_launch.php
 backend/lang/ar/public_information.php
@@ -1525,6 +1534,8 @@ backend/lang/en/chatbot.php
 backend/lang/en/commercial.php
 backend/lang/en/coupons.php
 backend/lang/en/customer_360.php
+backend/lang/en/customer_groups.php
+backend/lang/en/customer_service_discount.php
 backend/lang/en/customer_service_workspace.php
 backend/lang/en/document_branding.php
 backend/lang/en/engagement_destinations.php
@@ -1551,6 +1562,7 @@ backend/lang/en/module_dashboard.php
 backend/lang/en/notifications.php
 backend/lang/en/order_operations.php
 backend/lang/en/pagination.php
+backend/lang/en/platform_owner.php
 backend/lang/en/production_dataset_switch.php
 backend/lang/en/production_launch.php
 backend/lang/en/public_information.php
@@ -1785,6 +1797,7 @@ backend/resources/views/admin/commercial-dashboard.blade.php
 backend/resources/views/admin/coupons.blade.php
 backend/resources/views/admin/customer-360-index.blade.php
 backend/resources/views/admin/customer-360-show.blade.php
+backend/resources/views/admin/customer-groups.blade.php
 backend/resources/views/admin/customer-report-replica.blade.php
 backend/resources/views/admin/customer-service-workspace.blade.php
 backend/resources/views/admin/demo-data.blade.php

@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "version": "1.0.124",
-  "build_number": 124,
-  "source_commit": "67f3d542674398fd606f0c1339515e547ff6da07",
+  "version": "1.0.125",
+  "build_number": 125,
+  "source_commit": "1a4d2ba341424c816040a7185a9ab1df59c3d574",
   "dashboard_update": {
     "directory": "Updates",
     "package": "FOODEX-Update.zip",
@@ -11,34 +11,34 @@
   "android_apps": [
     {
       "app": "customer",
-      "version": "1.0.124",
-      "build_number": 124,
-      "file": "FOODEX-Customer-1.0.124.apk",
+      "version": "1.0.125",
+      "build_number": 125,
+      "file": "FOODEX-Customer-1.0.125.apk",
       "latest_alias": "FOODEX-Customer.apk",
-      "bytes": 83181161,
-      "sha256": "82f8cef756416f1b289b5db2219db4c56c92fee214a9896c61bca7fd3dc71a43",
-      "release_version": "1.0.124",
+      "bytes": 83197545,
+      "sha256": "0890f52cb9b5dc9ae3d055a686210e3b01e6fb16d4539797623274a542bd0651",
+      "release_version": "1.0.125",
       "lineage_mode": "synchronized",
-      "source_commit": "67f3d542674398fd606f0c1339515e547ff6da07",
-      "tree_sha": "b52dec35e8d9b9445ab1e75ce96f7c6af27d0792"
+      "source_commit": "1a4d2ba341424c816040a7185a9ab1df59c3d574",
+      "tree_sha": "83b4ba181ae0467214e47e8932c77741c3c1930a"
     },
     {
       "app": "driver",
-      "version": "1.0.124",
-      "build_number": 124,
-      "file": "FOODEX-Driver-1.0.124.apk",
+      "version": "1.0.125",
+      "build_number": 125,
+      "file": "FOODEX-Driver-1.0.125.apk",
       "latest_alias": "FOODEX-Driver.apk",
       "bytes": 59418011,
-      "sha256": "b2fa19f564ae208cb0adabbd641d49ad12fcbe692876b12d0765a3f733a0d333"
+      "sha256": "6e483276ac69edf8c2aeade0ced96345a9bc8958737b997bc148350e4c6c04c9"
     },
     {
       "app": "van",
-      "version": "1.0.124",
-      "build_number": 124,
-      "file": "FOODEX-Van-1.0.124.apk",
+      "version": "1.0.125",
+      "build_number": 125,
+      "file": "FOODEX-Van-1.0.125.apk",
       "latest_alias": "FOODEX-Van.apk",
       "bytes": 59194666,
-      "sha256": "e54d2b4772bbcde964850bccf1f3f75a633b4fda26b95857a7e80e48d3ba8d88"
+      "sha256": "ca09a5b429b36042932eeb909b4023d839a3830c942e70b7572c5bdfbe332030"
     }
   ]
 }
