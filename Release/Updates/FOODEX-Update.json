@@ -2,11 +2,11 @@
   "schema_version": 1,
   "available": true,
   "package": "FOODEX-Update.zip",
-  "target_version": "1.0.125",
-  "minimum_current_version": "1.0.124",
-  "source_base": "67f3d542674398fd606f0c1339515e547ff6da07",
-  "source_commit": "1a4d2ba341424c816040a7185a9ab1df59c3d574",
-  "sha256": "b4fd85f983469c754c50cbb2b3d3f6d6474545863d4ea41a7b3728cce36cfb52",
+  "target_version": "1.0.127",
+  "minimum_current_version": "1.0.125",
+  "source_base": "1a4d2ba341424c816040a7185a9ab1df59c3d574",
+  "source_commit": "a75d3780a8cf1eeb702781adbb17a5dcfd7d8130",
+  "sha256": "fd7c801c333c902d5d6704283eba75de24c7aeae46bcbbe6ebaac6e5dc6fdf46",
   "contains_migrations": true,
   "migrations": [
     "backend/database/migrations/0001_01_01_000000_create_users_table.php",
@@ -228,22 +228,23 @@
     "backend/database/migrations/2026_11_04_211500_add_app_display_order_to_store_products.php",
     "backend/database/migrations/2026_11_05_092000_enable_existing_wholesale_flash_customer_app_discovery.php",
     "backend/database/migrations/2026_11_08_070000_create_order_customer_service_discounts.php",
-    "backend/database/migrations/2026_11_08_071000_create_platform_owner_registry.php"
+    "backend/database/migrations/2026_11_08_071000_create_platform_owner_registry.php",
+    "backend/database/migrations/2026_11_08_072000_restore_customer_service_discount_permission.php"
   ],
   "delta": {
-    "file_count": 1998,
-    "source_file_count": 1881,
+    "file_count": 1999,
+    "source_file_count": 1882,
     "files_manifest": "FOODEX-Update.files.txt"
   },
   "requires_full_redeploy": false,
   "reason": null,
-  "release_notes": "Issue #2482 / PR #2483: introduce tenant/channel-scoped B2B and B2C customer-group management using canonical commercial groups and memberships, with many-to-many targeting, multi-group bulk add/remove, audit history and cross-tenant access denial. Allow multiple active Customer Service assignees per order with historical attribution, scope checks and a shared operations UI. Preserve the wholesale VAN ONLY and retail DRIVER ONLY fulfillment contracts. Apply controlled percentage concessions during the authorized Customer Service pending step, with required reason, idempotent revisions, bounded monetary calculations, rejection of issued invoices/paid orders/dispatch and customer notifications. Extend current wholesale Customer App home to consume published B2B storefront content; draft and public published revisions remain separate. Add an internally provisioned, singleton registered PLATFORM_OWNER authority, with audit, restricted role management and availability diagnostics; do not grant owner privileges to regular Super Admin. Production release target: Dashboard 1.0.124 → 1.0.125. Synchronized Customer, Driver and Van 1.0.125+125 binaries, Laravel Setup ZIP, Dashboard Update ZIP, version manifest, SHA-256 and release notes must be built by Release Factory from the final protected-main source commit. Passing PR CI alone is not publication or live-deployment evidence.",
+  "release_notes": "Fix the cramped Customer Service multi-assignee control on the Orders grid with an accessible RTL/LTR modal, prechecked current members, multi-selection and clear-all, preserving team scope, history and audit (PR #2496). Forward-port the data-preserving platform_owner_registry interrupted-migration recovery and the missing orders.customer_service_discount permission backfill before BuiltInJobRoleSeeder (from Recovery 125 r2 PR #2497). Build an immutable 1.0.127 Dashboard ZIP directly upgradeable from installed 1.0.125, including all 1.0.126 Dashboard/backend functionality; no intermediate 126 installation. Exercise the exact 125→127 Update ZIP on MySQL with a partial owner registry migration, missing discount permission, live order, assignment, discount audit, .env and uploads preserved. Ship one exact-commit full Laravel Setup ZIP with Composer production dependencies, signed OIDC build provenance, SHA-256 manifest and synchronized 1.0.127+127 Customer/Driver/Van APKs, with fresh install and upgrade acceptance.",
   "dashboard_fields": {
-    "target_version": "1.0.125",
-    "minimum_current_version": "1.0.124",
-    "source_commit": "1a4d2ba341424c816040a7185a9ab1df59c3d574",
-    "sha256": "b4fd85f983469c754c50cbb2b3d3f6d6474545863d4ea41a7b3728cce36cfb52",
+    "target_version": "1.0.127",
+    "minimum_current_version": "1.0.125",
+    "source_commit": "a75d3780a8cf1eeb702781adbb17a5dcfd7d8130",
+    "sha256": "fd7c801c333c902d5d6704283eba75de24c7aeae46bcbbe6ebaac6e5dc6fdf46",
     "contains_migrations": true,
-    "release_notes": "Issue #2482 / PR #2483: introduce tenant/channel-scoped B2B and B2C customer-group management using canonical commercial groups and memberships, with many-to-many targeting, multi-group bulk add/remove, audit history and cross-tenant access denial. Allow multiple active Customer Service assignees per order with historical attribution, scope checks and a shared operations UI. Preserve the wholesale VAN ONLY and retail DRIVER ONLY fulfillment contracts. Apply controlled percentage concessions during the authorized Customer Service pending step, with required reason, idempotent revisions, bounded monetary calculations, rejection of issued invoices/paid orders/dispatch and customer notifications. Extend current wholesale Customer App home to consume published B2B storefront content; draft and public published revisions remain separate. Add an internally provisioned, singleton registered PLATFORM_OWNER authority, with audit, restricted role management and availability diagnostics; do not grant owner privileges to regular Super Admin. Production release target: Dashboard 1.0.124 → 1.0.125. Synchronized Customer, Driver and Van 1.0.125+125 binaries, Laravel Setup ZIP, Dashboard Update ZIP, version manifest, SHA-256 and release notes must be built by Release Factory from the final protected-main source commit. Passing PR CI alone is not publication or live-deployment evidence."
+    "release_notes": "Fix the cramped Customer Service multi-assignee control on the Orders grid with an accessible RTL/LTR modal, prechecked current members, multi-selection and clear-all, preserving team scope, history and audit (PR #2496). Forward-port the data-preserving platform_owner_registry interrupted-migration recovery and the missing orders.customer_service_discount permission backfill before BuiltInJobRoleSeeder (from Recovery 125 r2 PR #2497). Build an immutable 1.0.127 Dashboard ZIP directly upgradeable from installed 1.0.125, including all 1.0.126 Dashboard/backend functionality; no intermediate 126 installation. Exercise the exact 125→127 Update ZIP on MySQL with a partial owner registry migration, missing discount permission, live order, assignment, discount audit, .env and uploads preserved. Ship one exact-commit full Laravel Setup ZIP with Composer production dependencies, signed OIDC build provenance, SHA-256 manifest and synchronized 1.0.127+127 Customer/Driver/Van APKs, with fresh install and upgrade acceptance."
   }
 }
