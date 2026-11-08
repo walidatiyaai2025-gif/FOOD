@@ -107,7 +107,7 @@ def main() -> int:
     parser.add_argument("--archive", type=Path, required=True)
     parser.add_argument("--target-version", required=True)
     args = parser.parse_args()
-    if re.fullmatch(r"(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)", args.target_version) is None:
+    if re.fullmatch(r"(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)", args.target_version) is None:
         raise CapabilityGateError("Target version must be canonical MAJOR.MINOR.PATCH.")
     if tuple(map(int, args.target_version.split("."))) < (1, 0, 126):
         print(f"FOODEX release capability ZIP gate not applicable: {args.target_version}")
