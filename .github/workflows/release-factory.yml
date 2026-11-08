@@ -438,6 +438,15 @@ jobs:
           PY
           )"
           python3 scripts/build-update-bundle.py             --base "$BASE_REF"             --target-version "$VERSION"             --minimum-current-version "$PREVIOUS_VERSION"             --output-dir dist/update             --release-notes "$notes"
+      - name: Verify actual v1.0.126+ Dashboard capability package
+        shell: bash
+        env:
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          python3 -m unittest scripts.tests.test_verify_release_capabilities -v
+          python3 scripts/verify_release_capabilities.py \\
+            --archive dist/update/FOODEX-Update.zip \\
+            --target-version "$VERSION"
       - uses: actions/upload-artifact@v4
         with:
           name: release-dashboard-update-${{ github.sha }}
