@@ -121,6 +121,9 @@ class AdminNavigation
             ]),
             $this->group('accounts', 'admin.nav_groups.accounts', '◎', [
                 $this->routeItemScoped($user, 'customer_groups', 'customer_groups.title', 'admin.b2b.customer-groups.index', 'customers.view'),
+                isset($channels['b2c'])
+                    ? $this->routeItemScoped($user, 'b2c_customer_groups', 'customer_groups.title', 'admin.b2c.customer-groups.index', 'customers.view')
+                    : null,
                 $this->routeItemScoped($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'customers.view')
                     ?? $this->routeItem($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'b2b.accounts.view'),
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'customers', 'admin.b2c_workspace.modules.customers', 'customers.view'),
