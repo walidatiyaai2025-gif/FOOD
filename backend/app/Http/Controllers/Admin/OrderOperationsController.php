@@ -1652,12 +1652,14 @@ final class OrderOperationsController extends Controller
             // The scalar contract remains supported for existing clients.
             'assigned_user_id' => ['nullable', 'integer', 'exists:users,id', 'prohibited_with:assigned_user_ids'],
             'assigned_user_ids' => ['sometimes', 'array', 'max:100'],
+            'replace_customer_service_assignments' => ['sometimes', 'boolean'],
             'assigned_user_ids.*' => ['required', 'integer', 'distinct', 'exists:users,id'],
             'reason' => ['nullable', 'string', 'max:500'],
         ]);
-        $isMultiAssignment = array_key_exists('assigned_user_ids', $validated);
+        $isMultiAssignment = $request->boolean('replace_customer_service_assignments')
+            || array_key_exists('assigned_user_ids', $validated);
         $assignedUserIds = $isMultiAssignment
-            ? array_map('intval', $validated['assigned_user_ids'])
+            ? array_map('intval', $validated['assigned_user_ids'] ?? [])
             : (isset($validated['assigned_user_id']) ? [(int) $validated['assigned_user_id']] : []);
         $assignedUserIds = array_values(array_unique($assignedUserIds));
         $reason = trim((string) ($validated['reason'] ?? ''));
