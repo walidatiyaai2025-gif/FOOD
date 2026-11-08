@@ -606,7 +606,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             <span class="order-mini-chip">{{ __('order_operations.unassigned') }}</span>
         @endif
         @if(!$rowDelivered && $canAssignCustomerService && $row['can_manage'])
-            <form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" class="order-inline-picker">
+            <form method="post" action="{{ route('admin.operations.orders.customer-service-owner',$row['id']) }}" class="order-inline-picker" data-order-inline-customer-service-owner>
                 @csrf @method('PATCH')
                 <input type="hidden" name="replace_customer_service_assignments" value="1">
                 <label class="visually-hidden" for="cs-team-{{ $row['id'] }}">{{ __('order_operations.customer_service_owner.assign_follow_up') }}</label>

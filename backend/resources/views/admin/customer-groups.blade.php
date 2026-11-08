@@ -30,11 +30,11 @@
     <aside class="sidebar">@include('admin._sidebar', ['user'=>$user,'navGroups'=>$navGroups,'navContext'=>$navContext])</aside>
     <main class="foodex-admin-main foodex-admin-page">
         @include('admin._global-header')
-        <header class="foodex-page-toolbar cg-card">
+        <div class="foodex-page-toolbar cg-card">
             <h1>{{ __('customer_groups.title') }}</h1>
             <p class="cg-muted">{{ __('customer_groups.description') }}</p>
             <a href="{{ route('admin.'.(($groupRoutePrefix === 'admin.b2c.customer-groups') ? 'b2c' : 'b2b').'.module', ['module'=>'customers']) }}">{{ __('customer_groups.back_to_customers') }}</a>
-        </header>
+        </div>
         @if(session('status'))<div class="cg-card" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="cg-card cg-error" role="alert">{{ $errors->first() }}</div>@endif
         @if($canManage)
@@ -56,6 +56,14 @@
                 <button type="submit">{{ __('customer_groups.search') }}</button>
             </form>
         </section>
+        <details class="cg-card" data-customer-group-scope>
+            <summary>{{ __('customer_groups.available_customers') }} ({{ $customers->count() }})</summary>
+            <ul>
+                @foreach($customers as $customer)
+                    <li>{{ $customer->name }}</li>
+                @endforeach
+            </ul>
+        </details>
         <div class="cg-grid">
         @forelse($groups as $group)
             @php

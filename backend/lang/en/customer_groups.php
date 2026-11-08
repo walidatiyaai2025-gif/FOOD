@@ -12,6 +12,7 @@ return [
     'active' => 'Active',
     'inactive' => 'Inactive',
     'save' => 'Save',
+    'available_customers' => 'Customers authorized in this store/channel (first 300)',
     'select_customers' => 'Select customers (multiple allowed)',
     'selection_hint' => 'Choose only the customers to add or remove. Existing members are not preselected to prevent accidental bulk removal.',
     'add' => 'Add selected',

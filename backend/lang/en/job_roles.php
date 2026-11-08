@@ -1,6 +1,7 @@
 <?php
 
 $roles = [
+    'PLATFORM_OWNER' => ['domain'=>'administration','name'=>'Internal Platform Owner','description'=>'Registered internal platform owner. Not assignable via normal RBAC administration.'],
     'SUPER_ADMIN' => ['domain'=>'administration','name'=>'Platform Owner / Super Admin','description'=>'Owns platform-wide governance and unrestricted emergency administration.'],
     'SYSTEM_ADMINISTRATOR' => ['domain'=>'administration','name'=>'System Administrator','description'=>'Maintains FOODEX platform settings, stores, releases, integrations and system configuration.'],
     'SECURITY_ADMINISTRATOR' => ['domain'=>'administration','name'=>'Security Administrator','description'=>'Administers users, roles, security scopes, approvals and privileged access controls.'],

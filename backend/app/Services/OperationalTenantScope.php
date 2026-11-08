@@ -14,7 +14,7 @@ final class OperationalTenantScope
     {
         $channel = $channel === null ? null : strtoupper($channel);
 
-        if ($user->isPlatformOwner() || $user->hasRole('SUPER_ADMIN')) {
+        if ($user->hasRole('SUPER_ADMIN')) {
             return $this->storeIdsForChannels($channel === null ? ['B2B', 'B2C'] : [$channel]);
         }
 

@@ -1651,7 +1651,7 @@ final class OrderOperationsController extends Controller
 
         $validated = $request->validate([
             // The scalar contract remains supported for existing clients.
-            'assigned_user_id' => ['nullable', 'integer', 'exists:users,id', 'prohibited_with:assigned_user_ids'],
+            'assigned_user_id' => ['nullable', 'integer', 'exists:users,id', 'prohibits:assigned_user_ids'],
             'assigned_user_ids' => ['sometimes', 'array', 'max:100'],
             'replace_customer_service_assignments' => ['sometimes', 'boolean'],
             'assigned_user_ids.*' => ['required', 'integer', 'distinct', 'exists:users,id'],

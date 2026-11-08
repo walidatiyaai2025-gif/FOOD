@@ -68,6 +68,70 @@
   },
   "capabilities": [
     {
+      "id": "customers.groups.b2b",
+      "domain": "Wholesale / Customer Groups",
+      "capability": "B2B customer segmentation",
+      "route": [
+        "admin.b2b.customer-groups.index"
+      ],
+      "route_path": [
+        "/admin/b2b/customers/groups"
+      ],
+      "controller_view": "CustomerGroupManagementController::index / admin.customer-groups",
+      "role_persona": "Authorized wholesale customer manager",
+      "permission_entitlement": "customers.view scoped to active channel and store",
+      "navigation_owner": "Customer Groups",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Dashboard → Accounts → Customer Groups",
+      "parent_context": "Accounts / Customer Management",
+      "ar_label": "مجموعات عملاء الجملة",
+      "en_label": "Wholesale Customer Groups",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Accounts navigation group remains active",
+      "back_path": "Return to Customer Management",
+      "status": "NAV_OK",
+      "evidence": [
+        "backend/app/Support/AdminNavigation.php",
+        "backend/resources/views/admin/customer-groups.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Channel and tenant scoped navigation."
+    },
+    {
+      "id": "customers.groups.b2c",
+      "domain": "Retail / Customer Groups",
+      "capability": "B2C customer segmentation",
+      "route": [
+        "admin.b2c.customer-groups.index"
+      ],
+      "route_path": [
+        "/admin/b2c/customers/groups"
+      ],
+      "controller_view": "CustomerGroupManagementController::index / admin.customer-groups",
+      "role_persona": "Authorized Retail Store Admin / support",
+      "permission_entitlement": "customers.view scoped to active channel and store",
+      "navigation_owner": "Customer Groups",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Dashboard → Accounts → Customer Groups",
+      "parent_context": "Accounts / Customer Management",
+      "ar_label": "مجموعات عملاء التجزئة",
+      "en_label": "Retail Customer Groups",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Accounts navigation group remains active",
+      "back_path": "Return to Customer Management",
+      "status": "NAV_OK",
+      "evidence": [
+        "backend/app/Support/AdminNavigation.php",
+        "backend/resources/views/admin/customer-groups.blade.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "Channel and tenant scoped navigation."
+    },
+    {
       "id": "platform.shell",
       "domain": "Platform",
       "capability": "Management Dashboard",

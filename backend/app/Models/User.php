@@ -51,8 +51,27 @@ class User extends Authenticatable
             return $storeId === null && $this->isPlatformOwner();
         }
 
-        // A registered owner inherits legacy Super Admin route/UI gates,
-        // without permitting a Super Admin to impersonate owner authority.
+        // One database lookup for normal users, and explicit owner registry
+        // verification only when the internal role is actually present.
+        if ($roleCode === 'SUPER_ADMIN' && $storeId === null) {
+            $codes = $this->roles()
+                ->whereIn('roles.code', ['SUPER_ADMIN', 'PLATFORM_OWNER'])
+                ->where('roles.is_active', true)
+                ->where('roles.scope', 'global')
+                ->pluck('roles.code');
+
+            if ($codes->contains('SUPER_ADMIN')) {
+                return true;
+            }
+            if (! $codes->contains('PLATFORM_OWNER')) {
+                $this->platformOwnerMemo = false;
+
+                return false;
+            }
+
+            return $this->isPlatformOwner();
+        }
+
         if ($roleCode === 'SUPER_ADMIN' && $this->isPlatformOwner()) {
             return true;
         }
@@ -114,7 +133,7 @@ class User extends Authenticatable
 
     public function hasPermission(string $permissionCode, ?int $storeId = null): bool
     {
-        if ($this->isPlatformOwner() || $this->hasRole('SUPER_ADMIN')) {
+        if ($this->hasRole('SUPER_ADMIN')) {
             return true;
         }
 
@@ -200,7 +219,7 @@ class User extends Authenticatable
     /** @return list<string> */
     public function inheritedPermissionCodes(?int $storeId = null): array
     {
-        if ($this->isPlatformOwner() || $this->hasRole('SUPER_ADMIN')) {
+        if ($this->hasRole('SUPER_ADMIN')) {
             return array_keys((array) config('permissions.abilities', []));
         }
 
@@ -249,7 +268,7 @@ class User extends Authenticatable
     /** @return list<string> */
     public function effectivePermissionCodes(?int $storeId = null): array
     {
-        if ($this->isPlatformOwner() || $this->hasRole('SUPER_ADMIN')) {
+        if ($this->hasRole('SUPER_ADMIN')) {
             return array_keys((array) config('permissions.abilities', []));
         }
 
