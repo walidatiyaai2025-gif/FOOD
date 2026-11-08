@@ -55,7 +55,7 @@ final class OrderCustomerServiceDiscountService
                     ->where('status', 'active')->exists()
             ) {
                 throw ValidationException::withMessages([
-                    'percentage' => [__('order_operations.cs_discount.not_allowed')],
+                    'percentage' => [__('customer_service_discount.not_allowed')],
                 ]);
             }
 
@@ -63,7 +63,7 @@ final class OrderCustomerServiceDiscountService
             // Never silently retain an incorrect tax snapshot after a discount.
             if (abs((float) $locked->tax_total) > 0.00001) {
                 throw ValidationException::withMessages([
-                    'percentage' => [__('order_operations.cs_discount.tax_requires_requote')],
+                    'percentage' => [__('customer_service_discount.tax_requires_requote')],
                 ]);
             }
 
@@ -78,7 +78,7 @@ final class OrderCustomerServiceDiscountService
             if ($subtotal < 0 || $baseDiscount < 0 || $baseDiscount > $subtotal
                 || $percentage < 0 || $percentage > 100) {
                 throw ValidationException::withMessages([
-                    'percentage' => [__('order_operations.cs_discount.invalid_totals')],
+                    'percentage' => [__('customer_service_discount.invalid_totals')],
                 ]);
             }
 
@@ -92,7 +92,7 @@ final class OrderCustomerServiceDiscountService
             );
             if ($grandTotalAfter < 0 || ! is_finite($grandTotalAfter)) {
                 throw ValidationException::withMessages([
-                    'percentage' => [__('order_operations.cs_discount.invalid_totals')],
+                    'percentage' => [__('customer_service_discount.invalid_totals')],
                 ]);
             }
 
