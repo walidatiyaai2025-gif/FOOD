@@ -2,7 +2,7 @@
 
 return [
     'business_aggregate_title' => 'Aggregated role business permissions',
-    'business_aggregate_count' => ':count permissions',
+    'business_aggregate_count' => 'Permissions: :count',
     'business_aggregate_none' => 'No business permissions are assigned to this role.',
     'business_aggregate_note' => 'This summarizes recorded role grants only, not a user’s effective access. Account state, wholesale or retail scope, store, individual overrides, module entitlement and operational readiness still apply.',
     'description' => 'Edit the role’s real page permissions. Each checkbox changes a canonical RBAC Permission Code; it cannot bypass route, scope, tenant or module guards.',
