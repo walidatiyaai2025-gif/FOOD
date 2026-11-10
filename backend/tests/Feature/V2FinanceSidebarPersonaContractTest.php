@@ -122,7 +122,7 @@ final class V2FinanceSidebarPersonaContractTest extends TestCase
 
         $this->actingAs($actor)
             ->get(route('admin.treasury.master.index', ['store_id' => $foreignStore], false))
-            ->assertForbidden();
+            ->assertNotFound();
 
         $roleless = User::factory()->create(['locale' => 'ar', 'is_active' => true]);
         $this->actingAs($roleless)
