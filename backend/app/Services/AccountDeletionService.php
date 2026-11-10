@@ -29,19 +29,34 @@ class AccountDeletionService
             return $existing;
         }
 
+        // Public self-deletion must not bypass managed RBAC offboarding.
+        $operationalRoles = ['B2B_DRIVER', 'B2C_DRIVER', 'VAN_OPERATOR'];
+        $hasManagedRole = $user->roles()
+            ->whereNotIn('roles.code', $operationalRoles)
+            ->exists();
+
+        if ($user->isPlatformOwner() || $hasManagedRole || $user->storeRoleAssignments()->exists()) {
+            throw ValidationException::withMessages([
+                'confirmation' => [__('admin.security.errors.privileged_account_deletion')],
+            ]);
+        }
+
         $context = $this->retentionContext($user);
-        $driverOnly = $context['driver_account'] && ! $context['customer_account'];
+        // Driver and Van identities are operational even with a linked customer.
+        $operationalIdentity = $context['driver_account'] || $user->roles()
+            ->whereIn('roles.code', $operationalRoles)
+            ->exists();
 
         $request = AccountDeletionRequest::query()->create([
             'user_id' => $user->getKey(),
-            'app' => $driverOnly ? 'driver' : 'customer',
+            'app' => $operationalIdentity ? 'driver' : 'customer',
             'verification_method' => 'password',
-            'status' => $driverOnly
+            'status' => $operationalIdentity
                 ? 'OPERATIONAL_REVIEW_REQUIRED'
                 : ($context['active_orders'] > 0 || $context['outstanding_finance']
                     ? 'PENDING_RETENTION'
                     : 'PROCESSING'),
-            'block_reason' => $driverOnly
+            'block_reason' => $operationalIdentity
                 ? 'Driver/Van operational identity requires managed deactivation and retention review.'
                 : ($context['active_orders'] > 0
                     ? 'Active orders must reach a terminal state before account anonymization.'
