@@ -397,7 +397,8 @@ void main() {
     expect(saved?.biometricEnabled, isFalse);
   });
 
-  testWidgets('saved B2B fingerprint login', (tester) async {
+  testWidgets('legacy B2B biometric session is cleared before Driver execution',
+      (tester) async {
     final store = _Store()
       ..stored = const DriverStoredSession(
         session: DriverSession(
@@ -411,45 +412,25 @@ void main() {
         biometricEnabled: true,
       );
 
-    DriverSession? authenticatedSession;
-    bool? remembered;
-    bool? biometricEnabled;
+    var authenticated = false;
     await tester.pumpWidget(
       _host(
         store: store,
         biometric: const _Biometric(),
-        onAuthenticated: (session, remember, biometric) {
-          authenticatedSession = session;
-          remembered = remember;
-          biometricEnabled = biometric;
-        },
+        onAuthenticated: (_, __, ___) => authenticated = true,
       ),
     );
     await tester.pumpAndSettle();
 
-    final fingerprint = find.byKey(const Key('driver-login-biometric'));
-    expect(fingerprint, findsOneWidget);
-    expect(find.byKey(const Key('driver-login-email')), findsNothing);
-    expect(find.byKey(const Key('driver-login-password')), findsNothing);
-    expect(find.byKey(const Key('driver-login-submit')), findsNothing);
-    expect(find.byKey(const Key('driver-login-remember')), findsNothing);
-    expect(
-        find.byKey(const Key('driver-login-biometric-toggle')), findsNothing);
-    expect(find.byKey(const Key('driver-login-logout')), findsOneWidget);
-
-    await tester.ensureVisible(fingerprint);
-    await tester.tap(fingerprint);
-    await tester.pumpAndSettle();
-    expect(authenticatedSession?.token, 'wholesale-biometric-token');
-    expect(authenticatedSession?.channel, DriverChannel.b2b);
-    expect(remembered, isTrue);
-    expect(biometricEnabled, isTrue);
+    expect(authenticated, isFalse);
+    expect(store.stored, isNull);
+    expect(find.byKey(const Key('driver-login-biometric')), findsNothing);
+    expect(find.byKey(const Key('driver-login-submit')), findsOneWidget);
   });
 
   testWidgets('sign out clears saved session and restores sign-in form',
       (tester) async {
     for (final entry in const <(DriverChannel, Locale, String)>[
-      (DriverChannel.b2b, Locale('ar'), 'تسجيل الخروج'),
       (DriverChannel.b2c, Locale('en'), 'Sign out'),
     ]) {
       final store = _Store()
