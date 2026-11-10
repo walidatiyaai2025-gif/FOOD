@@ -112,20 +112,56 @@ final class V2WholesaleCustomersSidebarAuthorityTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_wholesale_customer_360_list_does_not_expose_retail_only_customer(): void
+    public function test_retail_origin_with_an_actual_unified_wholesale_account_is_visible_to_wholesale(): void
     {
-        $retailStore = $this->retailStore('V2-2518-CUSTOMER-ISOLATION');
-        app(PlatformCustomerService::class)->register([
-            'name' => 'Retail Isolation Person',
-            'email' => 'v2-2518-retail-only@example.test',
+        $retailStore = $this->retailStore('V2-2518-UNIFIED');
+        $customer = app(PlatformCustomerService::class)->register([
+            'name' => 'Retail-Origin Wholesale Account',
+            'email' => 'v2-2518-unified@example.test',
             'phone' => '+201000002518',
             'password' => 'Password123!',
             'locale' => 'en',
             'store_id' => $retailStore,
         ], 'dashboard');
 
-        $wholesale = $this->globalActor('B2B_ADMIN');
-        $this->actingAs($wholesale)
+        // FOODEX deliberately provisions a B2B account for every Platform Customer.
+        // Retail registration origin is NOT proof of a Retail-only customer domain.
+        $b2bId = DB::table('b2b_customers')->where('user_id', $customer->id)->value('id');
+        $this->assertNotNull($b2bId);
+        $this->assertDatabaseHas('b2b_accounts', ['b2b_customer_id' => $b2bId]);
+
+        $this->actingAs($this->globalActor('B2B_ADMIN'))
+            ->get(route('admin.customer-360.index'))
+            ->assertOk()
+            ->assertViewHas('access', static fn (array $access): bool => $access['mode'] === 'b2b')
+            ->assertSee('v2-2518-unified@example.test');
+    }
+
+    public function test_retail_only_customer_without_a_wholesale_domain_is_not_visible_to_wholesale(): void
+    {
+        $retailStore = $this->retailStore('V2-2518-CUSTOMER-ISOLATION');
+        $customer = app(PlatformCustomerService::class)->register([
+            'name' => 'Retail Isolation Person',
+            'email' => 'v2-2518-retail-only@example.test',
+            'phone' => '+201000002519',
+            'password' => 'Password123!',
+            'locale' => 'en',
+            'store_id' => $retailStore,
+        ], 'dashboard');
+
+        // Simulate a historic Retail-only customer imported without an active
+        // Wholesale account: registration normally creates both domains.
+        $b2bId = DB::table('b2b_customers')->where('user_id', $customer->id)->value('id');
+        $this->assertNotNull($b2bId);
+        DB::table('b2b_accounts')->where('b2b_customer_id', $b2bId)->delete();
+        DB::table('b2b_customers')->where('id', $b2bId)->delete();
+        $this->assertDatabaseMissing('b2b_customers', ['user_id' => $customer->id]);
+        $this->assertDatabaseHas('b2c_customers', [
+            'user_id' => $customer->id,
+            'store_id' => $retailStore,
+        ]);
+
+        $this->actingAs($this->globalActor('B2B_ADMIN'))
             ->get(route('admin.customer-360.index'))
             ->assertOk()
             ->assertViewHas('access', static fn (array $access): bool => $access['mode'] === 'b2b')
