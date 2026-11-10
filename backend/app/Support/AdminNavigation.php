@@ -75,7 +75,7 @@ class AdminNavigation
         // then marketing/reporting. Administration stays last and never invents cross-channel links.
         $groups = [
             $this->group('overview', 'admin.nav_groups.overview', '⌂', [
-                $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
+                $this->canAccessMyWork($user)
                     ? $this->routeItemOpen('enterprise_action_center', 'enterprise_action_center.nav_title', 'admin.action-center.index')
                     : null,
                 $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
@@ -497,6 +497,27 @@ class AdminNavigation
         return $user->roles()
             ->where('roles.is_active', true)
             ->where('roles.scope', 'global')
+            ->exists();
+    }
+
+    public function canAccessMyWork(User $user): bool
+    {
+        if (! $user->is_active || $this->usesCustomerServiceDashboardProfile($user)) {
+            return false;
+        }
+
+        if ($this->canAccessPlatformErp($user)) {
+            return true;
+        }
+
+        $retailStoreIds = $this->tenantContext->retailStoreIds($user);
+
+        return $retailStoreIds !== [] && $user->storeRoleAssignments()
+            ->whereIn('store_id', $retailStoreIds)
+            ->whereHas('role', fn ($query) => $query
+                ->where('roles.is_active', true)
+                ->where('roles.scope', 'store')
+                ->where('roles.code', 'B2C_STORE_ADMIN'))
             ->exists();
     }
 
