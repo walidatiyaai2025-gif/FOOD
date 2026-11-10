@@ -37,9 +37,9 @@ class EnsureManagementDashboardAccess
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return $request->expectsJson()
-                ? response()->json(['message' => __('admin_login.not_authorized')], 401)
-                : redirect()->route('admin.b2c.login');
+            // Preserve the existing 403 authorization contract for inactive actors.
+            // Their browser authentication has already been destroyed above.
+            abort(403);
         }
 
         abort_unless($this->navigation->canUseDashboard($user), 403);

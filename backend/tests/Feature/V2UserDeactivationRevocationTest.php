@@ -83,9 +83,13 @@ class V2UserDeactivationRevocationTest extends TestCase
 
         $this->actingAs($target)
             ->get('/admin/security')
-            ->assertRedirect(route('admin.b2c.login'));
+            ->assertForbidden();
 
         $this->assertFalse(Auth::guard('web')->check());
+
+        // After the denied request destroyed the cookie-backed session, it is a guest.
+        $this->get('/admin/security')
+            ->assertRedirect(route('admin.b2c.login'));
     }
 
     public function test_operator_without_global_status_permission_cannot_deactivate_another_account(): void
