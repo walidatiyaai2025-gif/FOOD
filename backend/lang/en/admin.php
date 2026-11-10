@@ -154,7 +154,7 @@ return [
                 'description' => 'Supplier and purchasing follow-up through the existing enterprise workflow authority.',
             ],
             'wms' => [
-                'title' => 'WMS',
+                'title' => 'Warehouses and Inventory',
                 'description' => 'Warehouse and inventory operations through the authorized warehouse workspace.',
             ],
             'finance' => [
@@ -166,15 +166,15 @@ return [
                 'description' => 'Cashbox, bank and treasury master-data operations.',
             ],
             'customer_service' => [
-                'title' => 'Customer Service / CRM',
+                'title' => 'Customer Service and Accounts',
                 'description' => 'Customer 360 and account support through the existing customer authority.',
             ],
             'bi' => [
-                'title' => 'BI / Reports',
+                'title' => 'Reports and Business Analytics',
                 'description' => 'Enterprise reporting and analytics from the authoritative reporting center.',
             ],
             'my_work' => [
-                'title' => 'My Work / Action Center',
+                'title' => 'My Tasks and Approvals',
                 'description' => 'Approvals, exceptions and follow-up items authorized for the signed-in user.',
             ],
         ],
