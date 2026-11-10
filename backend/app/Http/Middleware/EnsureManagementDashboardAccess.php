@@ -33,9 +33,20 @@ class EnsureManagementDashboardAccess
         App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
 
         abort_unless($user->is_active, 403);
-        abort_unless($this->navigation->canUseDashboard($user), 403);
 
         $routeName = $request->route()?->getName();
+        // A store-scoped tracking reader may have no general Dashboard role.
+        // Keep this exception limited to existing read-only tracking routes;
+        // the controller/feed still enforce exact store and channel scopes.
+        $trackingReadRoute = in_array($routeName, [
+            'admin.driver-live-tracking.index',
+            'admin.driver-live-tracking.feed',
+            'admin.driver-live-tracking.lookups',
+        ], true);
+        $canReadTracking = $trackingReadRoute
+            && $this->navigation->hasAnyPermissionInScope($user, ['drivers.tracking.view']);
+
+        abort_unless($this->navigation->canUseDashboard($user) || $canReadTracking, 403);
         if (is_string($routeName)
             && ($routeName === 'admin.erp.index' || str_starts_with($routeName, 'admin.erp.'))) {
             abort_unless($this->navigation->canAccessPlatformErp($user), 403);
