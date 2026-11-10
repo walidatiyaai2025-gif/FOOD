@@ -43,7 +43,7 @@ return [
         'overview' => 'Overview',
         'erp' => 'ERP',
         'field_operations' => 'Van & Field Operations',
-        'operations' => 'Operations',
+        'operations' => 'Orders & Operations',
         'customer_service' => 'Customer Service & WhatsApp',
         'catalog' => 'Catalog',
         'accounts' => 'Customers & Accounts',
