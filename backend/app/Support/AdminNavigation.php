@@ -99,17 +99,11 @@ class AdminNavigation
                     : null,
             ]),
             $this->group('erp', 'admin.nav_groups.erp', '▤', $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile ? [
-                // P118: Wholesale ERP journey follows overview → customer operations →
-                // procurement → inventory → finance → treasury → BI reports → action controls.
-                // Visibility and target URLs remain governed by the existing per-item guards.
+                // P118 ERP Center retains the full workflow/card journey; P358
+                // places its operational module links in their business domains.
                 $this->routeItemOpen('erp_center', 'admin.erp_center.nav_title', 'admin.erp.index'),
                 $this->routeItemScoped($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'customers.view')
                     ?? $this->routeItem($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'b2b.accounts.view'),
-                $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.erp.procurement.index', 'procurement', 'procurement.suppliers.view'),
-                $this->routeItemEnterpriseModule($user, 'erp_wms', 'admin.erp_center.modules.wms.title', 'admin.erp.wms.index', 'inventory_wms', 'inventory.view'),
-                $this->routeItemEnterpriseModule($user, 'erp_finance', 'admin.erp_center.modules.finance.title', 'admin.erp.finance.index', 'finance', 'finance.view'),
-                $this->routeItemEnterpriseModule($user, 'erp_treasury', 'admin.erp_center.modules.treasury.title', 'admin.erp.treasury.index', 'treasury', 'finance.view'),
-                $this->routeItemEnterpriseModule($user, 'erp_bi', 'admin.erp_center.modules.bi.title', 'admin.erp.bi', 'enterprise_bi', 'reports.view'),
                 $this->routeItemOpen('erp_my_work', 'admin.erp_center.modules.my_work.title', 'admin.action-center.index'),
             ] : []),
             $this->group('stores', 'admin.nav_groups.stores', '⌂', [
@@ -130,6 +124,13 @@ class AdminNavigation
                 $this->module($user, $channels, 'b2b', 'products', 'admin.b2b_sidebar.product_management', 'catalog.view'),
                 $useCustomerServiceDashboardProfile
                     ? $this->module($user, $channels, 'b2b', 'inventory', 'admin.b2b_sidebar.inventory_management', 'inventory.view')
+                    : null,
+                // P358 supply domain — existing route, module readiness and RBAC checks.
+                $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
+                    ? $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.erp.procurement.index', 'procurement', 'procurement.suppliers.view')
+                    : null,
+                $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
+                    ? $this->routeItemEnterpriseModule($user, 'erp_wms', 'admin.erp_center.modules.wms.title', 'admin.erp.wms.index', 'inventory_wms', 'inventory.view')
                     : null,
             ]),
             $this->group('accounts', 'admin.nav_groups.accounts', '◎', [
@@ -198,12 +199,23 @@ class AdminNavigation
             ]),
             $this->group('finance', 'admin.nav_groups.finance', '¤', [
                 $canAccessPlatformNavigation ? $this->routeItemScoped($user, 'treasury_master', 'treasury.nav_title', 'admin.treasury.master.index', 'finance.view') : null,
+                // P358 financial modules retain their existing authorization.
+                $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
+                    ? $this->routeItemEnterpriseModule($user, 'erp_finance', 'admin.erp_center.modules.finance.title', 'admin.erp.finance.index', 'finance', 'finance.view')
+                    : null,
+                $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
+                    ? $this->routeItemEnterpriseModule($user, 'erp_treasury', 'admin.erp_center.modules.treasury.title', 'admin.erp.treasury.index', 'treasury', 'finance.view')
+                    : null,
             ]),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
                 $this->routeItem($user, 'reports_center', 'reports.title', 'admin.reports.index', 'reports.view'),
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'reports', 'admin.b2c_workspace.modules.reports', 'reports.view'),
                 $this->module($user, $channels, 'b2b', 'finance', 'admin.b2b_workspace.modules.finance', 'finance.view'),
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2b', 'reports', 'admin.b2b_workspace.modules.reports', 'reports.view'),
+                // P358 BI belongs with existing authorized business reports.
+                $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
+                    ? $this->routeItemEnterpriseModule($user, 'erp_bi', 'admin.erp_center.modules.bi.title', 'admin.erp.bi', 'enterprise_bi', 'reports.view')
+                    : null,
             ]),
             $this->group('applications', 'admin.nav_groups.applications', '▣', [
                 $this->routeItemScoped($user, 'app_preview', 'admin.app_preview', 'admin.app-preview.index', 'app_preview.view'),

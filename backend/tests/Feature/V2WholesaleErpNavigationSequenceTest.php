@@ -33,6 +33,18 @@ final class V2WholesaleErpNavigationSequenceTest extends TestCase
         'erp_my_work',
     ];
 
+    /** Sidebar presentation groups; ERP Center cards preserve P118 sequence. */
+    private const SIDEBAR_GROUPS = [
+        'erp_center' => 'erp',
+        'erp_customer_service' => 'erp',
+        'erp_procurement' => 'catalog',
+        'erp_wms' => 'catalog',
+        'erp_finance' => 'finance',
+        'erp_treasury' => 'finance',
+        'erp_bi' => 'analytics',
+        'erp_my_work' => 'erp',
+    ];
+
     private const CARD_KEYS = [
         'customer_service',
         'procurement',
@@ -58,25 +70,22 @@ final class V2WholesaleErpNavigationSequenceTest extends TestCase
         }
     }
 
-    public function test_registered_default_positions_are_unique_and_follow_wholesale_business_sequence(): void
+    public function test_registered_sidebar_defaults_group_erp_modules_by_business_domain(): void
     {
         $registry = app(AdminSidebarManager::class)->registry();
-        $configured = (array) $registry['items'];
-
-        $actual = array_map(
-            static fn (string $key): int => (int) $configured[$key]['order'],
-            self::NAVIGATION_KEYS,
-        );
-
-        $this->assertSame([10, 20, 30, 40, 50, 60, 70, 80], array_values($actual));
-        $this->assertCount(count(array_unique($actual)), $actual);
-        $this->assertTrue(collect(self::NAVIGATION_KEYS)
-            ->every(static fn (string $key): bool => $configured[$key]['group'] === 'erp'));
-
         $layout = app(AdminSidebarManager::class)->layoutData();
-        foreach (self::NAVIGATION_KEYS as $index => $key) {
-            $this->assertSame(($index + 1) * 10, $layout['items'][$key]['sort_order']);
+        $groupOrders = [];
+
+        foreach (self::SIDEBAR_GROUPS as $key => $group) {
+            $this->assertSame($group, $registry['items'][$key]['group']);
+            $this->assertSame($group, $layout['items'][$key]['group_key']);
+            $order = (int) $registry['items'][$key]['order'];
+            $this->assertSame($order, $layout['items'][$key]['sort_order']);
+            $this->assertNotContains($order, $groupOrders[$group] ?? [], $group.' duplicate sort order');
+            $groupOrders[$group][] = $order;
         }
+
+        $this->assertSame(self::NAVIGATION_KEYS, array_keys(self::SIDEBAR_GROUPS));
     }
 
     public function test_super_admin_gets_the_same_authorized_erp_sequence_in_arabic_and_english_on_real_http(): void
@@ -106,21 +115,28 @@ final class V2WholesaleErpNavigationSequenceTest extends TestCase
             ), false);
 
             app()->forgetInstance(AdminNavigation::class);
-            $group = collect(app(AdminNavigation::class)->groupsFor($actor))
-                ->firstWhere('key', 'erp');
+            $groups = collect(app(AdminNavigation::class)->groupsFor($actor));
+            $erp = $groups->firstWhere('key', 'erp');
 
-            $this->assertIsArray($group);
+            $this->assertIsArray($erp);
             $this->assertSame(
-                self::NAVIGATION_KEYS,
-                collect($group['children'])->pluck('key')->all(),
-                $locale.' Sidebar order',
+                ['erp_center', 'erp_customer_service', 'erp_my_work'],
+                collect($erp['children'])->pluck('key')->all(),
+                $locale.' ERP hub shortcuts (Center cards retain the full sequence)',
             );
 
-            foreach ($group['children'] as $item) {
-                $this->assertTrue(
-                    Route::has($item['route']),
-                    $item['key'].' must resolve to a registered destination',
-                );
+            foreach (self::SIDEBAR_GROUPS as $key => $expectedGroup) {
+                $found = [];
+                foreach ($groups as $group) {
+                    foreach ($group['children'] as $item) {
+                        if ($item['key'] === $key) {
+                            $found[] = ['group' => $group['key'], 'route' => $item['route']];
+                        }
+                    }
+                }
+                $this->assertCount(1, $found, $locale.' '.$key.' single authorized destination');
+                $this->assertSame($expectedGroup, $found[0]['group']);
+                $this->assertTrue(Route::has($found[0]['route']));
             }
         }
     }
