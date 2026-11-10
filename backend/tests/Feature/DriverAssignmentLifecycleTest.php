@@ -1073,7 +1073,7 @@ class DriverAssignmentLifecycleTest extends TestCase
                 'driver_id' => $driver->id,
                 'order_id' => $order->id,
             ])->assertConflict()
-                ->assertSee('B2B Driver assignment is available only through authorized manual Order Operations dispatch.');
+                ->assertSee('Wholesale orders require Van fulfillment.');
 
             $this->assertDatabaseMissing('driver_assignments', [
                 'driver_id' => $driver->id,
