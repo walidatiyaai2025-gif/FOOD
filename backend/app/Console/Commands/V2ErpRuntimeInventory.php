@@ -27,11 +27,16 @@ final class V2ErpRuntimeInventory extends Command
         $required = is_array($manifest) && is_array($manifest['require'] ?? null)
             ? $manifest['require']
             : [];
-        $dependencies = array_intersect_key(
-            $required,
-            array_flip(['php', 'laravel/framework', 'laravel/sanctum', 'tecnickcom/tcpdf']),
-        );
+        $dependencies = $required;
         ksort($dependencies);
+        $installedVersions = [];
+        foreach (array_keys($dependencies) as $package) {
+            $installedVersions[$package] = $package === 'php'
+                ? PHP_VERSION
+                : (class_exists(\Composer\InstalledVersions::class)
+                    ? \Composer\InstalledVersions::getPrettyVersion($package)
+                    : null);
+        }
 
         $routes = [];
         foreach (Route::getRoutes() as $route) {
@@ -76,6 +81,7 @@ final class V2ErpRuntimeInventory extends Command
             'laravel_version' => app()->version(),
             'composer_manifest_sha256' => is_file($manifestPath) ? hash_file('sha256', $manifestPath) : null,
             'declared_production_dependencies' => $dependencies,
+            'installed_production_dependency_versions' => $installedVersions,
             'routes_total' => count(Route::getRoutes()),
             'erp_wholesale_related_routes' => $routes,
             'route_inventory_sha256' => hash('sha256', (string) json_encode($routes, JSON_UNESCAPED_SLASHES)),
