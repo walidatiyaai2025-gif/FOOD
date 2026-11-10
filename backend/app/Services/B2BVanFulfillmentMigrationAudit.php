@@ -86,19 +86,10 @@ final class B2BVanFulfillmentMigrationAudit
 
                     $issues = [];
                     if ($channel === 'b2b') {
-                        $authorizedManualDriver = $dispatchStatus === 'assigned'
-                            && $dispatchAssigneeType === FulfillmentActorPolicy::DRIVER
-                            && $dispatchAssigneeId !== null
-                            && $dispatchRoutingReason === 'customer_service_driver_assignment'
-                            && $activeDriverIds !== [];
-
-                        if ($activeDriverIds !== [] && ! $authorizedManualDriver) {
+                        if ($activeDriverIds !== []) {
                             $issues[] = 'b2b_active_driver';
                         }
-                        if (
-                            $dispatchAssigneeType === FulfillmentActorPolicy::DRIVER
-                            && ! $authorizedManualDriver
-                        ) {
+                        if ($dispatchAssigneeType === FulfillmentActorPolicy::DRIVER) {
                             $issues[] = 'b2b_dispatch_driver';
                         }
                         if (count($activeVanIds) > 1) {
@@ -109,8 +100,7 @@ final class B2BVanFulfillmentMigrationAudit
                             && $dispatchAssigneeId === null;
 
                         if (
-                            ! $authorizedManualDriver
-                            && $activeVanIds === []
+                            $activeVanIds === []
                             && $dispatchAssigneeType !== FulfillmentActorPolicy::VAN
                             && ! $explicitAwaitingDispatch
                         ) {

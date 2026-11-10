@@ -118,13 +118,13 @@ def validate(root: Path, registry: dict[str, Any]) -> list[str]:
             function_id = str(function.get("id", ""))
             route = str(function.get("route", ""))
             if function_id.startswith("driver.b2b") or "/driver/b2b/" in route:
-                if function.get("scope") != "manual_dispatch_only":
+                if function.get("scope") != "legacy_transition_pending_2939":
                     errors.append(
                         f"Driver route registry exposes unscoped B2B function: {function_id or route}"
                     )
-        if "Van-first" not in str(driver.get("fulfillment_policy", "")):
+        if "Van-only" not in str(driver.get("fulfillment_policy", "")):
             errors.append(
-                "Driver route registry must preserve Van-first automatic B2B routing."
+                "Driver route registry must keep B2B Van-only fulfillment."
             )
         source = driver.get("authority_source")
         if isinstance(source, str) and (root / source).is_file():

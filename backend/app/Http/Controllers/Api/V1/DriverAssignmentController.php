@@ -99,15 +99,6 @@ class DriverAssignmentController extends Controller
         ]);
         $order = Order::query()->findOrFail($data['order_id']);
         $channel = strtolower((string) $order->channel);
-        $manualWholesaleOverride = $channel === 'b2b'
-            && (bool) ($data['customer_service_override'] ?? false)
-            && $request->is('admin/operations/orders/*');
-        abort_unless(
-            $channel === 'b2c' || $manualWholesaleOverride,
-            409,
-            'B2B Driver assignment is available only through authorized manual Order Operations dispatch.',
-        );
-
         $ability = 'orders.dispatch';
         $user = $request->user();
         abort_unless($user instanceof User, 401);
@@ -117,6 +108,7 @@ class DriverAssignmentController extends Controller
             $ability,
             $channel,
         );
+        abort_unless($channel === 'b2c', 409, 'Wholesale orders require Van fulfillment.');
 
         $driver = Driver::query()->findOrFail($data['driver_id']);
         abort_unless((bool) $driver->is_active, 409, 'Driver must be active before assignment.');
@@ -198,7 +190,7 @@ class DriverAssignmentController extends Controller
             $order,
             $assignment,
             $previousDriverId,
-            $manualWholesaleOverride,
+            false,
         );
 
         return response()->json(['data' => $assignment], 201);

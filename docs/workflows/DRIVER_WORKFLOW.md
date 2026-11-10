@@ -5,31 +5,31 @@ Updated: 2026-10-26
 
 ## Ownership
 
-The Driver App is the fulfillment runtime for **B2C / Retail** and for **explicitly assigned B2B / Wholesale Drivers**.
+The Driver App target fulfillment runtime is **B2C / Retail only**; historical B2B Driver runtime migration is V2 #2939.
 
-B2B automatic routing remains Van-first. A B2B Driver is never invented as an automatic fallback; B2B Driver work exists only after an authorized manual Order Operations dispatch selects that Driver.
+B2B is Van-only, with no automatic or manual B2B Driver fallback. Previously assigned B2B Drivers require audited cutover and runtime token restrictions (#2939).
 
 ## Runtime contract
 
-1. Driver login requires an authoritative active Driver profile plus the matching `B2C_DRIVER` or `B2B_DRIVER` role and execution permission.
+1. B2C fulfillment requires an active Driver profile and B2C_DRIVER role. Legacy B2B Driver login/execution must be restricted by #2939.
 2. The shared Driver assignment APIs are channel-scoped from the authenticated Driver profile.
 3. Assignment queries return only work matching the Driver channel/store.
-4. B2B Driver assignments may be created only by authorized manual Order Operations dispatch; direct generic admin assignment cannot create them.
+4. B2B Driver assignments cannot be created by any route, including manual dispatch.
 5. Delivery actions use server-returned allowed states and backend-authoritative transitions.
 6. Push registration and assignment access preserve the authenticated Driver channel.
-7. No automatic B2B Driver fallback is permitted; automatic B2B routing remains Van-first.
+7. No B2B Driver fallback of any kind is permitted; B2B is Van-only.
 
 ## Driver lifecycle
 
 The Driver lifecycle remains: assignment -> accepted -> picked up -> out for delivery -> delivered, with failed-delivery/proof/finance behavior governed by backend rules.
 
-For manually assigned B2B work, the Dashboard order is advanced to `out_for_delivery` when the Driver is assigned to a `ready` order. Channel/store authorization, offline/error handling, idempotency, notifications and audit history remain enforced.
+For B2B work, the Dashboard order must be assigned to Van or held in `awaiting_dispatch`; never via Driver. Channel/store authorization, offline/error handling, idempotency, notifications and audit history remain enforced.
 
 ## Route authority
 
 Canonical Driver UI functions are declared in `docs/execution/UI_ROUTE_AUTHORITY.json` and validated by `scripts/validate_ui_route_convergence.py`.
 
-The Driver App may continue using the shared assignment route surface; channel authority comes from the authenticated Driver profile. No separate uncontrolled B2B route tree is required.
+Existing Driver routes remain for historical compatibility, not to authorize B2B fulfillment. Runtime/Flutter denial is V2 #2939.
 
 ## Observability
 
