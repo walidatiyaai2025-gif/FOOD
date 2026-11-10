@@ -41,7 +41,7 @@ final class V2SidebarRolePermissionCodesTest extends TestCase
                 ->assertSee(__('v2_role_permissions.description', [], $locale))
                 ->assertSee('name="permission_ids[]"', false)
                 ->assertDontSee('name="item_keys[]"', false)
-                ->assertSee('action="'.route('admin.security.roles.update', $role, false).'"', false);
+                ->assertSee('action="'.route('admin.security.roles.update', $role).'"', false);
 
             // Each shared permission code is an input only once, even when
             // several sidebar items reuse it.
