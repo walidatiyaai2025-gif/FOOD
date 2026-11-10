@@ -81,7 +81,13 @@ final class FinanceWorkbenchController extends Controller
         $actor = $this->actor($request);
         abort_unless($this->modules->isEnabled(FinanceFoundationService::MODULE), 403);
 
-        $contexts = $this->contextOptions($actor);
+        // Do not expose Finance context choices to operational roles lacking
+        // Finance read permission. Authorize before enterprise scope resolution
+        // so a service-only actor receives 403, not a misleading 409.
+        $contexts = array_values(array_filter(
+            $this->contextOptions($actor),
+            fn (array $option): bool => $actor->hasPermission('finance.view', (int) $option['id']),
+        ));
         abort_if($contexts === [], 403);
 
         $selected = $this->selectedContextOption($request, $contexts);
@@ -1098,6 +1104,15 @@ final class FinanceWorkbenchController extends Controller
         $contexts = $this->contextOptions($actor);
         $selected = $this->selectedContextOption($request, $contexts);
         abort_if($selected === null, 422);
+
+        // Journal and other Finance mutations must not resolve sensitive
+        // enterprise scope for an actor without any Finance write capability.
+        abort_unless(
+            $actor->hasPermission('finance.manage', (int) $selected['id'])
+                || $actor->hasPermission('finance.post', (int) $selected['id'])
+                || $actor->hasPermission('finance.approve', (int) $selected['id']),
+            403,
+        );
 
         $context = $this->resolveContext($request, $actor, $selected);
         abort_if($context->enterpriseScope === null, 409, 'Enterprise data scope is required.');
