@@ -10,7 +10,9 @@ Existing `AdminNavigation::groupsFor` exposes `key=customer_360` under `group=ac
 
 **Business channel:** Customer 360 is an existing shared CRM customer identity surface, *not* a combined wholesaler/retailer data grant. B2B managers see wholesale domain only; B2C store admins see only customers assigned to their authorized stores. A foreign-store or foreign-customer HTTP query is 404. Super Admin's existing platform-level role remains unchanged. This work does not certify ERP modules, grant entitlements, expose finance functions or activate a disabled module. The page is already live; no new operational module/readiness dependency is invented.
 
-**Placement/UI:** Keep canonical existing Customer & Sales → Accounts/Customer 360 Sidebar item and page, with existing Arabic and English translation keys and RTL/LTR shell. Fallback is normal Sidebar search/business hierarchy and browser Back. No new screen, popup, persistent state, route, controller or layout; no UI design modifications.
+**HTTP/Sidebar convergence:** The real `B2B_ACCOUNT_MANAGER` global job role has `b2b.accounts.view`, yet the legacy `admin.channels.b2b.global_roles` dashboard allowlist excludes it. Originally the permission-projected Customer 360 Sidebar link therefore led to HTTP 403. `Customer360Controller::access` now admits this one role to the **existing Customer 360 route** only when it also has `b2b.accounts.view`; it still derives permitted wholesale store IDs from `OperationalTenantScope`, and no B2C store scope is conferred. It does **not** add the role to B2B dashboard/channel allowlists, authorize unrelated modules, or relax any Retail/other-role guards. Revoking the role or permission prevents this narrow allowance. This closes a dead navigation link instead of weakening the test.
+
+**Placement/UI:** Keep canonical existing Customer & Sales → Accounts/Customer 360 Sidebar item and page, with existing Arabic and English translation keys and RTL/LTR shell. Fallback is normal Sidebar search/business hierarchy and browser Back. No new screen, popup, persistent state, or layout; the only runtime change is the server-side Customer 360 role/permission convergence.
 
 ## Implemented executable regression
 
@@ -26,13 +28,13 @@ All cases use final server-authorized Navigation and real existing HTTP controll
 
 | Surface | Impact | Evidence |
 | --- | --- | --- |
-| Backend/API | No runtime change | Only new isolated Laravel test; existing Customer360Controller and route contracts reused |
+| Backend/API | Customer 360 admin HTTP authorization only | Narrow `B2B_ACCOUNT_MANAGER` + `b2b.accounts.view` scope in `Customer360Controller`; no public/mobile API contract change |
 | Dashboard | Existing Sidebar route and real customer page confirmed | Real GET, AR/EN, exact item, scoped actor permission and foreign-store denial |
 | Customer app | NOT AFFECTED | No Flutter, customer auth/API/payload/catalog pricing/deep link code changed |
 | Driver app | NOT AFFECTED | No Flutter, dispatch/delivery/payment/GPS/API change; B2C DRIVER ONLY unchanged |
 | Van app | NOT AFFECTED | No Flutter, Van collection/route/visit/dispatch/API change; B2B VAN ONLY unchanged |
 
-Security: data visibility is enforced server-side; no new privileges, migrations, account modifications, storage or background jobs, and no visual override can grant access. No need to add a mobile subissue for a test-only Dashboard change.
+Security: data visibility remains enforced server-side. The scoped Customer 360 HTTP allowance aligns a pre-existing role permission and Sidebar link; it is not an unrestricted new permission, channel dashboard grant, or store-scope bypass. No migrations, account modifications, storage or background jobs, and no visual override can grant access. No mobile subissue is required because no Customer/Driver/Van runtime, mobile API, auth, or payload is altered.
 
 ## CI, closure and final acceptance boundary
 
