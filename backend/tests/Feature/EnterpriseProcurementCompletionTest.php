@@ -122,7 +122,21 @@ final class EnterpriseProcurementCompletionTest extends TestCase
         $this->assertNotNull($quoteDocument);
         Storage::disk('local')->assertExists($quoteDocument->storage_path);
 
-        $order = $completion->awardRfq($actor, $context, $rfq->id, $quote->id);
+        try {
+            $completion->awardRfq($actor, $context, $rfq->id, $quote->id);
+            $this->fail('The RFQ creator must not award their own request.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('decision', $exception->errors());
+        }
+        $this->assertDatabaseHas('enterprise_procurement_rfqs', [
+            'id' => $rfq->id,
+            'status' => 'published',
+        ]);
+        $this->assertDatabaseMissing('enterprise_purchase_orders', [
+            'procurement_rfq_id' => $rfq->id,
+        ]);
+
+        $order = $completion->awardRfq($checker, $checkerContext, $rfq->id, $quote->id);
         $this->assertSame($supplier->id, (int) $order->supplier_id);
         $this->assertSame($rfq->id, (int) $order->procurement_rfq_id);
         $this->assertSame($quote->id, (int) $order->awarded_quote_id);
