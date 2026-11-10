@@ -12,6 +12,52 @@ import '../../shared/customer_ui_v3/customer_ui_v3.dart';
 import 'customer_account_data.dart';
 import 'customer_account_v3_widgets.dart';
 
+/// Human-readable, locale-specific result of the existing account-deletion API.
+/// Never surface raw backend state codes or sensitive retention context.
+String customerAccountDeletionStatusMessage(String? status, String locale) {
+  final arabic = locale.toLowerCase().startsWith('ar');
+  switch (status?.trim().toUpperCase()) {
+    case 'COMPLETED':
+      return arabic
+          ? 'اكتمل طلب حذف الحساب وإخفاء بياناته الشخصية.'
+          : 'Your account deletion request is complete. Personal details were anonymized.';
+    case 'PENDING_RETENTION':
+      return arabic
+          ? 'طلب حذف الحساب قيد المراجعة. ستُحفظ سجلات الطلبات والفواتير والالتزامات اللازمة حتى انتهاء المراجعة.'
+          : 'Your account deletion request is under review. Required order, invoice and financial records will be retained until the review is complete.';
+    case 'OPERATIONAL_REVIEW_REQUIRED':
+      return arabic
+          ? 'يتطلب هذا الحساب التشغيلي مراجعة إدارية قبل إيقافه. تواصل مع المسؤول.'
+          : 'This operational account requires an administrator review before deactivation. Contact your administrator.';
+    case 'PROCESSING':
+    case 'REQUESTED':
+      return arabic
+          ? 'تم استلام طلب حذف الحساب وهو قيد المعالجة.'
+          : 'Your account deletion request was received and is being processed.';
+    case 'CANCELLED':
+      return arabic
+          ? 'أُلغي طلب حذف الحساب. يمكنك التواصل مع الدعم للمساعدة.'
+          : 'The account deletion request was cancelled. Contact support for assistance.';
+    default:
+      return arabic
+          ? 'تعذّر تأكيد حالة طلب حذف الحساب. حاول تحديث الحساب أو تواصل مع الدعم.'
+          : 'The account deletion request status could not be confirmed. Refresh your account or contact support.';
+  }
+}
+
+String customerAccountDeletionErrorMessage(String locale,
+    {required bool passwordRejected}) {
+  final arabic = locale.toLowerCase().startsWith('ar');
+  if (passwordRejected) {
+    return arabic
+        ? 'تعذّر التحقق من كلمة المرور. راجعها وحاول مرة أخرى.'
+        : 'Password verification failed. Check your password and try again.';
+  }
+  return arabic
+      ? 'تعذّر إرسال طلب حذف الحساب. تحقق من الاتصال وحاول مرة أخرى.'
+      : 'Unable to submit your account deletion request. Check your connection and try again.';
+}
+
 class CustomerAccountScreen extends StatefulWidget {
   const CustomerAccountScreen({
     required this.api,
@@ -158,25 +204,25 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
       final data = response is Map && response['data'] is Map
           ? Map<String, dynamic>.from(response['data'] as Map)
           : const <String, dynamic>{};
-      final status = data['status']?.toString() ?? 'REQUESTED';
+      final status = data['status']?.toString();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('customer-account-deletion-status'),
-          content: Text(
-            _locale == 'ar'
-                ? 'حالة طلب حذف الحساب: $status'
-                : 'Account deletion request status: $status',
-          ),
+          duration: const Duration(seconds: 8),
+          content: Text(customerAccountDeletionStatusMessage(status, _locale)),
         ),
       );
     } on B2cAccountException catch (error) {
       if (!mounted) return;
-      final message = error.fieldErrors['password']?.first ??
-          error.serverMessage ??
-          error.code;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      final passwordRejected = error.fieldErrors['password']?.isNotEmpty == true;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(customerAccountDeletionErrorMessage(
+            _locale,
+            passwordRejected: passwordRejected,
+          )),
+        ),
+      );
     } finally {
       password.dispose();
     }
