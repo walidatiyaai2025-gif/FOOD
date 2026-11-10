@@ -521,7 +521,8 @@
       "title": "V2 | MOBILE Customer — Wholesale credit, pricing, discount and partial collection parity",
       "summary": "Wholesale credit, pricing, discount and partial collection parity",
       "details": "Source T115R02/P129. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
-      "issue_number": null
+      "issue_number": 2732,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2732"
     },
     {
       "id": "MOB-C04",
@@ -530,7 +531,8 @@
       "title": "V2 | MOBILE Customer — Order status, invoice, notification and storefront parity under V2",
       "summary": "Order status, invoice, notification and storefront parity under V2",
       "details": "Source T115R01/P118. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
-      "issue_number": null
+      "issue_number": 2733,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2733"
     },
     {
       "id": "MOB-D01",
@@ -539,7 +541,8 @@
       "title": "V2 | MOBILE Driver — Role change, access denial, biometric session and token invalidation",
       "summary": "Role change, access denial, biometric session and token invalidation",
       "details": "Source P069/P079/P142. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
-      "issue_number": null
+      "issue_number": 2734,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2734"
     },
     {
       "id": "MOB-D02",
@@ -548,7 +551,8 @@
       "title": "V2 | MOBILE Driver — B2C-only dispatch, assignment, status, proof and notification workflow",
       "summary": "B2C-only dispatch, assignment, status, proof and notification workflow",
       "details": "Source P110/T115R04. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
-      "issue_number": null
+      "issue_number": 2735,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2735"
     },
     {
       "id": "MOB-D03",
@@ -557,7 +561,8 @@
       "title": "V2 | MOBILE Driver — Wallet/collection role scope, finance settlement and API contracts",
       "summary": "Wallet/collection role scope, finance settlement and API contracts",
       "details": "Source P033/T115R05. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
-      "issue_number": null
+      "issue_number": 2736,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2736"
     },
     {
       "id": "MOB-V01",
@@ -566,7 +571,8 @@
       "title": "V2 | MOBILE Van — Role change, access denial, offline identity and token invalidation",
       "summary": "Role change, access denial, offline identity and token invalidation",
       "details": "Source P069/P079/P142. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
-      "issue_number": null
+      "issue_number": 2737,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2737"
     },
     {
       "id": "MOB-V02",
@@ -575,7 +581,8 @@
       "title": "V2 | MOBILE Van — B2B-only van assignment, routes, visits and territory authorization",
       "summary": "B2B-only van assignment, routes, visits and territory authorization",
       "details": "Source P110/T115R04. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
-      "issue_number": null
+      "issue_number": 2738,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2738"
     },
     {
       "id": "MOB-V03",
@@ -584,7 +591,8 @@
       "title": "V2 | MOBILE Van — Consignment stock, direct sales, trip settlements and offline replay",
       "summary": "Consignment stock, direct sales, trip settlements and offline replay",
       "details": "Source T115R03/T115R04. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
-      "issue_number": null
+      "issue_number": 2739,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2739"
     },
     {
       "id": "MOB-ALL01",
@@ -593,7 +601,8 @@
       "title": "V2 | MOBILE Cross-app — Contract compatibility and shared identity RBAC matrix for all three APKs",
       "summary": "Contract compatibility and shared identity RBAC matrix for all three APKs",
       "details": "Source P009/P032/P144. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
-      "issue_number": null
+      "issue_number": 2740,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2740"
     },
     {
       "id": "MOB-ALL02",
@@ -602,7 +611,8 @@
       "title": "V2 | MOBILE Cross-app — AR/EN accessible mobile E2E CI and synchronized signed build evidence",
       "summary": "AR/EN accessible mobile E2E CI and synchronized signed build evidence",
       "details": "Source P112/P145. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
-      "issue_number": null
+      "issue_number": 2741,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2741"
     },
     {
       "id": "G001",
@@ -611,7 +621,8 @@
       "title": "V2 | GATE — V2 isolated branch governance and GitHub main-merge protection ruleset",
       "summary": "V2 isolated branch governance and GitHub main-merge protection ruleset",
       "details": "Source P137. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
-      "issue_number": null
+      "issue_number": 2742,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2742"
     },
     {
       "id": "G002",
@@ -620,7 +631,8 @@
       "title": "V2 | GATE — Full source paragraph/table row/Sidebar traceability and coverage audit",
       "summary": "Full source paragraph/table row/Sidebar traceability and coverage audit",
       "details": "Source P385. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
-      "issue_number": null
+      "issue_number": 2743,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2743"
     },
     {
       "id": "G003",
@@ -629,7 +641,8 @@
       "title": "V2 | GATE — V2 exact-head Required CI, policy, AR/EN, Flutter and Laravel testing",
       "summary": "V2 exact-head Required CI, policy, AR/EN, Flutter and Laravel testing",
       "details": "Source P112/P145. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
-      "issue_number": null
+      "issue_number": 2744,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2744"
     },
     {
       "id": "G004",
@@ -638,7 +651,8 @@
       "title": "V2 | GATE — V2 signed Setup ZIP / web installer / production dependencies fresh MySQL install",
       "summary": "V2 signed Setup ZIP / web installer / production dependencies fresh MySQL install",
       "details": "Source P112. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
-      "issue_number": null
+      "issue_number": 2745,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2745"
     },
     {
       "id": "G005",
@@ -647,7 +661,8 @@
       "title": "V2 | GATE — V2 signed Admin Update ZIP / Dashboard Update Center / backup and recovery",
       "summary": "V2 signed Admin Update ZIP / Dashboard Update Center / backup and recovery",
       "details": "Source P112. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
-      "issue_number": null
+      "issue_number": 2746,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2746"
     },
     {
       "id": "G006",
@@ -656,7 +671,8 @@
       "title": "V2 | GATE — V2 v124/v125/v127 upgrade compatibility, preserve data and rollback tests",
       "summary": "V2 v124/v125/v127 upgrade compatibility, preserve data and rollback tests",
       "details": "Source P112. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
-      "issue_number": null
+      "issue_number": 2747,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2747"
     },
     {
       "id": "G007",
@@ -665,7 +681,8 @@
       "title": "V2 | GATE — V2 full end-to-end ERP/RBAC/sidebar authorization security acceptance",
       "summary": "V2 full end-to-end ERP/RBAC/sidebar authorization security acceptance",
       "details": "Source P109/P144. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
-      "issue_number": null
+      "issue_number": 2748,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2748"
     },
     {
       "id": "G008",
