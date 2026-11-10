@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AdminSidebarManager;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -85,6 +86,118 @@ class AdminSidebarManagementTest extends TestCase
         $this->assertNotNull($catalog);
         $this->assertSame('Custom catalog', $catalog['label_text']);
         $this->assertTrue(collect($catalog['children'])->contains('key', 'reports_center'));
+    }
+
+    public function test_legacy_deep_sidebar_layout_is_flattened_without_losing_or_duplicating_authorized_pages(): void
+    {
+        $user = $this->globalUser('B2B_ADMIN', 'sidebar-three-levels@example.test');
+        $known = array_keys(app(AdminSidebarManager::class)->registry()['items']);
+        $source = collect(app(AdminNavigation::class)->groupsFor($user))->first(
+            fn (array $group): bool => count(array_intersect(
+                array_column($group['children'], 'key'),
+                $known,
+            )) >= 4 && $group['key'] !== 'administration',
+        );
+
+        $this->assertNotNull($source, 'A group with four authorized sidebar pages is required.');
+        $keys = array_slice(array_values(array_intersect(array_column($source['children'], 'key'), $known)), 0, 4);
+        $rows = [];
+        foreach ($keys as $index => $key) {
+            $rows[] = [
+                'item_key' => $key,
+                'group_key' => $source['key'],
+                'parent_key' => $index === 0 ? null : $keys[$index - 1],
+                'label_ar' => null,
+                'label_en' => null,
+                'sort_order' => $index + 1,
+                'is_enabled' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        DB::table('admin_sidebar_items')->insert($rows);
+
+        $rendered = collect(app(AdminNavigation::class)->groupsFor($user))->firstWhere('key', $source['key']);
+        $this->assertNotNull($rendered);
+        $root = collect($rendered['children'])->firstWhere('key', $keys[0]);
+        $this->assertNotNull($root);
+        $this->assertSame(array_slice($keys, 1), array_column($root['children'], 'key'));
+        foreach ($root['children'] as $child) {
+            $this->assertSame([], $child['children']);
+        }
+
+        $flatKeys = array_column($this->flatten($rendered['children']), 'key');
+        foreach ($keys as $key) {
+            $this->assertSame(1, count(array_filter($flatKeys, static fn (string $item): bool => $item === $key)));
+        }
+
+        // Malformed historic cycles cannot silently hide a previously authorized link.
+        DB::table('admin_sidebar_items')->where('item_key', $keys[0])->update(['parent_key' => $keys[3]]);
+        $cyclic = collect(app(AdminNavigation::class)->groupsFor($user))->firstWhere('key', $source['key']);
+        $this->assertNotNull($cyclic);
+        $cycleKeys = array_column($this->flatten($cyclic['children']), 'key');
+        foreach ($keys as $key) {
+            $this->assertSame(1, count(array_filter($cycleKeys, static fn (string $item): bool => $item === $key)));
+        }
+    }
+
+    public function test_sidebar_layout_rejects_fourth_level_and_accepts_third_level(): void
+    {
+        $admin = $this->globalUser('SUPER_ADMIN', 'sidebar-depth-admin@example.test');
+        $layout = app(AdminSidebarManager::class)->layoutData();
+
+        $groups = [];
+        foreach ($layout['groups'] as $key => $group) {
+            $groups[$key] = [
+                'label_ar' => $group['label_ar'],
+                'label_en' => $group['label_en'],
+                'icon' => $group['icon'],
+                'sort_order' => $group['sort_order'],
+                'is_enabled' => $group['is_enabled'] ? 1 : 0,
+            ];
+        }
+
+        $items = [];
+        foreach ($layout['items'] as $key => $item) {
+            $items[$key] = [
+                'group_key' => $item['group_key'],
+                'parent_key' => $item['parent_key'],
+                'label_ar' => $item['label_ar'],
+                'label_en' => $item['label_en'],
+                'sort_order' => $item['sort_order'],
+                'is_enabled' => $item['is_enabled'] ? 1 : 0,
+            ];
+        }
+
+        // Group -> catalog_management -> commercial_sales_control is valid;
+        // adding lookup_management beneath it would create a forbidden fourth level.
+        $items['commercial_sales_control']['parent_key'] = 'catalog_management';
+        $items['lookup_management']['parent_key'] = 'commercial_sales_control';
+
+        app()->setLocale('en');
+        $before = DB::table('admin_sidebar_items')->count();
+        $this->actingAs($admin)->put(route('admin.sidebar-layout.update', [], false), [
+            'groups' => $groups,
+            'items' => $items,
+        ])->assertSessionHasErrors([
+            'items.lookup_management.parent_key' => __('sidebar_admin.max_nesting'),
+        ]);
+        $this->assertSame($before, DB::table('admin_sidebar_items')->count());
+
+        $items['lookup_management']['parent_key'] = null;
+        $this->actingAs($admin)->put(route('admin.sidebar-layout.update', [], false), [
+            'groups' => $groups,
+            'items' => $items,
+        ])->assertRedirect(route('admin.sidebar-layout.index', [], false))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('admin_sidebar_items', [
+            'item_key' => 'commercial_sales_control',
+            'parent_key' => 'catalog_management',
+        ]);
+        $this->assertNotSame('sidebar_admin.max_nesting', __('sidebar_admin.max_nesting', [], 'ar'));
+        $this->assertNotSame('sidebar_admin.max_nesting', __('sidebar_admin.max_nesting', [], 'en'));
     }
 
     public function test_super_admin_can_open_both_sidebar_management_pages(): void
