@@ -10,6 +10,7 @@
 | Persona | Entry / HTTP route | Authority and data scope |
 | --- | --- | --- |
 | Global B2B_ADMIN | `catalog_management` → `admin.catalog.index` | `catalog.view`, wholesale/global channel only; route must return 200 for entitled user |
+| Mixed B2B_ADMIN global + RETAIL_INVENTORY at store A | Both wholesale catalog and scoped Retail inventory | One actor has both channel contexts; each authorized direct HTTP surface succeeds and foreign Retail store still fails 403/404 |
 | RETAIL_INVENTORY at store A | `b2c_inventory` → `admin.b2c.module` (`inventory`, store A) | store-scoped `inventory.view`; A returns 200, foreign B returns 403/404, B2B inventory returns 403 |
 | Global B2B_ADMIN with explicit per-user DENY | Forced-visible `catalog_management` and direct `admin.catalog.index` | the persisted DENY overrides inherited `catalog.view`; link omitted and direct URL 403 even with visual flag true |
 | SUPER_ADMIN with ERP procurement | `erp_procurement` → `admin.erp.procurement.index` | module lifecycle ENABLED, platform entitlement and exact-version operational readiness required for discovery; uncertified/stale readiness produces direct HTTP 403 |
@@ -18,7 +19,7 @@ Every case runs with Arabic and English users; the successful Dashboard response
 
 ## Acceptance and security evidence
 
-`backend/tests/Feature/V2SidebarAuthorityMatrixTest.php` is the executable P156 combined contract. It covers real permission, active role and channel, two Retail stores and cross-store rejection, forged visible role layout vs effective DENY, direct protected HTTP, authorized responses, readiness certification, stale module version, entitlement revocation and audit preservation. It supplements rather than rewrites separately owned P035/P106 and active per-page PRs.
+`backend/tests/Feature/V2SidebarAuthorityMatrixTest.php` is the executable P156 combined contract. It covers real permission, active role and channel, two Retail stores, a dual-channel multi-role actor and cross-store rejection, forged visible role layout vs effective DENY, direct protected HTTP, authorized responses, readiness certification, stale module version, physically disabled module with direct HTTP 403, entitlement revocation and audit preservation. It supplements rather than rewrites separately owned P035/P106 and active per-page PRs.
 
 The test deliberately does not assert that a module entitlement *alone* grants direct HTTP access. The ERP route retains its own server-side role/tenant guards, and the operational readiness middleware independently rejects uncertified routes. Financial maker/checker, commercial ledger restrictions and the remaining product journeys are exercised by their dedicated V2 security/ERP issues; this focused matrix neither changes nor weakens them.
 
