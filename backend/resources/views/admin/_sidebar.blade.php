@@ -14,6 +14,22 @@
 
         return false;
     };
+    // Derive optional group counters exclusively from server-authorized links.
+    // Never count a registry entry removed by RBAC, tenant, channel or readiness.
+    $countAuthorizedChildren = static function (array $nodes) use (&$countAuthorizedChildren): int {
+        $count = 0;
+        foreach ($nodes as $node) {
+            if (!is_array($node)) {
+                continue;
+            }
+            if (isset($node['route'])) {
+                $count++;
+            }
+            $count += $countAuthorizedChildren((array) ($node['children'] ?? []));
+        }
+
+        return $count;
+    };
     $childIcon = static function (string $key): string {
         return match (true) {
             str_contains($key, 'dashboard') => 'home',
@@ -44,7 +60,9 @@ aside.foodex-sidebar-expanded{width:var(--foodex-sidebar-width)!important}
 .foodex-sidebar-search{position:relative}.foodex-sidebar-search input{width:100%;padding-inline-start:38px}
 .foodex-nav-link[hidden],.foodex-nav-subchildren[hidden],.foodex-nav-group[hidden],.foodex-sidebar-search-empty[hidden]{display:none!important}
 .foodex-sidebar-search-empty{margin:4px 8px;padding:10px 12px;border:1px dashed var(--foodex-border);border-radius:10px;color:var(--foodex-muted);font-size:.82rem}.foodex-sidebar-search .foodex-svg-icon{position:absolute;inset-inline-start:11px;top:12px;width:18px;height:18px;color:var(--foodex-muted)}
-.foodex-nav{display:grid;gap:6px}.foodex-nav-group{border:1px solid transparent;border-radius:12px}.foodex-nav-group summary{list-style:none;cursor:pointer;min-height:46px;display:grid;grid-template-columns:30px minmax(0,1fr) 18px;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;font-weight:800;color:var(--foodex-ink)}.foodex-nav-group-icon{display:grid;place-items:center;width:28px;height:28px;font-size:1.35rem;line-height:1}.foodex-nav-group summary::-webkit-details-marker{display:none}.foodex-nav-group summary:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+.foodex-nav{display:grid;gap:6px}.foodex-nav-group{border:1px solid transparent;border-radius:12px}.foodex-nav-group summary{list-style:none;cursor:pointer;min-height:46px;display:grid;grid-template-columns:30px minmax(0,1fr) auto 18px;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;font-weight:800;color:var(--foodex-ink)}.foodex-nav-group-icon{display:grid;place-items:center;width:28px;height:28px;font-size:1.35rem;line-height:1}
+.foodex-nav-count{grid-column:3;display:inline-flex;align-items:center;justify-content:center;min-width:22px;padding:1px 5px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font-size:.7rem;line-height:1.35;font-variant-numeric:tabular-nums}
+.foodex-nav-chevron{grid-column:4}.foodex-nav-group summary::-webkit-details-marker{display:none}.foodex-nav-group summary:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
 .foodex-nav-group[open]{border-color:var(--foodex-border);background:#fbfcfd}.foodex-nav-group[open] summary{color:var(--foodex-green-dark)}.foodex-nav-group[open] .foodex-nav-chevron{transform:rotate(180deg)}
 /* Current page context is distinct from manually expanded groups; logical start supports RTL/LTR. */
 .foodex-nav-group.is-current-group{border-color:var(--foodex-border);border-inline-start:3px solid var(--foodex-green);background:var(--foodex-green-soft)}.foodex-nav-group.is-current-group>summary{color:var(--foodex-green-dark)}
@@ -54,6 +72,7 @@ aside.foodex-sidebar-collapsed .foodex-sidebar-brand span:last-child,
 aside.foodex-sidebar-collapsed .foodex-sidebar-search,
 aside.foodex-sidebar-collapsed .foodex-nav-label,
 aside.foodex-sidebar-collapsed .foodex-nav-chevron,
+aside.foodex-sidebar-collapsed .foodex-nav-count,
 aside.foodex-sidebar-collapsed .foodex-nav-group>summary span:nth-child(2){display:none!important}
 
 aside.foodex-sidebar-collapsed .foodex-sidebar-head{justify-content:center;flex-wrap:wrap}
@@ -105,12 +124,13 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     aside.foodex-sidebar-collapsed .foodex-sidebar-search,
     aside.foodex-sidebar-collapsed .foodex-nav-label,
     aside.foodex-sidebar-collapsed .foodex-nav-chevron,
+    aside.foodex-sidebar-collapsed .foodex-nav-count,
     aside.foodex-sidebar-collapsed .foodex-nav-group>summary span:nth-child(2){display:initial!important}
     aside.foodex-sidebar-collapsed .foodex-sidebar-search{display:block!important}
     aside.foodex-sidebar-collapsed .foodex-sidebar-head{justify-content:space-between;flex-wrap:nowrap}
     aside.foodex-sidebar-collapsed .foodex-sidebar-brand{justify-content:flex-start;width:auto}
     aside.foodex-sidebar-collapsed .foodex-sidebar-toggle{width:44px;height:44px}
-    aside.foodex-sidebar-collapsed .foodex-nav-group summary{grid-template-columns:30px minmax(0,1fr) 18px;place-items:initial;padding:8px 10px}
+    aside.foodex-sidebar-collapsed .foodex-nav-group summary{grid-template-columns:30px minmax(0,1fr) auto 18px;place-items:initial;padding:8px 10px}
     aside.foodex-sidebar-collapsed .foodex-nav-group:not([open]) .foodex-nav-children{display:grid}
     aside.foodex-sidebar-collapsed .foodex-nav-link{grid-template-columns:28px minmax(0,1fr);place-items:initial;padding:7px 9px}
     .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main,
@@ -144,10 +164,14 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
         @foreach($navGroups as $group)
             @php($groupActive = $containsContext($group, (string)($navContext??'')))
             @php($groupPrimary = $group['label_text'] ?? __($group['label']))
+            @php($authorizedLinkCount = $countAuthorizedChildren((array) ($group['children'] ?? [])))
             <details class="foodex-nav-group {{ $groupActive?'is-current-group':'' }}" data-group="{{ $group['key'] }}" data-nav-group="{{ $group['key'] }}" {{ $groupActive?'open':'' }}>
                 <summary>
                     <span class="foodex-nav-group-icon" aria-hidden="true">{{ $group['icon'] }}</span>
                     <span>{{ $groupPrimary }}</span>
+                    @if($authorizedLinkCount > 1)
+                        <span class="foodex-nav-count" aria-label="{{ __('sidebar_admin.authorized_pages_count', ['count' => $authorizedLinkCount]) }}" data-authorized-page-count="{{ $authorizedLinkCount }}">{{ $authorizedLinkCount }}</span>
+                    @endif
                     <span class="foodex-nav-chevron" aria-hidden="true">⌄</span>
                 </summary>
                 <div class="foodex-nav-children">
