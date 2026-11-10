@@ -87,7 +87,7 @@ def validate(root: Path) -> list[str]:
     for marker in ("B2C / Retail only", "no automatic or manual B2B Driver fallback", "B2B Driver assignments cannot be created"):
         if marker not in driver_doc:
             errors.append(f"DRIVER_WORKFLOW is missing manual B2B Driver marker: {marker}")
-    for marker in ("automatic routing runtime", "Automatic B2B routing never falls back to a Driver", "/api/v1/van/orders", "/api/v1/van/remittances"):
+    for marker in ("automatic routing runtime", "All B2B routing and manual dispatch are Van-only", "/api/v1/van/orders", "/api/v1/van/remittances"):
         if marker not in van_doc:
             errors.append(f"VAN_WORKFLOW is missing authoritative marker: {marker}")
 
