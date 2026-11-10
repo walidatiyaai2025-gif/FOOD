@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\StoreBusinessProfile;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AdminSidebarManager;
@@ -9,6 +10,7 @@ use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
@@ -106,7 +108,7 @@ final class V2WholesaleErpNavigationSequenceTest extends TestCase
 
             foreach ($group['children'] as $item) {
                 $this->assertTrue(
-                    \Illuminate\Support\Facades\Route::has($item['route']),
+                    Route::has($item['route']),
                     $item['key'].' must resolve to a registered destination',
                 );
             }
@@ -117,7 +119,7 @@ final class V2WholesaleErpNavigationSequenceTest extends TestCase
     {
         $storeId = (int) DB::table('stores')->insertGetId([
             'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
-            'business_profile' => \App\Enums\StoreBusinessProfile::RETAIL_STORE->value,
+            'business_profile' => StoreBusinessProfile::RETAIL_STORE->value,
             'code' => 'V2-P118-RETAIL',
             'name' => 'V2 P118 Retail',
             'is_active' => true,
