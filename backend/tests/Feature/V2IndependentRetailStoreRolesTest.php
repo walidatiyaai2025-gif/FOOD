@@ -102,7 +102,7 @@ final class V2IndependentRetailStoreRolesTest extends TestCase
                 ->flatMap(static fn (array $group): array => $group['children'])
                 ->keyBy('key');
 
-            $this->assertSame((string) $ops, $nodes->get('b2c_orders')['params']['store_id']);
+            $this->assertSame((string) $ops, $nodes->get('b2c_reports')['params']['store_id']);
             $this->assertSame((string) $stock, $nodes->get('b2c_inventory')['params']['store_id']);
 
             $this->actingAs($actor)
