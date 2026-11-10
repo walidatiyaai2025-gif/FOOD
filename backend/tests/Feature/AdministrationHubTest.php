@@ -28,14 +28,15 @@ class AdministrationHubTest extends TestCase
             ->firstWhere('key', 'administration');
 
         $this->assertIsArray($administration);
-        $this->assertCount(3, $administration['children']);
+        $this->assertCount(4, $administration['children']);
         $this->assertSame(
-            ['administration_hub', 'sidebar_role_access', 'sidebar_layout'],
+            ['administration_hub', 'notifications_center', 'sidebar_role_access', 'sidebar_layout'],
             collect($administration['children'])->pluck('key')->values()->all(),
         );
         $this->assertSame('admin.administration.index', $administration['children'][0]['route']);
-        $this->assertSame('admin.sidebar-access.roles', $administration['children'][1]['route']);
-        $this->assertSame('admin.sidebar-layout.index', $administration['children'][2]['route']);
+        $this->assertSame('admin.notifications.index', $administration['children'][1]['route']);
+        $this->assertSame('admin.sidebar-access.roles', $administration['children'][2]['route']);
+        $this->assertSame('admin.sidebar-layout.index', $administration['children'][3]['route']);
     }
 
     public function test_administration_hub_exposes_customer_driver_and_van_as_first_class_apps(): void
