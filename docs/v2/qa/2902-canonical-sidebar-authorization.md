@@ -33,3 +33,7 @@ Existing tests remain authoritative for module exact-version lifecycle, entitlem
 ## Acceptance and non-goals
 
 Merge only after **exact-head** Repository Policy, V2 Isolation, full Laravel including these new tests, PHP syntax/Pint/PHPStan/security, localization AR/EN and real MySQL/Redis install/upgrade/recovery all PASS. Independently validate real staging browser (responsive RTL/LTR, keyboard and screen-reader focus), live authorization for scoped users/operational modules and runtime health before closing Issue #2902. This PR cannot itself certify those external conditions. Never target `main`, deploy production, delete live branches or expose account identities.
+
+### Explicit Mobile impact review (CI contract)
+
+Customer / Driver / Van: no application binaries, Flutter source, mobile APIs, user permissions, order lifecycles or payload contracts have changed. Customer remains unchanged; Driver retains B2C-only fulfillment; Van retains B2B-only fulfillment. Backend/Dashboard changes consist exclusively of read-only regression tests and QA notes, not a runtime policy change.
