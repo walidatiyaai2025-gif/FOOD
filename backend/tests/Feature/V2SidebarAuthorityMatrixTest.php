@@ -14,6 +14,7 @@ use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -208,6 +209,7 @@ final class V2SidebarAuthorityMatrixTest extends TestCase
 
             // ENABLED and an entitlement do not establish operational readiness.
             config()->set('enterprise_module_readiness.certified_versions', []);
+            config()->set('enterprise_module_readiness.workflow_attestations', []);
             $this->assertNull($this->item($owner->fresh(), 'erp_procurement'));
             $this->actingAs($owner)
                 ->get(route('admin.erp.procurement.index', [], false))
@@ -216,6 +218,9 @@ final class V2SidebarAuthorityMatrixTest extends TestCase
             // Exact-version readiness permits *discovery*, while the route
             // retains its own real HTTP, tenant and permission checks.
             config()->set('enterprise_module_readiness.certified_versions.procurement', $version);
+            // Without reviewed workflow evidence, exact-version certification is insufficient.
+            $this->assertNull($this->item($owner->fresh(), 'erp_procurement'));
+            SyntheticErpWorkflowEvidence::install(); // Synthetic test provenance only.
             $item = $this->item($owner->fresh(), 'erp_procurement');
             $this->assertNotNull($item);
             $this->assertSame('admin.erp.procurement.index', $item['route']);
