@@ -122,7 +122,7 @@ final class V2IndependentRetailStoreRolesTest extends TestCase
 
             $this->actingAs($actor)
                 ->get(route('admin.b2c.module', ['module' => 'orders', 'store_id' => $stock]))
-                ->assertForbidden();
+                ->assertNotFound(); // Fail-closed store-scoped order concealment.
         }
     }
 
