@@ -8,6 +8,7 @@ use App\Services\AdminSidebarManager;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -176,8 +177,8 @@ final class V2PlatformNavigationPresentationBoundaryTest extends TestCase
         }
     }
 
-    /** @return \Illuminate\Support\Collection<int, array<string, mixed>> */
-    private function visibleItems(User $actor): \Illuminate\Support\Collection
+    /** @return Collection<int, array<string, mixed>> */
+    private function visibleItems(User $actor): Collection
     {
         return collect(app(AdminNavigation::class)->groupsFor($actor))
             ->flatMap(fn (array $group) => $group['children'])
