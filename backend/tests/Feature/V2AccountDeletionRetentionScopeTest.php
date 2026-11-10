@@ -136,6 +136,27 @@ final class V2AccountDeletionRetentionScopeTest extends TestCase
         }
     }
 
+    public function test_retention_review_reason_is_localized_for_arabic_and_english(): void
+    {
+        $arabicUser = User::factory()->create();
+        $this->legacyCustomer($arabicUser, 'b2b');
+        app()->setLocale('ar');
+
+        $arabicRequest = app(AccountDeletionService::class)->request($arabicUser, 'password');
+
+        $this->assertSame(__('account_deletion.financial_review'), $arabicRequest->block_reason);
+        $this->assertStringContainsString('السجلات المالية', $arabicRequest->block_reason);
+
+        $englishUser = User::factory()->create();
+        $this->legacyCustomer($englishUser, 'b2b');
+        app()->setLocale('en');
+
+        $englishRequest = app(AccountDeletionService::class)->request($englishUser, 'password');
+
+        $this->assertSame(__('account_deletion.financial_review'), $englishRequest->block_reason);
+        $this->assertStringContainsString('Financial records', $englishRequest->block_reason);
+    }
+
     private function legacyCustomer(User $user, string $type): Customer
     {
         return Customer::query()->create([
