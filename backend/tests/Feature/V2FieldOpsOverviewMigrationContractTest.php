@@ -146,7 +146,7 @@ final class V2FieldOpsOverviewMigrationContractTest extends TestCase
     {
         return (int) DB::table('stores')->insertGetId([
             'store_type_id' => DB::table('store_types')->where('code', $channel)->value('id'),
-            'business_profile' => $channel === 'B2C' ? StoreBusinessProfile::RETAIL_STORE->value : null,
+            ...($channel === 'B2C' ? ['business_profile' => StoreBusinessProfile::RETAIL_STORE->value] : []),
             'code' => $code,
             'name' => $code,
             'is_active' => true,
