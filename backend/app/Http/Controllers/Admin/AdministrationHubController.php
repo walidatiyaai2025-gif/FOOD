@@ -9,6 +9,7 @@ use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Gate;
 
 final class AdministrationHubController extends Controller
 {
@@ -49,7 +50,7 @@ final class AdministrationHubController extends Controller
             'canAssistantSettings' => $user->hasRole('SUPER_ADMIN')
                 || $user->hasPermission('settings.view')
                 || $user->hasPermission('settings.manage'),
-            'canSystemUpdate' => $user->hasRole('SUPER_ADMIN') || $user->hasPermission('system.update'),
+            'canSystemUpdate' => Gate::forUser($user)->allows('system.update'),
             'mobileReleaseVersion' => $mobileReleaseVersion,
             'mobileReleaseArtifacts' => collect($this->mobileArtifacts->statusPayload($mobileReleaseVersion))->keyBy('app'),
         ]);
