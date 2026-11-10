@@ -28,6 +28,7 @@ final class V2SidebarOperationalReadinessProjectionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \Tests\Support\SyntheticErpWorkflowEvidence::install();
         config()->set('security.mfa.enforce_privileged', false);
         config()->set('enterprise_module_readiness.certified_versions', []);
         $this->seed(CoreReferenceSeeder::class);

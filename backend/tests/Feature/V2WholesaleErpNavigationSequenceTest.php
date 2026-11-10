@@ -58,6 +58,7 @@ final class V2WholesaleErpNavigationSequenceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \Tests\Support\SyntheticErpWorkflowEvidence::install();
         $this->seed(CoreReferenceSeeder::class);
         // The Sidebar now requires exact-version operational certification.
         // Exercise the intentionally ready business-journey order only in this

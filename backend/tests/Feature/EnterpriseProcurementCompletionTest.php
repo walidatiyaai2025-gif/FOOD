@@ -38,6 +38,12 @@ final class EnterpriseProcurementCompletionTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        \Tests\Support\SyntheticErpWorkflowEvidence::install();
+    }
+
     public function test_rfq_portal_quote_award_and_savings_preserve_canonical_procurement_chain(): void
     {
         Storage::fake('local');

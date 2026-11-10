@@ -28,6 +28,7 @@ final class V2ErpBusinessDomainNavigationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \Tests\Support\SyntheticErpWorkflowEvidence::install();
         config()->set('security.mfa.enforce_privileged', false);
         $this->seed(CoreReferenceSeeder::class);
 

@@ -55,3 +55,9 @@ This change enforces a **proof prerequisite**, not G0-G13 certification for all 
 Obtain actual AR/EN RTL/LTR desktop/tablet/mobile, keyboard and screen-reader acceptance at the final V2 gate on #2503 / #2750, per the owner's 2026-11-10 acceptance deferral. Do **not** declare production readiness, update `main`, publish releases/tags, or deploy from this branch.
 
 **CI gate before any merge:** Repository Policy + V2 Isolation + Laravel/Pint/PHPStan/security/OpenAPI + AR/EN + real MySQL/Redis clean install/upgrade/recovery + terminal required-ci-gate, all green on the exact PR head.
+
+## CI rescue — synthetic readiness fixtures (2026-11-10)
+
+The first exact-head Required CI of this prerequisite failed 28 existing tests across 15 ERP workbench/navigation suites because their fixtures explicitly certify `certified_versions` but had no new workflow proof. Each affected suite now opts into `Tests\\Support\\SyntheticErpWorkflowEvidence::install()` only in Laravel test setup. The helper provides structurally valid, clearly synthetic per-step evidence for **test simulations**, at each module's manifest version. Tests that deliberately omit version certification remain uncertified; P135 negative default and malformed/missing workflow-evidence tests do not call this helper.
+
+This is **not** new production evidence, live readiness, proof of workflow execution, CI verification, or approval. Real `certified_versions` and `workflow_attestations` remain empty. Genuine workflow rollout and independent acceptance require reviewed module-specific exact-SHA proof and owner authorization. This fixture is never referenced by application, seed, deployed config, migration, or public API code.

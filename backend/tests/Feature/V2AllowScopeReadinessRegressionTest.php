@@ -31,6 +31,7 @@ final class V2AllowScopeReadinessRegressionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \Tests\Support\SyntheticErpWorkflowEvidence::install();
         $this->seed(CoreReferenceSeeder::class);
         // Explicit test-only approval of the exact ERP module version; never a runtime default.
         config()->set('enterprise_module_readiness.certified_versions.procurement', app(ModuleRegistry::class)->manifest('procurement')->version);
