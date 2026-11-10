@@ -1081,7 +1081,8 @@
       "summary": "المفضلة والترتيب والإخفاء الشخصي لا يمنحون وصولًا جديدًا",
       "title": "V2 | SIDEBAR P158 — المفضلة والترتيب والإخفاء الشخصي لا يمنحون وصولًا جديدًا",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2870,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2870"
     },
     {
       "id": "P160",
@@ -1089,7 +1090,8 @@
       "summary": "محدد سياق العمل Platform/Wholesale/Retail/Restaurant/Analytics",
       "title": "V2 | SIDEBAR-UX P160 — محدد سياق العمل Platform/Wholesale/Retail/Restaurant/Analytics",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2871,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2871"
     },
     {
       "id": "P161",
@@ -1097,7 +1099,8 @@
       "summary": "بحث سريع لجميع الصفحات والتقارير والإجراءات في القائمة",
       "title": "V2 | SIDEBAR-UX P161 — بحث سريع لجميع الصفحات والتقارير والإجراءات في القائمة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2872,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2872"
     },
     {
       "id": "P162",
@@ -1105,7 +1108,8 @@
       "summary": "مجموعات أعمال رئيسية ثابتة قابلة للطي",
       "title": "V2 | SIDEBAR-UX P162 — مجموعات أعمال رئيسية ثابتة قابلة للطي",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2873,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2873"
     },
     {
       "id": "P163",
@@ -1113,7 +1117,8 @@
       "summary": "مستوى تعشيش أقصاه ثلاثة مستويات",
       "title": "V2 | SIDEBAR-UX P163 — مستوى تعشيش أقصاه ثلاثة مستويات",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2874,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2874"
     },
     {
       "id": "P164",
@@ -1121,7 +1126,8 @@
       "summary": "شارات حالة المجموعات جديد واعتماد واستثناءات وBeta",
       "title": "V2 | SIDEBAR-UX P164 — شارات حالة المجموعات جديد واعتماد واستثناءات وBeta",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2875,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2875"
     },
     {
       "id": "P165",
@@ -1129,7 +1135,8 @@
       "summary": "منطقة أدوات ثابتة للمفضلة والتاريخ والمساعدة والملف واللغة",
       "title": "V2 | SIDEBAR-UX P165 — منطقة أدوات ثابتة للمفضلة والتاريخ والمساعدة والملف واللغة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2876,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2876"
     },
     {
       "id": "P167",
@@ -1137,7 +1144,8 @@
       "summary": "أسماء أعمال واضحة بدل المصطلحات التقنية للموديولات",
       "title": "V2 | SIDEBAR-I18N P167 — أسماء أعمال واضحة بدل المصطلحات التقنية للموديولات",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2877,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2877"
     },
     {
       "id": "P168",
@@ -1145,7 +1153,8 @@
       "summary": "المسميات العربية للمستخدم والأكواد التقنية داخلية",
       "title": "V2 | SIDEBAR-I18N P168 — المسميات العربية للمستخدم والأكواد التقنية داخلية",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2878,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2878"
     },
     {
       "id": "P169",
@@ -1153,7 +1162,8 @@
       "summary": "تجميع الصفحات حسب المبيعات والطلب والمخزون والمالية والإدارة",
       "title": "V2 | SIDEBAR-I18N P169 — تجميع الصفحات حسب المبيعات والطلب والمخزون والمالية والإدارة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2879,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2879"
     },
     {
       "id": "P170",
@@ -1161,7 +1171,8 @@
       "summary": "عدم خلط مسميات B2B وB2C إلا للصفحات المشتركة",
       "title": "V2 | SIDEBAR P170 — عدم خلط مسميات B2B وB2C إلا للصفحات المشتركة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2880,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2880"
     },
     {
       "id": "P171",
@@ -1169,7 +1180,8 @@
       "summary": "اسم موحد للصفحة المشتركة تحت سياقين مختلفين دون خلط نطاق",
       "title": "V2 | SIDEBAR P171 — اسم موحد للصفحة المشتركة تحت سياقين مختلفين دون خلط نطاق",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2881,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2881"
     },
     {
       "id": "P358",
@@ -1177,7 +1189,8 @@
       "summary": "توزيع وحدات ERP على مجالات الأعمال لا داخل قائمة ERP عشوائية",
       "title": "V2 | SIDEBAR P358 — توزيع وحدات ERP على مجالات الأعمال لا داخل قائمة ERP عشوائية",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2882,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2882"
     },
     {
       "id": "P359",
@@ -1185,7 +1198,8 @@
       "summary": "Metadata مستقبلية group_key item_key label_ar permission scope channel module readiness",
       "title": "V2 | SIDEBAR P359 — Metadata مستقبلية group_key item_key label_ar permission scope channel module readiness",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2883,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2883"
     },
     {
       "id": "P360",
@@ -1193,7 +1207,8 @@
       "summary": "حجب الصفحات غير الجاهزة عن المستخدم وتشخيصها للمسؤول",
       "title": "V2 | SIDEBAR P360 — حجب الصفحات غير الجاهزة عن المستخدم وتشخيصها للمسؤول",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2884,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2884"
     },
     {
       "id": "P361",
@@ -1201,7 +1216,8 @@
       "summary": "إلحاق الموديول الجديد بالمجال التجاري الصحيح في الشجرة",
       "title": "V2 | SIDEBAR P361 — إلحاق الموديول الجديد بالمجال التجاري الصحيح في الشجرة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2885,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2885"
     },
     {
       "id": "P363",
@@ -1209,7 +1225,8 @@
       "summary": "عمود قائمة الأدوار مع البحث والوصف والمسؤوليات",
       "title": "V2 | RBAC-UI P363 — عمود قائمة الأدوار مع البحث والوصف والمسؤوليات",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2886,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2886"
     },
     {
       "id": "P364",
