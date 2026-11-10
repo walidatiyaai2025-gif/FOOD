@@ -2,8 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Enterprise\Entitlements\EntitlementScope;
-use App\Enterprise\Entitlements\ModuleEntitlementManager;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AdminSidebarManager;
