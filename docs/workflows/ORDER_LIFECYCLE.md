@@ -1,7 +1,7 @@
 # FOODEX Order, Invoice and Delivery Lifecycle
 
 Status: **Authoritative**
-Updated: 2026-10-26
+Updated: 2026-11-10
 Related authority: `docs/architecture/PLATFORM_CUSTOMER_COMMERCE.md`
 
 ## Ownership
@@ -34,10 +34,10 @@ This boundary is locked:
 
 | Channel | Fulfillment actor | Fallback |
 | --- | --- | --- |
-| B2B / Wholesale | Van for automatic routing; authorized manual Driver or Van dispatch | No automatic Driver fallback |
+| B2B / Wholesale | Van only, including manual dispatch | No Driver fallback; awaiting_dispatch when no Van is eligible |
 | B2C / Retail | Driver only | None |
 
-For B2B, Smart Routing remains Van-first and never invents a Driver fallback. If no Van can be selected automatically, the order remains `awaiting_dispatch`. An authorized Order Operations user may explicitly override execution and choose either an eligible B2B Driver or an eligible Van.
+For B2B, Smart Routing is Van-only and cannot create a Driver fallback. If no eligible Van is available, the order remains `awaiting_dispatch`. Authorized Order Operations users may manually select **only** an eligible Van.
 
 For B2C, Driver assignment and execution remain authoritative; Van dispatch is not allowed.
 
@@ -47,9 +47,9 @@ Backend-authoritative transitions remain the only valid way to change fulfillmen
 
 Order states include `pending`, `confirmed`, `preparing`, `ready`, `out_for_delivery`, `delivered`, `failed`, and `cancelled`.
 
-B2B execution may be owned by an explicitly assigned Driver or Van. The execution runtime records server-authorized assignment/execution events and preserves proof, failure reason, retry, collection and delivery completion rules.
+Live B2B execution is owned **only by a Van**. Old manually assigned B2B Driver records remain immutable historical audit evidence but do not authorize future Driver execution. The Van runtime records server-authorized assignment/execution events and preserves proof, failure reason, retry, collection and delivery completion rules.
 
-For B2B, `ready` is a dispatch gate: the only manual order-status action exposed from `ready` is cancellation. A successful Driver or Van assignment advances the order to `out_for_delivery` automatically. If execution was assigned earlier, entering `ready` advances immediately to `out_for_delivery`.
+For B2B, `ready` is a dispatch gate: the only manual order-status action exposed from `ready` is cancellation. A successful Van assignment advances the B2B order to `out_for_delivery` automatically. If execution was assigned earlier, entering `ready` advances immediately to `out_for_delivery`.
 
 Clients cannot set arbitrary states. Allowed actions are returned/enforced by backend services.
 
@@ -63,7 +63,7 @@ Correction requires explicit void/reissue/revision behavior with audit provenanc
 
 ## Driver lifecycle
 
-Driver runtime supports Retail B2C Drivers and explicitly assigned B2B Drivers. B2B Driver work must originate from authorized manual Order Operations dispatch; automatic B2B routing remains Van-first. See `docs/workflows/DRIVER_WORKFLOW.md`.
+Driver runtime supports **Retail B2C Drivers only**. Wholesale B2B orders are handled by Van only, including manual dispatch. Historical B2B Driver assignments remain retained for audit and finance, never live execution. See `docs/workflows/DRIVER_WORKFLOW.md`.
 
 ## Van lifecycle
 
