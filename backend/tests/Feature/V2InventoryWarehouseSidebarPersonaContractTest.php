@@ -81,21 +81,44 @@ final class V2InventoryWarehouseSidebarPersonaContractTest extends TestCase
         }
     }
 
-    public function test_uncertified_wms_never_appears_as_operational_page_for_inventory_role(): void
+    public function test_uncertified_wms_never_appears_or_accepts_direct_operational_requests_in_both_locales(): void
     {
         app(WholesalePrincipal::class)->warehouseId();
         config()->set('enterprise_module_readiness.certified_versions', []);
         $actor = $this->globalRoleUser('INVENTORY');
 
-        $items = $this->visibleItems($actor);
+        foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
+            app()->setLocale($locale);
+            $actor->forceFill(['locale' => $locale])->save();
 
-        $this->assertArrayHasKey('b2b_inventory', $items);
-        $this->assertArrayNotHasKey('erp_wms', $items);
-        $this->assertTrue($actor->hasPermission('inventory.view'));
+            $items = $this->visibleItems($actor->fresh());
+            $this->assertArrayHasKey('b2b_inventory', $items);
+            $this->assertArrayNotHasKey('erp_wms', $items, "Uncertified WMS leaked to {$locale} Sidebar.");
+            $this->assertTrue($actor->hasPermission('inventory.view'));
 
-        $this->actingAs($actor)
-            ->get(route('admin.b2b.module', ['module' => 'inventory'], false))
-            ->assertOk();
+            // Navigation hiding is not an access control. The real ERP middleware
+            // must reject deep links for every WMS persona tab, in either locale.
+            foreach (['overview', 'transfers', 'counts', 'reports'] as $tab) {
+                $this->actingAs($actor->fresh())
+                    ->get(route('admin.erp.wms.index', ['tab' => $tab], false))
+                    ->assertForbidden();
+            }
+
+            // A crafted POST must not reach an uncertified count or transfer
+            // handler, regardless of its validation payload.
+            $this->actingAs($actor->fresh())
+                ->post(route('admin.erp.wms.counts.store', [], false), [])
+                ->assertForbidden();
+            $this->actingAs($actor->fresh())
+                ->post(route('admin.erp.wms.transfers.store', [], false), [])
+                ->assertForbidden();
+
+            // The separately authorized legacy B2B inventory remains usable.
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.b2b.module', ['module' => 'inventory'], false))
+                ->assertOk()
+                ->assertSee('dir="'.$direction.'"', false);
+        }
     }
 
     public function test_retail_inventory_store_scope_does_not_grant_wholesale_or_another_store(): void
