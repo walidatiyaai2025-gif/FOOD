@@ -56,6 +56,12 @@ final class CouponManagementController extends Controller
             ->paginate(25)
             ->withQueryString();
 
+        $manageableCouponIds = $this->visibleCoupons($actor, 'coupons.manage')
+            ->whereIn('id', $coupons->getCollection()->pluck('id'))
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+
         return view('admin.coupons', [
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
@@ -65,8 +71,10 @@ final class CouponManagementController extends Controller
             'channelFilter' => $channel,
             'statusFilter' => $status,
             'canB2b' => $actor->hasRole('SUPER_ADMIN') || ($actor->hasRole('B2B_ADMIN') && $actor->hasPermission('coupons.manage')),
+            'canManageCoupons' => $actor->hasPermission('coupons.manage') || $this->allowedRetailStoreIds($actor, 'coupons.manage') !== [],
+            'manageableCouponIds' => $manageableCouponIds,
             'canAllChannels' => $actor->hasRole('SUPER_ADMIN'),
-            'retailStores' => $this->allowedRetailStores($actor),
+            'retailStores' => $this->allowedRetailStores($actor, 'coupons.manage'),
         ]);
     }
 
@@ -228,9 +236,9 @@ final class CouponManagementController extends Controller
     }
 
     /** @return list<array{id:int,name:string}> */
-    private function allowedRetailStores(User $actor): array
+    private function allowedRetailStores(User $actor, string $permission = 'coupons.view'): array
     {
-        $ids = $this->allowedRetailStoreIds($actor);
+        $ids = $this->allowedRetailStoreIds($actor, $permission);
         if ($ids === []) {
             return [];
         }
