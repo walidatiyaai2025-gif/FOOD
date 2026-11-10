@@ -57,7 +57,7 @@ class MerchantIntelligenceIntegratedGate1122Test extends TestCase
         $this->assertContains('driver.b2c.deliveries', $driverFunctionIds);
         $this->assertContains('driver.b2b.deliveries', $driverFunctionIds);
         $this->assertSame(
-            'manual_dispatch_only',
+            'legacy_transition_pending_2939',
             data_get($driverFunctions->firstWhere('id', 'driver.b2b.deliveries'), 'scope'),
         );
 
