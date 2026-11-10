@@ -52,9 +52,9 @@ final class CurrentMainPerformanceBaselineTest extends TestCase
             'dashboard',
             function (mixed $context): void {
                 $this->assertNull($context);
-                // P130 directs privileged /admin to the governance hub.
-                // Keep the historical operations benchmark on its explicit page.
-                $this->get('/admin/b2b/dashboard')->assertOk();
+                // P130 sends privileged /admin to the canonical control plane.
+                // Benchmark that actual landing, not unrelated Wholesale operations.
+                $this->get('/admin/administration')->assertOk();
             },
             'smoke',
         );
