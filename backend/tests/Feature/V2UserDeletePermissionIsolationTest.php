@@ -120,6 +120,20 @@ final class V2UserDeletePermissionIsolationTest extends TestCase
         $this->assertNotContains('users.delete', $actor->effectivePermissionCodes($storeId));
     }
 
+    public function test_user_delete_permission_uses_localized_group_and_action_labels(): void
+    {
+        foreach (['ar', 'en'] as $locale) {
+            $this->assertNotSame(
+                'security_permissions.groups.users',
+                __('security_permissions.groups.users', [], $locale),
+            );
+            $this->assertNotSame(
+                'security_permissions.actions.delete',
+                __('security_permissions.actions.delete', [], $locale),
+            );
+        }
+    }
+
     /** @param list<string> $permissionCodes */
     private function actorWithPermissions(string $roleCode, array $permissionCodes): User
     {
