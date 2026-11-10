@@ -81,6 +81,9 @@ class AdminNavigation
                 $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemOpen('enterprise_workspaces', 'enterprise_workspaces.nav_title', 'admin.enterprise-workspaces.index')
                     : null,
+                $isSuperAdmin && $this->hasPermission($user, 'notifications.manage')
+                    ? $this->routeItemOpen('notifications_center', 'notifications.title', 'admin.notifications.index')
+                    : null,
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'dashboard', 'admin.premium_nav.dashboard', null),
                 $this->module($user, $channels, 'b2b', 'dashboard', 'admin.channels.b2b', null),
                 $useCustomerServiceDashboardProfile
