@@ -17,6 +17,7 @@ final class AdminSecurityPolicy
         'roles.manage',
         'users.roles.manage',
         'users.status.manage',
+        'users.delete',
         'system.update',
     ];
 
