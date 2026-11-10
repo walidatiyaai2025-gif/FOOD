@@ -86,7 +86,7 @@ final class V2AccountDeletionRetentionScopeTest extends TestCase
 
     public function test_b2b_contractual_profile_without_a_denormalized_balance_requires_review_via_http(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['is_active' => true]);
         $this->legacyCustomer($user, 'b2b');
 
         Sanctum::actingAs($user);
@@ -108,7 +108,7 @@ final class V2AccountDeletionRetentionScopeTest extends TestCase
     public function test_operational_van_identity_remains_managed_even_without_customer_orders(): void
     {
         $user = User::factory()->create();
-        $role = Role::query()->create([
+        $role = Role::query()->firstOrCreate(['code' => 'VAN_OPERATOR'], [
             'code' => 'VAN_OPERATOR',
             'name' => 'Van Operator',
             'scope' => 'global',
