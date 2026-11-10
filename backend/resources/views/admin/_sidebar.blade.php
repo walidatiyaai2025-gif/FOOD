@@ -78,7 +78,12 @@ aside.foodex-sidebar-expanded{width:var(--foodex-sidebar-width)!important}
 /* Current page context is distinct from manually expanded groups; logical start supports RTL/LTR. */
 .foodex-nav-group.is-current-group{border-color:var(--foodex-border);border-inline-start:3px solid var(--foodex-green);background:var(--foodex-green-soft)}.foodex-nav-group.is-current-group>summary{color:var(--foodex-green-dark)}
 .foodex-nav-children{display:grid;gap:3px;padding:0 7px 7px}.foodex-nav-subchildren{display:grid;gap:2px;margin-inline-start:14px;padding-inline-start:8px;border-inline-start:1px dashed var(--foodex-border)}.foodex-nav-subchildren .foodex-nav-link{min-height:40px}.foodex-nav-link{min-height:46px;display:grid;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:9px;padding:7px 9px;border-radius:10px;color:var(--foodex-ink);text-decoration:none}.foodex-nav-link>.foodex-svg-icon{width:24px;height:24px}.foodex-nav-link:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.foodex-nav-link.active{background:var(--foodex-action-green);color:#fff;box-shadow:0 8px 18px rgba(21,138,58,.14)}
-.foodex-nav-label{display:block;min-width:0}.foodex-nav-label strong{display:block;font-size:.86rem;line-height:1.2}.foodex-nav-label small{display:block;color:var(--foodex-muted);font-size:.67rem;margin-top:2px}.foodex-nav-link.active small{color:rgba(255,255,255,.8)}
+.foodex-nav-label{display:block;min-width:0}.foodex-nav-label strong{display:flex;align-items:center;flex-wrap:wrap;gap:5px;min-width:0;font-size:.86rem;line-height:1.2}
+.foodex-nav-label strong>span:first-child{min-width:0;overflow-wrap:anywhere}
+.foodex-nav-item-status{display:inline-flex;max-width:100%;align-items:center;padding:2px 6px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font-size:.66rem;font-weight:700;line-height:1.2;white-space:normal;overflow-wrap:anywhere}
+.foodex-nav-item-status[data-item-status="paused"]{background:var(--foodex-danger-soft);color:var(--foodex-danger-text)}
+.foodex-nav-item-status[data-item-status="approval_required"]{background:var(--foodex-orange-soft);color:var(--foodex-ink)}
+.foodex-nav-link.active .foodex-nav-item-status{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.6);color:#fff}.foodex-nav-label small{display:block;color:var(--foodex-muted);font-size:.67rem;margin-top:2px}.foodex-nav-link.active small{color:rgba(255,255,255,.8)}
 aside.foodex-sidebar-collapsed .foodex-sidebar-brand span:last-child,
 aside.foodex-sidebar-collapsed .foodex-sidebar-search,
 aside.foodex-sidebar-collapsed .foodex-nav-label,
