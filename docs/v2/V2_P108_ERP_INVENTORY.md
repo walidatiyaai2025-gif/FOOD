@@ -7,7 +7,7 @@ Issue: #2842, source P108, parent #2503. Integration is **Foodex_V2 only**. This
 The internal Laravel console command **foodex:v2-erp-inventory** performs a read-only snapshot of the Laravel process in which it runs, using registered routes and project files:
 
 - Root VERSION; PHP runtime version; Laravel version; SHA-256 of backend Composer manifest.
-- Declared PHP/Laravel/Sanctum/TCPDF production constraints, not installed-package attestation.
+- Declared production Composer constraints and the versions Composer reports as installed in the executing runtime. Missing installed packages are null, never silently certified.
 - Total routes and ERP/B2B/wholesale/finance-related route subset matched by static URI/name/controller-action keywords; methods, routes, channel hints and known middleware/permission signals.
 - Deterministic SHA-256 of route subset, suitable for controlled staging comparison.
 
@@ -29,14 +29,14 @@ The snapshot is **observational**, not security certification. A route with a ca
 | Wholesale scope | Candidate route inventory | Reconcile B2B/retail shared routes and controller-internal access checks; prove tenant/store separation. |
 | Route authorization | Whitelisted middleware and declared can: permission tokens | Exercise allowed/denied direct requests, per-user overrides, entitlement and readiness gates, all role and channel scopes. |
 | ERP readiness | Always unverified | Complete #2838–#2841 plus workflow, data and ERP operational certification; ENABLED or a visible Sidebar is insufficient. |
-| Dependencies | Composer constraints and manifest SHA-256 | Verify actually installed versions, migrations, compiled frontend assets, database and Redis health, signed Setup/Update provenance. |
+| Dependencies | Composer constraints, observed installed versions and manifest SHA-256 | Verify installed versions against the signed deployment artifact, migrations, compiled frontend assets, database and Redis health, signed Setup/Update provenance. |
 | Customer app | No contract change | No impact for this console-only diagnostic; review again for subsequent API changes. |
 | Driver app | No contract change | No impact for this console-only diagnostic; B2C Driver policy unchanged. |
 | Van app | No contract change | No impact for this console-only diagnostic; B2B Van policy unchanged. |
 
 ## Tests and exit criteria
 
-The focused V2ErpRuntimeInventoryTest verifies parseable JSON, manifest/runtime facts, protected and unprotected synthetic route handling, explicit non-certification of RBAC/tenant/entitlement/readiness, and non-disclosure of environment secrets. Green CI on the command itself is not evidence that ERP works end-to-end.
+The focused V2ErpRuntimeInventoryTest verifies parseable JSON, manifest/runtime/installed-package facts, protected and unprotected synthetic route handling, explicit non-certification of RBAC/tenant/entitlement/readiness, and non-disclosure of environment secrets. Green CI on the command itself is not evidence that ERP works end-to-end.
 
 The JSON intentionally reports **production_deployment_verified=false**, **environment_identity=not_attested**, and effective role permissions, tenant/store isolation, module entitlements and ERP readiness as **not_tested**. This avoids silently converting discoverability into access approval.
 
