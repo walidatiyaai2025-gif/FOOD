@@ -40,8 +40,8 @@ final class V2SidebarSearchAuthorizationTest extends TestCase
             $this->assertStringContainsString('data-foodex-nav-search-empty role="status" aria-live="polite" hidden', $html);
             $this->assertStringContainsString(__('sidebar_admin.search_empty'), $html);
             $this->assertStringContainsString('.foodex-nav-link[hidden],.foodex-nav-subchildren[hidden]', $html);
-            $this->assertStringContainsString("event.stopPropagation();", $html);
-            $this->assertStringContainsString("const updateSearch = () => {", $html);
+            $this->assertStringContainsString('event.stopPropagation();', $html);
+            $this->assertStringContainsString('const updateSearch = () => {', $html);
             $this->assertRenderedTargetsMatchAuthorizedNavigation($user->fresh(), $html);
         }
     }
