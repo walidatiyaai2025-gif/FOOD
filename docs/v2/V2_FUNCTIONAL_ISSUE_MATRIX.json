@@ -1387,7 +1387,8 @@
       "summary": "إعادة تسمية العناصر الحالية بالعربية الموحدة قبل فتح ERP",
       "title": "V2 | SIDEBAR-I18N P384 — إعادة تسمية العناصر الحالية بالعربية الموحدة قبل فتح ERP",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2904,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2904"
     },
     {
       "id": "P385",
@@ -1395,7 +1396,8 @@
       "summary": "اعتبار الوثيقة عقد UX وBackend وRBAC وERP Governance واحد",
       "title": "V2 | GOV P385 — اعتبار الوثيقة عقد UX وBackend وRBAC وERP Governance واحد",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2905,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2905"
     }
   ]
 }
