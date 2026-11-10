@@ -216,6 +216,7 @@ final class SecurityController extends Controller
             'scope' => (string) $role->scope,
             'is_system' => (bool) $role->is_system,
             'is_active' => (bool) $role->is_active,
+            'archived_at' => $role->archived_at?->toIso8601String(),
             'permissions' => $role->permissions->map(static fn (Permission $permission): array => [
                 'id' => (int) $permission->id,
                 'code' => (string) $permission->code,
