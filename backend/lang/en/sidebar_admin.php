@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'search_empty' => 'No authorized pages, reports, or actions match your search.',
     'eyebrow' => 'Navigation governance',
     'role_access_nav' => 'Page Tree & Permissions',
     'layout_nav' => 'Sidebar organizer',
