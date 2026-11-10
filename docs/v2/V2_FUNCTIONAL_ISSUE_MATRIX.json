@@ -939,6 +939,310 @@
       "title": "V2 | QA P145 — اختبار AR/EN وموبايل وديسكتوب وسبب الحجب والروابط الصالحة",
       "type": "functional",
       "issue_number": null
+    },
+    {
+      "id": "P156",
+      "domain": "SIDEBAR",
+      "summary": "اعتبار Sidebar انعكاسًا للصلاحية والنطاق والقناة وحالة الموديول",
+      "title": "V2 | SIDEBAR P156 — اعتبار Sidebar انعكاسًا للصلاحية والنطاق والقناة وحالة الموديول",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P157",
+      "domain": "SIDEBAR",
+      "summary": "شروط صلاحية الصفحة + النطاق + الموديول + الجهة والمتجر",
+      "title": "V2 | SIDEBAR P157 — شروط صلاحية الصفحة + النطاق + الموديول + الجهة والمتجر",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P158",
+      "domain": "SIDEBAR",
+      "summary": "المفضلة والترتيب والإخفاء الشخصي لا يمنحون وصولًا جديدًا",
+      "title": "V2 | SIDEBAR P158 — المفضلة والترتيب والإخفاء الشخصي لا يمنحون وصولًا جديدًا",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P160",
+      "domain": "SIDEBAR-UX",
+      "summary": "محدد سياق العمل Platform/Wholesale/Retail/Restaurant/Analytics",
+      "title": "V2 | SIDEBAR-UX P160 — محدد سياق العمل Platform/Wholesale/Retail/Restaurant/Analytics",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P161",
+      "domain": "SIDEBAR-UX",
+      "summary": "بحث سريع لجميع الصفحات والتقارير والإجراءات في القائمة",
+      "title": "V2 | SIDEBAR-UX P161 — بحث سريع لجميع الصفحات والتقارير والإجراءات في القائمة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P162",
+      "domain": "SIDEBAR-UX",
+      "summary": "مجموعات أعمال رئيسية ثابتة قابلة للطي",
+      "title": "V2 | SIDEBAR-UX P162 — مجموعات أعمال رئيسية ثابتة قابلة للطي",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P163",
+      "domain": "SIDEBAR-UX",
+      "summary": "مستوى تعشيش أقصاه ثلاثة مستويات",
+      "title": "V2 | SIDEBAR-UX P163 — مستوى تعشيش أقصاه ثلاثة مستويات",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P164",
+      "domain": "SIDEBAR-UX",
+      "summary": "شارات حالة المجموعات جديد واعتماد واستثناءات وBeta",
+      "title": "V2 | SIDEBAR-UX P164 — شارات حالة المجموعات جديد واعتماد واستثناءات وBeta",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P165",
+      "domain": "SIDEBAR-UX",
+      "summary": "منطقة أدوات ثابتة للمفضلة والتاريخ والمساعدة والملف واللغة",
+      "title": "V2 | SIDEBAR-UX P165 — منطقة أدوات ثابتة للمفضلة والتاريخ والمساعدة والملف واللغة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P167",
+      "domain": "SIDEBAR-I18N",
+      "summary": "أسماء أعمال واضحة بدل المصطلحات التقنية للموديولات",
+      "title": "V2 | SIDEBAR-I18N P167 — أسماء أعمال واضحة بدل المصطلحات التقنية للموديولات",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P168",
+      "domain": "SIDEBAR-I18N",
+      "summary": "المسميات العربية للمستخدم والأكواد التقنية داخلية",
+      "title": "V2 | SIDEBAR-I18N P168 — المسميات العربية للمستخدم والأكواد التقنية داخلية",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P169",
+      "domain": "SIDEBAR-I18N",
+      "summary": "تجميع الصفحات حسب المبيعات والطلب والمخزون والمالية والإدارة",
+      "title": "V2 | SIDEBAR-I18N P169 — تجميع الصفحات حسب المبيعات والطلب والمخزون والمالية والإدارة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P170",
+      "domain": "SIDEBAR",
+      "summary": "عدم خلط مسميات B2B وB2C إلا للصفحات المشتركة",
+      "title": "V2 | SIDEBAR P170 — عدم خلط مسميات B2B وB2C إلا للصفحات المشتركة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P171",
+      "domain": "SIDEBAR",
+      "summary": "اسم موحد للصفحة المشتركة تحت سياقين مختلفين دون خلط نطاق",
+      "title": "V2 | SIDEBAR P171 — اسم موحد للصفحة المشتركة تحت سياقين مختلفين دون خلط نطاق",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P358",
+      "domain": "SIDEBAR",
+      "summary": "توزيع وحدات ERP على مجالات الأعمال لا داخل قائمة ERP عشوائية",
+      "title": "V2 | SIDEBAR P358 — توزيع وحدات ERP على مجالات الأعمال لا داخل قائمة ERP عشوائية",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P359",
+      "domain": "SIDEBAR",
+      "summary": "Metadata مستقبلية group_key item_key label_ar permission scope channel module readiness",
+      "title": "V2 | SIDEBAR P359 — Metadata مستقبلية group_key item_key label_ar permission scope channel module readiness",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P360",
+      "domain": "SIDEBAR",
+      "summary": "حجب الصفحات غير الجاهزة عن المستخدم وتشخيصها للمسؤول",
+      "title": "V2 | SIDEBAR P360 — حجب الصفحات غير الجاهزة عن المستخدم وتشخيصها للمسؤول",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P361",
+      "domain": "SIDEBAR",
+      "summary": "إلحاق الموديول الجديد بالمجال التجاري الصحيح في الشجرة",
+      "title": "V2 | SIDEBAR P361 — إلحاق الموديول الجديد بالمجال التجاري الصحيح في الشجرة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P363",
+      "domain": "RBAC-UI",
+      "summary": "عمود قائمة الأدوار مع البحث والوصف والمسؤوليات",
+      "title": "V2 | RBAC-UI P363 — عمود قائمة الأدوار مع البحث والوصف والمسؤوليات",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P364",
+      "domain": "RBAC-UI",
+      "summary": "عمود الصلاحيات التجارية المجمعة للدور",
+      "title": "V2 | RBAC-UI P364 — عمود الصلاحيات التجارية المجمعة للدور",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P365",
+      "domain": "RBAC-UI",
+      "summary": "عمود شجرة السايدبار الناتجة مع Checkbox حدود الإذن",
+      "title": "V2 | RBAC-UI P365 — عمود شجرة السايدبار الناتجة مع Checkbox حدود الإذن",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P366",
+      "domain": "RBAC-UI",
+      "summary": "العقدة تعرض الاسم والكود والإذن والنطاق والقناة والموديول",
+      "title": "V2 | RBAC-UI P366 — العقدة تعرض الاسم والكود والإذن والنطاق والقناة والموديول",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P367",
+      "domain": "RBAC-UI",
+      "summary": "Live Preview يشرح السماح والمنع بسبب النطاق أو الموديول",
+      "title": "V2 | RBAC-UI P367 — Live Preview يشرح السماح والمنع بسبب النطاق أو الموديول",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P369",
+      "domain": "SIDEBAR-UX",
+      "summary": "تصميم أيقونة واسم مجموعة وعداد اختياري هادئ",
+      "title": "V2 | SIDEBAR-UX P369 — تصميم أيقونة واسم مجموعة وعداد اختياري هادئ",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P370",
+      "domain": "SIDEBAR-UX",
+      "summary": "تمييز المجموعة النشطة بخلفية وحد جانبي غير صارخ",
+      "title": "V2 | SIDEBAR-UX P370 — تمييز المجموعة النشطة بخلفية وحد جانبي غير صارخ",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P371",
+      "domain": "SIDEBAR-UX",
+      "summary": "تدرج العناصر وأزرار توسيع وتصغير واضحة",
+      "title": "V2 | SIDEBAR-UX P371 — تدرج العناصر وأزرار توسيع وتصغير واضحة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P372",
+      "domain": "SIDEBAR-UX",
+      "summary": "المفضلة في أعلى Sidebar لتسهيل الوصول",
+      "title": "V2 | SIDEBAR-UX P372 — المفضلة في أعلى Sidebar لتسهيل الوصول",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P373",
+      "domain": "SIDEBAR-UX",
+      "summary": "Badges جديدة وموقوفة وبيتا واحتياج اعتماد دون ازدحام",
+      "title": "V2 | SIDEBAR-UX P373 — Badges جديدة وموقوفة وبيتا واحتياج اعتماد دون ازدحام",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P375",
+      "domain": "GOV",
+      "summary": "منع Sidebar من منح أي وصول لا تسمح به RBAC",
+      "title": "V2 | GOV P375 — منع Sidebar من منح أي وصول لا تسمح به RBAC",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P376",
+      "domain": "GOV",
+      "summary": "عزل منطق B2B وB2C داخل أي صفحة مشتركة",
+      "title": "V2 | GOV P376 — عزل منطق B2B وB2C داخل أي صفحة مشتركة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P377",
+      "domain": "GOV",
+      "summary": "عدم إظهار ERP المالي أو الشرائي قبل جاهزية واعتماد الدورة",
+      "title": "V2 | GOV P377 — عدم إظهار ERP المالي أو الشرائي قبل جاهزية واعتماد الدورة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P378",
+      "domain": "GOV",
+      "summary": "عدم تحويل Super Admin إلى دور تشغيلي دائم",
+      "title": "V2 | GOV P378 — عدم تحويل Super Admin إلى دور تشغيلي دائم",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P379",
+      "domain": "GOV",
+      "summary": "توثيق وصف ومسؤوليات وحدود وصول لكل دور قبل الاعتماد",
+      "title": "V2 | GOV P379 — توثيق وصف ومسؤوليات وحدود وصول لكل دور قبل الاعتماد",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P381",
+      "domain": "GOV",
+      "summary": "اعتماد Information Architecture للشجرة المستهدفة",
+      "title": "V2 | GOV P381 — اعتماد Information Architecture للشجرة المستهدفة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P382",
+      "domain": "SIDEBAR",
+      "summary": "Sidebar Authorizer موحد Permission Scope Channel Module Entitlement",
+      "title": "V2 | SIDEBAR P382 — Sidebar Authorizer موحد Permission Scope Channel Module Entitlement",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P383",
+      "domain": "RBAC-UI",
+      "summary": "إتمام تعيين الدور وتخصيص المستخدم مع Live Sidebar Preview",
+      "title": "V2 | RBAC-UI P383 — إتمام تعيين الدور وتخصيص المستخدم مع Live Sidebar Preview",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P384",
+      "domain": "SIDEBAR-I18N",
+      "summary": "إعادة تسمية العناصر الحالية بالعربية الموحدة قبل فتح ERP",
+      "title": "V2 | SIDEBAR-I18N P384 — إعادة تسمية العناصر الحالية بالعربية الموحدة قبل فتح ERP",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P385",
+      "domain": "GOV",
+      "summary": "اعتبار الوثيقة عقد UX وBackend وRBAC وERP Governance واحد",
+      "title": "V2 | GOV P385 — اعتبار الوثيقة عقد UX وBackend وRBAC وERP Governance واحد",
+      "type": "functional",
+      "issue_number": null
     }
   ]
 }
