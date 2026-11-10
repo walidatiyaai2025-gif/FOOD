@@ -125,9 +125,9 @@ class FieldOperationsAdminExposureTest extends TestCase
         $english = file_get_contents(lang_path('en/admin.php'));
         $arabic = file_get_contents(lang_path('ar/admin.php'));
 
-        $this->assertStringContainsString("'field_operations' => 'Van & Field Operations'", $english);
+        $this->assertStringContainsString("'field_operations' => 'Fleet & Field Operations'", $english);
         $this->assertStringContainsString("'fleet' => 'Live Fleet Map'", $english);
-        $this->assertStringContainsString("'field_operations' => 'عمليات الفان والميدان'", $arabic);
+        $this->assertStringContainsString("'field_operations' => 'الأسطول والعمليات الميدانية'", $arabic);
         $this->assertStringContainsString("'fleet' => 'خريطة الأسطول الحية'", $arabic);
     }
 }
