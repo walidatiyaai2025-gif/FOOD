@@ -29,6 +29,11 @@ final class V2CatalogSidebarGroupAuthorityTest extends TestCase
     {
         $actor = $this->globalActor('B2B_ADMIN', 'v2-p219-wholesale@example.test');
 
+        $this->assertNotSame(
+            __('admin.nav_groups.catalog', [], 'ar'),
+            __('admin.nav_groups.catalog', [], 'en'),
+        );
+
         foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
             $actor->forceFill(['locale' => $locale])->save();
             app()->setLocale($locale);
@@ -38,7 +43,6 @@ final class V2CatalogSidebarGroupAuthorityTest extends TestCase
             $this->assertIsArray($catalog);
             $this->assertSame('admin.nav_groups.catalog', $catalog['label']);
             $this->assertNotEmpty($catalog['children']);
-            $this->assertSame(__('admin.nav_groups.catalog', [], $locale), __('admin.nav_groups.catalog', [], $locale));
 
             foreach ($catalog['children'] as $item) {
                 $this->assertTrue(Route::has($item['route']), 'An authorized Catalog link must have a registered route.');
