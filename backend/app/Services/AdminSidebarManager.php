@@ -520,13 +520,11 @@ final class AdminSidebarManager
             return true;
         }
 
-        if ($rows->contains(fn ($row): bool => (bool) $row->is_visible)) {
-            return true;
-        }
-
-        $configuredRoleIds = $rows->pluck('role_id')->map(static fn ($id): int => (int) $id)->unique()->all();
-
-        return array_diff($roleIds, $configuredRoleIds) !== [];
+        // The canonical AdminNavigation projection already resolved effective
+        // RBAC, store, channel and module access. A role's saved Sidebar display
+        // preference can only suppress that authorized result, never revive it
+        // through another role's visible=true or an unconfigured role.
+        return ! $rows->contains(static fn ($row): bool => ! (bool) $row->is_visible);
     }
 
     /** @param array<string,mixed>|null $layout */
