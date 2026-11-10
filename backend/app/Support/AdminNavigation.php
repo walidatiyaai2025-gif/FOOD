@@ -246,6 +246,9 @@ class AdminNavigation
                 'b2c_products',
                 'b2c_inventory',
                 'b2c_orders',
+                // Canonical Retail incoming orders uses this key; hiding it here
+                // created a dead-end for genuinely authorized store staff.
+                'b2c_incoming_orders',
                 'b2c_customers',
                 'b2c_customer_groups',
                 'b2c_promotions',
