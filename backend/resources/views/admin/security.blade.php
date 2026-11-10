@@ -72,7 +72,7 @@ $roleLabel = static function ($role): string {
 @foreach($stores as $store)
 @foreach($grantableStoreRolesByStore->get((int)$store->id, collect()) as $role)
 @if((bool)$storeRoleAvailabilityByStore->get((int)$store->id, collect())->get((int)$role->id, false))
-<option value="{{ $store->id }}:{{ $role->id }}" @selected(old('store_role_assignment')===(string)$store->id.':'.$role->id)>{{ $store->name }} — {{ $jobRoleMeta[$role->code]['name'] ?? $roleLabel($role) }}</option>
+<option value="{{ $store->id }}:{{ $role->id }}" @selected((string) old('store_role_assignment') === ((string) $store->id.':'.$role->id))>{{ $store->name }} — {{ $jobRoleMeta[$role->code]['name'] ?? $roleLabel($role) }}</option>
 @endif
 @endforeach
 @endforeach
