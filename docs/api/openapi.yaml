@@ -2215,7 +2215,7 @@ paths:
           $ref: "#/components/responses/ValidationError"
     delete:
       tags: [Security]
-      summary: Delete an unassigned custom role
+      summary: Permanently archive an unassigned custom role while reserving its code
       operationId: deleteSecurityRole
       security:
         - bearerAuth: []
@@ -2227,7 +2227,7 @@ paths:
             type: integer
       responses:
         "204":
-          description: Role deleted
+          description: Role archived; its code and original record remain reserved
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
@@ -5049,7 +5049,7 @@ components:
 
     SecurityRole:
       type: object
-      required: [id, code, name, scope, is_system, is_active, permissions]
+      required: [id, code, name, scope, is_system, is_active, archived_at, permissions]
       properties:
         id:
           type: integer
@@ -5066,6 +5066,10 @@ components:
           type: boolean
         is_active:
           type: boolean
+        archived_at:
+          type: [string, "null"]
+          format: date-time
+          description: Terminal archival timestamp. A non-null value permanently reserves the role code.
         permissions:
           type: array
           items:
