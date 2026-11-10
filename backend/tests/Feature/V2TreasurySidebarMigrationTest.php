@@ -6,6 +6,7 @@ use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,6 +31,9 @@ final class V2TreasurySidebarMigrationTest extends TestCase
 
     public function test_existing_finance_treasury_destination_uses_canonical_bilingual_sidebar_name_and_real_page(): void
     {
+        // A wholesale global role needs an active wholesale store in its
+        // operational tenant scope, just as the live installation does.
+        app(WholesalePrincipal::class)->storeId();
         $admin = $this->globalActor('B2B_ADMIN');
 
         foreach ([
