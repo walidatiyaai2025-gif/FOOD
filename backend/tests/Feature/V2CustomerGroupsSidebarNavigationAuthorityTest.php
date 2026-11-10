@@ -124,7 +124,7 @@ final class V2CustomerGroupsSidebarNavigationAuthorityTest extends TestCase
                 ->assertForbidden();
             $this->actingAs($roleless->fresh())
                 ->get(route('admin.b2c.customer-groups.index', ['store_id' => $retailStore]))
-                ->assertForbidden();
+                ->assertNotFound();
             $this->actingAs($retailActor->fresh())
                 ->get(route('admin.b2c.customer-groups.index', ['store_id' => $retailStore]))
                 ->assertForbidden();
