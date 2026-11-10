@@ -307,7 +307,7 @@ $roleLabel = static function ($role): string {
 <div class="note">{{ __('security_permissions.role_outside_authority') }}</div>
 @endif
 @endif
-@if(!$role->archived_at)
+@if(!$role->archived_at && !in_array((string) $role->code, ['SUPER_ADMIN', 'PLATFORM_OWNER'], true))
 <div class="actions"><form method="post" action="{{ route('admin.security.roles.clone',$role) }}">@csrf <input name="code" required pattern="[A-Z][A-Z0-9_]{2,49}" placeholder="{{ str_ireplace('B2C','RETAIL',$role->code) }}_COPY"><input name="name" required value="{{ $role->name }} Copy"><button class="btn secondary">{{ __('admin.security.clone') }}</button></form>@if(!$role->is_system)<form method="post" action="{{ route('admin.security.roles.destroy',$role) }}" onsubmit="return confirm('{{ __('admin.security.confirm_delete_role') }}')">@csrf @method('delete')<button class="btn danger">{{ __('admin.security.delete_role') }}</button></form>@endif</div>
 @endif
 @endcan</details>@endforeach</div>

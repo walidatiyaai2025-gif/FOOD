@@ -380,7 +380,8 @@ final class RbacManager
     {
         // The roles.code UNIQUE constraint reserves historical identities.
         // Inactive and archived records cannot be silently re-created.
-        if (Role::query()->where('code', $code)->exists()) {
+        if ($this->jobRoles->isBuiltIn($code) || in_array($code, ['SUPER_ADMIN', 'PLATFORM_OWNER'], true)
+            || Role::query()->where('code', $code)->exists()) {
             throw ValidationException::withMessages([
                 'code' => [__('admin.security.errors.role_code_reserved')],
             ]);
@@ -434,7 +435,7 @@ final class RbacManager
 
         $this->preparePermissionMutation();
 
-        if ($this->jobRoles->isBuiltIn((string) $role->code)) {
+        if ($role->is_system || $this->jobRoles->isBuiltIn((string) $role->code)) {
             throw ValidationException::withMessages([
                 'role' => [__('job_roles.errors.canonical_locked')],
             ]);
@@ -444,10 +445,6 @@ final class RbacManager
             $values['is_active'] = true;
             $values['scope'] = 'global';
             $values['permission_ids'] = Permission::query()->pluck('id')->map(static fn ($id): int => (int) $id)->all();
-        }
-
-        if ($role->is_system && $role->scope !== $values['scope']) {
-            throw ValidationException::withMessages(['scope' => [__('admin.security.errors.system_scope')]]);
         }
 
         if ($values['scope'] === 'store' && $role->users()->exists()) {
@@ -483,21 +480,52 @@ final class RbacManager
 
     public function cloneRole(User $actor, Role $source, string $code, string $name, Request $request): Role
     {
+        // Built-in job roles may be cloned into custom, separately governed
+        // roles. Control-plane identities cannot become a second, implicit
+        // Super Admin or Platform Owner through the clone endpoint.
+        if (in_array((string) $source->code, ['SUPER_ADMIN', 'PLATFORM_OWNER'], true)) {
+            throw ValidationException::withMessages([
+                'role' => [__('v2_role_clone.privileged_source')],
+            ]);
+        }
+
         if ($source->archived_at !== null) {
             throw ValidationException::withMessages([
                 'role' => [__('admin.security.errors.role_archived')],
             ]);
         }
 
+        if (! $source->is_active) {
+            throw ValidationException::withMessages([
+                'role' => [__('v2_role_clone.inactive_source')],
+            ]);
+        }
+
         $source->load('permissions:id');
 
-        return $this->createRole($actor, $code, [
-            'name' => $name,
-            'description' => $source->description,
-            'scope' => $source->scope,
-            'is_active' => true,
-            'permission_ids' => $source->permissions->pluck('id')->map(static fn ($id): int => (int) $id)->all(),
-        ], $request);
+        // Both role.created and the explicit source→clone provenance must
+        // commit together. The existing role-creation permission/domain
+        // checks remain authoritative and are not bypassed by cloning.
+        return DB::transaction(function () use ($actor, $source, $code, $name, $request): Role {
+            $clone = $this->createRole($actor, $code, [
+                'name' => $name,
+                'description' => $source->description,
+                'scope' => $source->scope,
+                'is_active' => true,
+                'permission_ids' => $source->permissions->pluck('id')->map(static fn ($id): int => (int) $id)->all(),
+            ], $request);
+
+            $this->audit->record(
+                'role.cloned',
+                $actor,
+                $clone,
+                ['source_role_id' => (int) $source->getKey(), 'source_role_code' => (string) $source->code],
+                $this->roleSnapshot($clone),
+                $request,
+            );
+
+            return $clone;
+        });
     }
 
     public function deleteRole(User $actor, Role $role, Request $request): void
@@ -507,7 +535,8 @@ final class RbacManager
         DB::transaction(function () use ($actor, $role, $request): void {
             $locked = Role::query()->lockForUpdate()->findOrFail($role->getKey());
 
-            if ($locked->is_system) {
+            if ($locked->is_system || $this->jobRoles->isBuiltIn((string) $locked->code)
+                || $locked->code === 'PLATFORM_OWNER') {
                 throw ValidationException::withMessages(['role' => [__('admin.security.errors.system_delete')]]);
             }
 
