@@ -220,7 +220,8 @@ final class V2SidebarAuthorityMatrixTest extends TestCase
             config()->set('enterprise_module_readiness.certified_versions.procurement', $version);
             // Without reviewed workflow evidence, exact-version certification is insufficient.
             $this->assertNull($this->item($owner->fresh(), 'erp_procurement'));
-            SyntheticErpWorkflowEvidence::install(); // Synthetic test provenance only.
+            // Synthetic proof is a test-only fixture, never live certification.
+            SyntheticErpWorkflowEvidence::install();
             $item = $this->item($owner->fresh(), 'erp_procurement');
             $this->assertNotNull($item);
             $this->assertSame('admin.erp.procurement.index', $item['route']);
