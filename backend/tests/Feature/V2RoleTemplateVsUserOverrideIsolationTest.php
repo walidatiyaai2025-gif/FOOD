@@ -152,7 +152,7 @@ final class V2RoleTemplateVsUserOverrideIsolationTest extends TestCase
     }
 
     /** @param list<int> $permissions
-     *  @return array{name:string,description:string,scope:string,is_active:int,permission_ids:list<int>}
+     * @return array{name:string,description:string,scope:string,is_active:int,permission_ids:list<int>}
      */
     private function roleValues(Role $role, array $permissions): array
     {
