@@ -386,8 +386,42 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
 
     const groups = [...(nav?.querySelectorAll('[data-group]') || [])];
     const emptyState = shell.querySelector('[data-foodex-nav-search-empty]');
+
+    // Disclosure state belongs to this signed-in user, never to the role, store,
+    // or another account. Only current server-authorized group keys are read.
+    const groupStateKey = 'foodex.sidebar.groups.{{ $user->id ?? 'guest' }}';
+    let savedGroupState = {};
+    try {
+        const stored = JSON.parse(localStorage.getItem(groupStateKey) || 'null');
+        if (stored && typeof stored === 'object' && !Array.isArray(stored)) savedGroupState = stored;
+    } catch {
+        // Private browsing or a malformed historic preference cannot hide navigation.
+    }
+
     groups.forEach(group => {
-        if (!group.querySelector('[aria-current="page"]') && !compactMedia.matches) group.open = false;
+        const key = group.dataset.navGroup;
+        const isCurrent = !!group.querySelector('[aria-current="page"]');
+        if (!isCurrent && key && typeof savedGroupState[key] === 'boolean') {
+            group.open = savedGroupState[key];
+        } else if (!isCurrent && !compactMedia.matches) {
+            group.open = false;
+        }
+
+        // Native <summary> already supports Enter/Space and reports expanded
+        // state to assistive tech. Capture only genuine user disclosure actions:
+        // automatic search expansions must not overwrite a saved preference.
+        group.querySelector(':scope > summary')?.addEventListener('click', () => {
+            if (search?.value.trim() || !key) return;
+            requestAnimationFrame(() => {
+                const next = { ...savedGroupState, [key]: group.open };
+                try {
+                    localStorage.setItem(groupStateKey, JSON.stringify(next));
+                    savedGroupState = next;
+                } catch {
+                    // Storage denied/full: native disclosure continues to work.
+                }
+            });
+        });
     });
 
     // Search only the already RBAC/tenant/module-authorized links rendered by
