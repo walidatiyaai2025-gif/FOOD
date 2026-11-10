@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Enums\StoreBusinessProfile;
 use App\Enterprise\Organization\OrganizationHierarchyService;
+use App\Enums\StoreBusinessProfile;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
