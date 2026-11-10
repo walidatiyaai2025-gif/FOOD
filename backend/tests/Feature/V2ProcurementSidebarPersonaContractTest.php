@@ -136,6 +136,24 @@ final class V2ProcurementSidebarPersonaContractTest extends TestCase
         $this->assertArrayHasKey('b2c_products', $this->navigationItems($retail->fresh()));
         $this->assertArrayNotHasKey('b2c_products', $this->navigationItems($manager->fresh()));
 
+        // Even a fully certified and entitled Wholesale Procurement module
+        // cannot grant a Retail-only actor the Procurement route.
+        app(ModuleRegistry::class)->syncManifest('procurement');
+        app(ModuleLifecycleManager::class)->transition('procurement', ModuleState::ENABLING);
+        app(ModuleLifecycleManager::class)->transition('procurement', ModuleState::ENABLED);
+        app(ModuleEntitlementManager::class)->set('procurement', EntitlementScope::platform(), true);
+        config()->set(
+            'enterprise_module_readiness.certified_versions.procurement',
+            app(ModuleRegistry::class)->manifest('procurement')->version,
+        );
+
+        $this->assertArrayHasKey('erp_procurement', $this->navigationItems($manager->fresh()));
+        $this->assertArrayNotHasKey('erp_procurement', $this->navigationItems($retail->fresh()));
+
+        $this->actingAs($retail->fresh())
+            ->get(route('admin.erp.procurement.index', ['store_id' => $ownStore]))
+            ->assertForbidden();
+
         $this->actingAs($retail->fresh())
             ->get(route('admin.b2c.module', ['module' => 'products', 'store_id' => $ownStore]))
             ->assertOk();
