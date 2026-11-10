@@ -37,6 +37,13 @@ final class V2StoreScopedUserCreationTest extends TestCase
             ->assertSee(__('admin.security.initial_store_role'))
             ->assertSee($store->id.':'.$role->id);
 
+        $admin->forceFill(['locale' => 'en'])->save();
+        $this->actingAs($admin->fresh())
+            ->get(route('admin.security.index', ['section' => 'users']))
+            ->assertOk()
+            ->assertSee('dir="ltr"', false)
+            ->assertSee(__('admin.security.initial_store_role', [], 'en'));
+
         $this->post(route('admin.security.users.store'), [
             ...$this->payload('store.user@example.test'),
             'store_role_assignment' => $store->id.':'.$role->id,
