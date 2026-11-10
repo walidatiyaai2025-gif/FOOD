@@ -62,6 +62,19 @@ final class V2ScopedLiveTrackingSidebarHttpTest extends TestCase
                 });
 
             $this->actingAs($actor->fresh())
+                ->getJson(route('admin.driver-live-tracking.feed', [
+                    'channel' => 'b2c',
+                    'store_id' => $ownStore,
+                ], false))
+                ->assertOk()
+                ->assertJsonCount(1, 'data')
+                ->assertJsonPath('data.0.store_id', $ownStore);
+
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.erp.index', [], false))
+                ->assertForbidden();
+
+            $this->actingAs($actor->fresh())
                 ->getJson(route('admin.driver-live-tracking.lookups', [
                     'kind' => 'driver',
                     'channel' => 'b2c',
