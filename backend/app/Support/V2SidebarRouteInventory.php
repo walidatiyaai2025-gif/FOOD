@@ -34,8 +34,8 @@ final class V2SidebarRouteInventory
     }
 
     /**
-     * @param list<array<string, mixed>> $entries
-     * @param array<string, mixed> $item
+     * @param  list<array<string, mixed>>  $entries
+     * @param  array<string, mixed>  $item
      */
     private function appendItem(array &$entries, string $groupKey, ?string $parent, array $item): void
     {
