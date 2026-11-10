@@ -6,6 +6,7 @@ use App\Domain\SmartOrdering\SmartOrderingEnterpriseEntitlementBridge;
 use App\Domain\WhatsApp\RuntimePolicy;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
+use App\Enterprise\Modules\ModuleOperationalReadiness;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enums\StoreBusinessProfile;
 use App\Models\Store;
@@ -13,6 +14,7 @@ use App\Models\User;
 use App\Services\AdminSidebarManager;
 use App\Services\OperationalTenantScope;
 use Illuminate\Support\Facades\Route;
+use Throwable;
 
 class AdminNavigation
 {
@@ -33,6 +35,7 @@ class AdminNavigation
 
     public function __construct(
         private readonly ModuleRegistry $enterpriseModules,
+        private readonly ModuleOperationalReadiness $enterpriseReadiness,
         private readonly ModuleEntitlementResolver $enterpriseEntitlements,
         private readonly TenantContextResolver $tenantContext,
         private readonly SmartOrderingEnterpriseEntitlementBridge $restaurantSaasAccess,
@@ -805,10 +808,15 @@ class AdminNavigation
         string $permission,
         array $params = [],
     ): ?array {
-        if ($user->isPlatformOwner() && Route::has('admin.enterprise-modules.show')
-            && ! $this->enterpriseModules->isEnabled($moduleCode)) {
-            // Hard-disabled/uninstalled modules remain discoverable in their
-            // diagnostics, never as deceptively functional runtime links.
+        if (! $this->erpModuleReady($moduleCode)) {
+            // Lifecycle ENABLED and entitlement are not an operational
+            // certification. Staff must not see dead or unapproved workspaces.
+            // The registered owner can still investigate the real module
+            // diagnostics route, never an unready business route.
+            if (! $user->isPlatformOwner() || ! Route::has('admin.enterprise-modules.show')) {
+                return null;
+            }
+
             return [
                 'key' => $key,
                 'label' => $label,
@@ -824,6 +832,24 @@ class AdminNavigation
         }
 
         return $item;
+    }
+
+    /**
+     * Read the same exact-manifest readiness authority as the ERP runtime
+     * route guard. Never infer readiness from the Sidebar, a role or ENABLED.
+     * Failed lookups and health checks fail closed without revealing details.
+     */
+    private function erpModuleReady(string $moduleCode): bool
+    {
+        try {
+            return $this->enterpriseReadiness->status(
+                $moduleCode,
+                $this->enterpriseModules->manifest($moduleCode)->version,
+                $this->enterpriseModules->state($moduleCode),
+            ) === 'ready';
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     private function enterpriseModuleAccessible(User $user, string $moduleCode): bool
