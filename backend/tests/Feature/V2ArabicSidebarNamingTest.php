@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class V2ArabicSidebarNamingTest extends TestCase
@@ -96,6 +97,38 @@ class V2ArabicSidebarNamingTest extends TestCase
                 ->flatMap(fn (array $group): array => $group['children'])
                 ->contains('key', 'catalog_management'),
         );
+    }
+
+    public function test_configured_arabic_and_english_sidebar_names_still_override_default_labels(): void
+    {
+        $admin = $this->user('B2B_ADMIN', 'v2-sidebar-custom-label@example.test');
+
+        DB::table('admin_sidebar_items')->insert([
+            'item_key' => 'catalog_management',
+            'group_key' => 'catalog',
+            'parent_key' => null,
+            'label_ar' => 'قائمة منتجات مخصصة',
+            'label_en' => 'Custom catalog entry',
+            'sort_order' => 1,
+            'is_enabled' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        app()->setLocale('ar');
+        $arabicGroup = collect(app(AdminNavigation::class)->groupsFor($admin))->firstWhere('key', 'catalog');
+        $this->assertNotNull($arabicGroup);
+        $arabicEntry = collect($arabicGroup['children'])->firstWhere('key', 'catalog_management');
+        $this->assertNotNull($arabicEntry);
+        $this->assertSame('قائمة منتجات مخصصة', $arabicEntry['label_text']);
+
+        app()->setLocale('en');
+        $englishGroup = collect(app(AdminNavigation::class)->groupsFor($admin))->firstWhere('key', 'catalog');
+        $this->assertNotNull($englishGroup);
+        $englishEntry = collect($englishGroup['children'])->firstWhere('key', 'catalog_management');
+        $this->assertNotNull($englishEntry);
+        $this->assertSame('Custom catalog entry', $englishEntry['label_text']);
+        $this->assertSame('admin.catalog.index', $englishEntry['route']);
     }
 
     private function user(string $roleCode, string $email): User
