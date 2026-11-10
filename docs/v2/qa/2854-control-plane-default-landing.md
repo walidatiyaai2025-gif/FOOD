@@ -49,3 +49,14 @@ Accept only when Repository Policy, FOODEX V2 Isolation Gate, Backend full suite
 | Van Flutter | Not affected | No van REST path/payload/Flutter permission or session change |
 
 No new mobile impact issue is warranted for a management-web-only default redirect. FOODEX B2B VAN ONLY / B2C DRIVER ONLY fulfillment is unchanged. This is not evidence of device-browser visual QA or a ban on explicit elevated operational actions; those separate controls require their own acceptance if mandated by policy. Maintain Finance maker/checker and TenantContextResolver hard guards.
+
+## Existing contracts updated after full-suite verification
+
+The first complete backend run on the real P130 redirect was intentionally **not green**: five legacy tests still required HTTP 200 + the generic executive overview at `/admin` for SUPER_ADMIN. The route now deliberately redirects to the control plane, so those expectations were outdated rather than an authorization or PHP error. We changed only the affected acceptance/benchmark tests within this same issue-owned PR:
+
+- `AdminCatalogManagementTest`: confirm Arabic privileged default redirect and RTL administration page while preserving the explicit B2B Sidebar RTL assertions
+- `AdminSecurityGovernanceCompletionTest`: establish the actual privileged administration session, then prove revocation still logs the user out
+- `AdminShellTest`: distinguish the privileged default hub from explicitly authorized Wholesale executive view, including the fresh-install zero-store state
+- `Performance/CurrentMainPerformanceBaselineTest`: keep the historical B2B executive dashboard benchmark on the explicit `/admin/b2b/dashboard` URL; do not silently benchmark a 302 redirect as a successful 200 page
+
+These changes align tests with the intentional P130 route contract. They do **not** weaken any authentication, tenant access, MFA, financial approval, or component performance assertion. Full exact-head CI must be re-run, and only its final result is acceptance evidence.
