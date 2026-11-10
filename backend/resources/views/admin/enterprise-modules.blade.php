@@ -134,8 +134,10 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <div class="module-meta">
 <div><span>{{ __('enterprise_modules.category') }}</span><strong>{{ $selected['category'] }}</strong></div>
 <div><span>{{ __('enterprise_modules.manifest_version') }}</span><strong>{{ $selected['manifest_version'] }}</strong></div>
+<div><span>{{ __('enterprise_modules.readiness') }}</span><strong data-module-readiness="{{ $selected['operational_readiness'] }}">{{ __('enterprise_modules.readiness_states.'.$selected['operational_readiness']) }}</strong></div>
 <div><span>{{ __('enterprise_modules.capabilities') }} / {{ __('enterprise_modules.permissions') }}</span><strong>{{ $selected['capability_count'] }} / {{ $selected['permission_count'] }}</strong></div>
 </div>
+<p class="module-result-summary">{{ __('enterprise_modules.readiness_note') }}</p>
 <div class="module-grid" style="margin-top:12px">
 <div class="module-block"><span>{{ __('enterprise_modules.dependencies') }}</span>
 @if($selected['dependencies'] === []) <strong>{{ __('enterprise_modules.none') }}</strong>
@@ -175,7 +177,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @foreach($modules as $module)
 <article class="module-card">
 <div class="module-card__head">
-<div><h3>{{ $module['name'] }}</h3>@if(in_array('category',$visibleColumns,true))<div class="foodex-subtitle">{{ $module['category'] }}</div>@endif</div>
+<div><h3>{{ $module['name'] }}</h3>@if(in_array('category',$visibleColumns,true))<div class="foodex-subtitle">{{ $module['category'] }}</div>@endif<div class="foodex-subtitle" data-module-readiness="{{ $module['operational_readiness'] }}">{{ __('enterprise_modules.readiness') }}: {{ __('enterprise_modules.readiness_states.'.$module['operational_readiness']) }}</div></div>
 @if(in_array('state',$visibleColumns,true))<div><div class="foodex-subtitle">{{ __('enterprise_modules.state') }}</div><span class="module-state">{{ __('enterprise_modules.states.'.$module['state']) }}</span></div>@endif
 </div>
 @if(array_intersect(['dependencies','entitlements','capabilities'],$visibleColumns) !== [])

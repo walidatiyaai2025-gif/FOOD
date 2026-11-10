@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleManifest;
 use App\Enterprise\Modules\ModuleManifestCatalog;
+use App\Enterprise\Modules\ModuleOperationalReadiness;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Models\EnterpriseModule;
@@ -20,6 +21,7 @@ final class EnterpriseModuleAdministration
         private readonly ModuleManifestCatalog $catalog,
         private readonly ModuleRegistry $registry,
         private readonly ModuleLifecycleManager $lifecycle,
+        private readonly ModuleOperationalReadiness $readiness,
     ) {}
 
     /**
@@ -194,6 +196,7 @@ final class EnterpriseModuleAdministration
             'category' => Str::headline($manifest->category),
             'manifest_version' => $manifest->version,
             'state' => $state->value,
+            'operational_readiness' => $this->readiness->status($manifest->code, $manifest->version, $state),
             'dependencies' => array_map(
                 static fn (string $dependency): string => Str::headline($dependency),
                 $manifest->hardDependencies,
