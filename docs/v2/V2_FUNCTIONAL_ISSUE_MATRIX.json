@@ -622,7 +622,8 @@
       "summary": "تحديث Live Sidebar Preview دون خلط الرؤية بأزرار الاعتماد",
       "title": "V2 | RBAC-UI P083 — تحديث Live Sidebar Preview دون خلط الرؤية بأزرار الاعتماد",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2819,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2819"
     },
     {
       "id": "P084",
@@ -630,7 +631,8 @@
       "summary": "Diff قبل وبعد وتحذير SoD وسبب التغيير وAudit وإبطال Cache",
       "title": "V2 | RBAC-UI P084 — Diff قبل وبعد وتحذير SoD وسبب التغيير وAudit وإبطال Cache",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2820,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2820"
     },
     {
       "id": "T087R01",
@@ -638,7 +640,8 @@
       "summary": "مثال خدمة العملاء: WhatsApp عرض ورد وإسناد محادثات",
       "title": "V2 | RBAC-UI T087R01 — مثال خدمة العملاء: WhatsApp عرض ورد وإسناد محادثات",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2821,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2821"
     },
     {
       "id": "T087R02",
@@ -646,7 +649,8 @@
       "summary": "مثال خدمة العملاء: ملفات العملاء عرض وتعديل محدود",
       "title": "V2 | RBAC-UI T087R02 — مثال خدمة العملاء: ملفات العملاء عرض وتعديل محدود",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2822,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2822"
     },
     {
       "id": "T087R03",
@@ -654,7 +658,8 @@
       "summary": "مثال خدمة العملاء: الطلبات عرض وإنشاء وتوزيع واعتماد مستقل",
       "title": "V2 | RBAC-UI T087R03 — مثال خدمة العملاء: الطلبات عرض وإنشاء وتوزيع واعتماد مستقل",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2823,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2823"
     },
     {
       "id": "T087R04",
@@ -662,7 +667,8 @@
       "summary": "مثال خدمة العملاء: طلب وتطبيق خصم تحت سقف وموافقة",
       "title": "V2 | RBAC-UI T087R04 — مثال خدمة العملاء: طلب وتطبيق خصم تحت سقف وموافقة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2824,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2824"
     },
     {
       "id": "T087R05",
@@ -670,7 +676,8 @@
       "summary": "مثال خدمة العملاء: إخفاء دفتر القيود افتراضيًا",
       "title": "V2 | RBAC-UI T087R05 — مثال خدمة العملاء: إخفاء دفتر القيود افتراضيًا",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2825,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2825"
     },
     {
       "id": "T087R06",
@@ -678,7 +685,8 @@
       "summary": "مثال خدمة العملاء: إخفاء إدارة المستخدمين والصلاحيات",
       "title": "V2 | RBAC-UI T087R06 — مثال خدمة العملاء: إخفاء إدارة المستخدمين والصلاحيات",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2826,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2826"
     },
     {
       "id": "P090",
@@ -686,7 +694,8 @@
       "summary": "وضع Inherit من الدور الخاضع للنطاق والموديول",
       "title": "V2 | RBAC P090 — وضع Inherit من الدور الخاضع للنطاق والموديول",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2827,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2827"
     },
     {
       "id": "P091",
@@ -694,7 +703,8 @@
       "summary": "وضع Allow ضمن السقف والنطاق مع منع كسر عزل المتاجر",
       "title": "V2 | RBAC P091 — وضع Allow ضمن السقف والنطاق مع منع كسر عزل المتاجر",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2828,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2828"
     },
     {
       "id": "P092",
@@ -702,7 +712,8 @@
       "summary": "وضع Deny بأسبقية واضحة على وراثة الدور",
       "title": "V2 | RBAC P092 — وضع Deny بأسبقية واضحة على وراثة الدور",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2829,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2829"
     },
     {
       "id": "P093",
@@ -710,7 +721,8 @@
       "summary": "عقدة القسم ليست إذنًا وتختفي دون ابن مصرح",
       "title": "V2 | SIDEBAR P093 — عقدة القسم ليست إذنًا وتختفي دون ابن مصرح",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2830,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2830"
     },
     {
       "id": "P094",
@@ -718,7 +730,8 @@
       "summary": "مربع الصفحة يحرر Permission Codes لا Visibility",
       "title": "V2 | RBAC P094 — مربع الصفحة يحرر Permission Codes لا Visibility",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2831,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2831"
     },
     {
       "id": "P096",
@@ -726,7 +739,8 @@
       "summary": "فصل أثر تعديل قالب الدور عن Override مستخدم واحد",
       "title": "V2 | RBAC P096 — فصل أثر تعديل قالب الدور عن Override مستخدم واحد",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2832,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2832"
     },
     {
       "id": "P097",
@@ -734,7 +748,8 @@
       "summary": "حماية Built-in Role والاستنساخ إلى دور مخصص مع حوكمة",
       "title": "V2 | RBAC P097 — حماية Built-in Role والاستنساخ إلى دور مخصص مع حوكمة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2833,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2833"
     },
     {
       "id": "P098",
@@ -742,7 +757,8 @@
       "summary": "تفاصيل الدور المخصص ووصفه وحدوده ومتجره وموديولاته وسقفه",
       "title": "V2 | RBAC-UI P098 — تفاصيل الدور المخصص ووصفه وحدوده ومتجره وموديولاته وسقفه",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2834,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2834"
     },
     {
       "id": "P099",
@@ -750,7 +766,8 @@
       "summary": "تعديل الواجهة ينعكس على RBAC وRoute الحقيقي دون تجاوز الموافقات",
       "title": "V2 | SECURITY P099 — تعديل الواجهة ينعكس على RBAC وRoute الحقيقي دون تجاوز الموافقات",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2835,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2835"
     },
     {
       "id": "P100",
