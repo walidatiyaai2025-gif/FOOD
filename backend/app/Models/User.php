@@ -160,8 +160,7 @@ class User extends Authenticatable
             return false;
         }
         if ($storeEffect === 'allow') {
-            return $storeId !== null
-                && $this->permissionFitsStoreChannel($permissionCode, (string) $this->storeChannel($storeId))
+            return $this->permissionFitsStoreChannel($permissionCode, (string) $this->storeChannel($storeId))
                 && $this->hasPermissionScopeContext($storeId);
         }
         if ($globalEffect === 'allow') {
