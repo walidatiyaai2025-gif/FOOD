@@ -11,9 +11,11 @@
       "title": "V2 | Sidebar 174 — نظرة عامة ومساحات العمل",
       "summary": "نظرة عامة ومساحات العمل",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 174",
+      "source": "Document Part 2 §4, actual DOCX paragraph P163 (legacy matrix index P174)",
       "issue_number": 2504,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2504"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2504",
+      "document_paragraph_id": "P163",
+      "matrix_key": "P174"
     },
     {
       "id": "P175",
@@ -22,9 +24,11 @@
       "title": "V2 | Sidebar 175 — نظرة عامة",
       "summary": "نظرة عامة",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 175",
+      "source": "Document Part 2 §4, actual DOCX paragraph P164 (legacy matrix index P175)",
       "issue_number": 2505,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2505"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2505",
+      "document_paragraph_id": "P164",
+      "matrix_key": "P175"
     },
     {
       "id": "P176",
@@ -33,9 +37,11 @@
       "title": "V2 | Sidebar 176 — لوحة التحكم",
       "summary": "لوحة التحكم",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 176",
+      "source": "Document Part 2 §4, actual DOCX paragraph P165 (legacy matrix index P176)",
       "issue_number": 2506,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2506"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2506",
+      "document_paragraph_id": "P165",
+      "matrix_key": "P176"
     },
     {
       "id": "P177",
@@ -44,9 +50,11 @@
       "title": "V2 | Sidebar 177 — مركز الإجراءات",
       "summary": "مركز الإجراءات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 177",
+      "source": "Document Part 2 §4, actual DOCX paragraph P166 (legacy matrix index P177)",
       "issue_number": 2507,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2507"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2507",
+      "document_paragraph_id": "P166",
+      "matrix_key": "P177"
     },
     {
       "id": "P178",
@@ -55,9 +63,11 @@
       "title": "V2 | Sidebar 178 — مهامي",
       "summary": "مهامي",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 178",
+      "source": "Document Part 2 §4, actual DOCX paragraph P167 (legacy matrix index P178)",
       "issue_number": 2508,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2508"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2508",
+      "document_paragraph_id": "P167",
+      "matrix_key": "P178"
     },
     {
       "id": "P179",
@@ -66,9 +76,11 @@
       "title": "V2 | Sidebar 179 — الإشعارات والتنبيهات",
       "summary": "الإشعارات والتنبيهات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 179",
+      "source": "Document Part 2 §4, actual DOCX paragraph P168 (legacy matrix index P179)",
       "issue_number": 2509,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2509"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2509",
+      "document_paragraph_id": "P168",
+      "matrix_key": "P179"
     },
     {
       "id": "P180",
@@ -77,9 +89,11 @@
       "title": "V2 | Sidebar 180 — مساحات العمل",
       "summary": "مساحات العمل",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 180",
+      "source": "Document Part 2 §4, actual DOCX paragraph P169 (legacy matrix index P180)",
       "issue_number": 2510,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2510"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2510",
+      "document_paragraph_id": "P169",
+      "matrix_key": "P180"
     },
     {
       "id": "P181",
@@ -88,9 +102,11 @@
       "title": "V2 | Sidebar 181 — لوحة الجملة",
       "summary": "لوحة الجملة",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 181",
+      "source": "Document Part 2 §4, actual DOCX paragraph P170 (legacy matrix index P181)",
       "issue_number": 2511,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2511"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2511",
+      "document_paragraph_id": "P170",
+      "matrix_key": "P181"
     },
     {
       "id": "P182",
@@ -99,9 +115,11 @@
       "title": "V2 | Sidebar 182 — لوحة التجزئة",
       "summary": "لوحة التجزئة",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 182",
+      "source": "Document Part 2 §4, actual DOCX paragraph P171 (legacy matrix index P182)",
       "issue_number": 2512,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2512"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2512",
+      "document_paragraph_id": "P171",
+      "matrix_key": "P182"
     },
     {
       "id": "P183",
@@ -110,9 +128,11 @@
       "title": "V2 | Sidebar 183 — لوحة المطاعم / الطلب الرقمي",
       "summary": "لوحة المطاعم / الطلب الرقمي",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 183",
+      "source": "Document Part 2 §4, actual DOCX paragraph P172 (legacy matrix index P183)",
       "issue_number": 2513,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2513"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2513",
+      "document_paragraph_id": "P172",
+      "matrix_key": "P183"
     },
     {
       "id": "P184",
@@ -121,9 +141,11 @@
       "title": "V2 | Sidebar 184 — لوحة الإدارة التنفيذية",
       "summary": "لوحة الإدارة التنفيذية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 184",
+      "source": "Document Part 2 §4, actual DOCX paragraph P173 (legacy matrix index P184)",
       "issue_number": 2514,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2514"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2514",
+      "document_paragraph_id": "P173",
+      "matrix_key": "P184"
     },
     {
       "id": "P185",
@@ -132,9 +154,11 @@
       "title": "V2 | Sidebar 185 — العملاء والمبيعات وخدمة العملاء",
       "summary": "العملاء والمبيعات وخدمة العملاء",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 185",
+      "source": "Document Part 2 §4, actual DOCX paragraph P174 (legacy matrix index P185)",
       "issue_number": 2515,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2515"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2515",
+      "document_paragraph_id": "P174",
+      "matrix_key": "P185"
     },
     {
       "id": "P186",
@@ -143,9 +167,11 @@
       "title": "V2 | Sidebar 186 — العملاء",
       "summary": "العملاء",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 186",
+      "source": "Document Part 2 §4, actual DOCX paragraph P175 (legacy matrix index P186)",
       "issue_number": 2516,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2516"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2516",
+      "document_paragraph_id": "P175",
+      "matrix_key": "P186"
     },
     {
       "id": "P187",
@@ -154,9 +180,11 @@
       "title": "V2 | Sidebar 187 — العملاء 360",
       "summary": "العملاء 360",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 187",
+      "source": "Document Part 2 §4, actual DOCX paragraph P176 (legacy matrix index P187)",
       "issue_number": 2517,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2517"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2517",
+      "document_paragraph_id": "P176",
+      "matrix_key": "P187"
     },
     {
       "id": "P188",
@@ -165,9 +193,11 @@
       "title": "V2 | Sidebar 188 — عملاء الجملة",
       "summary": "عملاء الجملة",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 188",
+      "source": "Document Part 2 §4, actual DOCX paragraph P177 (legacy matrix index P188)",
       "issue_number": 2518,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2518"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2518",
+      "document_paragraph_id": "P177",
+      "matrix_key": "P188"
     },
     {
       "id": "P189",
@@ -176,9 +206,11 @@
       "title": "V2 | Sidebar 189 — عملاء التجزئة",
       "summary": "عملاء التجزئة",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 189",
+      "source": "Document Part 2 §4, actual DOCX paragraph P178 (legacy matrix index P189)",
       "issue_number": 2519,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2519"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2519",
+      "document_paragraph_id": "P178",
+      "matrix_key": "P189"
     },
     {
       "id": "P190",
@@ -187,9 +219,11 @@
       "title": "V2 | Sidebar 190 — مجموعات العملاء",
       "summary": "مجموعات العملاء",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 190",
+      "source": "Document Part 2 §4, actual DOCX paragraph P179 (legacy matrix index P190)",
       "issue_number": 2520,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2520"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2520",
+      "document_paragraph_id": "P179",
+      "matrix_key": "P190"
     },
     {
       "id": "P191",
@@ -198,9 +232,11 @@
       "title": "V2 | Sidebar 191 — الحسابات والحدود الائتمانية",
       "summary": "الحسابات والحدود الائتمانية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 191",
+      "source": "Document Part 2 §4, actual DOCX paragraph P180 (legacy matrix index P191)",
       "issue_number": 2521,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2521"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2521",
+      "document_paragraph_id": "P180",
+      "matrix_key": "P191"
     },
     {
       "id": "P192",
@@ -209,9 +245,11 @@
       "title": "V2 | Sidebar 192 — المبيعات",
       "summary": "المبيعات",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 192",
+      "source": "Document Part 2 §4, actual DOCX paragraph P181 (legacy matrix index P192)",
       "issue_number": 2522,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2522"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2522",
+      "document_paragraph_id": "P181",
+      "matrix_key": "P192"
     },
     {
       "id": "P193",
@@ -220,9 +258,11 @@
       "title": "V2 | Sidebar 193 — عروض الأسعار",
       "summary": "عروض الأسعار",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 193",
+      "source": "Document Part 2 §4, actual DOCX paragraph P182 (legacy matrix index P193)",
       "issue_number": 2523,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2523"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2523",
+      "document_paragraph_id": "P182",
+      "matrix_key": "P193"
     },
     {
       "id": "P194",
@@ -231,9 +271,11 @@
       "title": "V2 | Sidebar 194 — الطلبات",
       "summary": "الطلبات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 194",
+      "source": "Document Part 2 §4, actual DOCX paragraph P183 (legacy matrix index P194)",
       "issue_number": 2524,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2524"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2524",
+      "document_paragraph_id": "P183",
+      "matrix_key": "P194"
     },
     {
       "id": "P195",
@@ -242,9 +284,11 @@
       "title": "V2 | Sidebar 195 — العقود والأسعار",
       "summary": "العقود والأسعار",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 195",
+      "source": "Document Part 2 §4, actual DOCX paragraph P184 (legacy matrix index P195)",
       "issue_number": 2525,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2525"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2525",
+      "document_paragraph_id": "P184",
+      "matrix_key": "P195"
     },
     {
       "id": "P196",
@@ -253,9 +297,11 @@
       "title": "V2 | Sidebar 196 — الخصومات المعتمدة",
       "summary": "الخصومات المعتمدة",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 196",
+      "source": "Document Part 2 §4, actual DOCX paragraph P185 (legacy matrix index P196)",
       "issue_number": 2526,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2526"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2526",
+      "document_paragraph_id": "P185",
+      "matrix_key": "P196"
     },
     {
       "id": "P197",
@@ -264,9 +310,11 @@
       "title": "V2 | Sidebar 197 — موافقات الاستثناء التجاري",
       "summary": "موافقات الاستثناء التجاري",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 197",
+      "source": "Document Part 2 §4, actual DOCX paragraph P186 (legacy matrix index P197)",
       "issue_number": 2527,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2527"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2527",
+      "document_paragraph_id": "P186",
+      "matrix_key": "P197"
     },
     {
       "id": "P198",
@@ -275,9 +323,11 @@
       "title": "V2 | Sidebar 198 — خدمة العملاء وواتساب",
       "summary": "خدمة العملاء وواتساب",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 198",
+      "source": "Document Part 2 §4, actual DOCX paragraph P187 (legacy matrix index P198)",
       "issue_number": 2528,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2528"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2528",
+      "document_paragraph_id": "P187",
+      "matrix_key": "P198"
     },
     {
       "id": "P199",
@@ -286,9 +336,11 @@
       "title": "V2 | Sidebar 199 — صندوق الواتساب",
       "summary": "صندوق الواتساب",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 199",
+      "source": "Document Part 2 §4, actual DOCX paragraph P188 (legacy matrix index P199)",
       "issue_number": 2529,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2529"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2529",
+      "document_paragraph_id": "P188",
+      "matrix_key": "P199"
     },
     {
       "id": "P200",
@@ -297,9 +349,11 @@
       "title": "V2 | Sidebar 200 — محادثات العملاء",
       "summary": "محادثات العملاء",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 200",
+      "source": "Document Part 2 §4, actual DOCX paragraph P189 (legacy matrix index P200)",
       "issue_number": 2530,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2530"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2530",
+      "document_paragraph_id": "P189",
+      "matrix_key": "P200"
     },
     {
       "id": "P201",
@@ -308,9 +362,11 @@
       "title": "V2 | Sidebar 201 — توزيع المحادثات",
       "summary": "توزيع المحادثات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 201",
+      "source": "Document Part 2 §4, actual DOCX paragraph P190 (legacy matrix index P201)",
       "issue_number": 2531,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2531"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2531",
+      "document_paragraph_id": "P190",
+      "matrix_key": "P201"
     },
     {
       "id": "P202",
@@ -319,9 +375,11 @@
       "title": "V2 | Sidebar 202 — قواعد التوزيع",
       "summary": "قواعد التوزيع",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 202",
+      "source": "Document Part 2 §4, actual DOCX paragraph P191 (legacy matrix index P202)",
       "issue_number": 2532,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2532"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2532",
+      "document_paragraph_id": "P191",
+      "matrix_key": "P202"
     },
     {
       "id": "P203",
@@ -330,9 +388,11 @@
       "title": "V2 | Sidebar 203 — الحملات",
       "summary": "الحملات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 203",
+      "source": "Document Part 2 §4, actual DOCX paragraph P192 (legacy matrix index P203)",
       "issue_number": 2533,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2533"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2533",
+      "document_paragraph_id": "P192",
+      "matrix_key": "P203"
     },
     {
       "id": "P204",
@@ -341,9 +401,11 @@
       "title": "V2 | Sidebar 204 — التقارير الإشرافية",
       "summary": "التقارير الإشرافية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 204",
+      "source": "Document Part 2 §4, actual DOCX paragraph P193 (legacy matrix index P204)",
       "issue_number": 2534,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2534"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2534",
+      "document_paragraph_id": "P193",
+      "matrix_key": "P204"
     },
     {
       "id": "P205",
@@ -352,9 +414,11 @@
       "title": "V2 | Sidebar 205 — الطلبات والعمليات والتنفيذ",
       "summary": "الطلبات والعمليات والتنفيذ",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 205",
+      "source": "Document Part 2 §4, actual DOCX paragraph P194 (legacy matrix index P205)",
       "issue_number": 2535,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2535"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2535",
+      "document_paragraph_id": "P194",
+      "matrix_key": "P205"
     },
     {
       "id": "P206",
@@ -363,9 +427,11 @@
       "title": "V2 | Sidebar 206 — الطلبات والعمليات",
       "summary": "الطلبات والعمليات",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 206",
+      "source": "Document Part 2 §4, actual DOCX paragraph P195 (legacy matrix index P206)",
       "issue_number": 2536,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2536"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2536",
+      "document_paragraph_id": "P195",
+      "matrix_key": "P206"
     },
     {
       "id": "P207",
@@ -374,9 +440,11 @@
       "title": "V2 | Sidebar 207 — إدارة الطلبات",
       "summary": "إدارة الطلبات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 207",
+      "source": "Document Part 2 §4, actual DOCX paragraph P196 (legacy matrix index P207)",
       "issue_number": 2537,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2537"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2537",
+      "document_paragraph_id": "P196",
+      "matrix_key": "P207"
     },
     {
       "id": "P208",
@@ -385,9 +453,11 @@
       "title": "V2 | Sidebar 208 — الطلبات الواردة للتجزئة",
       "summary": "الطلبات الواردة للتجزئة",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 208",
+      "source": "Document Part 2 §4, actual DOCX paragraph P197 (legacy matrix index P208)",
       "issue_number": 2538,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2538"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2538",
+      "document_paragraph_id": "P197",
+      "matrix_key": "P208"
     },
     {
       "id": "P209",
@@ -396,9 +466,11 @@
       "title": "V2 | Sidebar 209 — الطلبات المعلقة",
       "summary": "الطلبات المعلقة",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 209",
+      "source": "Document Part 2 §4, actual DOCX paragraph P198 (legacy matrix index P209)",
       "issue_number": 2539,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2539"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2539",
+      "document_paragraph_id": "P198",
+      "matrix_key": "P209"
     },
     {
       "id": "P210",
@@ -407,9 +479,11 @@
       "title": "V2 | Sidebar 210 — بانتظار التوجيه",
       "summary": "بانتظار التوجيه",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 210",
+      "source": "Document Part 2 §4, actual DOCX paragraph P199 (legacy matrix index P210)",
       "issue_number": 2540,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2540"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2540",
+      "document_paragraph_id": "P199",
+      "matrix_key": "P210"
     },
     {
       "id": "P211",
@@ -418,9 +492,11 @@
       "title": "V2 | Sidebar 211 — الاستثناءات التشغيلية",
       "summary": "الاستثناءات التشغيلية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 211",
+      "source": "Document Part 2 §4, actual DOCX paragraph P200 (legacy matrix index P211)",
       "issue_number": 2541,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2541"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2541",
+      "document_paragraph_id": "P200",
+      "matrix_key": "P211"
     },
     {
       "id": "P212",
@@ -429,9 +505,11 @@
       "title": "V2 | Sidebar 212 — التسليم والتنفيذ",
       "summary": "التسليم والتنفيذ",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 212",
+      "source": "Document Part 2 §4, actual DOCX paragraph P201 (legacy matrix index P212)",
       "issue_number": 2542,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2542"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2542",
+      "document_paragraph_id": "P201",
+      "matrix_key": "P212"
     },
     {
       "id": "P213",
@@ -440,9 +518,11 @@
       "title": "V2 | Sidebar 213 — التوزيع",
       "summary": "التوزيع",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 213",
+      "source": "Document Part 2 §4, actual DOCX paragraph P202 (legacy matrix index P213)",
       "issue_number": 2543,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2543"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2543",
+      "document_paragraph_id": "P202",
+      "matrix_key": "P213"
     },
     {
       "id": "P214",
@@ -451,9 +531,11 @@
       "title": "V2 | Sidebar 214 — الإسناد",
       "summary": "الإسناد",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 214",
+      "source": "Document Part 2 §4, actual DOCX paragraph P203 (legacy matrix index P214)",
       "issue_number": 2544,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2544"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2544",
+      "document_paragraph_id": "P203",
+      "matrix_key": "P214"
     },
     {
       "id": "P215",
@@ -462,9 +544,11 @@
       "title": "V2 | Sidebar 215 — تتبع الحالات",
       "summary": "تتبع الحالات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 215",
+      "source": "Document Part 2 §4, actual DOCX paragraph P204 (legacy matrix index P215)",
       "issue_number": 2545,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2545"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2545",
+      "document_paragraph_id": "P204",
+      "matrix_key": "P215"
     },
     {
       "id": "P216",
@@ -473,9 +557,11 @@
       "title": "V2 | Sidebar 216 — إثبات التسليم",
       "summary": "إثبات التسليم",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 216",
+      "source": "Document Part 2 §4, actual DOCX paragraph P205 (legacy matrix index P216)",
       "issue_number": 2546,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2546"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2546",
+      "document_paragraph_id": "P205",
+      "matrix_key": "P216"
     },
     {
       "id": "P217",
@@ -484,9 +570,11 @@
       "title": "V2 | Sidebar 217 — الفشل والإرجاع",
       "summary": "الفشل والإرجاع",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 217",
+      "source": "Document Part 2 §4, actual DOCX paragraph P206 (legacy matrix index P217)",
       "issue_number": 2547,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2547"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2547",
+      "document_paragraph_id": "P206",
+      "matrix_key": "P217"
     },
     {
       "id": "P218",
@@ -495,9 +583,11 @@
       "title": "V2 | Sidebar 218 — الكتالوج والتسعير والعروض",
       "summary": "الكتالوج والتسعير والعروض",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 218",
+      "source": "Document Part 2 §4, actual DOCX paragraph P207 (legacy matrix index P218)",
       "issue_number": 2548,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2548"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2548",
+      "document_paragraph_id": "P207",
+      "matrix_key": "P218"
     },
     {
       "id": "P219",
@@ -506,9 +596,11 @@
       "title": "V2 | Sidebar 219 — الكتالوج",
       "summary": "الكتالوج",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 219",
+      "source": "Document Part 2 §4, actual DOCX paragraph P208 (legacy matrix index P219)",
       "issue_number": 2549,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2549"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2549",
+      "document_paragraph_id": "P208",
+      "matrix_key": "P219"
     },
     {
       "id": "P220",
@@ -517,9 +609,11 @@
       "title": "V2 | Sidebar 220 — إدارة الكتالوج",
       "summary": "إدارة الكتالوج",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 220",
+      "source": "Document Part 2 §4, actual DOCX paragraph P209 (legacy matrix index P220)",
       "issue_number": 2550,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2550"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2550",
+      "document_paragraph_id": "P209",
+      "matrix_key": "P220"
     },
     {
       "id": "P221",
@@ -528,9 +622,11 @@
       "title": "V2 | Sidebar 221 — المنتجات",
       "summary": "المنتجات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 221",
+      "source": "Document Part 2 §4, actual DOCX paragraph P210 (legacy matrix index P221)",
       "issue_number": 2551,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2551"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2551",
+      "document_paragraph_id": "P210",
+      "matrix_key": "P221"
     },
     {
       "id": "P222",
@@ -539,9 +635,11 @@
       "title": "V2 | Sidebar 222 — الفئات",
       "summary": "الفئات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 222",
+      "source": "Document Part 2 §4, actual DOCX paragraph P211 (legacy matrix index P222)",
       "issue_number": 2552,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2552"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2552",
+      "document_paragraph_id": "P211",
+      "matrix_key": "P222"
     },
     {
       "id": "P223",
@@ -550,9 +648,11 @@
       "title": "V2 | Sidebar 223 — الوحدات والمرجعيات",
       "summary": "الوحدات والمرجعيات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 223",
+      "source": "Document Part 2 §4, actual DOCX paragraph P212 (legacy matrix index P223)",
       "issue_number": 2553,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2553"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2553",
+      "document_paragraph_id": "P212",
+      "matrix_key": "P223"
     },
     {
       "id": "P224",
@@ -561,9 +661,11 @@
       "title": "V2 | Sidebar 224 — الصور والمحتوى",
       "summary": "الصور والمحتوى",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 224",
+      "source": "Document Part 2 §4, actual DOCX paragraph P213 (legacy matrix index P224)",
       "issue_number": 2554,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2554"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2554",
+      "document_paragraph_id": "P213",
+      "matrix_key": "P224"
     },
     {
       "id": "P225",
@@ -572,9 +674,11 @@
       "title": "V2 | Sidebar 225 — التسعير التجاري",
       "summary": "التسعير التجاري",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 225",
+      "source": "Document Part 2 §4, actual DOCX paragraph P214 (legacy matrix index P225)",
       "issue_number": 2555,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2555"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2555",
+      "document_paragraph_id": "P214",
+      "matrix_key": "P225"
     },
     {
       "id": "P226",
@@ -583,9 +687,11 @@
       "title": "V2 | Sidebar 226 — قوائم الأسعار",
       "summary": "قوائم الأسعار",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 226",
+      "source": "Document Part 2 §4, actual DOCX paragraph P215 (legacy matrix index P226)",
       "issue_number": 2556,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2556"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2556",
+      "document_paragraph_id": "P215",
+      "matrix_key": "P226"
     },
     {
       "id": "P227",
@@ -594,9 +700,11 @@
       "title": "V2 | Sidebar 227 — شرائح العملاء",
       "summary": "شرائح العملاء",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 227",
+      "source": "Document Part 2 §4, actual DOCX paragraph P216 (legacy matrix index P227)",
       "issue_number": 2557,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2557"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2557",
+      "document_paragraph_id": "P216",
+      "matrix_key": "P227"
     },
     {
       "id": "P228",
@@ -605,9 +713,11 @@
       "title": "V2 | Sidebar 228 — شرائح الكميات",
       "summary": "شرائح الكميات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 228",
+      "source": "Document Part 2 §4, actual DOCX paragraph P217 (legacy matrix index P228)",
       "issue_number": 2558,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2558"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2558",
+      "document_paragraph_id": "P217",
+      "matrix_key": "P228"
     },
     {
       "id": "P229",
@@ -616,9 +726,11 @@
       "title": "V2 | Sidebar 229 — قواعد الربحية",
       "summary": "قواعد الربحية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 229",
+      "source": "Document Part 2 §4, actual DOCX paragraph P218 (legacy matrix index P229)",
       "issue_number": 2559,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2559"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2559",
+      "document_paragraph_id": "P218",
+      "matrix_key": "P229"
     },
     {
       "id": "P230",
@@ -627,9 +739,11 @@
       "title": "V2 | Sidebar 230 — اعتماد الاستثناءات",
       "summary": "اعتماد الاستثناءات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 230",
+      "source": "Document Part 2 §4, actual DOCX paragraph P219 (legacy matrix index P230)",
       "issue_number": 2560,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2560"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2560",
+      "document_paragraph_id": "P219",
+      "matrix_key": "P230"
     },
     {
       "id": "P231",
@@ -638,9 +752,11 @@
       "title": "V2 | Sidebar 231 — العروض والترويج",
       "summary": "العروض والترويج",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 231",
+      "source": "Document Part 2 §4, actual DOCX paragraph P220 (legacy matrix index P231)",
       "issue_number": 2561,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2561"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2561",
+      "document_paragraph_id": "P220",
+      "matrix_key": "P231"
     },
     {
       "id": "P232",
@@ -649,9 +765,11 @@
       "title": "V2 | Sidebar 232 — العروض",
       "summary": "العروض",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 232",
+      "source": "Document Part 2 §4, actual DOCX paragraph P221 (legacy matrix index P232)",
       "issue_number": 2562,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2562"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2562",
+      "document_paragraph_id": "P221",
+      "matrix_key": "P232"
     },
     {
       "id": "P233",
@@ -660,9 +778,11 @@
       "title": "V2 | Sidebar 233 — الكوبونات",
       "summary": "الكوبونات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 233",
+      "source": "Document Part 2 §4, actual DOCX paragraph P222 (legacy matrix index P233)",
       "issue_number": 2563,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2563"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2563",
+      "document_paragraph_id": "P222",
+      "matrix_key": "P233"
     },
     {
       "id": "P234",
@@ -671,9 +791,11 @@
       "title": "V2 | Sidebar 234 — الإشعارات",
       "summary": "الإشعارات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 234",
+      "source": "Document Part 2 §4, actual DOCX paragraph P223 (legacy matrix index P234)",
       "issue_number": 2564,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2564"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2564",
+      "document_paragraph_id": "P223",
+      "matrix_key": "P234"
     },
     {
       "id": "P235",
@@ -682,9 +804,11 @@
       "title": "V2 | Sidebar 235 — الإعلانات الحية",
       "summary": "الإعلانات الحية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 235",
+      "source": "Document Part 2 §4, actual DOCX paragraph P224 (legacy matrix index P235)",
       "issue_number": 2565,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2565"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2565",
+      "document_paragraph_id": "P224",
+      "matrix_key": "P235"
     },
     {
       "id": "P236",
@@ -693,9 +817,11 @@
       "title": "V2 | Sidebar 236 — المحتوى",
       "summary": "المحتوى",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 236",
+      "source": "Document Part 2 §4, actual DOCX paragraph P225 (legacy matrix index P236)",
       "issue_number": 2566,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2566"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2566",
+      "document_paragraph_id": "P225",
+      "matrix_key": "P236"
     },
     {
       "id": "P237",
@@ -704,9 +830,11 @@
       "title": "V2 | Sidebar 237 — المشتريات والمخزون والمستودعات",
       "summary": "المشتريات والمخزون والمستودعات",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 237",
+      "source": "Document Part 2 §4, actual DOCX paragraph P226 (legacy matrix index P237)",
       "issue_number": 2567,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2567"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2567",
+      "document_paragraph_id": "P226",
+      "matrix_key": "P237"
     },
     {
       "id": "P238",
@@ -715,9 +843,11 @@
       "title": "V2 | Sidebar 238 — المشتريات",
       "summary": "المشتريات",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 238",
+      "source": "Document Part 2 §4, actual DOCX paragraph P227 (legacy matrix index P238)",
       "issue_number": 2568,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2568"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2568",
+      "document_paragraph_id": "P227",
+      "matrix_key": "P238"
     },
     {
       "id": "P239",
@@ -726,9 +856,11 @@
       "title": "V2 | Sidebar 239 — الموردون",
       "summary": "الموردون",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 239",
+      "source": "Document Part 2 §4, actual DOCX paragraph P228 (legacy matrix index P239)",
       "issue_number": 2569,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2569"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2569",
+      "document_paragraph_id": "P228",
+      "matrix_key": "P239"
     },
     {
       "id": "P240",
@@ -737,9 +869,11 @@
       "title": "V2 | Sidebar 240 — طلبات الشراء",
       "summary": "طلبات الشراء",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 240",
+      "source": "Document Part 2 §4, actual DOCX paragraph P229 (legacy matrix index P240)",
       "issue_number": 2570,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2570"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2570",
+      "document_paragraph_id": "P229",
+      "matrix_key": "P240"
     },
     {
       "id": "P241",
@@ -748,9 +882,11 @@
       "title": "V2 | Sidebar 241 — أوامر الشراء",
       "summary": "أوامر الشراء",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 241",
+      "source": "Document Part 2 §4, actual DOCX paragraph P230 (legacy matrix index P241)",
       "issue_number": 2571,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2571"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2571",
+      "document_paragraph_id": "P230",
+      "matrix_key": "P241"
     },
     {
       "id": "P242",
@@ -759,9 +895,11 @@
       "title": "V2 | Sidebar 242 — الاستلام",
       "summary": "الاستلام",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 242",
+      "source": "Document Part 2 §4, actual DOCX paragraph P231 (legacy matrix index P242)",
       "issue_number": 2572,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2572"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2572",
+      "document_paragraph_id": "P231",
+      "matrix_key": "P242"
     },
     {
       "id": "P243",
@@ -770,9 +908,11 @@
       "title": "V2 | Sidebar 243 — المرتجعات",
       "summary": "المرتجعات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 243",
+      "source": "Document Part 2 §4, actual DOCX paragraph P232 (legacy matrix index P243)",
       "issue_number": 2573,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2573"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2573",
+      "document_paragraph_id": "P232",
+      "matrix_key": "P243"
     },
     {
       "id": "P244",
@@ -781,9 +921,11 @@
       "title": "V2 | Sidebar 244 — فواتير الشراء",
       "summary": "فواتير الشراء",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 244",
+      "source": "Document Part 2 §4, actual DOCX paragraph P233 (legacy matrix index P244)",
       "issue_number": 2574,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2574"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2574",
+      "document_paragraph_id": "P233",
+      "matrix_key": "P244"
     },
     {
       "id": "P245",
@@ -792,9 +934,11 @@
       "title": "V2 | Sidebar 245 — كشوف الموردين",
       "summary": "كشوف الموردين",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 245",
+      "source": "Document Part 2 §4, actual DOCX paragraph P234 (legacy matrix index P245)",
       "issue_number": 2575,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2575"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2575",
+      "document_paragraph_id": "P234",
+      "matrix_key": "P245"
     },
     {
       "id": "P246",
@@ -803,9 +947,11 @@
       "title": "V2 | Sidebar 246 — المخزون",
       "summary": "المخزون",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 246",
+      "source": "Document Part 2 §4, actual DOCX paragraph P235 (legacy matrix index P246)",
       "issue_number": 2576,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2576"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2576",
+      "document_paragraph_id": "P235",
+      "matrix_key": "P246"
     },
     {
       "id": "P247",
@@ -814,9 +960,11 @@
       "title": "V2 | Sidebar 247 — دفتر المخزون",
       "summary": "دفتر المخزون",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 247",
+      "source": "Document Part 2 §4, actual DOCX paragraph P236 (legacy matrix index P247)",
       "issue_number": 2577,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2577"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2577",
+      "document_paragraph_id": "P236",
+      "matrix_key": "P247"
     },
     {
       "id": "P248",
@@ -825,9 +973,11 @@
       "title": "V2 | Sidebar 248 — الأرصدة",
       "summary": "الأرصدة",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 248",
+      "source": "Document Part 2 §4, actual DOCX paragraph P237 (legacy matrix index P248)",
       "issue_number": 2578,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2578"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2578",
+      "document_paragraph_id": "P237",
+      "matrix_key": "P248"
     },
     {
       "id": "P249",
@@ -836,9 +986,11 @@
       "title": "V2 | Sidebar 249 — الدفعات والصلاحية",
       "summary": "الدفعات والصلاحية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 249",
+      "source": "Document Part 2 §4, actual DOCX paragraph P238 (legacy matrix index P249)",
       "issue_number": 2579,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2579"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2579",
+      "document_paragraph_id": "P238",
+      "matrix_key": "P249"
     },
     {
       "id": "P250",
@@ -847,9 +999,11 @@
       "title": "V2 | Sidebar 250 — التسويات",
       "summary": "التسويات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 250",
+      "source": "Document Part 2 §4, actual DOCX paragraph P239 (legacy matrix index P250)",
       "issue_number": 2580,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2580"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2580",
+      "document_paragraph_id": "P239",
+      "matrix_key": "P250"
     },
     {
       "id": "P251",
@@ -858,9 +1012,11 @@
       "title": "V2 | Sidebar 251 — التحويلات",
       "summary": "التحويلات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 251",
+      "source": "Document Part 2 §4, actual DOCX paragraph P240 (legacy matrix index P251)",
       "issue_number": 2581,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2581"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2581",
+      "document_paragraph_id": "P240",
+      "matrix_key": "P251"
     },
     {
       "id": "P252",
@@ -869,9 +1025,11 @@
       "title": "V2 | Sidebar 252 — الجرد",
       "summary": "الجرد",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 252",
+      "source": "Document Part 2 §4, actual DOCX paragraph P241 (legacy matrix index P252)",
       "issue_number": 2582,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2582"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2582",
+      "document_paragraph_id": "P241",
+      "matrix_key": "P252"
     },
     {
       "id": "P253",
@@ -880,9 +1038,11 @@
       "title": "V2 | Sidebar 253 — المستودعات",
       "summary": "المستودعات",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 253",
+      "source": "Document Part 2 §4, actual DOCX paragraph P242 (legacy matrix index P253)",
       "issue_number": 2583,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2583"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2583",
+      "document_paragraph_id": "P242",
+      "matrix_key": "P253"
     },
     {
       "id": "P254",
@@ -891,9 +1051,11 @@
       "title": "V2 | Sidebar 254 — المستودعات",
       "summary": "المستودعات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 254",
+      "source": "Document Part 2 §4, actual DOCX paragraph P243 (legacy matrix index P254)",
       "issue_number": 2584,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2584"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2584",
+      "document_paragraph_id": "P243",
+      "matrix_key": "P254"
     },
     {
       "id": "P255",
@@ -902,9 +1064,11 @@
       "title": "V2 | Sidebar 255 — المواقع",
       "summary": "المواقع",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 255",
+      "source": "Document Part 2 §4, actual DOCX paragraph P244 (legacy matrix index P255)",
       "issue_number": 2585,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2585"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2585",
+      "document_paragraph_id": "P244",
+      "matrix_key": "P255"
     },
     {
       "id": "P256",
@@ -913,9 +1077,11 @@
       "title": "V2 | Sidebar 256 — الحركات",
       "summary": "الحركات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 256",
+      "source": "Document Part 2 §4, actual DOCX paragraph P245 (legacy matrix index P256)",
       "issue_number": 2586,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2586"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2586",
+      "document_paragraph_id": "P245",
+      "matrix_key": "P256"
     },
     {
       "id": "P257",
@@ -924,9 +1090,11 @@
       "title": "V2 | Sidebar 257 — الحجز والتخصيص",
       "summary": "الحجز والتخصيص",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 257",
+      "source": "Document Part 2 §4, actual DOCX paragraph P246 (legacy matrix index P257)",
       "issue_number": 2587,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2587"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2587",
+      "document_paragraph_id": "P246",
+      "matrix_key": "P257"
     },
     {
       "id": "P258",
@@ -935,9 +1103,11 @@
       "title": "V2 | Sidebar 258 — التحميل للفان",
       "summary": "التحميل للفان",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 258",
+      "source": "Document Part 2 §4, actual DOCX paragraph P247 (legacy matrix index P258)",
       "issue_number": 2588,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2588"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2588",
+      "document_paragraph_id": "P247",
+      "matrix_key": "P258"
     },
     {
       "id": "P259",
@@ -946,9 +1116,11 @@
       "title": "V2 | Sidebar 259 — الأسطول والفانات والعمليات الميدانية",
       "summary": "الأسطول والفانات والعمليات الميدانية",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 259",
+      "source": "Document Part 2 §4, actual DOCX paragraph P248 (legacy matrix index P259)",
       "issue_number": 2589,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2589"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2589",
+      "document_paragraph_id": "P248",
+      "matrix_key": "P259"
     },
     {
       "id": "P260",
@@ -957,9 +1129,11 @@
       "title": "V2 | Sidebar 260 — الأسطول",
       "summary": "الأسطول",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 260",
+      "source": "Document Part 2 §4, actual DOCX paragraph P249 (legacy matrix index P260)",
       "issue_number": 2590,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2590"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2590",
+      "document_paragraph_id": "P249",
+      "matrix_key": "P260"
     },
     {
       "id": "P261",
@@ -968,9 +1142,11 @@
       "title": "V2 | Sidebar 261 — التتبع المباشر",
       "summary": "التتبع المباشر",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 261",
+      "source": "Document Part 2 §4, actual DOCX paragraph P250 (legacy matrix index P261)",
       "issue_number": 2591,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2591"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2591",
+      "document_paragraph_id": "P250",
+      "matrix_key": "P261"
     },
     {
       "id": "P262",
@@ -979,9 +1155,11 @@
       "title": "V2 | Sidebar 262 — السائقون",
       "summary": "السائقون",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 262",
+      "source": "Document Part 2 §4, actual DOCX paragraph P251 (legacy matrix index P262)",
       "issue_number": 2592,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2592"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2592",
+      "document_paragraph_id": "P251",
+      "matrix_key": "P262"
     },
     {
       "id": "P263",
@@ -990,9 +1168,11 @@
       "title": "V2 | Sidebar 263 — الفانات",
       "summary": "الفانات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 263",
+      "source": "Document Part 2 §4, actual DOCX paragraph P252 (legacy matrix index P263)",
       "issue_number": 2593,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2593"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2593",
+      "document_paragraph_id": "P252",
+      "matrix_key": "P263"
     },
     {
       "id": "P264",
@@ -1001,9 +1181,11 @@
       "title": "V2 | Sidebar 264 — المركبات",
       "summary": "المركبات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 264",
+      "source": "Document Part 2 §4, actual DOCX paragraph P253 (legacy matrix index P264)",
       "issue_number": 2594,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2594"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2594",
+      "document_paragraph_id": "P253",
+      "matrix_key": "P264"
     },
     {
       "id": "P265",
@@ -1012,9 +1194,11 @@
       "title": "V2 | Sidebar 265 — سجل الحركة",
       "summary": "سجل الحركة",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 265",
+      "source": "Document Part 2 §4, actual DOCX paragraph P254 (legacy matrix index P265)",
       "issue_number": 2595,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2595"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2595",
+      "document_paragraph_id": "P254",
+      "matrix_key": "P265"
     },
     {
       "id": "P266",
@@ -1023,9 +1207,11 @@
       "title": "V2 | Sidebar 266 — العمليات الميدانية",
       "summary": "العمليات الميدانية",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 266",
+      "source": "Document Part 2 §4, actual DOCX paragraph P255 (legacy matrix index P266)",
       "issue_number": 2596,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2596"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2596",
+      "document_paragraph_id": "P255",
+      "matrix_key": "P266"
     },
     {
       "id": "P267",
@@ -1034,9 +1220,11 @@
       "title": "V2 | Sidebar 267 — العملاء الميدانيون",
       "summary": "العملاء الميدانيون",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 267",
+      "source": "Document Part 2 §4, actual DOCX paragraph P256 (legacy matrix index P267)",
       "issue_number": 2597,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2597"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2597",
+      "document_paragraph_id": "P256",
+      "matrix_key": "P267"
     },
     {
       "id": "P268",
@@ -1045,9 +1233,11 @@
       "title": "V2 | Sidebar 268 — الزيارات",
       "summary": "الزيارات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 268",
+      "source": "Document Part 2 §4, actual DOCX paragraph P257 (legacy matrix index P268)",
       "issue_number": 2598,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2598"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2598",
+      "document_paragraph_id": "P257",
+      "matrix_key": "P268"
     },
     {
       "id": "P269",
@@ -1056,9 +1246,11 @@
       "title": "V2 | Sidebar 269 — المناطق",
       "summary": "المناطق",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 269",
+      "source": "Document Part 2 §4, actual DOCX paragraph P258 (legacy matrix index P269)",
       "issue_number": 2599,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2599"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2599",
+      "document_paragraph_id": "P258",
+      "matrix_key": "P269"
     },
     {
       "id": "P270",
@@ -1067,9 +1259,11 @@
       "title": "V2 | Sidebar 270 — المسارات",
       "summary": "المسارات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 270",
+      "source": "Document Part 2 §4, actual DOCX paragraph P259 (legacy matrix index P270)",
       "issue_number": 2600,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2600"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2600",
+      "document_paragraph_id": "P259",
+      "matrix_key": "P270"
     },
     {
       "id": "P271",
@@ -1078,9 +1272,11 @@
       "title": "V2 | Sidebar 271 — التوجيه",
       "summary": "التوجيه",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 271",
+      "source": "Document Part 2 §4, actual DOCX paragraph P260 (legacy matrix index P271)",
       "issue_number": 2601,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2601"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2601",
+      "document_paragraph_id": "P260",
+      "matrix_key": "P271"
     },
     {
       "id": "P272",
@@ -1089,9 +1285,11 @@
       "title": "V2 | Sidebar 272 — تسويات الرحلات",
       "summary": "تسويات الرحلات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 272",
+      "source": "Document Part 2 §4, actual DOCX paragraph P261 (legacy matrix index P272)",
       "issue_number": 2602,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2602"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2602",
+      "document_paragraph_id": "P261",
+      "matrix_key": "P272"
     },
     {
       "id": "P273",
@@ -1100,9 +1298,11 @@
       "title": "V2 | Sidebar 273 — الفان",
       "summary": "الفان",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 273",
+      "source": "Document Part 2 §4, actual DOCX paragraph P262 (legacy matrix index P273)",
       "issue_number": 2603,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2603"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2603",
+      "document_paragraph_id": "P262",
+      "matrix_key": "P273"
     },
     {
       "id": "P274",
@@ -1111,9 +1311,11 @@
       "title": "V2 | Sidebar 274 — مخزون الفان",
       "summary": "مخزون الفان",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 274",
+      "source": "Document Part 2 §4, actual DOCX paragraph P263 (legacy matrix index P274)",
       "issue_number": 2604,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2604"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2604",
+      "document_paragraph_id": "P263",
+      "matrix_key": "P274"
     },
     {
       "id": "P275",
@@ -1122,9 +1324,11 @@
       "title": "V2 | Sidebar 275 — البيع المباشر",
       "summary": "البيع المباشر",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 275",
+      "source": "Document Part 2 §4, actual DOCX paragraph P264 (legacy matrix index P275)",
       "issue_number": 2605,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2605"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2605",
+      "document_paragraph_id": "P264",
+      "matrix_key": "P275"
     },
     {
       "id": "P276",
@@ -1133,9 +1337,11 @@
       "title": "V2 | Sidebar 276 — رحلات الفان",
       "summary": "رحلات الفان",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 276",
+      "source": "Document Part 2 §4, actual DOCX paragraph P265 (legacy matrix index P276)",
       "issue_number": 2606,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2606"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2606",
+      "document_paragraph_id": "P265",
+      "matrix_key": "P276"
     },
     {
       "id": "P277",
@@ -1144,9 +1350,11 @@
       "title": "V2 | Sidebar 277 — الإقفال والتسوية",
       "summary": "الإقفال والتسوية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 277",
+      "source": "Document Part 2 §4, actual DOCX paragraph P266 (legacy matrix index P277)",
       "issue_number": 2607,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2607"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2607",
+      "document_paragraph_id": "P266",
+      "matrix_key": "P277"
     },
     {
       "id": "P278",
@@ -1155,9 +1363,11 @@
       "title": "V2 | Sidebar 278 — المالية والخزينة والمحاسبة",
       "summary": "المالية والخزينة والمحاسبة",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 278",
+      "source": "Document Part 2 §4, actual DOCX paragraph P267 (legacy matrix index P278)",
       "issue_number": 2608,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2608"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2608",
+      "document_paragraph_id": "P267",
+      "matrix_key": "P278"
     },
     {
       "id": "P279",
@@ -1166,9 +1376,11 @@
       "title": "V2 | Sidebar 279 — المالية",
       "summary": "المالية",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 279",
+      "source": "Document Part 2 §4, actual DOCX paragraph P268 (legacy matrix index P279)",
       "issue_number": 2609,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2609"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2609",
+      "document_paragraph_id": "P268",
+      "matrix_key": "P279"
     },
     {
       "id": "P280",
@@ -1177,9 +1389,11 @@
       "title": "V2 | Sidebar 280 — مركز المالية",
       "summary": "مركز المالية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 280",
+      "source": "Document Part 2 §4, actual DOCX paragraph P269 (legacy matrix index P280)",
       "issue_number": 2610,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2610"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2610",
+      "document_paragraph_id": "P269",
+      "matrix_key": "P280"
     },
     {
       "id": "P281",
@@ -1188,9 +1402,11 @@
       "title": "V2 | Sidebar 281 — القيود",
       "summary": "القيود",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 281",
+      "source": "Document Part 2 §4, actual DOCX paragraph P270 (legacy matrix index P281)",
       "issue_number": 2611,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2611"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2611",
+      "document_paragraph_id": "P270",
+      "matrix_key": "P281"
     },
     {
       "id": "P282",
@@ -1199,9 +1415,11 @@
       "title": "V2 | Sidebar 282 — الفترات المالية",
       "summary": "الفترات المالية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 282",
+      "source": "Document Part 2 §4, actual DOCX paragraph P271 (legacy matrix index P282)",
       "issue_number": 2612,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2612"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2612",
+      "document_paragraph_id": "P271",
+      "matrix_key": "P282"
     },
     {
       "id": "P283",
@@ -1210,9 +1428,11 @@
       "title": "V2 | Sidebar 283 — الربحية",
       "summary": "الربحية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 283",
+      "source": "Document Part 2 §4, actual DOCX paragraph P272 (legacy matrix index P283)",
       "issue_number": 2613,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2613"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2613",
+      "document_paragraph_id": "P272",
+      "matrix_key": "P283"
     },
     {
       "id": "P284",
@@ -1221,9 +1441,11 @@
       "title": "V2 | Sidebar 284 — مراجعة الفواتير",
       "summary": "مراجعة الفواتير",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 284",
+      "source": "Document Part 2 §4, actual DOCX paragraph P273 (legacy matrix index P284)",
       "issue_number": 2614,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2614"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2614",
+      "document_paragraph_id": "P273",
+      "matrix_key": "P284"
     },
     {
       "id": "P285",
@@ -1232,9 +1454,11 @@
       "title": "V2 | Sidebar 285 — الذمم",
       "summary": "الذمم",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 285",
+      "source": "Document Part 2 §4, actual DOCX paragraph P274 (legacy matrix index P285)",
       "issue_number": 2615,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2615"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2615",
+      "document_paragraph_id": "P274",
+      "matrix_key": "P285"
     },
     {
       "id": "P286",
@@ -1243,9 +1467,11 @@
       "title": "V2 | Sidebar 286 — حسابات العملاء AR",
       "summary": "حسابات العملاء AR",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 286",
+      "source": "Document Part 2 §4, actual DOCX paragraph P275 (legacy matrix index P286)",
       "issue_number": 2616,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2616"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2616",
+      "document_paragraph_id": "P275",
+      "matrix_key": "P286"
     },
     {
       "id": "P287",
@@ -1254,9 +1480,11 @@
       "title": "V2 | Sidebar 287 — حسابات الموردين AP",
       "summary": "حسابات الموردين AP",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 287",
+      "source": "Document Part 2 §4, actual DOCX paragraph P276 (legacy matrix index P287)",
       "issue_number": 2617,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2617"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2617",
+      "document_paragraph_id": "P276",
+      "matrix_key": "P287"
     },
     {
       "id": "P288",
@@ -1265,9 +1493,11 @@
       "title": "V2 | Sidebar 288 — أعمار الديون",
       "summary": "أعمار الديون",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 288",
+      "source": "Document Part 2 §4, actual DOCX paragraph P277 (legacy matrix index P288)",
       "issue_number": 2618,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2618"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2618",
+      "document_paragraph_id": "P277",
+      "matrix_key": "P288"
     },
     {
       "id": "P289",
@@ -1276,9 +1506,11 @@
       "title": "V2 | Sidebar 289 — التحصيلات",
       "summary": "التحصيلات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 289",
+      "source": "Document Part 2 §4, actual DOCX paragraph P278 (legacy matrix index P289)",
       "issue_number": 2619,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2619"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2619",
+      "document_paragraph_id": "P278",
+      "matrix_key": "P289"
     },
     {
       "id": "P290",
@@ -1287,9 +1519,11 @@
       "title": "V2 | Sidebar 290 — تسوية البنود",
       "summary": "تسوية البنود",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 290",
+      "source": "Document Part 2 §4, actual DOCX paragraph P279 (legacy matrix index P290)",
       "issue_number": 2620,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2620"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2620",
+      "document_paragraph_id": "P279",
+      "matrix_key": "P290"
     },
     {
       "id": "P291",
@@ -1298,9 +1532,11 @@
       "title": "V2 | Sidebar 291 — الخزينة والبنوك",
       "summary": "الخزينة والبنوك",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 291",
+      "source": "Document Part 2 §4, actual DOCX paragraph P280 (legacy matrix index P291)",
       "issue_number": 2621,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2621"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2621",
+      "document_paragraph_id": "P280",
+      "matrix_key": "P291"
     },
     {
       "id": "P292",
@@ -1309,9 +1545,11 @@
       "title": "V2 | Sidebar 292 — الخزائن",
       "summary": "الخزائن",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 292",
+      "source": "Document Part 2 §4, actual DOCX paragraph P281 (legacy matrix index P292)",
       "issue_number": 2622,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2622"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2622",
+      "document_paragraph_id": "P281",
+      "matrix_key": "P292"
     },
     {
       "id": "P293",
@@ -1320,9 +1558,11 @@
       "title": "V2 | Sidebar 293 — الصندوق",
       "summary": "الصندوق",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 293",
+      "source": "Document Part 2 §4, actual DOCX paragraph P282 (legacy matrix index P293)",
       "issue_number": 2623,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2623"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2623",
+      "document_paragraph_id": "P282",
+      "matrix_key": "P293"
     },
     {
       "id": "P294",
@@ -1331,9 +1571,11 @@
       "title": "V2 | Sidebar 294 — البنوك",
       "summary": "البنوك",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 294",
+      "source": "Document Part 2 §4, actual DOCX paragraph P283 (legacy matrix index P294)",
       "issue_number": 2624,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2624"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2624",
+      "document_paragraph_id": "P283",
+      "matrix_key": "P294"
     },
     {
       "id": "P295",
@@ -1342,9 +1584,11 @@
       "title": "V2 | Sidebar 295 — القبض",
       "summary": "القبض",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 295",
+      "source": "Document Part 2 §4, actual DOCX paragraph P284 (legacy matrix index P295)",
       "issue_number": 2625,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2625"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2625",
+      "document_paragraph_id": "P284",
+      "matrix_key": "P295"
     },
     {
       "id": "P296",
@@ -1353,9 +1597,11 @@
       "title": "V2 | Sidebar 296 — الصرف",
       "summary": "الصرف",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 296",
+      "source": "Document Part 2 §4, actual DOCX paragraph P285 (legacy matrix index P296)",
       "issue_number": 2626,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2626"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2626",
+      "document_paragraph_id": "P285",
+      "matrix_key": "P296"
     },
     {
       "id": "P297",
@@ -1364,9 +1610,11 @@
       "title": "V2 | Sidebar 297 — التسويات البنكية",
       "summary": "التسويات البنكية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 297",
+      "source": "Document Part 2 §4, actual DOCX paragraph P286 (legacy matrix index P297)",
       "issue_number": 2627,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2627"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2627",
+      "document_paragraph_id": "P286",
+      "matrix_key": "P297"
     },
     {
       "id": "P298",
@@ -1375,9 +1623,11 @@
       "title": "V2 | Sidebar 298 — تسويات الموردين",
       "summary": "تسويات الموردين",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 298",
+      "source": "Document Part 2 §4, actual DOCX paragraph P287 (legacy matrix index P298)",
       "issue_number": 2628,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2628"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2628",
+      "document_paragraph_id": "P287",
+      "matrix_key": "P298"
     },
     {
       "id": "P299",
@@ -1386,9 +1636,11 @@
       "title": "V2 | Sidebar 299 — المستحق المتراكم",
       "summary": "المستحق المتراكم",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 299",
+      "source": "Document Part 2 §4, actual DOCX paragraph P288 (legacy matrix index P299)",
       "issue_number": 2629,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2629"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2629",
+      "document_paragraph_id": "P288",
+      "matrix_key": "P299"
     },
     {
       "id": "P300",
@@ -1397,9 +1649,11 @@
       "title": "V2 | Sidebar 300 — المستحق السداد",
       "summary": "المستحق السداد",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 300",
+      "source": "Document Part 2 §4, actual DOCX paragraph P289 (legacy matrix index P300)",
       "issue_number": 2630,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2630"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2630",
+      "document_paragraph_id": "P289",
+      "matrix_key": "P300"
     },
     {
       "id": "P301",
@@ -1408,9 +1662,11 @@
       "title": "V2 | Sidebar 301 — المدفوع",
       "summary": "المدفوع",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 301",
+      "source": "Document Part 2 §4, actual DOCX paragraph P290 (legacy matrix index P301)",
       "issue_number": 2631,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2631"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2631",
+      "document_paragraph_id": "P290",
+      "matrix_key": "P301"
     },
     {
       "id": "P302",
@@ -1419,9 +1675,11 @@
       "title": "V2 | Sidebar 302 — العقود المضمونة",
       "summary": "العقود المضمونة",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 302",
+      "source": "Document Part 2 §4, actual DOCX paragraph P291 (legacy matrix index P302)",
       "issue_number": 2632,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2632"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2632",
+      "document_paragraph_id": "P291",
+      "matrix_key": "P302"
     },
     {
       "id": "P303",
@@ -1430,9 +1688,11 @@
       "title": "V2 | Sidebar 303 — التسويات المرتبطة بالتحصيل",
       "summary": "التسويات المرتبطة بالتحصيل",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 303",
+      "source": "Document Part 2 §4, actual DOCX paragraph P292 (legacy matrix index P303)",
       "issue_number": 2633,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2633"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2633",
+      "document_paragraph_id": "P292",
+      "matrix_key": "P303"
     },
     {
       "id": "P304",
@@ -1441,9 +1701,11 @@
       "title": "V2 | Sidebar 304 — التقارير والتحليلات",
       "summary": "التقارير والتحليلات",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 304",
+      "source": "Document Part 2 §4, actual DOCX paragraph P293 (legacy matrix index P304)",
       "issue_number": 2634,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2634"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2634",
+      "document_paragraph_id": "P293",
+      "matrix_key": "P304"
     },
     {
       "id": "P305",
@@ -1452,9 +1714,11 @@
       "title": "V2 | Sidebar 305 — التقارير",
       "summary": "التقارير",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 305",
+      "source": "Document Part 2 §4, actual DOCX paragraph P294 (legacy matrix index P305)",
       "issue_number": 2635,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2635"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2635",
+      "document_paragraph_id": "P294",
+      "matrix_key": "P305"
     },
     {
       "id": "P306",
@@ -1463,9 +1727,11 @@
       "title": "V2 | Sidebar 306 — تقارير التشغيل",
       "summary": "تقارير التشغيل",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 306",
+      "source": "Document Part 2 §4, actual DOCX paragraph P295 (legacy matrix index P306)",
       "issue_number": 2636,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2636"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2636",
+      "document_paragraph_id": "P295",
+      "matrix_key": "P306"
     },
     {
       "id": "P307",
@@ -1474,9 +1740,11 @@
       "title": "V2 | Sidebar 307 — تقارير المبيعات",
       "summary": "تقارير المبيعات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 307",
+      "source": "Document Part 2 §4, actual DOCX paragraph P296 (legacy matrix index P307)",
       "issue_number": 2637,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2637"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2637",
+      "document_paragraph_id": "P296",
+      "matrix_key": "P307"
     },
     {
       "id": "P308",
@@ -1485,9 +1753,11 @@
       "title": "V2 | Sidebar 308 — تقارير المخزون",
       "summary": "تقارير المخزون",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 308",
+      "source": "Document Part 2 §4, actual DOCX paragraph P297 (legacy matrix index P308)",
       "issue_number": 2638,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2638"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2638",
+      "document_paragraph_id": "P297",
+      "matrix_key": "P308"
     },
     {
       "id": "P309",
@@ -1496,9 +1766,11 @@
       "title": "V2 | Sidebar 309 — التقارير المالية",
       "summary": "التقارير المالية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 309",
+      "source": "Document Part 2 §4, actual DOCX paragraph P298 (legacy matrix index P309)",
       "issue_number": 2639,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2639"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2639",
+      "document_paragraph_id": "P298",
+      "matrix_key": "P309"
     },
     {
       "id": "P310",
@@ -1507,9 +1779,11 @@
       "title": "V2 | Sidebar 310 — تقارير خدمة العملاء",
       "summary": "تقارير خدمة العملاء",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 310",
+      "source": "Document Part 2 §4, actual DOCX paragraph P299 (legacy matrix index P310)",
       "issue_number": 2640,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2640"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2640",
+      "document_paragraph_id": "P299",
+      "matrix_key": "P310"
     },
     {
       "id": "P311",
@@ -1518,9 +1792,11 @@
       "title": "V2 | Sidebar 311 — التحليلات",
       "summary": "التحليلات",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 311",
+      "source": "Document Part 2 §4, actual DOCX paragraph P300 (legacy matrix index P311)",
       "issue_number": 2641,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2641"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2641",
+      "document_paragraph_id": "P300",
+      "matrix_key": "P311"
     },
     {
       "id": "P312",
@@ -1529,9 +1805,11 @@
       "title": "V2 | Sidebar 312 — BI",
       "summary": "BI",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 312",
+      "source": "Document Part 2 §4, actual DOCX paragraph P301 (legacy matrix index P312)",
       "issue_number": 2642,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2642"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2642",
+      "document_paragraph_id": "P301",
+      "matrix_key": "P312"
     },
     {
       "id": "P313",
@@ -1540,9 +1818,11 @@
       "title": "V2 | Sidebar 313 — مؤشرات الأداء",
       "summary": "مؤشرات الأداء",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 313",
+      "source": "Document Part 2 §4, actual DOCX paragraph P302 (legacy matrix index P313)",
       "issue_number": 2643,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2643"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2643",
+      "document_paragraph_id": "P302",
+      "matrix_key": "P313"
     },
     {
       "id": "P314",
@@ -1551,9 +1831,11 @@
       "title": "V2 | Sidebar 314 — لوحات الإدارة التنفيذية",
       "summary": "لوحات الإدارة التنفيذية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 314",
+      "source": "Document Part 2 §4, actual DOCX paragraph P303 (legacy matrix index P314)",
       "issue_number": 2644,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2644"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2644",
+      "document_paragraph_id": "P303",
+      "matrix_key": "P314"
     },
     {
       "id": "P315",
@@ -1562,9 +1844,11 @@
       "title": "V2 | Sidebar 315 — تحليلات الربحية",
       "summary": "تحليلات الربحية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 315",
+      "source": "Document Part 2 §4, actual DOCX paragraph P304 (legacy matrix index P315)",
       "issue_number": 2645,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2645"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2645",
+      "document_paragraph_id": "P304",
+      "matrix_key": "P315"
     },
     {
       "id": "P316",
@@ -1573,9 +1857,11 @@
       "title": "V2 | Sidebar 316 — تحليلات القنوات",
       "summary": "تحليلات القنوات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 316",
+      "source": "Document Part 2 §4, actual DOCX paragraph P305 (legacy matrix index P316)",
       "issue_number": 2646,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2646"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2646",
+      "document_paragraph_id": "P305",
+      "matrix_key": "P316"
     },
     {
       "id": "P317",
@@ -1584,9 +1870,11 @@
       "title": "V2 | Sidebar 317 — التطبيقات والقنوات الرقمية",
       "summary": "التطبيقات والقنوات الرقمية",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 317",
+      "source": "Document Part 2 §4, actual DOCX paragraph P306 (legacy matrix index P317)",
       "issue_number": 2647,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2647"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2647",
+      "document_paragraph_id": "P306",
+      "matrix_key": "P317"
     },
     {
       "id": "P318",
@@ -1595,9 +1883,11 @@
       "title": "V2 | Sidebar 318 — التطبيقات",
       "summary": "التطبيقات",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 318",
+      "source": "Document Part 2 §4, actual DOCX paragraph P307 (legacy matrix index P318)",
       "issue_number": 2648,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2648"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2648",
+      "document_paragraph_id": "P307",
+      "matrix_key": "P318"
     },
     {
       "id": "P319",
@@ -1606,9 +1896,11 @@
       "title": "V2 | Sidebar 319 — معاينة التطبيق",
       "summary": "معاينة التطبيق",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 319",
+      "source": "Document Part 2 §4, actual DOCX paragraph P308 (legacy matrix index P319)",
       "issue_number": 2649,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2649"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2649",
+      "document_paragraph_id": "P308",
+      "matrix_key": "P319"
     },
     {
       "id": "P320",
@@ -1617,9 +1909,11 @@
       "title": "V2 | Sidebar 320 — تنزيل تطبيق العميل",
       "summary": "تنزيل تطبيق العميل",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 320",
+      "source": "Document Part 2 §4, actual DOCX paragraph P309 (legacy matrix index P320)",
       "issue_number": 2650,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2650"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2650",
+      "document_paragraph_id": "P309",
+      "matrix_key": "P320"
     },
     {
       "id": "P321",
@@ -1628,9 +1922,11 @@
       "title": "V2 | Sidebar 321 — تنزيل تطبيق السائق",
       "summary": "تنزيل تطبيق السائق",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 321",
+      "source": "Document Part 2 §4, actual DOCX paragraph P310 (legacy matrix index P321)",
       "issue_number": 2651,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2651"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2651",
+      "document_paragraph_id": "P310",
+      "matrix_key": "P321"
     },
     {
       "id": "P322",
@@ -1639,9 +1935,11 @@
       "title": "V2 | Sidebar 322 — تنزيل تطبيق الفان",
       "summary": "تنزيل تطبيق الفان",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 322",
+      "source": "Document Part 2 §4, actual DOCX paragraph P311 (legacy matrix index P322)",
       "issue_number": 2652,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2652"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2652",
+      "document_paragraph_id": "P311",
+      "matrix_key": "P322"
     },
     {
       "id": "P323",
@@ -1650,9 +1948,11 @@
       "title": "V2 | Sidebar 323 — إصدارات التطبيقات",
       "summary": "إصدارات التطبيقات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 323",
+      "source": "Document Part 2 §4, actual DOCX paragraph P312 (legacy matrix index P323)",
       "issue_number": 2653,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2653"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2653",
+      "document_paragraph_id": "P312",
+      "matrix_key": "P323"
     },
     {
       "id": "P324",
@@ -1661,9 +1961,11 @@
       "title": "V2 | Sidebar 324 — الطلب الرقمي / المطاعم",
       "summary": "الطلب الرقمي / المطاعم",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 324",
+      "source": "Document Part 2 §4, actual DOCX paragraph P313 (legacy matrix index P324)",
       "issue_number": 2654,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2654"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2654",
+      "document_paragraph_id": "P313",
+      "matrix_key": "P324"
     },
     {
       "id": "P325",
@@ -1672,9 +1974,11 @@
       "title": "V2 | Sidebar 325 — القائمة الرقمية",
       "summary": "القائمة الرقمية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 325",
+      "source": "Document Part 2 §4, actual DOCX paragraph P314 (legacy matrix index P325)",
       "issue_number": 2655,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2655"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2655",
+      "document_paragraph_id": "P314",
+      "matrix_key": "P325"
     },
     {
       "id": "P326",
@@ -1683,9 +1987,11 @@
       "title": "V2 | Sidebar 326 — رموز QR",
       "summary": "رموز QR",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 326",
+      "source": "Document Part 2 §4, actual DOCX paragraph P315 (legacy matrix index P326)",
       "issue_number": 2656,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2656"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2656",
+      "document_paragraph_id": "P315",
+      "matrix_key": "P326"
     },
     {
       "id": "P327",
@@ -1694,9 +2000,11 @@
       "title": "V2 | Sidebar 327 — النشر",
       "summary": "النشر",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 327",
+      "source": "Document Part 2 §4, actual DOCX paragraph P316 (legacy matrix index P327)",
       "issue_number": 2657,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2657"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2657",
+      "document_paragraph_id": "P316",
+      "matrix_key": "P327"
     },
     {
       "id": "P328",
@@ -1705,9 +2013,11 @@
       "title": "V2 | Sidebar 328 — التحليلات",
       "summary": "التحليلات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 328",
+      "source": "Document Part 2 §4, actual DOCX paragraph P317 (legacy matrix index P328)",
       "issue_number": 2658,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2658"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2658",
+      "document_paragraph_id": "P317",
+      "matrix_key": "P328"
     },
     {
       "id": "P329",
@@ -1716,9 +2026,11 @@
       "title": "V2 | Sidebar 329 — الطلبات الرقمية",
       "summary": "الطلبات الرقمية",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 329",
+      "source": "Document Part 2 §4, actual DOCX paragraph P318 (legacy matrix index P329)",
       "issue_number": 2659,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2659"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2659",
+      "document_paragraph_id": "P318",
+      "matrix_key": "P329"
     },
     {
       "id": "P330",
@@ -1727,9 +2039,11 @@
       "title": "V2 | Sidebar 330 — الإدارة والأمن والإعدادات",
       "summary": "الإدارة والأمن والإعدادات",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 330",
+      "source": "Document Part 2 §4, actual DOCX paragraph P319 (legacy matrix index P330)",
       "issue_number": 2660,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2660"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2660",
+      "document_paragraph_id": "P319",
+      "matrix_key": "P330"
     },
     {
       "id": "P331",
@@ -1738,9 +2052,11 @@
       "title": "V2 | Sidebar 331 — المستخدمون والصلاحيات",
       "summary": "المستخدمون والصلاحيات",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 331",
+      "source": "Document Part 2 §4, actual DOCX paragraph P320 (legacy matrix index P331)",
       "issue_number": 2661,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2661"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2661",
+      "document_paragraph_id": "P320",
+      "matrix_key": "P331"
     },
     {
       "id": "P332",
@@ -1749,9 +2065,11 @@
       "title": "V2 | Sidebar 332 — المستخدمون",
       "summary": "المستخدمون",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 332",
+      "source": "Document Part 2 §4, actual DOCX paragraph P321 (legacy matrix index P332)",
       "issue_number": 2662,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2662"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2662",
+      "document_paragraph_id": "P321",
+      "matrix_key": "P332"
     },
     {
       "id": "P333",
@@ -1760,9 +2078,11 @@
       "title": "V2 | Sidebar 333 — إضافة مستخدم",
       "summary": "إضافة مستخدم",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 333",
+      "source": "Document Part 2 §4, actual DOCX paragraph P322 (legacy matrix index P333)",
       "issue_number": 2663,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2663"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2663",
+      "document_paragraph_id": "P322",
+      "matrix_key": "P333"
     },
     {
       "id": "P334",
@@ -1771,9 +2091,11 @@
       "title": "V2 | Sidebar 334 — أرشفة / حذف مستخدم",
       "summary": "أرشفة / حذف مستخدم",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 334",
+      "source": "Document Part 2 §4, actual DOCX paragraph P323 (legacy matrix index P334)",
       "issue_number": 2664,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2664"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2664",
+      "document_paragraph_id": "P323",
+      "matrix_key": "P334"
     },
     {
       "id": "P335",
@@ -1782,9 +2104,11 @@
       "title": "V2 | Sidebar 335 — الأدوار",
       "summary": "الأدوار",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 335",
+      "source": "Document Part 2 §4, actual DOCX paragraph P324 (legacy matrix index P335)",
       "issue_number": 2665,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2665"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2665",
+      "document_paragraph_id": "P324",
+      "matrix_key": "P335"
     },
     {
       "id": "P336",
@@ -1793,9 +2117,11 @@
       "title": "V2 | Sidebar 336 — تعيين الأدوار",
       "summary": "تعيين الأدوار",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 336",
+      "source": "Document Part 2 §4, actual DOCX paragraph P325 (legacy matrix index P336)",
       "issue_number": 2666,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2666"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2666",
+      "document_paragraph_id": "P325",
+      "matrix_key": "P336"
     },
     {
       "id": "P337",
@@ -1804,9 +2130,11 @@
       "title": "V2 | Sidebar 337 — شجرة الصلاحيات والصفحات",
       "summary": "شجرة الصلاحيات والصفحات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 337",
+      "source": "Document Part 2 §4, actual DOCX paragraph P326 (legacy matrix index P337)",
       "issue_number": 2667,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2667"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2667",
+      "document_paragraph_id": "P326",
+      "matrix_key": "P337"
     },
     {
       "id": "P338",
@@ -1815,9 +2143,11 @@
       "title": "V2 | Sidebar 338 — مراجعة الوصول الفعلي",
       "summary": "مراجعة الوصول الفعلي",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 338",
+      "source": "Document Part 2 §4, actual DOCX paragraph P327 (legacy matrix index P338)",
       "issue_number": 2668,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2668"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2668",
+      "document_paragraph_id": "P327",
+      "matrix_key": "P338"
     },
     {
       "id": "P339",
@@ -1826,9 +2156,11 @@
       "title": "V2 | Sidebar 339 — الأمن والحوكمة",
       "summary": "الأمن والحوكمة",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 339",
+      "source": "Document Part 2 §4, actual DOCX paragraph P328 (legacy matrix index P339)",
       "issue_number": 2669,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2669"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2669",
+      "document_paragraph_id": "P328",
+      "matrix_key": "P339"
     },
     {
       "id": "P340",
@@ -1837,9 +2169,11 @@
       "title": "V2 | Sidebar 340 — نطاقات البيانات",
       "summary": "نطاقات البيانات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 340",
+      "source": "Document Part 2 §4, actual DOCX paragraph P329 (legacy matrix index P340)",
       "issue_number": 2670,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2670"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2670",
+      "document_paragraph_id": "P329",
+      "matrix_key": "P340"
     },
     {
       "id": "P341",
@@ -1848,9 +2182,11 @@
       "title": "V2 | Sidebar 341 — حدود الاعتماد",
       "summary": "حدود الاعتماد",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 341",
+      "source": "Document Part 2 §4, actual DOCX paragraph P330 (legacy matrix index P341)",
       "issue_number": 2671,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2671"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2671",
+      "document_paragraph_id": "P330",
+      "matrix_key": "P341"
     },
     {
       "id": "P342",
@@ -1859,9 +2195,11 @@
       "title": "V2 | Sidebar 342 — التفويضات المؤقتة",
       "summary": "التفويضات المؤقتة",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 342",
+      "source": "Document Part 2 §4, actual DOCX paragraph P331 (legacy matrix index P342)",
       "issue_number": 2672,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2672"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2672",
+      "document_paragraph_id": "P331",
+      "matrix_key": "P342"
     },
     {
       "id": "P343",
@@ -1870,9 +2208,11 @@
       "title": "V2 | Sidebar 343 — سجل التدقيق",
       "summary": "سجل التدقيق",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 343",
+      "source": "Document Part 2 §4, actual DOCX paragraph P332 (legacy matrix index P343)",
       "issue_number": 2673,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2673"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2673",
+      "document_paragraph_id": "P332",
+      "matrix_key": "P343"
     },
     {
       "id": "P344",
@@ -1881,9 +2221,11 @@
       "title": "V2 | Sidebar 344 — الموديولات والإعدادات",
       "summary": "الموديولات والإعدادات",
       "type": "navigation-group",
-      "source": "Part 2 §4, source paragraph 344",
+      "source": "Document Part 2 §4, actual DOCX paragraph P333 (legacy matrix index P344)",
       "issue_number": 2674,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2674"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2674",
+      "document_paragraph_id": "P333",
+      "matrix_key": "P344"
     },
     {
       "id": "P345",
@@ -1892,9 +2234,11 @@
       "title": "V2 | Sidebar 345 — سجل الموديولات",
       "summary": "سجل الموديولات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 345",
+      "source": "Document Part 2 §4, actual DOCX paragraph P334 (legacy matrix index P345)",
       "issue_number": 2675,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2675"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2675",
+      "document_paragraph_id": "P334",
+      "matrix_key": "P345"
     },
     {
       "id": "P346",
@@ -1903,9 +2247,11 @@
       "title": "V2 | Sidebar 346 — حالة التفعيل",
       "summary": "حالة التفعيل",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 346",
+      "source": "Document Part 2 §4, actual DOCX paragraph P335 (legacy matrix index P346)",
       "issue_number": 2676,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2676"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2676",
+      "document_paragraph_id": "P335",
+      "matrix_key": "P346"
     },
     {
       "id": "P347",
@@ -1914,9 +2260,11 @@
       "title": "V2 | Sidebar 347 — إعدادات المنصة",
       "summary": "إعدادات المنصة",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 347",
+      "source": "Document Part 2 §4, actual DOCX paragraph P336 (legacy matrix index P347)",
       "issue_number": 2677,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2677"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2677",
+      "document_paragraph_id": "P336",
+      "matrix_key": "P347"
     },
     {
       "id": "P348",
@@ -1925,9 +2273,11 @@
       "title": "V2 | Sidebar 348 — الإشعارات",
       "summary": "الإشعارات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 348",
+      "source": "Document Part 2 §4, actual DOCX paragraph P337 (legacy matrix index P348)",
       "issue_number": 2678,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2678"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2678",
+      "document_paragraph_id": "P337",
+      "matrix_key": "P348"
     },
     {
       "id": "P349",
@@ -1936,9 +2286,11 @@
       "title": "V2 | Sidebar 349 — الترجمات",
       "summary": "الترجمات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 349",
+      "source": "Document Part 2 §4, actual DOCX paragraph P338 (legacy matrix index P349)",
       "issue_number": 2679,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2679"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2679",
+      "document_paragraph_id": "P338",
+      "matrix_key": "P349"
     },
     {
       "id": "P350",
@@ -1947,9 +2299,13 @@
       "title": "V2 | Sidebar 350 — التحديثات",
       "summary": "التحديثات",
       "type": "navigation-item",
-      "source": "Part 2 §4, source paragraph 350",
+      "source": "Document Part 2 §4, actual DOCX paragraph P339 (legacy matrix index P350)",
       "issue_number": 2680,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2680"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2680",
+      "document_paragraph_id": "P339",
+      "matrix_key": "P350"
     }
-  ]
+  ],
+  "document_paragraph_range": "P163..P339",
+  "source_pointer_correction": "Canonical anchors checked against native DOCX paragraph sequence. Legacy Sidebar N in issue titles is a stable work-item index, not a Word document paragraph number. Use document_paragraph_id for exact source trace."
 }
