@@ -61,6 +61,8 @@ When changing shared contracts:
 
 Built-in FOODEX roles and canonical permissions are configuration-authoritative. Security mutations must reconcile the built-in role/permission database state before and after the mutation, preserve custom roles and valid scoped user overrides, and record reconciliation audit evidence. Per-user overrides are scoped allow/deny exceptions on top of the assigned role baseline; they do not mutate shared roles and must respect store/channel/domain boundaries.
 
+V2 P100 role-identity invariant: `roles.code` is a permanent historical identifier and `scope` is immutable after creation. An unassigned non-system custom role is **archived**, never hard-deleted, preserving its original code, row and permission provenance; `archived_at` makes the terminal read-only state explicit and prevents code reuse/reactivation. The Security Center and management security API expose archive state without granting new permissions. See `docs/v2/qa/2836-role-code-history.md`.
+
 ## Data and finance
 
 MySQL/MariaDB is authoritative persistent storage. Redis is cache/queue infrastructure, not the sole source of durable business truth.

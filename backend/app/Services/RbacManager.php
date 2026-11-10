@@ -378,6 +378,14 @@ final class RbacManager
     /** @param  array{name:string,description:?string,scope:string,is_active:bool,permission_ids:list<int>}  $values */
     public function createRole(User $actor, string $code, array $values, Request $request): Role
     {
+        // The roles.code UNIQUE constraint reserves historical identities.
+        // Inactive and archived records cannot be silently re-created.
+        if (Role::query()->where('code', $code)->exists()) {
+            throw ValidationException::withMessages([
+                'code' => [__('admin.security.errors.role_code_reserved')],
+            ]);
+        }
+
         $this->preparePermissionMutation();
 
         $this->assertSupportedScope($values['scope']);
@@ -410,6 +418,20 @@ final class RbacManager
     public function updateRole(User $actor, Role $role, array $values, Request $request): Role
     {
         abort_if($role->code === 'PLATFORM_OWNER', 403, 'Platform Owner role cannot be edited.');
+        if ($role->archived_at !== null) {
+            throw ValidationException::withMessages([
+                'role' => [__('admin.security.errors.role_archived')],
+            ]);
+        }
+
+        // Scope is part of a role code's historical meaning. Create a new
+        // role code instead of turning a former global role into a store role.
+        if ($role->scope !== $values['scope']) {
+            throw ValidationException::withMessages([
+                'scope' => [__('admin.security.errors.role_scope_immutable')],
+            ]);
+        }
+
         $this->preparePermissionMutation();
 
         if ($this->jobRoles->isBuiltIn((string) $role->code)) {
@@ -461,6 +483,12 @@ final class RbacManager
 
     public function cloneRole(User $actor, Role $source, string $code, string $name, Request $request): Role
     {
+        if ($source->archived_at !== null) {
+            throw ValidationException::withMessages([
+                'role' => [__('admin.security.errors.role_archived')],
+            ]);
+        }
+
         $source->load('permissions:id');
 
         return $this->createRole($actor, $code, [
@@ -476,18 +504,27 @@ final class RbacManager
     {
         $this->preparePermissionMutation();
 
-        if ($role->is_system) {
-            throw ValidationException::withMessages(['role' => [__('admin.security.errors.system_delete')]]);
-        }
+        DB::transaction(function () use ($actor, $role, $request): void {
+            $locked = Role::query()->lockForUpdate()->findOrFail($role->getKey());
 
-        if ($role->users()->exists() || $role->storeAssignments()->exists()) {
-            throw ValidationException::withMessages(['role' => [__('admin.security.errors.assigned_role_delete')]]);
-        }
+            if ($locked->is_system) {
+                throw ValidationException::withMessages(['role' => [__('admin.security.errors.system_delete')]]);
+            }
 
-        $before = $this->roleSnapshot($role->load('permissions'));
-        $this->audit->record('role.deleted', $actor, $role, $before, null, $request);
-        $role->delete();
-        $this->finalizePermissionMutation($actor, null, 'role.deleted', $request);
+            if ($locked->archived_at !== null) {
+                throw ValidationException::withMessages(['role' => [__('admin.security.errors.role_archived')]]);
+            }
+
+            if ($locked->users()->exists() || $locked->storeAssignments()->exists()) {
+                throw ValidationException::withMessages(['role' => [__('admin.security.errors.assigned_role_delete')]]);
+            }
+
+            $before = $this->roleSnapshot($locked->load('permissions'));
+            $locked->forceFill(['is_active' => false, 'archived_at' => now()])->save();
+            $this->audit->record('role.archived', $actor, $locked, $before, $this->roleSnapshot($locked), $request);
+        });
+
+        $this->finalizePermissionMutation($actor, null, 'role.archived', $request);
     }
 
     public function isLastActiveSuperAdmin(User $target): bool
@@ -718,6 +755,7 @@ final class RbacManager
             'scope' => (string) $role->scope,
             'is_system' => (bool) $role->is_system,
             'is_active' => (bool) $role->is_active,
+            'archived_at' => $role->archived_at?->toIso8601String(),
             'permissions' => $role->permissions->pluck('code')->sort()->values()->all(),
         ];
     }

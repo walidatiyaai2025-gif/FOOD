@@ -249,8 +249,8 @@ $roleLabel = static function ($role): string {
     $displayRoleName=is_array($roleMeta) ? $roleMeta['name'] : $role->name;
     $displayRoleDescription=is_array($roleMeta) ? $roleMeta['description'] : ($role->description?:__('admin.security.no_description'));
 @endphp
-<details class="card {{ $roleAvailable ? '' : 'role-unavailable' }}" data-foodex-operational-modal>
-<summary>{{ $displayRoleName }} <span class="badge {{ $role->is_active?'active':'inactive' }}">{{ $role->is_active?__('admin.security.active'):__('admin.security.inactive') }}</span>@if($role->is_system)<span class="badge system">{{ __('admin.security.system_role') }}</span>@endif @if(is_array($roleMeta))<span class="badge">{{ $roleAvailable?__('job_roles.availability.available'):__('job_roles.availability.unavailable') }}</span>@endif</summary>
+<details class="card {{ $roleAvailable ? '' : 'role-unavailable' }}" data-foodex-operational-modal data-role-archived="{{ $role->archived_at ? '1' : '0' }}">
+<summary>{{ $displayRoleName }} <span class="badge {{ $role->is_active?'active':'inactive' }}">{{ $role->archived_at ? __('admin.security.archived_role') : ($role->is_active ? __('admin.security.active') : __('admin.security.inactive')) }}</span>@if($role->is_system)<span class="badge system">{{ __('admin.security.system_role') }}</span>@endif @if(is_array($roleMeta))<span class="badge">{{ $roleAvailable?__('job_roles.availability.available'):__('job_roles.availability.unavailable') }}</span>@endif</summary>
 <div class="job-role-meta">
 <p class="muted">{{ $displayRoleDescription }}</p>
 @if(is_array($roleMeta))
@@ -281,7 +281,7 @@ $roleLabel = static function ($role): string {
 <div class="muted">{{ __('admin.security.assignments_count') }}: {{ (int)$role->users_count+(int)$role->store_assignments_count }}</div>
 </div>
 @can('roles.manage')
-@if(in_array((int) $role->id, $editableRoleIds, true))
+@if(!$role->archived_at && in_array((int) $role->id, $editableRoleIds, true))
 <form method="post" action="{{ route('admin.security.roles.update',$role) }}">@csrf @method('patch')<div class="filters"><input class="grow" name="name" value="{{ $role->name }}" required>@if($role->is_system)<input type="hidden" name="scope" value="{{ $role->scope }}"><span class="note">{{ __('admin.security.scope') }}: {{ $role->scope === 'global' ? __('admin.security.scope_global') : __('admin.security.scope_store') }}</span>@else<select name="scope"><option value="global" @selected($role->scope==='global')>{{ __('admin.security.scope_global') }}</option><option value="store" @selected($role->scope==='store')>{{ __('admin.security.scope_store') }}</option></select>@endif @if($role->code==='SUPER_ADMIN') {{-- localization-gate: allow technical RBAC role identifier --}}<input type="hidden" name="is_active" value="1"><span class="note">{{ __('admin.security.super_admin_protected') }}</span>@else<label><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($role->is_active)> {{ __('admin.security.active') }}</label>@endif</div><textarea name="description">{{ $role->description }}</textarea>
 @if($role->code==='SUPER_ADMIN') {{-- localization-gate: allow technical RBAC role identifier --}}
 <div class="note">{{ __('security_permissions.super_admin_permissions_protected') }}</div>
@@ -296,7 +296,9 @@ $roleLabel = static function ($role): string {
 @endif
 <button class="btn primary">{{ __('admin.security.save_role') }}</button></form>
 @else
-@if(is_array($roleMeta))
+@if($role->archived_at)
+<div class="note" role="status">{{ __('admin.security.archived_role_readonly') }}</div>
+@elseif(is_array($roleMeta))
 <div class="note">{{ __('job_roles.errors.canonical_locked') }}</div>
 @if(in_array((int) $role->id, $roleOutsideGrantAuthorityIds, true))
 <div class="note">{{ __('security_permissions.role_outside_authority') }}</div>
@@ -305,7 +307,9 @@ $roleLabel = static function ($role): string {
 <div class="note">{{ __('security_permissions.role_outside_authority') }}</div>
 @endif
 @endif
+@if(!$role->archived_at)
 <div class="actions"><form method="post" action="{{ route('admin.security.roles.clone',$role) }}">@csrf <input name="code" required pattern="[A-Z][A-Z0-9_]{2,49}" placeholder="{{ str_ireplace('B2C','RETAIL',$role->code) }}_COPY"><input name="name" required value="{{ $role->name }} Copy"><button class="btn secondary">{{ __('admin.security.clone') }}</button></form>@if(!$role->is_system)<form method="post" action="{{ route('admin.security.roles.destroy',$role) }}" onsubmit="return confirm('{{ __('admin.security.confirm_delete_role') }}')">@csrf @method('delete')<button class="btn danger">{{ __('admin.security.delete_role') }}</button></form>@endif</div>
+@endif
 @endcan</details>@endforeach</div>
 </section>
 <div class="note">{{ __('admin.security.server_authoritative') }}</div>
