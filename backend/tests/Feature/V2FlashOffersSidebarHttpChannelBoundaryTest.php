@@ -31,8 +31,11 @@ final class V2FlashOffersSidebarHttpChannelBoundaryTest extends TestCase
     {
         $wholesaleStore = $this->store('B2B', 'P232-WHOLESALE');
         $retailStore = $this->store('B2C', 'P232-RETAIL');
-        $wholesale = $this->globalActor('B2B_ADMIN', 'wholesale');
+        $wholesale = $this->globalActor('CUSTOMER_SERVICE_MANAGER', 'wholesale');
         $retail = $this->retailActor($retailStore, 'retail');
+
+        // The seeded global role actually owns promotions.view; B2B_ADMIN does not.
+        $this->assertTrue($wholesale->hasPermission('promotions.view'));
 
         foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
             app()->setLocale($locale);
@@ -109,9 +112,11 @@ final class V2FlashOffersSidebarHttpChannelBoundaryTest extends TestCase
     public function test_explicit_global_deny_prevents_wholesale_offer_navigation_and_direct_http_action(): void
     {
         $storeId = $this->store('B2B', 'P232-DENIED-B2B');
-        $actor = $this->globalActor('B2B_ADMIN', 'denied');
-        $role = Role::query()->where('code', 'B2B_ADMIN')->firstOrFail();
+        $actor = $this->globalActor('CUSTOMER_SERVICE_MANAGER', 'denied');
+        $role = Role::query()->where('code', 'CUSTOMER_SERVICE_MANAGER')->firstOrFail();
         $permission = Permission::query()->where('code', 'promotions.view')->firstOrFail();
+
+        $this->assertTrue($actor->hasPermission('promotions.view'));
 
         DB::table('admin_sidebar_role_visibility')->insert([
             'role_id' => $role->id,
@@ -149,7 +154,7 @@ final class V2FlashOffersSidebarHttpChannelBoundaryTest extends TestCase
         ]);
         $this->assertDatabaseCount('flash_offers', 0);
 
-        $inactive = $this->globalActor('B2B_ADMIN', 'inactive');
+        $inactive = $this->globalActor('CUSTOMER_SERVICE_MANAGER', 'inactive');
         $role->forceFill(['is_active' => false])->save();
         $this->assertNull($this->navigationItem($inactive->fresh(), 'commercial_flash_offers'));
         $response = $this->actingAs($inactive)
