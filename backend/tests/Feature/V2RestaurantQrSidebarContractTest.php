@@ -84,12 +84,14 @@ final class V2RestaurantQrSidebarContractTest extends TestCase
                 ->get(route('admin.smart-ordering.index', ['store_id' => $denied]))
                 ->assertOk()
                 ->assertSee('dir="'.$direction.'"', false)
-                ->assertDontSee(route('admin.smart-ordering.qr.index', ['store_id' => $denied]), false);
+                ->assertDontSee('class="foodex-tab" href="'.route('admin.smart-ordering.qr.index', ['store_id' => $denied]).'"', false)
+                ->assertDontSee('data-workspace-item="qr"', false);
 
             $this->actingAs($actor->fresh())
                 ->get(route('admin.smart-ordering.index', ['store_id' => $allowed]))
                 ->assertOk()
-                ->assertSee(route('admin.smart-ordering.qr.index', ['store_id' => $allowed]), false);
+                ->assertSee('class="foodex-tab" href="'.route('admin.smart-ordering.qr.index', ['store_id' => $allowed]).'"', false)
+                ->assertSee('data-workspace-item="qr"', false);
 
             $this->actingAs($actor->fresh())
                 ->get(route('admin.smart-ordering.qr.index', ['store_id' => $denied]))
