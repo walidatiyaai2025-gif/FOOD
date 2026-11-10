@@ -111,7 +111,7 @@ final class V2RetailCustomersSidebarAuthorityTest extends TestCase
         $this->assertNotContains('b2c_customers', $keys);
         $this->actingAs($actor->fresh())
             ->get(route('admin.b2c.module', ['module' => 'customers', 'store_id' => $store]))
-            ->assertNotFound();
+            ->assertForbidden();
     }
 
     private function storeActor(int $storeId): User
