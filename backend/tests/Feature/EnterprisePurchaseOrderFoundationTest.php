@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\ProcurementSecondApprover;
 use Tests\TestCase;
 
 final class EnterprisePurchaseOrderFoundationTest extends TestCase
@@ -54,7 +55,8 @@ final class EnterprisePurchaseOrderFoundationTest extends TestCase
         ]);
         $requests = app(PurchaseRequestManager::class);
         $requests->submit($actor, $context, $request->id);
-        $requests->approve($actor, $context, $request->id, 'Approved for PO');
+        [$checker, $checkerContext] = ProcurementSecondApprover::forSameStore($actor, $context);
+        $requests->approve($checker, $checkerContext, $request->id, 'Approved for PO');
 
         $orders = app(PurchaseOrderManager::class);
         $order = $orders->createFromApprovedRequest($actor, $context, $request->id);
@@ -106,7 +108,8 @@ final class EnterprisePurchaseOrderFoundationTest extends TestCase
         }
 
         $requests->submit($actor, $context, $request->id);
-        $requests->approve($actor, $context, $request->id);
+        [$checker, $checkerContext] = ProcurementSecondApprover::forSameStore($actor, $context);
+        $requests->approve($checker, $checkerContext, $request->id);
 
         $this->expectException(ValidationException::class);
         app(PurchaseOrderManager::class)->createFromApprovedRequest($actor, $context, $request->id);
@@ -188,7 +191,8 @@ final class EnterprisePurchaseOrderFoundationTest extends TestCase
             ]],
         ]);
         $requests->submit($actor, $context, $request->id);
-        $requests->approve($actor, $context, $request->id);
+        [$checker, $checkerContext] = ProcurementSecondApprover::forSameStore($actor, $context);
+        $requests->approve($checker, $checkerContext, $request->id);
 
         return app(PurchaseOrderManager::class)->createFromApprovedRequest($actor, $context, $request->id);
     }

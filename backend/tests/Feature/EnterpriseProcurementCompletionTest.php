@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\ProcurementSecondApprover;
 use Tests\TestCase;
 
 final class EnterpriseProcurementCompletionTest extends TestCase
@@ -63,7 +64,8 @@ final class EnterpriseProcurementCompletionTest extends TestCase
             ]],
         ]);
         $requests->submit($actor, $context, $request->id);
-        $requests->approve($actor, $context, $request->id);
+        [$checker, $checkerContext] = ProcurementSecondApprover::forSameStore($actor, $context);
+        $requests->approve($checker, $checkerContext, $request->id);
 
         $completion = app(ProcurementCompletionManager::class);
         $rfq = $completion->createRfq($actor, $context, $request->id, [
@@ -120,7 +122,21 @@ final class EnterpriseProcurementCompletionTest extends TestCase
         $this->assertNotNull($quoteDocument);
         Storage::disk('local')->assertExists($quoteDocument->storage_path);
 
-        $order = $completion->awardRfq($actor, $context, $rfq->id, $quote->id);
+        try {
+            $completion->awardRfq($actor, $context, $rfq->id, $quote->id);
+            $this->fail('The RFQ creator must not award their own request.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('decision', $exception->errors());
+        }
+        $this->assertDatabaseHas('enterprise_procurement_rfqs', [
+            'id' => $rfq->id,
+            'status' => 'published',
+        ]);
+        $this->assertDatabaseMissing('enterprise_purchase_orders', [
+            'procurement_rfq_id' => $rfq->id,
+        ]);
+
+        $order = $completion->awardRfq($checker, $checkerContext, $rfq->id, $quote->id);
         $this->assertSame($supplier->id, (int) $order->supplier_id);
         $this->assertSame($rfq->id, (int) $order->procurement_rfq_id);
         $this->assertSame($quote->id, (int) $order->awarded_quote_id);
@@ -379,7 +395,8 @@ final class EnterpriseProcurementCompletionTest extends TestCase
             ]],
         ]);
         $requests->submit($actor, $context, $request->id);
-        $requests->approve($actor, $context, $request->id);
+        [$checker, $checkerContext] = ProcurementSecondApprover::forSameStore($actor, $context);
+        $requests->approve($checker, $checkerContext, $request->id);
 
         return app(PurchaseOrderManager::class)->createFromApprovedRequest($actor, $context, $request->id);
     }

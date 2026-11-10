@@ -529,6 +529,12 @@ final class ProcurementCompletionManager
 
         return DB::transaction(function () use ($actor, $context, $scope, $rfqId, $quoteId): object {
             $rfq = $this->visibleRfq($scope, $rfqId, true);
+            if ((int) $rfq->created_by === (int) $actor->id) {
+                throw ValidationException::withMessages([
+                    'decision' => [__('enterprise_procurement.errors.self_award')],
+                ]);
+            }
+
             if ($rfq->status === 'awarded') {
                 $existingOrder = DB::table('enterprise_purchase_orders')
                     ->where('procurement_rfq_id', $rfq->id)
@@ -571,6 +577,15 @@ final class ProcurementCompletionManager
                 ->lockForUpdate()
                 ->first();
             abort_if($request === null, 404);
+            if (
+                (int) $request->created_by === (int) $actor->id
+                || (int) $request->submitted_by === (int) $actor->id
+            ) {
+                throw ValidationException::withMessages([
+                    'decision' => [__('enterprise_procurement.errors.self_award')],
+                ]);
+            }
+
             if ($request->status !== 'approved') {
                 throw ValidationException::withMessages([
                     'purchase_request_id' => ['Purchase request must be approved before RFQ award creates a purchase order.'],
