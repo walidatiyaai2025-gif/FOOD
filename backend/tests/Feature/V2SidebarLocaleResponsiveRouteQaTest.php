@@ -51,7 +51,7 @@ final class V2SidebarLocaleResponsiveRouteQaTest extends TestCase
 
             $this->assertContains('catalog_management', $visibleKeys);
             $this->assertNotContains('sidebar_role_access', $visibleKeys);
-            $this->assertSame($locale === 'ar' ? 'المنتجات والكتالوج' : 'Catalog & Products', __('admin.nav_groups.catalog'));
+            $this->assertSame($locale === 'ar' ? 'المنتجات والكتالوج' : 'Catalog', __('admin.nav_groups.catalog'));
 
             $this->actingAs($user)
                 ->get(route('admin.b2b.dashboard'))
