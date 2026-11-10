@@ -400,8 +400,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repo.requestedChannel, isNull);
-    expect(find.byKey(const Key('driver-login-wholesale-denied')),
-        findsOneWidget);
+    expect(
+        find.byKey(const Key('driver-login-wholesale-denied')), findsOneWidget);
     expect(find.byKey(const Key('driver-shell-deliveries')), findsNothing);
     expect(find.byKey(const Key('driver-shell')), findsNothing);
   });
@@ -840,8 +840,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('driver-login-wholesale-denied')),
-        findsOneWidget);
+    expect(
+        find.byKey(const Key('driver-login-wholesale-denied')), findsOneWidget);
     expect(find.byKey(const Key('driver-home-unsettled-collections')),
         findsNothing);
     expect(find.byKey(const Key('driver-wallet-page')), findsNothing);
@@ -905,8 +905,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repo.requestedChannel, isNull);
-    expect(find.byKey(const Key('driver-login-wholesale-denied')),
-        findsOneWidget);
+    expect(
+        find.byKey(const Key('driver-login-wholesale-denied')), findsOneWidget);
     expect(find.byKey(const Key('driver-shell')), findsNothing);
     expect(find.byKey(const Key('driver-shell-deliveries')), findsNothing);
   });
@@ -936,9 +936,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repo.requestedChannel, isNull);
-    expect(find.byKey(const Key('driver-login-wholesale-denied')),
-        findsOneWidget);
+    expect(
+        find.byKey(const Key('driver-login-wholesale-denied')), findsOneWidget);
     expect(find.byKey(const Key('driver-shell')), findsNothing);
-  });
-
-}
+  });}
