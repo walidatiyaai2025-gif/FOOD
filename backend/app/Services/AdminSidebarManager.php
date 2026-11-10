@@ -106,6 +106,7 @@ final class AdminSidebarManager
         $role->loadMissing('permissions:id,code');
         $permissions = $role->permissions->pluck('code')->filter()->values()->all();
         $layout = $this->layoutData();
+        $protectedItems = array_fill_keys($this->registry()['protected_items'], true);
         $overrides = collect();
 
         if ($this->tablesReady()) {
@@ -124,8 +125,8 @@ final class AdminSidebarManager
             $meta = (array) ($item['meta'] ?? []);
             $baseAllowed = $this->roleCanUseItem($role, $meta, $permissions);
             $override = $overrides->get($key);
-            $globalEnabled = (bool) $item['is_enabled'] && (bool) ($grouped[$item['group_key']]['is_enabled'] ?? true);
-            $visible = $baseAllowed && $globalEnabled && ($override === null || (bool) $override->is_visible);
+            $globalEnabled = isset($protectedItems[$key]) || ((bool) $item['is_enabled'] && (bool) ($grouped[$item['group_key']]['is_enabled'] ?? true));
+            $visible = $baseAllowed && $globalEnabled && (isset($protectedItems[$key]) || $override === null || (bool) $override->is_visible);
 
             $targetGroup = isset($grouped[$item['group_key']]) ? $item['group_key'] : (string) ($meta['group'] ?? 'administration');
             $grouped[$targetGroup]['items'][] = $item + [
@@ -301,6 +302,7 @@ final class AdminSidebarManager
         }
 
         $layout = $this->layoutData();
+        $protectedItems = array_fill_keys($this->registry()['protected_items'], true);
         $roleIds = $this->roleIdsForUser($user);
         $visibility = collect();
 
@@ -317,12 +319,12 @@ final class AdminSidebarManager
         foreach ($groups as $group) {
             foreach ((array) ($group['children'] ?? []) as $item) {
                 $key = (string) ($item['key'] ?? '');
-                if ($key === '' || ! $this->itemVisibleForRoles($key, $roleIds, $visibility)) {
+                if ($key === '' || (! isset($protectedItems[$key]) && ! $this->itemVisibleForRoles($key, $roleIds, $visibility))) {
                     continue;
                 }
 
                 $itemLayout = $layout['items'][$key] ?? null;
-                if ($itemLayout !== null && ! (bool) $itemLayout['is_enabled']) {
+                if (! isset($protectedItems[$key]) && $itemLayout !== null && ! (bool) $itemLayout['is_enabled']) {
                     continue;
                 }
 
@@ -345,7 +347,7 @@ final class AdminSidebarManager
                 }
 
                 $groupLayout = $layout['groups'][$targetGroup] ?? null;
-                if ($groupLayout !== null && ! (bool) $groupLayout['is_enabled']) {
+                if (! isset($protectedItems[$key]) && $groupLayout !== null && ! (bool) $groupLayout['is_enabled']) {
                     continue;
                 }
 
