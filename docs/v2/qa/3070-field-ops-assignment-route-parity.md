@@ -11,7 +11,7 @@
 
 Previously AdminNavigation::groupsFor and config/admin_sidebar.php allowed field_ops_assignments with EITHER drivers.b2b.view OR field_ops.manage. The actual controller required drivers.b2b.view; a pure Field Operations operator could see a link that failed 403. Both navigation and registry now require the exact controller permission.
 
-An independent admission mismatch was found for genuine global field_ops.manage actors: the controller permits Field Operations **Overview**, but EnsureManagementDashboardAccess previously rejected the user before the controller because admin.dashboard_permissions omitted field_ops.manage. Add that existing permission to Dashboard admission only; **no** role permission is added, no assignments access granted, no controller guard relaxed.
+A separate pre-existing admission constraint was confirmed: field_ops.manage **alone** does not grant Dashboard admission. We deliberately preserve that boundary; widening admin.dashboard_permissions could expose unrelated ERP routes because canAccessPlatformErp considers any global role. The positive Field Operations Overview regression actor therefore holds both field_ops.manage and already-admitted reports.view, while still lacking drivers.b2b.view. An actor with field_ops.manage alone remains forbidden at Dashboard middleware. No route admission or controller guard was widened.
 
 Current Field Operations route audit:
 - Overview: OR field_ops.manage, drivers.b2b.view, drivers.tracking.view, customers.view, territories.manage, finance.view.
@@ -25,7 +25,8 @@ These match corresponding current controller guards. No evidence supports broade
 ## Authorization and scope
 
 - Allowed: active global wholesale OPERATIONS actor with drivers.b2b.view; link points to an actual rendered Laravel route.
-- Denied: active global custom actor with ONLY field_ops.manage may browse Overview, but cannot see/call Assignments; request remains HTTP 403.
+- Allowed: an active global custom actor with field_ops.manage plus independently authorized reports.view can browse Overview, but cannot see/call Assignments (HTTP 403).
+- Denied: an actor with ONLY field_ops.manage cannot bypass existing Dashboard admission: both Overview and Assignments remain HTTP 403.
 - Denied: B2C Retail RETAIL_OPERATIONS store-scoped actor has no B2B/Van assignments access, including when another Retail store exists; no silent global permission promotion.
 - Controller, not presentation, remains security authority. AdminSidebarManager may hide/rearrange links but never grant them.
 - No ERP readiness or module entitlement is invented for this non-ERP route; existing channel/role/store scope remains. No finance posting/SoD grant changed.
@@ -35,9 +36,10 @@ These match corresponding current controller guards. No evidence supports broade
 
 New backend/tests/Feature/V2FieldOperationsAssignmentsSidebarAuthorityTest.php proves:
 1. Registry and actual route guard consistency.
-2. Synthetic field_ops.manage-only actor: Overview HTTP 200, Assignments absent/403, AR RTL and EN LTR.
-3. Authorized wholesale OPERATIONS actor: positive link and HTTP 200 in both locales.
-4. Retail scoped actor: negative link and HTTP 403, including foreign-store permission boundary.
+2. Synthetic field_ops.manage + reports.view actor: Overview HTTP 200, Assignments absent/403, Arabic RTL and English LTR.
+3. Pure field_ops.manage-only actor: no implicit Dashboard admission, both HTTP routes forbidden.
+4. Authorized wholesale OPERATIONS actor: positive link and HTTP 200 in both locales.
+5. Retail scoped actor: negative link and HTTP 403, including foreign-store permission boundary.
 
 Full review requires Laravel feature suite, Pint, PHPStan, AR/EN localization, V2 isolation, repository policy, security and exact-final-head Required CI. Do not report CI green until GitHub runs finish. Existing page-specific viewport/accessibility evidence remains parent #2715/#2750 acceptance; no responsive markup changes in this PR.
 
@@ -45,7 +47,7 @@ Full review requires Laravel feature suite, Pint, PHPStan, AR/EN localization, V
 
 | Surface | Impact |
 | --- | --- |
-| Laravel Backend | Narrower server-side navigation projection and Dashboard admission; assignment Controller authorization unchanged. |
+| Laravel Backend | Narrower server-side navigation projection; existing Dashboard admission and assignments Controller guards unchanged. |
 | Dashboard | Field Operations Sidebar / responsive drawer reflects real HTTP permission; no new page, raw ID, translated literal or UI component. |
 | Customer Flutter | **Not affected**: no Customer API, payload, routing, session or screen changes. |
 | Driver Flutter | **Not affected**: no B2C Driver API or app changes; no cross-channel dispatch fallback. |
