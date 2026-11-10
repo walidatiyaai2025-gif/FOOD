@@ -39,10 +39,11 @@ final class V2RetailContentSidebarHttpTest extends TestCase
             app()->setLocale($locale);
 
             $groups = app(AdminNavigation::class)->groupsFor($actor->fresh());
-            $marketing = collect($groups)->firstWhere('key', 'marketing');
-            $this->assertIsArray($marketing, 'Retail Content must be reachable from Marketing.');
+            $this->assertSame('marketing', config('admin_sidebar.items.b2c_content.group'));
 
-            $item = collect($marketing['children'])->firstWhere('key', 'b2c_content');
+            // Configured Sidebar layouts can nest a page beneath a domain root
+            // or regroup it; the effective reachable link is the authority.
+            $item = $this->navigationItem($groups, 'b2c_content');
             $this->assertIsArray($item, 'Authorized Content requires a working Sidebar entry.');
             $this->assertSame('admin.b2c.module', $item['route']);
             $this->assertSame('promotions.view', $item['permission']);
@@ -93,11 +94,9 @@ final class V2RetailContentSidebarHttpTest extends TestCase
         $wholesale = $this->globalActor('B2B_ADMIN', 'v2-p236-b2b@example.test');
 
         foreach ([$roleless, $inactive, $wholesale] as $actor) {
-            $marketing = collect(app(AdminNavigation::class)->groupsFor($actor->fresh()))
-                ->firstWhere('key', 'marketing');
-            $this->assertFalse(
-                collect($marketing['children'] ?? [])->contains('key', 'b2c_content'),
-                'A denied actor must never see a Retail Content route.',
+            $this->assertNull(
+                $this->navigationItem(app(AdminNavigation::class)->groupsFor($actor->fresh()), 'b2c_content'),
+                'A denied actor must never see a Retail Content route in any configured Sidebar group or nested item.',
             );
 
             $this->actingAs($actor->fresh())
@@ -111,13 +110,40 @@ final class V2RetailContentSidebarHttpTest extends TestCase
         $storeId = $this->store('P236-RESTAURANT', 'RESTAURANT');
         $actor = $this->storeActor('RESTAURANT_DIGITAL_MANAGER', $storeId, 'v2-p236-restaurant@example.test');
 
-        $marketing = collect(app(AdminNavigation::class)->groupsFor($actor->fresh()))
-            ->firstWhere('key', 'marketing');
-        $this->assertFalse(collect($marketing['children'] ?? [])->contains('key', 'b2c_content'));
+        $this->assertNull(
+            $this->navigationItem(app(AdminNavigation::class)->groupsFor($actor->fresh()), 'b2c_content'),
+        );
 
         $response = $this->actingAs($actor)
             ->get(route('admin.b2c.module', ['module' => 'content', 'store_id' => $storeId], false));
         $this->assertContains($response->status(), [403, 404], 'Restaurant profile cannot open Retail Content.');
+    }
+
+    /**
+     * Follow the effective two-level Dashboard Sidebar layout, including an
+     * administrator-configured child placement, without treating placement as
+     * a permission grant.
+     *
+     * @param list<array<string,mixed>> $groups
+     * @return array<string,mixed>|null
+     */
+    private function navigationItem(array $groups, string $key): ?array
+    {
+        foreach ($groups as $group) {
+            foreach ((array) ($group['children'] ?? []) as $item) {
+                if (($item['key'] ?? null) === $key) {
+                    return $item;
+                }
+
+                foreach ((array) ($item['children'] ?? []) as $child) {
+                    if (($child['key'] ?? null) === $key) {
+                        return $child;
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     private function storeActor(string $roleCode, int $storeId, string $email): User
