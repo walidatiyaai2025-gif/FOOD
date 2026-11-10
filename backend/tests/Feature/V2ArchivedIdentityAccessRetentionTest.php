@@ -11,6 +11,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -36,6 +37,11 @@ final class V2ArchivedIdentityAccessRetentionTest extends TestCase
         ])->assertOk();
 
         $this->actingAs($target)->get('/admin/security')->assertForbidden();
+        $this->post('/admin/b2b/login', [
+            'email' => $target->email,
+            'password' => 'password',
+            'locale' => 'en',
+        ])->assertSessionHasErrors('email');
         $this->assertDatabaseHas('users', ['id' => $target->id, 'is_active' => 0]);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'user.status_changed',
@@ -46,7 +52,10 @@ final class V2ArchivedIdentityAccessRetentionTest extends TestCase
     public function test_archived_customer_has_no_mobile_api_access_but_invoices_remain(): void
     {
         $actor = $this->userWithRole('SUPER_ADMIN');
-        $user = User::factory()->create(['is_active' => true]);
+        $user = User::factory()->create([
+            'is_active' => true,
+            'password' => Hash::make('V2RetentionPassword!'),
+        ]);
         $customer = Customer::query()->create([
             'user_id' => $user->id,
             'type' => 'b2b',
@@ -70,7 +79,6 @@ final class V2ArchivedIdentityAccessRetentionTest extends TestCase
         ]);
 
         Sanctum::actingAs($user);
-        $this->getJson('/api/v1/profile')->assertOk();
         app(RbacManager::class)->setUserActive(
             $actor,
             $user,
@@ -81,6 +89,11 @@ final class V2ArchivedIdentityAccessRetentionTest extends TestCase
 
         $this->getJson('/api/v1/profile')->assertUnauthorized();
         $this->getJson('/api/v1/invoices')->assertUnauthorized();
+        $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'V2RetentionPassword!',
+            'app' => 'customer',
+        ])->assertUnprocessable()->assertJsonValidationErrors('email');
         $this->assertDatabaseHas('invoices', [
             'id' => $invoice->id,
             'customer_id' => $customer->id,
