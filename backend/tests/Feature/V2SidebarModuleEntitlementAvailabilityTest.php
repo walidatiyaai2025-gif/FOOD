@@ -9,6 +9,7 @@ use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
@@ -156,7 +157,24 @@ final class V2SidebarModuleEntitlementAvailabilityTest extends TestCase
             Role::query()->where('code', 'PROCUREMENT_MANAGER')->firstOrFail()->getKey(),
         ]);
 
-        return $user;
+        // A real global override is allowed only in the actor's B2B channel.
+        // Keep it when the module is disabled so its runtime 404 remains
+        // authoritative; when enabled, the same grant is evaluated per store.
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $user->getKey(),
+            'permission_id' => Permission::query()
+                ->where('code', 'procurement.suppliers.view')
+                ->firstOrFail()
+                ->getKey(),
+            'scope_key' => 'global',
+            'store_id' => null,
+            'effect' => 'allow',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $user->forceFill(['has_permission_overrides' => true])->save();
+
+        return $user->fresh();
     }
 
     private function financeUser(): User
