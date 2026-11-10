@@ -81,6 +81,34 @@ class V2CouponsSidebarAuthorizationTest extends TestCase
         $this->assertDatabaseMissing('marketing_coupons', ['code' => 'GLOBAL-DENIED']);
     }
 
+    public function test_view_only_retail_actor_sees_coupons_without_unauthorized_write_controls(): void
+    {
+        $store = $this->store('V2-COUPON-READ-ONLY');
+        $owner = $this->globalUser('SUPER_ADMIN', 'v2-coupon-readonly-owner@example.test');
+        $this->actingAs($owner)->post(route('admin.coupons.store'), $this->payload('READ-ONLY', $store))
+            ->assertRedirect();
+
+        $couponId = (int) DB::table('marketing_coupons')->where('code', 'READ-ONLY')->value('id');
+        $retail = $this->retailUser([$store], 'v2-coupon-readonly@example.test');
+        $this->deny($retail, 'coupons.manage', 'store:'.$store, $store);
+        $retail->refresh();
+
+        $this->actingAs($retail)
+            ->get(route('admin.coupons.index'))
+            ->assertOk()
+            ->assertSee('READ-ONLY')
+            ->assertDontSee('action="'.route('admin.coupons.store').'"', false)
+            ->assertDontSee('action="'.route('admin.coupons.toggle', $couponId).'"', false);
+
+        $this->actingAs($retail)
+            ->post(route('admin.coupons.store'), $this->payload('READ-ONLY-DENIED', $store))
+            ->assertForbidden();
+
+        $this->actingAs($retail)
+            ->patch(route('admin.coupons.toggle', $couponId))
+            ->assertForbidden();
+    }
+
     public function test_coupon_store_feature_and_locale_keep_consistent_authorized_navigation(): void
     {
         $store = $this->store('V2-COUPON-FEATURE');
