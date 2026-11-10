@@ -649,6 +649,8 @@ final class SecurityController extends Controller
     public function updateUserPermissions(Request $request, User $user, RbacManager $rbac): RedirectResponse
     {
         Gate::authorize('users.roles.manage');
+        abort_if($user->isPlatformOwner(), 403);
+
         $validated = $request->validate([
             'scope_type' => ['required', Rule::in(['global', 'store'])],
             'store_id' => ['nullable', 'integer', 'exists:stores,id'],
@@ -675,6 +677,7 @@ final class SecurityController extends Controller
         AuditLogger $audit,
     ): RedirectResponse {
         Gate::authorize('users.roles.manage');
+        abort_if($user->isPlatformOwner(), 403);
         $actor = $this->actor($request);
 
         AdminMfaCredential::query()
@@ -694,6 +697,8 @@ final class SecurityController extends Controller
     public function storeSsoIdentity(Request $request, User $user, AuditLogger $audit): RedirectResponse
     {
         Gate::authorize('users.roles.manage');
+        abort_if($user->isPlatformOwner(), 403);
+
         $data = $request->validate([
             'provider' => ['required', 'string', 'max:80'],
             'subject' => [
@@ -738,7 +743,8 @@ final class SecurityController extends Controller
     ): RedirectResponse {
         Gate::authorize('users.roles.manage');
         $actor = $this->actor($request);
-        $user = $identity->user()->firstOrFail();
+        $user = User::query()->findOrFail($identity->user_id);
+        abort_if($user->isPlatformOwner(), 403);
         $provider = $identity->provider;
         $identity->delete();
 
@@ -762,7 +768,8 @@ final class SecurityController extends Controller
     ): RedirectResponse {
         Gate::authorize('users.status.manage');
         $actor = $this->actor($request);
-        $target = $securitySession->user()->firstOrFail();
+        $target = User::query()->findOrFail($securitySession->user_id);
+        abort_if($target->isPlatformOwner(), 403);
         $sessions->revoke($securitySession, $actor);
         $audit->record(
             'management.session.revoked',
