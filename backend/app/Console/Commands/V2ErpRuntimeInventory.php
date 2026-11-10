@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use Composer\InstalledVersions;
 use Illuminate\Console\Command;
 use Illuminate\Routing\Route as RoutingRoute;
 use Illuminate\Support\Facades\Route;
@@ -33,8 +34,8 @@ final class V2ErpRuntimeInventory extends Command
         foreach (array_keys($dependencies) as $package) {
             $installedVersions[$package] = $package === 'php'
                 ? PHP_VERSION
-                : (class_exists(\Composer\InstalledVersions::class)
-                    ? \Composer\InstalledVersions::getPrettyVersion($package)
+                : (class_exists(InstalledVersions::class)
+                    ? InstalledVersions::getPrettyVersion($package)
                     : null);
         }
 
