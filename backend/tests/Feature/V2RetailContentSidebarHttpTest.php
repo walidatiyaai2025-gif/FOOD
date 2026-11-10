@@ -131,7 +131,7 @@ final class V2RetailContentSidebarHttpTest extends TestCase
      * administrator-configured child placement, without treating placement as
      * a permission grant.
      *
-     * @param list<array<string,mixed>> $groups
+     * @param  list<array<string,mixed>>  $groups
      * @return array<string,mixed>|null
      */
     private function navigationItem(array $groups, string $key): ?array
