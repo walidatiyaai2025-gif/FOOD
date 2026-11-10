@@ -124,7 +124,7 @@ final class V2ScopedAllowTenantBoundaryTest extends TestCase
             $user->forceFill(['locale' => $locale])->save();
             $this->actingAs($user->fresh())
                 ->get('/admin/b2c/orders?store_id='.$foreign)
-                ->assertNotFound();
+                ->assertForbidden();
             $this->actingAs($user->fresh())
                 ->get('/admin/b2b/orders')
                 ->assertForbidden();
@@ -160,7 +160,7 @@ final class V2ScopedAllowTenantBoundaryTest extends TestCase
             ->allowedStoreIds($actor->fresh(), 'orders.view', 'b2c'));
         $this->actingAs($actor->fresh())
             ->get('/admin/b2c/orders?store_id='.$store)
-            ->assertNotFound();
+            ->assertForbidden();
     }
 
     /** @param list<int> $storeIds */
