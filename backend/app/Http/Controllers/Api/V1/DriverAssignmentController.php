@@ -190,7 +190,7 @@ class DriverAssignmentController extends Controller
             $order,
             $assignment,
             $previousDriverId,
-            $manualWholesaleOverride,
+            false,
         );
 
         return response()->json(['data' => $assignment], 201);
