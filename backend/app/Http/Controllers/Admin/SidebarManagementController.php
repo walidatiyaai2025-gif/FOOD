@@ -127,6 +127,7 @@ final class SidebarManagementController extends Controller
         }
 
         $this->assertNoParentCycles($items);
+        $this->assertMaxSidebarDepth($items);
 
         $before = $sidebar->layoutData();
         $sidebar->saveLayout($groups, $items);
@@ -152,6 +153,23 @@ final class SidebarManagementController extends Controller
                 }
                 $seen[$current] = true;
                 $current = $parent;
+            }
+        }
+    }
+
+    /** @param array<string,array<string,mixed>> $items */
+    private function assertMaxSidebarDepth(array $items): void
+    {
+        // The group counts as level 1: an item may have at most one page ancestor.
+        foreach ($items as $key => $item) {
+            $parent = $item['parent_key'] ?? null;
+            if (! is_string($parent) || $parent === '') {
+                continue;
+            }
+
+            $grandparent = $items[$parent]['parent_key'] ?? null;
+            if (is_string($grandparent) && $grandparent !== '') {
+                throw ValidationException::withMessages(["items.{$key}.parent_key" => __('sidebar_admin.max_nesting')]);
             }
         }
     }
