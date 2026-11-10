@@ -18,12 +18,14 @@ class DriverLoginPage extends StatefulWidget {
     required this.onAuthenticated,
     required this.sessionStore,
     required this.biometricAuthenticator,
+    this.legacyWholesaleDenied = false,
   });
 
   final DriverAuthRepository? repository;
   final DriverAuthenticatedCallback onAuthenticated;
   final DriverSessionStore sessionStore;
   final DriverBiometricAuthenticator biometricAuthenticator;
+  final bool legacyWholesaleDenied;
 
   @override
   State<DriverLoginPage> createState() => _DriverLoginPageState();
@@ -58,6 +60,15 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
       stored = await widget.sessionStore.read();
     } catch (_) {
       stored = null;
+    }
+    if (stored?.session.channel == DriverChannel.b2b) {
+      try {
+        await widget.sessionStore.clear();
+      } catch (_) {
+        // A stale wholesale credential must never be accepted in Driver App.
+      }
+      stored = null;
+      _errorKey = 'driver.login.wholesale_denied';
     }
     if (!mounted) return;
     setState(() {
@@ -132,6 +143,16 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
         }
         return;
       }
+      if (stored.session.channel != DriverChannel.b2c) {
+        await widget.sessionStore.clear();
+        if (mounted) {
+          setState(() {
+            _savedBiometricLogin = false;
+            _errorKey = 'driver.login.wholesale_denied';
+          });
+        }
+        return;
+      }
       widget.onAuthenticated(stored.session, true, true);
     } catch (_) {
       if (mounted) {
@@ -195,6 +216,9 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
 
     try {
       final session = await repository.login(email: email, password: password);
+      if (session.channel != DriverChannel.b2c) {
+        throw const DriverRoleDeniedException();
+      }
       if (mounted) {
         widget.onAuthenticated(session, _rememberMe, _enableBiometrics);
       }
@@ -279,6 +303,26 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                     ),
                               ),
                               const SizedBox(height: 24),
+                              if (widget.legacyWholesaleDenied) ...[
+                                Semantics(
+                                  liveRegion: true,
+                                  child: Container(
+                                    key: const Key(
+                                        'driver-login-wholesale-denied'),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: DriverUiPalette.dangerSurface,
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: Text(
+                                      context
+                                          .tr('driver.login.wholesale_denied'),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                              ],
                               if (!configured)
                                 Container(
                                   key: const Key('driver-config-missing'),

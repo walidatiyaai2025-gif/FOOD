@@ -4,9 +4,9 @@ FOODEX authorization is server-authoritative. Dashboard visibility is a usabilit
 
 ## Role model
 
-Roles have an immutable code, display name, optional description, active state, system/custom marker and scope: `global`, `store`, or `both`. System roles defined in `ROLE_ARCHITECTURE.md` cannot be deleted. `SUPER_ADMIN` is always active, global and unrestricted. The last active SUPER_ADMIN account or assignment cannot be removed.
+Roles have an immutable code and scope, display name, optional description, active state, optional archival timestamp, and system/custom marker. Supported role scope values are: `global`, `store`, or `both`. System roles defined in `ROLE_ARCHITECTURE.md` cannot be deleted. `SUPER_ADMIN` is always active, global and unrestricted. The last active SUPER_ADMIN account or assignment cannot be removed.
 
-Custom roles can be created, cloned, edited, activated/deactivated and deleted after their assignments are removed. A delegated role administrator cannot grant permissions outside the administrator's own effective permission set, preventing privilege escalation.
+Custom roles can be created, cloned, edited, activated/deactivated and permanently archived only after all assignments are removed. Archival deactivates a role while retaining its original code, row, permissions and audit history; archived roles cannot be reactivated, updated, cloned, re-archived or have their codes reused. Role scope is immutable after creation; use a new code for a different scope. A delegated role administrator cannot grant permissions outside the administrator's own effective permission set, preventing privilege escalation.
 
 ## Effective permissions
 
@@ -20,7 +20,7 @@ Authorized administrators can activate or deactivate accounts with `users.status
 
 ## Audit events
 
-The security center records `user.created`, `user.status_changed`, `user.roles_changed`, `role.created`, `role.updated`, and `role.deleted` through the shared audit logger.
+The security center records `user.created`, `user.status_changed`, `user.roles_changed`, `role.created`, `role.updated`, and `role.archived` through the shared audit logger. Historical `role.deleted` events remain unchanged; V2 does not rewrite old audit records.
 
 ## Administration surfaces
 
