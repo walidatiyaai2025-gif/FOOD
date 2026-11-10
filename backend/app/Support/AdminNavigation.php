@@ -224,6 +224,9 @@ class AdminNavigation
                 $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemOpen('administration_hub', 'admin.administration_hub.title', 'admin.administration.index')
                     : null,
+                $isSuperAdmin && $this->hasPermission($user, 'notifications.manage')
+                    ? $this->routeItemOpen('notifications_center', 'notifications.title', 'admin.notifications.index')
+                    : null,
                 $user->isPlatformOwner() ? $this->routeItemOpen('platform_owner_modules', 'platform_owner.modules', 'admin.enterprise-modules.index') : null,
                 $this->routeItem($user, 'sidebar_role_access', 'sidebar_admin.role_access_nav', 'admin.sidebar-access.roles', 'roles.manage'),
                 $this->routeItem($user, 'sidebar_layout', 'sidebar_admin.layout_nav', 'admin.sidebar-layout.index', 'roles.manage'),
