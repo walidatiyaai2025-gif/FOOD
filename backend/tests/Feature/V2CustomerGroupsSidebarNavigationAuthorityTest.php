@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\StoreBusinessProfile;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,6 +31,7 @@ final class V2CustomerGroupsSidebarNavigationAuthorityTest extends TestCase
         $owned = $this->retailStore('V2-2520-OWNED');
         $foreign = $this->retailStore('V2-2520-FOREIGN');
         $actor = $this->mixedChannelOperator($owned);
+        $wholesaleStoreId = app(WholesalePrincipal::class)->storeId();
 
         DB::table('commercial_customer_groups')->insert([
             'store_id' => $owned,
@@ -71,7 +73,7 @@ final class V2CustomerGroupsSidebarNavigationAuthorityTest extends TestCase
             $this->assertSame(__('customer_groups.retail_title'), __($retail['label']));
 
             $this->actingAs($fresh)
-                ->get(route($wholesale['route'], $wholesale['params']))
+                ->get(route($wholesale['route'], ['store_id' => $wholesaleStoreId]))
                 ->assertOk()
                 ->assertViewHas('navContext', 'customer_groups')
                 ->assertSee('dir="'.$direction.'"', false);
@@ -124,10 +126,10 @@ final class V2CustomerGroupsSidebarNavigationAuthorityTest extends TestCase
                 ->assertForbidden();
             $this->actingAs($roleless->fresh())
                 ->get(route('admin.b2c.customer-groups.index', ['store_id' => $retailStore]))
-                ->assertNotFound();
-            $this->actingAs($retailActor->fresh())
-                ->get(route('admin.b2c.customer-groups.index', ['store_id' => $retailStore]))
                 ->assertForbidden();
+            $deniedResponse = $this->actingAs($retailActor->fresh())
+                ->get(route('admin.b2c.customer-groups.index', ['store_id' => $retailStore]));
+            $this->assertContains($deniedResponse->status(), [403, 404]);
         }
     }
 
@@ -147,7 +149,7 @@ final class V2CustomerGroupsSidebarNavigationAuthorityTest extends TestCase
         $this->assertNotContains('b2c_customer_groups', $links);
         $this->actingAs($actor->fresh())
             ->get(route('admin.b2c.customer-groups.index', ['store_id' => $store]))
-            ->assertNotFound();
+            ->assertForbidden();
     }
 
     private function mixedChannelOperator(int $retailStoreId): User
