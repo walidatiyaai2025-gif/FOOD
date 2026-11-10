@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
@@ -20,13 +21,20 @@ final class EnterpriseProcurementWorkbenchTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Explicit test-only approval of the exact ERP module version; never a runtime default.
+        config()->set('enterprise_module_readiness.certified_versions.procurement', app(ModuleRegistry::class)->manifest('procurement')->version);
+    }
+
     public function test_workbench_fails_closed_while_procurement_module_is_disabled(): void
     {
         [$user, $store] = $this->operator('ERP-UI-DISABLED');
 
         $this->actingAs($user)
             ->get(route('admin.erp.procurement.index', ['store_id' => $store->id]))
-            ->assertNotFound();
+            ->assertForbidden();
     }
 
     public function test_authorized_operator_can_run_request_to_issued_order_from_workbench(): void

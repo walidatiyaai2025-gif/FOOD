@@ -29,6 +29,8 @@ final class FinanceWorkbenchTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+        // Explicit test-only approval of the exact ERP module version; never a runtime default.
+        config()->set('enterprise_module_readiness.certified_versions.finance', app(ModuleRegistry::class)->manifest('finance')->version);
     }
 
     public function test_workbench_fails_closed_while_finance_module_is_disabled(): void

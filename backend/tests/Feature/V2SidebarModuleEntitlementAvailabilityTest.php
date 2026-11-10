@@ -28,6 +28,8 @@ final class V2SidebarModuleEntitlementAvailabilityTest extends TestCase
         parent::setUp();
         config()->set('security.mfa.enforce_privileged', false);
         $this->seed(CoreReferenceSeeder::class);
+        // Explicit test-only approval of the exact ERP module version; never a runtime default.
+        config()->set('enterprise_module_readiness.certified_versions.procurement', app(ModuleRegistry::class)->manifest('procurement')->version);
     }
 
     public function test_module_disabled_hides_sidebar_entry_and_direct_procurement_route_fails_closed_in_both_locales(): void
@@ -47,7 +49,7 @@ final class V2SidebarModuleEntitlementAvailabilityTest extends TestCase
 
             $this->actingAs($actor->fresh())
                 ->get(route('admin.erp.procurement.index'))
-                ->assertNotFound();
+                ->assertForbidden();
 
             $this->actingAs($actor->fresh())
                 ->get(route('admin.b2b.module', ['module' => 'dashboard']))

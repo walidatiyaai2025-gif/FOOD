@@ -32,6 +32,8 @@ final class EnterpriseTreasuryWorkbenchTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+        // Explicit test-only approval of the exact ERP module version; never a runtime default.
+        config()->set('enterprise_module_readiness.certified_versions.treasury', app(ModuleRegistry::class)->manifest('treasury')->version);
     }
 
     public function test_workbench_fails_closed_while_treasury_module_is_disabled(): void
@@ -40,7 +42,7 @@ final class EnterpriseTreasuryWorkbenchTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('admin.erp.treasury.index', ['store_id' => $store->id]))
-            ->assertNotFound();
+            ->assertForbidden();
     }
 
     public function test_authorized_operator_can_open_arabic_workbench_and_create_bounded_receipt_draft(): void

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enterprise\Modules\ModuleRegistry;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserStoreRole;
@@ -20,6 +21,8 @@ final class EnterpriseWmsWorkbenchTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+        // Explicit test-only approval of the exact ERP module version; never a runtime default.
+        config()->set('enterprise_module_readiness.certified_versions.inventory_wms', app(ModuleRegistry::class)->manifest('inventory_wms')->version);
     }
 
     public function test_authorized_operator_sees_localized_authoritative_stock_workspace(): void

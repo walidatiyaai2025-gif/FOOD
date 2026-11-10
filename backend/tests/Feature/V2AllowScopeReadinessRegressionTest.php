@@ -32,6 +32,8 @@ final class V2AllowScopeReadinessRegressionTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+        // Explicit test-only approval of the exact ERP module version; never a runtime default.
+        config()->set('enterprise_module_readiness.certified_versions.procurement', app(ModuleRegistry::class)->manifest('procurement')->version);
     }
 
     public function test_store_allow_never_crosses_assigned_store_or_wholesale_http_boundary(): void
@@ -127,7 +129,7 @@ final class V2AllowScopeReadinessRegressionTest extends TestCase
 
             $this->actingAs($actor->fresh())
                 ->get(route('admin.erp.procurement.index', ['store_id' => $wholesaleId, 'tab' => 'suppliers']))
-                ->assertNotFound();
+                ->assertForbidden();
         }
 
         $this->enableProcurement();
