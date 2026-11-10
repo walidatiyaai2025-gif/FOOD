@@ -1,0 +1,37 @@
+name: FOODEX V2 Idle Lease Watchdog
+
+# Important: GitHub scheduled actions execute from default branch only.
+# This workflow is staged on Foodex_V2 and MUST NOT be promoted to main
+# without a fresh explicit owner order. It can be validated via PR CI; it
+# does not imply the 5-minute schedule is already operational.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+  checks: read
+
+concurrency:
+  group: foodex-v2-idle-watchdog
+  cancel-in-progress: false
+
+jobs:
+  idle-lease-reconciliation:
+    name: Release V2 claims with no real work for 30 minutes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: Foodex_V2
+          persist-credentials: false
+      - uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { run } = require('./.github/scripts/v2-lease-watchdog.js');
+            await run({ github, context, core });
