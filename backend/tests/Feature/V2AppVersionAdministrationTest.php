@@ -32,7 +32,7 @@ final class V2AppVersionAdministrationTest extends TestCase
             ->assertOk()
             ->assertSee('dir="rtl"', false)
             ->assertSee('aria-current="page"', false)
-            ->assertSee(route('admin.app-versions.index', ['app' => 'van', 'platform' => 'ios']), false);
+            ->assertSee(route('admin.app-versions.index', ['app' => 'van', 'platform' => 'ios']));
 
         $this->post(route('admin.app-versions.store'), $this->policyPayload())
             ->assertRedirect(route('admin.app-versions.index', ['app' => 'van', 'platform' => 'ios']));
