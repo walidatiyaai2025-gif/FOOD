@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'errors' => [
+        'self_approval' => 'لا يجوز لمن أنشأ طلب الشراء أو قدمه أن يعتمد الطلب بنفسه.',
+    ],
     'title' => 'مركز عمل المشتريات',
     'section' => 'ERP · المشتريات',
     'purchase_order_short' => 'أمر شراء',
