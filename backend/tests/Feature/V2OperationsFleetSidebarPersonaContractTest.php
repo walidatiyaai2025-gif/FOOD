@@ -104,6 +104,9 @@ final class V2OperationsFleetSidebarPersonaContractTest extends TestCase
 
             $keys = $this->visibleItems($actor);
             $this->assertArrayHasKey('b2c_orders', $keys);
+            $this->assertSame('admin.b2c.module', $keys['b2c_orders']['route']);
+            $this->assertSame('orders', $keys['b2c_orders']['params']['module']);
+            $this->assertSame((string) $ownStore, $keys['b2c_orders']['params']['store_id']);
             $this->assertArrayNotHasKey('b2c_incoming_orders', $keys);
             $this->assertArrayNotHasKey('field_ops_vans', $keys);
             $this->assertArrayNotHasKey('field_ops_assignments', $keys);
