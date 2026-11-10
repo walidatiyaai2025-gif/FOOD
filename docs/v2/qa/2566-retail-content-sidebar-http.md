@@ -8,7 +8,7 @@
 - **Actor and purpose:** An authorized Retail store manager opens its own content workspace from the main Dashboard navigation to inspect content and product/category destination targets without knowing a URL or internal store ID.
 - **Placement:** **Reuse** the existing `b2c_content` item in the `marketing` group, existing `admin.b2c.module` with `module=content`, and existing `B2cWorkspaceController::contentModuleData` plus shared `admin.b2c-workspace` Blade. Do not create a duplicate Content page, Sidebar group, permission or editor.
 - **Permission / channel:** `promotions.view` in the active assigned B2C `RETAIL_STORE` context for reading. The existing editor exposes state-changing banner controls only with `promotions.manage`. Role, store, channel and business profile are independently enforced by Laravel; Sidebar visibility does not grant access.
-- **Navigation owner / entry:** Marketing → Content, `SIDEBAR`. Parent/fallback: existing Retail Dashboard and Marketing group; exact route carries `store_id` chosen from a permitted Retail store, not a guessed or foreign ID.
+- **Navigation owner / entry:** Catalogued in Marketing → Content (`SIDEBAR`) by the canonical registry. The effective authorized page may be a nested child or be placed in an administrator-configured group; discovery checks must traverse the actual visible Sidebar tree rather than assuming every leaf is a direct group child. Parent/fallback: existing Retail Dashboard and the configured domain parent; exact route carries `store_id` chosen from a permitted Retail store, not a guessed or foreign ID.
 - **Module readiness:** Existing Retail Content is a supported workspace module for business profile `RETAIL_STORE`. It is not a valid `RESTAURANT` profile module; no implicit ERP enablement/entitlement or false ready state is introduced.
 - **UI:** Existing FOODEX shell, page content and adaptive mobile web/tab treatment remain unchanged. Existing AR/EN labels, RTL/LTR, keyboard and focus behavior are preserved rather than copied into an independent component. Final 320–1280px manual browser/a11y acceptance remains on master #2503/#2750.
 
@@ -20,7 +20,7 @@
 
 New `backend/tests/Feature/V2RetailContentSidebarHttpTest.php` asserts:
 
-1. Active Retail `B2C_STORE_ADMIN` discovers `b2c_content` in Marketing with exact route, permission, localization key and assigned store; real page returns 200 in Arabic/RTL and English/LTR.
+1. Active Retail `B2C_STORE_ADMIN` discovers `b2c_content` through the effective Sidebar tree (direct item or configured child), with canonical Marketing registration, exact route, permission, localization key and assigned store; real page returns 200 in Arabic/RTL and English/LTR.
 2. Own-store Content returns 200; foreign B2C store returns 404 without exposing the other store through the response. Product data count is preserved; reading can initialize a draft-first published storefront revision, but must never delete existing revisions.
 3. Roleless, inactive and Wholesale-only actors have no Retail Content link and cannot open the route (403).
 4. A `RESTAURANT_DIGITAL_MANAGER` does not receive a Retail Content link and cannot open that profile-excluded module (403 or 404 depending on profile/store context).
