@@ -173,6 +173,8 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
         <input type="search" data-foodex-nav-search aria-label="{{ __('admin.sidebar_search') }}" placeholder="{{ __('admin.sidebar_search') }}" autocomplete="off">
     </div>
 
+    @include('admin._sidebar-context-picker')
+
     <nav class="foodex-nav" aria-label="{{ __('admin.navigation') }}" data-foodex-nav>
         @foreach($navGroups as $group)
             @php($groupActive = $containsContext($group, (string)($navContext??'')))
