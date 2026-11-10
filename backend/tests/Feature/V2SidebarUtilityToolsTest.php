@@ -33,10 +33,10 @@ final class V2SidebarUtilityToolsTest extends TestCase
                 ->assertSee('dir="'.$direction.'"', false)
                 ->getContent();
 
-            $this->assertSame(1, substr_count($html, 'data-foodex-sidebar-utilities'));
+            $this->assertSame(1, substr_count($html, '<section class="foodex-sidebar-utilities" data-foodex-sidebar-utilities'));
             $this->assertStringContainsString('aria-label="'.__('sidebar_utilities.tools').'"', $html);
             foreach (['favorites','history','help','profile'] as $tool) {
-                $this->assertSame(1, substr_count($html, 'data-foodex-utility-'.$tool));
+                $this->assertSame(1, preg_match('/<(?:a|button)\\b[^>]*\\sdata-foodex-utility-'.preg_quote($tool, '/').'(?=\\s|>)/', $html));
                 $this->assertStringContainsString(__('sidebar_utilities.'.$tool), $html);
             }
             $this->assertStringContainsString('href="'.route('public.support').'"', $html);
