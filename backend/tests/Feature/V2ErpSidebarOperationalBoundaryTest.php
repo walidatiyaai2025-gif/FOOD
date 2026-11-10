@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementManager;
 use App\Enterprise\Modules\ModuleRegistry;
+use App\Http\Middleware\EnsureErpOperationalReadiness;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\EnterpriseModuleAdministration;
@@ -81,7 +82,7 @@ final class V2ErpSidebarOperationalBoundaryTest extends TestCase
             $route = Route::getRoutes()->getByName($routeName);
             $this->assertNotNull($route, $routeName);
             $this->assertContains(
-                \App\Http\Middleware\EnsureErpOperationalReadiness::class,
+                EnsureErpOperationalReadiness::class,
                 $route->gatherMiddleware(),
                 $routeName,
             );
