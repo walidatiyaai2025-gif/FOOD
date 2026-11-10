@@ -57,6 +57,8 @@ class AdministrationHubTest extends TestCase
             ->assertSee('Driver App')
             ->assertSee('Van App')
             ->assertSee('data-admin-card="settings-center"', false)
+            ->assertSee('data-admin-card="system-updates"', false)
+            ->assertSee(route('admin.system-update.index'), false)
             ->assertSee('data-admin-card="users-permissions"', false)
             ->assertSee('data-admin-card="system-inspector"', false)
             ->assertSee('data-admin-card="van-finance-support"', false)
@@ -77,9 +79,28 @@ class AdministrationHubTest extends TestCase
             ->assertOk()
             ->assertSee('dir="rtl"', false)
             ->assertSee('مركز الإدارة')
+            ->assertSee('data-admin-card="system-updates"', false)
             ->assertSee('تطبيق العميل')
             ->assertSee('تطبيق السائق')
             ->assertSee('تطبيق الفان');
+    }
+
+    public function test_update_center_is_not_authorized_for_a_regular_wholesale_admin(): void
+    {
+        $user = User::query()->create([
+            'name' => 'Wholesale Operator',
+            'email' => 'wholesale-operator@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $user->roles()->attach(Role::query()->where('code', 'B2B_ADMIN')->firstOrFail());
+
+        $this->assertFalse(\\Illuminate\\Support\\Facades\\Gate::forUser($user)->allows('system.update'));
+
+        $this->actingAs($user)
+            ->get(route('admin.system-update.index'))
+            ->assertForbidden();
     }
 
     private function superAdmin(string $locale = 'en'): User
