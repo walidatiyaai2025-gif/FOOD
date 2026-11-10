@@ -16,11 +16,11 @@
 | Condition | Sidebar projection | HTTP boundary |
 | --- | --- | --- |
 | Active B2B Admin | My Work, enterprise workspaces and eligible wholesale destination(s) | Each visible child must resolve successfully |
-| Active scoped B2C Store Admin | My Work and own-store dashboard; no global workspace or wholesale dashboard | Enterprise Workspace direct HTTP may be allowed at scoped Retail permissions, but privileged system-health cards stay denied; foreign-store dashboard is forbidden |
+| Active scoped B2C Store Admin | My Work and own-store dashboard; no global workspace or wholesale dashboard | Enterprise Workspace direct HTTP may be allowed at scoped Retail permissions, but privileged system-health cards stay denied; foreign-store dashboard is rejected with anti-enumeration HTTP 404 |
 | Inactive or no-role identity | No Overview group | My Work forbidden |
 | Unsupported, missing or disabled target | No inert navigation item | Existing route, entitlement, module and permission authorities remain binding |
 
-Note: EnterpriseWorkspaceComposer intentionally permits a Retail actor to open a **limited, store-authorized** workspace directly while AdminNavigation may withhold its platform-level Sidebar entry. The initial regression assumption that this direct route must return 403 was rejected by full CI; correcting that assumption preserves authoritative per-card permissions rather than imposing an unreviewed blanket deny. The separate V2 P180 workspaces navigation scope remains tracked by #2510; this P175 group regression does not silently redefine it.
+Note: EnterpriseWorkspaceComposer intentionally permits a Retail actor to open a **limited, store-authorized** workspace directly while AdminNavigation may withhold its platform-level Sidebar entry. The initial regression assumption that this direct route must return 403 was rejected by full CI; correcting that assumption preserves authoritative per-card permissions rather than imposing an unreviewed blanket deny. The store-switching controller intentionally returns 404 (not 403) for a store outside the actor's assigned scope, as proved by the canonical B2cTenantWorkspaceIsolationTest; maintain this non-enumerating fail-closed contract. The separate V2 P180 workspaces navigation scope remains tracked by #2510; this P175 group regression does not silently redefine it.
 
 Individual children retain their existing permission, tenant/store/channel, and module-readiness authority. The group container never constitutes a permission. Do not equate a visible route with blanket ability to mutate data; all action methods remain subject to server guards and maker/checker decisions.
 
@@ -29,7 +29,7 @@ Individual children retain their existing permission, tenant/store/channel, and 
 `backend/tests/Feature/V2OverviewSidebarGroupContractTest.php` verifies:
 1. canonical group ordering and zero-empty-group policy;
 2. AR and EN localized business labels, stable child ordering, authorized HTTP reachability;
-3. Retail own-store navigation and exclusion of platform/Wholesale Sidebar links, legitimate store-scoped direct Enterprise Workspace reads with privileged system-health cards filtered, and foreign-store dashboard 403;
+3. Retail own-store navigation and exclusion of platform/Wholesale Sidebar links, legitimate store-scoped direct Enterprise Workspace reads with privileged system-health cards filtered, and foreign-store dashboard 404;
 4. inactive and roleless group suppression plus direct My Work 403.
 
 This PR reconciles the already-existing implementation and adds a focused regression guard; no shared Sidebar source file is edited while #3029, #3039 and #3041 own overlapping areas. Required CI must verify this exact PR HEAD before any isolated merge. Manual keyboard, viewport, screen reader, operator device and final UAT remain deferred to #2503/#2750, **not claimed completed here**.
