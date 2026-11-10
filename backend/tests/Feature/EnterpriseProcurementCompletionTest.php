@@ -175,6 +175,7 @@ final class EnterpriseProcurementCompletionTest extends TestCase
         $order = $this->approvedOrder($actor, $context, $supplier->id, 2, 5.000);
 
         $completion = app(ProcurementCompletionManager::class);
+        [$contractChecker, $contractCheckerContext] = ProcurementSecondApprover::forSameStore($actor, $context);
         $contract = $completion->createContract($actor, $context, [
             'supplier_id' => $supplier->id,
             'title' => 'Annual supply agreement',
@@ -184,7 +185,35 @@ final class EnterpriseProcurementCompletionTest extends TestCase
             'value_ceiling' => 20,
             'quantity_ceiling' => 5,
         ]);
-        $completion->activateContract($actor, $context, $contract->id);
+        // A creator cannot release their own supplier contract. Validate the
+        // real Dashboard HTTP route in both locales, not just a hidden button.
+        foreach (['ar', 'en'] as $locale) {
+            app()->setLocale($locale);
+            $actor->forceFill(['locale' => $locale])->save();
+
+            $this->actingAs($actor)
+                ->post(route('admin.erp.procurement.contracts.activate', [
+                    'contract' => $contract->id,
+                ]), [
+                    'store_id' => $store->id,
+                ])
+                ->assertRedirect()
+                ->assertSessionHasErrors([
+                    'approver' => __('enterprise_procurement.errors.contract_self_approval'),
+                ]);
+        }
+        $this->assertDatabaseHas('enterprise_procurement_contracts', [
+            'id' => $contract->id,
+            'status' => 'draft',
+            'activated_by' => null,
+        ]);
+
+        $completion->activateContract($contractChecker, $contractCheckerContext, $contract->id);
+        $this->assertDatabaseHas('enterprise_procurement_contracts', [
+            'id' => $contract->id,
+            'status' => 'active',
+            'activated_by' => $contractChecker->id,
+        ]);
         $completion->assignContractToOrder($actor, $context, $order->id, $contract->id);
 
         $document = $completion->addContractDocument(
@@ -229,7 +258,7 @@ final class EnterpriseProcurementCompletionTest extends TestCase
             'ends_on' => now()->addDays(30)->toDateString(),
             'value_ceiling' => 9,
         ]);
-        $completion->activateContract($actor, $context, $smallContract->id);
+        $completion->activateContract($contractChecker, $contractCheckerContext, $smallContract->id);
         $secondOrder = $this->approvedOrder($actor, $context, $supplier->id, 2, 5.000);
         $completion->assignContractToOrder($actor, $context, $secondOrder->id, $smallContract->id);
 
