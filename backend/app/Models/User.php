@@ -398,6 +398,7 @@ class User extends Authenticatable
                 'security.view',
                 'roles.manage',
                 'users.view',
+                'users.delete',
                 'users.roles.manage',
                 'users.status.manage',
                 'translations.manage',
