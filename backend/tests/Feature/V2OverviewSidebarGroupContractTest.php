@@ -84,7 +84,17 @@ class V2OverviewSidebarGroupContractTest extends TestCase
         $this->assertSame((string) $ownStore, $items->get('b2c_dashboard')['params']['store_id']);
 
         $this->actingAs($user)->get(route('admin.action-center.index'))->assertOk();
-        $this->actingAs($user)->get(route('admin.enterprise-workspaces.index'))->assertForbidden();
+        // EnterpriseWorkspaceComposer deliberately grants limited store-scoped
+        // direct workspace reads; hiding its platform Sidebar entry is not a
+        // blanket 403 policy. Assert the privileged card stays inaccessible.
+        $this->actingAs($user)
+            ->get(route('admin.enterprise-workspaces.index'))
+            ->assertOk()
+            ->assertViewHas('workspace', static fn (array $workspace): bool => ! in_array(
+                'system_health',
+                array_column($workspace['cards'], 'key'),
+                true,
+            ));
         $this->actingAs($user)
             ->get(route('admin.b2c.module', ['module' => 'dashboard', 'store_id' => $otherStore]))
             ->assertForbidden();
