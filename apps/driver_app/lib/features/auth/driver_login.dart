@@ -216,6 +216,9 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
 
     try {
       final session = await repository.login(email: email, password: password);
+      if (session.channel != DriverChannel.b2c) {
+        throw const DriverRoleDeniedException();
+      }
       if (mounted) {
         widget.onAuthenticated(session, _rememberMe, _enableBiometrics);
       }
