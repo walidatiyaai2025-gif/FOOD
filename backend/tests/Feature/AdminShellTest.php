@@ -70,14 +70,18 @@ class AdminShellTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_super_admin_lands_directly_on_b2b_dashboard_until_explicit_retail_inspection(): void
+    public function test_super_admin_lands_on_control_plane_and_keeps_explicit_wholesale_inspection(): void
     {
         $user = $this->userWithGlobalRole('SUPER_ADMIN');
 
         $this->actingAs($user)
             ->get('/admin')
+            ->assertRedirect(route('admin.administration.index'));
+
+        $this->actingAs($user)
+            ->get(route('admin.administration.index'))
             ->assertOk()
-            ->assertSee('data-foodex-executive-overview', false);
+            ->assertSee('data-admin-hub="true"', false);
 
         $this->actingAs($user)
             ->get('/admin/b2b/dashboard')
