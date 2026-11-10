@@ -46,6 +46,7 @@ return [
         'smart_ordering' => ['group' => 'stores', 'label' => 'smart_ordering.nav_title', 'order' => 20, 'scope' => 'store', 'channel' => 'b2c', 'permissions' => ['smart_ordering.view', 'orders.view', 'smart_ordering.qr.view', 'smart_ordering.analytics.view'], 'mode' => 'any'],
         'b2c_storefront' => ['group' => 'stores', 'label' => 'admin.b2c_workspace.modules.storefront', 'order' => 30, 'scope' => 'store', 'channel' => 'b2c', 'permissions' => ['stores.view']],
         'b2b_storefront' => ['group' => 'stores', 'label' => 'admin.b2b_workspace.modules.storefront', 'order' => 40, 'scope' => 'global', 'channel' => 'b2b', 'permissions' => ['settings.view']],
+        'b2b_web_storefront' => ['group' => 'stores', 'label' => 'admin.b2b_workspace.modules.web_storefront', 'order' => 50, 'scope' => 'global', 'channel' => 'b2b', 'permissions' => ['settings.view']],
 
         'catalog_management' => ['group' => 'catalog', 'label' => 'admin.catalog_management', 'order' => 10, 'scope' => 'global', 'permissions' => ['catalog.view']],
         'commercial_sales_control' => ['group' => 'catalog', 'label' => 'admin.commercial_sales_control', 'order' => 20, 'scope' => 'global', 'channel' => 'b2b', 'permissions' => ['catalog.view']],
