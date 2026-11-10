@@ -193,8 +193,9 @@ final class V2FinanceTreasuryDutySeparationTest extends TestCase
         return $store;
     }
 
-    /** @param list<string> $permissions
-     *  @return array{user:User,role:Role}
+    /**
+     * @param  list<string>  $permissions
+     * @return array{user:User,role:Role}
      */
     private function actor(Store $store, string $roleCode, array $permissions, string $locale): array
     {
