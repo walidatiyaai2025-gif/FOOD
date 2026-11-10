@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
+use RuntimeException;
 use Tests\TestCase;
 
 final class V2RoleCodeHistoryTest extends TestCase
@@ -178,7 +179,7 @@ final class V2RoleCodeHistoryTest extends TestCase
         try {
             $migration->down();
             $this->fail('Rollback must never erase role tombstones.');
-        } catch (\RuntimeException $exception) {
+        } catch (RuntimeException $exception) {
             $this->assertStringContainsString('Cannot drop role archival state', $exception->getMessage());
         }
 
