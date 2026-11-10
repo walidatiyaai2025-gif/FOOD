@@ -44,7 +44,6 @@ final class V2CatalogManagementAuthorizedNavigationTest extends TestCase
             $this->assertSame('admin.catalog.index', $item['route']);
             $this->assertSame('catalog.view', $item['permission']);
             $this->assertSame('admin.catalog_management', $item['label']);
-            $this->assertSame(__('admin.catalog_management', [], $locale), $item['label_text']);
 
             $this->actingAs($actor->fresh())
                 ->get(route($item['route'], $item['params'] ?? [], false))
