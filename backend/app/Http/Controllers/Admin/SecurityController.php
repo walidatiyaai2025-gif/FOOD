@@ -743,7 +743,7 @@ final class SecurityController extends Controller
     ): RedirectResponse {
         Gate::authorize('users.roles.manage');
         $actor = $this->actor($request);
-        $user = $identity->user()->firstOrFail();
+        $user = User::query()->findOrFail($identity->user_id);
         abort_if($user->isPlatformOwner(), 403);
         $provider = $identity->provider;
         $identity->delete();
@@ -768,7 +768,7 @@ final class SecurityController extends Controller
     ): RedirectResponse {
         Gate::authorize('users.status.manage');
         $actor = $this->actor($request);
-        $target = $securitySession->user()->firstOrFail();
+        $target = User::query()->findOrFail($securitySession->user_id);
         abort_if($target->isPlatformOwner(), 403);
         $sessions->revoke($securitySession, $actor);
         $audit->record(
