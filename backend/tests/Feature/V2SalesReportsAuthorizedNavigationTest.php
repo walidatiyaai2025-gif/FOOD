@@ -128,9 +128,28 @@ final class V2SalesReportsAuthorizedNavigationTest extends TestCase
                 ], false))
                 ->assertNotFound();
 
+            // A store-bound actor must supply a store before entering the shared
+            // report endpoint; a missing store is a validation redirect, not 403.
             $this->actingAs($actor->fresh())
                 ->get(route('admin.reports.index', ['report' => 'sales_exceptions'], false))
+                ->assertRedirect()
+                ->assertSessionHasErrors('store_id');
+
+            // With an explicit scope, the server permits only the assigned store.
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.reports.index', [
+                    'report' => 'sales_exceptions',
+                    'store_id' => $otherStore,
+                ], false))
                 ->assertForbidden();
+
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.reports.index', [
+                    'report' => 'sales_exceptions',
+                    'store_id' => $ownStore,
+                ], false))
+                ->assertOk()
+                ->assertViewHas('report', 'sales_exceptions');
         }
     }
 
