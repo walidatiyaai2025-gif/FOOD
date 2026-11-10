@@ -143,7 +143,19 @@ final class V2BuiltInRoleCloneGovernanceTest extends TestCase
             'is_system' => false,
             'is_active' => false,
         ]);
-        foreach ([[$owner, 'V2_OWNER_COPY'], [$inactive, 'V2_INACTIVE_COPY']] as [$source, $code]) {
+        $archived = Role::query()->create([
+            'code' => 'V2_ARCHIVED_SOURCE',
+            'name' => 'Archived template',
+            'scope' => 'global',
+            'is_system' => false,
+            'is_active' => false,
+            'archived_at' => now(),
+        ]);
+        foreach ([
+            [$owner, 'V2_OWNER_COPY'],
+            [$inactive, 'V2_INACTIVE_COPY'],
+            [$archived, 'V2_ARCHIVED_COPY'],
+        ] as [$source, $code]) {
             $this->actingAs($admin)
                 ->post(route('admin.security.roles.clone', $source), [
                     'code' => $code,
