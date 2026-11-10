@@ -718,6 +718,7 @@ return [
         'role_cloned' => 'Role cloned.', 'role_deleted' => 'Role deleted.',
         'errors' => [
             'self_deactivate' => 'You cannot deactivate your own account.',
+            'privileged_account_deletion' => 'Management identities require an authorized offboarding process and cannot use mobile self-deletion.',
             'last_super_admin' => 'The last active SUPER_ADMIN cannot be deactivated.',
             'last_super_admin_role' => 'The last active SUPER_ADMIN assignment cannot be removed.',
             'role_missing' => 'One or more selected roles do not exist.',
