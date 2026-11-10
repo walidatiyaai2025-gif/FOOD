@@ -43,7 +43,7 @@ return [
         'overview' => 'نظرة عامة',
         'erp' => 'تخطيط موارد المؤسسة (ERP)',
         'field_operations' => 'عمليات الفان والميدان',
-        'operations' => 'العمليات',
+        'operations' => 'الطلبات والعمليات',
         'customer_service' => 'خدمة العملاء وواتساب',
         'catalog' => 'المنتجات والكتالوج',
         'accounts' => 'العملاء والحسابات',

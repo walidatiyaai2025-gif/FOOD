@@ -146,7 +146,9 @@ class AdminNavigation
                     : null,
             ]),
             $this->group('customer_service', 'admin.nav_groups.customer_service', '◉', [
-                $canAccessPlatformNavigation ? $this->whatsAppInboxItem($user) : null,
+                // The canonical Inbox route accepts authorized store-scoped Retail support
+                // actors as well as global operators. ERP visibility is not a grant.
+                $this->whatsAppInboxItem($user),
             ]),
             $this->group('operations', 'admin.nav_groups.operations', '↻', [
                 $this->routeItemScoped($user, 'order_operations', 'admin.order_management', 'admin.operations.orders.index', 'orders.view'),

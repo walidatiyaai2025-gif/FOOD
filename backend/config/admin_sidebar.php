@@ -7,7 +7,9 @@ $customerServiceRoles = [
 ];
 
 return [
-    'protected_items' => ['sidebar_role_access', 'sidebar_layout'],
+    // Essential authorized workspaces cannot be suppressed by legacy cosmetic toggles.
+    // Navigation still originates from AdminNavigation's real RBAC/tenant guards.
+    'protected_items' => ['sidebar_role_access', 'sidebar_layout', 'enterprise_action_center', 'enterprise_workspaces', 'treasury_master'],
     'protected_groups' => ['administration'],
 
     'groups' => [
