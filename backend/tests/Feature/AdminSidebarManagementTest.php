@@ -289,7 +289,7 @@ class AdminSidebarManagementTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.sidebar-access.roles', [], false))
             ->assertOk()
-            ->assertSee('صلاحيات السايدبار حسب الدور');
+            ->assertSee('شجرة الصفحات والصلاحيات');
 
         $this->actingAs($admin)
             ->get(route('admin.sidebar-layout.index', [], false))
