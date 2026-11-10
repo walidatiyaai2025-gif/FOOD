@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Gate;
 use Tests\TestCase;
 
 class AdministrationHubTest extends TestCase
@@ -96,7 +97,7 @@ class AdministrationHubTest extends TestCase
         ]);
         $user->roles()->attach(Role::query()->where('code', 'B2B_ADMIN')->firstOrFail());
 
-        $this->assertFalse(\Illuminate\Support\Facades\Gate::forUser($user)->allows('system.update'));
+        $this->assertFalse(Gate::forUser($user)->allows('system.update'));
 
         $this->actingAs($user)
             ->get(route('admin.system-update.index'))
