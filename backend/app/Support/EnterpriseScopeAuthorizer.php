@@ -14,13 +14,18 @@ final class EnterpriseScopeAuthorizer
         string $scopeType,
         int $scopeId,
     ): bool {
-        if ($permission === '' || $scopeId < 1
-            || ! $user->is_active
-            || $context->userId !== (int) $user->getKey()) {
+        if ($permission === '' || $scopeId < 1 || ! $user->is_active) {
             return false;
         }
 
         if ($user->hasRole('SUPER_ADMIN')) {
+            // Bind the privileged Super Admin bypass to its own resolved
+            // context. Ordinary Finance maker/checker workflows may evaluate
+            // a persisted maker against the checker's scoped context; those
+            // actors still require their own effective permission and scope.
+            if ($context->userId !== (int) $user->getKey()) {
+                return false;
+            }
             // Explicit retail support access is scoped to the exact store
             // hierarchy selected by the operator. It must not become a
             // cross-store ERP privilege merely because the role is global.
