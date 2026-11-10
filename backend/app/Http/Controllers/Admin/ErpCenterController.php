@@ -276,6 +276,7 @@ final class ErpCenterController extends Controller
         $state = $this->modules->state($moduleCode);
         $entitled = $state === ModuleState::ENABLED && $this->isEntitled($actor, $moduleCode);
         $healthStatus = null;
+        $denialReason = null;
 
         if ($state === ModuleState::ENABLED && $entitled) {
             $healthStatus = strtolower($this->health->report($moduleCode)->status->value);
@@ -285,24 +286,42 @@ final class ErpCenterController extends Controller
                 $state,
             );
             $status = $readinessStatus === 'ready' ? 'available' : 'degraded';
+            $denialReason = match ($readinessStatus) {
+                'ready' => null,
+                'uncertified' => 'uncertified',
+                default => 'unhealthy',
+            };
         } elseif ($state === ModuleState::ENABLED) {
             $status = 'not_entitled';
+            // Neither a platform entitlement nor one in the actor's authorized
+            // store scope is effective. Do not inspect or disclose other tenants.
+            $denialReason = 'entitlement_scope';
         } else {
             $status = match ($state) {
                 ModuleState::NOT_INSTALLED, ModuleState::INSTALLED, ModuleState::ENABLING => 'setup_required',
                 ModuleState::DISABLED => 'disabled',
                 default => 'degraded',
             };
+            $denialReason = match ($state) {
+                ModuleState::NOT_INSTALLED, ModuleState::INSTALLED, ModuleState::ENABLING => 'module_setup',
+                ModuleState::DISABLED => 'module_disabled',
+                default => 'module_unavailable',
+            };
         }
 
-        $actionable = $status === 'available'
-            && Route::has($route);
+        $actionable = $status === 'available' && Route::has($route);
+        if ($status === 'available' && ! $actionable) {
+            // Missing registered HTTP destinations are never operational links.
+            $status = 'degraded';
+            $denialReason = 'route_unavailable';
+        }
 
         return $this->card(
             $key,
             $status,
             $actionable ? route($route, $params) : null,
             $healthStatus,
+            $denialReason,
         );
     }
 
@@ -335,6 +354,7 @@ final class ErpCenterController extends Controller
         string $status,
         ?string $url,
         ?string $health = null,
+        ?string $denialReason = null,
     ): array {
         return [
             'key' => $key,
@@ -343,6 +363,7 @@ final class ErpCenterController extends Controller
             'status' => $status,
             'url' => $url,
             'health' => $health,
+            'denial_reason' => $denialReason,
         ];
     }
 
