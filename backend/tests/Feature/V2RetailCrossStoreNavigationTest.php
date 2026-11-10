@@ -44,15 +44,15 @@ class V2RetailCrossStoreNavigationTest extends TestCase
             $this->assertTrue($items->has('b2c_reports'));
 
             $this->assertSame(
-                ['module' => 'inventory', 'store_id' => $storeThree],
+                ['module' => 'inventory', 'store_id' => (string) $storeThree],
                 $items->get('b2c_inventory')['params'],
             );
             $this->assertSame(
-                ['module' => 'products', 'store_id' => $storeThree],
+                ['module' => 'products', 'store_id' => (string) $storeThree],
                 $items->get('b2c_products')['params'],
             );
             $this->assertSame(
-                ['module' => 'reports', 'store_id' => $storeTwo],
+                ['module' => 'reports', 'store_id' => (string) $storeTwo],
                 $items->get('b2c_reports')['params'],
             );
 
@@ -85,7 +85,7 @@ class V2RetailCrossStoreNavigationTest extends TestCase
             ->assertViewHas('storeId', $storeTwo);
 
         $this->actingAs($user)
-            ->get(route('admin.b2c.module', ['module' => 'inventory', 'store_id' => $storeThree]))
+            ->get(route('admin.b2c.module', ['module' => 'inventory', 'store_id' => (string) $storeThree]))
             ->assertNotFound();
 
         $this->actingAs($user)
