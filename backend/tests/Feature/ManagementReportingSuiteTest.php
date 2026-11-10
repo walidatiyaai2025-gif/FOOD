@@ -229,13 +229,13 @@ class ManagementReportingSuiteTest extends TestCase
         $this->actingAs($admin)->get('/admin/reports?report=orders&store_id='.$this->storeA)
             ->assertOk()
             ->assertSee('dir="rtl"', false)
-            ->assertSee('تقارير الإدارة');
+            ->assertSee('مركز التقارير');
 
         $admin->update(['locale' => 'en']);
         $this->actingAs($admin->fresh())->get('/admin/reports?report=orders&store_id='.$this->storeA)
             ->assertOk()
             ->assertSee('dir="ltr"', false)
-            ->assertSee('Management Reports');
+            ->assertSee('Reports Center');
 
         foreach ([
             'xlsx' => 'PK',
