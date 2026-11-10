@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -128,8 +129,8 @@ class V2NotificationsSidebarAuthorityTest extends TestCase
         $this->assertFalse($this->navigationItems($user)->contains('key', 'notification_campaigns'));
     }
 
-    /** @return \Illuminate\Support\Collection<int, array<string, mixed>> */
-    private function navigationItems(User $user): \Illuminate\Support\Collection
+    /** @return Collection<int, array<string, mixed>> */
+    private function navigationItems(User $user): Collection
     {
         return collect(app(AdminNavigation::class)->groupsFor($user))
             ->flatMap(static fn (array $group) => $group['children'] ?? [])
