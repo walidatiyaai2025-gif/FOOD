@@ -60,6 +60,7 @@ class B2cWorkspaceController extends Controller
             'dashboard',
             'products',
             'inventory',
+            'incoming_orders',
             'orders',
             'finance',
             'customers',
