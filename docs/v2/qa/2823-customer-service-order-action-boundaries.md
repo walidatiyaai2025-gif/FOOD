@@ -16,7 +16,7 @@
 
 1. Role ability matrix + real authorized Orders GET for all three global Customer Service roles.
 2. Agent can reach New Order quote validation for canonical wholesale scope; cross-channel/store forged quote is rejected without creating orders.
-3. Agent direct PATCH to order update and POST status transition, and attempted team assignment, are all 403 despite view/create/dispatch. Existing status remains pending; Manager's permitted assignment persists and is audited.
+3. Agent direct PATCH order update and POST status transition are rejected with **404 record cloaking** by `OperationalTenantScope` because the actor lacks `orders.manage`, while attempted team assignment is **403** at `CustomerServiceTeam::canManage`; none of these capabilities is inherited from `orders.view/create/dispatch`. Existing status remains pending; Manager's permitted assignment persists and is audited.
 4. Retail support may read its own store but not another store or Wholesale Orders, and may not assign wholesale cases; roleless access forbidden; no side effects.
 
 **Test command:** `cd backend && php artisan test --filter=V2CustomerServiceOrderActionBoundariesTest`; also run `CustomerServiceRoleClosureTest`, `OrderOperationsTest` as applicable, Pint, PHPStan, AR/EN and the complete exact-head Required CI Gate (including real MySQL/Redis Fresh Install/Upgrade/Recovery). No local completion claim unless actually run. Independent browser/responsive/keyboard/a11y acceptance remains pending.
