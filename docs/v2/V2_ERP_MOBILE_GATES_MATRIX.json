@@ -11,7 +11,8 @@
       "title": "V2 | ERP Role — مدير أعمال الجملة (B2B_ADMIN)",
       "summary": "Role B2B_ADMIN: مدير أعمال الجملة",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير أعمال الجملة; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2681,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2681"
     },
     {
       "id": "T122R2",
@@ -20,7 +21,8 @@
       "title": "V2 | ERP Role — مسؤول الأمن والصلاحيات (SECURITY_ADMINISTRATOR)",
       "summary": "Role SECURITY_ADMINISTRATOR: مسؤول الأمن والصلاحيات",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول الأمن والصلاحيات; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2682,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2682"
     },
     {
       "id": "T122R3",
@@ -29,7 +31,8 @@
       "title": "V2 | ERP Role — مدير المبيعات (SALES_MANAGER)",
       "summary": "Role SALES_MANAGER: مدير المبيعات",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير المبيعات; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2683,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2683"
     },
     {
       "id": "T122R4",
@@ -38,7 +41,8 @@
       "title": "V2 | ERP Role — مسؤول المبيعات (SALES_OFFICER)",
       "summary": "Role SALES_OFFICER: مسؤول المبيعات",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول المبيعات; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2684,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2684"
     },
     {
       "id": "T122R5",
@@ -47,7 +51,8 @@
       "title": "V2 | ERP Role — مدير خدمة العملاء (CUSTOMER_SERVICE_MANAGER)",
       "summary": "Role CUSTOMER_SERVICE_MANAGER: مدير خدمة العملاء",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير خدمة العملاء; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2685,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2685"
     },
     {
       "id": "T122R6",
@@ -56,7 +61,8 @@
       "title": "V2 | ERP Role — مشرف خدمة العملاء (CUSTOMER_SERVICE_SUPERVISOR)",
       "summary": "Role CUSTOMER_SERVICE_SUPERVISOR: مشرف خدمة العملاء",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مشرف خدمة العملاء; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2686,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2686"
     },
     {
       "id": "T122R7",
@@ -65,7 +71,8 @@
       "title": "V2 | ERP Role — موظف خدمة العملاء (CUSTOMER_SERVICE_AGENT)",
       "summary": "Role CUSTOMER_SERVICE_AGENT: موظف خدمة العملاء",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for موظف خدمة العملاء; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2687,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2687"
     },
     {
       "id": "T122R8",
@@ -74,7 +81,8 @@
       "title": "V2 | ERP Role — مدير المشتريات (PROCUREMENT_MANAGER)",
       "summary": "Role PROCUREMENT_MANAGER: مدير المشتريات",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير المشتريات; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2688,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2688"
     },
     {
       "id": "T122R9",
@@ -83,7 +91,8 @@
       "title": "V2 | ERP Role — مسؤول مشتريات / مشتري (PROCUREMENT_BUYER)",
       "summary": "Role PROCUREMENT_BUYER: مسؤول مشتريات / مشتري",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول مشتريات / مشتري; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2689,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2689"
     },
     {
       "id": "T122R10",
@@ -92,7 +101,8 @@
       "title": "V2 | ERP Role — معتمد المشتريات (PROCUREMENT_APPROVER)",
       "summary": "Role PROCUREMENT_APPROVER: معتمد المشتريات",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for معتمد المشتريات; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2690,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2690"
     },
     {
       "id": "T122R11",
@@ -101,7 +111,8 @@
       "title": "V2 | ERP Role — مدير المستودع (WAREHOUSE_MANAGER)",
       "summary": "Role WAREHOUSE_MANAGER: مدير المستودع",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير المستودع; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2691,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2691"
     },
     {
       "id": "T122R12",
@@ -110,7 +121,8 @@
       "title": "V2 | ERP Role — مراقب المخزون (INVENTORY_CONTROLLER)",
       "summary": "Role INVENTORY_CONTROLLER: مراقب المخزون",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مراقب المخزون; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2692,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2692"
     },
     {
       "id": "T122R13",
@@ -119,7 +131,8 @@
       "title": "V2 | ERP Role — مدير المالية (FINANCE)",
       "summary": "Role FINANCE: مدير المالية",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير المالية; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2693,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2693"
     },
     {
       "id": "T122R14",
@@ -128,7 +141,8 @@
       "title": "V2 | ERP Role — رئيس الحسابات / مدير المحاسبة (ACCOUNTING_MANAGER)",
       "summary": "Role ACCOUNTING_MANAGER: رئيس الحسابات / مدير المحاسبة",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for رئيس الحسابات / مدير المحاسبة; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2694,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2694"
     },
     {
       "id": "T122R15",
@@ -137,7 +151,8 @@
       "title": "V2 | ERP Role — محاسب (ACCOUNTANT)",
       "summary": "Role ACCOUNTANT: محاسب",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for محاسب; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2695,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2695"
     },
     {
       "id": "T122R16",
@@ -146,7 +161,8 @@
       "title": "V2 | ERP Role — مسؤول حسابات العملاء (AR_OFFICER)",
       "summary": "Role AR_OFFICER: مسؤول حسابات العملاء",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول حسابات العملاء; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2696,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2696"
     },
     {
       "id": "T122R17",
@@ -155,7 +171,8 @@
       "title": "V2 | ERP Role — مسؤول حسابات الموردين (AP_OFFICER)",
       "summary": "Role AP_OFFICER: مسؤول حسابات الموردين",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول حسابات الموردين; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2697,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2697"
     },
     {
       "id": "T122R18",
