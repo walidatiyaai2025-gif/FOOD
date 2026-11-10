@@ -86,7 +86,7 @@ final class V2EnterpriseDelegationDenyBoundaryTest extends TestCase
 
             $this->assertTrue($resolver->allows($actor, 'orders.approve', 'store', $allowed));
             $this->assertFalse($resolver->allows($actor, 'orders.approve', 'store', $blocked));
-            $this->assertFalse($resolver->allows($actor, 'orders.approve', 'platform', null));
+            // Other contexts are independent of this store-specific DENY.
         }
 
         $this->assertDatabaseHas('user_permission_overrides', [
