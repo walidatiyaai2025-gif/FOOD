@@ -11,7 +11,6 @@ use App\Services\NotificationAudienceReviewService;
 use App\Services\NotificationCampaignDispatcher;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
-use App\Support\TenantContextResolver;
 use App\Support\EngagementDestinationCatalog;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -311,23 +310,14 @@ final class PromotionalNotificationCampaignController extends Controller
             return true;
         }
 
-        // Match AdminNavigation::routeItemAdvertising: store-scoped grants must
-        // belong to an authorized active B2C store with advertising enabled.
-        $retailStoreIds = app(TenantContextResolver::class)->retailStoreIds($actor);
-        if ($retailStoreIds === []) {
-            return false;
-        }
+        // Use the effective server-side store authority (including scoped
+        // DENY overrides), not an unfiltered membership in a presentation role.
+        $retailStoreIds = app(OperationalTenantScope::class)->allowedStoreIds($actor, $permission, 'b2c');
 
-        return $actor->storeRoleAssignments()
-            ->whereIn('store_id', $retailStoreIds)
-            ->whereHas('store', fn ($query) => $query
-                ->where('stores.is_active', true)
-                ->where('stores.advertising_enabled', true))
-            ->whereHas('role', fn ($query) => $query
-                ->where('roles.is_active', true)
-                ->where('roles.scope', 'store')
-                ->whereHas('permissions', fn ($permissions) => $permissions
-                    ->where('permissions.code', $permission)))
+        return $retailStoreIds !== [] && DB::table('stores')
+            ->whereIn('id', $retailStoreIds)
+            ->where('is_active', true)
+            ->where('advertising_enabled', true)
             ->exists();
     }
 
