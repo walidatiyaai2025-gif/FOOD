@@ -939,4 +939,5 @@ void main() {
     expect(
         find.byKey(const Key('driver-login-wholesale-denied')), findsOneWidget);
     expect(find.byKey(const Key('driver-shell')), findsNothing);
-  });}
+  });
+}
