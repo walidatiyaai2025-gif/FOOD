@@ -184,6 +184,35 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
         }
     }
 
+    public function test_my_work_http_endpoints_enforce_the_same_platform_scope_as_sidebar(): void
+    {
+        $deniedUsers = [
+            $this->retailAdmin('v2-my-work-retail@example.test'),
+            $this->globalUser('CUSTOMER_SERVICE_AGENT', 'v2-my-work-service@example.test'),
+        ];
+
+        foreach ($deniedUsers as $user) {
+            $this->assertFalse(
+                collect(app(AdminNavigation::class)->groupsFor($user))
+                    ->flatMap(fn (array $group) => $group['children'])
+                    ->contains('key', 'enterprise_action_center'),
+            );
+
+            $this->actingAs($user)
+                ->get(route('admin.action-center.index'))
+                ->assertForbidden();
+            $this->actingAs($user)
+                ->get(route('admin.action-center.export'))
+                ->assertForbidden();
+            $this->actingAs($user)
+                ->post(route('admin.action-center.decide', [
+                    'workflowRequest' => 999999,
+                    'stepCode' => 'approval',
+                ]), ['decision' => 'APPROVED'])
+                ->assertForbidden();
+        }
+    }
+
     public function test_global_platform_admin_keeps_platform_navigation_entries(): void
     {
         $user = $this->globalUser('B2B_ADMIN', 'nav-platform-sidebar@example.test');
