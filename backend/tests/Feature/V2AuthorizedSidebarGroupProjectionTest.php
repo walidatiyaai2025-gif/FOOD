@@ -137,7 +137,7 @@ class V2AuthorizedSidebarGroupProjectionTest extends TestCase
     }
 
     /** @param array<int, array<string, mixed>> $nodes
-     *  @return array<int, array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     private function flatten(array $nodes): array
     {
