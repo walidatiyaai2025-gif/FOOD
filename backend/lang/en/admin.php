@@ -90,6 +90,15 @@ return [
             'disabled' => 'This enterprise module is not enabled.',
             'not_entitled' => 'The module is enabled but not entitled for the current business scope.',
         ],
+        'denial_reasons' => [
+            'module_setup' => 'This module is not yet enabled for operation. Complete its lifecycle setup before using it.',
+            'module_disabled' => 'The module is disabled. Its business actions cannot run until it is explicitly enabled.',
+            'module_unavailable' => 'The module is suspended, in maintenance or in an error state. Its business actions remain blocked.',
+            'entitlement_scope' => 'No effective entitlement applies to your authorized platform, company or store scope. Check the assignment and entitlement for the current business context.',
+            'uncertified' => 'This module version has not passed operational certification. Enabling the module or granting access does not make it ready.',
+            'unhealthy' => 'The certified module failed its operational health check. Resolve the failure before using its business actions.',
+            'route_unavailable' => 'The registered business destination is unavailable. Operation is blocked until its route is restored.',
+        ],
         'health_statuses' => [
             'healthy' => 'Health: healthy',
             'degraded' => 'Health: degraded',
