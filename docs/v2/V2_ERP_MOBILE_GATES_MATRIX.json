@@ -691,7 +691,8 @@
       "title": "V2 | GATE — V2 synchronized Customer, Driver and Van Android builds and provenance",
       "summary": "V2 synchronized Customer, Driver and Van Android builds and provenance",
       "details": "Source P112/T115R04. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
-      "issue_number": null
+      "issue_number": 2749,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2749"
     },
     {
       "id": "G009",
@@ -700,7 +701,8 @@
       "title": "V2 | GATE — V2 real UX audit mobile/desktop RTL/LTR all personas and 177 Sidebar nodes",
       "summary": "V2 real UX audit mobile/desktop RTL/LTR all personas and 177 Sidebar nodes",
       "details": "Source P145/P369-373. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
-      "issue_number": null
+      "issue_number": 2750,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2750"
     }
   ]
 }
