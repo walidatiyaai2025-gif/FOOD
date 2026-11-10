@@ -45,11 +45,17 @@ final class V2AdministrationNotificationsNavigationTest extends TestCase
             $this->assertNotNull($overview);
             $this->assertNotContains('notifications_center', array_column($overview['children'], 'key'));
 
-            $this->actingAs($admin->fresh())
+            $response = $this->actingAs($admin->fresh())
                 ->get(route('admin.notifications.index'))
                 ->assertOk()
                 ->assertSee('dir="'.$direction.'"', false)
                 ->assertSee(__('notifications.title'));
+
+            $this->assertSame(
+                1,
+                preg_match('/data-nav-item="notifications_center"[^>]*aria-current="page"/', (string) $response->getContent()),
+                'Only the Notifications Center node must identify the current page.',
+            );
         }
     }
 
