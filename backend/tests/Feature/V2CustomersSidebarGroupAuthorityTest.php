@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -69,6 +70,10 @@ class V2CustomersSidebarGroupAuthorityTest extends TestCase
 
     public function test_wholesale_customers_group_exposes_only_wholesale_children_and_real_http_routes(): void
     {
+        // The Groups HTTP route requires a real authorized Wholesale store. The
+        // canonical principal service initializes it for an isolated fresh DB.
+        app(WholesalePrincipal::class)->storeId();
+
         $wholesale = $this->user('Wholesale Accounts', 'v2-p186-wholesale@example.test');
         $wholesale->roles()->attach(Role::query()->where('code', 'B2B_ADMIN')->firstOrFail());
 
