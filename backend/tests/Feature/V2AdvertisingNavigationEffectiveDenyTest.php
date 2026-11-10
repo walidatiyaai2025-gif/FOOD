@@ -114,7 +114,7 @@ final class V2AdvertisingNavigationEffectiveDenyTest extends TestCase
             ->all();
     }
 
-    /** @param list<int> $storeIds */
+    /** @param  list<int>  $storeIds */
     private function retailActor(array $storeIds, string $email): User
     {
         $user = User::factory()->create(['email' => $email, 'is_active' => true, 'locale' => 'en']);
