@@ -181,7 +181,8 @@
       "title": "V2 | ERP Role — مدير الخزينة (TREASURY_MANAGER)",
       "summary": "Role TREASURY_MANAGER: مدير الخزينة",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير الخزينة; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2698,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2698"
     },
     {
       "id": "T122R19",
@@ -190,7 +191,8 @@
       "title": "V2 | ERP Role — مسؤول الخزينة / أمين الصندوق (TREASURY_OFFICER)",
       "summary": "Role TREASURY_OFFICER: مسؤول الخزينة / أمين الصندوق",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول الخزينة / أمين الصندوق; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2699,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2699"
     },
     {
       "id": "T122R20",
@@ -199,7 +201,8 @@
       "title": "V2 | ERP Role — مدير الأسطول (FLEET_MANAGER)",
       "summary": "Role FLEET_MANAGER: مدير الأسطول",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير الأسطول; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2700,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2700"
     },
     {
       "id": "T122R21",
@@ -208,7 +211,8 @@
       "title": "V2 | ERP Role — مشرف التوزيع والتوجيه (DISPATCH_SUPERVISOR)",
       "summary": "Role DISPATCH_SUPERVISOR: مشرف التوزيع والتوجيه",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مشرف التوزيع والتوجيه; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2701,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2701"
     },
     {
       "id": "T122R22",
@@ -217,7 +221,8 @@
       "title": "V2 | ERP Role — مشغل الفان (VAN_OPERATOR)",
       "summary": "Role VAN_OPERATOR: مشغل الفان",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مشغل الفان; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2702,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2702"
     },
     {
       "id": "T122R23",
@@ -226,7 +231,8 @@
       "title": "V2 | ERP Role — مستعرض الإدارة التنفيذية (EXECUTIVE_VIEWER)",
       "summary": "Role EXECUTIVE_VIEWER: مستعرض الإدارة التنفيذية",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مستعرض الإدارة التنفيذية; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2703,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2703"
     },
     {
       "id": "T122R24",
@@ -235,7 +241,8 @@
       "title": "V2 | ERP Role — محلل الأعمال والتقارير (BUSINESS_ANALYST)",
       "summary": "Role BUSINESS_ANALYST: محلل الأعمال والتقارير",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for محلل الأعمال والتقارير; no inherited blanket Super Admin access.",
-      "issue_number": null
+      "issue_number": 2704,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2704"
     },
     {
       "id": "T115R1",
@@ -244,7 +251,8 @@
       "title": "V2 | ERP Stage 1 — التشغيل الأساسي",
       "summary": "التشغيل الأساسي",
       "details": "عميل الجملة والطلب والتسليم، عزل الجملة والتجزئة، اختبارات رحلة فعلية",
-      "issue_number": null
+      "issue_number": 2705,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2705"
     },
     {
       "id": "T115R2",
@@ -253,7 +261,8 @@
       "title": "V2 | ERP Stage 2 — الضبط التجاري",
       "summary": "الضبط التجاري",
       "details": "تسعير المورد/العميل والخصم والربحية والائتمان الموحد والتحصيل الجزئي",
-      "issue_number": null
+      "issue_number": 2706,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2706"
     },
     {
       "id": "T115R3",
@@ -262,7 +271,8 @@
       "title": "V2 | ERP Stage 3 — المشتريات والمخزون",
       "summary": "المشتريات والمخزون",
       "details": "الشراء وأمانة المورد والدفعات والملكية والصلاحية والجرد والمرتجعات",
-      "issue_number": null
+      "issue_number": 2707,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2707"
     },
     {
       "id": "T115R4",
@@ -271,7 +281,8 @@
       "title": "V2 | ERP Stage 4 — الفانات والتوزيع",
       "summary": "الفانات والتوزيع",
       "details": "عهدة الفان والزيارة والتسليم والبيع الميداني والتسوية والمزامنة المحدودة",
-      "issue_number": null
+      "issue_number": 2708,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2708"
     },
     {
       "id": "T115R5",
@@ -280,7 +291,8 @@
       "title": "V2 | ERP Stage 5 — المحاسبة المتكاملة",
       "summary": "المحاسبة المتكاملة",
       "details": "GL/AR/AP والخزينة والبنوك وتسويات الموردين وربحية القنوات",
-      "issue_number": null
+      "issue_number": 2709,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2709"
     },
     {
       "id": "T353R1",
@@ -289,7 +301,8 @@
       "title": "V2 | Sidebar Persona — مدير الجملة والمبيعات",
       "summary": "مدير الجملة والمبيعات",
       "details": "Target allowed menu groups: نظرة عامة والعملاء والمبيعات والطلبات والكتالوج والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
-      "issue_number": null
+      "issue_number": 2710,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2710"
     },
     {
       "id": "T353R2",
@@ -298,7 +311,8 @@
       "title": "V2 | Sidebar Persona — خدمة العملاء",
       "summary": "خدمة العملاء",
       "details": "Target allowed menu groups: نظرة عامة والعملاء وخدمة العملاء وواتساب والطلبات والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
-      "issue_number": null
+      "issue_number": 2711,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2711"
     },
     {
       "id": "T353R3",
@@ -307,7 +321,8 @@
       "title": "V2 | Sidebar Persona — المشتريات",
       "summary": "المشتريات",
       "details": "Target allowed menu groups: نظرة عامة والمشتريات والموردون والمخزون والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
-      "issue_number": null
+      "issue_number": 2712,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2712"
     },
     {
       "id": "T353R4",
@@ -316,7 +331,8 @@
       "title": "V2 | Sidebar Persona — المخزون والمستودعات",
       "summary": "المخزون والمستودعات",
       "details": "Target allowed menu groups: نظرة عامة والمخزون والمستودعات والجرد والتحويلات والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
-      "issue_number": null
+      "issue_number": 2713,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2713"
     },
     {
       "id": "T353R5",
@@ -325,7 +341,8 @@
       "title": "V2 | Sidebar Persona — المالية والمحاسبة",
       "summary": "المالية والمحاسبة",
       "details": "Target allowed menu groups: نظرة عامة والمالية والذمم والخزينة والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
-      "issue_number": null
+      "issue_number": 2714,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2714"
     },
     {
       "id": "T353R6",
