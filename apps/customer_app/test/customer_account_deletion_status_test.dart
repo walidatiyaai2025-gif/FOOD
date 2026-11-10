@@ -87,7 +87,11 @@ void main() {
 
     final button =
         find.byKey(const ValueKey('customer-account-delete-account'));
-    await tester.ensureVisible(button);
+    await tester.scrollUntilVisible(
+      button,
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(button);
     await tester.pumpAndSettle();
 
