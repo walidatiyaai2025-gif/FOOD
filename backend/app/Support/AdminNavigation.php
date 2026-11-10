@@ -27,6 +27,9 @@ class AdminNavigation
     /** @var array<string, bool> */
     private array $permissionMemo = [];
 
+    /** @var array<string, int|null> */
+    private array $retailModuleStoreMemo = [];
+
     public function __construct(
         private readonly ModuleRegistry $enterpriseModules,
         private readonly ModuleEntitlementResolver $enterpriseEntitlements,
@@ -580,13 +583,58 @@ class AdminNavigation
             return null;
         }
 
+        $params = ['module' => $module];
+
+        if ($channel === 'b2c' && ! $this->isSuperAdmin($user)) {
+            // A worker may have different permissions in multiple Retail stores.
+            // Never link a permitted module to the first assigned store when the
+            // permission belongs to another store: that creates a dead 403 link.
+            // This is only navigation context; the controller still authorizes
+            // the exact store and permission independently for every request.
+            $storeId = $this->retailStoreForModule($user, $permission);
+            if ($storeId === null) {
+                return null;
+            }
+
+            $params['store_id'] = $storeId;
+        }
+
         return [
             'key' => "{$channel}_{$module}",
             'label' => $label,
             'route' => "admin.{$channel}.module",
-            'params' => ['module' => $module],
+            'params' => $params,
             'permission' => $permission,
         ];
+    }
+
+    private function retailStoreForModule(User $user, ?string $permission): ?int
+    {
+        $memoKey = $user->getKey().':'.($permission ?? '*');
+        if (array_key_exists($memoKey, $this->retailModuleStoreMemo)) {
+            return $this->retailModuleStoreMemo[$memoKey];
+        }
+
+        $assigned = $this->tenantContext->retailStoreIds($user);
+        if ($assigned === []) {
+            return $this->retailModuleStoreMemo[$memoKey] = null;
+        }
+
+        $storeIds = Store::query()
+            ->businessProfile(StoreBusinessProfile::RETAIL_STORE)
+            ->where('stores.is_active', true)
+            ->whereIn('stores.id', $assigned)
+            ->orderBy('stores.id')
+            ->pluck('stores.id');
+
+        foreach ($storeIds as $storeId) {
+            $storeId = (int) $storeId;
+            if ($permission === null || $user->hasPermission($permission, $storeId)) {
+                return $this->retailModuleStoreMemo[$memoKey] = $storeId;
+            }
+        }
+
+        return $this->retailModuleStoreMemo[$memoKey] = null;
     }
 
     private function hasChannelPermission(User $user, string $channel, ?string $permission): bool
