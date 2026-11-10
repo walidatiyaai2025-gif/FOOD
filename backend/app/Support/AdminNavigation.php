@@ -255,6 +255,9 @@ class AdminNavigation
                 'b2c_products',
                 'b2c_inventory',
                 'b2c_orders',
+                // The actual B2C drivers HTTP workspace is already scoped by
+                // role, business profile and store; keep it discoverable here.
+                'b2c_drivers',
                 'b2c_customers',
                 'b2c_customer_groups',
                 'b2c_promotions',
