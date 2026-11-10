@@ -24,7 +24,7 @@
 </head>
 <body>
 <div class="foodex-admin-layout">
-    <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'notification_campaigns', 'user' => auth()->user()]) {{-- localization-gate: allow Blade include expression --}}</aside>
+    <aside class="sidebar">@include('admin._sidebar', ['navGroups' => app(\App\Support\AdminNavigation::class)->groupsFor(auth()->user()), 'navContext' => 'notifications_center', 'user' => auth()->user()]) {{-- localization-gate: allow Blade include expression --}}</aside>
     <main class="notifications-main foodex-admin-main">
 @include('admin._global-header')
 <div class="wrap foodex-admin-page" data-foodex-utility="notifications">
