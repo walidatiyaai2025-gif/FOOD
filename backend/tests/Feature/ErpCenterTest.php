@@ -30,6 +30,28 @@ final class ErpCenterTest extends TestCase
             'treasury' => 1,
             'enterprise_bi' => 1,
         ]);
+        // Fixture-only provenance for the already certified ERP Center
+        // rendering scenarios. Production workflow attestations stay empty.
+        $attestations = [];
+        foreach ((array) config('enterprise_module_readiness.certified_versions') as $code => $version) {
+            $checks = [];
+            foreach ((array) config('enterprise_module_readiness.required_workflows.'.$code, []) as $step) {
+                $checks[$step] = [
+                    'result' => 'passed',
+                    'test' => 'Synthetic ERP Center fixture '.$code.' '.$step,
+                ];
+            }
+
+            $attestations[$code] = [
+                'version' => $version,
+                'head_sha' => str_repeat('a', 40),
+                'review_issue' => 2503,
+                'ci_run' => 'https://github.com/walidatiyaai2025-gif/FOOD/actions/runs/1',
+                'checks' => $checks,
+            ];
+        }
+
+        config()->set('enterprise_module_readiness.workflow_attestations', $attestations);
     }
 
     public function test_disabled_module_is_explicit_and_never_exposes_an_operational_cta(): void
