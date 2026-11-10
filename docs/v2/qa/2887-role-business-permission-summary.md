@@ -3,7 +3,7 @@
 Source: FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx, P364. Parent: #2503.
 
 ## Placement and authority
-- Domain: RBAC / Administration. Entity: persisted `roles` + `permission_role`. Role: administrator with `security.view` for reading and separate `roles.manage` for mutation.
+- Domain: RBAC / Administration. Entity: persisted `roles` + `permission_role`. Role: administrator with `roles.manage` for accessing the existing role tree; role mutation stays authorized independently by the canonical SecurityController/RbacManager.
 - User goal: inspect a business-domain aggregate for a specific role without mistaking it for a grant of access to an actor.
 - Route: existing `admin.sidebar-access.roles?role_id=<role>` (role selection → business permissions → Sidebar Tree), renderer `backend/resources/views/admin/sidebar-role-access.blade.php`, `SidebarManagementController::roleAccess`, and existing protected `AdminSidebarManager::roleMatrix` as parent authority.
 - Reuse / Extend: actual source DOCX P364 specifies the **middle column** of the existing Role Selection / Role Permissions / Sidebar Tree workbench. Add a read-only business summary panel between existing Role picker and existing canonical permission/Sidebar Tree editor, not a new route, duplicate RBAC provider, or new Sidebar entry.
