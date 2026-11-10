@@ -71,8 +71,7 @@ final class EnterpriseSecurityAccessResolver
 
                 // Deactivation immediately invalidates issued grants, including
                 // those still within their original start/end date window.
-                return $delegator instanceof User
-                    && $delegator->is_active
+                return $delegator->is_active
                     && $this->directAllows($delegator, $permission, $scopeType, $scopeId, $amount, $currency);
             });
     }
