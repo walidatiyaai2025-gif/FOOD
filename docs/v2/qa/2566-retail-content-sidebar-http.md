@@ -27,14 +27,14 @@ New `backend/tests/Feature/V2RetailContentSidebarHttpTest.php` asserts:
 
 Test fixture isolation: optional administrator-saved Sidebar group/item/role-visibility presentation rows are cleared inside the disposable test database after seeding, so this P236 case validates the canonical **default** registry and real route authorization independently of prior layout preference tests. In production, administrators may legitimately nest/regroup or hide otherwise permitted links; such preferences never grant HTTP access.
 
-The existing `RetailAdminCatalogAuthorizationTest`, `AdminNavigationAuthorizationAuditTest`, storefront draft/publish tests and controller authorization tests cover adjacent product/editor semantics; this issue does not duplicate that work. No executable UI, API, workflow or permission changes were necessary based on the inspected canonical source.
+The existing `RetailAdminCatalogAuthorizationTest`, `AdminNavigationAuthorizationAuditTest`, storefront draft/publish tests and controller authorization tests cover adjacent product/editor semantics; this issue does not duplicate that work. **CI rescue corrected a real navigation-only defect:** `AdminNavigation::groupsFor()` already constructed an authorized B2C `content` link, but the later `$retailB2cKeys` presentation whitelist omitted `b2c_content`, hiding the real accessible page. We retain this already-scoped key in the whitelist without changing controller/permission/tenant/role logic, route, API, schema, mobile or finance/dispatch behaviors. Earlier P236 test failure 1/2729 at `V2RetailContentSidebarHttpTest.php:54` proves the absence; the prior fast-fail Pint PHPDoc alignment issue was corrected in the same original PR branch.
 
 ## Impact classification and isolation
 
 | Surface | Classification |
 | --- | --- |
-| Laravel Backend | Isolated new feature regression on actual protected route; no API/controller/schema or production mutation |
-| Management Dashboard | Reuses `marketing / b2c_content`, existing responsive page and effective `promotions.view` checks |
+| Laravel Backend | Isolated feature regression on actual protected route, plus one existing AdminNavigation presentation-only whitelist correction; no API/controller/schema/authorization changes |
+| Management Dashboard | Restores the existing authorized `marketing / b2c_content` Sidebar link by including it in the Retail presentation whitelist, reuses the responsive page and effective `promotions.view` checks |
 | Customer Flutter | No impact: API/storefront payload, content publication, product details and customer navigation unchanged |
 | Driver Flutter | No impact: no route, wallet, collection or delivery status integration |
 | Van Flutter | No impact: no route/van work, wholesale catalog or consignment integration |
@@ -43,6 +43,6 @@ Wholesale fulfillment remains **VAN ONLY**, Retail fulfillment remains **DRIVER 
 
 ## CI and closure conditions
 
-Own exactly two NEW files: `backend/tests/Feature/V2RetailContentSidebarHttpTest.php` and this QA matrix. Focused command in a suitable PHP/Laravel environment: `cd backend && php artisan test tests/Feature/V2RetailContentSidebarHttpTest.php`. Accept completion only after the exact final PR HEAD passes Repository Policy, FOODEX V2 Isolation, Laravel/Pint/PHPStan, AR/EN, security, applicable MySQL/Redis install/upgrade/recovery and terminal `required-ci-gate`; then merge into `Foodex_V2`, record the SHA and close #2566 only if all code acceptance is satisfied.
+Issue-scoped final PR modifies exactly three paths: the new `backend/tests/Feature/V2RetailContentSidebarHttpTest.php`, this QA matrix, and the one-entry presentation whitelist in the existing `backend/app/Support/AdminNavigation.php`. Do not modify shared authorizers or other worker paths. Focused command in a suitable PHP/Laravel environment: `cd backend && php artisan test tests/Feature/V2RetailContentSidebarHttpTest.php`. Accept completion only after the exact final PR HEAD passes Repository Policy, FOODEX V2 Isolation, Laravel/Pint/PHPStan, AR/EN, security, applicable MySQL/Redis install/upgrade/recovery and terminal `required-ci-gate`; then merge into `Foodex_V2`, record the SHA and close #2566 only if all code acceptance is satisfied.
 
 `MANUAL_ACCEPTANCE: DEFERRED_TO_V2_FINAL` by owner's latest parent #2503 decision. No UAT, installation, production/SSH or mobile artifact publication claimed.

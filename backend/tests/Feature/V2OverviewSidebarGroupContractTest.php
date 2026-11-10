@@ -78,15 +78,15 @@ class V2OverviewSidebarGroupContractTest extends TestCase
 
         $this->assertTrue($items->has('enterprise_action_center'));
         $this->assertTrue($items->has('b2c_dashboard'));
-        $this->assertFalse($items->has('enterprise_workspaces'));
+        $this->assertTrue($items->has('enterprise_workspaces'));
         $this->assertFalse($items->has('b2b_dashboard'));
         $this->assertFalse($items->has('notifications_center'));
         $this->assertSame((string) $ownStore, $items->get('b2c_dashboard')['params']['store_id']);
 
         $this->actingAs($user)->get(route('admin.action-center.index'))->assertOk();
-        // EnterpriseWorkspaceComposer deliberately grants limited store-scoped
-        // direct workspace reads; hiding its platform Sidebar entry is not a
-        // blanket 403 policy. Assert the privileged card stays inaccessible.
+        // EnterpriseWorkspaceComposer grants limited store-scoped workspace
+        // reads; the canonical Overview link must mirror that server authority
+        // while platform-only cards stay inaccessible.
         $this->actingAs($user)
             ->get(route('admin.enterprise-workspaces.index'))
             ->assertOk()
