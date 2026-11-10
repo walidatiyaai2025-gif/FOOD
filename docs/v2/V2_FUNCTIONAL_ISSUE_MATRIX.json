@@ -928,7 +928,8 @@
       "summary": "منع السعر والخصم من تجاوز الائتمان والربحية دون موافقة",
       "title": "V2 | SOD P129 — منع السعر والخصم من تجاوز الائتمان والربحية دون موافقة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2853,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2853"
     },
     {
       "id": "P130",
@@ -936,7 +937,8 @@
       "summary": "حظر استخدام Super Admin أو Platform Owner كدور تشغيلي يومي",
       "title": "V2 | SOD P130 — حظر استخدام Super Admin أو Platform Owner كدور تشغيلي يومي",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2854,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2854"
     },
     {
       "id": "P132",
@@ -944,7 +946,8 @@
       "summary": "اعتماد احتفاظ البيانات والحذف النهائي وإخفاء الهوية",
       "title": "V2 | GOV P132 — اعتماد احتفاظ البيانات والحذف النهائي وإخفاء الهوية",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2855,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2855"
     },
     {
       "id": "P133",
@@ -952,7 +955,8 @@
       "summary": "اعتماد نماذج أدوار الشركة والفرع والمخزن والمتجر ومالك القوالب",
       "title": "V2 | GOV P133 — اعتماد نماذج أدوار الشركة والفرع والمخزن والمتجر ومالك القوالب",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2856,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2856"
     },
     {
       "id": "P134",
@@ -960,7 +964,8 @@
       "summary": "تحديد من يملك User Allow والاعتماد والتفويض المؤقت وإلغاءه",
       "title": "V2 | GOV P134 — تحديد من يملك User Allow والاعتماد والتفويض المؤقت وإلغاءه",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2857,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2857"
     },
     {
       "id": "P135",
@@ -968,7 +973,8 @@
       "summary": "اعتماد جاهزية كل موديول ERP بمسار تشغيلي حقيقي",
       "title": "V2 | GOV P135 — اعتماد جاهزية كل موديول ERP بمسار تشغيلي حقيقي",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2858,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2858"
     },
     {
       "id": "P136",
@@ -976,7 +982,8 @@
       "summary": "حسم التعارض المرجعي بسياسة B2B VAN فقط وB2C DRIVER فقط",
       "title": "V2 | GOV P136 — حسم التعارض المرجعي بسياسة B2B VAN فقط وB2C DRIVER فقط",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2859,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2859"
     },
     {
       "id": "P137",
@@ -984,7 +991,8 @@
       "summary": "اعتماد مدى الترحيل وتاريخ إعدادات Sidebar القديمة دون حذف",
       "title": "V2 | GOV P137 — اعتماد مدى الترحيل وتاريخ إعدادات Sidebar القديمة دون حذف",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2860,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2860"
     },
     {
       "id": "P139",
@@ -992,7 +1000,8 @@
       "summary": "اختبار دور خدمة العملاء وتعديل صلاحية الطلب وتأثيرها على الشجرة",
       "title": "V2 | QA P139 — اختبار دور خدمة العملاء وتعديل صلاحية الطلب وتأثيرها على الشجرة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2861,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2861"
     },
     {
       "id": "P140",
@@ -1000,7 +1009,8 @@
       "summary": "اختبار عزل تعديل الدور المخصص عن Override مستخدم واحد",
       "title": "V2 | QA P140 — اختبار عزل تعديل الدور المخصص عن Override مستخدم واحد",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2862,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2862"
     },
     {
       "id": "P141",
@@ -1008,7 +1018,8 @@
       "summary": "اختبار Allow لا يتجاوز شركة أو متجر أو موديول غير جاهز",
       "title": "V2 | QA P141 — اختبار Allow لا يتجاوز شركة أو متجر أو موديول غير جاهز",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2863,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2863"
     },
     {
       "id": "P142",
@@ -1016,7 +1027,8 @@
       "summary": "اختبار الأرشفة يوقف Dashboard والجوال ويحفظ الفواتير والتاريخ",
       "title": "V2 | QA P142 — اختبار الأرشفة يوقف Dashboard والجوال ويحفظ الفواتير والتاريخ",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2864,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2864"
     },
     {
       "id": "P143",
@@ -1024,7 +1036,8 @@
       "summary": "اختبار منع حذف الذات وآخر مسؤول ومالك النظام والحسابات الجارية",
       "title": "V2 | QA P143 — اختبار منع حذف الذات وآخر مسؤول ومالك النظام والحسابات الجارية",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2865,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2865"
     },
     {
       "id": "P144",
@@ -1032,7 +1045,8 @@
       "summary": "اختبار Maker Checker والائتمان والخصومات والموردين على API والDB",
       "title": "V2 | QA P144 — اختبار Maker Checker والائتمان والخصومات والموردين على API والDB",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2866,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2866"
     },
     {
       "id": "P145",
@@ -1040,7 +1054,8 @@
       "summary": "اختبار AR/EN وموبايل وديسكتوب وسبب الحجب والروابط الصالحة",
       "title": "V2 | QA P145 — اختبار AR/EN وموبايل وديسكتوب وسبب الحجب والروابط الصالحة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2867,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2867"
     },
     {
       "id": "P156",
@@ -1048,7 +1063,8 @@
       "summary": "اعتبار Sidebar انعكاسًا للصلاحية والنطاق والقناة وحالة الموديول",
       "title": "V2 | SIDEBAR P156 — اعتبار Sidebar انعكاسًا للصلاحية والنطاق والقناة وحالة الموديول",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2868,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2868"
     },
     {
       "id": "P157",
@@ -1056,7 +1072,8 @@
       "summary": "شروط صلاحية الصفحة + النطاق + الموديول + الجهة والمتجر",
       "title": "V2 | SIDEBAR P157 — شروط صلاحية الصفحة + النطاق + الموديول + الجهة والمتجر",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2869,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2869"
     },
     {
       "id": "P158",
