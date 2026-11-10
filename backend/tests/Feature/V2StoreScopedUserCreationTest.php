@@ -83,6 +83,38 @@ final class V2StoreScopedUserCreationTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'forbidden.store@example.test']);
     }
 
+    public function test_global_and_retail_store_assignments_are_created_atomically(): void
+    {
+        $store = $this->store('B2C', 'V2-USER-COMBINED');
+        $storeRole = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        $globalRole = Role::query()->create([
+            'code' => 'V2_USER_READONLY_OBSERVER',
+            'name' => 'V2 User Read-only Observer',
+            'scope' => 'global',
+            'is_system' => false,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->actor('SUPER_ADMIN'))
+            ->post(route('admin.security.users.store'), [
+                ...$this->payload('combined.user@example.test'),
+                'role_id' => $globalRole->id,
+                'store_role_assignment' => $store->id.':'.$storeRole->id,
+            ])
+            ->assertRedirect(route('admin.security.index', ['section' => 'users']));
+
+        $target = User::query()->where('email', 'combined.user@example.test')->firstOrFail();
+        $this->assertDatabaseHas('role_user', [
+            'user_id' => $target->id,
+            'role_id' => $globalRole->id,
+        ]);
+        $this->assertDatabaseHas('user_store_roles', [
+            'user_id' => $target->id,
+            'store_id' => $store->id,
+            'role_id' => $storeRole->id,
+        ]);
+    }
+
     public function test_missing_or_malformed_role_assignment_never_creates_user(): void
     {
         $this->actingAs($this->actor('SUPER_ADMIN', 'en'));
