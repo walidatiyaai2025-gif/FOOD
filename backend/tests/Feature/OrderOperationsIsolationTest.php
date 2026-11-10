@@ -135,7 +135,7 @@ class OrderOperationsIsolationTest extends TestCase
             });
     }
 
-    public function test_wholesale_driver_candidates_are_limited_to_principal_store(): void
+    public function test_wholesale_dispatch_excludes_all_legacy_driver_candidates(): void
     {
         $principal = app(WholesalePrincipal::class)->storeId();
         $rogueWholesale = (int) DB::table('stores')->insertGetId([
@@ -191,13 +191,8 @@ class OrderOperationsIsolationTest extends TestCase
         $this->actingAs($super)
             ->get('/admin/operations/orders?channel=b2b')
             ->assertOk()
-            ->assertViewHas('drivers', function ($drivers) use ($validDriver): bool {
-                return collect($drivers)
-                    ->pluck('id')
-                    ->map(static fn ($id): int => (int) $id)
-                    ->values()
-                    ->all() === [$validDriver];
-            });
+            ->assertViewHas('drivers', fn ($drivers): bool => collect($drivers)->isEmpty())
+            ->assertDontSee('value="driver:'.$validDriver.'"', false);
     }
 
     public function test_super_admin_operational_inbox_defaults_to_wholesale_and_requires_explicit_retail_channel(): void

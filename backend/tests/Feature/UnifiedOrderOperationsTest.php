@@ -682,7 +682,7 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('إلغاء الطلب', $view);
         $this->assertStringContainsString('سحب وتحويل الطلب لسائق آخر', $view);
         $this->assertStringContainsString('data-order-inline-dispatch', $view);
-        $this->assertStringContainsString('اختر سائق أو فان', $view);
+        $this->assertStringContainsString('اختر فان', $view);
         $this->assertStringNotContainsString('data-order-dispatch-locked', $view);
         $this->assertStringNotContainsString('is-dispatch-locked', $view);
         $this->assertStringNotContainsString('Available after order confirmation', $view);
