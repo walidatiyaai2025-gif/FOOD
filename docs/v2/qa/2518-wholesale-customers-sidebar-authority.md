@@ -15,7 +15,7 @@
 
 ## Acceptance and negative paths
 
-`backend/tests/Feature/V2WholesaleCustomersSidebarAuthorityTest.php` covers canonical `accounts/customer_360` discovery and single entry, real AR/EN HTTP 200, correct B2B mode and account module, Retail-only / roleless direct B2B HTTP 403, explicit `b2b.accounts.view` denial and Retail-only customer confidentiality. Direct non-authorized navigation must fail on the server rather than relying on Sidebar hiding. Customer 360's B2B-only query projection must not expose a Retail-only customer.
+`backend/tests/Feature/V2WholesaleCustomersSidebarAuthorityTest.php` covers canonical `accounts/customer_360` discovery and single entry, real AR/EN HTTP 200, correct B2B mode and account module, Retail-only / roleless direct B2B HTTP 403, explicit `b2b.accounts.view` denial and Retail-only customer confidentiality, plus intentional B2B linkage for Retail-origin customers. Direct non-authorized navigation must fail on the server rather than relying on Sidebar hiding. Customer 360's B2B-only query projection must not expose a Retail-only customer.
 
 The original source requests expired-user, other-store and disabled-module negative cases. These are covered by existing middleware/tenant and core-module contracts; this Issue's regression specifically probes the B2B-versus-Retail boundary and does not invent an ERP enable toggle for core customer routes. Real-browser responsive keyboard/accessibility and full production persona UAT are tracked for final V2 acceptance, not represented as performed by this source-only PR.
 
