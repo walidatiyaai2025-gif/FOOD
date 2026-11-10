@@ -174,6 +174,12 @@ class V2CatalogImageContentAuthorityTest extends TestCase
             ]);
         $this->assertContains($retailMutation->getStatusCode(), [403, 404]);
 
+        DB::table('stores')->where('id', $retail)->update(['is_active' => false]);
+        $disabledStore = $this->actingAs($manager)->get(
+            route('admin.catalog.index', ['tab' => 'products', 'store_id' => $retail]),
+        );
+        $this->assertContains($disabledStore->getStatusCode(), [403, 404]);
+
         $this->assertDatabaseHas('product_images', [
             'product_id' => $retailFixture['product_id'],
             'path' => $retailFixture['product_image'],
