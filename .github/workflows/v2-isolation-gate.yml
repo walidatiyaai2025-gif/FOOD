@@ -1,0 +1,54 @@
+name: FOODEX V2 Isolation Gate
+
+on:
+  pull_request:
+    branches:
+      - Foodex_V2
+
+permissions:
+  contents: read
+
+concurrency:
+  group: foodex-v2-isolation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-v2-only:
+    name: V2 target and safety contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject incorrect base, unscoped head, and forbidden production release
+        shell: bash
+        env:
+          V2_BASE: ${{ github.event.pull_request.base.ref }}
+          V2_HEAD: ${{ github.event.pull_request.head.ref }}
+          V2_TITLE: ${{ github.event.pull_request.title }}
+          V2_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          test "$V2_BASE" = 'Foodex_V2' || { echo "::error::V2 PR must target Foodex_V2, never main"; exit 1; }
+          printf '%s' "$V2_TITLE" | grep -Eq '(^V2([ :|\[-])|#[0-9]+)' || { echo "::error::V2 Issue reference/title required"; exit 1; }
+          printf '%s' "$V2_BODY" | grep -Eiq '#[0-9]+' || { echo "::error::Link a scoped issue in PR body"; exit 1; }
+          printf '%s' "$V2_BODY" | grep -Eiq 'Customer.*Driver.*Van|Customer[[:space:]]*/[[:space:]]*Driver[[:space:]]*/[[:space:]]*Van|MOBILE IMPACT|Mobile impact' || { echo "::error::Explicit Customer/Driver/Van impact review required"; exit 1; }
+          case "$V2_HEAD" in
+            main|Foodex_V2|release/*) echo "::error::V2 PR must come from issue-scoped implementation branch"; exit 1 ;;
+          esac
+          echo "V2 base and impact contract OK"
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Verify branch policy and forbid release identity changes
+        shell: bash
+        env:
+          V2_HEAD: ${{ github.event.pull_request.head.ref }}
+          V2_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          V2_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          python3 scripts/foodex-branch-policy.py validate "$V2_HEAD" --base Foodex_V2
+          changes="$(git diff --name-only "$V2_BASE_SHA" "$V2_HEAD_SHA")"
+          if printf '%s\n' "$changes" | grep -Eq '^(VERSION|Release/Updates/|docs/release/RELEASE_REGISTRY\.json)'; then
+            echo "::error::V2 staging may not mutate canonical release identities or production registry"
+            exit 1
+          fi
+          echo "No canonical version/registry publication changes"
