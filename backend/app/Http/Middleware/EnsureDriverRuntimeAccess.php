@@ -19,21 +19,16 @@ final class EnsureDriverRuntimeAccess
 
         $driver = DB::table('drivers')
             ->where('user_id', $user->id)
-            ->whereIn('driver_type', ['b2b', 'b2c'])
+            ->where('driver_type', 'b2c')
             ->where('is_active', true)
             ->first(['id', 'driver_type', 'store_id']);
 
-        $channel = strtolower((string) ($driver->driver_type ?? ''));
-        $role = $channel === 'b2b' ? 'B2B_DRIVER' : 'B2C_DRIVER';
-        $permission = $channel === 'b2b' ? 'deliveries.b2b.execute' : 'deliveries.b2c.execute';
-
         abort_unless(
             $driver !== null
-                && in_array($channel, ['b2b', 'b2c'], true)
-                && $user->hasRole($role)
-                && $user->hasPermission($permission),
+                && $user->hasRole('B2C_DRIVER')
+                && $user->hasPermission('deliveries.b2c.execute'),
             403,
-            'Driver App execution requires an authorized B2B or B2C driver profile.',
+            'Driver App execution is available only for authorized Retail (B2C) drivers.',
         );
 
         $request->attributes->set('driver_runtime_context', [
