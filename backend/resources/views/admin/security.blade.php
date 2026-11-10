@@ -144,6 +144,9 @@ $roleLabel = static function ($role): string {
                 'showPermissionScopeRule' => false,
             ])
             <button class="btn primary" type="submit">{{ __('security_permissions.user_permissions_save') }}</button>
+            <button class="btn primary" style="min-height:44px" type="submit" name="inherit" value="1"
+                    onclick="return confirm('{{ __('security_permissions.user_permissions_inherit_confirm') }}')"
+                    title="{{ __('security_permissions.user_permissions_inherit_hint') }}">{{ __('security_permissions.user_permissions_inherit') }}</button>
         </form>
         @endif
 
@@ -164,6 +167,9 @@ $roleLabel = static function ($role): string {
                 'showPermissionScopeRule' => false,
             ])
             <button class="btn primary" type="submit">{{ __('security_permissions.user_permissions_save') }}</button>
+            <button class="btn primary" style="min-height:44px" type="submit" name="inherit" value="1"
+                    onclick="return confirm('{{ __('security_permissions.user_permissions_inherit_confirm') }}')"
+                    title="{{ __('security_permissions.user_permissions_inherit_hint') }}">{{ __('security_permissions.user_permissions_inherit') }}</button>
         </form>
         @endforeach
     @endif
