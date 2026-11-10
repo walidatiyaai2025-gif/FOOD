@@ -14,6 +14,12 @@ final class OperationalTenantScope
     {
         $channel = $channel === null ? null : strtoupper($channel);
 
+        // A disabled account must never acquire operational tenant scopes,
+        // including through the Super Admin shortcut.
+        if (! $user->is_active) {
+            return [];
+        }
+
         if ($user->hasRole('SUPER_ADMIN')) {
             return $this->storeIdsForChannels($channel === null ? ['B2B', 'B2C'] : [$channel]);
         }
@@ -59,6 +65,28 @@ final class OperationalTenantScope
             if ($globalChannels !== []) {
                 $ids = $ids->merge($this->storeIdsForChannels($globalChannels));
             }
+        }
+
+        // The inherited role/store query is a candidate set, not an override
+        // authorizer. A user-level DENY always wins over a role grant, including
+        // when the actor has both Wholesale and Retail roles. Fetch all DENYs
+        // for this ability once: checking hasPermission() per store would turn a
+        // wide multi-store Dashboard request into an N+1 permissions workload.
+        if ($user->has_permission_overrides && $ids->isNotEmpty()) {
+            $deniedScopes = DB::table('user_permission_overrides')
+                ->join('permissions', 'permissions.id', '=', 'user_permission_overrides.permission_id')
+                ->where('user_permission_overrides.user_id', $user->getKey())
+                ->where('permissions.code', $permission)
+                ->where('user_permission_overrides.effect', 'deny')
+                ->pluck('user_permission_overrides.scope_key')
+                ->all();
+
+            if (in_array('global', $deniedScopes, true)) {
+                return [];
+            }
+
+            $denied = array_fill_keys($deniedScopes, true);
+            $ids = $ids->reject(static fn (int $storeId): bool => isset($denied['store:'.$storeId]));
         }
 
         return $ids
