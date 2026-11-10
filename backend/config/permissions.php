@@ -51,6 +51,7 @@ return [
         'security.approve' => 'Check and approve privileged enterprise security changes',
         'roles.manage' => 'Create, edit, clone, activate and delete delegated roles',
         'users.view' => 'View users and their effective access',
+        'users.delete' => 'Delete or archive user accounts after protected lifecycle approval',
         'users.roles.manage' => 'Assign global and store-scoped roles to users',
         'users.status.manage' => 'Activate and deactivate user accounts',
         'translations.manage' => 'Manage Arabic and English UI translations',
