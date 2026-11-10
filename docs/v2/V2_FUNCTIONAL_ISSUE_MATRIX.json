@@ -163,7 +163,8 @@
       "summary": "فصل مهام الشراء والمحاسبة والخزينة في foodexaccount",
       "title": "V2 | AUDIT T019R02 — فصل مهام الشراء والمحاسبة والخزينة في foodexaccount",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2768,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2768"
     },
     {
       "id": "T019R03",
@@ -171,7 +172,8 @@
       "summary": "تبسيط أدوار خدمة العملاء المتداخلة لحساب export",
       "title": "V2 | AUDIT T019R03 — تبسيط أدوار خدمة العملاء المتداخلة لحساب export",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2769,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2769"
     },
     {
       "id": "T019R04",
@@ -179,7 +181,8 @@
       "summary": "تدقيق Supervisor وصلاحياته 37 في الحساب rehab",
       "title": "V2 | AUDIT T019R04 — تدقيق Supervisor وصلاحياته 37 في الحساب rehab",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2770,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2770"
     },
     {
       "id": "T019R05",
@@ -187,7 +190,8 @@
       "summary": "فحص التقييد بمتجر 2 للمستخدم store1",
       "title": "V2 | AUDIT T019R05 — فحص التقييد بمتجر 2 للمستخدم store1",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2771,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2771"
     },
     {
       "id": "T019R06",
@@ -195,7 +199,8 @@
       "summary": "تحديد نوع الحسابات السبعة بلا دور وعدم تعميمها كمشكلة",
       "title": "V2 | AUDIT T019R06 — تحديد نوع الحسابات السبعة بلا دور وعدم تعميمها كمشكلة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2772,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2772"
     },
     {
       "id": "P022",
@@ -203,7 +208,8 @@
       "summary": "إصلاح AdminSidebarManager بعد تطبيق مظهر القائمة على قرار الإذن",
       "title": "V2 | AUTH P022 — إصلاح AdminSidebarManager بعد تطبيق مظهر القائمة على قرار الإذن",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2773,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2773"
     },
     {
       "id": "P023",
@@ -211,7 +217,8 @@
       "summary": "إلغاء أثر admin_sidebar_groups/items/role_visibility الأمني",
       "title": "V2 | AUTH P023 — إلغاء أثر admin_sidebar_groups/items/role_visibility الأمني",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2774,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2774"
     },
     {
       "id": "P024",
@@ -219,7 +226,8 @@
       "summary": "إزالة OR المرئي للأدوار واستبداله بقرار RBAC الفعلي",
       "title": "V2 | AUTH P024 — إزالة OR المرئي للأدوار واستبداله بقرار RBAC الفعلي",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2775,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2775"
     },
     {
       "id": "P025",
@@ -227,7 +235,8 @@
       "summary": "توحيد PLATFORM_OWNER مع قرار صلاحيات صريح",
       "title": "V2 | AUTH P025 — توحيد PLATFORM_OWNER مع قرار صلاحيات صريح",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2776,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2776"
     },
     {
       "id": "P026",
@@ -235,7 +244,8 @@
       "summary": "مطابقة قائمة الكود والإنتاج الفعلية قبل تشخيص الحجب",
       "title": "V2 | AUDIT P026 — مطابقة قائمة الكود والإنتاج الفعلية قبل تشخيص الحجب",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2777,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2777"
     },
     {
       "id": "T028R01",
@@ -243,7 +253,8 @@
       "summary": "استعادة ERP وfield_operations عندما يأذن الوصول الحقيقي",
       "title": "V2 | AUTH T028R01 — استعادة ERP وfield_operations عندما يأذن الوصول الحقيقي",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2778,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2778"
     },
     {
       "id": "T028R02",
@@ -251,7 +262,8 @@
       "summary": "عدم حجب صفحات منتجات ومخزون B2B/B2C عبر is_enabled",
       "title": "V2 | AUTH T028R02 — عدم حجب صفحات منتجات ومخزون B2B/B2C عبر is_enabled",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2779,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2779"
     },
     {
       "id": "T028R03",
@@ -259,7 +271,8 @@
       "summary": "عدم إخفاء Action Center وWorkspaces وTreasury عبر الشكل",
       "title": "V2 | AUTH T028R03 — عدم إخفاء Action Center وWorkspaces وTreasury عبر الشكل",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2780,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2780"
     },
     {
       "id": "T028R04",
@@ -267,7 +280,8 @@
       "summary": "اختبار النتيجة عند غياب قواعد ظهور دور مستقلة",
       "title": "V2 | AUTH T028R04 — اختبار النتيجة عند غياب قواعد ظهور دور مستقلة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2781,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2781"
     },
     {
       "id": "P031",
@@ -275,7 +289,8 @@
       "summary": "عزل Wholesale عن Retail وعن المتجر الآخر في كل Route",
       "title": "V2 | SECURITY P031 — عزل Wholesale عن Retail وعن المتجر الآخر في كل Route",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2782,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2782"
     },
     {
       "id": "P032",
@@ -283,7 +298,8 @@
       "summary": "ربط View/Create/Update/Delete/Approve/Execute بإذن دقيق",
       "title": "V2 | SECURITY P032 — ربط View/Create/Update/Delete/Approve/Execute بإذن دقيق",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2783,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2783"
     },
     {
       "id": "P033",
@@ -291,7 +307,8 @@
       "summary": "منع شراء أو خزينة من تجاوز SoD وحدود التفويض",
       "title": "V2 | SECURITY P033 — منع شراء أو خزينة من تجاوز SoD وحدود التفويض",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2784,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2784"
     },
     {
       "id": "P034",
