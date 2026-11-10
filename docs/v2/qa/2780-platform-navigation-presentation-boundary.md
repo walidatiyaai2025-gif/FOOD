@@ -12,12 +12,12 @@
 | Surface | Canonical route | Legitimate projection | Server-side guard |
 | --- | --- | --- | --- |
 | My Work / Action Center | `admin.action-center.index` | Active global ERP role or qualified B2C store admin with retail scope | `AdminNavigation::canAccessMyWork`; workflow decision POST separately authorizes mutation and SoD |
-| Enterprise Workspaces | `admin.enterprise-workspaces.index` | Active global platform role, excluding service dashboard profile | `EnterpriseWorkspaceComposer::availableWorkspaceKeys` + per-workspace composition authorization |
+| Enterprise Workspaces | `admin.enterprise-workspaces.index` | Sidebar: active global platform role, excluding service dashboard profile; direct HTTP can also serve store-scoped permitted workspaces without a platform Sidebar link | `EnterpriseWorkspaceComposer::availableWorkspaceKeys` + per-workspace/store-scoped composition authorization |
 | Treasury master data | `admin.treasury.master.index` | Eligible platform/global role with finance permission | `OperationalTenantScope::allowedStoreIds('finance.view')`, explicit store 403/404; cashbox/bank mutations separately require finance.manage |
 
 ## Automated regression matrix
 - Global B2B_ADMIN: baseline discoverability of all three, then legacy disabled item **and** group **and** negative role-visibility preferences. All three remain discoverable exactly once at the same canonical routes. Real authenticated HTTP must return 200 in Arabic/RTL and English/LTR; finance.view remains effective; the legacy rows remain intact.
-- Retail B2C_STORE_ADMIN: even with forged positive role visibility, qualified retail My Work stays reachable, but platform Workspaces/Treasury links are not synthesized. Workspaces direct HTTP must deny; foreign B2B Treasury store selection must deny (403/404).
+- Retail B2C_STORE_ADMIN: even with forged positive role visibility, qualified retail My Work stays reachable, but platform-only Workspaces/Treasury Sidebar links are not synthesized. The pre-existing independent `EnterpriseWorkspaceComposer` intentionally allows a **store-scoped sales workspace** over direct HTTP (200) when orders.view/customers.view permits; its cards must not include platform-only `system_health`. That scoped HTTP outcome is **not** a Sidebar permission grant. Foreign B2B Treasury store selection must deny (403/404).
 - Actor with no role: neither Sidebar links nor direct Action Center / Workspaces / Treasury HTTP access is granted. Persisted role permissions are not changed.
 - Protected-role preference save: three values must remain `is_visible=true` while ordinary unprotected preferences continue behaving as configured.
 - Existing regression coverage continues to govern excluded customer-service role profiles, inactive accounts, cross-channel routing, finance maker/checker, denial precedence and module entitlement/readiness. This change does **not** enable an ERP module or bypass readiness.
