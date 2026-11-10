@@ -13,13 +13,15 @@ The issue's **العروض / Offers** intent already resolves to two distinct, o
 
 **Reuse → Extend → Compose → New Screen:** Reuse wins; `CommercialDashboardController` already renders functional management, edits, preview, analytics and Flash Offer actions; the authorized Retail Workspace already supplies the discoverable entry. Duplicating it as a new Sidebar destination would create two authorities and risk fake permission grants.
 
-**Domain** Commercial / Marketing; **entity** Flash Offer; **personas** Wholesale B2B Admin and Retail B2C Store Admin; **goal** list/create/activate/pause and inspect offers for an authorized store; **frequency** recurring operational; **pattern** existing page/form/workbench; **fallback** existing Commercial or Retail Workspace. Actual HTTP scope is always validated server-side, not inferred from which menu is visible.
+**Domain** Commercial / Marketing; **entity** Flash Offer; **personas** authorized wholesale/global CUSTOMER_SERVICE_MANAGER (seeded with promotions.view/manage) and Retail B2C Store Admin; **goal** list/create/activate/pause and inspect offers for an authorized store; **frequency** recurring operational; **pattern** existing page/form/workbench; **fallback** existing Commercial or Retail Workspace. Actual HTTP scope is always validated server-side, not inferred from which menu is visible.
 
 ## Automated authority matrix
 
+**Access-design note:** `B2B_ADMIN` does **not** inherit `promotions.view`/`promotions.manage` in `backend/config/permissions.php`. A wholesale role name alone must never imply a grant. The positive fixture is `CUSTOMER_SERVICE_MANAGER`, whose seeded global role grants these abilities, while `B2B_ADMIN` is deliberately used as an unprivileged negative actor. No new role permission or authorization override is introduced.
+
 `backend/tests/Feature/V2FlashOffersSidebarHttpChannelBoundaryTest.php` confirms both Arabic/English and RTL/LTR:
 
-- B2B Admin discovers `commercial_flash_offers` and follows the real authorized B2B GET into an existing Flash Offer editor.
+- An authorized global wholesale actor with `CUSTOMER_SERVICE_MANAGER` discovers `commercial_flash_offers` and follows the real authorized B2B GET into an existing Flash Offer editor.
 - Retail Store Admin discovers the `b2c_promotions` workspace with an exact scoped store ID, follows the existing authorized workspace page, and opens the canonical Retail Flash Offers page. It does **not** receive the wholesale Sidebar item.
 - Retail actor cannot open the B2B route or POST wholesale Flash Offers, nor POST via a wholesale URL to its own retail store.
 - Wholesale actor cannot open a retail store using the B2B route or post to the B2C route using a wholesale store. A retail actor cannot POST for another retail store. Denied/cross-tenant requests return 404 (intentional anti-enumeration semantics of `OperationalTenantScope::assertStore`), before payload validation, without any `flash_offers` writes or action audit.
