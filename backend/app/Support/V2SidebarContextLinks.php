@@ -47,9 +47,7 @@ final class V2SidebarContextLinks
         };
 
         foreach ($authorizedGroups as $group) {
-            if (is_array($group)) {
-                $collect((array) ($group['children'] ?? []));
-            }
+            $collect((array) ($group['children'] ?? []));
         }
 
         $links = [];
