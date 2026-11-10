@@ -58,6 +58,8 @@ class AdministrationHubTest extends TestCase
             ->assertSee('Driver App')
             ->assertSee('Van App')
             ->assertSee('data-admin-card="settings-center"', false)
+            ->assertSee('data-admin-card="platform-settings"', false)
+            ->assertSee(route('admin.settings.index').'#settings-platform', false)
             ->assertSee('data-admin-card="system-updates"', false)
             ->assertSee(route('admin.system-update.index'), false)
             ->assertSee('data-admin-card="users-permissions"', false)
@@ -80,6 +82,8 @@ class AdministrationHubTest extends TestCase
             ->assertOk()
             ->assertSee('dir="rtl"', false)
             ->assertSee('مركز الإدارة')
+            ->assertSee('data-admin-card="platform-settings"', false)
+            ->assertSee('إعدادات المنصة')
             ->assertSee('data-admin-card="system-updates"', false)
             ->assertSee('تطبيق العميل')
             ->assertSee('تطبيق السائق')
@@ -102,6 +106,36 @@ class AdministrationHubTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.system-update.index'))
             ->assertForbidden();
+    }
+
+    public function test_platform_settings_link_uses_the_canonical_settings_center_anchor(): void
+    {
+        $user = $this->superAdmin();
+
+        $this->actingAs($user)
+            ->get(route('admin.settings.index'))
+            ->assertOk()
+            ->assertSee('id="settings-platform"', false)
+            ->assertSee('data-settings-group="platform"', false);
+    }
+
+    public function test_wholesale_admin_cannot_discover_platform_settings_hub_entry(): void
+    {
+        $user = User::query()->create([
+            'name' => 'Wholesale Settings Operator',
+            'email' => 'wholesale-settings@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $user->roles()->attach(Role::query()->where('code', 'B2B_ADMIN')->firstOrFail());
+
+        $this->assertFalse(Gate::forUser($user)->allows('platform.manage'));
+
+        $this->actingAs($user)
+            ->get(route('admin.administration.index'))
+            ->assertOk()
+            ->assertDontSee('data-admin-card="platform-settings"', false);
     }
 
     private function superAdmin(string $locale = 'en'): User
