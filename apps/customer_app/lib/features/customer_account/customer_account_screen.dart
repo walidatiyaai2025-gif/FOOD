@@ -153,7 +153,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
     final api = widget.api;
     if (api is! HttpB2cAccountApi) return;
 
-    final password = TextEditingController();
+    String password = '';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -171,7 +171,7 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
             const SizedBox(height: CustomerUiSpacing.sm),
             TextField(
               key: const ValueKey('customer-account-deletion-password'),
-              controller: password,
+              onChanged: (value) => password = value,
               obscureText: true,
               decoration: InputDecoration(
                 labelText: _locale == 'ar' ? 'كلمة المرور' : 'Password',
@@ -193,13 +193,10 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
       ),
     );
 
-    if (confirmed != true || password.text.isEmpty) {
-      password.dispose();
-      return;
-    }
+    if (confirmed != true || password.isEmpty) return;
 
     try {
-      final response = await api.requestAccountDeletion(password.text);
+      final response = await api.requestAccountDeletion(password);
       if (!mounted) return;
       final data = response is Map && response['data'] is Map
           ? Map<String, dynamic>.from(response['data'] as Map)
@@ -224,8 +221,6 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
           )),
         ),
       );
-    } finally {
-      password.dispose();
     }
   }
 
