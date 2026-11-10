@@ -11,6 +11,7 @@ use App\Enums\StoreBusinessProfile;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\AdminSidebarManager;
+use App\Services\OperationalTenantScope;
 use Illuminate\Support\Facades\Route;
 
 class AdminNavigation
@@ -752,20 +753,12 @@ class AdminNavigation
             return true;
         }
 
-        $retailStoreIds = $this->tenantContext->retailStoreIds($user);
-        if ($retailStoreIds === []) {
-            return false;
-        }
-
-        return $user->storeRoleAssignments()
-            ->whereIn('store_id', $retailStoreIds)
-            ->whereHas('store', fn ($query) => $query->where('stores.is_active', true))
-            ->whereHas('role', fn ($query) => $query
-                ->where('roles.is_active', true)
-                ->where('roles.scope', 'store')
-                ->whereHas('permissions', fn ($permissions) => $permissions
-                    ->where('permissions.code', $permission)))
-            ->exists();
+        // An inherited store role is only a candidate grant. The operational
+        // tenant scope applies explicit per-user global/store DENYs and active
+        // B2C-store boundaries before declaring this page navigable. A raw
+        // permission_role EXISTS here could expose a dead, denied route.
+        return app(OperationalTenantScope::class)
+            ->allowedStoreIds($user, $permission, 'b2c') !== [];
     }
 
     /** @param list<string> $permissions */
