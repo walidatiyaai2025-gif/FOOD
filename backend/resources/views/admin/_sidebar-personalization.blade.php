@@ -1,5 +1,14 @@
 {{-- #2870: preferences only reorder/hide already-authorized navigation nodes. --}}
 <style>
+.foodex-nav-favorites{display:grid;gap:6px;padding:8px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-surface)}
+.foodex-nav-favorites[hidden]{display:none!important}
+.foodex-nav-favorites-heading{display:flex;align-items:center;gap:6px;color:var(--foodex-green-dark);font-size:.84rem;font-weight:800}
+.foodex-nav-favorites-list{display:grid;gap:4px;grid-template-columns:repeat(auto-fit,minmax(min(100%,120px),1fr))}
+.foodex-nav-favorites-list button{min-height:44px;min-width:0;padding:8px 10px;text-align:start;white-space:normal;overflow-wrap:anywhere;border:1px solid var(--foodex-border);border-radius:9px;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font:inherit;font-size:.83rem;font-weight:700;cursor:pointer}
+.foodex-nav-favorites-list button:hover{border-color:var(--foodex-green-dark)}
+.foodex-nav-favorites-list button:focus-visible{outline:3px solid var(--foodex-green-dark);outline-offset:2px}
+aside.foodex-sidebar-collapsed .foodex-nav-favorites{display:none}
+@media(max-width:1023px){aside.foodex-sidebar-collapsed .foodex-nav-favorites:not([hidden]){display:grid}}
 .foodex-nav-personalize-bar{display:flex;flex-wrap:wrap;gap:6px}
 .foodex-nav-personalize-bar button{min-height:44px;border:1px solid var(--foodex-border);background:var(--foodex-action-green);color:#fff;padding:8px 12px;border-radius:9px;font:inherit;cursor:pointer}
 .foodex-nav-personalize-bar button[hidden],.foodex-nav-group[hidden],.foodex-nav-group.personal-hidden{display:none!important}
@@ -13,6 +22,10 @@
 aside.foodex-sidebar-collapsed .foodex-nav-personalize-bar{display:none}
 @media(max-width:1023px){aside.foodex-sidebar-collapsed .foodex-nav-personalize-bar{display:flex}}
 </style>
+<section class="foodex-nav-favorites" data-foodex-nav-favorites role="region" aria-label="{{ __('sidebar_personalization.favorites_title') }}" hidden>
+    <div class="foodex-nav-favorites-heading"><span aria-hidden="true">★</span>{{ __('sidebar_personalization.favorites_title') }}</div>
+    <div class="foodex-nav-favorites-list" data-foodex-nav-favorites-list></div>
+</section>
 <div class="foodex-nav-personalize-bar" data-foodex-nav-personalization>
     <button type="button" data-personalize-toggle aria-pressed="false">{{ __('sidebar_personalization.customize') }}</button>
     <button type="button" data-personalize-reset hidden>{{ __('sidebar_personalization.reset') }}</button>
@@ -23,7 +36,11 @@ aside.foodex-sidebar-collapsed .foodex-nav-personalize-bar{display:none}
     const shell = document.currentScript?.closest('aside');
     const nav = shell?.querySelector('[data-foodex-nav]');
     const toolbar = shell?.querySelector('[data-foodex-nav-personalization]');
-    if (!nav || !toolbar || toolbar.dataset.ready) return;
+    const favoritesPanel = shell?.querySelector('[data-foodex-nav-favorites]');
+    const favoritesList = favoritesPanel?.querySelector('[data-foodex-nav-favorites-list]');
+    if (!nav || !toolbar || !favoritesPanel || !favoritesList || toolbar.dataset.ready) return;
+    // Keep shortcuts above the authorized Sidebar tree, not below its end.
+    nav.before(favoritesPanel);
     toolbar.dataset.ready = '1';
     // Only the server-rendered details are eligible. Never generate a route
     // from localStorage; role/store/module changes take effect on every render.
@@ -39,6 +56,7 @@ aside.foodex-sidebar-collapsed .foodex-nav-personalize-bar{display:none}
         down: @json(__('sidebar_personalization.down')),
         hide: @json(__('sidebar_personalization.hide')),
         show: @json(__('sidebar_personalization.show')),
+        openFavorite: @json(__('sidebar_personalization.open_favorite')),
     };
     const toggle = toolbar.querySelector('[data-personalize-toggle]');
     const reset = toolbar.querySelector('[data-personalize-reset]');
@@ -68,6 +86,38 @@ aside.foodex-sidebar-collapsed .foodex-nav-personalize-bar{display:none}
             return saved < 0 ? groups.length + original.get(key) : saved;
         };
         return position(a) - position(b);
+    });
+    const renderFavorites = () => {
+        // Favorites are references to real, server-authorized business groups.
+        // No URL or visibility grant is ever reconstructed from localStorage.
+        const eligible = sorted().filter(group => prefs.favorites.includes(group.dataset.navGroup)
+            && (!prefs.hidden.includes(group.dataset.navGroup) || !!group.querySelector('[aria-current="page"]'))
+            && !!group.querySelector('a.foodex-nav-link'));
+        favoritesList.replaceChildren();
+        eligible.forEach(group => {
+            const title = group.querySelector(':scope > summary > span:nth-child(2)')?.textContent?.trim();
+            if (!title) return;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.dataset.favoriteGroup = group.dataset.navGroup;
+            button.textContent = title;
+            button.setAttribute('aria-label', names.openFavorite + ': ' + title);
+            favoritesList.appendChild(button);
+        });
+        favoritesPanel.hidden = favoritesList.childElementCount === 0;
+    };
+    favoritesList.addEventListener('click', event => {
+        const button = event.target.closest('button[data-favorite-group]');
+        if (!button || !favoritesList.contains(button)) return;
+        const group = groups.find(item => item.dataset.navGroup === button.dataset.favoriteGroup);
+        if (!group || !group.querySelector('a.foodex-nav-link')) return;
+        if (search?.value) {
+            search.value = '';
+            search.dispatchEvent(new Event('input', {bubbles:true}));
+        }
+        group.open = true;
+        group.querySelector(':scope > summary')?.focus({preventScroll:true});
+        group.scrollIntoView({block:'nearest', behavior:'smooth'});
     });
     const applyVisibility = () => {
         const needle = search?.value.trim().toLocaleLowerCase() || '';
@@ -107,6 +157,7 @@ aside.foodex-sidebar-collapsed .foodex-nav-personalize-bar{display:none}
             if (editing) group.open = true;
         });
         applyVisibility();
+        renderFavorites();
     };
     groups.forEach(group => {
         const row = document.createElement('div');
