@@ -20,7 +20,7 @@ return [
             'route' => 'admin.b2b.dashboard',
             'label' => 'admin.channels.b2b',
             'description' => 'admin.channels.b2b_description',
-            'global_roles' => ['SUPER_ADMIN', 'B2B_ADMIN', 'OPERATIONS', 'INVENTORY', 'FINANCE', 'PROCUREMENT_MANAGER', 'PROCUREMENT_BUYER', 'PROCUREMENT_APPROVER', 'CUSTOMER_SUPPORT', 'CUSTOMER_SERVICE_MANAGER', 'CUSTOMER_SERVICE_AGENT', 'CUSTOMER_SERVICE_SUPERVISOR'],
+            'global_roles' => ['SUPER_ADMIN', 'B2B_ADMIN', 'OPERATIONS', 'INVENTORY', 'FINANCE', 'B2B_ACCOUNT_MANAGER', 'PROCUREMENT_MANAGER', 'PROCUREMENT_BUYER', 'PROCUREMENT_APPROVER', 'CUSTOMER_SUPPORT', 'CUSTOMER_SERVICE_MANAGER', 'CUSTOMER_SERVICE_AGENT', 'CUSTOMER_SERVICE_SUPERVISOR'],
             'store_roles' => [],
         ],
         'b2c' => [
