@@ -19,6 +19,8 @@ final class V2ErpRuntimeInventoryTest extends TestCase
         $this->assertSame(2842, $report['issue']);
         $this->assertTrue($report['runtime_observed']);
         $this->assertFalse($report['production_deployment_verified']);
+        $this->assertSame(PHP_VERSION, $report['installed_production_dependency_versions']['php']);
+        $this->assertArrayHasKey('laravel/framework', $report['installed_production_dependency_versions']);
         $this->assertSame('not_attested', $report['acceptance']['environment_identity']);
         $this->assertSame('not_tested', $report['acceptance']['effective_role_permissions']);
         $this->assertSame('no_contract_change', $report['acceptance']['customer_driver_van_api_parity']);
