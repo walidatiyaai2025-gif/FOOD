@@ -30,6 +30,7 @@ final class EnterpriseActionCenterController extends Controller
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
+        abort_unless($this->navigation->canAccessMyWork($actor), 403);
 
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
@@ -165,6 +166,7 @@ final class EnterpriseActionCenterController extends Controller
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
+        abort_unless($this->navigation->canAccessMyWork($actor), 403);
 
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
@@ -243,6 +245,7 @@ final class EnterpriseActionCenterController extends Controller
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
+        abort_unless($this->navigation->canAccessMyWork($actor), 403);
 
         $validated = $request->validate([
             'decision' => ['required', Rule::in(['APPROVED', 'REJECTED'])],

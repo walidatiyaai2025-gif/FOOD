@@ -125,8 +125,12 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
         $this->assertFalse($groups->contains('key', 'finance'));
         $this->assertFalse($groups->contains('key', 'administration'));
 
+        $this->assertTrue(
+            $items->contains('key', 'enterprise_action_center'),
+            'Retail store admin must find authorized store-scoped My Work in Overview.',
+        );
+
         foreach ([
-            'enterprise_action_center',
             'enterprise_workspaces',
             'whatsapp_inbox',
             'treasury_master',
@@ -182,6 +186,53 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
                 "{$roleCode} must retain the Customer Service workspace entry.",
             );
         }
+    }
+
+    public function test_my_work_http_endpoints_enforce_the_same_platform_scope_as_sidebar(): void
+    {
+        $inactiveRetail = $this->retailAdmin('v2-my-work-inactive@example.test');
+        $inactiveRetail->forceFill(['is_active' => false])->save();
+
+        $deniedUsers = [
+            $inactiveRetail,
+            $this->globalUser('CUSTOMER_SERVICE_AGENT', 'v2-my-work-service@example.test'),
+        ];
+
+        foreach ($deniedUsers as $user) {
+            $this->assertFalse(
+                collect(app(AdminNavigation::class)->groupsFor($user))
+                    ->flatMap(fn (array $group) => $group['children'])
+                    ->contains('key', 'enterprise_action_center'),
+            );
+
+            $this->actingAs($user)
+                ->get(route('admin.action-center.index'))
+                ->assertForbidden();
+            $this->actingAs($user)
+                ->get(route('admin.action-center.export'))
+                ->assertForbidden();
+            $this->actingAs($user)
+                ->post(route('admin.action-center.decide', [
+                    'workflowRequest' => 999999,
+                    'stepCode' => 'approval',
+                ]), ['decision' => 'APPROVED'])
+                ->assertForbidden();
+        }
+    }
+
+    public function test_retail_store_admin_can_discover_and_open_scoped_my_work(): void
+    {
+        $user = $this->retailAdmin('v2-my-work-retail-allowed@example.test');
+
+        $this->assertTrue(app(AdminNavigation::class)->canAccessMyWork($user));
+        $items = collect(app(AdminNavigation::class)->groupsFor($user))
+            ->flatMap(fn (array $group) => $group['children']);
+
+        $this->assertTrue($items->contains('key', 'enterprise_action_center'));
+
+        $this->actingAs($user)
+            ->get(route('admin.action-center.index'))
+            ->assertOk();
     }
 
     public function test_global_platform_admin_keeps_platform_navigation_entries(): void
