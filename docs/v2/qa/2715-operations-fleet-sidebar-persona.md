@@ -10,6 +10,8 @@
 - Canonical entry points: `admin.operations.orders.index` (`order_operations`); `admin.field-operations.overview`, `fleet`, `vans`, `assignments`; `admin.driver-live-tracking.index`; `admin.b2b.module` (`drivers`); `admin.reports.index`. All are authorized independently of Sidebar rendering.
 - `FieldOperationsController` enforces `drivers.tracking.view` for fleet map and `drivers.b2b.view` for Van and assignment reads. The OPERATIONS role's baseline has `orders.view`, `drivers.b2b.view`, `drivers.tracking.view`, and `reports.view`, but does **not** carry `finance.view` or `drivers.b2c.view`. Do not convert visual reachability into finance or cross-channel privileges.
 - Retail operations are store-scoped: authorized B2C orders, driver operations and reporting only within the assigned retail store. No B2B Van/assignments access just because a role is named Operations.
+- **Fix:** `AdminNavigation::groupsFor` generated `b2c_incoming_orders` from the legitimate `orders.view` retail module, but the later `$retailB2cKeys` allow-list omitted that canonical key and silently removed it. Add only `b2c_incoming_orders` to the existing presentation allow-list; keep store-scoped `module()` + controller checks authoritative. This fix does not mint another store's permission. Shared file ownership was transferred explicitly from #2713 via GitHub issue comments before editing; the two commits change distinct hunks and require conflict review on merge.
+- **Known separate mismatch:** `field_ops_assignments` Sidebar can be exposed by `field_ops.manage` while its page requires `drivers.b2b.view`. Registered as V2 #3070, ready for a distinct worker after this shared file is released. Do not widen controller grants or mark this parent persona fully accepted until this defect is resolved.
 
 ## Automated test coverage
 
@@ -25,7 +27,7 @@
 
 | Surface | Assessment |
 | --- | --- |
-| Backend / Dashboard | New Laravel Feature regression over real navigation, routing and controller permission checks. Existing UI and domain behavior reused; no code-path modification |
+| Backend / Dashboard | Focused Laravel Feature regression plus one-line addition to the existing authorized Retail Sidebar item allow-list. Routes, controllers, permission model, and data stores unchanged |
 | Customer | Not affected: no checkout, cart, order status or Customer API contract change |
 | Driver | Not affected: no GPS, B2C dispatch, driver assignments, lifecycle or Flutter interface change |
 | Van | Not affected: no wholesale-only dispatch, Van assignment transition, visits, route execution or Flutter interface change |
