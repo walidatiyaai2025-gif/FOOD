@@ -96,6 +96,16 @@ final class OrderCustomerServiceDiscountService
                 ]);
             }
 
+            // A Customer Service role is not an approval authority for a
+            // complete write-off. Until a separate profitability/credit
+            // approval flow exists, never convert a positive-value order into
+            // a free order with an ordinary percentage concession.
+            if ($subtotal > 0 && $grandTotalAfter <= 0) {
+                throw ValidationException::withMessages([
+                    'percentage' => [__('customer_service_discount.write_off_approval_required')],
+                ]);
+            }
+
             $revision = ((int) ($previous->revision ?? 0)) + 1;
             $snapshot = (array) ($locked->pricing_snapshot ?? []);
             $snapshot['customer_service_discount'] = [
