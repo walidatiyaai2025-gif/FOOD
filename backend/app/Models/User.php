@@ -146,13 +146,15 @@ class User extends Authenticatable
         $storeEffect = $storeId === null
             ? null
             : $this->permissionOverrideEffect($permissionCode, 'store:'.$storeId);
-        if ($storeEffect !== null) {
-            return $storeEffect === 'allow' && $this->hasPermissionScopeContext($storeId);
-        }
-
         $globalEffect = $this->permissionOverrideEffect($permissionCode, 'global');
-        if ($globalEffect === 'deny') {
+
+        // Explicit DENY wins over every inherited grant and conflicting ALLOW,
+        // regardless of whether it was recorded globally or for this store.
+        if ($globalEffect === 'deny' || $storeEffect === 'deny') {
             return false;
+        }
+        if ($storeEffect === 'allow') {
+            return $this->hasPermissionScopeContext($storeId);
         }
         if ($globalEffect === 'allow') {
             if (! $this->permissionFitsActiveGlobalRoleDomain($permissionCode)) {
@@ -332,6 +334,12 @@ class User extends Authenticatable
             if ($row->scope_key === 'global'
                 && $row->effect === 'allow'
                 && (! $globalContext || ! $this->permissionFitsActiveGlobalRoleDomain((string) $row->code))) {
+                continue;
+            }
+
+            // A store ALLOW must never erase an earlier global DENY.
+            // A store DENY still overrides a global ALLOW.
+            if (($effects[$row->code] ?? null) === 'deny') {
                 continue;
             }
 
