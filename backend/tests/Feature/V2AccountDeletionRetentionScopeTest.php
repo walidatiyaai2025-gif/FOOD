@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\AccountDeletionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -128,7 +129,7 @@ final class V2AccountDeletionRetentionScopeTest extends TestCase
         $user = User::factory()->create();
         $this->legacyCustomer($user, 'b2c');
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
         try {
             app(AccountDeletionService::class)->request($user, 'wrong-password');
         } finally {
