@@ -47,9 +47,10 @@ class DriverB2BCutoverTest extends TestCase
         $this->postJson('/api/v1/driver/assignments/777/status', [
             'status' => 'accepted',
         ])->assertForbidden();
-        $this->postJson('/api/v1/driver/assignments/777/proof', [
-            'status' => 'delivered',
+        $this->postJson('/api/v1/driver/assignments/777/collections', [
+            'amount' => 10,
         ])->assertForbidden();
+        $this->getJson('/api/v1/driver/wallet')->assertForbidden();
     }
 
     public function test_legacy_b2b_driver_cannot_register_driver_push_device(): void
