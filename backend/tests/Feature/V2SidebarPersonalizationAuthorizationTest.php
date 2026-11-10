@@ -64,6 +64,8 @@ final class V2SidebarPersonalizationAuthorizationTest extends TestCase
         $this->assertStringContainsString("@include('admin._sidebar-personalization')", $sidebar);
         $this->assertStringContainsString("querySelectorAll(':scope > details[data-nav-group]')", $component);
         $this->assertStringContainsString('authorized.has(value)', $component);
+        $this->assertStringContainsString("group.classList.toggle('personal-hidden', personallyHidden)", $component);
+        $this->assertStringContainsString('.foodex-nav-group.personal-hidden{display:none!important}', $component);
         $this->assertStringContainsString('nav.appendChild(group)', $component);
         $this->assertStringContainsString('group.querySelector(\'[aria-current="page"]\')', $component);
         $this->assertStringNotContainsString("createElement('a')", $component);
