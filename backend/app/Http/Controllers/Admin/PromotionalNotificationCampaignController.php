@@ -11,6 +11,7 @@ use App\Services\NotificationAudienceReviewService;
 use App\Services\NotificationCampaignDispatcher;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
+use App\Support\TenantContextResolver;
 use App\Support\EngagementDestinationCatalog;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -36,12 +37,13 @@ final class PromotionalNotificationCampaignController extends Controller
 
     public function index(Request $request, NotificationAudienceReviewService $reviews): View
     {
-        $actor = $this->authorizeAccess($request);
+        $actor = $this->authorizeAccess($request, 'notifications.view');
+        $canManage = $this->canAccess($actor, 'notifications.manage');
         App::setLocale(in_array($actor->locale, ['ar', 'en'], true) ? $actor->locale : 'ar');
         $search = trim((string) $request->query('q', ''));
         $status = trim((string) $request->query('status', ''));
 
-        $campaigns = $this->visibleCampaigns($actor)
+        $campaigns = $this->visibleCampaigns($actor, 'notifications.view')
             ->with(['runs' => fn ($query) => $query->latest('id')->limit(10)])
             ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $nested) use ($search): void {
                 $nested->where('name', 'like', '%'.$search.'%')
@@ -58,7 +60,7 @@ final class PromotionalNotificationCampaignController extends Controller
         $reviewSummary = null;
         $reviewToken = null;
         $reviewStoreName = null;
-        $reviewCampaignId = max(0, (int) $request->query('review_campaign', 0));
+        $reviewCampaignId = $canManage ? max(0, (int) $request->query('review_campaign', 0)) : 0;
         $requestedReviewAction = (string) $request->query('review_action', '');
 
         if ($reviewCampaignId > 0 && in_array($requestedReviewAction, ['activate', 'send_now'], true)) {
@@ -81,15 +83,14 @@ final class PromotionalNotificationCampaignController extends Controller
             'reviewStoreName' => $reviewStoreName,
             'search' => $search,
             'status' => $status,
+            'canManage' => $canManage,
             'canB2b' => $actor->hasRole('SUPER_ADMIN') || $actor->hasRole('B2B_ADMIN'),
             'canAllChannels' => $actor->hasRole('SUPER_ADMIN'),
-            'b2bStores' => $this->allowedStores($actor, 'b2b'),
-            'b2cStores' => $this->allowedStores($actor, 'b2c'),
-            'userTargets' => User::query()
-                ->select(['id', 'name', 'email'])
-                ->orderBy('name')
-                ->orderBy('email')
-                ->get(),
+            'b2bStores' => $canManage ? $this->allowedStores($actor, 'b2b') : [],
+            'b2cStores' => $canManage ? $this->allowedStores($actor, 'b2c') : [],
+            'userTargets' => $canManage
+                ? User::query()->select(['id', 'name', 'email'])->orderBy('name')->orderBy('email')->get()
+                : collect(),
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
             'navContext' => 'notification_campaigns',
@@ -295,24 +296,39 @@ final class PromotionalNotificationCampaignController extends Controller
         return back()->with('status', __('notifications.campaign_dispatched_now'));
     }
 
-    private function authorizeAccess(Request $request): User
+    private function authorizeAccess(Request $request, string $permission = 'notifications.manage'): User
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
+        abort_unless($this->canAccess($actor, $permission), 403);
 
-        $hasGlobal = $actor->hasPermission('notifications.manage');
-        $hasStoreScope = $actor->storeRoleAssignments()
+        return $actor;
+    }
+
+    private function canAccess(User $actor, string $permission): bool
+    {
+        if ($actor->hasPermission($permission)) {
+            return true;
+        }
+
+        // Match AdminNavigation::routeItemAdvertising: store-scoped grants must
+        // belong to an authorized active B2C store with advertising enabled.
+        $retailStoreIds = app(TenantContextResolver::class)->retailStoreIds($actor);
+        if ($retailStoreIds === []) {
+            return false;
+        }
+
+        return $actor->storeRoleAssignments()
+            ->whereIn('store_id', $retailStoreIds)
             ->whereHas('store', fn ($query) => $query
                 ->where('stores.is_active', true)
                 ->where('stores.advertising_enabled', true))
             ->whereHas('role', fn ($query) => $query
                 ->where('roles.is_active', true)
-                ->whereHas('permissions', fn ($permissions) => $permissions->where('permissions.code', 'notifications.manage')))
+                ->where('roles.scope', 'store')
+                ->whereHas('permissions', fn ($permissions) => $permissions
+                    ->where('permissions.code', $permission)))
             ->exists();
-
-        abort_unless($hasGlobal || $hasStoreScope, 403);
-
-        return $actor;
     }
 
     private function authorizeCampaign(Request $request, NotificationCampaign $campaign): User
@@ -324,14 +340,14 @@ final class PromotionalNotificationCampaignController extends Controller
     }
 
     /** @return Builder<NotificationCampaign> */
-    private function visibleCampaigns(User $actor): Builder
+    private function visibleCampaigns(User $actor, string $permission = 'notifications.manage'): Builder
     {
         if ($actor->hasRole('SUPER_ADMIN')) {
             return NotificationCampaign::query();
         }
 
-        $b2cStoreIds = $this->allowedB2cStoreIds($actor);
-        $canB2b = $actor->hasRole('B2B_ADMIN') && $actor->hasPermission('notifications.manage');
+        $b2cStoreIds = $this->allowedB2cStoreIds($actor, $permission);
+        $canB2b = $actor->hasRole('B2B_ADMIN') && $actor->hasPermission($permission);
 
         return NotificationCampaign::query()->where(function (Builder $query) use ($canB2b, $b2cStoreIds): void {
             if ($canB2b) {
@@ -481,9 +497,9 @@ final class PromotionalNotificationCampaignController extends Controller
     }
 
     /** @return list<int> */
-    private function allowedB2cStoreIds(User $actor): array
+    private function allowedB2cStoreIds(User $actor, string $permission = 'notifications.manage'): array
     {
-        $ids = app(OperationalTenantScope::class)->allowedStoreIds($actor, 'notifications.manage', 'b2c');
+        $ids = app(OperationalTenantScope::class)->allowedStoreIds($actor, $permission, 'b2c');
 
         return DB::table('stores')
             ->whereIn('id', $ids)
