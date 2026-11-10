@@ -94,17 +94,19 @@ final class V2CustomerServiceOrderActionBoundariesTest extends TestCase
             app()->setLocale($locale);
             $agent->forceFill(['locale' => $locale])->save();
 
+            // managedOrder() deliberately conceals records outside the
+            // actor's orders.manage scope as 404; it is not a role grant.
             $this->actingAs($agent)
                 ->patch(route('admin.operations.orders.update', ['order' => $orderId]), [
                     'status' => 'delivered',
                 ])
-                ->assertForbidden();
+                ->assertNotFound();
 
             $this->actingAs($agent)
                 ->post(route('admin.operations.orders.transition', ['order' => $orderId]), [
                     'status' => 'cancelled',
                 ])
-                ->assertForbidden();
+                ->assertNotFound();
 
             $this->actingAs($agent)
                 ->patch(route('admin.operations.orders.customer-service-owner', ['order' => $orderId]), [
