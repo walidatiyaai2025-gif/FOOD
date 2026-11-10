@@ -27,11 +27,16 @@ class AdminShellController extends Controller
             return redirect()->route('admin.erp.customer-service');
         }
 
-        if (! $user->hasRole('SUPER_ADMIN')) {
-            $workspaceTarget = $this->workspaceLanding->urlFor($user, $request);
-            if ($workspaceTarget !== null) {
-                return redirect()->to($workspaceTarget);
-            }
+        // Platform administrators are governance/control-plane identities, not
+        // default operators for Wholesale or Retail. Keep explicit authorized
+        // deep links and scoped support access separate from the daily landing.
+        if ($user->hasRole('SUPER_ADMIN')) {
+            return redirect()->route('admin.administration.index');
+        }
+
+        $workspaceTarget = $this->workspaceLanding->urlFor($user, $request);
+        if ($workspaceTarget !== null) {
+            return redirect()->to($workspaceTarget);
         }
 
         return $this->render($request);

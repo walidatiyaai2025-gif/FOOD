@@ -52,7 +52,9 @@ final class CurrentMainPerformanceBaselineTest extends TestCase
             'dashboard',
             function (mixed $context): void {
                 $this->assertNull($context);
-                $this->get('/admin')->assertOk();
+                // P130 sends privileged /admin to the canonical control plane.
+                // Benchmark that actual landing, not unrelated Wholesale operations.
+                $this->get('/admin/administration')->assertOk();
             },
             'smoke',
         );
