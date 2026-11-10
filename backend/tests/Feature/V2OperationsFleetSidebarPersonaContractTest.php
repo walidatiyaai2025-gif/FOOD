@@ -103,15 +103,20 @@ final class V2OperationsFleetSidebarPersonaContractTest extends TestCase
             $actor = $actor->fresh();
 
             $keys = $this->visibleItems($actor);
-            $this->assertArrayHasKey('b2c_incoming_orders', $keys);
+            $this->assertArrayHasKey('b2c_orders', $keys);
+            $this->assertArrayNotHasKey('b2c_incoming_orders', $keys);
             $this->assertArrayNotHasKey('field_ops_vans', $keys);
             $this->assertArrayNotHasKey('field_ops_assignments', $keys);
             $this->assertArrayNotHasKey('b2b_drivers', $keys);
 
             $this->actingAs($actor)
-                ->get(route('admin.b2c.module', ['module' => 'incoming_orders', 'store_id' => $ownStore], false))
+                ->get(route('admin.b2c.module', ['module' => 'orders', 'store_id' => $ownStore], false))
                 ->assertOk()
                 ->assertSee('dir="'.$direction.'"', false);
+
+            $this->actingAs($actor)
+                ->get(route('admin.b2c.module', ['module' => 'incoming_orders', 'store_id' => $ownStore], false))
+                ->assertNotFound();
 
             $foreign = $this->actingAs($actor)->get(route('admin.b2c.module', [
                 'module' => 'incoming_orders',
