@@ -11,6 +11,7 @@ use App\Enums\StoreBusinessProfile;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\AdminSidebarManager;
+use App\Services\OperationalTenantScope;
 use Illuminate\Support\Facades\Route;
 
 class AdminNavigation
@@ -756,7 +757,7 @@ class AdminNavigation
         // tenant scope applies explicit per-user global/store DENYs and active
         // B2C-store boundaries before declaring this page navigable. A raw
         // permission_role EXISTS here could expose a dead, denied route.
-        return app(\App\Services\OperationalTenantScope::class)
+        return app(OperationalTenantScope::class)
             ->allowedStoreIds($user, $permission, 'b2c') !== [];
     }
 
