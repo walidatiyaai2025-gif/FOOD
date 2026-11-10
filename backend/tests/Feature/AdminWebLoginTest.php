@@ -333,14 +333,14 @@ class AdminWebLoginTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_super_admin_normal_login_defaults_to_b2b_dashboard(): void
+    public function test_super_admin_normal_login_defaults_to_administration_control_plane(): void
     {
         $user = $this->userWithGlobalRole('SUPER_ADMIN');
 
         $this->post('/admin/b2c/login', [
             'email' => $user->email,
             'password' => 'correct-password',
-        ])->assertRedirect(route('admin.b2b.dashboard'));
+        ])->assertRedirect(route('admin.administration.index'));
 
         $this->assertAuthenticatedAs($user);
     }
