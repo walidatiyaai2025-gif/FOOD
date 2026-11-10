@@ -51,7 +51,7 @@ class UiRouteConvergenceRegistryTest(unittest.TestCase):
         errors = convergence.validate(ROOT, registry)
 
         self.assertTrue(
-            any("unscoped B2B function" in error for error in errors),
+            any("forbidden B2B function" in error for error in errors),
             errors,
         )
 

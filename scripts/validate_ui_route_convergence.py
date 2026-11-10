@@ -118,14 +118,21 @@ def validate(root: Path, registry: dict[str, Any]) -> list[str]:
             function_id = str(function.get("id", ""))
             route = str(function.get("route", ""))
             if function_id.startswith("driver.b2b") or "/driver/b2b/" in route:
-                if function.get("scope") != "legacy_transition_pending_2939":
-                    errors.append(
-                        f"Driver route registry exposes unscoped B2B function: {function_id or route}"
-                    )
-        if "Van-only" not in str(driver.get("fulfillment_policy", "")):
+                errors.append(
+                    f"Driver route registry exposes forbidden B2B function: {function_id or route}"
+                )
+        if "B2C-only" not in str(driver.get("fulfillment_policy", "")):
             errors.append(
-                "Driver route registry must keep B2B Van-only fulfillment."
+                "Driver route registry must preserve B2C-only execution and Van-only B2B dispatch."
             )
+        legacy_denied = {
+            str(item.get("id", ""))
+            for item in driver.get("legacy_routes_denied", [])
+            if isinstance(item, dict)
+        }
+        for legacy_id in ("driver.b2b.home", "driver.b2b.deliveries", "driver.b2b.notifications"):
+            if legacy_id not in legacy_denied:
+                errors.append(f"Legacy B2B Driver route not explicitly denied: {legacy_id}")
         source = driver.get("authority_source")
         if isinstance(source, str) and (root / source).is_file():
             navigation = _read(root, source)
@@ -134,9 +141,7 @@ def validate(root: Path, registry: dict[str, Any]) -> list[str]:
                 "DriverRoutes.b2cDeliveries",
                 "DriverRoutes.b2cNotifications",
                 "DriverRoutes.b2cWallet",
-                "DriverRoutes.b2bHome",
-                "DriverRoutes.b2bDeliveries",
-                "DriverRoutes.b2bNotifications",
+                "if (channel != DriverChannel.b2c)",
                 "DriverJourneyRuntimePage(",
                 "DriverNotificationPage(",
                 "DriverWalletPage(",
