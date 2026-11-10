@@ -11,7 +11,9 @@
       "title": "V2 | AUTH P006 — السايدبار يعكس الوصول الحقيقي لا Visibility مستقل",
       "type": "functional",
       "issue_number": 2751,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2751"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2751",
+      "document_source_pointer": "Native DOCX paragraph P005",
+      "matrix_key": "P006"
     },
     {
       "id": "P007",
@@ -20,7 +22,9 @@
       "title": "V2 | AUTH P007 — إظهار رابط الصفحة تلقائيًا عندما يسمح Route والنطاق",
       "type": "functional",
       "issue_number": 2752,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2752"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2752",
+      "document_source_pointer": "Native DOCX paragraph P006",
+      "matrix_key": "P007"
     },
     {
       "id": "P008",
@@ -29,7 +33,9 @@
       "title": "V2 | AUTH P008 — إخفاء غير المصرح ورفض الوصول المباشر 403",
       "type": "functional",
       "issue_number": 2753,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2753"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2753",
+      "document_source_pointer": "Native DOCX paragraph P007",
+      "matrix_key": "P008"
     },
     {
       "id": "P009",
@@ -38,7 +44,9 @@
       "title": "V2 | AUTH P009 — احتساب Effective Permission من الأدوار العامة والمتاجر وAllow/Deny والنطاق",
       "type": "functional",
       "issue_number": 2754,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2754"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2754",
+      "document_source_pointer": "Native DOCX paragraph P008",
+      "matrix_key": "P009"
     },
     {
       "id": "P010",
@@ -47,7 +55,9 @@
       "title": "V2 | AUTH P010 — إظهار المجموعات فقط عند وجود روابط مأذونة وعدم استخدام is_enabled",
       "type": "functional",
       "issue_number": 2755,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2755"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2755",
+      "document_source_pointer": "Native DOCX paragraph P009",
+      "matrix_key": "P010"
     },
     {
       "id": "P011",
@@ -56,7 +66,9 @@
       "title": "V2 | AUTH P011 — قصر Sidebar Layout على ترتيب وتجميع وتسمية وأيقونة",
       "type": "functional",
       "issue_number": 2756,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2756"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2756",
+      "document_source_pointer": "Native DOCX paragraph P010",
+      "matrix_key": "P011"
     },
     {
       "id": "P012",
@@ -65,7 +77,9 @@
       "title": "V2 | AUTH P012 — سياسة صريحة لوصلات المساعدة والملف الشخصي",
       "type": "functional",
       "issue_number": 2757,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2757"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2757",
+      "document_source_pointer": "Native DOCX paragraph P011",
+      "matrix_key": "P012"
     },
     {
       "id": "P013",
@@ -74,7 +88,9 @@
       "title": "V2 | AUTH P013 — دالة قرار واحدة RouteAuthorized + Permission + Scope + Module",
       "type": "functional",
       "issue_number": 2758,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2758"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2758",
+      "document_source_pointer": "Native DOCX paragraph P012",
+      "matrix_key": "P013"
     },
     {
       "id": "T015R01",
@@ -83,7 +99,9 @@
       "title": "V2 | AUDIT T015R01 — التحقق من حسابات المستخدمين النشطة وتصنيف الـ20 حسابًا",
       "type": "functional",
       "issue_number": 2759,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2759"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2759",
+      "document_source_pointer": "Table 1, data row 1",
+      "matrix_key": "T015R01"
     },
     {
       "id": "T015R02",
@@ -92,7 +110,9 @@
       "title": "V2 | AUDIT T015R02 — جرد 48 دورًا و21 مستخدمًا بالفعل في التعيينات",
       "type": "functional",
       "issue_number": 2760,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2760"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2760",
+      "document_source_pointer": "Table 1, data row 2",
+      "matrix_key": "T015R02"
     },
     {
       "id": "T015R03",
@@ -101,7 +121,9 @@
       "title": "V2 | AUDIT T015R03 — جرد 146 صلاحية و773 علاقة دور-صلاحية",
       "type": "functional",
       "issue_number": 2761,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2761"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2761",
+      "document_source_pointer": "Table 1, data row 3",
+      "matrix_key": "T015R03"
     },
     {
       "id": "T015R04",
@@ -110,7 +132,9 @@
       "title": "V2 | AUDIT T015R04 — تدقيق 31 تعيين دور عام و3 تعيينات متجر",
       "type": "functional",
       "issue_number": 2762,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2762"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2762",
+      "document_source_pointer": "Table 1, data row 4",
+      "matrix_key": "T015R04"
     },
     {
       "id": "T015R05",
@@ -119,7 +143,9 @@
       "title": "V2 | AUDIT T015R05 — تصنيف 7 حسابات دون دور بلا حذف أو منح تلقائي",
       "type": "functional",
       "issue_number": 2763,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2763"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2763",
+      "document_source_pointer": "Table 1, data row 5",
+      "matrix_key": "T015R05"
     },
     {
       "id": "T015R06",
@@ -128,7 +154,9 @@
       "title": "V2 | AUDIT T015R06 — مقارنة 13 مجموعة و61 عنصرًا و25 تعطيلًا مسجلًا",
       "type": "functional",
       "issue_number": 2764,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2764"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2764",
+      "document_source_pointer": "Table 1, data row 6",
+      "matrix_key": "T015R06"
     },
     {
       "id": "T015R07",
@@ -137,7 +165,9 @@
       "title": "V2 | AUDIT T015R07 — إزالة اعتماد نظام الوصول على جدول Role Visibility الفارغ",
       "type": "functional",
       "issue_number": 2765,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2765"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2765",
+      "document_source_pointer": "Table 1, data row 7",
+      "matrix_key": "T015R07"
     },
     {
       "id": "T015R08",
@@ -146,7 +176,9 @@
       "title": "V2 | AUDIT T015R08 — مراجعة أثر عدم وجود User Permission Overrides في اللقطة",
       "type": "functional",
       "issue_number": 2766,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2766"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2766",
+      "document_source_pointer": "Table 1, data row 8",
+      "matrix_key": "T015R08"
     },
     {
       "id": "T019R01",
@@ -155,7 +187,9 @@
       "title": "V2 | AUDIT T019R01 — فصل التعيينات المتداخلة في حساب info وحماية الوصول",
       "type": "functional",
       "issue_number": 2767,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2767"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2767",
+      "document_source_pointer": "Table 2, data row 1",
+      "matrix_key": "T019R01"
     },
     {
       "id": "T019R02",
@@ -164,7 +198,9 @@
       "title": "V2 | AUDIT T019R02 — فصل مهام الشراء والمحاسبة والخزينة في foodexaccount",
       "type": "functional",
       "issue_number": 2768,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2768"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2768",
+      "document_source_pointer": "Table 2, data row 2",
+      "matrix_key": "T019R02"
     },
     {
       "id": "T019R03",
@@ -173,7 +209,9 @@
       "title": "V2 | AUDIT T019R03 — تبسيط أدوار خدمة العملاء المتداخلة لحساب export",
       "type": "functional",
       "issue_number": 2769,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2769"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2769",
+      "document_source_pointer": "Table 2, data row 3",
+      "matrix_key": "T019R03"
     },
     {
       "id": "T019R04",
@@ -182,7 +220,9 @@
       "title": "V2 | AUDIT T019R04 — تدقيق Supervisor وصلاحياته 37 في الحساب rehab",
       "type": "functional",
       "issue_number": 2770,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2770"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2770",
+      "document_source_pointer": "Table 2, data row 4",
+      "matrix_key": "T019R04"
     },
     {
       "id": "T019R05",
@@ -191,7 +231,9 @@
       "title": "V2 | AUDIT T019R05 — فحص التقييد بمتجر 2 للمستخدم store1",
       "type": "functional",
       "issue_number": 2771,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2771"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2771",
+      "document_source_pointer": "Table 2, data row 5",
+      "matrix_key": "T019R05"
     },
     {
       "id": "T019R06",
@@ -200,7 +242,9 @@
       "title": "V2 | AUDIT T019R06 — تحديد نوع الحسابات السبعة بلا دور وعدم تعميمها كمشكلة",
       "type": "functional",
       "issue_number": 2772,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2772"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2772",
+      "document_source_pointer": "Table 2, data row 6",
+      "matrix_key": "T019R06"
     },
     {
       "id": "P022",
@@ -209,7 +253,9 @@
       "title": "V2 | AUTH P022 — إصلاح AdminSidebarManager بعد تطبيق مظهر القائمة على قرار الإذن",
       "type": "functional",
       "issue_number": 2773,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2773"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2773",
+      "document_source_pointer": "Native DOCX paragraph P019",
+      "matrix_key": "P022"
     },
     {
       "id": "P023",
@@ -218,7 +264,9 @@
       "title": "V2 | AUTH P023 — إلغاء أثر admin_sidebar_groups/items/role_visibility الأمني",
       "type": "functional",
       "issue_number": 2774,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2774"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2774",
+      "document_source_pointer": "Native DOCX paragraph P020",
+      "matrix_key": "P023"
     },
     {
       "id": "P024",
@@ -227,7 +275,9 @@
       "title": "V2 | AUTH P024 — إزالة OR المرئي للأدوار واستبداله بقرار RBAC الفعلي",
       "type": "functional",
       "issue_number": 2775,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2775"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2775",
+      "document_source_pointer": "Native DOCX paragraph P021",
+      "matrix_key": "P024"
     },
     {
       "id": "P025",
@@ -236,7 +286,9 @@
       "title": "V2 | AUTH P025 — توحيد PLATFORM_OWNER مع قرار صلاحيات صريح",
       "type": "functional",
       "issue_number": 2776,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2776"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2776",
+      "document_source_pointer": "Native DOCX paragraph P022",
+      "matrix_key": "P025"
     },
     {
       "id": "P026",
@@ -245,7 +297,9 @@
       "title": "V2 | AUDIT P026 — مطابقة قائمة الكود والإنتاج الفعلية قبل تشخيص الحجب",
       "type": "functional",
       "issue_number": 2777,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2777"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2777",
+      "document_source_pointer": "Native DOCX paragraph P023",
+      "matrix_key": "P026"
     },
     {
       "id": "T028R01",
@@ -254,7 +308,9 @@
       "title": "V2 | AUTH T028R01 — استعادة ERP وfield_operations عندما يأذن الوصول الحقيقي",
       "type": "functional",
       "issue_number": 2778,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2778"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2778",
+      "document_source_pointer": "Table 3, data row 1",
+      "matrix_key": "T028R01"
     },
     {
       "id": "T028R02",
@@ -263,7 +319,9 @@
       "title": "V2 | AUTH T028R02 — عدم حجب صفحات منتجات ومخزون B2B/B2C عبر is_enabled",
       "type": "functional",
       "issue_number": 2779,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2779"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2779",
+      "document_source_pointer": "Table 3, data row 2",
+      "matrix_key": "T028R02"
     },
     {
       "id": "T028R03",
@@ -272,7 +330,9 @@
       "title": "V2 | AUTH T028R03 — عدم إخفاء Action Center وWorkspaces وTreasury عبر الشكل",
       "type": "functional",
       "issue_number": 2780,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2780"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2780",
+      "document_source_pointer": "Table 3, data row 3",
+      "matrix_key": "T028R03"
     },
     {
       "id": "T028R04",
@@ -281,7 +341,9 @@
       "title": "V2 | AUTH T028R04 — اختبار النتيجة عند غياب قواعد ظهور دور مستقلة",
       "type": "functional",
       "issue_number": 2781,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2781"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2781",
+      "document_source_pointer": "Table 3, data row 4",
+      "matrix_key": "T028R04"
     },
     {
       "id": "P031",
@@ -290,7 +352,9 @@
       "title": "V2 | SECURITY P031 — عزل Wholesale عن Retail وعن المتجر الآخر في كل Route",
       "type": "functional",
       "issue_number": 2782,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2782"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2782",
+      "document_source_pointer": "Native DOCX paragraph P027",
+      "matrix_key": "P031"
     },
     {
       "id": "P032",
@@ -299,7 +363,9 @@
       "title": "V2 | SECURITY P032 — ربط View/Create/Update/Delete/Approve/Execute بإذن دقيق",
       "type": "functional",
       "issue_number": 2783,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2783"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2783",
+      "document_source_pointer": "Native DOCX paragraph P028",
+      "matrix_key": "P032"
     },
     {
       "id": "P033",
@@ -308,7 +374,9 @@
       "title": "V2 | SECURITY P033 — منع شراء أو خزينة من تجاوز SoD وحدود التفويض",
       "type": "functional",
       "issue_number": 2784,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2784"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2784",
+      "document_source_pointer": "Native DOCX paragraph P029",
+      "matrix_key": "P033"
     },
     {
       "id": "P034",
@@ -317,7 +385,9 @@
       "title": "V2 | SECURITY P034 — تفسير منع Module وEntitlement ونطاق الشركة في التشخيص",
       "type": "functional",
       "issue_number": 2785,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2785"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2785",
+      "document_source_pointer": "Native DOCX paragraph P030",
+      "matrix_key": "P034"
     },
     {
       "id": "P035",
@@ -326,7 +396,9 @@
       "title": "V2 | SECURITY P035 — اختبارات تفصل حماية الخادم عن إخفاء رابط القائمة",
       "type": "functional",
       "issue_number": 2786,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2786"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2786",
+      "document_source_pointer": "Native DOCX paragraph P031",
+      "matrix_key": "P035"
     },
     {
       "id": "T037R01",
@@ -335,7 +407,9 @@
       "title": "V2 | AUTH T037R01 — Sidebar Inventory شامل Route وAction وPermission وScope وModule",
       "type": "functional",
       "issue_number": 2787,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2787"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2787",
+      "document_source_pointer": "Table 4, data row 1",
+      "matrix_key": "T037R01"
     },
     {
       "id": "T037R02",
@@ -344,7 +418,9 @@
       "title": "V2 | AUTH T037R02 — Navigation يعتمد Authorizer الحقيقي بدلاً من Visibility",
       "type": "functional",
       "issue_number": 2788,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2788"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2788",
+      "document_source_pointer": "Table 4, data row 2",
+      "matrix_key": "T037R02"
     },
     {
       "id": "T037R03",
@@ -353,7 +429,9 @@
       "title": "V2 | RBAC T037R03 — أقل صلاحيات لكل وظيفة وتنظيف info وfoodexaccount وexport",
       "type": "functional",
       "issue_number": 2789,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2789"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2789",
+      "document_source_pointer": "Table 4, data row 3",
+      "matrix_key": "T037R03"
     },
     {
       "id": "T037R04",
@@ -362,7 +440,9 @@
       "title": "V2 | QA T037R04 — مصفوفة مستخدمين وأدوار ومتاجر لاختبار قائمة وروابط HTTP",
       "type": "functional",
       "issue_number": 2790,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2790"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2790",
+      "document_source_pointer": "Table 4, data row 4",
+      "matrix_key": "T037R04"
     },
     {
       "id": "T037R05",
@@ -371,7 +451,9 @@
       "title": "V2 | RELEASE T037R05 — تحديث آمن عبر PR وCI وUpdate ZIP والنسخ الاحتياطي",
       "type": "functional",
       "issue_number": 2791,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2791"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2791",
+      "document_source_pointer": "Table 4, data row 5",
+      "matrix_key": "T037R05"
     },
     {
       "id": "P040",
@@ -380,7 +462,9 @@
       "title": "V2 | QA P040 — إثبات الظهور والوصول الصحيح حتى إن عطّل Sidebar Layout",
       "type": "functional",
       "issue_number": 2792,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2792"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2792",
+      "document_source_pointer": "Native DOCX paragraph P035",
+      "matrix_key": "P040"
     },
     {
       "id": "P041",
@@ -389,7 +473,9 @@
       "title": "V2 | QA P041 — إثبات اختفاء الرابط و403 عند Deny أو فقد إذن",
       "type": "functional",
       "issue_number": 2793,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2793"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2793",
+      "document_source_pointer": "Native DOCX paragraph P036",
+      "matrix_key": "P041"
     },
     {
       "id": "P042",
@@ -398,7 +484,9 @@
       "title": "V2 | QA P042 — إثبات تعدد الأدوار المتعارضة دون قواعد ظهور إضافية",
       "type": "functional",
       "issue_number": 2794,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2794"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2794",
+      "document_source_pointer": "Native DOCX paragraph P037",
+      "matrix_key": "P042"
     },
     {
       "id": "P043",
@@ -407,7 +495,9 @@
       "title": "V2 | QA P043 — منع دور متجر تجزئة 2 من رابط أو Route متجر 3",
       "type": "functional",
       "issue_number": 2795,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2795"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2795",
+      "document_source_pointer": "Native DOCX paragraph P038",
+      "matrix_key": "P043"
     },
     {
       "id": "P044",
@@ -416,7 +506,9 @@
       "title": "V2 | QA P044 — إخفاء العنصر عند Module أو Entitlement غير متاح",
       "type": "functional",
       "issue_number": 2796,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2796"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2796",
+      "document_source_pointer": "Native DOCX paragraph P039",
+      "matrix_key": "P044"
     },
     {
       "id": "P045",
@@ -425,7 +517,9 @@
       "title": "V2 | QA P045 — إخفاء المجموعة الفارغة وتجنب المسارات الميتة",
       "type": "functional",
       "issue_number": 2797,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2797"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2797",
+      "document_source_pointer": "Native DOCX paragraph P040",
+      "matrix_key": "P045"
     },
     {
       "id": "P046",
@@ -434,7 +528,9 @@
       "title": "V2 | QA P046 — حدود SUPER_ADMIN وPLATFORM_OWNER للعمليات الحساسة",
       "type": "functional",
       "issue_number": 2798,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2798"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2798",
+      "document_source_pointer": "Native DOCX paragraph P041",
+      "matrix_key": "P046"
     },
     {
       "id": "P047",
@@ -443,7 +539,9 @@
       "title": "V2 | QA P047 — مصفوفة AR/EN وموبايل وديسكتوب وترتيب القائمة",
       "type": "functional",
       "issue_number": 2799,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2799"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2799",
+      "document_source_pointer": "Native DOCX paragraph P042",
+      "matrix_key": "P047"
     },
     {
       "id": "P049",
@@ -452,7 +550,9 @@
       "title": "V2 | RBAC P049 — تحويل Sidebar Role Access إلى محرر شجرة صلاحيات حقيقي",
       "type": "functional",
       "issue_number": 2800,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2800"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2800",
+      "document_source_pointer": "Native DOCX paragraph P044",
+      "matrix_key": "P049"
     },
     {
       "id": "P050",
@@ -461,7 +561,9 @@
       "title": "V2 | SIDEBAR P050 — فصل Sidebar Layout عن قرار السماح للروابط",
       "type": "functional",
       "issue_number": 2801,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2801"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2801",
+      "document_source_pointer": "Native DOCX paragraph P045",
+      "matrix_key": "P050"
     },
     {
       "id": "P051",
@@ -470,7 +572,9 @@
       "title": "V2 | GOV P051 — اعتماد تشكيل الأدوار النهائية وتقسيم الشراء والمحاسبة والخزينة",
       "type": "functional",
       "issue_number": 2802,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2802"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2802",
+      "document_source_pointer": "Native DOCX paragraph P046",
+      "matrix_key": "P051"
     },
     {
       "id": "P052",
@@ -479,7 +583,9 @@
       "title": "V2 | GOV P052 — اعتماد تصنيف الحسابات بلا أدوار إدارية",
       "type": "functional",
       "issue_number": 2803,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2803"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2803",
+      "document_source_pointer": "Native DOCX paragraph P047",
+      "matrix_key": "P052"
     },
     {
       "id": "P053",
@@ -488,7 +594,9 @@
       "title": "V2 | AUDIT P053 — التحقق من إصدار Dashboard الحي وتطابقه مع GitHub",
       "type": "functional",
       "issue_number": 2804,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2804"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2804",
+      "document_source_pointer": "Native DOCX paragraph P048",
+      "matrix_key": "P053"
     },
     {
       "id": "P054",
@@ -497,7 +605,9 @@
       "title": "V2 | SECURITY P054 — سياسات مستقلة لاستثناءات الوظائف الحساسة",
       "type": "functional",
       "issue_number": 2805,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2805"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2805",
+      "document_source_pointer": "Native DOCX paragraph P049",
+      "matrix_key": "P054"
     },
     {
       "id": "P068",
@@ -506,7 +616,9 @@
       "title": "V2 | USER P068 — إجراء حذف المستخدم من قائمة ⋯ مع فصل تعطيل وأرشفة وحذف نهائي",
       "type": "functional",
       "issue_number": 2806,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2806"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2806",
+      "document_source_pointer": "Native DOCX paragraph P061",
+      "matrix_key": "P068"
     },
     {
       "id": "P069",
@@ -515,7 +627,9 @@
       "title": "V2 | USER P069 — تعطيل الدخول والجلسات والتوكنات فورًا مع بقاء التاريخ",
       "type": "functional",
       "issue_number": 2807,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2807"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2807",
+      "document_source_pointer": "Native DOCX paragraph P062",
+      "matrix_key": "P069"
     },
     {
       "id": "P070",
@@ -524,7 +638,9 @@
       "title": "V2 | USER P070 — أرشفة أو حذف منطقي مع بقاء الهوية والارتباطات والتدقيق",
       "type": "functional",
       "issue_number": 2808,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2808"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2808",
+      "document_source_pointer": "Native DOCX paragraph P063",
+      "matrix_key": "P070"
     },
     {
       "id": "P071",
@@ -533,7 +649,9 @@
       "title": "V2 | USER P071 — حذف نهائي مشروط بالارتباطات والاحتفاظ ومنع Cascade للماليات",
       "type": "functional",
       "issue_number": 2809,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2809"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2809",
+      "document_source_pointer": "Native DOCX paragraph P064",
+      "matrix_key": "P071"
     },
     {
       "id": "P072",
@@ -542,7 +660,9 @@
       "title": "V2 | USER P072 — منع حذف الذات ومالك المنصة وآخر Super Admin والتكليفات المفتوحة",
       "type": "functional",
       "issue_number": 2810,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2810"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2810",
+      "document_source_pointer": "Native DOCX paragraph P065",
+      "matrix_key": "P072"
     },
     {
       "id": "P073",
@@ -551,7 +671,9 @@
       "title": "V2 | USER P073 — تأكيد مزدوج وسبب إلزامي ومراجعة أثر وتدقيق واستعادة المؤرشف",
       "type": "functional",
       "issue_number": 2811,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2811"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2811",
+      "document_source_pointer": "Native DOCX paragraph P066",
+      "matrix_key": "P073"
     },
     {
       "id": "P074",
@@ -560,7 +682,9 @@
       "title": "V2 | USER P074 — صلاحية users.delete دقيقة مستقلة عن view وstatus.manage",
       "type": "functional",
       "issue_number": 2812,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2812"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2812",
+      "document_source_pointer": "Native DOCX paragraph P067",
+      "matrix_key": "P074"
     },
     {
       "id": "P075",
@@ -569,7 +693,9 @@
       "title": "V2 | USER P075 — تصنيف الحسابات السبعة وفحص الارتباطات قبل أي حذف",
       "type": "functional",
       "issue_number": 2813,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2813"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2813",
+      "document_source_pointer": "Native DOCX paragraph P068",
+      "matrix_key": "P075"
     },
     {
       "id": "P077",
@@ -578,7 +704,9 @@
       "title": "V2 | RBAC-UI P077 — معاينة شجرة صفحات المستخدم مباشرة عند اختيار الدور والنطاق",
       "type": "functional",
       "issue_number": 2814,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2814"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2814",
+      "document_source_pointer": "Native DOCX paragraph P070",
+      "matrix_key": "P077"
     },
     {
       "id": "P079",
@@ -587,7 +715,9 @@
       "title": "V2 | RBAC-UI P079 — إنشاء وتعديل مستخدم مع نوع الحساب والقناة والمتجر",
       "type": "functional",
       "issue_number": 2815,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2815"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2815",
+      "document_source_pointer": "Native DOCX paragraph P072",
+      "matrix_key": "P079"
     },
     {
       "id": "P080",
@@ -596,7 +726,9 @@
       "title": "V2 | RBAC-UI P080 — اختيار أدوار متعددة وكشف التعارض وتحميل Registry",
       "type": "functional",
       "issue_number": 2816,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2816"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2816",
+      "document_source_pointer": "Native DOCX paragraph P073",
+      "matrix_key": "P080"
     },
     {
       "id": "P081",
@@ -605,7 +737,9 @@
       "title": "V2 | RBAC-UI P081 — عرض Inherited وAllow وDeny وBlocked في عقد الصفحات",
       "type": "functional",
       "issue_number": 2817,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2817"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2817",
+      "document_source_pointer": "Native DOCX paragraph P074",
+      "matrix_key": "P081"
     },
     {
       "id": "P082",
@@ -614,7 +748,9 @@
       "title": "V2 | RBAC-UI P082 — صلاحيات View/Create/Edit/Delete/Approve/Post/Export/Dispatch لكل صفحة",
       "type": "functional",
       "issue_number": 2818,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2818"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2818",
+      "document_source_pointer": "Native DOCX paragraph P075",
+      "matrix_key": "P082"
     },
     {
       "id": "P083",
@@ -623,7 +759,9 @@
       "title": "V2 | RBAC-UI P083 — تحديث Live Sidebar Preview دون خلط الرؤية بأزرار الاعتماد",
       "type": "functional",
       "issue_number": 2819,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2819"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2819",
+      "document_source_pointer": "Native DOCX paragraph P076",
+      "matrix_key": "P083"
     },
     {
       "id": "P084",
@@ -632,7 +770,9 @@
       "title": "V2 | RBAC-UI P084 — Diff قبل وبعد وتحذير SoD وسبب التغيير وAudit وإبطال Cache",
       "type": "functional",
       "issue_number": 2820,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2820"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2820",
+      "document_source_pointer": "Native DOCX paragraph P077",
+      "matrix_key": "P084"
     },
     {
       "id": "T087R01",
@@ -641,7 +781,9 @@
       "title": "V2 | RBAC-UI T087R01 — مثال خدمة العملاء: WhatsApp عرض ورد وإسناد محادثات",
       "type": "functional",
       "issue_number": 2821,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2821"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2821",
+      "document_source_pointer": "Table 7, data row 1",
+      "matrix_key": "T087R01"
     },
     {
       "id": "T087R02",
@@ -650,7 +792,9 @@
       "title": "V2 | RBAC-UI T087R02 — مثال خدمة العملاء: ملفات العملاء عرض وتعديل محدود",
       "type": "functional",
       "issue_number": 2822,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2822"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2822",
+      "document_source_pointer": "Table 7, data row 2",
+      "matrix_key": "T087R02"
     },
     {
       "id": "T087R03",
@@ -659,7 +803,9 @@
       "title": "V2 | RBAC-UI T087R03 — مثال خدمة العملاء: الطلبات عرض وإنشاء وتوزيع واعتماد مستقل",
       "type": "functional",
       "issue_number": 2823,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2823"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2823",
+      "document_source_pointer": "Table 7, data row 3",
+      "matrix_key": "T087R03"
     },
     {
       "id": "T087R04",
@@ -668,7 +814,9 @@
       "title": "V2 | RBAC-UI T087R04 — مثال خدمة العملاء: طلب وتطبيق خصم تحت سقف وموافقة",
       "type": "functional",
       "issue_number": 2824,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2824"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2824",
+      "document_source_pointer": "Table 7, data row 4",
+      "matrix_key": "T087R04"
     },
     {
       "id": "T087R05",
@@ -677,7 +825,9 @@
       "title": "V2 | RBAC-UI T087R05 — مثال خدمة العملاء: إخفاء دفتر القيود افتراضيًا",
       "type": "functional",
       "issue_number": 2825,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2825"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2825",
+      "document_source_pointer": "Table 7, data row 5",
+      "matrix_key": "T087R05"
     },
     {
       "id": "T087R06",
@@ -686,7 +836,9 @@
       "title": "V2 | RBAC-UI T087R06 — مثال خدمة العملاء: إخفاء إدارة المستخدمين والصلاحيات",
       "type": "functional",
       "issue_number": 2826,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2826"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2826",
+      "document_source_pointer": "Table 7, data row 6",
+      "matrix_key": "T087R06"
     },
     {
       "id": "P090",
@@ -695,7 +847,9 @@
       "title": "V2 | RBAC P090 — وضع Inherit من الدور الخاضع للنطاق والموديول",
       "type": "functional",
       "issue_number": 2827,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2827"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2827",
+      "document_source_pointer": "Native DOCX paragraph P082",
+      "matrix_key": "P090"
     },
     {
       "id": "P091",
@@ -704,7 +858,9 @@
       "title": "V2 | RBAC P091 — وضع Allow ضمن السقف والنطاق مع منع كسر عزل المتاجر",
       "type": "functional",
       "issue_number": 2828,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2828"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2828",
+      "document_source_pointer": "Native DOCX paragraph P083",
+      "matrix_key": "P091"
     },
     {
       "id": "P092",
@@ -713,7 +869,9 @@
       "title": "V2 | RBAC P092 — وضع Deny بأسبقية واضحة على وراثة الدور",
       "type": "functional",
       "issue_number": 2829,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2829"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2829",
+      "document_source_pointer": "Native DOCX paragraph P084",
+      "matrix_key": "P092"
     },
     {
       "id": "P093",
@@ -722,7 +880,9 @@
       "title": "V2 | SIDEBAR P093 — عقدة القسم ليست إذنًا وتختفي دون ابن مصرح",
       "type": "functional",
       "issue_number": 2830,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2830"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2830",
+      "document_source_pointer": "Native DOCX paragraph P085",
+      "matrix_key": "P093"
     },
     {
       "id": "P094",
@@ -731,7 +891,9 @@
       "title": "V2 | RBAC P094 — مربع الصفحة يحرر Permission Codes لا Visibility",
       "type": "functional",
       "issue_number": 2831,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2831"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2831",
+      "document_source_pointer": "Native DOCX paragraph P086",
+      "matrix_key": "P094"
     },
     {
       "id": "P096",
@@ -740,7 +902,9 @@
       "title": "V2 | RBAC P096 — فصل أثر تعديل قالب الدور عن Override مستخدم واحد",
       "type": "functional",
       "issue_number": 2832,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2832"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2832",
+      "document_source_pointer": "Native DOCX paragraph P088",
+      "matrix_key": "P096"
     },
     {
       "id": "P097",
@@ -749,7 +913,9 @@
       "title": "V2 | RBAC P097 — حماية Built-in Role والاستنساخ إلى دور مخصص مع حوكمة",
       "type": "functional",
       "issue_number": 2833,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2833"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2833",
+      "document_source_pointer": "Native DOCX paragraph P089",
+      "matrix_key": "P097"
     },
     {
       "id": "P098",
@@ -758,7 +924,9 @@
       "title": "V2 | RBAC-UI P098 — تفاصيل الدور المخصص ووصفه وحدوده ومتجره وموديولاته وسقفه",
       "type": "functional",
       "issue_number": 2834,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2834"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2834",
+      "document_source_pointer": "Native DOCX paragraph P090",
+      "matrix_key": "P098"
     },
     {
       "id": "P099",
@@ -767,7 +935,9 @@
       "title": "V2 | SECURITY P099 — تعديل الواجهة ينعكس على RBAC وRoute الحقيقي دون تجاوز الموافقات",
       "type": "functional",
       "issue_number": 2835,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2835"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2835",
+      "document_source_pointer": "Native DOCX paragraph P091",
+      "matrix_key": "P099"
     },
     {
       "id": "P100",
@@ -776,7 +946,9 @@
       "title": "V2 | DATA P100 — حفظ سجلات الأدوار القديمة تاريخيًا ومنع إعادة معنى Role Code",
       "type": "functional",
       "issue_number": 2836,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2836"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2836",
+      "document_source_pointer": "Native DOCX paragraph P092",
+      "matrix_key": "P100"
     },
     {
       "id": "P102",
@@ -785,7 +957,9 @@
       "title": "V2 | ERP P102 — إدارة ERP الجملة مستقلة عن تشغيل متاجر التجزئة",
       "type": "functional",
       "issue_number": 2837,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2837"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2837",
+      "document_source_pointer": "Native DOCX paragraph P094",
+      "matrix_key": "P102"
     },
     {
       "id": "T104R01",
@@ -794,7 +968,9 @@
       "title": "V2 | ERP T104R01 — ENABLED دورة حياة للموديول فقط ولا تعني جاهزية ERP",
       "type": "functional",
       "issue_number": 2838,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2838"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2838",
+      "document_source_pointer": "Table 8, data row 1",
+      "matrix_key": "T104R01"
     },
     {
       "id": "T104R02",
@@ -803,7 +979,9 @@
       "title": "V2 | ERP T104R02 — ظهور ERP Sidebar لا يثبت تشغيل الدورة",
       "type": "functional",
       "issue_number": 2839,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2839"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2839",
+      "document_source_pointer": "Table 8, data row 2",
+      "matrix_key": "T104R02"
     },
     {
       "id": "T104R03",
@@ -812,7 +990,9 @@
       "title": "V2 | ERP T104R03 — اعتماد جاهزية ERP بعد مسارات العمل والاختبارات الكاملة",
       "type": "functional",
       "issue_number": 2840,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2840"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2840",
+      "document_source_pointer": "Table 8, data row 3",
+      "matrix_key": "T104R03"
     },
     {
       "id": "P106",
@@ -821,7 +1001,9 @@
       "title": "V2 | ERP P106 — التوفيق بين وحدات ENABLED وتعارض ERP Sidebar وEntitlements",
       "type": "functional",
       "issue_number": 2841,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2841"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2841",
+      "document_source_pointer": "Native DOCX paragraph P098",
+      "matrix_key": "P106"
     },
     {
       "id": "P108",
@@ -830,7 +1012,9 @@
       "title": "V2 | ERP P108 — جرد نسخة الخادم ونطاق الجملة وRoutes وPermissions وDependencies",
       "type": "functional",
       "issue_number": 2842,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2842"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2842",
+      "document_source_pointer": "Native DOCX paragraph P099",
+      "matrix_key": "P108"
     },
     {
       "id": "P109",
@@ -839,7 +1023,9 @@
       "title": "V2 | ERP P109 — اختبار دورة إنشاء ومراجعة واعتماد وترحيل وعكس وتقرير وتدقيق",
       "type": "functional",
       "issue_number": 2843,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2843"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2843",
+      "document_source_pointer": "Native DOCX paragraph P100",
+      "matrix_key": "P109"
     },
     {
       "id": "P110",
@@ -848,7 +1034,9 @@
       "title": "V2 | ERP P110 — إثبات عزل ملكية مورد/FOODEX في دفتر المخزون والتقارير",
       "type": "functional",
       "issue_number": 2844,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2844"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2844",
+      "document_source_pointer": "Native DOCX paragraph P101",
+      "matrix_key": "P110"
     },
     {
       "id": "P111",
@@ -857,7 +1045,9 @@
       "title": "V2 | ERP P111 — ضبط Entitlements والفروع والسقوف وMaker Checker قبل الإتاحة",
       "type": "functional",
       "issue_number": 2845,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2845"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2845",
+      "document_source_pointer": "Native DOCX paragraph P102",
+      "matrix_key": "P111"
     },
     {
       "id": "P112",
@@ -866,7 +1056,9 @@
       "title": "V2 | RELEASE P112 — Setup ZIP وUpdate ZIP وFresh Install وUpgrade وBackup CI",
       "type": "functional",
       "issue_number": 2846,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2846"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2846",
+      "document_source_pointer": "Native DOCX paragraph P103",
+      "matrix_key": "P112"
     },
     {
       "id": "P113",
@@ -875,7 +1067,9 @@
       "title": "V2 | ERP P113 — إظهار ERP تلقائيًا فقط للأدوار المخولة بعد بوابة جاهزية",
       "type": "functional",
       "issue_number": 2847,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2847"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2847",
+      "document_source_pointer": "Native DOCX paragraph P104",
+      "matrix_key": "P113"
     },
     {
       "id": "P118",
@@ -884,7 +1078,9 @@
       "title": "V2 | SIDEBAR P118 — ترتيب ERP الجملة من نظرة عامة إلى التقارير والرقابة",
       "type": "functional",
       "issue_number": 2848,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2848"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2848",
+      "document_source_pointer": "Native DOCX paragraph P107",
+      "matrix_key": "P118"
     },
     {
       "id": "P119",
@@ -893,7 +1089,9 @@
       "title": "V2 | SECURITY P119 — حفظ تجزئة B2C تحت أدوار المتاجر المستقلة",
       "type": "functional",
       "issue_number": 2849,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2849"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2849",
+      "document_source_pointer": "Native DOCX paragraph P108",
+      "matrix_key": "P119"
     },
     {
       "id": "P126",
@@ -902,7 +1100,9 @@
       "title": "V2 | SOD P126 — المشتري لا يعتمد مشترياته حتى لو امتلك دور المعتمد",
       "type": "functional",
       "issue_number": 2850,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2850"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2850",
+      "document_source_pointer": "Native DOCX paragraph P115",
+      "matrix_key": "P126"
     },
     {
       "id": "P127",
@@ -911,7 +1111,9 @@
       "title": "V2 | SOD P127 — فصل إعداد وترحيل واعتماد القيد عن الخزينة والتحصيل",
       "type": "functional",
       "issue_number": 2851,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2851"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2851",
+      "document_source_pointer": "Native DOCX paragraph P116",
+      "matrix_key": "P127"
     },
     {
       "id": "P128",
@@ -920,7 +1122,9 @@
       "title": "V2 | SOD P128 — فصل إدارة عقد المورد والتسوية وإطلاق الدفع",
       "type": "functional",
       "issue_number": 2852,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2852"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2852",
+      "document_source_pointer": "Native DOCX paragraph P117",
+      "matrix_key": "P128"
     },
     {
       "id": "P129",
@@ -929,7 +1133,9 @@
       "title": "V2 | SOD P129 — منع السعر والخصم من تجاوز الائتمان والربحية دون موافقة",
       "type": "functional",
       "issue_number": 2853,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2853"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2853",
+      "document_source_pointer": "Native DOCX paragraph P118",
+      "matrix_key": "P129"
     },
     {
       "id": "P130",
@@ -938,7 +1144,9 @@
       "title": "V2 | SOD P130 — حظر استخدام Super Admin أو Platform Owner كدور تشغيلي يومي",
       "type": "functional",
       "issue_number": 2854,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2854"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2854",
+      "document_source_pointer": "Native DOCX paragraph P119",
+      "matrix_key": "P130"
     },
     {
       "id": "P132",
@@ -947,7 +1155,9 @@
       "title": "V2 | GOV P132 — اعتماد احتفاظ البيانات والحذف النهائي وإخفاء الهوية",
       "type": "functional",
       "issue_number": 2855,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2855"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2855",
+      "document_source_pointer": "Native DOCX paragraph P121",
+      "matrix_key": "P132"
     },
     {
       "id": "P133",
@@ -956,7 +1166,9 @@
       "title": "V2 | GOV P133 — اعتماد نماذج أدوار الشركة والفرع والمخزن والمتجر ومالك القوالب",
       "type": "functional",
       "issue_number": 2856,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2856"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2856",
+      "document_source_pointer": "Native DOCX paragraph P122",
+      "matrix_key": "P133"
     },
     {
       "id": "P134",
@@ -965,7 +1177,9 @@
       "title": "V2 | GOV P134 — تحديد من يملك User Allow والاعتماد والتفويض المؤقت وإلغاءه",
       "type": "functional",
       "issue_number": 2857,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2857"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2857",
+      "document_source_pointer": "Native DOCX paragraph P123",
+      "matrix_key": "P134"
     },
     {
       "id": "P135",
@@ -974,7 +1188,9 @@
       "title": "V2 | GOV P135 — اعتماد جاهزية كل موديول ERP بمسار تشغيلي حقيقي",
       "type": "functional",
       "issue_number": 2858,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2858"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2858",
+      "document_source_pointer": "Native DOCX paragraph P124",
+      "matrix_key": "P135"
     },
     {
       "id": "P136",
@@ -983,7 +1199,9 @@
       "title": "V2 | GOV P136 — حسم التعارض المرجعي بسياسة B2B VAN فقط وB2C DRIVER فقط",
       "type": "functional",
       "issue_number": 2859,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2859"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2859",
+      "document_source_pointer": "Native DOCX paragraph P125",
+      "matrix_key": "P136"
     },
     {
       "id": "P137",
@@ -992,7 +1210,9 @@
       "title": "V2 | GOV P137 — اعتماد مدى الترحيل وتاريخ إعدادات Sidebar القديمة دون حذف",
       "type": "functional",
       "issue_number": 2860,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2860"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2860",
+      "document_source_pointer": "Native DOCX paragraph P126",
+      "matrix_key": "P137"
     },
     {
       "id": "P139",
@@ -1001,7 +1221,9 @@
       "title": "V2 | QA P139 — اختبار دور خدمة العملاء وتعديل صلاحية الطلب وتأثيرها على الشجرة",
       "type": "functional",
       "issue_number": 2861,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2861"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2861",
+      "document_source_pointer": "Native DOCX paragraph P128",
+      "matrix_key": "P139"
     },
     {
       "id": "P140",
@@ -1010,7 +1232,9 @@
       "title": "V2 | QA P140 — اختبار عزل تعديل الدور المخصص عن Override مستخدم واحد",
       "type": "functional",
       "issue_number": 2862,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2862"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2862",
+      "document_source_pointer": "Native DOCX paragraph P129",
+      "matrix_key": "P140"
     },
     {
       "id": "P141",
@@ -1019,7 +1243,9 @@
       "title": "V2 | QA P141 — اختبار Allow لا يتجاوز شركة أو متجر أو موديول غير جاهز",
       "type": "functional",
       "issue_number": 2863,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2863"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2863",
+      "document_source_pointer": "Native DOCX paragraph P130",
+      "matrix_key": "P141"
     },
     {
       "id": "P142",
@@ -1028,7 +1254,9 @@
       "title": "V2 | QA P142 — اختبار الأرشفة يوقف Dashboard والجوال ويحفظ الفواتير والتاريخ",
       "type": "functional",
       "issue_number": 2864,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2864"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2864",
+      "document_source_pointer": "Native DOCX paragraph P131",
+      "matrix_key": "P142"
     },
     {
       "id": "P143",
@@ -1037,7 +1265,9 @@
       "title": "V2 | QA P143 — اختبار منع حذف الذات وآخر مسؤول ومالك النظام والحسابات الجارية",
       "type": "functional",
       "issue_number": 2865,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2865"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2865",
+      "document_source_pointer": "Native DOCX paragraph P132",
+      "matrix_key": "P143"
     },
     {
       "id": "P144",
@@ -1046,7 +1276,9 @@
       "title": "V2 | QA P144 — اختبار Maker Checker والائتمان والخصومات والموردين على API والDB",
       "type": "functional",
       "issue_number": 2866,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2866"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2866",
+      "document_source_pointer": "Native DOCX paragraph P133",
+      "matrix_key": "P144"
     },
     {
       "id": "P145",
@@ -1055,7 +1287,9 @@
       "title": "V2 | QA P145 — اختبار AR/EN وموبايل وديسكتوب وسبب الحجب والروابط الصالحة",
       "type": "functional",
       "issue_number": 2867,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2867"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2867",
+      "document_source_pointer": "Native DOCX paragraph P134",
+      "matrix_key": "P145"
     },
     {
       "id": "P156",
@@ -1064,7 +1298,9 @@
       "title": "V2 | SIDEBAR P156 — اعتبار Sidebar انعكاسًا للصلاحية والنطاق والقناة وحالة الموديول",
       "type": "functional",
       "issue_number": 2868,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2868"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2868",
+      "document_source_pointer": "Native DOCX paragraph P145",
+      "matrix_key": "P156"
     },
     {
       "id": "P157",
@@ -1073,7 +1309,9 @@
       "title": "V2 | SIDEBAR P157 — شروط صلاحية الصفحة + النطاق + الموديول + الجهة والمتجر",
       "type": "functional",
       "issue_number": 2869,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2869"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2869",
+      "document_source_pointer": "Native DOCX paragraph P146",
+      "matrix_key": "P157"
     },
     {
       "id": "P158",
@@ -1082,7 +1320,9 @@
       "title": "V2 | SIDEBAR P158 — المفضلة والترتيب والإخفاء الشخصي لا يمنحون وصولًا جديدًا",
       "type": "functional",
       "issue_number": 2870,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2870"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2870",
+      "document_source_pointer": "Native DOCX paragraph P147",
+      "matrix_key": "P158"
     },
     {
       "id": "P160",
@@ -1091,7 +1331,9 @@
       "title": "V2 | SIDEBAR-UX P160 — محدد سياق العمل Platform/Wholesale/Retail/Restaurant/Analytics",
       "type": "functional",
       "issue_number": 2871,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2871"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2871",
+      "document_source_pointer": "Native DOCX paragraph P149",
+      "matrix_key": "P160"
     },
     {
       "id": "P161",
@@ -1100,7 +1342,9 @@
       "title": "V2 | SIDEBAR-UX P161 — بحث سريع لجميع الصفحات والتقارير والإجراءات في القائمة",
       "type": "functional",
       "issue_number": 2872,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2872"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2872",
+      "document_source_pointer": "Native DOCX paragraph P150",
+      "matrix_key": "P161"
     },
     {
       "id": "P162",
@@ -1109,7 +1353,9 @@
       "title": "V2 | SIDEBAR-UX P162 — مجموعات أعمال رئيسية ثابتة قابلة للطي",
       "type": "functional",
       "issue_number": 2873,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2873"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2873",
+      "document_source_pointer": "Native DOCX paragraph P151",
+      "matrix_key": "P162"
     },
     {
       "id": "P163",
@@ -1118,7 +1364,9 @@
       "title": "V2 | SIDEBAR-UX P163 — مستوى تعشيش أقصاه ثلاثة مستويات",
       "type": "functional",
       "issue_number": 2874,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2874"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2874",
+      "document_source_pointer": "Native DOCX paragraph P152",
+      "matrix_key": "P163"
     },
     {
       "id": "P164",
@@ -1127,7 +1375,9 @@
       "title": "V2 | SIDEBAR-UX P164 — شارات حالة المجموعات جديد واعتماد واستثناءات وBeta",
       "type": "functional",
       "issue_number": 2875,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2875"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2875",
+      "document_source_pointer": "Native DOCX paragraph P153",
+      "matrix_key": "P164"
     },
     {
       "id": "P165",
@@ -1136,7 +1386,9 @@
       "title": "V2 | SIDEBAR-UX P165 — منطقة أدوات ثابتة للمفضلة والتاريخ والمساعدة والملف واللغة",
       "type": "functional",
       "issue_number": 2876,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2876"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2876",
+      "document_source_pointer": "Native DOCX paragraph P154",
+      "matrix_key": "P165"
     },
     {
       "id": "P167",
@@ -1145,7 +1397,9 @@
       "title": "V2 | SIDEBAR-I18N P167 — أسماء أعمال واضحة بدل المصطلحات التقنية للموديولات",
       "type": "functional",
       "issue_number": 2877,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2877"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2877",
+      "document_source_pointer": "Native DOCX paragraph P156",
+      "matrix_key": "P167"
     },
     {
       "id": "P168",
@@ -1154,7 +1408,9 @@
       "title": "V2 | SIDEBAR-I18N P168 — المسميات العربية للمستخدم والأكواد التقنية داخلية",
       "type": "functional",
       "issue_number": 2878,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2878"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2878",
+      "document_source_pointer": "Native DOCX paragraph P157",
+      "matrix_key": "P168"
     },
     {
       "id": "P169",
@@ -1163,7 +1419,9 @@
       "title": "V2 | SIDEBAR-I18N P169 — تجميع الصفحات حسب المبيعات والطلب والمخزون والمالية والإدارة",
       "type": "functional",
       "issue_number": 2879,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2879"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2879",
+      "document_source_pointer": "Native DOCX paragraph P158",
+      "matrix_key": "P169"
     },
     {
       "id": "P170",
@@ -1172,7 +1430,9 @@
       "title": "V2 | SIDEBAR P170 — عدم خلط مسميات B2B وB2C إلا للصفحات المشتركة",
       "type": "functional",
       "issue_number": 2880,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2880"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2880",
+      "document_source_pointer": "Native DOCX paragraph P159",
+      "matrix_key": "P170"
     },
     {
       "id": "P171",
@@ -1181,7 +1441,9 @@
       "title": "V2 | SIDEBAR P171 — اسم موحد للصفحة المشتركة تحت سياقين مختلفين دون خلط نطاق",
       "type": "functional",
       "issue_number": 2881,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2881"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2881",
+      "document_source_pointer": "Native DOCX paragraph P160",
+      "matrix_key": "P171"
     },
     {
       "id": "P358",
@@ -1190,7 +1452,9 @@
       "title": "V2 | SIDEBAR P358 — توزيع وحدات ERP على مجالات الأعمال لا داخل قائمة ERP عشوائية",
       "type": "functional",
       "issue_number": 2882,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2882"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2882",
+      "document_source_pointer": "Native DOCX paragraph P345",
+      "matrix_key": "P358"
     },
     {
       "id": "P359",
@@ -1199,7 +1463,9 @@
       "title": "V2 | SIDEBAR P359 — Metadata مستقبلية group_key item_key label_ar permission scope channel module readiness",
       "type": "functional",
       "issue_number": 2883,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2883"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2883",
+      "document_source_pointer": "Native DOCX paragraph P346",
+      "matrix_key": "P359"
     },
     {
       "id": "P360",
@@ -1208,7 +1474,9 @@
       "title": "V2 | SIDEBAR P360 — حجب الصفحات غير الجاهزة عن المستخدم وتشخيصها للمسؤول",
       "type": "functional",
       "issue_number": 2884,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2884"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2884",
+      "document_source_pointer": "Native DOCX paragraph P347",
+      "matrix_key": "P360"
     },
     {
       "id": "P361",
@@ -1217,7 +1485,9 @@
       "title": "V2 | SIDEBAR P361 — إلحاق الموديول الجديد بالمجال التجاري الصحيح في الشجرة",
       "type": "functional",
       "issue_number": 2885,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2885"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2885",
+      "document_source_pointer": "Native DOCX paragraph P348",
+      "matrix_key": "P361"
     },
     {
       "id": "P363",
@@ -1226,7 +1496,9 @@
       "title": "V2 | RBAC-UI P363 — عمود قائمة الأدوار مع البحث والوصف والمسؤوليات",
       "type": "functional",
       "issue_number": 2886,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2886"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2886",
+      "document_source_pointer": "Native DOCX paragraph P350",
+      "matrix_key": "P363"
     },
     {
       "id": "P364",
@@ -1235,7 +1507,9 @@
       "title": "V2 | RBAC-UI P364 — عمود الصلاحيات التجارية المجمعة للدور",
       "type": "functional",
       "issue_number": 2887,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2887"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2887",
+      "document_source_pointer": "Native DOCX paragraph P351",
+      "matrix_key": "P364"
     },
     {
       "id": "P365",
@@ -1244,7 +1518,9 @@
       "title": "V2 | RBAC-UI P365 — عمود شجرة السايدبار الناتجة مع Checkbox حدود الإذن",
       "type": "functional",
       "issue_number": 2888,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2888"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2888",
+      "document_source_pointer": "Native DOCX paragraph P352",
+      "matrix_key": "P365"
     },
     {
       "id": "P366",
@@ -1253,7 +1529,9 @@
       "title": "V2 | RBAC-UI P366 — العقدة تعرض الاسم والكود والإذن والنطاق والقناة والموديول",
       "type": "functional",
       "issue_number": 2889,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2889"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2889",
+      "document_source_pointer": "Native DOCX paragraph P353",
+      "matrix_key": "P366"
     },
     {
       "id": "P367",
@@ -1262,7 +1540,9 @@
       "title": "V2 | RBAC-UI P367 — Live Preview يشرح السماح والمنع بسبب النطاق أو الموديول",
       "type": "functional",
       "issue_number": 2890,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2890"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2890",
+      "document_source_pointer": "Native DOCX paragraph P354",
+      "matrix_key": "P367"
     },
     {
       "id": "P369",
@@ -1271,7 +1551,9 @@
       "title": "V2 | SIDEBAR-UX P369 — تصميم أيقونة واسم مجموعة وعداد اختياري هادئ",
       "type": "functional",
       "issue_number": 2891,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2891"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2891",
+      "document_source_pointer": "Native DOCX paragraph P356",
+      "matrix_key": "P369"
     },
     {
       "id": "P370",
@@ -1280,7 +1562,9 @@
       "title": "V2 | SIDEBAR-UX P370 — تمييز المجموعة النشطة بخلفية وحد جانبي غير صارخ",
       "type": "functional",
       "issue_number": 2892,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2892"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2892",
+      "document_source_pointer": "Native DOCX paragraph P357",
+      "matrix_key": "P370"
     },
     {
       "id": "P371",
@@ -1289,7 +1573,9 @@
       "title": "V2 | SIDEBAR-UX P371 — تدرج العناصر وأزرار توسيع وتصغير واضحة",
       "type": "functional",
       "issue_number": 2893,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2893"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2893",
+      "document_source_pointer": "Native DOCX paragraph P358",
+      "matrix_key": "P371"
     },
     {
       "id": "P372",
@@ -1298,7 +1584,9 @@
       "title": "V2 | SIDEBAR-UX P372 — المفضلة في أعلى Sidebar لتسهيل الوصول",
       "type": "functional",
       "issue_number": 2894,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2894"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2894",
+      "document_source_pointer": "Native DOCX paragraph P359",
+      "matrix_key": "P372"
     },
     {
       "id": "P373",
@@ -1307,7 +1595,9 @@
       "title": "V2 | SIDEBAR-UX P373 — Badges جديدة وموقوفة وبيتا واحتياج اعتماد دون ازدحام",
       "type": "functional",
       "issue_number": 2895,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2895"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2895",
+      "document_source_pointer": "Native DOCX paragraph P360",
+      "matrix_key": "P373"
     },
     {
       "id": "P375",
@@ -1316,7 +1606,9 @@
       "title": "V2 | GOV P375 — منع Sidebar من منح أي وصول لا تسمح به RBAC",
       "type": "functional",
       "issue_number": 2896,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2896"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2896",
+      "document_source_pointer": "Native DOCX paragraph P362",
+      "matrix_key": "P375"
     },
     {
       "id": "P376",
@@ -1325,7 +1617,9 @@
       "title": "V2 | GOV P376 — عزل منطق B2B وB2C داخل أي صفحة مشتركة",
       "type": "functional",
       "issue_number": 2897,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2897"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2897",
+      "document_source_pointer": "Native DOCX paragraph P363",
+      "matrix_key": "P376"
     },
     {
       "id": "P377",
@@ -1334,7 +1628,9 @@
       "title": "V2 | GOV P377 — عدم إظهار ERP المالي أو الشرائي قبل جاهزية واعتماد الدورة",
       "type": "functional",
       "issue_number": 2898,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2898"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2898",
+      "document_source_pointer": "Native DOCX paragraph P364",
+      "matrix_key": "P377"
     },
     {
       "id": "P378",
@@ -1343,7 +1639,9 @@
       "title": "V2 | GOV P378 — عدم تحويل Super Admin إلى دور تشغيلي دائم",
       "type": "functional",
       "issue_number": 2899,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2899"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2899",
+      "document_source_pointer": "Native DOCX paragraph P365",
+      "matrix_key": "P378"
     },
     {
       "id": "P379",
@@ -1352,7 +1650,9 @@
       "title": "V2 | GOV P379 — توثيق وصف ومسؤوليات وحدود وصول لكل دور قبل الاعتماد",
       "type": "functional",
       "issue_number": 2900,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2900"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2900",
+      "document_source_pointer": "Native DOCX paragraph P366",
+      "matrix_key": "P379"
     },
     {
       "id": "P381",
@@ -1361,7 +1661,9 @@
       "title": "V2 | GOV P381 — اعتماد Information Architecture للشجرة المستهدفة",
       "type": "functional",
       "issue_number": 2901,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2901"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2901",
+      "document_source_pointer": "Native DOCX paragraph P368",
+      "matrix_key": "P381"
     },
     {
       "id": "P382",
@@ -1370,7 +1672,9 @@
       "title": "V2 | SIDEBAR P382 — Sidebar Authorizer موحد Permission Scope Channel Module Entitlement",
       "type": "functional",
       "issue_number": 2902,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2902"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2902",
+      "document_source_pointer": "Native DOCX paragraph P369",
+      "matrix_key": "P382"
     },
     {
       "id": "P383",
@@ -1379,7 +1683,9 @@
       "title": "V2 | RBAC-UI P383 — إتمام تعيين الدور وتخصيص المستخدم مع Live Sidebar Preview",
       "type": "functional",
       "issue_number": 2903,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2903"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2903",
+      "document_source_pointer": "Native DOCX paragraph P370",
+      "matrix_key": "P383"
     },
     {
       "id": "P384",
@@ -1388,7 +1694,9 @@
       "title": "V2 | SIDEBAR-I18N P384 — إعادة تسمية العناصر الحالية بالعربية الموحدة قبل فتح ERP",
       "type": "functional",
       "issue_number": 2904,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2904"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2904",
+      "document_source_pointer": "Native DOCX paragraph P371",
+      "matrix_key": "P384"
     },
     {
       "id": "P385",
@@ -1397,7 +1705,10 @@
       "title": "V2 | GOV P385 — اعتبار الوثيقة عقد UX وBackend وRBAC وERP Governance واحد",
       "type": "functional",
       "issue_number": 2905,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2905"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2905",
+      "document_source_pointer": "Native DOCX paragraph P372",
+      "matrix_key": "P385"
     }
-  ]
+  ],
+  "source_anchor_note": "Native DOCX source pointers were independently checked against paragraph count 374 and 13 tables; matrix keys remain stable legacy IDs and MUST NOT be mistaken for native paragraph indexes."
 }
