@@ -142,17 +142,26 @@ final class V2ErpWholesaleRetailScopeIsolationTest extends TestCase
         $retail = $this->retailStore('V2-P102-RETAIL');
         $admin = $this->userWithGlobalRole('SUPER_ADMIN');
         $principalStore = app(WholesalePrincipal::class)->storeId();
+        app(OrganizationHierarchyService::class)
+            ->ensureDefaultScopeForStore(Store::query()->findOrFail($principalStore));
         $tenants = app(TenantContextResolver::class);
         $context = $tenants->wholesale($admin, $principalStore);
+        $authorizer = app(EnterpriseScopeAuthorizer::class);
 
         $this->assertSame('b2b', $context->channel);
-        $this->assertTrue(app(EnterpriseScopeAuthorizer::class)->allows(
+        $this->assertTrue($authorizer->allows(
             $admin,
             $context,
             'finance.view',
             'store',
             $principalStore,
         ));
+        $this->assertFalse($authorizer->allows($admin, $context, 'finance.view', 'store', $retail->id));
+
+        $globalWholesale = $tenants->wholesale($admin);
+        $this->assertTrue($authorizer->allows($admin, $globalWholesale, 'finance.view', 'store', $principalStore));
+        $this->assertFalse($authorizer->allows($admin, $globalWholesale, 'finance.view', 'store', $retail->id));
+
         $this->assertScopeFailure(
             fn (): ResolvedTenantContext => $tenants->wholesale($admin, $retail->id),
             404,
