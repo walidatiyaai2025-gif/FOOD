@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Services\AdminSidebarManager;
+use App\Services\BuiltInJobRoleCatalog;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -32,10 +34,49 @@ final class SidebarManagementController extends Controller
 
         abort_if($selectedRole === null, 404);
 
+        // P094: the Page Tree editor projects real role Permission Codes, not
+        // admin_sidebar_role_visibility. Preserve non-navigation role grants on
+        // a partial form submission; the canonical RbacManager remains the sole
+        // authority for role changes, scope and elevated grants.
+        $matrix = $sidebar->roleMatrix($selectedRole);
+        $permissionCodes = [];
+        foreach ($matrix['groups'] as $group) {
+            foreach ($group['items'] as $item) {
+                foreach ($item['permissions'] as $code) {
+                    $permissionCodes[$code] = true;
+                }
+            }
+        }
+
+        $pagePermissionsByCode = Permission::query()
+            ->whereIn('code', array_keys($permissionCodes))
+            ->get(['id', 'code'])
+            ->keyBy('code');
+        $selectedPermissionIds = $selectedRole->permissions
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+        $pagePermissionIds = $pagePermissionsByCode
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+
+        $actor = $request->user();
+        $canEditRolePermissions = $selectedRole->archived_at === null
+            && $selectedRole->code !== 'PLATFORM_OWNER'
+            && ! app(BuiltInJobRoleCatalog::class)->isBuiltIn((string) $selectedRole->code)
+            && ($actor->hasRole('SUPER_ADMIN')
+                || $selectedRole->permissions->pluck('code')
+                    ->diff($actor->effectivePermissionCodes())->isEmpty());
+
         return view('admin.sidebar-role-access', [
             'roles' => $roles,
             'selectedRole' => $selectedRole,
-            'matrix' => $sidebar->roleMatrix($selectedRole),
+            'matrix' => $matrix,
+            'pagePermissionsByCode' => $pagePermissionsByCode,
+            'selectedPermissionIds' => $selectedPermissionIds,
+            'preservedPermissionIds' => array_values(array_diff($selectedPermissionIds, $pagePermissionIds)),
+            'canEditRolePermissions' => $canEditRolePermissions,
             'navGroups' => app(AdminNavigation::class)->groupsFor($request->user()),
             'navContext' => 'sidebar_role_access',
             'user' => $request->user(),
