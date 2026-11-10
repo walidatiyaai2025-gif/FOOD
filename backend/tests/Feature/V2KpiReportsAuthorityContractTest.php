@@ -57,10 +57,10 @@ class V2KpiReportsAuthorityContractTest extends TestCase
                 ->assertSee('class="kpis"', false)
                 ->assertSee(__('reports.kpis.orders'));
 
-            $response->assertViewHas('data', static fn (array $data): bool =>
-                ($data['kpis']['orders'] ?? null) === 1
-                && (float) ($data['kpis']['gross_value'] ?? -1) === 25.0
-            );
+            $response->assertViewHas('data', static function (array $data): bool {
+                return ($data['kpis']['orders'] ?? null) === 1
+                    && (float) ($data['kpis']['gross_value'] ?? -1) === 25.0;
+            });
 
             $this->actingAs($user->fresh())
                 ->get(route('admin.reports.index', [
