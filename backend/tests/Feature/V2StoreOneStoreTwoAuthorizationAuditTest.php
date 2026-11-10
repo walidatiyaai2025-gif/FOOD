@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserStoreRole;
+use App\Services\OperationalTenantScope;
+use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +17,7 @@ class V2StoreOneStoreTwoAuthorizationAuditTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_account_named_store1_assigned_only_to_store2_cannot_read_or_mutate_store1_inventory_in_either_locale(): void
+    public function test_store1_with_retail_admin_and_customer_support_roles_on_store2_cannot_cross_stores(): void
     {
         $this->seed(CoreReferenceSeeder::class);
         [$storeOne, $storeTwo, $inventoryOne, $inventoryTwo] = $this->twoRetailStoreInventories();
@@ -28,16 +30,24 @@ class V2StoreOneStoreTwoAuthorizationAuditTest extends TestCase
             'password' => 'password',
             'is_active' => true,
         ]);
-        $role = Role::query()->where('code', 'RETAIL_INVENTORY')->firstOrFail();
-        UserStoreRole::query()->create([
-            'user_id' => $user->id,
-            'store_id' => $storeTwo,
-            'role_id' => $role->id,
-        ]);
+        $adminRole = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        $supportRole = Role::query()->where('code', 'RETAIL_CUSTOMER_SUPPORT')->firstOrFail();
+        $user->roles()->attach([$adminRole->id, $supportRole->id]);
+        foreach ([$adminRole, $supportRole] as $role) {
+            UserStoreRole::query()->create([
+                'user_id' => $user->id,
+                'store_id' => $storeTwo,
+                'role_id' => $role->id,
+            ]);
+        }
         Sanctum::actingAs($user);
 
         $this->assertFalse($user->hasPermission('inventory.manage', $storeOne));
         $this->assertTrue($user->hasPermission('inventory.manage', $storeTwo));
+        $this->assertTrue($user->hasPermission('orders.view', $storeTwo));
+        $this->assertFalse($user->hasPermission('orders.view', $storeOne));
+        $this->assertSame([$storeTwo], app(OperationalTenantScope::class)->allowedStoreIds($user, 'orders.view', 'B2C'));
+        $this->assertSame([], app(OperationalTenantScope::class)->allowedStoreIds($user, 'orders.view', 'B2B'));
 
         foreach (['ar', 'en'] as $locale) {
             app()->setLocale($locale);
@@ -95,6 +105,46 @@ class V2StoreOneStoreTwoAuthorizationAuditTest extends TestCase
             'reason' => 'foreign store',
         ])->assertNotFound();
         $this->assertDatabaseMissing('stock_movements', ['type' => 'adjustment']);
+    }
+
+    public function test_store2_only_admin_and_support_roles_project_retail_sidebar_and_authorized_http(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [, $storeTwo] = $this->twoRetailStoreInventories();
+        $user = User::query()->create([
+            'name' => 'store1',
+            'email' => 'store1-sidebar-store2@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+
+        $roles = Role::query()->whereIn('code', ['B2C_STORE_ADMIN', 'RETAIL_CUSTOMER_SUPPORT'])->get();
+        $this->assertCount(2, $roles);
+        $user->roles()->attach($roles->pluck('id')->all());
+        foreach ($roles as $role) {
+            UserStoreRole::query()->create([
+                'user_id' => $user->id,
+                'store_id' => $storeTwo,
+                'role_id' => $role->id,
+            ]);
+        }
+
+        $items = collect(app(AdminNavigation::class)->groupsFor($user))
+            ->flatMap(fn (array $group) => $group['children'])
+            ->pluck('key');
+        $this->assertTrue($items->contains('b2c_customer_groups'));
+        $this->assertFalse($items->contains('customer_groups'));
+
+        foreach (['ar', 'en'] as $locale) {
+            app()->setLocale($locale);
+
+            $this->actingAs($user)
+                ->get(route('admin.b2c.customer-groups.index'))
+                ->assertOk();
+            $this->actingAs($user)
+                ->get(route('admin.b2b.customer-groups.index'))
+                ->assertForbidden();
+        }
     }
 
     /**
