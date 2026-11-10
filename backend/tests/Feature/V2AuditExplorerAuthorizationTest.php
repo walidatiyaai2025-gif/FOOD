@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enterprise\Modules\ModuleRegistry;
+use App\Enterprise\Modules\ModuleState;
 use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\Store;
@@ -134,6 +136,23 @@ final class V2AuditExplorerAuthorizationTest extends TestCase
         $actor->roles()->detach($role->id);
 
         $this->actingAs($actor->fresh())
+            ->get(route('admin.security.index', ['section' => 'audit']))
+            ->assertForbidden();
+    }
+
+    public function test_core_audit_access_remains_authoritative_when_optional_modules_are_disabled(): void
+    {
+        $modules = app(ModuleRegistry::class);
+        $registration = $modules->syncManifest('smart_ordering');
+        $registration->forceFill(['state' => ModuleState::DISABLED->value])->save();
+
+        $this->assertFalse($modules->isEnabled('smart_ordering'));
+
+        $this->actingAs($this->actor('SECURITY_ADMINISTRATOR'))
+            ->get(route('admin.security.index', ['section' => 'audit']))
+            ->assertOk();
+
+        $this->actingAs($this->actor('B2B_ADMIN'))
             ->get(route('admin.security.index', ['section' => 'audit']))
             ->assertForbidden();
     }
