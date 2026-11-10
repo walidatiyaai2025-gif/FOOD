@@ -20,8 +20,8 @@
         input,select,textarea { width:100%; border:1px solid #cbd5e1; border-radius:10px; padding:10px 12px; background:white; }
         textarea { min-height:88px; resize:vertical; }
         button { border:0; border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:700; }
-        .primary { background:var(--foodex-green, #137a35); color:white; min-height:44px; }
-        :is(button, input, select, textarea, a):focus-visible { outline:3px solid #137a35; outline-offset:2px; }
+        .primary { background:var(--foodex-action-green); color:white; min-height:44px; }
+        :is(button, input, select, textarea, a):focus-visible { outline:3px solid var(--foodex-action-green); outline-offset:2px; }
         .secondary { min-height:44px; }
         .secondary { background:#eef2ff; color:#3730a3; }
         .grid { display:grid; gap:14px; }
