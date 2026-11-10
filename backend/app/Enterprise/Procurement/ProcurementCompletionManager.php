@@ -1132,25 +1132,36 @@ final class ProcurementCompletionManager
         int $contractId,
     ): void {
         $scope = $this->scope($actor, $context, 'procurement.purchase_orders.manage');
-        $contract = $this->visibleContract($scope, $contractId, true);
-        if ($contract->status === 'active') {
-            return;
-        }
-        if ($contract->status !== 'draft') {
-            throw ValidationException::withMessages(['status' => ['Only draft contracts can be activated.']]);
-        }
 
-        DB::table('enterprise_procurement_contracts')->where('id', $contract->id)->update([
-            'status' => 'active',
-            'activated_by' => $actor->id,
-            'activated_at' => now(),
-            'updated_by' => $actor->id,
-            'updated_at' => now(),
-        ]);
-        $this->audit->record('enterprise.procurement.contract.activated', $actor, null, null, [
-            'store_id' => $scope->storeId,
-            'contract_id' => $contract->id,
-        ]);
+        // The same record-level SoD used by AP posting and Treasury payment
+        // release applies to the supplier agreement itself. Lock across the
+        // state transition so concurrent activation cannot bypass the checker.
+        DB::transaction(function () use ($actor, $scope, $contractId): void {
+            $contract = $this->visibleContract($scope, $contractId, true);
+            if ($contract->status === 'active') {
+                return;
+            }
+            if ($contract->status !== 'draft') {
+                throw ValidationException::withMessages(['status' => ['Only draft contracts can be activated.']]);
+            }
+            if ((int) $contract->created_by === (int) $actor->id) {
+                throw ValidationException::withMessages([
+                    'approver' => [__('enterprise_procurement.errors.contract_self_approval')],
+                ]);
+            }
+
+            DB::table('enterprise_procurement_contracts')->where('id', $contract->id)->update([
+                'status' => 'active',
+                'activated_by' => $actor->id,
+                'activated_at' => now(),
+                'updated_by' => $actor->id,
+                'updated_at' => now(),
+            ]);
+            $this->audit->record('enterprise.procurement.contract.activated', $actor, null, null, [
+                'store_id' => $scope->storeId,
+                'contract_id' => $contract->id,
+            ]);
+        }, 3);
     }
 
     public function terminateContract(
