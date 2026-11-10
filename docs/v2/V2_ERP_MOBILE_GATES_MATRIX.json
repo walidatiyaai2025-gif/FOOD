@@ -1,0 +1,638 @@
+{
+  "schema": 1,
+  "source": "FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx",
+  "parent_issue": 2503,
+  "base": "Foodex_V2",
+  "items": [
+    {
+      "id": "T122R1",
+      "type": "erp-role",
+      "domain": "إدارة الجملة",
+      "title": "V2 | ERP Role — مدير أعمال الجملة (B2B_ADMIN)",
+      "summary": "Role B2B_ADMIN: مدير أعمال الجملة",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير أعمال الجملة; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R2",
+      "type": "erp-role",
+      "domain": "الحوكمة",
+      "title": "V2 | ERP Role — مسؤول الأمن والصلاحيات (SECURITY_ADMINISTRATOR)",
+      "summary": "Role SECURITY_ADMINISTRATOR: مسؤول الأمن والصلاحيات",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول الأمن والصلاحيات; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R3",
+      "type": "erp-role",
+      "domain": "المبيعات",
+      "title": "V2 | ERP Role — مدير المبيعات (SALES_MANAGER)",
+      "summary": "Role SALES_MANAGER: مدير المبيعات",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير المبيعات; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R4",
+      "type": "erp-role",
+      "domain": "المبيعات",
+      "title": "V2 | ERP Role — مسؤول المبيعات (SALES_OFFICER)",
+      "summary": "Role SALES_OFFICER: مسؤول المبيعات",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول المبيعات; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R5",
+      "type": "erp-role",
+      "domain": "خدمة العملاء",
+      "title": "V2 | ERP Role — مدير خدمة العملاء (CUSTOMER_SERVICE_MANAGER)",
+      "summary": "Role CUSTOMER_SERVICE_MANAGER: مدير خدمة العملاء",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير خدمة العملاء; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R6",
+      "type": "erp-role",
+      "domain": "خدمة العملاء",
+      "title": "V2 | ERP Role — مشرف خدمة العملاء (CUSTOMER_SERVICE_SUPERVISOR)",
+      "summary": "Role CUSTOMER_SERVICE_SUPERVISOR: مشرف خدمة العملاء",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مشرف خدمة العملاء; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R7",
+      "type": "erp-role",
+      "domain": "خدمة العملاء",
+      "title": "V2 | ERP Role — موظف خدمة العملاء (CUSTOMER_SERVICE_AGENT)",
+      "summary": "Role CUSTOMER_SERVICE_AGENT: موظف خدمة العملاء",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for موظف خدمة العملاء; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R8",
+      "type": "erp-role",
+      "domain": "المشتريات",
+      "title": "V2 | ERP Role — مدير المشتريات (PROCUREMENT_MANAGER)",
+      "summary": "Role PROCUREMENT_MANAGER: مدير المشتريات",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير المشتريات; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R9",
+      "type": "erp-role",
+      "domain": "المشتريات",
+      "title": "V2 | ERP Role — مسؤول مشتريات / مشتري (PROCUREMENT_BUYER)",
+      "summary": "Role PROCUREMENT_BUYER: مسؤول مشتريات / مشتري",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول مشتريات / مشتري; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R10",
+      "type": "erp-role",
+      "domain": "المشتريات",
+      "title": "V2 | ERP Role — معتمد المشتريات (PROCUREMENT_APPROVER)",
+      "summary": "Role PROCUREMENT_APPROVER: معتمد المشتريات",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for معتمد المشتريات; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R11",
+      "type": "erp-role",
+      "domain": "المخزون",
+      "title": "V2 | ERP Role — مدير المستودع (WAREHOUSE_MANAGER)",
+      "summary": "Role WAREHOUSE_MANAGER: مدير المستودع",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير المستودع; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R12",
+      "type": "erp-role",
+      "domain": "المخزون",
+      "title": "V2 | ERP Role — مراقب المخزون (INVENTORY_CONTROLLER)",
+      "summary": "Role INVENTORY_CONTROLLER: مراقب المخزون",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مراقب المخزون; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R13",
+      "type": "erp-role",
+      "domain": "المالية",
+      "title": "V2 | ERP Role — مدير المالية (FINANCE)",
+      "summary": "Role FINANCE: مدير المالية",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير المالية; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R14",
+      "type": "erp-role",
+      "domain": "المحاسبة",
+      "title": "V2 | ERP Role — رئيس الحسابات / مدير المحاسبة (ACCOUNTING_MANAGER)",
+      "summary": "Role ACCOUNTING_MANAGER: رئيس الحسابات / مدير المحاسبة",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for رئيس الحسابات / مدير المحاسبة; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R15",
+      "type": "erp-role",
+      "domain": "المحاسبة",
+      "title": "V2 | ERP Role — محاسب (ACCOUNTANT)",
+      "summary": "Role ACCOUNTANT: محاسب",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for محاسب; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R16",
+      "type": "erp-role",
+      "domain": "الذمم",
+      "title": "V2 | ERP Role — مسؤول حسابات العملاء (AR_OFFICER)",
+      "summary": "Role AR_OFFICER: مسؤول حسابات العملاء",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول حسابات العملاء; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R17",
+      "type": "erp-role",
+      "domain": "الذمم",
+      "title": "V2 | ERP Role — مسؤول حسابات الموردين (AP_OFFICER)",
+      "summary": "Role AP_OFFICER: مسؤول حسابات الموردين",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول حسابات الموردين; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R18",
+      "type": "erp-role",
+      "domain": "الخزينة",
+      "title": "V2 | ERP Role — مدير الخزينة (TREASURY_MANAGER)",
+      "summary": "Role TREASURY_MANAGER: مدير الخزينة",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير الخزينة; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R19",
+      "type": "erp-role",
+      "domain": "الخزينة",
+      "title": "V2 | ERP Role — مسؤول الخزينة / أمين الصندوق (TREASURY_OFFICER)",
+      "summary": "Role TREASURY_OFFICER: مسؤول الخزينة / أمين الصندوق",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول الخزينة / أمين الصندوق; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R20",
+      "type": "erp-role",
+      "domain": "الأسطول",
+      "title": "V2 | ERP Role — مدير الأسطول (FLEET_MANAGER)",
+      "summary": "Role FLEET_MANAGER: مدير الأسطول",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير الأسطول; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R21",
+      "type": "erp-role",
+      "domain": "التوزيع",
+      "title": "V2 | ERP Role — مشرف التوزيع والتوجيه (DISPATCH_SUPERVISOR)",
+      "summary": "Role DISPATCH_SUPERVISOR: مشرف التوزيع والتوجيه",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مشرف التوزيع والتوجيه; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R22",
+      "type": "erp-role",
+      "domain": "التوزيع",
+      "title": "V2 | ERP Role — مشغل الفان (VAN_OPERATOR)",
+      "summary": "Role VAN_OPERATOR: مشغل الفان",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مشغل الفان; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R23",
+      "type": "erp-role",
+      "domain": "الرقابة",
+      "title": "V2 | ERP Role — مستعرض الإدارة التنفيذية (EXECUTIVE_VIEWER)",
+      "summary": "Role EXECUTIVE_VIEWER: مستعرض الإدارة التنفيذية",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مستعرض الإدارة التنفيذية; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T122R24",
+      "type": "erp-role",
+      "domain": "الرقابة",
+      "title": "V2 | ERP Role — محلل الأعمال والتقارير (BUSINESS_ANALYST)",
+      "summary": "Role BUSINESS_ANALYST: محلل الأعمال والتقارير",
+      "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for محلل الأعمال والتقارير; no inherited blanket Super Admin access.",
+      "issue_number": null
+    },
+    {
+      "id": "T115R1",
+      "type": "erp-stage",
+      "domain": "ERP",
+      "title": "V2 | ERP Stage 1 — التشغيل الأساسي",
+      "summary": "التشغيل الأساسي",
+      "details": "عميل الجملة والطلب والتسليم، عزل الجملة والتجزئة، اختبارات رحلة فعلية",
+      "issue_number": null
+    },
+    {
+      "id": "T115R2",
+      "type": "erp-stage",
+      "domain": "ERP",
+      "title": "V2 | ERP Stage 2 — الضبط التجاري",
+      "summary": "الضبط التجاري",
+      "details": "تسعير المورد/العميل والخصم والربحية والائتمان الموحد والتحصيل الجزئي",
+      "issue_number": null
+    },
+    {
+      "id": "T115R3",
+      "type": "erp-stage",
+      "domain": "ERP",
+      "title": "V2 | ERP Stage 3 — المشتريات والمخزون",
+      "summary": "المشتريات والمخزون",
+      "details": "الشراء وأمانة المورد والدفعات والملكية والصلاحية والجرد والمرتجعات",
+      "issue_number": null
+    },
+    {
+      "id": "T115R4",
+      "type": "erp-stage",
+      "domain": "ERP",
+      "title": "V2 | ERP Stage 4 — الفانات والتوزيع",
+      "summary": "الفانات والتوزيع",
+      "details": "عهدة الفان والزيارة والتسليم والبيع الميداني والتسوية والمزامنة المحدودة",
+      "issue_number": null
+    },
+    {
+      "id": "T115R5",
+      "type": "erp-stage",
+      "domain": "ERP",
+      "title": "V2 | ERP Stage 5 — المحاسبة المتكاملة",
+      "summary": "المحاسبة المتكاملة",
+      "details": "GL/AR/AP والخزينة والبنوك وتسويات الموردين وربحية القنوات",
+      "issue_number": null
+    },
+    {
+      "id": "T353R1",
+      "type": "role-projection",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Persona — مدير الجملة والمبيعات",
+      "summary": "مدير الجملة والمبيعات",
+      "details": "Target allowed menu groups: نظرة عامة والعملاء والمبيعات والطلبات والكتالوج والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
+      "issue_number": null
+    },
+    {
+      "id": "T353R2",
+      "type": "role-projection",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Persona — خدمة العملاء",
+      "summary": "خدمة العملاء",
+      "details": "Target allowed menu groups: نظرة عامة والعملاء وخدمة العملاء وواتساب والطلبات والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
+      "issue_number": null
+    },
+    {
+      "id": "T353R3",
+      "type": "role-projection",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Persona — المشتريات",
+      "summary": "المشتريات",
+      "details": "Target allowed menu groups: نظرة عامة والمشتريات والموردون والمخزون والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
+      "issue_number": null
+    },
+    {
+      "id": "T353R4",
+      "type": "role-projection",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Persona — المخزون والمستودعات",
+      "summary": "المخزون والمستودعات",
+      "details": "Target allowed menu groups: نظرة عامة والمخزون والمستودعات والجرد والتحويلات والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
+      "issue_number": null
+    },
+    {
+      "id": "T353R5",
+      "type": "role-projection",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Persona — المالية والمحاسبة",
+      "summary": "المالية والمحاسبة",
+      "details": "Target allowed menu groups: نظرة عامة والمالية والذمم والخزينة والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
+      "issue_number": null
+    },
+    {
+      "id": "T353R6",
+      "type": "role-projection",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Persona — العمليات والتوزيع والأسطول",
+      "summary": "العمليات والتوزيع والأسطول",
+      "details": "Target allowed menu groups: نظرة عامة والطلبات والتنفيذ والأسطول والفانات والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
+      "issue_number": null
+    },
+    {
+      "id": "T353R7",
+      "type": "role-projection",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Persona — مدير متجر التجزئة",
+      "summary": "مدير متجر التجزئة",
+      "details": "Target allowed menu groups: نظرة عامة والمتجر والطلبات والعملاء والمخزون والتسويق والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
+      "issue_number": null
+    },
+    {
+      "id": "T353R8",
+      "type": "role-projection",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Persona — مسؤول الأمن والصلاحيات",
+      "summary": "مسؤول الأمن والصلاحيات",
+      "details": "Target allowed menu groups: الإدارة والمستخدمون والأدوار ومراجعة الوصول وسجل التدقيق. Must apply real permission/scope/module/readiness; never assume from role label.",
+      "issue_number": null
+    },
+    {
+      "id": "T356R1",
+      "type": "sidebar-migration",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Migration — enterprise_action_center",
+      "summary": "enterprise_action_center",
+      "details": "Remap existing sidebar item enterprise_action_center to نظرة عامة/مركز الإجراءات without duplicate route, stale key or privilege change.",
+      "issue_number": null
+    },
+    {
+      "id": "T356R2",
+      "type": "sidebar-migration",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Migration — enterprise_workspaces",
+      "summary": "enterprise_workspaces",
+      "details": "Remap existing sidebar item enterprise_workspaces to نظرة عامة/مساحات العمل without duplicate route, stale key or privilege change.",
+      "issue_number": null
+    },
+    {
+      "id": "T356R3",
+      "type": "sidebar-migration",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Migration — customer_360",
+      "summary": "customer_360",
+      "details": "Remap existing sidebar item customer_360 to العملاء/العملاء 360 without duplicate route, stale key or privilege change.",
+      "issue_number": null
+    },
+    {
+      "id": "T356R4",
+      "type": "sidebar-migration",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Migration — order_operations",
+      "summary": "order_operations",
+      "details": "Remap existing sidebar item order_operations to الطلبات والعمليات/إدارة الطلبات without duplicate route, stale key or privilege change.",
+      "issue_number": null
+    },
+    {
+      "id": "T356R5",
+      "type": "sidebar-migration",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Migration — commercial_sales_control",
+      "summary": "commercial_sales_control",
+      "details": "Remap existing sidebar item commercial_sales_control to الكتالوج والتسعير/التحكم التجاري والتسعير without duplicate route, stale key or privilege change.",
+      "issue_number": null
+    },
+    {
+      "id": "T356R6",
+      "type": "sidebar-migration",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Migration — whatsapp_inbox",
+      "summary": "whatsapp_inbox",
+      "details": "Remap existing sidebar item whatsapp_inbox to خدمة العملاء وواتساب/صندوق الواتساب without duplicate route, stale key or privilege change.",
+      "issue_number": null
+    },
+    {
+      "id": "T356R7",
+      "type": "sidebar-migration",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Migration — field_ops_overview",
+      "summary": "field_ops_overview",
+      "details": "Remap existing sidebar item field_ops_overview to الأسطول والعمليات الميدانية/نظرة عامة للعمليات الميدانية without duplicate route, stale key or privilege change.",
+      "issue_number": null
+    },
+    {
+      "id": "T356R8",
+      "type": "sidebar-migration",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Migration — field_ops_routing",
+      "summary": "field_ops_routing",
+      "details": "Remap existing sidebar item field_ops_routing to الأسطول والعمليات الميدانية/التوجيه والمسارات without duplicate route, stale key or privilege change.",
+      "issue_number": null
+    },
+    {
+      "id": "T356R9",
+      "type": "sidebar-migration",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Migration — treasury_master",
+      "summary": "treasury_master",
+      "details": "Remap existing sidebar item treasury_master to المالية والخزينة/الخزينة without duplicate route, stale key or privilege change.",
+      "issue_number": null
+    },
+    {
+      "id": "T356R10",
+      "type": "sidebar-migration",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Migration — reports_center",
+      "summary": "reports_center",
+      "details": "Remap existing sidebar item reports_center to التقارير والتحليلات/مركز التقارير without duplicate route, stale key or privilege change.",
+      "issue_number": null
+    },
+    {
+      "id": "T356R11",
+      "type": "sidebar-migration",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Migration — app_preview",
+      "summary": "app_preview",
+      "details": "Remap existing sidebar item app_preview to التطبيقات/معاينة التطبيق without duplicate route, stale key or privilege change.",
+      "issue_number": null
+    },
+    {
+      "id": "T356R12",
+      "type": "sidebar-migration",
+      "domain": "Sidebar",
+      "title": "V2 | Sidebar Migration — sidebar_role_access",
+      "summary": "sidebar_role_access",
+      "details": "Remap existing sidebar item sidebar_role_access to الإدارة/شجرة الصفحات والصلاحيات without duplicate route, stale key or privilege change.",
+      "issue_number": null
+    },
+    {
+      "id": "MOB-C01",
+      "type": "mobile-impact",
+      "domain": "Customer",
+      "title": "V2 | MOBILE Customer — RBAC/account disable/archive and authentication session revocation",
+      "summary": "RBAC/account disable/archive and authentication session revocation",
+      "details": "Source P069/P070/P079/P142. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
+      "issue_number": null
+    },
+    {
+      "id": "MOB-C02",
+      "type": "mobile-impact",
+      "domain": "Customer",
+      "title": "V2 | MOBILE Customer — B2B/B2C authorized customer identity and store-scoped navigation",
+      "summary": "B2B/B2C authorized customer identity and store-scoped navigation",
+      "details": "Source P031/P110/P119. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
+      "issue_number": null
+    },
+    {
+      "id": "MOB-C03",
+      "type": "mobile-impact",
+      "domain": "Customer",
+      "title": "V2 | MOBILE Customer — Wholesale credit, pricing, discount and partial collection parity",
+      "summary": "Wholesale credit, pricing, discount and partial collection parity",
+      "details": "Source T115R02/P129. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
+      "issue_number": null
+    },
+    {
+      "id": "MOB-C04",
+      "type": "mobile-impact",
+      "domain": "Customer",
+      "title": "V2 | MOBILE Customer — Order status, invoice, notification and storefront parity under V2",
+      "summary": "Order status, invoice, notification and storefront parity under V2",
+      "details": "Source T115R01/P118. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
+      "issue_number": null
+    },
+    {
+      "id": "MOB-D01",
+      "type": "mobile-impact",
+      "domain": "Driver",
+      "title": "V2 | MOBILE Driver — Role change, access denial, biometric session and token invalidation",
+      "summary": "Role change, access denial, biometric session and token invalidation",
+      "details": "Source P069/P079/P142. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
+      "issue_number": null
+    },
+    {
+      "id": "MOB-D02",
+      "type": "mobile-impact",
+      "domain": "Driver",
+      "title": "V2 | MOBILE Driver — B2C-only dispatch, assignment, status, proof and notification workflow",
+      "summary": "B2C-only dispatch, assignment, status, proof and notification workflow",
+      "details": "Source P110/T115R04. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
+      "issue_number": null
+    },
+    {
+      "id": "MOB-D03",
+      "type": "mobile-impact",
+      "domain": "Driver",
+      "title": "V2 | MOBILE Driver — Wallet/collection role scope, finance settlement and API contracts",
+      "summary": "Wallet/collection role scope, finance settlement and API contracts",
+      "details": "Source P033/T115R05. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
+      "issue_number": null
+    },
+    {
+      "id": "MOB-V01",
+      "type": "mobile-impact",
+      "domain": "Van",
+      "title": "V2 | MOBILE Van — Role change, access denial, offline identity and token invalidation",
+      "summary": "Role change, access denial, offline identity and token invalidation",
+      "details": "Source P069/P079/P142. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
+      "issue_number": null
+    },
+    {
+      "id": "MOB-V02",
+      "type": "mobile-impact",
+      "domain": "Van",
+      "title": "V2 | MOBILE Van — B2B-only van assignment, routes, visits and territory authorization",
+      "summary": "B2B-only van assignment, routes, visits and territory authorization",
+      "details": "Source P110/T115R04. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
+      "issue_number": null
+    },
+    {
+      "id": "MOB-V03",
+      "type": "mobile-impact",
+      "domain": "Van",
+      "title": "V2 | MOBILE Van — Consignment stock, direct sales, trip settlements and offline replay",
+      "summary": "Consignment stock, direct sales, trip settlements and offline replay",
+      "details": "Source T115R03/T115R04. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
+      "issue_number": null
+    },
+    {
+      "id": "MOB-ALL01",
+      "type": "mobile-impact",
+      "domain": "Cross-app",
+      "title": "V2 | MOBILE Cross-app — Contract compatibility and shared identity RBAC matrix for all three APKs",
+      "summary": "Contract compatibility and shared identity RBAC matrix for all three APKs",
+      "details": "Source P009/P032/P144. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
+      "issue_number": null
+    },
+    {
+      "id": "MOB-ALL02",
+      "type": "mobile-impact",
+      "domain": "Cross-app",
+      "title": "V2 | MOBILE Cross-app — AR/EN accessible mobile E2E CI and synchronized signed build evidence",
+      "summary": "AR/EN accessible mobile E2E CI and synchronized signed build evidence",
+      "details": "Source P112/P145. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
+      "issue_number": null
+    },
+    {
+      "id": "G001",
+      "type": "acceptance-gate",
+      "domain": "QA & Governance",
+      "title": "V2 | GATE — V2 isolated branch governance and GitHub main-merge protection ruleset",
+      "summary": "V2 isolated branch governance and GitHub main-merge protection ruleset",
+      "details": "Source P137. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
+      "issue_number": null
+    },
+    {
+      "id": "G002",
+      "type": "acceptance-gate",
+      "domain": "QA & Governance",
+      "title": "V2 | GATE — Full source paragraph/table row/Sidebar traceability and coverage audit",
+      "summary": "Full source paragraph/table row/Sidebar traceability and coverage audit",
+      "details": "Source P385. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
+      "issue_number": null
+    },
+    {
+      "id": "G003",
+      "type": "acceptance-gate",
+      "domain": "QA & Governance",
+      "title": "V2 | GATE — V2 exact-head Required CI, policy, AR/EN, Flutter and Laravel testing",
+      "summary": "V2 exact-head Required CI, policy, AR/EN, Flutter and Laravel testing",
+      "details": "Source P112/P145. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
+      "issue_number": null
+    },
+    {
+      "id": "G004",
+      "type": "acceptance-gate",
+      "domain": "QA & Governance",
+      "title": "V2 | GATE — V2 signed Setup ZIP / web installer / production dependencies fresh MySQL install",
+      "summary": "V2 signed Setup ZIP / web installer / production dependencies fresh MySQL install",
+      "details": "Source P112. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
+      "issue_number": null
+    },
+    {
+      "id": "G005",
+      "type": "acceptance-gate",
+      "domain": "QA & Governance",
+      "title": "V2 | GATE — V2 signed Admin Update ZIP / Dashboard Update Center / backup and recovery",
+      "summary": "V2 signed Admin Update ZIP / Dashboard Update Center / backup and recovery",
+      "details": "Source P112. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
+      "issue_number": null
+    },
+    {
+      "id": "G006",
+      "type": "acceptance-gate",
+      "domain": "QA & Governance",
+      "title": "V2 | GATE — V2 v124/v125/v127 upgrade compatibility, preserve data and rollback tests",
+      "summary": "V2 v124/v125/v127 upgrade compatibility, preserve data and rollback tests",
+      "details": "Source P112. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
+      "issue_number": null
+    },
+    {
+      "id": "G007",
+      "type": "acceptance-gate",
+      "domain": "QA & Governance",
+      "title": "V2 | GATE — V2 full end-to-end ERP/RBAC/sidebar authorization security acceptance",
+      "summary": "V2 full end-to-end ERP/RBAC/sidebar authorization security acceptance",
+      "details": "Source P109/P144. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
+      "issue_number": null
+    },
+    {
+      "id": "G008",
+      "type": "acceptance-gate",
+      "domain": "QA & Governance",
+      "title": "V2 | GATE — V2 synchronized Customer, Driver and Van Android builds and provenance",
+      "summary": "V2 synchronized Customer, Driver and Van Android builds and provenance",
+      "details": "Source P112/T115R04. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
+      "issue_number": null
+    },
+    {
+      "id": "G009",
+      "type": "acceptance-gate",
+      "domain": "QA & Governance",
+      "title": "V2 | GATE — V2 real UX audit mobile/desktop RTL/LTR all personas and 177 Sidebar nodes",
+      "summary": "V2 real UX audit mobile/desktop RTL/LTR all personas and 177 Sidebar nodes",
+      "details": "Source P145/P369-373. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
+      "issue_number": null
+    }
+  ]
+}
