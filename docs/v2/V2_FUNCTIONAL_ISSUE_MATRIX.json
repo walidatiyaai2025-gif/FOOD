@@ -469,7 +469,8 @@
       "summary": "اعتماد تشكيل الأدوار النهائية وتقسيم الشراء والمحاسبة والخزينة",
       "title": "V2 | GOV P051 — اعتماد تشكيل الأدوار النهائية وتقسيم الشراء والمحاسبة والخزينة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2802,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2802"
     },
     {
       "id": "P052",
@@ -477,7 +478,8 @@
       "summary": "اعتماد تصنيف الحسابات بلا أدوار إدارية",
       "title": "V2 | GOV P052 — اعتماد تصنيف الحسابات بلا أدوار إدارية",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2803,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2803"
     },
     {
       "id": "P053",
@@ -485,7 +487,8 @@
       "summary": "التحقق من إصدار Dashboard الحي وتطابقه مع GitHub",
       "title": "V2 | AUDIT P053 — التحقق من إصدار Dashboard الحي وتطابقه مع GitHub",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2804,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2804"
     },
     {
       "id": "P054",
@@ -493,7 +496,8 @@
       "summary": "سياسات مستقلة لاستثناءات الوظائف الحساسة",
       "title": "V2 | SECURITY P054 — سياسات مستقلة لاستثناءات الوظائف الحساسة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2805,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2805"
     },
     {
       "id": "P068",
@@ -501,7 +505,8 @@
       "summary": "إجراء حذف المستخدم من قائمة ⋯ مع فصل تعطيل وأرشفة وحذف نهائي",
       "title": "V2 | USER P068 — إجراء حذف المستخدم من قائمة ⋯ مع فصل تعطيل وأرشفة وحذف نهائي",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2806,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2806"
     },
     {
       "id": "P069",
@@ -509,7 +514,8 @@
       "summary": "تعطيل الدخول والجلسات والتوكنات فورًا مع بقاء التاريخ",
       "title": "V2 | USER P069 — تعطيل الدخول والجلسات والتوكنات فورًا مع بقاء التاريخ",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2807,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2807"
     },
     {
       "id": "P070",
@@ -517,7 +523,8 @@
       "summary": "أرشفة أو حذف منطقي مع بقاء الهوية والارتباطات والتدقيق",
       "title": "V2 | USER P070 — أرشفة أو حذف منطقي مع بقاء الهوية والارتباطات والتدقيق",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2808,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2808"
     },
     {
       "id": "P071",
@@ -525,7 +532,8 @@
       "summary": "حذف نهائي مشروط بالارتباطات والاحتفاظ ومنع Cascade للماليات",
       "title": "V2 | USER P071 — حذف نهائي مشروط بالارتباطات والاحتفاظ ومنع Cascade للماليات",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2809,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2809"
     },
     {
       "id": "P072",
@@ -533,7 +541,8 @@
       "summary": "منع حذف الذات ومالك المنصة وآخر Super Admin والتكليفات المفتوحة",
       "title": "V2 | USER P072 — منع حذف الذات ومالك المنصة وآخر Super Admin والتكليفات المفتوحة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2810,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2810"
     },
     {
       "id": "P073",
@@ -541,7 +550,8 @@
       "summary": "تأكيد مزدوج وسبب إلزامي ومراجعة أثر وتدقيق واستعادة المؤرشف",
       "title": "V2 | USER P073 — تأكيد مزدوج وسبب إلزامي ومراجعة أثر وتدقيق واستعادة المؤرشف",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2811,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2811"
     },
     {
       "id": "P074",
@@ -549,7 +559,8 @@
       "summary": "صلاحية users.delete دقيقة مستقلة عن view وstatus.manage",
       "title": "V2 | USER P074 — صلاحية users.delete دقيقة مستقلة عن view وstatus.manage",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2812,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2812"
     },
     {
       "id": "P075",
@@ -557,7 +568,8 @@
       "summary": "تصنيف الحسابات السبعة وفحص الارتباطات قبل أي حذف",
       "title": "V2 | USER P075 — تصنيف الحسابات السبعة وفحص الارتباطات قبل أي حذف",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2813,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2813"
     },
     {
       "id": "P077",
@@ -565,7 +577,8 @@
       "summary": "معاينة شجرة صفحات المستخدم مباشرة عند اختيار الدور والنطاق",
       "title": "V2 | RBAC-UI P077 — معاينة شجرة صفحات المستخدم مباشرة عند اختيار الدور والنطاق",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2814,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2814"
     },
     {
       "id": "P079",
@@ -573,7 +586,8 @@
       "summary": "إنشاء وتعديل مستخدم مع نوع الحساب والقناة والمتجر",
       "title": "V2 | RBAC-UI P079 — إنشاء وتعديل مستخدم مع نوع الحساب والقناة والمتجر",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2815,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2815"
     },
     {
       "id": "P080",
@@ -581,7 +595,8 @@
       "summary": "اختيار أدوار متعددة وكشف التعارض وتحميل Registry",
       "title": "V2 | RBAC-UI P080 — اختيار أدوار متعددة وكشف التعارض وتحميل Registry",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2816,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2816"
     },
     {
       "id": "P081",
@@ -589,7 +604,8 @@
       "summary": "عرض Inherited وAllow وDeny وBlocked في عقد الصفحات",
       "title": "V2 | RBAC-UI P081 — عرض Inherited وAllow وDeny وBlocked في عقد الصفحات",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2817,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2817"
     },
     {
       "id": "P082",
@@ -597,7 +613,8 @@
       "summary": "صلاحيات View/Create/Edit/Delete/Approve/Post/Export/Dispatch لكل صفحة",
       "title": "V2 | RBAC-UI P082 — صلاحيات View/Create/Edit/Delete/Approve/Post/Export/Dispatch لكل صفحة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2818,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2818"
     },
     {
       "id": "P083",
