@@ -43,3 +43,9 @@ Parallel PRs #3063/#3064/#3068 own distinct AdminNavigation changes: this PR doe
 ## CI and release constraints
 
 Require current exact-HEAD Repository Policy, FOODEX V2 Isolation, AR/EN, PHP Syntax, Pint, PHPStan, Composer security, full Laravel regression, MySQL/Redis install-upgrade-recovery and terminal required-ci-gate green. Recheck mergeability after base moves. **MANUAL_ACCEPTANCE: DEFERRED_TO_V2_FINAL** per #2503 and #2750. Never claim manual UAT or deployment, never merge into main.
+
+## Mobile impact — Customer/Driver/Van
+
+- Customer: no change to customer API, pricing, catalog or routes.
+- Driver: no change to B2C Driver delivery, authorization, wallet or collections.
+- Van: no change to B2B Van assignment, trip settlements, custody mutations or offline replay.
