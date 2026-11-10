@@ -8,7 +8,7 @@ Source: `FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx`, `T353R4`. 
 - Actor: canonical global `INVENTORY` (B2B), distinct store-scoped `RETAIL_INVENTORY` (B2C). `WAREHOUSE_MANAGER` and `INVENTORY_CONTROLLER` are separate enterprise job roles with `inventory_wms` as a **required module** and must obey its independent readiness/certification gates.
 - Reuse → Extend: reuse `AdminNavigation::groupsFor`, `AdminSidebarManager::apply`, `B2bWorkspaceController::show`, `B2cWorkspaceController::show` and the existing Catalog grouping. No duplicate route or independent visibility grant.
 - Canonical route: `admin.b2b.module` with `module=inventory`; Retail `admin.b2c.module` uses a server-verified `store_id`. The Sidebar only projects server entitlement; its configuration is presentation-only.
-- Source defect: `b2b_inventory` was conditional on `usesCustomerServiceDashboardProfile`, accidentally excluding a valid `INVENTORY` persona. The fix removes this **UI-only** condition; `module()` still enforces real channel access and `inventory.view`. The B2B controller still enforces the permission directly.
+- Source defect: `b2b_inventory` was conditional on `usesCustomerServiceDashboardProfile`, accidentally excluding a valid `INVENTORY` persona. The fix replaces this incorrect **UI-only** dependency with a narrowly scoped specialist presentation path that preserves the already-tested compact B2B_ADMIN and SUPER_ADMIN menus; `module()` still enforces the real channel and `inventory.view`. Their hidden legacy menu does **not** revoke authorized direct HTTP. The B2B controller continues to enforce the permission independently.
 - The ERP WMS entry `erp_wms` stays **hidden** unless exact-version operational certification, lifecycle and entitlements allow access. Legacy B2B Inventory is **not** represented as a certified WMS or as finished stock-count/transfer ERP functionality.
 
 ## Scope and acceptance matrix
@@ -16,6 +16,7 @@ Source: `FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx`, `T353R4`. 
 | Role/context | Sidebar projection | Direct server behavior |
 | --- | --- | --- |
 | Active B2B INVENTORY | `b2b_inventory`, existing Overview | wholesale inventory HTTP 200 |
+| B2B_ADMIN and SUPER_ADMIN legacy compact menus | `b2b_inventory` stays hidden, preserving existing navigation assertions | independently permitted HTTP 200 |
 | Same user in AR / RTL and EN / LTR | same authorized key, localized HTML direction | wholesale inventory HTTP 200 in both |
 | Same user, no `orders.view`, `finance.view`, `reports.view` | operations, treasury, reports absent | no implicit rights granted |
 | INVENTORY, WMS uncertified | legacy inventory link retained; `erp_wms` absent | no false ERP operational readiness |
