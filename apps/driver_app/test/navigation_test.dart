@@ -324,50 +324,24 @@ void main() {
   });
 
   testWidgets(
-      'B2B wallet opens from localized footer, preserves Home and denies B2C route',
+      'legacy B2B wallet remains blocked for Arabic and English sessions',
       (tester) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
-
     for (final locale in [const Locale('ar'), const Locale('en')]) {
+      final repo = ChannelRecordingRepo();
       await tester.pumpWidget(FoodexDriverApp(
         locale: locale,
         initialSession: session(DriverChannel.b2b),
-        assignmentRepositoryFactory: (_) => _WalletStatusRepo(),
+        assignmentRepositoryFactory: (_) => repo,
       ));
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('driver-shell-wallet')), findsOneWidget);
-      expect(find.text(locale.languageCode == 'ar' ? 'المحفظة' : 'Wallet'),
+      expect(find.byKey(const Key('driver-login-wholesale-denied')),
           findsOneWidget);
-      expect(find.byKey(const Key('driver-open-wallet')), findsOneWidget);
-      await tester.tap(find.byKey(const Key('driver-shell-wallet')));
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const Key('driver-wallet-page')), findsOneWidget);
-      expect(
-          find.byKey(const Key('driver-collected-summary-81')), findsOneWidget);
-      expect(find.byKey(const Key('driver-shell-navigation')), findsOneWidget);
-      expect(
-        tester
-            .widget<NavigationBar>(
-              find.byKey(const Key('driver-shell-navigation')),
-            )
-            .selectedIndex,
-        DriverShellDestination.wallet.index,
-      );
-
-      // A B2B driver cannot deep-link into the B2C wallet.
-      Navigator.of(tester.element(find.byKey(const Key('driver-wallet-page'))))
-          .pushNamed<void>(DriverRoutes.b2cWallet);
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('driver-route-denied')), findsOneWidget);
+      expect(find.byKey(const Key('driver-shell')), findsNothing);
+      expect(find.byKey(const Key('driver-shell-wallet')), findsNothing);
       expect(find.byKey(const Key('driver-wallet-page')), findsNothing);
-
+      expect(repo.requestedChannel, isNull);
+      expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
     }
@@ -414,7 +388,7 @@ void main() {
     expect(find.byKey(const Key('driver-route-denied')), findsNothing);
   });
 
-  testWidgets('B2B driver starts inside the manual-dispatch B2B partition',
+  testWidgets('legacy B2B Driver session never starts an operational partition',
       (tester) async {
     final repo = ChannelRecordingRepo();
     await tester.pumpWidget(
@@ -424,9 +398,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(repo.requestedChannel, DriverChannel.b2b);
-    expect(find.byKey(const Key('driver-shell-deliveries')), findsOneWidget);
-    expect(find.byKey(const Key('driver-route-denied')), findsNothing);
+
+    expect(repo.requestedChannel, isNull);
+    expect(find.byKey(const Key('driver-login-wholesale-denied')),
+        findsOneWidget);
+    expect(find.byKey(const Key('driver-shell-deliveries')), findsNothing);
+    expect(find.byKey(const Key('driver-shell')), findsNothing);
   });
 
   testWidgets(
@@ -854,33 +831,21 @@ void main() {
     expect(layoutError, isNull);
   });
 
-  testWidgets('B2B driver Home shows unsettled collections above quick summary',
+  testWidgets('legacy B2B Driver cannot open collections or wallet',
       (tester) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
-
+    final repo = ChannelRecordingRepo();
     await tester.pumpWidget(FoodexDriverApp(
       initialSession: session(DriverChannel.b2b),
-      assignmentRepositoryFactory: (_) => _WalletStatusRepo(),
+      assignmentRepositoryFactory: (_) => repo,
     ));
     await tester.pumpAndSettle();
 
-    final unsettledCard =
-        find.byKey(const Key('driver-home-unsettled-collections'));
-    final quickSummary =
-        find.byKey(const Key('driver-home-status-summary-title'));
-    expect(unsettledCard, findsOneWidget);
-    expect(
-      tester.getTopLeft(unsettledCard).dy,
-      lessThan(tester.getTopLeft(quickSummary).dy),
-    );
-    await tester.tap(unsettledCard);
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('driver-wallet-page')), findsOneWidget);
+    expect(find.byKey(const Key('driver-login-wholesale-denied')),
+        findsOneWidget);
+    expect(find.byKey(const Key('driver-home-unsettled-collections')),
+        findsNothing);
+    expect(find.byKey(const Key('driver-wallet-page')), findsNothing);
+    expect(repo.requestedChannel, isNull);
     expect(tester.takeException(), isNull);
   });
 
@@ -927,7 +892,7 @@ void main() {
     expect(repo.listCalls, callsAfterDispose);
   });
 
-  testWidgets('B2B driver can navigate its own B2B delivery route',
+  testWidgets('legacy B2B delivery deep link cannot revive Driver execution',
       (tester) async {
     final repo = ChannelRecordingRepo();
     await tester.pumpWidget(
@@ -938,9 +903,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(repo.requestedChannel, DriverChannel.b2b);
-    expect(find.byKey(const Key('driver-route-denied')), findsNothing);
-    expect(find.byKey(const Key('driver-shell')), findsOneWidget);
+
+    expect(repo.requestedChannel, isNull);
+    expect(find.byKey(const Key('driver-login-wholesale-denied')),
+        findsOneWidget);
+    expect(find.byKey(const Key('driver-shell')), findsNothing);
+    expect(find.byKey(const Key('driver-shell-deliveries')), findsNothing);
   });
 
   testWidgets('B2C driver cannot navigate into B2B routes', (tester) async {
@@ -955,15 +923,22 @@ void main() {
     expect(find.byKey(const Key('driver-route-denied')), findsOneWidget);
   });
 
-  testWidgets('B2B driver cannot navigate into B2C routes', (tester) async {
+  testWidgets('legacy B2B session cannot use a forged B2C delivery deep link',
+      (tester) async {
+    final repo = ChannelRecordingRepo();
     await tester.pumpWidget(
       FoodexDriverApp(
         initialSession: session(DriverChannel.b2b),
-        assignmentRepositoryFactory: (_) => EmptyRepo(),
+        assignmentRepositoryFactory: (_) => repo,
         initialRoute: DriverRoutes.b2cDeliveries,
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('driver-route-denied')), findsOneWidget);
+
+    expect(repo.requestedChannel, isNull);
+    expect(find.byKey(const Key('driver-login-wholesale-denied')),
+        findsOneWidget);
+    expect(find.byKey(const Key('driver-shell')), findsNothing);
   });
+
 }
