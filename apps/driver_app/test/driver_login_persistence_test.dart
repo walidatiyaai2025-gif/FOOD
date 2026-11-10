@@ -50,7 +50,8 @@ class _LegacyWholesaleAuth extends _Auth {
   Future<DriverSession> login({
     required String email,
     required String password,
-  }) async => const DriverSession(
+  }) async =>
+      const DriverSession(
         token: 'legacy-wholesale-token',
         name: 'Wholesale Driver',
         email: 'wholesale@example.test',
