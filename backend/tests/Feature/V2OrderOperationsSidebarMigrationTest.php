@@ -52,7 +52,9 @@ final class V2OrderOperationsSidebarMigrationTest extends TestCase
             $this->assertIsArray($link);
             $this->assertContains('order_operations', array_column($group['children'], 'key'));
             $this->assertSame('admin.operations.orders.index', $link['route']);
-            $this->assertSame('orders.view', $link['permission']);
+            // The canonical scoped link is a projection; it does not carry a grant.
+            $this->assertNull($link['permission']);
+            $this->assertTrue($actor->hasPermission('orders.view'));
             $this->assertSame('admin.order_management', $link['label']);
             $this->assertSame($expected['item'], $link['label_text'] ?? __($link['label']));
 
