@@ -443,6 +443,502 @@
       "title": "V2 | SECURITY P054 — سياسات مستقلة لاستثناءات الوظائف الحساسة",
       "type": "functional",
       "issue_number": null
+    },
+    {
+      "id": "P068",
+      "domain": "USER",
+      "summary": "إجراء حذف المستخدم من قائمة ⋯ مع فصل تعطيل وأرشفة وحذف نهائي",
+      "title": "V2 | USER P068 — إجراء حذف المستخدم من قائمة ⋯ مع فصل تعطيل وأرشفة وحذف نهائي",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P069",
+      "domain": "USER",
+      "summary": "تعطيل الدخول والجلسات والتوكنات فورًا مع بقاء التاريخ",
+      "title": "V2 | USER P069 — تعطيل الدخول والجلسات والتوكنات فورًا مع بقاء التاريخ",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P070",
+      "domain": "USER",
+      "summary": "أرشفة أو حذف منطقي مع بقاء الهوية والارتباطات والتدقيق",
+      "title": "V2 | USER P070 — أرشفة أو حذف منطقي مع بقاء الهوية والارتباطات والتدقيق",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P071",
+      "domain": "USER",
+      "summary": "حذف نهائي مشروط بالارتباطات والاحتفاظ ومنع Cascade للماليات",
+      "title": "V2 | USER P071 — حذف نهائي مشروط بالارتباطات والاحتفاظ ومنع Cascade للماليات",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P072",
+      "domain": "USER",
+      "summary": "منع حذف الذات ومالك المنصة وآخر Super Admin والتكليفات المفتوحة",
+      "title": "V2 | USER P072 — منع حذف الذات ومالك المنصة وآخر Super Admin والتكليفات المفتوحة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P073",
+      "domain": "USER",
+      "summary": "تأكيد مزدوج وسبب إلزامي ومراجعة أثر وتدقيق واستعادة المؤرشف",
+      "title": "V2 | USER P073 — تأكيد مزدوج وسبب إلزامي ومراجعة أثر وتدقيق واستعادة المؤرشف",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P074",
+      "domain": "USER",
+      "summary": "صلاحية users.delete دقيقة مستقلة عن view وstatus.manage",
+      "title": "V2 | USER P074 — صلاحية users.delete دقيقة مستقلة عن view وstatus.manage",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P075",
+      "domain": "USER",
+      "summary": "تصنيف الحسابات السبعة وفحص الارتباطات قبل أي حذف",
+      "title": "V2 | USER P075 — تصنيف الحسابات السبعة وفحص الارتباطات قبل أي حذف",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P077",
+      "domain": "RBAC-UI",
+      "summary": "معاينة شجرة صفحات المستخدم مباشرة عند اختيار الدور والنطاق",
+      "title": "V2 | RBAC-UI P077 — معاينة شجرة صفحات المستخدم مباشرة عند اختيار الدور والنطاق",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P079",
+      "domain": "RBAC-UI",
+      "summary": "إنشاء وتعديل مستخدم مع نوع الحساب والقناة والمتجر",
+      "title": "V2 | RBAC-UI P079 — إنشاء وتعديل مستخدم مع نوع الحساب والقناة والمتجر",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P080",
+      "domain": "RBAC-UI",
+      "summary": "اختيار أدوار متعددة وكشف التعارض وتحميل Registry",
+      "title": "V2 | RBAC-UI P080 — اختيار أدوار متعددة وكشف التعارض وتحميل Registry",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P081",
+      "domain": "RBAC-UI",
+      "summary": "عرض Inherited وAllow وDeny وBlocked في عقد الصفحات",
+      "title": "V2 | RBAC-UI P081 — عرض Inherited وAllow وDeny وBlocked في عقد الصفحات",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P082",
+      "domain": "RBAC-UI",
+      "summary": "صلاحيات View/Create/Edit/Delete/Approve/Post/Export/Dispatch لكل صفحة",
+      "title": "V2 | RBAC-UI P082 — صلاحيات View/Create/Edit/Delete/Approve/Post/Export/Dispatch لكل صفحة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P083",
+      "domain": "RBAC-UI",
+      "summary": "تحديث Live Sidebar Preview دون خلط الرؤية بأزرار الاعتماد",
+      "title": "V2 | RBAC-UI P083 — تحديث Live Sidebar Preview دون خلط الرؤية بأزرار الاعتماد",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P084",
+      "domain": "RBAC-UI",
+      "summary": "Diff قبل وبعد وتحذير SoD وسبب التغيير وAudit وإبطال Cache",
+      "title": "V2 | RBAC-UI P084 — Diff قبل وبعد وتحذير SoD وسبب التغيير وAudit وإبطال Cache",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T087R01",
+      "domain": "RBAC-UI",
+      "summary": "مثال خدمة العملاء: WhatsApp عرض ورد وإسناد محادثات",
+      "title": "V2 | RBAC-UI T087R01 — مثال خدمة العملاء: WhatsApp عرض ورد وإسناد محادثات",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T087R02",
+      "domain": "RBAC-UI",
+      "summary": "مثال خدمة العملاء: ملفات العملاء عرض وتعديل محدود",
+      "title": "V2 | RBAC-UI T087R02 — مثال خدمة العملاء: ملفات العملاء عرض وتعديل محدود",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T087R03",
+      "domain": "RBAC-UI",
+      "summary": "مثال خدمة العملاء: الطلبات عرض وإنشاء وتوزيع واعتماد مستقل",
+      "title": "V2 | RBAC-UI T087R03 — مثال خدمة العملاء: الطلبات عرض وإنشاء وتوزيع واعتماد مستقل",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T087R04",
+      "domain": "RBAC-UI",
+      "summary": "مثال خدمة العملاء: طلب وتطبيق خصم تحت سقف وموافقة",
+      "title": "V2 | RBAC-UI T087R04 — مثال خدمة العملاء: طلب وتطبيق خصم تحت سقف وموافقة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T087R05",
+      "domain": "RBAC-UI",
+      "summary": "مثال خدمة العملاء: إخفاء دفتر القيود افتراضيًا",
+      "title": "V2 | RBAC-UI T087R05 — مثال خدمة العملاء: إخفاء دفتر القيود افتراضيًا",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T087R06",
+      "domain": "RBAC-UI",
+      "summary": "مثال خدمة العملاء: إخفاء إدارة المستخدمين والصلاحيات",
+      "title": "V2 | RBAC-UI T087R06 — مثال خدمة العملاء: إخفاء إدارة المستخدمين والصلاحيات",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P090",
+      "domain": "RBAC",
+      "summary": "وضع Inherit من الدور الخاضع للنطاق والموديول",
+      "title": "V2 | RBAC P090 — وضع Inherit من الدور الخاضع للنطاق والموديول",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P091",
+      "domain": "RBAC",
+      "summary": "وضع Allow ضمن السقف والنطاق مع منع كسر عزل المتاجر",
+      "title": "V2 | RBAC P091 — وضع Allow ضمن السقف والنطاق مع منع كسر عزل المتاجر",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P092",
+      "domain": "RBAC",
+      "summary": "وضع Deny بأسبقية واضحة على وراثة الدور",
+      "title": "V2 | RBAC P092 — وضع Deny بأسبقية واضحة على وراثة الدور",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P093",
+      "domain": "SIDEBAR",
+      "summary": "عقدة القسم ليست إذنًا وتختفي دون ابن مصرح",
+      "title": "V2 | SIDEBAR P093 — عقدة القسم ليست إذنًا وتختفي دون ابن مصرح",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P094",
+      "domain": "RBAC",
+      "summary": "مربع الصفحة يحرر Permission Codes لا Visibility",
+      "title": "V2 | RBAC P094 — مربع الصفحة يحرر Permission Codes لا Visibility",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P096",
+      "domain": "RBAC",
+      "summary": "فصل أثر تعديل قالب الدور عن Override مستخدم واحد",
+      "title": "V2 | RBAC P096 — فصل أثر تعديل قالب الدور عن Override مستخدم واحد",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P097",
+      "domain": "RBAC",
+      "summary": "حماية Built-in Role والاستنساخ إلى دور مخصص مع حوكمة",
+      "title": "V2 | RBAC P097 — حماية Built-in Role والاستنساخ إلى دور مخصص مع حوكمة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P098",
+      "domain": "RBAC-UI",
+      "summary": "تفاصيل الدور المخصص ووصفه وحدوده ومتجره وموديولاته وسقفه",
+      "title": "V2 | RBAC-UI P098 — تفاصيل الدور المخصص ووصفه وحدوده ومتجره وموديولاته وسقفه",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P099",
+      "domain": "SECURITY",
+      "summary": "تعديل الواجهة ينعكس على RBAC وRoute الحقيقي دون تجاوز الموافقات",
+      "title": "V2 | SECURITY P099 — تعديل الواجهة ينعكس على RBAC وRoute الحقيقي دون تجاوز الموافقات",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P100",
+      "domain": "DATA",
+      "summary": "حفظ سجلات الأدوار القديمة تاريخيًا ومنع إعادة معنى Role Code",
+      "title": "V2 | DATA P100 — حفظ سجلات الأدوار القديمة تاريخيًا ومنع إعادة معنى Role Code",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P102",
+      "domain": "ERP",
+      "summary": "إدارة ERP الجملة مستقلة عن تشغيل متاجر التجزئة",
+      "title": "V2 | ERP P102 — إدارة ERP الجملة مستقلة عن تشغيل متاجر التجزئة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T104R01",
+      "domain": "ERP",
+      "summary": "ENABLED دورة حياة للموديول فقط ولا تعني جاهزية ERP",
+      "title": "V2 | ERP T104R01 — ENABLED دورة حياة للموديول فقط ولا تعني جاهزية ERP",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T104R02",
+      "domain": "ERP",
+      "summary": "ظهور ERP Sidebar لا يثبت تشغيل الدورة",
+      "title": "V2 | ERP T104R02 — ظهور ERP Sidebar لا يثبت تشغيل الدورة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T104R03",
+      "domain": "ERP",
+      "summary": "اعتماد جاهزية ERP بعد مسارات العمل والاختبارات الكاملة",
+      "title": "V2 | ERP T104R03 — اعتماد جاهزية ERP بعد مسارات العمل والاختبارات الكاملة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P106",
+      "domain": "ERP",
+      "summary": "التوفيق بين وحدات ENABLED وتعارض ERP Sidebar وEntitlements",
+      "title": "V2 | ERP P106 — التوفيق بين وحدات ENABLED وتعارض ERP Sidebar وEntitlements",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P108",
+      "domain": "ERP",
+      "summary": "جرد نسخة الخادم ونطاق الجملة وRoutes وPermissions وDependencies",
+      "title": "V2 | ERP P108 — جرد نسخة الخادم ونطاق الجملة وRoutes وPermissions وDependencies",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P109",
+      "domain": "ERP",
+      "summary": "اختبار دورة إنشاء ومراجعة واعتماد وترحيل وعكس وتقرير وتدقيق",
+      "title": "V2 | ERP P109 — اختبار دورة إنشاء ومراجعة واعتماد وترحيل وعكس وتقرير وتدقيق",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P110",
+      "domain": "ERP",
+      "summary": "إثبات عزل ملكية مورد/FOODEX في دفتر المخزون والتقارير",
+      "title": "V2 | ERP P110 — إثبات عزل ملكية مورد/FOODEX في دفتر المخزون والتقارير",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P111",
+      "domain": "ERP",
+      "summary": "ضبط Entitlements والفروع والسقوف وMaker Checker قبل الإتاحة",
+      "title": "V2 | ERP P111 — ضبط Entitlements والفروع والسقوف وMaker Checker قبل الإتاحة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P112",
+      "domain": "RELEASE",
+      "summary": "Setup ZIP وUpdate ZIP وFresh Install وUpgrade وBackup CI",
+      "title": "V2 | RELEASE P112 — Setup ZIP وUpdate ZIP وFresh Install وUpgrade وBackup CI",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P113",
+      "domain": "ERP",
+      "summary": "إظهار ERP تلقائيًا فقط للأدوار المخولة بعد بوابة جاهزية",
+      "title": "V2 | ERP P113 — إظهار ERP تلقائيًا فقط للأدوار المخولة بعد بوابة جاهزية",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P118",
+      "domain": "SIDEBAR",
+      "summary": "ترتيب ERP الجملة من نظرة عامة إلى التقارير والرقابة",
+      "title": "V2 | SIDEBAR P118 — ترتيب ERP الجملة من نظرة عامة إلى التقارير والرقابة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P119",
+      "domain": "SECURITY",
+      "summary": "حفظ تجزئة B2C تحت أدوار المتاجر المستقلة",
+      "title": "V2 | SECURITY P119 — حفظ تجزئة B2C تحت أدوار المتاجر المستقلة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P126",
+      "domain": "SOD",
+      "summary": "المشتري لا يعتمد مشترياته حتى لو امتلك دور المعتمد",
+      "title": "V2 | SOD P126 — المشتري لا يعتمد مشترياته حتى لو امتلك دور المعتمد",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P127",
+      "domain": "SOD",
+      "summary": "فصل إعداد وترحيل واعتماد القيد عن الخزينة والتحصيل",
+      "title": "V2 | SOD P127 — فصل إعداد وترحيل واعتماد القيد عن الخزينة والتحصيل",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P128",
+      "domain": "SOD",
+      "summary": "فصل إدارة عقد المورد والتسوية وإطلاق الدفع",
+      "title": "V2 | SOD P128 — فصل إدارة عقد المورد والتسوية وإطلاق الدفع",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P129",
+      "domain": "SOD",
+      "summary": "منع السعر والخصم من تجاوز الائتمان والربحية دون موافقة",
+      "title": "V2 | SOD P129 — منع السعر والخصم من تجاوز الائتمان والربحية دون موافقة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P130",
+      "domain": "SOD",
+      "summary": "حظر استخدام Super Admin أو Platform Owner كدور تشغيلي يومي",
+      "title": "V2 | SOD P130 — حظر استخدام Super Admin أو Platform Owner كدور تشغيلي يومي",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P132",
+      "domain": "GOV",
+      "summary": "اعتماد احتفاظ البيانات والحذف النهائي وإخفاء الهوية",
+      "title": "V2 | GOV P132 — اعتماد احتفاظ البيانات والحذف النهائي وإخفاء الهوية",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P133",
+      "domain": "GOV",
+      "summary": "اعتماد نماذج أدوار الشركة والفرع والمخزن والمتجر ومالك القوالب",
+      "title": "V2 | GOV P133 — اعتماد نماذج أدوار الشركة والفرع والمخزن والمتجر ومالك القوالب",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P134",
+      "domain": "GOV",
+      "summary": "تحديد من يملك User Allow والاعتماد والتفويض المؤقت وإلغاءه",
+      "title": "V2 | GOV P134 — تحديد من يملك User Allow والاعتماد والتفويض المؤقت وإلغاءه",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P135",
+      "domain": "GOV",
+      "summary": "اعتماد جاهزية كل موديول ERP بمسار تشغيلي حقيقي",
+      "title": "V2 | GOV P135 — اعتماد جاهزية كل موديول ERP بمسار تشغيلي حقيقي",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P136",
+      "domain": "GOV",
+      "summary": "حسم التعارض المرجعي بسياسة B2B VAN فقط وB2C DRIVER فقط",
+      "title": "V2 | GOV P136 — حسم التعارض المرجعي بسياسة B2B VAN فقط وB2C DRIVER فقط",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P137",
+      "domain": "GOV",
+      "summary": "اعتماد مدى الترحيل وتاريخ إعدادات Sidebar القديمة دون حذف",
+      "title": "V2 | GOV P137 — اعتماد مدى الترحيل وتاريخ إعدادات Sidebar القديمة دون حذف",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P139",
+      "domain": "QA",
+      "summary": "اختبار دور خدمة العملاء وتعديل صلاحية الطلب وتأثيرها على الشجرة",
+      "title": "V2 | QA P139 — اختبار دور خدمة العملاء وتعديل صلاحية الطلب وتأثيرها على الشجرة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P140",
+      "domain": "QA",
+      "summary": "اختبار عزل تعديل الدور المخصص عن Override مستخدم واحد",
+      "title": "V2 | QA P140 — اختبار عزل تعديل الدور المخصص عن Override مستخدم واحد",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P141",
+      "domain": "QA",
+      "summary": "اختبار Allow لا يتجاوز شركة أو متجر أو موديول غير جاهز",
+      "title": "V2 | QA P141 — اختبار Allow لا يتجاوز شركة أو متجر أو موديول غير جاهز",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P142",
+      "domain": "QA",
+      "summary": "اختبار الأرشفة يوقف Dashboard والجوال ويحفظ الفواتير والتاريخ",
+      "title": "V2 | QA P142 — اختبار الأرشفة يوقف Dashboard والجوال ويحفظ الفواتير والتاريخ",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P143",
+      "domain": "QA",
+      "summary": "اختبار منع حذف الذات وآخر مسؤول ومالك النظام والحسابات الجارية",
+      "title": "V2 | QA P143 — اختبار منع حذف الذات وآخر مسؤول ومالك النظام والحسابات الجارية",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P144",
+      "domain": "QA",
+      "summary": "اختبار Maker Checker والائتمان والخصومات والموردين على API والDB",
+      "title": "V2 | QA P144 — اختبار Maker Checker والائتمان والخصومات والموردين على API والDB",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P145",
+      "domain": "QA",
+      "summary": "اختبار AR/EN وموبايل وديسكتوب وسبب الحجب والروابط الصالحة",
+      "title": "V2 | QA P145 — اختبار AR/EN وموبايل وديسكتوب وسبب الحجب والروابط الصالحة",
+      "type": "functional",
+      "issue_number": null
     }
   ]
 }
