@@ -254,6 +254,18 @@ final class PurchaseRequestManager
         ): EnterprisePurchaseRequest {
             $request = $this->lockVisible($scope, $requestId);
 
+            // A separate approver is mandatory even if the maker has approval permission.
+            // Evaluate after scoped locking and before idempotent status handling so a
+            // historical self-approved request cannot be silently re-affirmed.
+            if ($decision === 'approved' && (
+                (int) $request->created_by === (int) $actor->id
+                || (int) $request->submitted_by === (int) $actor->id
+            )) {
+                throw ValidationException::withMessages([
+                    'decision' => [__('enterprise_procurement.errors.self_approval')],
+                ]);
+            }
+
             if ($request->status === $decision) {
                 return $request->refresh();
             }
