@@ -32,7 +32,7 @@ return [
     'icon' => 'Icon',
     'order' => 'Order',
     'no_parent' => 'Top level',
-    'parent_help' => 'A page can be nested under another page only when both are in the same group. Lower order values appear first.',
+    'parent_help' => 'Maximum three levels: group, top-level page, then child page. A child page cannot contain another child. Lower order values appear first.',
     'protected' => 'Protected from lockout',
     'save_layout' => 'Save sidebar layout',
     'layout_saved' => 'Sidebar layout was saved.',
@@ -41,4 +41,5 @@ return [
     'invalid_parent' => 'The selected parent page is invalid.',
     'parent_same_group' => 'A parent page and its child must be in the same sidebar group.',
     'parent_cycle' => 'Sidebar nesting cannot contain circular parent relationships.',
+    'max_nesting' => 'Sidebar nesting is limited to three levels (group, page, child page).',
 ];
