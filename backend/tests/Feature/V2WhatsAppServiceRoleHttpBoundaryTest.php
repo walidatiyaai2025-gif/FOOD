@@ -68,7 +68,7 @@ final class V2WhatsAppServiceRoleHttpBoundaryTest extends TestCase
 
         $supervisor->forceFill(['locale' => 'en'])->save();
         $this->actingAs($supervisor)
-            ->post(route('admin.whatsapp-inbox.assign', ['conversation' => $conversation]), [
+            ->patch(route('admin.whatsapp-inbox.assign', ['conversation' => $conversation]), [
                 'agent_id' => $agent->getKey(),
                 'expected_version' => 1,
                 'reason' => 'V2 2821 authorized assignment',
@@ -126,7 +126,7 @@ final class V2WhatsAppServiceRoleHttpBoundaryTest extends TestCase
             $this->assertContains($reply->getStatusCode(), [403, 404]);
 
             $assignment = $this->actingAs($actor)
-                ->post(route('admin.whatsapp-inbox.assign', ['conversation' => $foreignConversation]), [
+                ->patch(route('admin.whatsapp-inbox.assign', ['conversation' => $foreignConversation]), [
                     'agent_id' => $agent->getKey(),
                     'expected_version' => 0,
                     'reason' => 'Must never be assigned',
@@ -173,7 +173,7 @@ final class V2WhatsAppServiceRoleHttpBoundaryTest extends TestCase
                 ->assertForbidden();
 
             $this->actingAs($roleless)
-                ->post(route('admin.whatsapp-inbox.assign', ['conversation' => $conversation]), [
+                ->patch(route('admin.whatsapp-inbox.assign', ['conversation' => $conversation]), [
                     'agent_id' => $agent->getKey(),
                     'expected_version' => 0,
                 ])
