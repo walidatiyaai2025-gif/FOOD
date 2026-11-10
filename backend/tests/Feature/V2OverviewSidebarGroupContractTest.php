@@ -97,7 +97,7 @@ class V2OverviewSidebarGroupContractTest extends TestCase
             ));
         $this->actingAs($user)
             ->get(route('admin.b2c.module', ['module' => 'dashboard', 'store_id' => $otherStore]))
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     public function test_inactive_and_roleless_accounts_cannot_create_an_overview_group_or_open_my_work(): void
