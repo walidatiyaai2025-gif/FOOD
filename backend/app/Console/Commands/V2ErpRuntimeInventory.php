@@ -39,7 +39,7 @@ final class V2ErpRuntimeInventory extends Command
         }
 
         $routes = [];
-        foreach (Route::getRoutes() as $route) {
+        foreach (Route::getRoutes()->getRoutes() as $route) {
             if (! $route instanceof RoutingRoute || ! $this->isRelevantRoute($route)) {
                 continue;
             }
@@ -63,8 +63,8 @@ final class V2ErpRuntimeInventory extends Command
         }
 
         usort($routes, static fn (array $left, array $right): int => strcmp(
-            ($left['uri'] ?? '').'|'.($left['name'] ?? ''),
-            ($right['uri'] ?? '').'|'.($right['name'] ?? ''),
+            $left['uri'].'|'.($left['name'] ?? ''),
+            $right['uri'].'|'.($right['name'] ?? ''),
         ));
 
         $versionFile = base_path('../VERSION');
@@ -82,7 +82,7 @@ final class V2ErpRuntimeInventory extends Command
             'composer_manifest_sha256' => is_file($manifestPath) ? hash_file('sha256', $manifestPath) : null,
             'declared_production_dependencies' => $dependencies,
             'installed_production_dependency_versions' => $installedVersions,
-            'routes_total' => count(Route::getRoutes()),
+            'routes_total' => count(Route::getRoutes()->getRoutes()),
             'erp_wholesale_related_routes' => $routes,
             'route_inventory_sha256' => hash('sha256', (string) json_encode($routes, JSON_UNESCAPED_SLASHES)),
             'acceptance' => [
