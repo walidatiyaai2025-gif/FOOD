@@ -163,7 +163,8 @@
       "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 18",
       "domain": "user-role-assignments",
       "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
-      "issue_number": null
+      "issue_number": 2923,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2923"
     },
     {
       "id": "T5R19",
@@ -171,7 +172,8 @@
       "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 19",
       "domain": "user-role-assignments",
       "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
-      "issue_number": null
+      "issue_number": 2924,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2924"
     },
     {
       "id": "T5R20",
@@ -179,7 +181,8 @@
       "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 20",
       "domain": "user-role-assignments",
       "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
-      "issue_number": null
+      "issue_number": 2925,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2925"
     }
   ]
 }
