@@ -7,8 +7,11 @@
 
 ## Route/permission map
 
+**CI-discovered gap fixed:** A custom global role with the real `drivers.b2b.view` permission already received `field_ops_vans` in the Sidebar, but `EnsureManagementDashboardAccess::handle` rejected the direct HTTP request because `drivers.b2b.view` was missing from `config('admin.dashboard_permissions')`. The existing Dashboard admission allowlist now includes precisely that pre-existing read permission, not `van.login` or any mutation permission. The controller still rechecks the identical `drivers.b2b.view` and denies every unauthorized reader.
+
 | Action / entry point | Canonical authority | Guard and business constraints |
 | --- | --- | --- |
+| Dashboard session admission | `EnsureManagementDashboardAccess` → `AdminNavigation::canUseDashboard` → `config('admin.dashboard_permissions')` | A global `drivers.b2b.view` reader can reach the management shell; inactive identities and revoked/denied permissions remain blocked |
 | `field_ops_vans` Sidebar | `AdminNavigation::groupsFor` → `admin.field-operations.vans` | `drivers.b2b.view` **global effective permission**; role grants remain subordinate to user-level explicit DENY |
 | `GET /admin/field-operations/vans` | `FieldOperationsController::vans` | `management.dashboard` + `drivers.b2b.view`; reads actual Van records, assignments, locations and warehouses |
 | `GET /admin/field-operations/vans/{van}` | `FieldOperationsController::showVan` | Same `drivers.b2b.view` read authority; no B2C Driver fallback |
@@ -17,7 +20,7 @@
 | Channel/tenant | global B2B fleet registry, **not** a Retail store-list | Retail store roles do **not** authorize the global B2B Vans page; the Van registry currently has no `store_id` field, so no fictitious per-store filter is claimed |
 | Entitlement/readiness | canonical core Field Operations route | Not an optional enterprise ERP module; the existing Dashboard session, active-account, route and permission gates remain authoritative |
 
-**No new permission, role, module enablement, controller, route or visibility policy is introduced.** This task verifies the existing real behavior, rather than creating a second Van screen or allowing a UI-only link to bypass HTTP 403.
+**No new permission, role, module enablement, controller, route or visibility policy is introduced.** The existing Dashboard admission allowlist is aligned with its already-authorized Vans link; this is a minimal effective-access fix, not a role escalation or a second Van screen. All read/write controllers retain their independent checks.
 
 ## Regression coverage
 
@@ -44,8 +47,8 @@ Invariant unchanged: **B2B fulfillment → VAN ONLY; B2C fulfillment → DRIVER 
 ## Evidence and acceptance
 
 - Current source inspected: `backend/app/Support/AdminNavigation.php`, `backend/app/Http/Controllers/Admin/FieldOperationsController.php`, `backend/routes/web.php`, `backend/resources/views/admin/field-operations.blade.php`.
-- Scope ownership is restricted to this **new test and QA document**. Other V2 workers own shared `AdminNavigation.php`; no overlapping edits.
-- PHP syntax was checked independently before the first remote code commit. Full Laravel tests and required checks must be recorded from the exact final PR SHA, not asserted ahead of their actual GitHub run.
+- Scope ownership is restricted to **this new test and QA document plus the one-line Dashboard admission allowlist fix in `backend/config/admin.php`**. Existing active V2 PR changed-file inventories were inspected before that config edit; no overlap. Other V2 workers own shared `AdminNavigation.php`, which remains unchanged.
+- PHP syntax was checked independently before the first remote code commit. Initial CI at head `c3abac2c642fd56c8c154953e401711a5f904e7f` found exactly two P263 positive-HTTP 403 regressions (2,667 other Laravel tests passed), proving the Dashboard admission mismatch; fixed via minimal config allowlist update on the **same PR**. A new full exact-head CI must pass before merge. Full Laravel tests and required checks must be recorded from the exact final PR SHA, not asserted ahead of their actual GitHub run.
 - Current reused UI includes existing AR/EN localized page heading/empty state, shared Dashboard Responsive CSS and off-canvas navigation. **Real-browser visual/a11y acceptance at 320/360/390/412/430/768/1024/1280 px is NOT verified by this test**.
 - `MANUAL_ACCEPTANCE: DEFERRED_TO_V2_FINAL` under owner decision on #2503. Do not claim the complete product UAT or production deployment.
 - Merge only after Repository Policy, FOODEX V2 Isolation Gate and the exact-head Required CI Gate and all applicable child jobs succeed. Preserve original issue branch and one PR; close #2593 only when the full scoped Definition of Done is genuinely evidenced.
