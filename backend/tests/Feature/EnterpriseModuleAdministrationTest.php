@@ -73,6 +73,31 @@ final class EnterpriseModuleAdministrationTest extends TestCase
             ->assertSee('غير معتمدة');
     }
 
+    public function test_activation_summary_uses_registry_state_and_links_to_server_filtered_modules(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'en', 'module-activation@example.test');
+
+        $this->actingAs($admin)
+            ->get(route('admin.enterprise-modules.index'))
+            ->assertOk()
+            ->assertSee('id="module-activation-status"', false)
+            ->assertSee('data-module-activation-state="DISABLED"', false)
+            ->assertSee(route('admin.enterprise-modules.index', ['state' => 'DISABLED']), false)
+            ->assertSee('Lifecycle state');
+
+        $this->actingAs($admin)
+            ->get(route('admin.enterprise-modules.index', ['state' => 'DISABLED']))
+            ->assertOk()
+            ->assertSee('data-module-activation-state="DISABLED"', false);
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+        $this->actingAs($admin->fresh())
+            ->get(route('admin.enterprise-modules.index'))
+            ->assertOk()
+            ->assertSee('dir="rtl"', false)
+            ->assertSee('حالة دورة الحياة');
+    }
+
     public function test_non_platform_admin_is_denied_module_administration(): void
     {
         $finance = $this->userWithRole('FINANCE', 'en', 'module-finance@example.test');
