@@ -3,7 +3,7 @@
     $nodeSecondary = $child['label_secondary_text'] ?? __($child['label'], [], $secondaryLocale);
     $nodeActive = ($navContext ?? '') === $child['key'];
 @endphp
-<a class="foodex-nav-link {{ $nodeActive?'active':'' }}" href="{{ route($child['route'],$child['params']) }}" data-nav-label="{{ mb_strtolower($nodePrimary.' '.$nodeSecondary) }}" @if($nodeActive) aria-current="page" @endif>
+<a class="foodex-nav-link {{ $nodeActive?'active':'' }}" href="{{ route($child['route'],$child['params']) }}" data-nav-item="{{ $child['key'] }}" data-nav-label="{{ mb_strtolower($nodePrimary.' '.$nodeSecondary) }}" @if($nodeActive) aria-current="page" @endif>
     @include('admin._premium-icon',['name'=>$childIcon($child['key'])])
     <span class="foodex-nav-label"><strong>{{ $nodePrimary }}</strong><small lang="{{ $secondaryLocale }}">{{ $nodeSecondary }}</small></span>
 </a>

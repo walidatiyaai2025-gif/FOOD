@@ -209,6 +209,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
 
     @include('admin._sidebar-personalization')
     @include('admin._assistant-chat')
+    @include('admin._sidebar-utility-tools')
 </div>
 
 <script>
