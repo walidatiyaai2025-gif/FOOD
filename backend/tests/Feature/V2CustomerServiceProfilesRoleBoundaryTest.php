@@ -94,6 +94,26 @@ final class V2CustomerServiceProfilesRoleBoundaryTest extends TestCase
             'V2 2822 Retail Buyer',
             'v2-2822-retail@example.test',
         );
+
+        // PlatformCustomerService intentionally provisions a wholesale identity
+        // for every new platform registration, even when it originates in B2C.
+        // A retail-origin platform user with that B2B identity is legitimately
+        // visible to wholesale Customer Service. Model a legacy B2C-only record
+        // instead: it has a valid retail membership but no wholesale authority.
+        $b2bIds = DB::table('b2b_customers')
+            ->where('user_id', $retailCustomer->user_id)
+            ->pluck('id');
+        $this->assertNotEmpty($b2bIds->all());
+        DB::table('b2b_accounts')->whereIn('b2b_customer_id', $b2bIds->all())->delete();
+        DB::table('b2b_customers')->whereIn('id', $b2bIds->all())->delete();
+        $this->assertDatabaseMissing('b2b_customers', [
+            'user_id' => $retailCustomer->user_id,
+        ]);
+        $this->assertDatabaseHas('b2c_customers', [
+            'user_id' => $retailCustomer->user_id,
+            'store_id' => $retailStore,
+        ]);
+
         $agent = $this->globalUser('CUSTOMER_SERVICE_AGENT');
 
         foreach (['ar', 'en'] as $locale) {
