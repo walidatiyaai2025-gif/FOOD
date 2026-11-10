@@ -67,7 +67,7 @@ void main() {
 
     test('permission-only 403 does not revoke a valid authenticated session',
         () async {
-      String? currentToken = 'still-authorized-for-login';
+      const currentToken = 'still-authorized-for-login';
       var expiryCalls = 0;
       final client = CustomerSessionHttpClient(
         MockClient((request) async => http.Response('', 403)),
