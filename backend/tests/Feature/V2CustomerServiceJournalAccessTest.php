@@ -14,7 +14,6 @@ use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 final class V2CustomerServiceJournalAccessTest extends TestCase
@@ -133,7 +132,8 @@ final class V2CustomerServiceJournalAccessTest extends TestCase
         ]);
     }
 
-    /** @param array<int, mixed> $permissions
+    /**
+     * @param  array<int, mixed>  $permissions
      * @return list<string>
      */
     private function financePermissions(array $permissions): array
