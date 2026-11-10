@@ -25,6 +25,8 @@ New `backend/tests/Feature/V2RetailContentSidebarHttpTest.php` asserts:
 3. Roleless, inactive and Wholesale-only actors have no Retail Content link and cannot open the route (403).
 4. A `RESTAURANT_DIGITAL_MANAGER` does not receive a Retail Content link and cannot open that profile-excluded module (403 or 404 depending on profile/store context).
 
+Test fixture isolation: optional administrator-saved Sidebar group/item/role-visibility presentation rows are cleared inside the disposable test database after seeding, so this P236 case validates the canonical **default** registry and real route authorization independently of prior layout preference tests. In production, administrators may legitimately nest/regroup or hide otherwise permitted links; such preferences never grant HTTP access.
+
 The existing `RetailAdminCatalogAuthorizationTest`, `AdminNavigationAuthorizationAuditTest`, storefront draft/publish tests and controller authorization tests cover adjacent product/editor semantics; this issue does not duplicate that work. No executable UI, API, workflow or permission changes were necessary based on the inspected canonical source.
 
 ## Impact classification and isolation
