@@ -121,7 +121,15 @@ final class V2SidebarLayoutPresentationWhitelistTest extends TestCase
             ->where('event', 'admin.sidebar.layout.updated')->count();
 
         $invalid = [
-            'groups' => [],
+            'groups' => [
+                'catalog' => [
+                    'label_ar' => null,
+                    'label_en' => null,
+                    'icon' => '▦',
+                    'sort_order' => 40,
+                    'is_enabled' => 1,
+                ],
+            ],
             'items' => [
                 'unregistered_super_admin_link' => [
                     'group_key' => 'administration',
