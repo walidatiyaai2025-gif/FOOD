@@ -42,10 +42,11 @@ final class V2FieldOperationsAssignmentsSidebarAuthorityTest extends TestCase
         $this->assertTrue(Route::has('admin.field-operations.assignments'));
     }
 
-    public function test_field_ops_only_actor_can_open_overview_but_not_b2b_assignments_in_arabic_and_english(): void
+    public function test_field_ops_actor_without_b2b_driver_grant_cannot_open_assignments_in_arabic_and_english(): void
     {
-        $actor = $this->fieldOperationsOnlyActor();
+        $actor = $this->fieldOperationsActor(true);
         $this->assertTrue($actor->hasPermission('field_ops.manage'));
+        $this->assertTrue($actor->hasPermission('reports.view'));
         $this->assertFalse($actor->hasPermission('drivers.b2b.view'));
         $this->assertTrue(app(AdminNavigation::class)->canUseDashboard($actor));
 
@@ -66,6 +67,23 @@ final class V2FieldOperationsAssignmentsSidebarAuthorityTest extends TestCase
                 ->get(route('admin.field-operations.assignments', [], false))
                 ->assertForbidden();
         }
+    }
+
+    public function test_field_ops_permission_alone_does_not_bypass_dashboard_admission(): void
+    {
+        $actor = $this->fieldOperationsActor(false);
+
+        $this->assertTrue($actor->hasPermission('field_ops.manage'));
+        $this->assertFalse($actor->hasPermission('drivers.b2b.view'));
+        $this->assertFalse(app(AdminNavigation::class)->canUseDashboard($actor));
+
+        $this->actingAs($actor)
+            ->get(route('admin.field-operations.overview', [], false))
+            ->assertForbidden();
+
+        $this->actingAs($actor)
+            ->get(route('admin.field-operations.assignments', [], false))
+            ->assertForbidden();
     }
 
     public function test_authorized_wholesale_operations_actor_has_a_working_assignments_link_in_both_locales(): void
@@ -125,18 +143,19 @@ final class V2FieldOperationsAssignmentsSidebarAuthorityTest extends TestCase
         }
     }
 
-    private function fieldOperationsOnlyActor(): User
+    private function fieldOperationsActor(bool $dashboardAccess): User
     {
         $role = Role::query()->create([
-            'code' => 'P3070_FIELD_OPS_ONLY',
-            'name' => 'V2 Field Operations Only',
+            'code' => $dashboardAccess ? 'P3070_FIELD_OPS_REPORTS' : 'P3070_FIELD_OPS_ONLY',
+            'name' => 'V2 Field Operations No B2B Assignments',
             'scope' => 'global',
             'is_system' => false,
             'is_active' => true,
         ]);
-        $role->permissions()->attach(
-            Permission::query()->where('code', 'field_ops.manage')->firstOrFail(),
-        );
+        $permissions = $dashboardAccess ? ['field_ops.manage', 'reports.view'] : ['field_ops.manage'];
+        $ids = Permission::query()->whereIn('code', $permissions)->pluck('id')->all();
+        $this->assertCount(count($permissions), $ids);
+        $role->permissions()->attach($ids);
 
         $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
         $actor->roles()->attach($role);
