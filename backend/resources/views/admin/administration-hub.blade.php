@@ -137,6 +137,12 @@ html[dir=ltr] .main{grid-column:2}
 <div><h3>{{ __('admin.administration_hub.users_permissions') }}</h3><p class="muted">{{ __('admin.administration_hub.users_permissions_description') }}</p></div>
 @if($canSecurity)<a class="action" href="{{ route('admin.security.index') }}">{{ __('admin.administration_hub.open') }}</a>@else<span class="restricted">{{ __('admin.administration_hub.restricted') }}</span>@endif
 </article>
+@if($canSystemUpdate)
+<article class="card utility-card" data-admin-card="system-updates">
+<div><h3>{{ __('admin.system_update_surface.title') }}</h3><p class="muted">{{ __('admin.system_update_surface.dashboard_description') }}</p></div>
+<a class="action" href="{{ route('admin.system-update.index') }}">{{ __('admin.administration_hub.open') }}</a>
+</article>
+@endif
 <article class="card utility-card" data-admin-card="system-inspector">
 <div><h3>{{ __('admin.system_inspector') }}</h3><p class="muted">{{ __('admin.administration_hub.integrations_description') }}</p></div>
 @if($canPlatformManage)<a class="action" href="{{ route('admin.inspector.index') }}">{{ __('admin.administration_hub.open') }}</a>@else<span class="restricted">{{ __('admin.administration_hub.restricted') }}</span>@endif
