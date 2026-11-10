@@ -20,7 +20,7 @@
 | UI languages | Existing Arabic/RTL and English/LTR Dashboard shell | Same canonical shell |
 | Back path | Operations navigation or authorized Dashboard context | Operations navigation or authorized Dashboard context |
 
-Presentation-level visibility never grants route access. `AdminNavigation::groupsFor` supplies the permitted child and `B2cWorkspaceController::authorizeModule` / `B2bWorkspaceController::authorizeModule` re-check server permissions. The B2C controller also checks store scope and business profile. No new alias, alternate renderer, API or control-plane permission is introduced.
+Presentation-level visibility never grants route access. `AdminNavigation::groupsFor` already constructs the permission-scoped B2C Drivers child, but the Retail `$retailB2cKeys` display filter accidentally removed it. P262 restores **only** `b2c_drivers` to that canonical whitelist, after verifying actual scoped HTTP 200; this is discoverability correction, not a new RBAC grant. `B2cWorkspaceController::authorizeModule` / `B2bWorkspaceController::authorizeModule` still re-check server permissions. The B2C controller also checks store scope and business profile. No new alias, alternate renderer, API or control-plane permission is introduced.
 
 ## Automated regression
 
@@ -32,7 +32,7 @@ Presentation-level visibility never grants route access. `AdminNavigation::group
 
 Supporting existing contracts: `AdminNavigationAuthorizationAuditTest`, `B2cTenantWorkspaceIsolationTest`, `B2bWholesaleWorkspaceIsolationTest`, `AdminBusinessManagementTest`, and `docs/execution/DASHBOARD_NAVIGATION_DISCOVERABILITY_AUDIT.md`.
 
-No Dashboard Blade, Sidebar infrastructure, authentication, API schemas or mobile runtime files are changed. Existing shared mobile-web off-canvas navigation, keyboard/focus semantics, responsive breakpoints (320–1280+) and AR/EN components are reused without modification. Real-device/browser layout and accessibility UAT remain **DEFERRED_TO_V2_FINAL** under the owner's #2503 manual acceptance decision; they are **not** claimed as performed.
+Only the existing Dashboard `AdminNavigation` Retail whitelist gains its already scoped `b2c_drivers` child; no Dashboard Blade templates, Sidebar infrastructure architecture, authentication, API schemas or mobile runtime files are changed. Existing shared mobile-web off-canvas navigation, keyboard/focus semantics, responsive breakpoints (320–1280+) and AR/EN components are reused without modification. Real-device/browser layout and accessibility UAT remain **DEFERRED_TO_V2_FINAL** under the owner's #2503 manual acceptance decision; they are **not** claimed as performed.
 
 ## Cross-surface impact classification
 
