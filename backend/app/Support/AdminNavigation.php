@@ -95,13 +95,16 @@ class AdminNavigation
                     : null,
             ]),
             $this->group('erp', 'admin.nav_groups.erp', '▤', $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile ? [
+                // P118: Wholesale ERP journey follows overview → customer operations →
+                // procurement → inventory → finance → treasury → BI reports → action controls.
+                // Visibility and target URLs remain governed by the existing per-item guards.
                 $this->routeItemOpen('erp_center', 'admin.erp_center.nav_title', 'admin.erp.index'),
+                $this->routeItemScoped($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'customers.view')
+                    ?? $this->routeItem($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'b2b.accounts.view'),
                 $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.erp.procurement.index', 'procurement', 'procurement.suppliers.view'),
                 $this->routeItemEnterpriseModule($user, 'erp_wms', 'admin.erp_center.modules.wms.title', 'admin.erp.wms.index', 'inventory_wms', 'inventory.view'),
                 $this->routeItemEnterpriseModule($user, 'erp_finance', 'admin.erp_center.modules.finance.title', 'admin.erp.finance.index', 'finance', 'finance.view'),
                 $this->routeItemEnterpriseModule($user, 'erp_treasury', 'admin.erp_center.modules.treasury.title', 'admin.erp.treasury.index', 'treasury', 'finance.view'),
-                $this->routeItemScoped($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'customers.view')
-                    ?? $this->routeItem($user, 'erp_customer_service', 'admin.erp_center.modules.customer_service.title', 'admin.erp.customer-service', 'b2b.accounts.view'),
                 $this->routeItemEnterpriseModule($user, 'erp_bi', 'admin.erp_center.modules.bi.title', 'admin.erp.bi', 'enterprise_bi', 'reports.view'),
                 $this->routeItemOpen('erp_my_work', 'admin.erp_center.modules.my_work.title', 'admin.action-center.index'),
             ] : []),

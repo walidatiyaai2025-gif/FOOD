@@ -69,7 +69,16 @@ final class ErpCenterController extends Controller
 
         $this->bootstrapLocalSuperAdminModules($actor);
 
+        // Match the P118 Wholesale journey used by the Sidebar registry:
+        // customer work → purchasing → warehouse → finance → treasury →
+        // analytics → approval/action controls. Keep all existing guards.
         $cards = array_values(array_filter([
+            $this->routeCard(
+                $actor,
+                'customer_service',
+                ['customers.view', 'b2b.accounts.view'],
+                'admin.erp.customer-service',
+            ),
             $this->moduleCard(
                 $actor,
                 'procurement',
@@ -97,12 +106,6 @@ final class ErpCenterController extends Controller
                 'treasury',
                 ['finance.view'],
                 'admin.erp.treasury.index',
-            ),
-            $this->routeCard(
-                $actor,
-                'customer_service',
-                ['customers.view', 'b2b.accounts.view'],
-                'admin.erp.customer-service',
             ),
             $this->moduleCard(
                 $actor,
