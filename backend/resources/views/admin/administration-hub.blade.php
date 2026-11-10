@@ -133,6 +133,12 @@ html[dir=ltr] .main{grid-column:2}
 <div><h3>{{ __('admin.settings_center.title') }}</h3><p class="muted">{{ __('admin.settings_center.description') }}</p></div>
 <a class="action" href="{{ route('admin.settings.index') }}">{{ __('admin.administration_hub.open') }}</a>
 </article>
+@if($canPlatformSettings)
+<article class="card utility-card" data-admin-card="platform-settings">
+<div><h3>{{ __('admin.settings_center.groups.platform') }}</h3><p class="muted">{{ __('admin.settings_center.groups.platform_description') }}</p></div>
+<a class="action" href="{{ route('admin.settings.index') }}#settings-platform">{{ __('admin.administration_hub.open') }}</a>
+</article>
+@endif
 <article class="card utility-card" data-admin-card="users-permissions">
 <div><h3>{{ __('admin.administration_hub.users_permissions') }}</h3><p class="muted">{{ __('admin.administration_hub.users_permissions_description') }}</p></div>
 @if($canSecurity)<a class="action" href="{{ route('admin.security.index') }}">{{ __('admin.administration_hub.open') }}</a>@else<span class="restricted">{{ __('admin.administration_hub.restricted') }}</span>@endif
