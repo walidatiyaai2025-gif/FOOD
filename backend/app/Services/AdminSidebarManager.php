@@ -255,7 +255,10 @@ final class AdminSidebarManager
      */
     public function apply(User $user, array $groups): array
     {
-        if ($groups === []) {
+        // Authorization is not a presentation preference. Inactive accounts
+        // have no Sidebar destinations, including the Platform Owner inventory.
+        // Keep this guard ahead of the owner-specific layout bypass.
+        if ($groups === [] || ! $user->is_active) {
             return [];
         }
 
