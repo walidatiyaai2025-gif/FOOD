@@ -122,6 +122,50 @@ final class V2ProcurementSidebarPersonaContractTest extends TestCase
         }
     }
 
+    public function test_wholesale_buyer_and_approver_have_distinct_module_gated_permissions_without_escalation(): void
+    {
+        $store = $this->wholesaleStore();
+        $buyer = $this->userWithRoles(['PROCUREMENT_BUYER']);
+        $approver = $this->userWithRoles(['PROCUREMENT_APPROVER']);
+
+        app(ModuleRegistry::class)->syncManifest('procurement');
+        app(ModuleLifecycleManager::class)->transition('procurement', ModuleState::ENABLING);
+        app(ModuleLifecycleManager::class)->transition('procurement', ModuleState::ENABLED);
+        app(ModuleEntitlementManager::class)->set('procurement', EntitlementScope::platform(), true);
+        config()->set(
+            'enterprise_module_readiness.certified_versions.procurement',
+            app(ModuleRegistry::class)->manifest('procurement')->version,
+        );
+
+        $this->assertTrue($buyer->hasPermission('procurement.suppliers.view', $store));
+        $this->assertTrue($buyer->hasPermission('procurement.purchase_requests.manage', $store));
+        $this->assertFalse($buyer->hasPermission('procurement.purchase_requests.approve', $store));
+        $this->assertFalse($buyer->hasPermission('procurement.purchase_orders.issue', $store));
+        $this->assertFalse($buyer->hasPermission('inventory.view', $store));
+
+        $this->assertTrue($approver->hasPermission('procurement.suppliers.view', $store));
+        $this->assertTrue($approver->hasPermission('procurement.purchase_requests.approve', $store));
+        $this->assertTrue($approver->hasPermission('procurement.purchase_orders.issue', $store));
+        $this->assertFalse($approver->hasPermission('procurement.suppliers.manage', $store));
+        $this->assertFalse($approver->hasPermission('finance.view', $store));
+
+        foreach (['ar', 'en'] as $locale) {
+            app()->setLocale($locale);
+
+            foreach ([$buyer, $approver] as $actor) {
+                $actor->forceFill(['locale' => $locale])->save();
+
+                $this->assertArrayHasKey('erp_procurement', $this->navigationItems($actor->fresh()));
+                $this->actingAs($actor->fresh())
+                    ->get(route('admin.erp.procurement.index', [
+                        'store_id' => $store,
+                        'tab' => 'suppliers',
+                    ]))
+                    ->assertOk();
+            }
+        }
+    }
+
     public function test_retail_only_role_cannot_inherit_procurement_or_wholesale_navigation(): void
     {
         [$retail, $ownStore] = $this->retailUser();
