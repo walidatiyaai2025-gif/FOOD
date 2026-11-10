@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
-use App\Models\AppVersion;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
