@@ -200,6 +200,25 @@ class AdminSidebarManagementTest extends TestCase
         $this->assertNotSame('sidebar_admin.max_nesting', __('sidebar_admin.max_nesting', [], 'en'));
     }
 
+    public function test_sidebar_layout_cannot_be_read_or_changed_without_roles_manage_permission(): void
+    {
+        $user = User::query()->create([
+            'name' => 'Restricted Viewer',
+            'email' => 'sidebar-no-rbac@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.sidebar-layout.index', [], false))
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->put(route('admin.sidebar-layout.update', [], false), [])
+            ->assertForbidden();
+    }
+
     public function test_super_admin_can_open_both_sidebar_management_pages(): void
     {
         $admin = $this->globalUser('SUPER_ADMIN', 'sidebar-owner@example.test');
