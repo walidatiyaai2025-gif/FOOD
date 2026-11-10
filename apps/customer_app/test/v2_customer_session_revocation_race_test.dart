@@ -8,8 +8,7 @@ import 'package:foodex_customer_app/core/auth/customer_session_http_client.dart'
 
 void main() {
   group('V2 Customer session revocation', () {
-    test('old in-flight 401 cannot expire a newer authenticated session',
-        () async {
+    test('stale 401 cannot expire a newer session', () async {
       final pending = Completer<http.Response>();
       String? currentToken = 'old-token';
       var expiryCalls = 0;
@@ -39,8 +38,7 @@ void main() {
       client.close();
     });
 
-    test('current revoked bearer token still clears local session exactly once',
-        () async {
+    test('current revoked token clears session exactly once', () async {
       String? currentToken = 'revoked-token';
       var expiryCalls = 0;
       final client = CustomerSessionHttpClient(
@@ -65,8 +63,7 @@ void main() {
       client.close();
     });
 
-    test('permission-only 403 does not revoke a valid authenticated session',
-        () async {
+    test('permission 403 preserves the valid session', () async {
       const currentToken = 'still-authorized-for-login';
       var expiryCalls = 0;
       final client = CustomerSessionHttpClient(
@@ -86,8 +83,7 @@ void main() {
       client.close();
     });
 
-    test('login 401 without bearer is never a persisted session revocation',
-        () async {
+    test('login 401 without bearer does not expire a session', () async {
       var expiryCalls = 0;
       final client = CustomerSessionHttpClient(
         MockClient((request) async => http.Response('', 401)),
@@ -104,8 +100,7 @@ void main() {
       client.close();
     });
 
-    test('bearer scheme casing is ignored when checking the current token',
-        () async {
+    test('bearer scheme casing is ignored', () async {
       String? currentToken = 'case-token';
       var expiryCalls = 0;
       final client = CustomerSessionHttpClient(
