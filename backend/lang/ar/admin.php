@@ -42,7 +42,7 @@ return [
     'nav_groups' => [
         'overview' => 'نظرة عامة',
         'erp' => 'تخطيط موارد المؤسسة (ERP)',
-        'field_operations' => 'عمليات الفان والميدان',
+        'field_operations' => 'الأسطول والعمليات الميدانية',
         'operations' => 'الطلبات والعمليات',
         'customer_service' => 'خدمة العملاء وواتساب',
         'catalog' => 'الكتالوج والتسعير',
@@ -399,7 +399,7 @@ return [
         'visits' => 'الزيارات والمسارات',
         'territories' => 'المناطق والجغرافيا',
         'address_quality' => 'جودة العناوين',
-        'routing' => 'سياسات التوجيه',
+        'routing' => 'التوجيه والمسارات',
         'finance' => 'التحصيل والمحفظة والتوريد',
         'commercial_rules' => 'القواعد التجارية للفان',
         'van_offers' => 'عروض الفان',

@@ -42,7 +42,7 @@ return [
     'nav_groups' => [
         'overview' => 'Overview',
         'erp' => 'ERP',
-        'field_operations' => 'Van & Field Operations',
+        'field_operations' => 'Fleet & Field Operations',
         'operations' => 'Orders & Operations',
         'customer_service' => 'Customer Service & WhatsApp',
         'catalog' => 'Catalog & Pricing',
@@ -399,7 +399,7 @@ return [
         'visits' => 'Visits / Routes',
         'territories' => 'Territories / Geography',
         'address_quality' => 'Address Quality',
-        'routing' => 'Routing Policies',
+        'routing' => 'Routing & Routes',
         'finance' => 'Collections / Wallet / Remittance',
         'commercial_rules' => 'Van Commercial Rules',
         'van_offers' => 'Van Offers',
