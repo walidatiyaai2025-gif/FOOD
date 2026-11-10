@@ -167,11 +167,9 @@ final class AdminSidebarManager
         DB::transaction(function () use ($role, $registry, $selected, $permissions, $protected, $now): void {
             foreach ($registry['items'] as $key => $meta) {
                 if (! $this->roleCanUseItem($role, (array) $meta, $permissions)) {
-                    DB::table('admin_sidebar_role_visibility')
-                        ->where('role_id', $role->id)
-                        ->where('item_key', $key)
-                        ->delete();
-
+                    // An ineligible item can never enter authorized navigation.
+                    // Retain its historical preference for audit and migration;
+                    // changing role scope must not silently delete old settings.
                     continue;
                 }
 
@@ -180,9 +178,10 @@ final class AdminSidebarManager
                     $visible = true;
                 }
 
+                $values = ['is_visible' => $visible, 'updated_at' => $now];
                 DB::table('admin_sidebar_role_visibility')->updateOrInsert(
                     ['role_id' => $role->id, 'item_key' => $key],
-                    ['is_visible' => $visible, 'created_at' => $now, 'updated_at' => $now],
+                    static fn (bool $exists): array => $exists ? $values : ['created_at' => $now] + $values,
                 );
             }
         }, 3);
@@ -205,41 +204,51 @@ final class AdminSidebarManager
 
         DB::transaction(function () use ($groups, $items, $registry, $protected, $protectedGroups, $now): void {
             foreach ($registry['groups'] as $key => $definition) {
-                $input = (array) ($groups[$key] ?? []);
+                // Migrators may supply only changed keys. Missing means keep
+                // the existing persisted setting, not reset/disable its row.
+                if (! array_key_exists($key, $groups)) {
+                    continue;
+                }
+
+                $input = (array) $groups[$key];
+                $values = [
+                    'label_ar' => $this->nullableText($input['label_ar'] ?? null),
+                    'label_en' => $this->nullableText($input['label_en'] ?? null),
+                    'icon' => $this->nullableText($input['icon'] ?? null) ?: (string) ($definition['icon'] ?? '•'),
+                    'sort_order' => (int) ($input['sort_order'] ?? $definition['order'] ?? 0),
+                    'is_enabled' => isset($protectedGroups[$key]) ? true : (bool) ($input['is_enabled'] ?? false),
+                    'updated_at' => $now,
+                ];
                 DB::table('admin_sidebar_groups')->updateOrInsert(
                     ['group_key' => $key],
-                    [
-                        'label_ar' => $this->nullableText($input['label_ar'] ?? null),
-                        'label_en' => $this->nullableText($input['label_en'] ?? null),
-                        'icon' => $this->nullableText($input['icon'] ?? null) ?: (string) ($definition['icon'] ?? '•'),
-                        'sort_order' => (int) ($input['sort_order'] ?? $definition['order'] ?? 0),
-                        'is_enabled' => isset($protectedGroups[$key]) ? true : (bool) ($input['is_enabled'] ?? false),
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ],
+                    static fn (bool $exists): array => $exists ? $values : ['created_at' => $now] + $values,
                 );
             }
 
             foreach ($registry['items'] as $key => $definition) {
-                $input = (array) ($items[$key] ?? []);
+                if (! array_key_exists($key, $items)) {
+                    continue;
+                }
+
+                $input = (array) $items[$key];
+                $values = [
+                    'group_key' => isset($protected[$key])
+                        ? (string) ($definition['group'] ?? 'administration')
+                        : (isset($registry['groups'][$input['group_key'] ?? ''])
+                            ? (string) $input['group_key']
+                            : (string) ($definition['group'] ?? 'administration')),
+                    'parent_key' => isset($protected[$key])
+                        ? null
+                        : $this->nullableText($input['parent_key'] ?? null),
+                    'label_ar' => $this->nullableText($input['label_ar'] ?? null),
+                    'label_en' => $this->nullableText($input['label_en'] ?? null),
+                    'sort_order' => (int) ($input['sort_order'] ?? $definition['order'] ?? 0),
+                    'is_enabled' => isset($protected[$key]) ? true : (bool) ($input['is_enabled'] ?? false),
+                    'updated_at' => $now,
+                ];
                 DB::table('admin_sidebar_items')->updateOrInsert(
                     ['item_key' => $key],
-                    [
-                        'group_key' => isset($protected[$key])
-                            ? (string) ($definition['group'] ?? 'administration')
-                            : (isset($registry['groups'][$input['group_key'] ?? ''])
-                                ? (string) $input['group_key']
-                                : (string) ($definition['group'] ?? 'administration')),
-                        'parent_key' => isset($protected[$key])
-                            ? null
-                            : $this->nullableText($input['parent_key'] ?? null),
-                        'label_ar' => $this->nullableText($input['label_ar'] ?? null),
-                        'label_en' => $this->nullableText($input['label_en'] ?? null),
-                        'sort_order' => (int) ($input['sort_order'] ?? $definition['order'] ?? 0),
-                        'is_enabled' => isset($protected[$key]) ? true : (bool) ($input['is_enabled'] ?? false),
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ],
+                    static fn (bool $exists): array => $exists ? $values : ['created_at' => $now] + $values,
                 );
             }
         }, 3);
