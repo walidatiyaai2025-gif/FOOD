@@ -31,6 +31,7 @@ use App\Services\OperationalTenantScope;
 use App\Services\OrderCustomerServiceDiscountService;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderLifecycleNotificationService;
+use App\Services\FulfillmentActorPolicy;
 use App\Services\OrderManualDispatchService;
 use App\Services\OrderOperationsRowContext;
 use App\Services\SalesOrderOperationsDashboardService;
@@ -320,18 +321,8 @@ final class OrderOperationsController extends Controller
 
         $drivers = DB::table('drivers')
             ->leftJoin('users', 'users.id', '=', 'drivers.user_id')
-            ->where(function ($query) use ($scopes): void {
-                foreach (['b2b', 'b2c'] as $channel) {
-                    $ids = $scopes[$channel];
-                    if ($ids === []) {
-                        continue;
-                    }
-                    $query->orWhere(function ($scope) use ($channel, $ids): void {
-                        $scope->where('drivers.driver_type', $channel)
-                            ->whereIn('drivers.store_id', $ids);
-                    });
-                }
-            })
+            ->where('drivers.driver_type', 'b2c')
+            ->whereIn('drivers.store_id', $scopes['b2c'])
             ->where('drivers.is_active', true)
             ->orderBy('users.name')
             ->get([
@@ -1453,6 +1444,7 @@ final class OrderOperationsController extends Controller
             'reason' => ['required', 'string', 'max:500'],
         ]);
         $reason = trim((string) $data['reason']);
+        app(FulfillmentActorPolicy::class)->assertManualDispatchActor($model, (string) $data['assignee_type']);
 
         $currentDriverAssignment = DriverAssignment::query()
             ->where('order_id', $model->getKey())
@@ -1460,7 +1452,7 @@ final class OrderOperationsController extends Controller
             ->latest('id')
             ->first();
 
-        if ($currentDriverAssignment instanceof DriverAssignment) {
+        if ($currentDriverAssignment instanceof DriverAssignment && strtolower((string) $model->channel) === 'b2c') {
             abort_unless(
                 (string) $data['assignee_type'] === 'driver',
                 409,
@@ -1506,7 +1498,6 @@ final class OrderOperationsController extends Controller
                     'order_id' => (int) $model->getKey(),
                     'store_id' => (int) $model->store_id,
                     'replace_existing' => true,
-                    'customer_service_override' => true,
                 ]);
                 $deliveries->assign($request, $audit, $notifier);
 
@@ -1812,6 +1803,7 @@ final class OrderOperationsController extends Controller
         $request->validate([
             'driver_id' => ['required', 'integer', 'exists:drivers,id'],
         ]);
+        app(FulfillmentActorPolicy::class)->assertManualDispatchActor($model, FulfillmentActorPolicy::DRIVER);
         $request->merge([
             'order_id' => (int) $model->getKey(),
             'store_id' => (int) $model->store_id,

@@ -109,7 +109,7 @@ class B2BVanFulfillmentMigrationAuditTest extends TestCase
         $this->assertDatabaseHas('order_van_assignments', ['id' => $vanAssignment->id, 'status' => 'active']);
     }
 
-    public function test_authorized_manual_b2b_driver_dispatch_is_not_reported_as_legacy_contradiction(): void
+    public function test_even_manual_b2b_driver_dispatch_is_reported_as_contradiction(): void
     {
         [$order, $store] = $this->orderFixture('AUDIT-B2B-MANUAL-DRIVER', 'b2b');
 
@@ -142,10 +142,10 @@ class B2BVanFulfillmentMigrationAuditTest extends TestCase
 
         $report = app(B2BVanFulfillmentMigrationAudit::class)->report();
 
-        $this->assertSame(0, $report['counts']['b2b_active_driver']);
-        $this->assertSame(0, $report['counts']['b2b_dispatch_driver']);
-        $this->assertSame(0, $report['counts']['b2b_requires_van_routing']);
-        $this->assertSame(0, $report['counts']['contradictory_orders']);
+        $this->assertSame(1, $report['counts']['b2b_active_driver']);
+        $this->assertSame(1, $report['counts']['b2b_dispatch_driver']);
+        $this->assertSame(1, $report['counts']['b2b_requires_van_routing']);
+        $this->assertSame(1, $report['counts']['contradictory_orders']);
     }
 
     public function test_console_dry_run_emits_json_and_performs_no_writes(): void

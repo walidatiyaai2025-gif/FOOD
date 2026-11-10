@@ -525,7 +525,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
             <span class="order-status-chip" data-state="{{ $rowStatusVisualState }}">{{ $row['status_label'] }}</span>
             @if($rowNeedsB2bDispatch)
-                <span class="order-assignment-required-alert" data-b2b-assignment-required-alert>{{ $isAr ? 'برجاء تعيين سائق أو فان' : 'Please assign a Driver or Van' }}</span>
+                <span class="order-assignment-required-alert" data-b2b-assignment-required-alert>{{ $isAr ? 'برجاء تعيين فان' : 'Please assign a Van' }}</span>
             @endif
         </div>
         @if($rowDelivered)
@@ -587,9 +587,9 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         @if($row['can_dispatch_authorized'] ?? false)
             @php
                 $dispatchAssigneeTypeValue = $rowWithDriver
-                    ? 'driver'
+                    ? ($row['channel']==='b2b' ? 'van' : 'driver')
                     : ($row['dispatch_assignee_type'] ?: ($row['channel']==='b2b' ? '' : 'driver'));
-                $dispatchInitialType = $row['dispatch_assignee_type'] ?: 'driver';
+                $dispatchInitialType = $row['dispatch_assignee_type'] ?: ($row['channel']==='b2b' ? 'van' : 'driver');
                 $dispatchInitial = $rowWithDriver
                     ? ''
                     : ($row['dispatch_assignee_id'] ? ($dispatchInitialType.':'.$row['dispatch_assignee_id']) : '');
@@ -598,14 +598,14 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
                 @csrf @method('PATCH')
                 <input type="hidden" name="assignee_type" value="{{ $dispatchAssigneeTypeValue }}" data-order-inline-assignee-type>
                 <input type="hidden" name="assignee_id" value="{{ $rowWithDriver ? '' : (string)($row['dispatch_assignee_id'] ?? '') }}" data-order-inline-assignee-id>
-                <select name="dispatch_target" required data-order-inline-picker-select data-initial-value="{{ $dispatchInitial }}" aria-label="{{ $rowWithDriver ? ($isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver') : ($row['channel']==='b2b' ? ($isAr ? 'اختر سائق أو فان' : 'Choose Driver or Van') : __('order_operations.dispatch.choose_driver')) }}" @disabled(!$row['can_dispatch'])>
-                    <option value="">{{ $rowWithDriver ? ($isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver') : ($row['channel']==='b2b' ? ($isAr ? 'اختر سائق أو فان' : 'Choose Driver or Van') : __('order_operations.dispatch.choose_driver')) }}</option>
+                <select name="dispatch_target" required data-order-inline-picker-select data-initial-value="{{ $dispatchInitial }}" aria-label="{{ $rowWithDriver ? ($row['channel']==='b2b' ? ($isAr ? 'سحب وتحويل إلى فان' : 'Transfer legacy driver order to Van') : ($isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver')) : ($row['channel']==='b2b' ? ($isAr ? 'اختر فان' : 'Choose Van') : __('order_operations.dispatch.choose_driver')) }}" @disabled(!$row['can_dispatch'])>
+                    <option value="">{{ $rowWithDriver ? ($row['channel']==='b2b' ? ($isAr ? 'سحب وتحويل إلى فان' : 'Transfer legacy driver order to Van') : ($isAr ? 'سحب وتحويل الطلب لسائق آخر' : 'Withdraw and transfer order to another driver')) : ($row['channel']==='b2b' ? ($isAr ? 'اختر فان' : 'Choose Van') : __('order_operations.dispatch.choose_driver')) }}</option>
                     @foreach($drivers as $driver)
                         @if((int)$driver->store_id===(int)$row['store_id'] && strtolower((string)$driver->driver_type)===$row['channel'] && (!$rowWithDriver || (int)$driver->id!==$rowCurrentDriverId))
                             <option value="driver:{{ $driver->id }}" @selected(!$rowWithDriver && $dispatchInitial===('driver:'.$driver->id))>{{ $isAr ? 'سائق' : 'Driver' }} · {{ $driver->name ?: __('order_operations.filters.unnamed_driver') }}</option>
                         @endif
                     @endforeach
-                    @if($row['channel']==='b2b' && !$rowWithDriver)
+                    @if($row['channel']==='b2b')
                         @foreach($vans as $van)
                             <option value="van:{{ $van->id }}" @selected($dispatchInitial===('van:'.$van->id))>{{ $isAr ? 'فان' : 'Van' }} · {{ $van->code }}{{ $van->plate_number ? ' · '.$van->plate_number : '' }}</option>
                         @endforeach

@@ -87,17 +87,23 @@ class OrderManualDispatchServiceTest extends TestCase
 
     public function test_manual_dispatch_rejects_cross_channel_actor_assignment(): void
     {
-        [$b2bOrder, $actor, $b2bStore] = $this->fixture('B2B-MANUAL', 'b2b');
-        $driverAssignment = $this->driverAssignment($b2bOrder, $b2bStore);
+        [$order, $actor, $store] = $this->fixture('B2B-MANUAL', 'b2b');
+        $driverAssignment = $this->driverAssignment($order, $store);
 
-        $driverState = app(OrderManualDispatchService::class)
-            ->assignDriver($b2bOrder, $actor, $driverAssignment, 'Authorized wholesale Driver override');
+        try {
+            app(OrderManualDispatchService::class)->assignDriver($order, $actor, $driverAssignment, 'Forbidden manual override');
+            $this->fail('B2B Driver assignment must never be allowed.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('assignee_type', $exception->errors());
+        }
 
-        $this->assertSame('assigned', $driverState->status);
-        $this->assertSame('driver', $driverState->current_assignee_type);
-        $this->assertSame($driverAssignment->driver_id, $driverState->current_assignee_id);
+        $this->assertDatabaseCount('order_dispatch_states', 0);
+        $this->assertDatabaseCount('order_van_assignments', 0);
+    }
 
-        [$b2cOrder, $actor] = $this->fixture('B2C-WRONG', 'b2c');
+    public function test_manual_dispatch_rejects_b2c_van(): void
+    {
+        [$order, $actor] = $this->fixture('B2C-WRONG', 'b2c');
         $registry = app(VanRegistryService::class);
         $van = $registry->createVan(['code' => 'VAN-B2C-WRONG']);
         $registry->assign($actor, $van, [
@@ -106,8 +112,7 @@ class OrderManualDispatchServiceTest extends TestCase
         ]);
 
         $this->expectException(ValidationException::class);
-        app(OrderManualDispatchService::class)
-            ->assignVan($b2cOrder, $actor, $van->id, 'Invalid retail Van assignment');
+        app(OrderManualDispatchService::class)->assignVan($order, $actor, $van->id, 'Invalid B2C Van assignment');
     }
 
     private function driverAssignment(Order $order, Store $store): DriverAssignment
