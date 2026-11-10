@@ -51,7 +51,8 @@ void main() {
     }
   });
 
-  test('credential and network failure copy is localized without raw codes', () {
+  test('credential and network failure copy is localized without raw codes',
+      () {
     expect(
       customerAccountDeletionErrorMessage('ar', passwordRejected: true),
       contains('كلمة المرور'),
@@ -84,7 +85,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    final button = find.byKey(const ValueKey('customer-account-delete-account'));
+    final button =
+        find.byKey(const ValueKey('customer-account-delete-account'));
     await tester.ensureVisible(button);
     await tester.tap(button);
     await tester.pumpAndSettle();
@@ -132,8 +134,7 @@ class _DeletionStatusFakeApi extends HttpB2cAccountApi {
       const {'data': []};
 
   @override
-  Future<Object?> favoritesForStore(int storeId) async =>
-      const {'data': []};
+  Future<Object?> favoritesForStore(int storeId) async => const {'data': []};
 
   @override
   Future<Object?> requestAccountDeletion(String password) async {
