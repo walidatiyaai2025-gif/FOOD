@@ -13,7 +13,7 @@ Source: `FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx` paragraph P
 
 ## Security scope and behavior
 
-- A valid `SUPER_ADMIN` or registered Platform Owner with an authorized channel lands on the existing Administration Hub on normal login, for both wholesale and retail entry points.
+- A valid `SUPER_ADMIN` or registered Platform Owner with an authorized channel lands on the existing Administration Hub on normal login or Enterprise SSO callback, for both wholesale and retail entry points.
 - Explicit intended destinations remain subject to the existing `AdminLoginController::authorizedIntendedUrl`, channel checks, tenant context and server authorization; the change neither revokes valid support access nor grants operational permissions.
 - Existing `B2B_ADMIN` and `B2C_STORE_ADMIN` daily operational landing paths are unchanged. Neither an inactive user nor an account without an authorized management role can reach the Hub.
 - Super Admin is **not assigned** an operational business role, store role, tenant scope or module entitlement by the landing decision.
@@ -25,6 +25,7 @@ Source: `FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx` paragraph P
 
 - `V2SuperAdminControlPlaneBoundaryTest`: AR/EN Super Admin, B2B/B2C default destination, actual authorized Hub HTTP, non-escalated B2B business landing, B2C cross-channel 403, system-update 403 for non-privileged operator, inactive/roleless 403.
 - `AdminWebLoginTest::test_super_admin_normal_login_defaults_to_administration_control_plane`: existing real HTTP login no longer redirects Super Admin into an operational B2B dashboard; existing non-super role login tests remain authoritative.
+- `V2SuperAdminControlPlaneBoundaryTest::test_super_admin_sso_callback_uses_the_same_governance_landing`: real SSO callback with fake HTTPS identity-provider transport and stored subject mapping; no live credentials or remote calls.
 - Existing `AdministrationHubTest` is the runtime AR/EN, RTL, Hub discoverability and Customer/Driver/Van application-card coverage.
 - Required: focused PHPUnit, full backend regression, Pint, localization, security and **exact-head required GitHub CI checks**. Do not mark the Issue accepted if any required check fails.
 
