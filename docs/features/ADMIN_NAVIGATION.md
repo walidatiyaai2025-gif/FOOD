@@ -7,6 +7,7 @@ FOODEX uses one permission-aware multi-level navigation model across the Managem
 - A navigation item is emitted only when its route exists and the signed-in user has the required effective permission and channel access.
 - API/controller authorization remains authoritative; navigation visibility is only a presentation layer.
 - The active leaf and parent group are exposed for deep-linked routes.
+- Only the group owning the active, server-authorized page receives a low-intensity background and a logical-start border; merely expanding a different group does not mark it as current. The existing active page link retains `aria-current="page"` in Arabic RTL and English LTR, including compact sidebar mode.
 - Group open/closed state is persisted in browser storage with a per-user key.
 - Navigation search filters leaf items without altering authorization.
 - Arabic uses RTL and English uses LTR through the existing locale contract.
