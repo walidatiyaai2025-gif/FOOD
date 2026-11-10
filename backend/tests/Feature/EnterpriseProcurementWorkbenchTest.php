@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleLifecycleManager;
+use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Models\Permission;
