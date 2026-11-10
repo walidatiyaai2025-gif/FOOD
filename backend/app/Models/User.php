@@ -139,6 +139,12 @@ class User extends Authenticatable
             return true;
         }
 
+        // User offboarding is a platform control-plane action; store-scoped
+        // grants and overrides must not authorize deletion of identities.
+        if ($permissionCode === 'users.delete' && $storeId !== null) {
+            return false;
+        }
+
         if (! $this->has_permission_overrides) {
             return $this->hasInheritedPermission($permissionCode, $storeId);
         }
@@ -262,7 +268,7 @@ class User extends Authenticatable
         }
 
         return $codes
-            ->filter(fn (string $code): bool => $code !== '')
+            ->filter(fn (string $code): bool => $code !== '' && ($storeId === null || $code !== 'users.delete'))
             ->unique()
             ->sort()
             ->values()
@@ -297,7 +303,7 @@ class User extends Authenticatable
         }
 
         return $codes
-            ->filter(fn (string $code): bool => $code !== '')
+            ->filter(fn (string $code): bool => $code !== '' && ($storeId === null || $code !== 'users.delete'))
             ->unique()
             ->sort()
             ->values()
