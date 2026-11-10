@@ -25,7 +25,6 @@ final class V2SidebarLegacySettingsPreservationTest extends TestCase
     {
         $sidebar = app(AdminSidebarManager::class);
         $originalDate = now()->subDays(14)->startOfSecond()->toDateTimeString();
-        $now = now()->toDateTimeString();
 
         DB::table('admin_sidebar_groups')->insert([
             'group_key' => 'analytics',
