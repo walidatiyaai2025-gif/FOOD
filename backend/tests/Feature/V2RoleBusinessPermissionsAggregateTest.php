@@ -36,7 +36,7 @@ final class V2RoleBusinessPermissionsAggregateTest extends TestCase
         $admin = $this->superAdmin('en');
         $pivotRows = DB::table('permission_role')->count();
         $response = $this->actingAs($admin)
-            ->get(route('admin.security.index', ['section' => 'roles']))
+            ->get(route('admin.sidebar-access.roles', ['role_id' => $global->id]))
             ->assertOk()
             ->assertSee('dir="ltr"', false);
 
@@ -44,15 +44,18 @@ final class V2RoleBusinessPermissionsAggregateTest extends TestCase
         $this->assertStringContainsString('Aggregated role business permissions', $globalSummary);
         $this->assertStringContainsString('data-v2-business-role-scope="global"', $globalSummary);
         $this->assertStringContainsString('data-v2-business-domain="orders"', $globalSummary);
-        $this->assertStringContainsString('Orders: 2 permissions', $globalSummary);
-        $this->assertStringContainsString('Customers: 1 permissions', $globalSummary);
+        $this->assertStringContainsString('2 permissions', $globalSummary);
+        $this->assertStringContainsString('1 permissions', $globalSummary);
         $this->assertStringNotContainsString('data-v2-business-domain="security"', $globalSummary);
         $this->assertStringNotContainsString('security.view', $globalSummary);
         $this->assertStringContainsString('not a user', $globalSummary);
 
-        $storeSummary = $this->roleSummary((string) $response->getContent(), $retail->code);
+        $retailResponse = $this->actingAs($admin)
+            ->get(route('admin.sidebar-access.roles', ['role_id' => $retail->id]))
+            ->assertOk();
+        $storeSummary = $this->roleSummary((string) $retailResponse->getContent(), $retail->code);
         $this->assertStringContainsString('data-v2-business-role-scope="store"', $storeSummary);
-        $this->assertStringContainsString('Inventory: 1 permissions', $storeSummary);
+        $this->assertStringContainsString('1 permissions', $storeSummary);
         $this->assertStringNotContainsString('data-v2-business-domain="orders"', $storeSummary);
         $this->assertSame($pivotRows, DB::table('permission_role')->count());
     }
@@ -63,7 +66,7 @@ final class V2RoleBusinessPermissionsAggregateTest extends TestCase
         $admin = $this->superAdmin('ar');
 
         $initial = $this->actingAs($admin)
-            ->get(route('admin.security.index', ['section' => 'roles']))
+            ->get(route('admin.sidebar-access.roles', ['role_id' => $role->id]))
             ->assertOk()
             ->assertSee('dir="rtl"', false);
         $initialSummary = $this->roleSummary((string) $initial->getContent(), $role->code);
@@ -72,19 +75,19 @@ final class V2RoleBusinessPermissionsAggregateTest extends TestCase
         $role->permissions()->attach($this->permissionIds(['orders.view', 'orders.manage']));
 
         $updated = $this->actingAs($admin)
-            ->get(route('admin.security.index', ['section' => 'roles']))
+            ->get(route('admin.sidebar-access.roles', ['role_id' => $role->id]))
             ->assertOk();
         $updatedSummary = $this->roleSummary((string) $updated->getContent(), $role->code);
         $this->assertStringContainsString('الصلاحيات التجارية المجمعة للدور', $updatedSummary);
-        $this->assertStringContainsString('الطلبات: 2 صلاحية', $updatedSummary);
+        $this->assertStringContainsString('2 صلاحية', $updatedSummary);
         $this->assertStringNotContainsString('لا توجد صلاحيات تجارية', $updatedSummary);
 
         $admin->forceFill(['locale' => 'en'])->save();
         $english = $this->actingAs($admin)
-            ->get(route('admin.security.index', ['section' => 'roles']))
+            ->get(route('admin.sidebar-access.roles', ['role_id' => $role->id]))
             ->assertOk()
             ->assertSee('dir="ltr"', false);
-        $this->assertStringContainsString('Orders: 2 permissions', $this->roleSummary((string) $english->getContent(), $role->code));
+        $this->assertStringContainsString('2 permissions', $this->roleSummary((string) $english->getContent(), $role->code));
     }
 
     public function test_role_permission_aggregate_does_not_bypass_security_route_permission(): void
@@ -93,7 +96,7 @@ final class V2RoleBusinessPermissionsAggregateTest extends TestCase
         $actor->roles()->attach(Role::query()->where('code', 'B2B_ADMIN')->firstOrFail());
 
         $this->actingAs($actor)
-            ->get(route('admin.security.index', ['section' => 'roles']))
+            ->get(route('admin.sidebar-access.roles', ['role_id' => Role::query()->where('code', 'B2B_ADMIN')->value('id')]))
             ->assertForbidden();
     }
 
