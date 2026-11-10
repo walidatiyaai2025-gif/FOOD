@@ -141,9 +141,12 @@ final class V2PlatformNavigationPresentationBoundaryTest extends TestCase
             $this->actingAs($actor)
                 ->get(route('admin.action-center.index', [], false))
                 ->assertOk();
-            $this->actingAs($actor)
-                ->get(route('admin.enterprise-workspaces.index', [], false))
-                ->assertForbidden();
+            $workspace = $this->actingAs($actor)
+                ->get(route('admin.enterprise-workspaces.index', ['workspace' => 'sales'], false))
+                ->assertOk()
+                ->viewData('workspace');
+            $this->assertSame('sales', $workspace['key']);
+            $this->assertNotContains('system_health', array_column($workspace['cards'], 'key'));
 
             $foreign = $this->actingAs($actor)->get(route('admin.treasury.master.index', [
                 'store_id' => $this->wholesaleStore,
