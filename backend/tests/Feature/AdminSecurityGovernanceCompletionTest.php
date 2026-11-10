@@ -75,6 +75,10 @@ final class AdminSecurityGovernanceCompletionTest extends TestCase
 
         $this->actingAs($admin)
             ->get('/admin')
+            ->assertRedirect(route('admin.administration.index'));
+
+        $this->actingAs($admin)
+            ->get(route('admin.administration.index'))
             ->assertOk();
 
         $session = AdminSecuritySession::query()
