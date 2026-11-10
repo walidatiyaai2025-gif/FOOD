@@ -12,6 +12,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -58,7 +59,7 @@ final class V2WholesaleErpNavigationSequenceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        \Tests\Support\SyntheticErpWorkflowEvidence::install();
+        SyntheticErpWorkflowEvidence::install();
         $this->seed(CoreReferenceSeeder::class);
         // The Sidebar now requires exact-version operational certification.
         // Exercise the intentionally ready business-journey order only in this

@@ -15,6 +15,7 @@ use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -28,7 +29,7 @@ final class V2SidebarOperationalReadinessProjectionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        \Tests\Support\SyntheticErpWorkflowEvidence::install();
+        SyntheticErpWorkflowEvidence::install();
         config()->set('security.mfa.enforce_privileged', false);
         config()->set('enterprise_module_readiness.certified_versions', []);
         $this->seed(CoreReferenceSeeder::class);

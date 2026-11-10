@@ -17,6 +17,7 @@ use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 final class V2SidebarModuleEntitlementAvailabilityTest extends TestCase
@@ -26,7 +27,7 @@ final class V2SidebarModuleEntitlementAvailabilityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        \Tests\Support\SyntheticErpWorkflowEvidence::install();
+        SyntheticErpWorkflowEvidence::install();
         config()->set('security.mfa.enforce_privileged', false);
         $this->seed(CoreReferenceSeeder::class);
         // Explicit test-only approval of the exact ERP module version; never a runtime default.

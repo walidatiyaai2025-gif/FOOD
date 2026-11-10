@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\EnterpriseModuleAdministration;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -24,7 +25,7 @@ final class V2ErpDenialDiagnosticsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        \Tests\Support\SyntheticErpWorkflowEvidence::install();
+        SyntheticErpWorkflowEvidence::install();
         $this->seed(CoreReferenceSeeder::class);
         config()->set('security.mfa.enforce_privileged', false);
         config()->set('enterprise_module_readiness.certified_versions', []);

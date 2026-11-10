@@ -32,6 +32,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Tests\Support\ProcurementSecondApprover;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 final class EnterpriseProcurementCompletionTest extends TestCase
@@ -41,7 +42,7 @@ final class EnterpriseProcurementCompletionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        \Tests\Support\SyntheticErpWorkflowEvidence::install();
+        SyntheticErpWorkflowEvidence::install();
     }
 
     public function test_rfq_portal_quote_award_and_savings_preserve_canonical_procurement_chain(): void
