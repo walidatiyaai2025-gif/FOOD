@@ -304,14 +304,16 @@ class _DriverLoginPageState extends State<DriverLoginPage> {
                                 Semantics(
                                   liveRegion: true,
                                   child: Container(
-                                    key: const Key('driver-login-wholesale-denied'),
+                                    key: const Key(
+                                        'driver-login-wholesale-denied'),
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
                                       color: DriverUiPalette.dangerSurface,
                                       borderRadius: BorderRadius.circular(14),
                                     ),
                                     child: Text(
-                                      context.tr('driver.login.wholesale_denied'),
+                                      context
+                                          .tr('driver.login.wholesale_denied'),
                                       textAlign: TextAlign.center,
                                     ),
                                   ),
