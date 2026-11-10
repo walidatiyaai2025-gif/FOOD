@@ -2,7 +2,7 @@
 <style>
 .foodex-nav-personalize-bar{display:flex;flex-wrap:wrap;gap:6px}
 .foodex-nav-personalize-bar button{min-height:44px;border:1px solid var(--foodex-border);background:var(--foodex-action-green);color:#fff;padding:8px 12px;border-radius:9px;font:inherit;cursor:pointer}
-.foodex-nav-personalize-bar button[hidden],.foodex-nav-group[hidden]{display:none!important}
+.foodex-nav-personalize-bar button[hidden],.foodex-nav-group[hidden],.foodex-nav-group.personal-hidden{display:none!important}
 .foodex-nav-personalize-actions{display:none;gap:5px;padding:6px;flex-wrap:wrap}
 .foodex-nav[data-personalizing="true"] .foodex-nav-personalize-actions{display:flex}
 .foodex-nav-personalize-actions button{min-width:44px;min-height:44px;flex:1;border:1px solid var(--foodex-border);border-radius:8px;background:#fff;color:var(--foodex-green-dark);cursor:pointer}
@@ -75,7 +75,9 @@ aside.foodex-sidebar-collapsed .foodex-nav-personalize-bar{display:none}
             const active = !!group.querySelector('[aria-current="page"]');
             const matches = !needle || [...group.querySelectorAll('a.foodex-nav-link')]
                 .some(link => (link.dataset.navLabel || '').includes(needle));
-            group.hidden = !matches || (!editing && !active && prefs.hidden.includes(group.dataset.navGroup));
+            const personallyHidden = !editing && !active && prefs.hidden.includes(group.dataset.navGroup);
+            group.classList.toggle('personal-hidden', personallyHidden);
+            group.hidden = !matches || personallyHidden;
         });
     };
     const render = () => {
