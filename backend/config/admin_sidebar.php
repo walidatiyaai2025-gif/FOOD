@@ -16,6 +16,7 @@ return [
         'stores' => ['label' => 'admin.nav_groups.stores', 'icon' => '⌂', 'order' => 30],
         'catalog' => ['label' => 'admin.nav_groups.catalog', 'icon' => '▦', 'order' => 40],
         'accounts' => ['label' => 'admin.nav_groups.accounts', 'icon' => '◎', 'order' => 50],
+        'customer_service' => ['label' => 'admin.nav_groups.customer_service', 'icon' => '◉', 'order' => 55],
         'operations' => ['label' => 'admin.nav_groups.operations', 'icon' => '↻', 'order' => 60],
         'field_operations' => ['label' => 'admin.nav_groups.field_operations', 'icon' => '⌖', 'order' => 70],
         'marketing' => ['label' => 'admin.nav_groups.marketing', 'icon' => '✦', 'order' => 80],
@@ -62,7 +63,7 @@ return [
         'customer_groups' => ['group' => 'accounts', 'label' => 'customer_groups.wholesale_title', 'order' => 30, 'scope' => 'both', 'channel' => 'b2b', 'permissions' => ['customers.view']],
         'b2c_customer_groups' => ['group' => 'accounts', 'label' => 'customer_groups.retail_title', 'order' => 40, 'scope' => 'both', 'channel' => 'b2c', 'permissions' => ['customers.view']],
 
-        'whatsapp_inbox' => ['group' => 'operations', 'label' => 'whatsapp.inbox_title', 'order' => 10, 'scope' => 'both', 'permissions' => ['whatsapp.inbox.view']],
+        'whatsapp_inbox' => ['group' => 'customer_service', 'label' => 'whatsapp.inbox_title', 'order' => 10, 'scope' => 'both', 'permissions' => ['whatsapp.inbox.view']],
         'order_operations' => ['group' => 'operations', 'label' => 'admin.order_management', 'order' => 20, 'scope' => 'both', 'permissions' => ['orders.view']],
         'driver_live_tracking' => ['group' => 'operations', 'label' => 'admin.driver_live_tracking.title', 'order' => 30, 'scope' => 'both', 'permissions' => ['drivers.tracking.view'], 'exclude_roles' => $customerServiceRoles],
         'b2c_incoming_orders' => ['group' => 'operations', 'label' => 'admin.b2c_workspace.modules.incoming_orders', 'order' => 40, 'scope' => 'store', 'channel' => 'b2c', 'permissions' => ['orders.view']],
