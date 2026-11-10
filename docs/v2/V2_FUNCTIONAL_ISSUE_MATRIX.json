@@ -775,7 +775,8 @@
       "summary": "حفظ سجلات الأدوار القديمة تاريخيًا ومنع إعادة معنى Role Code",
       "title": "V2 | DATA P100 — حفظ سجلات الأدوار القديمة تاريخيًا ومنع إعادة معنى Role Code",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2836,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2836"
     },
     {
       "id": "P102",
@@ -783,7 +784,8 @@
       "summary": "إدارة ERP الجملة مستقلة عن تشغيل متاجر التجزئة",
       "title": "V2 | ERP P102 — إدارة ERP الجملة مستقلة عن تشغيل متاجر التجزئة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2837,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2837"
     },
     {
       "id": "T104R01",
@@ -791,7 +793,8 @@
       "summary": "ENABLED دورة حياة للموديول فقط ولا تعني جاهزية ERP",
       "title": "V2 | ERP T104R01 — ENABLED دورة حياة للموديول فقط ولا تعني جاهزية ERP",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2838,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2838"
     },
     {
       "id": "T104R02",
@@ -799,7 +802,8 @@
       "summary": "ظهور ERP Sidebar لا يثبت تشغيل الدورة",
       "title": "V2 | ERP T104R02 — ظهور ERP Sidebar لا يثبت تشغيل الدورة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2839,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2839"
     },
     {
       "id": "T104R03",
@@ -807,7 +811,8 @@
       "summary": "اعتماد جاهزية ERP بعد مسارات العمل والاختبارات الكاملة",
       "title": "V2 | ERP T104R03 — اعتماد جاهزية ERP بعد مسارات العمل والاختبارات الكاملة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2840,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2840"
     },
     {
       "id": "P106",
@@ -815,7 +820,8 @@
       "summary": "التوفيق بين وحدات ENABLED وتعارض ERP Sidebar وEntitlements",
       "title": "V2 | ERP P106 — التوفيق بين وحدات ENABLED وتعارض ERP Sidebar وEntitlements",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2841,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2841"
     },
     {
       "id": "P108",
@@ -823,7 +829,8 @@
       "summary": "جرد نسخة الخادم ونطاق الجملة وRoutes وPermissions وDependencies",
       "title": "V2 | ERP P108 — جرد نسخة الخادم ونطاق الجملة وRoutes وPermissions وDependencies",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2842,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2842"
     },
     {
       "id": "P109",
@@ -831,7 +838,8 @@
       "summary": "اختبار دورة إنشاء ومراجعة واعتماد وترحيل وعكس وتقرير وتدقيق",
       "title": "V2 | ERP P109 — اختبار دورة إنشاء ومراجعة واعتماد وترحيل وعكس وتقرير وتدقيق",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2843,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2843"
     },
     {
       "id": "P110",
@@ -839,7 +847,8 @@
       "summary": "إثبات عزل ملكية مورد/FOODEX في دفتر المخزون والتقارير",
       "title": "V2 | ERP P110 — إثبات عزل ملكية مورد/FOODEX في دفتر المخزون والتقارير",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2844,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2844"
     },
     {
       "id": "P111",
@@ -847,7 +856,8 @@
       "summary": "ضبط Entitlements والفروع والسقوف وMaker Checker قبل الإتاحة",
       "title": "V2 | ERP P111 — ضبط Entitlements والفروع والسقوف وMaker Checker قبل الإتاحة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2845,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2845"
     },
     {
       "id": "P112",
@@ -855,7 +865,8 @@
       "summary": "Setup ZIP وUpdate ZIP وFresh Install وUpgrade وBackup CI",
       "title": "V2 | RELEASE P112 — Setup ZIP وUpdate ZIP وFresh Install وUpgrade وBackup CI",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2846,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2846"
     },
     {
       "id": "P113",
@@ -863,7 +874,8 @@
       "summary": "إظهار ERP تلقائيًا فقط للأدوار المخولة بعد بوابة جاهزية",
       "title": "V2 | ERP P113 — إظهار ERP تلقائيًا فقط للأدوار المخولة بعد بوابة جاهزية",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2847,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2847"
     },
     {
       "id": "P118",
@@ -871,7 +883,8 @@
       "summary": "ترتيب ERP الجملة من نظرة عامة إلى التقارير والرقابة",
       "title": "V2 | SIDEBAR P118 — ترتيب ERP الجملة من نظرة عامة إلى التقارير والرقابة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2848,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2848"
     },
     {
       "id": "P119",
@@ -879,7 +892,8 @@
       "summary": "حفظ تجزئة B2C تحت أدوار المتاجر المستقلة",
       "title": "V2 | SECURITY P119 — حفظ تجزئة B2C تحت أدوار المتاجر المستقلة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2849,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2849"
     },
     {
       "id": "P126",
@@ -887,7 +901,8 @@
       "summary": "المشتري لا يعتمد مشترياته حتى لو امتلك دور المعتمد",
       "title": "V2 | SOD P126 — المشتري لا يعتمد مشترياته حتى لو امتلك دور المعتمد",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2850,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2850"
     },
     {
       "id": "P127",
@@ -895,7 +910,8 @@
       "summary": "فصل إعداد وترحيل واعتماد القيد عن الخزينة والتحصيل",
       "title": "V2 | SOD P127 — فصل إعداد وترحيل واعتماد القيد عن الخزينة والتحصيل",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2851,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2851"
     },
     {
       "id": "P128",
@@ -903,7 +919,8 @@
       "summary": "فصل إدارة عقد المورد والتسوية وإطلاق الدفع",
       "title": "V2 | SOD P128 — فصل إدارة عقد المورد والتسوية وإطلاق الدفع",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2852,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2852"
     },
     {
       "id": "P129",
