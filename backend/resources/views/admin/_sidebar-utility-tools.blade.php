@@ -10,6 +10,7 @@
 .foodex-sidebar-utility-label{font-size:.64rem;line-height:1.2;white-space:normal;overflow-wrap:anywhere}
 .foodex-sidebar-recent-panel{position:absolute;inset-inline:4px;inset-block-end:calc(100% + 4px);display:grid;gap:4px;max-height:min(42vh,310px);overflow:auto;padding:10px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-surface);box-shadow:0 8px 22px var(--foodex-green-soft)}
 .foodex-sidebar-recent-panel[hidden]{display:none!important}
+.foodex-sidebar-recent-panel:focus-visible{outline:3px solid var(--foodex-green);outline-offset:2px}
 .foodex-sidebar-recent-panel button{width:100%;min-height:44px;padding:8px 10px;border:1px solid var(--foodex-border);border-radius:8px;background:var(--foodex-green-soft);color:var(--foodex-green-dark);text-align:start;white-space:normal;overflow-wrap:anywhere;font:inherit;cursor:pointer}
 .foodex-sidebar-recent-panel p{margin:0;padding:8px;color:var(--foodex-muted);font-size:.8rem}
 aside.foodex-sidebar-collapsed .foodex-sidebar-utility-row{grid-template-columns:1fr}
@@ -22,7 +23,7 @@ aside.foodex-sidebar-collapsed .foodex-sidebar-recent-panel{position:fixed;inset
 }
 </style>
 <section class="foodex-sidebar-utilities" data-foodex-sidebar-utilities aria-label="{{ __('sidebar_utilities.tools') }}" role="region">
-    <div class="foodex-sidebar-recent-panel" id="foodex-sidebar-recent-panel" data-foodex-recent-panel role="region" aria-label="{{ __('sidebar_utilities.history') }}" hidden>
+    <div class="foodex-sidebar-recent-panel" id="foodex-sidebar-recent-panel" data-foodex-recent-panel role="region" tabindex="-1" aria-label="{{ __('sidebar_utilities.history') }}" hidden>
         <div data-foodex-recent-list></div>
         <p data-foodex-recent-empty>{{ __('sidebar_utilities.no_history') }}</p>
     </div>
