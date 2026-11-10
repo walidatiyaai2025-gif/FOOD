@@ -81,7 +81,7 @@ final class V2SidebarFavoritesQuickAccessTest extends TestCase
         $this->assertStringContainsString('button.textContent = title', $component);
         $this->assertStringContainsString('group.open = true', $component);
         $this->assertStringContainsString("favoritesList.addEventListener('click'", $component);
-        $this->assertStringContainsString('group.dataset.navGroup === button.dataset.favoriteGroup', $component);
+        $this->assertStringContainsString('item.dataset.navGroup === button.dataset.favoriteGroup', $component);
         $this->assertStringContainsString('!prefs.hidden.includes(group.dataset.navGroup)', $component);
         $this->assertStringContainsString("button.setAttribute('aria-label', names.openFavorite", $component);
         $this->assertStringContainsString('favoritesPanel.hidden = favoritesList.childElementCount === 0', $component);
