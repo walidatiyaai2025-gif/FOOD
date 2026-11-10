@@ -12,6 +12,8 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use App\Support\TenantContextResolver;
+use Tests\Support\ProcurementSecondApprover;
 use Tests\TestCase;
 
 final class EnterpriseProcurementWorkbenchTest extends TestCase
@@ -72,12 +74,33 @@ final class EnterpriseProcurementWorkbenchTest extends TestCase
         ])->assertRedirect();
         $this->assertDatabaseHas('enterprise_purchase_requests', ['id' => $requestId, 'status' => 'submitted']);
 
+        $this->actingAs($user)
+            ->get(route('admin.erp.procurement.index', ['store_id' => $store->id, 'tab' => 'requests']))
+            ->assertOk()
+            ->assertDontSee('name="decision" value="approve"', false);
+
         $this->actingAs($user)->post(route('admin.erp.procurement.requests.decision', $requestId), [
             'store_id' => $store->id,
             'decision' => 'approve',
-            'note' => 'UI approval',
+            'note' => 'Self approval is forbidden',
+        ])->assertSessionHasErrors('decision');
+        $this->assertDatabaseHas('enterprise_purchase_requests', ['id' => $requestId, 'status' => 'submitted']);
+
+        [$checker] = ProcurementSecondApprover::forSameStore(
+            $user,
+            app(TenantContextResolver::class)->retail($user, $store->id),
+        );
+        $this->grantPlatformErpAccess($checker);
+        $this->actingAs($checker)->post(route('admin.erp.procurement.requests.decision', $requestId), [
+            'store_id' => $store->id,
+            'decision' => 'approve',
+            'note' => 'Independent UI approval',
         ])->assertRedirect();
-        $this->assertDatabaseHas('enterprise_purchase_requests', ['id' => $requestId, 'status' => 'approved']);
+        $this->assertDatabaseHas('enterprise_purchase_requests', [
+            'id' => $requestId,
+            'status' => 'approved',
+            'decided_by' => $checker->id,
+        ]);
 
         $this->actingAs($user)->post(route('admin.erp.procurement.orders.create', $requestId), [
             'store_id' => $store->id,
