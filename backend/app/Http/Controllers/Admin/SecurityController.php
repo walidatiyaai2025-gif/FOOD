@@ -649,6 +649,8 @@ final class SecurityController extends Controller
     public function updateUserPermissions(Request $request, User $user, RbacManager $rbac): RedirectResponse
     {
         Gate::authorize('users.roles.manage');
+        abort_if($user->isPlatformOwner(), 403, 'Platform Owner permissions are internally managed.');
+
         $validated = $request->validate([
             'scope_type' => ['required', Rule::in(['global', 'store'])],
             'store_id' => ['nullable', 'integer', 'exists:stores,id'],
@@ -675,6 +677,7 @@ final class SecurityController extends Controller
         AuditLogger $audit,
     ): RedirectResponse {
         Gate::authorize('users.roles.manage');
+        abort_if($user->isPlatformOwner(), 403, 'Platform Owner MFA recovery is internally managed.');
         $actor = $this->actor($request);
 
         AdminMfaCredential::query()
@@ -694,6 +697,8 @@ final class SecurityController extends Controller
     public function storeSsoIdentity(Request $request, User $user, AuditLogger $audit): RedirectResponse
     {
         Gate::authorize('users.roles.manage');
+        abort_if($user->isPlatformOwner(), 403, 'Platform Owner SSO identity is internally managed.');
+
         $data = $request->validate([
             'provider' => ['required', 'string', 'max:80'],
             'subject' => [
@@ -739,6 +744,7 @@ final class SecurityController extends Controller
         Gate::authorize('users.roles.manage');
         $actor = $this->actor($request);
         $user = $identity->user()->firstOrFail();
+        abort_if($user->isPlatformOwner(), 403, 'Platform Owner SSO identity is internally managed.');
         $provider = $identity->provider;
         $identity->delete();
 
@@ -763,6 +769,7 @@ final class SecurityController extends Controller
         Gate::authorize('users.status.manage');
         $actor = $this->actor($request);
         $target = $securitySession->user()->firstOrFail();
+        abort_if($target->isPlatformOwner(), 403, 'Platform Owner session recovery is internally managed.');
         $sessions->revoke($securitySession, $actor);
         $audit->record(
             'management.session.revoked',
