@@ -87,7 +87,7 @@ final class V2ProductsAuthorizedSidebarHttpTest extends TestCase
 
             $this->actingAs($actor->fresh())
                 ->get(route('admin.b2c.module', ['module' => 'products', 'store_id' => $foreignStore], false))
-                ->assertForbidden();
+                ->assertNotFound();
         }
 
         $this->assertSame($before, DB::table('products')->count(), 'Read-only navigation must not change product data.');
