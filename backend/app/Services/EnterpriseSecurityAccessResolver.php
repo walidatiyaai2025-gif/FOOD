@@ -35,6 +35,14 @@ final class EnterpriseSecurityAccessResolver
             return true;
         }
 
+        // Delegation never cancels an explicit user DENY. Reuse the same
+        // effective override precedence as User::hasPermission() instead of
+        // treating the delegator's grant as a new direct permission.
+        $storeId = $scopeType === 'store' ? $scopeId : null;
+        if (($actor->permissionOverrideEffects($storeId)[$permission] ?? null) === 'deny') {
+            return false;
+        }
+
         return EnterpriseDelegation::query()
             ->with('delegator')
             ->where('delegate_id', $actor->getKey())
@@ -61,7 +69,11 @@ final class EnterpriseSecurityAccessResolver
 
                 $delegator = $delegation->delegator;
 
-                return $this->directAllows($delegator, $permission, $scopeType, $scopeId, $amount, $currency);
+                // Deactivation immediately invalidates issued grants, including
+                // those still within their original start/end date window.
+                return $delegator instanceof User
+                    && $delegator->is_active
+                    && $this->directAllows($delegator, $permission, $scopeType, $scopeId, $amount, $currency);
             });
     }
 
