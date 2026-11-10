@@ -120,8 +120,8 @@ final class V2TargetSidebarInformationArchitectureTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $page
-     * @param array<string, bool> $seen
+     * @param  array<string, mixed>  $page
+     * @param  array<string, bool>  $seen
      */
     private function assertRouteAndUniqueKey(array $page, array &$seen, string $roleCode): void
     {
