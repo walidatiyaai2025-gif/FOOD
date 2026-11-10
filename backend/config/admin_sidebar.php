@@ -35,11 +35,11 @@ return [
         'erp_customer_service' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.customer_service.title', 'order' => 50, 'scope' => 'both', 'permissions' => ['customers.view', 'b2b.accounts.view'], 'mode' => 'any'],
 
         'erp_center' => ['group' => 'erp', 'label' => 'admin.erp_center.nav_title', 'order' => 10, 'scope' => 'global', 'permissions' => [], 'exclude_roles' => $customerServiceRoles],
-        'erp_procurement' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.procurement.title', 'order' => 20, 'scope' => 'global', 'permissions' => ['procurement.suppliers.view']],
-        'erp_wms' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.wms.title', 'order' => 30, 'scope' => 'global', 'permissions' => ['inventory.view']],
-        'erp_finance' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.finance.title', 'order' => 40, 'scope' => 'global', 'permissions' => ['finance.view']],
-        'erp_treasury' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.treasury.title', 'order' => 50, 'scope' => 'global', 'permissions' => ['finance.view']],
-        'erp_bi' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.bi.title', 'order' => 70, 'scope' => 'global', 'permissions' => ['reports.view']],
+        'erp_procurement' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.procurement.title', 'order' => 20, 'scope' => 'global', 'module' => 'procurement', 'permissions' => ['procurement.suppliers.view']],
+        'erp_wms' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.wms.title', 'order' => 30, 'scope' => 'global', 'module' => 'inventory_wms', 'permissions' => ['inventory.view']],
+        'erp_finance' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.finance.title', 'order' => 40, 'scope' => 'global', 'module' => 'finance', 'permissions' => ['finance.view']],
+        'erp_treasury' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.treasury.title', 'order' => 50, 'scope' => 'global', 'module' => 'treasury', 'permissions' => ['finance.view']],
+        'erp_bi' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.bi.title', 'order' => 70, 'scope' => 'global', 'module' => 'enterprise_bi', 'permissions' => ['reports.view']],
         'erp_my_work' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.my_work.title', 'order' => 80, 'scope' => 'global', 'permissions' => [], 'exclude_roles' => $customerServiceRoles],
 
         'retail_store_provisioning' => ['group' => 'stores', 'label' => 'admin.retail_store_provisioning', 'order' => 10, 'scope' => 'global', 'permissions' => ['platform.manage']],
