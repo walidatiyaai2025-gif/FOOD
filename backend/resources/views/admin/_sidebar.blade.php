@@ -44,7 +44,16 @@ aside.foodex-sidebar-expanded{width:var(--foodex-sidebar-width)!important}
 .foodex-sidebar-search{position:relative}.foodex-sidebar-search input{width:100%;padding-inline-start:38px}
 .foodex-nav-link[hidden],.foodex-nav-subchildren[hidden],.foodex-nav-group[hidden],.foodex-sidebar-search-empty[hidden]{display:none!important}
 .foodex-sidebar-search-empty{margin:4px 8px;padding:10px 12px;border:1px dashed var(--foodex-border);border-radius:10px;color:var(--foodex-muted);font-size:.82rem}.foodex-sidebar-search .foodex-svg-icon{position:absolute;inset-inline-start:11px;top:12px;width:18px;height:18px;color:var(--foodex-muted)}
-.foodex-nav{display:grid;gap:6px}.foodex-nav-group{border:1px solid transparent;border-radius:12px}.foodex-nav-group summary{list-style:none;cursor:pointer;min-height:46px;display:grid;grid-template-columns:30px minmax(0,1fr) 18px;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;font-weight:800;color:var(--foodex-ink)}.foodex-nav-group-icon{display:grid;place-items:center;width:28px;height:28px;font-size:1.35rem;line-height:1}.foodex-nav-group summary::-webkit-details-marker{display:none}.foodex-nav-group summary:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+.foodex-nav{display:grid;gap:6px}.foodex-nav-group{border:1px solid transparent;border-radius:12px}.foodex-nav-group summary{list-style:none;cursor:pointer;min-height:46px;display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;font-weight:800;color:var(--foodex-ink)}.foodex-nav-group-icon{display:grid;place-items:center;width:28px;height:28px;font-size:1.35rem;line-height:1}.foodex-nav-group summary::-webkit-details-marker{display:none}.foodex-nav-group summary:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+.foodex-nav-disclosure{display:inline-flex;align-items:center;justify-self:end;gap:6px;min-width:28px;padding:5px 7px;border:1px solid var(--foodex-border);border-radius:8px;background:var(--foodex-surface);color:var(--foodex-muted);font-size:.7rem;font-weight:700;line-height:1.2;white-space:nowrap}
+.foodex-nav-disclosure-collapse{display:none}
+.foodex-nav-group[open] .foodex-nav-disclosure-expand{display:none}
+.foodex-nav-group[open] .foodex-nav-disclosure-collapse{display:inline}
+.foodex-nav-group summary:focus-visible{outline:2px solid var(--foodex-green);outline-offset:2px}
+.foodex-nav-group summary:hover .foodex-nav-disclosure,.foodex-nav-group summary:focus-visible .foodex-nav-disclosure{border-color:var(--foodex-green);color:var(--foodex-green-dark)}
+.foodex-nav-children>.foodex-nav-link{border-inline-start:2px solid transparent}
+.foodex-nav-subchildren .foodex-nav-link{font-size:.94em}
+@media(max-width:440px){.foodex-nav-disclosure-expand,.foodex-nav-disclosure-collapse{display:none!important}.foodex-nav-disclosure{padding:5px 8px}}
 .foodex-nav-group[open]{border-color:var(--foodex-border);background:#fbfcfd}.foodex-nav-group[open] summary{color:var(--foodex-green-dark)}.foodex-nav-group[open] .foodex-nav-chevron{transform:rotate(180deg)}
 /* Current page context is distinct from manually expanded groups; logical start supports RTL/LTR. */
 .foodex-nav-group.is-current-group{border-color:var(--foodex-border);border-inline-start:3px solid var(--foodex-green);background:var(--foodex-green-soft)}.foodex-nav-group.is-current-group>summary{color:var(--foodex-green-dark)}
@@ -54,6 +63,7 @@ aside.foodex-sidebar-collapsed .foodex-sidebar-brand span:last-child,
 aside.foodex-sidebar-collapsed .foodex-sidebar-search,
 aside.foodex-sidebar-collapsed .foodex-nav-label,
 aside.foodex-sidebar-collapsed .foodex-nav-chevron,
+aside.foodex-sidebar-collapsed .foodex-nav-disclosure,
 aside.foodex-sidebar-collapsed .foodex-nav-group>summary span:nth-child(2){display:none!important}
 
 aside.foodex-sidebar-collapsed .foodex-sidebar-head{justify-content:center;flex-wrap:wrap}
@@ -110,7 +120,8 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     aside.foodex-sidebar-collapsed .foodex-sidebar-head{justify-content:space-between;flex-wrap:nowrap}
     aside.foodex-sidebar-collapsed .foodex-sidebar-brand{justify-content:flex-start;width:auto}
     aside.foodex-sidebar-collapsed .foodex-sidebar-toggle{width:44px;height:44px}
-    aside.foodex-sidebar-collapsed .foodex-nav-group summary{grid-template-columns:30px minmax(0,1fr) 18px;place-items:initial;padding:8px 10px}
+    aside.foodex-sidebar-collapsed .foodex-nav-group summary{grid-template-columns:30px minmax(0,1fr) auto;place-items:initial;padding:8px 10px}
+    aside.foodex-sidebar-collapsed .foodex-nav-disclosure{display:inline-flex!important}
     aside.foodex-sidebar-collapsed .foodex-nav-group:not([open]) .foodex-nav-children{display:grid}
     aside.foodex-sidebar-collapsed .foodex-nav-link{grid-template-columns:28px minmax(0,1fr);place-items:initial;padding:7px 9px}
     .foodex-admin-layout>.foodex-admin-main,html[dir=ltr] .foodex-admin-layout>.foodex-admin-main,
@@ -148,7 +159,11 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
                 <summary>
                     <span class="foodex-nav-group-icon" aria-hidden="true">{{ $group['icon'] }}</span>
                     <span>{{ $groupPrimary }}</span>
-                    <span class="foodex-nav-chevron" aria-hidden="true">⌄</span>
+                    <span class="foodex-nav-disclosure" aria-hidden="true">
+                        <span class="foodex-nav-disclosure-expand">{{ __('sidebar_admin.expand_group') }}</span>
+                        <span class="foodex-nav-disclosure-collapse">{{ __('sidebar_admin.collapse_group') }}</span>
+                        <span class="foodex-nav-chevron">⌄</span>
+                    </span>
                 </summary>
                 <div class="foodex-nav-children">
                     @foreach($group['children'] as $child)

@@ -81,6 +81,7 @@ use App\Http\Controllers\PublicWholesaleStorefrontController;
 use App\Http\Controllers\SmartOrderingQrPublicController;
 use App\Http\Controllers\SupplierRfqPortalController;
 use App\Http\Controllers\WhatsAppWebhookController;
+use App\Http\Middleware\EnsureErpOperationalReadiness;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
@@ -218,7 +219,7 @@ Route::prefix('admin')
 
 Route::prefix('admin')
     ->name('admin.')
-    ->middleware('management.dashboard')
+    ->middleware(['management.dashboard', EnsureErpOperationalReadiness::class])
     ->group(function (): void {
         Route::get('/', [AdminShellController::class, 'index'])->name('index');
         Route::get('/search', GlobalSearchController::class)->middleware('throttle:120,1')->name('global-search');

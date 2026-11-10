@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'nav_title' => 'Enterprise Workspaces',
+    'nav_title' => 'Workspaces',
     'eyebrow' => 'Role-aware operations',
     'title' => 'Enterprise Workspaces',
     'description' => 'Focused entry points assembled from your permissions and module entitlements. Every card opens the canonical FOODEX source of truth.',

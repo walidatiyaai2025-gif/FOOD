@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ __('sidebar_admin.role_access_title') }}</title>
 <style>
-body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.role-picker,.access-group,.access-item{background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:16px}.hero{padding:20px;margin-bottom:16px}.hero h1{margin:0 0 6px}.muted{color:var(--foodex-muted)}.role-picker{display:flex;gap:12px;align-items:end;flex-wrap:wrap;padding:16px;margin-bottom:16px}.role-picker label{display:grid;gap:6px;font-weight:800;min-width:min(420px,100%)}select,button{font:inherit}.role-picker select{min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;padding:8px 10px;background:var(--foodex-surface);color:var(--foodex-ink)}.notice,.errors{padding:12px 14px;border-radius:12px;margin-bottom:14px}.notice{background:var(--foodex-green-soft)}.errors{background:var(--foodex-orange-soft)}.matrix{display:grid;gap:14px}.access-group{padding:16px}.access-group h2{margin:0 0 12px;font-size:1.05rem}.access-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}.access-item{padding:12px;display:grid;gap:8px}.access-item.unavailable{opacity:.65;background:var(--foodex-background)}.access-check{display:flex;gap:9px;align-items:flex-start;font-weight:800}.access-check input{margin-top:4px}.meta{display:flex;gap:6px;flex-wrap:wrap}.badge{border-radius:999px;padding:3px 8px;font-size:.75rem;background:var(--foodex-background);border:1px solid var(--foodex-border)}.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.75rem;overflow-wrap:anywhere}.actions{position:sticky;bottom:0;display:flex;justify-content:flex-end;padding:14px 0;background:linear-gradient(transparent,var(--foodex-background) 35%)}.save{border:0;border-radius:11px;background:var(--foodex-green);color:#fff;padding:11px 18px;font-weight:900;cursor:pointer}@media(max-width:767px){.sidebar-access{padding:12px}.access-grid{grid-template-columns:1fr}.role-picker{align-items:stretch}.role-picker label{min-width:0;width:100%}}
+body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.role-picker,.access-group,.access-item{background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:16px}.hero{padding:20px;margin-bottom:16px}.hero h1{margin:0 0 6px}.muted{color:var(--foodex-muted)}.role-picker{display:flex;gap:12px;align-items:end;flex-wrap:wrap;padding:16px;margin-bottom:16px}.role-picker label{display:grid;gap:6px;font-weight:800;min-width:min(420px,100%)}select,button{font:inherit}.role-picker select{min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;padding:8px 10px;background:var(--foodex-surface);color:var(--foodex-ink)}.notice,.errors{padding:12px 14px;border-radius:12px;margin-bottom:14px}.notice{background:var(--foodex-green-soft)}.errors{background:var(--foodex-orange-soft)}.matrix{display:grid;gap:14px}.access-group{padding:16px}.access-group h2{margin:0 0 12px;font-size:1.05rem}.access-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}.access-item{padding:12px;display:grid;gap:8px}.access-item.unavailable{opacity:.65;background:var(--foodex-background)}.access-check{display:flex;gap:9px;align-items:flex-start;font-weight:800}.access-check input{margin-top:4px}.meta{display:flex;gap:6px;flex-wrap:wrap}.node-details{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:8px;margin:0}.node-details>div{min-width:0;padding:8px;border-radius:9px;background:var(--foodex-background)}.node-details dt{font-size:.75rem;color:var(--foodex-muted);font-weight:800}.node-details dd{margin:4px 0 0;overflow-wrap:anywhere;font-size:.88rem}.node-details .code{font-size:.78rem}.node-help{font-size:.78rem}.badge{border-radius:999px;padding:3px 8px;font-size:.75rem;background:var(--foodex-background);border:1px solid var(--foodex-border)}.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.75rem;overflow-wrap:anywhere}.actions{position:sticky;bottom:0;display:flex;justify-content:flex-end;padding:14px 0;background:linear-gradient(transparent,var(--foodex-background) 35%)}.save{border:0;border-radius:11px;background:var(--foodex-green);color:#fff;padding:11px 18px;font-weight:900;cursor:pointer}@media(max-width:767px){.sidebar-access{padding:12px}.access-grid{grid-template-columns:1fr}.role-picker{align-items:stretch}.role-picker label{min-width:0;width:100%}}
 </style>
 @include('admin._brand-components')
 </head>
@@ -37,20 +37,35 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
 <div class="access-grid">
 @foreach($group['items'] as $item)
 @php($canToggle = $item['base_allowed'] && $item['global_enabled'])
-<article class="access-item {{ $canToggle?'':'unavailable' }}">
+@php($nodeScope = (string) ($item['meta']['scope'] ?? 'unspecified'))
+@php($nodeChannel = (string) ($item['meta']['channel'] ?? 'unspecified'))
+@php($nodeModule = (string) ($item['meta']['module'] ?? ''))
+<article class="access-item {{ $canToggle?'':'unavailable' }}" data-v2-role-node="{{ $item['key'] }}">
 <label class="access-check">
 <input type="checkbox" name="item_keys[]" value="{{ $item['key'] }}" @checked($item['visible_for_role']) @disabled(!$canToggle)>
 <span>{{ ($item['label_'.app()->getLocale()] ?? null) ?: __($item['label']) }}</span>
 </label>
 <div class="meta">
-<span class="badge code">{{ $item['key'] }}</span>
 @if(!$item['base_allowed'])<span class="badge">{{ __('sidebar_admin.not_allowed_by_rbac') }}</span>@endif
 @if(!$item['global_enabled'])<span class="badge">{{ __('sidebar_admin.globally_disabled') }}</span>@endif
 @if($item['override']===null)<span class="badge">{{ __('sidebar_admin.inherited') }}</span>@elseif($item['override'])<span class="badge">{{ __('sidebar_admin.explicit_visible') }}</span>@else<span class="badge">{{ __('sidebar_admin.explicit_hidden') }}</span>@endif
 </div>
-@if($item['permissions']!==[])
-<div class="muted code">{{ __('sidebar_admin.required_permissions') }}: {{ implode($item['permission_mode']==='any'?' | ':' + ',$item['permissions']) }}</div>
+<dl class="node-details">
+<div><dt>{{ __('v2_role_tree.name') }}</dt><dd>{{ ($item['label_'.app()->getLocale()] ?? null) ?: __($item['label']) }}</dd></div>
+<div><dt>{{ __('v2_role_tree.code') }}</dt><dd class="code">{{ $item['key'] }}</dd></div>
+<div><dt>{{ __('v2_role_tree.permissions') }}</dt><dd class="code">@if($item['permissions'] !== []){{ implode($item['permission_mode'] === 'any' ? ' | ' : ' + ', $item['permissions']) }}@else{{ __('v2_role_tree.permissions_unspecified') }}@endif</dd></div>
+<div><dt>{{ __('v2_role_tree.scope') }}</dt><dd>{{ __('v2_role_tree.scopes.'.(in_array($nodeScope, ['global', 'store', 'both'], true) ? $nodeScope : 'unspecified')) }}</dd></div>
+<div><dt>{{ __('v2_role_tree.channel') }}</dt><dd>{{ __('v2_role_tree.channels.'.(in_array($nodeChannel, ['b2b', 'b2c'], true) ? $nodeChannel : 'unspecified')) }}</dd></div>
+<div><dt>{{ __('v2_role_tree.module') }}</dt><dd>
+@if($nodeModule === '')
+{{ __('v2_role_tree.module_unspecified') }}
+@elseif(in_array($nodeModule, ['procurement', 'inventory_wms', 'finance', 'treasury', 'enterprise_bi'], true))
+{{ __('v2_role_tree.modules.'.$nodeModule) }} <span class="code">({{ $nodeModule }})</span>
+@else
+{{ __('v2_role_tree.module_unknown') }} <span class="code">({{ $nodeModule }})</span>
 @endif
+</dd></div>
+</dl>
 </article>
 @endforeach
 </div>
