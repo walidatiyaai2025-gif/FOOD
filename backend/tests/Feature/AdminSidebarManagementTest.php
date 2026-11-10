@@ -140,6 +140,30 @@ class AdminSidebarManagementTest extends TestCase
         foreach ($keys as $key) {
             $this->assertSame(1, count(array_filter($cycleKeys, static fn (string $item): bool => $item === $key)));
         }
+
+        // Hiding a parent by role never exposes it via its descendants and never
+        // drops the independently authorized descendants.
+        DB::table('admin_sidebar_items')->where('item_key', $keys[0])->update(['parent_key' => null]);
+        $role = Role::query()->where('code', 'B2B_ADMIN')->firstOrFail();
+        DB::table('admin_sidebar_role_visibility')->insert([
+            'role_id' => $role->id,
+            'item_key' => $keys[1],
+            'is_visible' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $filtered = collect(app(AdminNavigation::class)->groupsFor($user))->firstWhere('key', $source['key']);
+        $this->assertNotNull($filtered);
+        $filteredKeys = array_column($this->flatten($filtered['children']), 'key');
+        $this->assertNotContains($keys[1], $filteredKeys);
+        foreach ([$keys[0], $keys[2], $keys[3]] as $key) {
+            $this->assertSame(1, count(array_filter($filteredKeys, static fn (string $item): bool => $item === $key)));
+        }
+        foreach ($filtered['children'] as $rootItem) {
+            foreach ($rootItem['children'] as $child) {
+                $this->assertSame([], $child['children']);
+            }
+        }
     }
 
     public function test_sidebar_layout_rejects_fourth_level_and_accepts_third_level(): void
