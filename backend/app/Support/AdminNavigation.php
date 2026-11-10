@@ -267,6 +267,13 @@ class AdminNavigation
             return route('admin.index');
         }
 
+        // Platform control-plane users should not be assigned a daily operational
+        // workspace merely because their broad security role spans both channels.
+        // Explicit authorized deep links remain handled separately at login.
+        if ($this->isSuperAdmin($user)) {
+            return route('admin.administration.index');
+        }
+
         if ($this->usesCustomerServiceDashboardProfile($user)) {
             return route('admin.erp.customer-service');
         }
