@@ -538,14 +538,20 @@ final class SecurityController extends Controller
             'email' => ['required', 'email', 'max:190', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'min:10', 'max:100', 'confirmed'],
             'locale' => ['required', Rule::in(['ar', 'en'])],
-            'role_id' => ['required', 'integer', 'exists:roles,id'],
+            'role_id' => ['nullable', 'integer', 'exists:roles,id', 'required_without:store_role_assignment'],
+            'store_role_assignment' => ['nullable', 'string', 'regex:/^[1-9][0-9]*:[1-9][0-9]*$/'],
             'is_active' => ['required', 'boolean'],
         ]);
 
         $actor = $this->actor($request);
-        $roleId = (int) $validated['role_id'];
+        $globalRoleIds = isset($validated['role_id']) ? [(int) $validated['role_id']] : [];
+        $storeRoles = [];
+        if (! empty($validated['store_role_assignment'])) {
+            [$storeId, $storeRoleId] = array_map('intval', explode(':', $validated['store_role_assignment'], 2));
+            $storeRoles[] = ['store_id' => $storeId, 'role_id' => $storeRoleId];
+        }
 
-        DB::transaction(function () use ($validated, $actor, $roleId, $request, $rbac, $audit): void {
+        DB::transaction(function () use ($validated, $actor, $globalRoleIds, $storeRoles, $request, $rbac, $audit): void {
             $username = trim((string) ($validated['username'] ?? ''));
             $user = User::query()->create([
                 'name' => trim((string) $validated['name']),
@@ -557,8 +563,8 @@ final class SecurityController extends Controller
                 'is_platform_customer' => false,
             ]);
 
-            $rbac->replaceUserRoles($actor, $user, [$roleId], [], $request);
-            $fresh = $user->refresh()->load('roles:id,code,name');
+            $rbac->replaceUserRoles($actor, $user, $globalRoleIds, $storeRoles, $request);
+            $fresh = $user->refresh()->load(['roles:id,code,name', 'storeRoleAssignments.role:id,code,name']);
 
             $audit->record(
                 'user.created',
@@ -571,6 +577,10 @@ final class SecurityController extends Controller
                     'locale' => (string) $fresh->locale,
                     'is_active' => (bool) $fresh->is_active,
                     'global_roles' => $fresh->roles->pluck('code')->sort()->values()->all(),
+                    'store_roles' => $fresh->storeRoleAssignments->map(static fn ($assignment): array => [
+                        'store_id' => (int) $assignment->store_id,
+                        'role_code' => (string) $assignment->role->code,
+                    ])->values()->all(),
                 ],
                 $request,
             );
