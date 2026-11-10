@@ -15,7 +15,7 @@ class AccountDeletionService
     {
         if (! Hash::check($password, (string) $user->password)) {
             throw ValidationException::withMessages([
-                'password' => ['Identity verification failed.'],
+                'password' => [__('account_deletion.identity_failed')],
             ]);
         }
 
@@ -57,11 +57,11 @@ class AccountDeletionService
                     ? 'PENDING_RETENTION'
                     : 'PROCESSING'),
             'block_reason' => $operationalIdentity
-                ? 'Driver/Van operational identity requires managed deactivation and retention review.'
+                ? __('account_deletion.operational_review')
                 : ($context['active_orders'] > 0
-                    ? 'Active orders must reach a terminal state before account anonymization.'
+                    ? __('account_deletion.active_orders')
                     : ($context['financial_review_required'] || $context['outstanding_finance']
-                        ? 'Financial records or B2B contractual obligations require retention review.'
+                        ? __('account_deletion.financial_review')
                         : null)),
             'retention_context' => $context,
         ]);
