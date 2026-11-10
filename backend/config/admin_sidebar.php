@@ -29,6 +29,7 @@ return [
     'items' => [
         'enterprise_action_center' => ['group' => 'overview', 'label' => 'enterprise_action_center.nav_title', 'order' => 10, 'scope' => 'global', 'permissions' => [], 'exclude_roles' => $customerServiceRoles],
         'enterprise_workspaces' => ['group' => 'overview', 'label' => 'enterprise_workspaces.nav_title', 'order' => 20, 'scope' => 'global', 'permissions' => [], 'exclude_roles' => $customerServiceRoles],
+        'notifications_center' => ['group' => 'overview', 'label' => 'notifications.title', 'order' => 25, 'scope' => 'global', 'permissions' => ['notifications.manage'], 'mode' => 'all'],
         'b2c_dashboard' => ['group' => 'overview', 'label' => 'admin.premium_nav.dashboard', 'order' => 30, 'scope' => 'store', 'channel' => 'b2c', 'permissions' => []],
         'b2b_dashboard' => ['group' => 'overview', 'label' => 'admin.channels.b2b', 'order' => 40, 'scope' => 'global', 'channel' => 'b2b', 'permissions' => []],
         'erp_customer_service' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.customer_service.title', 'order' => 50, 'scope' => 'both', 'permissions' => ['customers.view', 'b2b.accounts.view'], 'mode' => 'any'],
