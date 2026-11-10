@@ -276,7 +276,9 @@ body{margin:0}
 @if($card['url'])
 <a class="foodex-action-primary" href="{{ $card['url'] }}">{{ __('admin.erp_center.open') }}</a>
 @else
-<span class="erp-note">{{ __('admin.erp_center.status_help.'.$card['status']) }}</span>
+<span class="erp-note">{{ $card['denial_reason']
+    ? __('admin.erp_center.denial_reasons.'.$card['denial_reason'])
+    : __('admin.erp_center.status_help.'.$card['status']) }}</span>
 @endif
 </div>
 </article>
