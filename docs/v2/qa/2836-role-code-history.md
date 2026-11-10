@@ -15,7 +15,7 @@ Source: `FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx` P100; paren
 
 Additive `roles.archived_at` nullable timestamp, with no backfill or destructive rewrite of existing roles. Existing codes are preserved; previously deleted code strings cannot be reconstructed automatically from historical exports, and this change does not fabricate past records. For future operations, archive preserves code reuse protection by keeping the unique-key row.
 
-The migration `down()` drops only the new column, not role rows; rollback **does not recreate** previously hard-deleted roles or restore active permissions. Keep the isolated V2 DB and backup/recovery proof separate from production. Setup ZIP / Admin Update ZIP packaging remains governed by the normal FOODEX release contract and is not published from this branch.
+The migration `down()` **refuses to drop** the archival column if any archived role exists, preventing silent unarchiving and code repurposing during rollback. Where no archived rows exist, rolling back drops only the new column, never role records. Older hard-deleted roles cannot be reconstructed automatically; a verified backup/recovery plan is required for any destructive rollback. Keep the isolated V2 DB and backup/recovery proof separate from production. Setup ZIP / Admin Update ZIP packaging remains governed by the normal FOODEX release contract and is not published from this branch.
 
 ## Security / localization / UI placement
 
@@ -31,6 +31,7 @@ Validation and audit failures do not delete or overwrite role history. Duplicate
 - Real role GET exposes `archived_at`; old code POST fails with 422; archived update/clone/delete fail 422, preventing reactivation.
 - Unassigned scope reclassification and model-level code rename rejected; assigned/system role cannot be archived.
 - Existing Security Roles UI shows archived read-only entries in AR/EN with no edit/delete action.
+- Migration rollback refuses to erase non-empty archival state, while retaining archived role rows and code uniqueness.
 - Existing full Laravel, MySQL/Redis installer/upgrade/recovery, localization, OpenAPI, static analysis, V2 isolation, Repository Policy, and all required exact-head CI must pass on the final branch before merge.
 
 No runtime test result is claimed merely by authoring this matrix. Record exact-head workflow URLs, merge commit and isolated branch source proof in the Issue completion comment.
