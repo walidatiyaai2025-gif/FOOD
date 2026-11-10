@@ -166,6 +166,7 @@ class V2StoreOneStoreTwoAuthorizationAuditTest extends TestCase
         foreach (['STORE-1-V2-2771', 'STORE-2-V2-2771'] as $code) {
             $storeId = (int) DB::table('stores')->insertGetId([
                 'store_type_id' => $storeTypeId,
+                'business_profile' => 'RETAIL_STORE',
                 'code' => $code,
                 'name' => $code,
                 'is_active' => true,
