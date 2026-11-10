@@ -8,6 +8,7 @@ use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
+use App\Enums\StoreBusinessProfile;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
@@ -116,16 +117,24 @@ final class V2ProcurementSidebarPersonaContractTest extends TestCase
 
     public function test_retail_only_role_cannot_inherit_procurement_or_wholesale_navigation(): void
     {
-        $retail = $this->userWithRoles(['B2C_STORE_ADMIN']);
+        [$retail, $ownStore] = $this->retailUser();
+        $foreignStore = $this->retailStore('V2-2712-FOREIGN');
         $manager = $this->userWithRoles(['PROCUREMENT_MANAGER']);
 
         foreach ([$retail, $manager] as $actor) {
-            $items = $this->navigationItems($actor->fresh());
-            $this->assertArrayNotHasKey('erp_procurement', $items);
+            $this->assertArrayNotHasKey('erp_procurement', $this->navigationItems($actor->fresh()));
         }
 
         $this->assertArrayNotHasKey('b2b_products', $this->navigationItems($retail->fresh()));
+        $this->assertArrayHasKey('b2c_products', $this->navigationItems($retail->fresh()));
         $this->assertArrayNotHasKey('b2c_products', $this->navigationItems($manager->fresh()));
+
+        $this->actingAs($retail->fresh())
+            ->get(route('admin.b2c.module', ['module' => 'products', 'store_id' => $ownStore]))
+            ->assertOk();
+        $this->actingAs($retail->fresh())
+            ->get(route('admin.b2c.module', ['module' => 'products', 'store_id' => $foreignStore]))
+            ->assertNotFound();
         $this->actingAs($retail->fresh())
             ->get(route('admin.erp.procurement.index'))
             ->assertForbidden();
@@ -149,6 +158,35 @@ final class V2ProcurementSidebarPersonaContractTest extends TestCase
         );
 
         return $user;
+    }
+
+    /** @return array{User, int} */
+    private function retailUser(): array
+    {
+        $storeId = $this->retailStore('V2-2712-OWNED');
+        $user = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        DB::table('user_store_roles')->insert([
+            'user_id' => $user->getKey(),
+            'store_id' => $storeId,
+            'role_id' => Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail()->getKey(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return [$user, $storeId];
+    }
+
+    private function retailStore(string $code): int
+    {
+        return (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'business_profile' => StoreBusinessProfile::RETAIL_STORE->value,
+            'code' => $code,
+            'name' => $code,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function wholesaleStore(): int
