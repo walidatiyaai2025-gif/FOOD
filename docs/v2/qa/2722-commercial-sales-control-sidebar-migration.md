@@ -23,3 +23,7 @@ Field classification: this change introduces **no** new input fields, lookups, I
 Only Dashboard translation strings and a backend HTTP regression are affected. No distinct mobile implementation Issue is necessary without a changed mobile behavior.
 
 **Merge gate:** exact PR HEAD Repository Policy, V2 Isolation, Laravel full suite, Pint/PHPStan/security/OpenAPI, AR/EN localization, MySQL/Redis fresh-install/upgrade/recovery, and final required-ci-gate all green before merge to `Foodex_V2`. Close #2722 only after complete source-scope and integration verification.
+
+## CI rescue: retired Sidebar terminology assertions
+
+The first exact-head Backend suite reported **2 failures, 2,665 passes**: V2ArabicSidebarNamingTest and V2SidebarLocaleResponsiveRouteQaTest expected the prior group label (`المنتجات والكتالوج` / `Catalog`), contradicting this explicit T356R5 migration. Their label assertions are updated to the new approved AR/EN wording; route, role, store, catalog permission and navigation-structure assertions remain unchanged. This is not an authorization waiver. CI on the reconciled final commit must be rerun before integration.
