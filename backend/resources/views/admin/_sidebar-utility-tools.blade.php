@@ -42,7 +42,7 @@ aside.foodex-sidebar-collapsed .foodex-sidebar-recent-panel{position:fixed;inset
         <form method="post" action="{{ route('admin.profile.locale') }}" data-foodex-utility-language>
             @csrf
             @method('PATCH')
-            <input type="hidden" name="locale" value="{{ __('sidebar_utilities.target_locale') }}">
+            <input type="hidden" name="locale" value="{{ app(\App\Support\V2SidebarUtilityLocaleTarget::class)->forLocale(app()->getLocale()) }}">
             <button type="submit" class="foodex-sidebar-utility" aria-label="{{ __('sidebar_utilities.switch_language') }}" title="{{ __('sidebar_utilities.switch_language') }}">
                 <span class="foodex-sidebar-utility-icon" aria-hidden="true">🌐</span><span class="foodex-sidebar-utility-label">{{ __('sidebar_utilities.language') }}</span>
             </button>

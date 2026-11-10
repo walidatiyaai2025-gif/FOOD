@@ -8,7 +8,5 @@ return [
     'help' => 'Help',
     'profile' => 'Profile',
     'language' => 'Language',
-    // Technical locale code for the existing audited profile update endpoint.
-    'target_locale' => 'ar',
     'switch_language' => 'Switch to Arabic',
 ];
