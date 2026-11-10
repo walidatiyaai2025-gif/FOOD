@@ -32,7 +32,15 @@ class EnsureManagementDashboardAccess
 
         App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
 
-        abort_unless($user->is_active, 403);
+        if (! $user->is_active) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            // Preserve the existing 403 authorization contract for inactive actors.
+            // Their browser authentication has already been destroyed above.
+            abort(403);
+        }
 
         $routeName = $request->route()?->getName();
         // A store-scoped tracking reader may have no general Dashboard role.
