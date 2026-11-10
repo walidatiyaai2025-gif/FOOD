@@ -47,7 +47,7 @@ $roleLabel = static function ($role): string {
 @can('users.roles.manage')
 <details data-foodex-operational-modal>
 <summary class="btn primary">{{ __('admin.security.create_user') }}</summary>
-<form method="post" action="{{ route('admin.security.users.store') }}" class="security-create-form">
+<form method="post" action="{{ route('admin.security.users.store') }}" class="security-create-form" data-security-create-user>
 @csrf
 <label>{{ __('admin.security.user_name') }}<input name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name"></label>
 <label>{{ __('admin.security.username') }}<input name="username" value="{{ old('username') }}" maxlength="80" autocomplete="username" placeholder="{{ __('admin.security.username_optional') }}"></label>
@@ -56,7 +56,7 @@ $roleLabel = static function ($role): string {
 <label>{{ __('admin.security.password') }}<input type="password" name="password" required minlength="10" maxlength="100" autocomplete="new-password"></label>
 <label>{{ __('admin.security.password_confirmation') }}<input type="password" name="password_confirmation" required minlength="10" maxlength="100" autocomplete="new-password"></label>
 <label class="span-2">{{ __('admin.security.initial_role') }}
-<select name="role_id" required>
+<select name="role_id">
 <option value="">{{ __('admin.security.select_role') }}</option>
 @foreach($globalRoles as $role)
 @if((bool)$globalRoleAvailability->get((int)$role->id,false))
@@ -65,6 +65,19 @@ $roleLabel = static function ($role): string {
 @endforeach
 </select>
 <span class="muted">{{ __('admin.security.initial_role_help') }}</span>
+</label>
+<label class="span-2">{{ __('admin.security.initial_store_role') }}
+<select name="store_role_assignment">
+<option value="">{{ __('admin.security.select_store_role') }}</option>
+@foreach($stores as $store)
+@foreach($grantableStoreRolesByStore->get((int)$store->id, collect()) as $role)
+@if((bool)$storeRoleAvailabilityByStore->get((int)$store->id, collect())->get((int)$role->id, false))
+<option value="{{ $store->id }}:{{ $role->id }}" @selected(old('store_role_assignment')===(string)$store->id.':'.$role->id)>{{ $store->name }} — {{ $jobRoleMeta[$role->code]['name'] ?? $roleLabel($role) }}</option>
+@endif
+@endforeach
+@endforeach
+</select>
+<span class="muted">{{ __('admin.security.initial_store_role_help') }}</span>
 </label>
 <label class="span-2" style="display:flex;grid-template-columns:auto 1fr;align-items:center;gap:8px"><input type="hidden" name="is_active" value="0"><input style="width:auto" type="checkbox" name="is_active" value="1" @checked(old('is_active','1')==='1')> {{ __('admin.security.create_active') }}</label>
 <div class="span-2 actions"><button class="btn primary" type="submit">{{ __('admin.security.create_user_submit') }}</button></div>
