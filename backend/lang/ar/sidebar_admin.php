@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'authorized_pages_count' => 'صفحات مصرح بها: :count',
     'search_empty' => 'لا توجد صفحات أو تقارير أو إجراءات مصرح بها تطابق البحث.',
     'eyebrow' => 'حوكمة التنقل',
     'role_access_nav' => 'شجرة الصفحات والصلاحيات',
