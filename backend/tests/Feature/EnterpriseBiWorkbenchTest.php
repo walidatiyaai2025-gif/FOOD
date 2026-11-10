@@ -24,6 +24,8 @@ final class EnterpriseBiWorkbenchTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+        // Explicit test-only approval of the exact ERP module version; never a runtime default.
+        config()->set('enterprise_module_readiness.certified_versions.enterprise_bi', app(ModuleRegistry::class)->manifest('enterprise_bi')->version);
     }
 
     public function test_entitled_business_user_can_discover_and_run_bounded_w7_orders_report(): void

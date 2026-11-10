@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "owner_issue": 2905,
+  "source_document": "FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx",
+  "parent_issue": 2503,
+  "integration_branch": "Foodex_V2",
+  "source_matrices": {
+    "docs/v2/V2_SIDEBAR_ISSUE_MATRIX.json": 177,
+    "docs/v2/V2_ERP_MOBILE_GATES_MATRIX.json": 70,
+    "docs/v2/V2_FUNCTIONAL_ISSUE_MATRIX.json": 155,
+    "docs/v2/V2_ACCOUNT_EXPORT_AUDIT_MATRIX.json": 20
+  },
+  "dimensions": {
+    "UX": {
+      "authority": "Server-authorized navigation from canonical route permissions, not independent Sidebar visibility.",
+      "controls": [
+        "navigation_reachability",
+        "ar_en_rtl_ltr_accessibility",
+        "responsive_browser_evidence"
+      ]
+    },
+    "Backend": {
+      "authority": "Canonical Laravel routes, policies, validation, module guard and persisted state.",
+      "controls": [
+        "route_authority",
+        "data_validation",
+        "direct_http_allow_deny"
+      ]
+    },
+    "RBAC": {
+      "authority": "Server-enforced effective roles, explicit deny and tenant/store/channel scope.",
+      "controls": [
+        "permission_derived_sidebar",
+        "scoped_role_allow_deny",
+        "tenant_channel_store_isolation"
+      ]
+    },
+    "ERP": {
+      "authority": "Entitlement plus operational readiness, maker/checker, finance and fulfillment invariants.",
+      "controls": [
+        "module_entitlement_readiness",
+        "maker_checker_audit",
+        "credit_finance_fulfillment_invariants"
+      ]
+    }
+  },
+  "acceptance": {
+    "required_evidence": [
+      "source_line",
+      "persona",
+      "entry_point",
+      "canonical_route",
+      "permission",
+      "tenant_store_channel",
+      "module_entitlement_readiness",
+      "ar_en_rtl_ltr",
+      "responsive_accessibility",
+      "allow_deny_regression",
+      "mobile_impact",
+      "exact_head_ci",
+      "integration_sha"
+    ],
+    "mobile_apps": [
+      "Customer",
+      "Driver",
+      "Van"
+    ],
+    "backend_denial_status": 403,
+    "requires_linked_app_issue_if_affected": true,
+    "owner_acceptance": "per-issue evidence required; master 2503 stays open until final audit",
+    "scope_status": "contract-defined; not a claim that 422 child issues are complete"
+  },
+  "invariants": {
+    "b2b_fulfillment": "VAN_ONLY",
+    "b2c_fulfillment": "DRIVER_ONLY",
+    "no_sidebar_privilege_grant": true,
+    "no_enabled_implies_erp_ready": true,
+    "no_unapproved_main_promotion": true,
+    "no_production_release": true
+  }
+}

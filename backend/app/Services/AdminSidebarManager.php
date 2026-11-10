@@ -326,9 +326,23 @@ final class AdminSidebarManager
                     continue;
                 }
 
-                $targetGroup = $itemLayout !== null && (bool) $itemLayout['configured']
-                    ? (string) $itemLayout['group_key']
-                    : (string) $group['key'];
+                // A newly registered enterprise module belongs to the explicit
+                // business domain in the canonical registry, not the incidental
+                // group where its route was first authored. Never infer a group
+                // from its module code or grant a route from this presentation
+                // choice. Saved administrator placement retains precedence.
+                $targetGroup = (string) $group['key'];
+                if ($itemLayout !== null) {
+                    $moduleCode = $itemLayout['meta']['module'] ?? null;
+                    $registeredGroup = $itemLayout['group_key'] ?? null;
+
+                    if ((bool) $itemLayout['configured']) {
+                        $targetGroup = (string) $itemLayout['group_key'];
+                    } elseif (is_string($moduleCode) && $moduleCode !== ''
+                        && is_string($registeredGroup) && isset($layout['groups'][$registeredGroup])) {
+                        $targetGroup = $registeredGroup;
+                    }
+                }
 
                 $groupLayout = $layout['groups'][$targetGroup] ?? null;
                 if ($groupLayout !== null && ! (bool) $groupLayout['is_enabled']) {
