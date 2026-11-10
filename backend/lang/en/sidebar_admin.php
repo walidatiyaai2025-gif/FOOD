@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'expand_group' => 'Expand',
+    'collapse_group' => 'Collapse',
     'authorized_pages_count' => ':count authorized pages',
     'search_empty' => 'No authorized pages, reports, or actions match your search.',
     'eyebrow' => 'Navigation governance',
