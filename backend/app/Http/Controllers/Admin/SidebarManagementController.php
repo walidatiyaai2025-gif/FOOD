@@ -25,8 +25,7 @@ final class SidebarManagementController extends Controller
         AdminSidebarManager $sidebar,
         ModuleRegistry $moduleRegistry,
         ModuleOperationalReadiness $moduleReadiness,
-    ): View
-    {
+    ): View {
         Gate::authorize('roles.manage');
         $this->useActorLocale($request);
 
