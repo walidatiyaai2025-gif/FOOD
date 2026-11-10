@@ -140,8 +140,10 @@ class AdminNavigation
                     ? $this->routeItemScoped($user, 'b2c_customer_groups', 'customer_groups.retail_title', 'admin.b2c.customer-groups.index', 'customers.view')
                     : null,
             ]),
-            $this->group('operations', 'admin.nav_groups.operations', '↻', [
+            $this->group('customer_service', 'admin.nav_groups.customer_service', '◉', [
                 $canAccessPlatformNavigation ? $this->whatsAppInboxItem($user) : null,
+            ]),
+            $this->group('operations', 'admin.nav_groups.operations', '↻', [
                 $this->routeItemScoped($user, 'order_operations', 'admin.order_management', 'admin.operations.orders.index', 'orders.view'),
                 $useCustomerServiceDashboardProfile
                     ? null

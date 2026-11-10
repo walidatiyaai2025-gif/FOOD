@@ -44,6 +44,7 @@ return [
         'erp' => 'ERP',
         'field_operations' => 'Van & Field Operations',
         'operations' => 'Operations',
+        'customer_service' => 'Customer Service & WhatsApp',
         'catalog' => 'Catalog',
         'accounts' => 'Customers & Accounts',
         'stores' => 'Stores & Channels',
