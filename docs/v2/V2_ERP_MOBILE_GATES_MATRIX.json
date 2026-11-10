@@ -351,7 +351,8 @@
       "title": "V2 | Sidebar Persona — العمليات والتوزيع والأسطول",
       "summary": "العمليات والتوزيع والأسطول",
       "details": "Target allowed menu groups: نظرة عامة والطلبات والتنفيذ والأسطول والفانات والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
-      "issue_number": null
+      "issue_number": 2715,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2715"
     },
     {
       "id": "T353R7",
@@ -360,7 +361,8 @@
       "title": "V2 | Sidebar Persona — مدير متجر التجزئة",
       "summary": "مدير متجر التجزئة",
       "details": "Target allowed menu groups: نظرة عامة والمتجر والطلبات والعملاء والمخزون والتسويق والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
-      "issue_number": null
+      "issue_number": 2716,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2716"
     },
     {
       "id": "T353R8",
@@ -369,7 +371,8 @@
       "title": "V2 | Sidebar Persona — مسؤول الأمن والصلاحيات",
       "summary": "مسؤول الأمن والصلاحيات",
       "details": "Target allowed menu groups: الإدارة والمستخدمون والأدوار ومراجعة الوصول وسجل التدقيق. Must apply real permission/scope/module/readiness; never assume from role label.",
-      "issue_number": null
+      "issue_number": 2717,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2717"
     },
     {
       "id": "T356R1",
@@ -378,7 +381,8 @@
       "title": "V2 | Sidebar Migration — enterprise_action_center",
       "summary": "enterprise_action_center",
       "details": "Remap existing sidebar item enterprise_action_center to نظرة عامة/مركز الإجراءات without duplicate route, stale key or privilege change.",
-      "issue_number": null
+      "issue_number": 2718,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2718"
     },
     {
       "id": "T356R2",
@@ -387,7 +391,8 @@
       "title": "V2 | Sidebar Migration — enterprise_workspaces",
       "summary": "enterprise_workspaces",
       "details": "Remap existing sidebar item enterprise_workspaces to نظرة عامة/مساحات العمل without duplicate route, stale key or privilege change.",
-      "issue_number": null
+      "issue_number": 2719,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2719"
     },
     {
       "id": "T356R3",
@@ -396,7 +401,8 @@
       "title": "V2 | Sidebar Migration — customer_360",
       "summary": "customer_360",
       "details": "Remap existing sidebar item customer_360 to العملاء/العملاء 360 without duplicate route, stale key or privilege change.",
-      "issue_number": null
+      "issue_number": 2720,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2720"
     },
     {
       "id": "T356R4",
@@ -405,7 +411,8 @@
       "title": "V2 | Sidebar Migration — order_operations",
       "summary": "order_operations",
       "details": "Remap existing sidebar item order_operations to الطلبات والعمليات/إدارة الطلبات without duplicate route, stale key or privilege change.",
-      "issue_number": null
+      "issue_number": 2721,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2721"
     },
     {
       "id": "T356R5",
@@ -414,7 +421,8 @@
       "title": "V2 | Sidebar Migration — commercial_sales_control",
       "summary": "commercial_sales_control",
       "details": "Remap existing sidebar item commercial_sales_control to الكتالوج والتسعير/التحكم التجاري والتسعير without duplicate route, stale key or privilege change.",
-      "issue_number": null
+      "issue_number": 2722,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2722"
     },
     {
       "id": "T356R6",
@@ -423,7 +431,8 @@
       "title": "V2 | Sidebar Migration — whatsapp_inbox",
       "summary": "whatsapp_inbox",
       "details": "Remap existing sidebar item whatsapp_inbox to خدمة العملاء وواتساب/صندوق الواتساب without duplicate route, stale key or privilege change.",
-      "issue_number": null
+      "issue_number": 2723,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2723"
     },
     {
       "id": "T356R7",
@@ -432,7 +441,8 @@
       "title": "V2 | Sidebar Migration — field_ops_overview",
       "summary": "field_ops_overview",
       "details": "Remap existing sidebar item field_ops_overview to الأسطول والعمليات الميدانية/نظرة عامة للعمليات الميدانية without duplicate route, stale key or privilege change.",
-      "issue_number": null
+      "issue_number": 2724,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2724"
     },
     {
       "id": "T356R8",
@@ -441,7 +451,8 @@
       "title": "V2 | Sidebar Migration — field_ops_routing",
       "summary": "field_ops_routing",
       "details": "Remap existing sidebar item field_ops_routing to الأسطول والعمليات الميدانية/التوجيه والمسارات without duplicate route, stale key or privilege change.",
-      "issue_number": null
+      "issue_number": 2725,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2725"
     },
     {
       "id": "T356R9",
@@ -450,7 +461,8 @@
       "title": "V2 | Sidebar Migration — treasury_master",
       "summary": "treasury_master",
       "details": "Remap existing sidebar item treasury_master to المالية والخزينة/الخزينة without duplicate route, stale key or privilege change.",
-      "issue_number": null
+      "issue_number": 2726,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2726"
     },
     {
       "id": "T356R10",
@@ -459,7 +471,8 @@
       "title": "V2 | Sidebar Migration — reports_center",
       "summary": "reports_center",
       "details": "Remap existing sidebar item reports_center to التقارير والتحليلات/مركز التقارير without duplicate route, stale key or privilege change.",
-      "issue_number": null
+      "issue_number": 2727,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2727"
     },
     {
       "id": "T356R11",
@@ -468,7 +481,8 @@
       "title": "V2 | Sidebar Migration — app_preview",
       "summary": "app_preview",
       "details": "Remap existing sidebar item app_preview to التطبيقات/معاينة التطبيق without duplicate route, stale key or privilege change.",
-      "issue_number": null
+      "issue_number": 2728,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2728"
     },
     {
       "id": "T356R12",
@@ -477,7 +491,8 @@
       "title": "V2 | Sidebar Migration — sidebar_role_access",
       "summary": "sidebar_role_access",
       "details": "Remap existing sidebar item sidebar_role_access to الإدارة/شجرة الصفحات والصلاحيات without duplicate route, stale key or privilege change.",
-      "issue_number": null
+      "issue_number": 2729,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2729"
     },
     {
       "id": "MOB-C01",
@@ -486,7 +501,8 @@
       "title": "V2 | MOBILE Customer — RBAC/account disable/archive and authentication session revocation",
       "summary": "RBAC/account disable/archive and authentication session revocation",
       "details": "Source P069/P070/P079/P142. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
-      "issue_number": null
+      "issue_number": 2730,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2730"
     },
     {
       "id": "MOB-C02",
@@ -495,7 +511,8 @@
       "title": "V2 | MOBILE Customer — B2B/B2C authorized customer identity and store-scoped navigation",
       "summary": "B2B/B2C authorized customer identity and store-scoped navigation",
       "details": "Source P031/P110/P119. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
-      "issue_number": null
+      "issue_number": 2731,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2731"
     },
     {
       "id": "MOB-C03",
