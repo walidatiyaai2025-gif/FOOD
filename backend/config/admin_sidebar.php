@@ -32,13 +32,14 @@ return [
         'notifications_center' => ['group' => 'overview', 'label' => 'notifications.title', 'order' => 25, 'scope' => 'global', 'permissions' => ['notifications.manage'], 'mode' => 'all'],
         'b2c_dashboard' => ['group' => 'overview', 'label' => 'admin.premium_nav.dashboard', 'order' => 30, 'scope' => 'store', 'channel' => 'b2c', 'permissions' => []],
         'b2b_dashboard' => ['group' => 'overview', 'label' => 'admin.channels.b2b', 'order' => 40, 'scope' => 'global', 'channel' => 'b2b', 'permissions' => []],
-        'erp_customer_service' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.customer_service.title', 'order' => 50, 'scope' => 'both', 'permissions' => ['customers.view', 'b2b.accounts.view'], 'mode' => 'any'],
-
+        // P118: stable distinct default sort positions for the Wholesale ERP
+        // journey. Explicitly saved administrator layouts remain authoritative.
         'erp_center' => ['group' => 'erp', 'label' => 'admin.erp_center.nav_title', 'order' => 10, 'scope' => 'global', 'permissions' => [], 'exclude_roles' => $customerServiceRoles],
-        'erp_procurement' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.procurement.title', 'order' => 20, 'scope' => 'global', 'module' => 'procurement', 'permissions' => ['procurement.suppliers.view']],
-        'erp_wms' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.wms.title', 'order' => 30, 'scope' => 'global', 'module' => 'inventory_wms', 'permissions' => ['inventory.view']],
-        'erp_finance' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.finance.title', 'order' => 40, 'scope' => 'global', 'module' => 'finance', 'permissions' => ['finance.view']],
-        'erp_treasury' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.treasury.title', 'order' => 50, 'scope' => 'global', 'module' => 'treasury', 'permissions' => ['finance.view']],
+        'erp_customer_service' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.customer_service.title', 'order' => 20, 'scope' => 'both', 'permissions' => ['customers.view', 'b2b.accounts.view'], 'mode' => 'any'],
+        'erp_procurement' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.procurement.title', 'order' => 30, 'scope' => 'global', 'module' => 'procurement', 'permissions' => ['procurement.suppliers.view']],
+        'erp_wms' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.wms.title', 'order' => 40, 'scope' => 'global', 'module' => 'inventory_wms', 'permissions' => ['inventory.view']],
+        'erp_finance' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.finance.title', 'order' => 50, 'scope' => 'global', 'module' => 'finance', 'permissions' => ['finance.view']],
+        'erp_treasury' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.treasury.title', 'order' => 60, 'scope' => 'global', 'module' => 'treasury', 'permissions' => ['finance.view']],
         'erp_bi' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.bi.title', 'order' => 70, 'scope' => 'global', 'module' => 'enterprise_bi', 'permissions' => ['reports.view']],
         'erp_my_work' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.my_work.title', 'order' => 80, 'scope' => 'global', 'permissions' => [], 'exclude_roles' => $customerServiceRoles],
 
