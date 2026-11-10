@@ -1,0 +1,1778 @@
+{
+  "schema": 1,
+  "source": "FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx",
+  "parent_issue": 2503,
+  "base": "Foodex_V2",
+  "items": [
+    {
+      "id": "P174",
+      "section": "Sidebar IA",
+      "domain": "Overview",
+      "title": "V2 | Sidebar 174 — نظرة عامة ومساحات العمل",
+      "summary": "نظرة عامة ومساحات العمل",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 174",
+      "issue_number": null
+    },
+    {
+      "id": "P175",
+      "section": "Sidebar IA",
+      "domain": "Overview",
+      "title": "V2 | Sidebar 175 — نظرة عامة",
+      "summary": "نظرة عامة",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 175",
+      "issue_number": null
+    },
+    {
+      "id": "P176",
+      "section": "Sidebar IA",
+      "domain": "Overview",
+      "title": "V2 | Sidebar 176 — لوحة التحكم",
+      "summary": "لوحة التحكم",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 176",
+      "issue_number": null
+    },
+    {
+      "id": "P177",
+      "section": "Sidebar IA",
+      "domain": "Overview",
+      "title": "V2 | Sidebar 177 — مركز الإجراءات",
+      "summary": "مركز الإجراءات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 177",
+      "issue_number": null
+    },
+    {
+      "id": "P178",
+      "section": "Sidebar IA",
+      "domain": "Overview",
+      "title": "V2 | Sidebar 178 — مهامي",
+      "summary": "مهامي",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 178",
+      "issue_number": null
+    },
+    {
+      "id": "P179",
+      "section": "Sidebar IA",
+      "domain": "Overview",
+      "title": "V2 | Sidebar 179 — الإشعارات والتنبيهات",
+      "summary": "الإشعارات والتنبيهات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 179",
+      "issue_number": null
+    },
+    {
+      "id": "P180",
+      "section": "Sidebar IA",
+      "domain": "Overview",
+      "title": "V2 | Sidebar 180 — مساحات العمل",
+      "summary": "مساحات العمل",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 180",
+      "issue_number": null
+    },
+    {
+      "id": "P181",
+      "section": "Sidebar IA",
+      "domain": "Overview",
+      "title": "V2 | Sidebar 181 — لوحة الجملة",
+      "summary": "لوحة الجملة",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 181",
+      "issue_number": null
+    },
+    {
+      "id": "P182",
+      "section": "Sidebar IA",
+      "domain": "Overview",
+      "title": "V2 | Sidebar 182 — لوحة التجزئة",
+      "summary": "لوحة التجزئة",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 182",
+      "issue_number": null
+    },
+    {
+      "id": "P183",
+      "section": "Sidebar IA",
+      "domain": "Overview",
+      "title": "V2 | Sidebar 183 — لوحة المطاعم / الطلب الرقمي",
+      "summary": "لوحة المطاعم / الطلب الرقمي",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 183",
+      "issue_number": null
+    },
+    {
+      "id": "P184",
+      "section": "Sidebar IA",
+      "domain": "Overview",
+      "title": "V2 | Sidebar 184 — لوحة الإدارة التنفيذية",
+      "summary": "لوحة الإدارة التنفيذية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 184",
+      "issue_number": null
+    },
+    {
+      "id": "P185",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 185 — العملاء والمبيعات وخدمة العملاء",
+      "summary": "العملاء والمبيعات وخدمة العملاء",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 185",
+      "issue_number": null
+    },
+    {
+      "id": "P186",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 186 — العملاء",
+      "summary": "العملاء",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 186",
+      "issue_number": null
+    },
+    {
+      "id": "P187",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 187 — العملاء 360",
+      "summary": "العملاء 360",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 187",
+      "issue_number": null
+    },
+    {
+      "id": "P188",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 188 — عملاء الجملة",
+      "summary": "عملاء الجملة",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 188",
+      "issue_number": null
+    },
+    {
+      "id": "P189",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 189 — عملاء التجزئة",
+      "summary": "عملاء التجزئة",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 189",
+      "issue_number": null
+    },
+    {
+      "id": "P190",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 190 — مجموعات العملاء",
+      "summary": "مجموعات العملاء",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 190",
+      "issue_number": null
+    },
+    {
+      "id": "P191",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 191 — الحسابات والحدود الائتمانية",
+      "summary": "الحسابات والحدود الائتمانية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 191",
+      "issue_number": null
+    },
+    {
+      "id": "P192",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 192 — المبيعات",
+      "summary": "المبيعات",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 192",
+      "issue_number": null
+    },
+    {
+      "id": "P193",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 193 — عروض الأسعار",
+      "summary": "عروض الأسعار",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 193",
+      "issue_number": null
+    },
+    {
+      "id": "P194",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 194 — الطلبات",
+      "summary": "الطلبات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 194",
+      "issue_number": null
+    },
+    {
+      "id": "P195",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 195 — العقود والأسعار",
+      "summary": "العقود والأسعار",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 195",
+      "issue_number": null
+    },
+    {
+      "id": "P196",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 196 — الخصومات المعتمدة",
+      "summary": "الخصومات المعتمدة",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 196",
+      "issue_number": null
+    },
+    {
+      "id": "P197",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 197 — موافقات الاستثناء التجاري",
+      "summary": "موافقات الاستثناء التجاري",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 197",
+      "issue_number": null
+    },
+    {
+      "id": "P198",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 198 — خدمة العملاء وواتساب",
+      "summary": "خدمة العملاء وواتساب",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 198",
+      "issue_number": null
+    },
+    {
+      "id": "P199",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 199 — صندوق الواتساب",
+      "summary": "صندوق الواتساب",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 199",
+      "issue_number": null
+    },
+    {
+      "id": "P200",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 200 — محادثات العملاء",
+      "summary": "محادثات العملاء",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 200",
+      "issue_number": null
+    },
+    {
+      "id": "P201",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 201 — توزيع المحادثات",
+      "summary": "توزيع المحادثات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 201",
+      "issue_number": null
+    },
+    {
+      "id": "P202",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 202 — قواعد التوزيع",
+      "summary": "قواعد التوزيع",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 202",
+      "issue_number": null
+    },
+    {
+      "id": "P203",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 203 — الحملات",
+      "summary": "الحملات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 203",
+      "issue_number": null
+    },
+    {
+      "id": "P204",
+      "section": "Sidebar IA",
+      "domain": "Customer & Sales",
+      "title": "V2 | Sidebar 204 — التقارير الإشرافية",
+      "summary": "التقارير الإشرافية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 204",
+      "issue_number": null
+    },
+    {
+      "id": "P205",
+      "section": "Sidebar IA",
+      "domain": "Orders & Fulfillment",
+      "title": "V2 | Sidebar 205 — الطلبات والعمليات والتنفيذ",
+      "summary": "الطلبات والعمليات والتنفيذ",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 205",
+      "issue_number": null
+    },
+    {
+      "id": "P206",
+      "section": "Sidebar IA",
+      "domain": "Orders & Fulfillment",
+      "title": "V2 | Sidebar 206 — الطلبات والعمليات",
+      "summary": "الطلبات والعمليات",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 206",
+      "issue_number": null
+    },
+    {
+      "id": "P207",
+      "section": "Sidebar IA",
+      "domain": "Orders & Fulfillment",
+      "title": "V2 | Sidebar 207 — إدارة الطلبات",
+      "summary": "إدارة الطلبات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 207",
+      "issue_number": null
+    },
+    {
+      "id": "P208",
+      "section": "Sidebar IA",
+      "domain": "Orders & Fulfillment",
+      "title": "V2 | Sidebar 208 — الطلبات الواردة للتجزئة",
+      "summary": "الطلبات الواردة للتجزئة",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 208",
+      "issue_number": null
+    },
+    {
+      "id": "P209",
+      "section": "Sidebar IA",
+      "domain": "Orders & Fulfillment",
+      "title": "V2 | Sidebar 209 — الطلبات المعلقة",
+      "summary": "الطلبات المعلقة",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 209",
+      "issue_number": null
+    },
+    {
+      "id": "P210",
+      "section": "Sidebar IA",
+      "domain": "Orders & Fulfillment",
+      "title": "V2 | Sidebar 210 — بانتظار التوجيه",
+      "summary": "بانتظار التوجيه",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 210",
+      "issue_number": null
+    },
+    {
+      "id": "P211",
+      "section": "Sidebar IA",
+      "domain": "Orders & Fulfillment",
+      "title": "V2 | Sidebar 211 — الاستثناءات التشغيلية",
+      "summary": "الاستثناءات التشغيلية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 211",
+      "issue_number": null
+    },
+    {
+      "id": "P212",
+      "section": "Sidebar IA",
+      "domain": "Orders & Fulfillment",
+      "title": "V2 | Sidebar 212 — التسليم والتنفيذ",
+      "summary": "التسليم والتنفيذ",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 212",
+      "issue_number": null
+    },
+    {
+      "id": "P213",
+      "section": "Sidebar IA",
+      "domain": "Orders & Fulfillment",
+      "title": "V2 | Sidebar 213 — التوزيع",
+      "summary": "التوزيع",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 213",
+      "issue_number": null
+    },
+    {
+      "id": "P214",
+      "section": "Sidebar IA",
+      "domain": "Orders & Fulfillment",
+      "title": "V2 | Sidebar 214 — الإسناد",
+      "summary": "الإسناد",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 214",
+      "issue_number": null
+    },
+    {
+      "id": "P215",
+      "section": "Sidebar IA",
+      "domain": "Orders & Fulfillment",
+      "title": "V2 | Sidebar 215 — تتبع الحالات",
+      "summary": "تتبع الحالات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 215",
+      "issue_number": null
+    },
+    {
+      "id": "P216",
+      "section": "Sidebar IA",
+      "domain": "Orders & Fulfillment",
+      "title": "V2 | Sidebar 216 — إثبات التسليم",
+      "summary": "إثبات التسليم",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 216",
+      "issue_number": null
+    },
+    {
+      "id": "P217",
+      "section": "Sidebar IA",
+      "domain": "Orders & Fulfillment",
+      "title": "V2 | Sidebar 217 — الفشل والإرجاع",
+      "summary": "الفشل والإرجاع",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 217",
+      "issue_number": null
+    },
+    {
+      "id": "P218",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 218 — الكتالوج والتسعير والعروض",
+      "summary": "الكتالوج والتسعير والعروض",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 218",
+      "issue_number": null
+    },
+    {
+      "id": "P219",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 219 — الكتالوج",
+      "summary": "الكتالوج",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 219",
+      "issue_number": null
+    },
+    {
+      "id": "P220",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 220 — إدارة الكتالوج",
+      "summary": "إدارة الكتالوج",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 220",
+      "issue_number": null
+    },
+    {
+      "id": "P221",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 221 — المنتجات",
+      "summary": "المنتجات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 221",
+      "issue_number": null
+    },
+    {
+      "id": "P222",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 222 — الفئات",
+      "summary": "الفئات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 222",
+      "issue_number": null
+    },
+    {
+      "id": "P223",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 223 — الوحدات والمرجعيات",
+      "summary": "الوحدات والمرجعيات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 223",
+      "issue_number": null
+    },
+    {
+      "id": "P224",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 224 — الصور والمحتوى",
+      "summary": "الصور والمحتوى",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 224",
+      "issue_number": null
+    },
+    {
+      "id": "P225",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 225 — التسعير التجاري",
+      "summary": "التسعير التجاري",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 225",
+      "issue_number": null
+    },
+    {
+      "id": "P226",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 226 — قوائم الأسعار",
+      "summary": "قوائم الأسعار",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 226",
+      "issue_number": null
+    },
+    {
+      "id": "P227",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 227 — شرائح العملاء",
+      "summary": "شرائح العملاء",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 227",
+      "issue_number": null
+    },
+    {
+      "id": "P228",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 228 — شرائح الكميات",
+      "summary": "شرائح الكميات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 228",
+      "issue_number": null
+    },
+    {
+      "id": "P229",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 229 — قواعد الربحية",
+      "summary": "قواعد الربحية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 229",
+      "issue_number": null
+    },
+    {
+      "id": "P230",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 230 — اعتماد الاستثناءات",
+      "summary": "اعتماد الاستثناءات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 230",
+      "issue_number": null
+    },
+    {
+      "id": "P231",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 231 — العروض والترويج",
+      "summary": "العروض والترويج",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 231",
+      "issue_number": null
+    },
+    {
+      "id": "P232",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 232 — العروض",
+      "summary": "العروض",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 232",
+      "issue_number": null
+    },
+    {
+      "id": "P233",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 233 — الكوبونات",
+      "summary": "الكوبونات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 233",
+      "issue_number": null
+    },
+    {
+      "id": "P234",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 234 — الإشعارات",
+      "summary": "الإشعارات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 234",
+      "issue_number": null
+    },
+    {
+      "id": "P235",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 235 — الإعلانات الحية",
+      "summary": "الإعلانات الحية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 235",
+      "issue_number": null
+    },
+    {
+      "id": "P236",
+      "section": "Sidebar IA",
+      "domain": "Catalog & Pricing",
+      "title": "V2 | Sidebar 236 — المحتوى",
+      "summary": "المحتوى",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 236",
+      "issue_number": null
+    },
+    {
+      "id": "P237",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 237 — المشتريات والمخزون والمستودعات",
+      "summary": "المشتريات والمخزون والمستودعات",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 237",
+      "issue_number": null
+    },
+    {
+      "id": "P238",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 238 — المشتريات",
+      "summary": "المشتريات",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 238",
+      "issue_number": null
+    },
+    {
+      "id": "P239",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 239 — الموردون",
+      "summary": "الموردون",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 239",
+      "issue_number": null
+    },
+    {
+      "id": "P240",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 240 — طلبات الشراء",
+      "summary": "طلبات الشراء",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 240",
+      "issue_number": null
+    },
+    {
+      "id": "P241",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 241 — أوامر الشراء",
+      "summary": "أوامر الشراء",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 241",
+      "issue_number": null
+    },
+    {
+      "id": "P242",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 242 — الاستلام",
+      "summary": "الاستلام",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 242",
+      "issue_number": null
+    },
+    {
+      "id": "P243",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 243 — المرتجعات",
+      "summary": "المرتجعات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 243",
+      "issue_number": null
+    },
+    {
+      "id": "P244",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 244 — فواتير الشراء",
+      "summary": "فواتير الشراء",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 244",
+      "issue_number": null
+    },
+    {
+      "id": "P245",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 245 — كشوف الموردين",
+      "summary": "كشوف الموردين",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 245",
+      "issue_number": null
+    },
+    {
+      "id": "P246",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 246 — المخزون",
+      "summary": "المخزون",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 246",
+      "issue_number": null
+    },
+    {
+      "id": "P247",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 247 — دفتر المخزون",
+      "summary": "دفتر المخزون",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 247",
+      "issue_number": null
+    },
+    {
+      "id": "P248",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 248 — الأرصدة",
+      "summary": "الأرصدة",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 248",
+      "issue_number": null
+    },
+    {
+      "id": "P249",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 249 — الدفعات والصلاحية",
+      "summary": "الدفعات والصلاحية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 249",
+      "issue_number": null
+    },
+    {
+      "id": "P250",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 250 — التسويات",
+      "summary": "التسويات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 250",
+      "issue_number": null
+    },
+    {
+      "id": "P251",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 251 — التحويلات",
+      "summary": "التحويلات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 251",
+      "issue_number": null
+    },
+    {
+      "id": "P252",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 252 — الجرد",
+      "summary": "الجرد",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 252",
+      "issue_number": null
+    },
+    {
+      "id": "P253",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 253 — المستودعات",
+      "summary": "المستودعات",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 253",
+      "issue_number": null
+    },
+    {
+      "id": "P254",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 254 — المستودعات",
+      "summary": "المستودعات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 254",
+      "issue_number": null
+    },
+    {
+      "id": "P255",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 255 — المواقع",
+      "summary": "المواقع",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 255",
+      "issue_number": null
+    },
+    {
+      "id": "P256",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 256 — الحركات",
+      "summary": "الحركات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 256",
+      "issue_number": null
+    },
+    {
+      "id": "P257",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 257 — الحجز والتخصيص",
+      "summary": "الحجز والتخصيص",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 257",
+      "issue_number": null
+    },
+    {
+      "id": "P258",
+      "section": "Sidebar IA",
+      "domain": "Procurement & Inventory",
+      "title": "V2 | Sidebar 258 — التحميل للفان",
+      "summary": "التحميل للفان",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 258",
+      "issue_number": null
+    },
+    {
+      "id": "P259",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 259 — الأسطول والفانات والعمليات الميدانية",
+      "summary": "الأسطول والفانات والعمليات الميدانية",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 259",
+      "issue_number": null
+    },
+    {
+      "id": "P260",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 260 — الأسطول",
+      "summary": "الأسطول",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 260",
+      "issue_number": null
+    },
+    {
+      "id": "P261",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 261 — التتبع المباشر",
+      "summary": "التتبع المباشر",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 261",
+      "issue_number": null
+    },
+    {
+      "id": "P262",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 262 — السائقون",
+      "summary": "السائقون",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 262",
+      "issue_number": null
+    },
+    {
+      "id": "P263",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 263 — الفانات",
+      "summary": "الفانات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 263",
+      "issue_number": null
+    },
+    {
+      "id": "P264",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 264 — المركبات",
+      "summary": "المركبات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 264",
+      "issue_number": null
+    },
+    {
+      "id": "P265",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 265 — سجل الحركة",
+      "summary": "سجل الحركة",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 265",
+      "issue_number": null
+    },
+    {
+      "id": "P266",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 266 — العمليات الميدانية",
+      "summary": "العمليات الميدانية",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 266",
+      "issue_number": null
+    },
+    {
+      "id": "P267",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 267 — العملاء الميدانيون",
+      "summary": "العملاء الميدانيون",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 267",
+      "issue_number": null
+    },
+    {
+      "id": "P268",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 268 — الزيارات",
+      "summary": "الزيارات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 268",
+      "issue_number": null
+    },
+    {
+      "id": "P269",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 269 — المناطق",
+      "summary": "المناطق",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 269",
+      "issue_number": null
+    },
+    {
+      "id": "P270",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 270 — المسارات",
+      "summary": "المسارات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 270",
+      "issue_number": null
+    },
+    {
+      "id": "P271",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 271 — التوجيه",
+      "summary": "التوجيه",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 271",
+      "issue_number": null
+    },
+    {
+      "id": "P272",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 272 — تسويات الرحلات",
+      "summary": "تسويات الرحلات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 272",
+      "issue_number": null
+    },
+    {
+      "id": "P273",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 273 — الفان",
+      "summary": "الفان",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 273",
+      "issue_number": null
+    },
+    {
+      "id": "P274",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 274 — مخزون الفان",
+      "summary": "مخزون الفان",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 274",
+      "issue_number": null
+    },
+    {
+      "id": "P275",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 275 — البيع المباشر",
+      "summary": "البيع المباشر",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 275",
+      "issue_number": null
+    },
+    {
+      "id": "P276",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 276 — رحلات الفان",
+      "summary": "رحلات الفان",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 276",
+      "issue_number": null
+    },
+    {
+      "id": "P277",
+      "section": "Sidebar IA",
+      "domain": "Fleet & Van",
+      "title": "V2 | Sidebar 277 — الإقفال والتسوية",
+      "summary": "الإقفال والتسوية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 277",
+      "issue_number": null
+    },
+    {
+      "id": "P278",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 278 — المالية والخزينة والمحاسبة",
+      "summary": "المالية والخزينة والمحاسبة",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 278",
+      "issue_number": null
+    },
+    {
+      "id": "P279",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 279 — المالية",
+      "summary": "المالية",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 279",
+      "issue_number": null
+    },
+    {
+      "id": "P280",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 280 — مركز المالية",
+      "summary": "مركز المالية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 280",
+      "issue_number": null
+    },
+    {
+      "id": "P281",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 281 — القيود",
+      "summary": "القيود",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 281",
+      "issue_number": null
+    },
+    {
+      "id": "P282",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 282 — الفترات المالية",
+      "summary": "الفترات المالية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 282",
+      "issue_number": null
+    },
+    {
+      "id": "P283",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 283 — الربحية",
+      "summary": "الربحية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 283",
+      "issue_number": null
+    },
+    {
+      "id": "P284",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 284 — مراجعة الفواتير",
+      "summary": "مراجعة الفواتير",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 284",
+      "issue_number": null
+    },
+    {
+      "id": "P285",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 285 — الذمم",
+      "summary": "الذمم",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 285",
+      "issue_number": null
+    },
+    {
+      "id": "P286",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 286 — حسابات العملاء AR",
+      "summary": "حسابات العملاء AR",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 286",
+      "issue_number": null
+    },
+    {
+      "id": "P287",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 287 — حسابات الموردين AP",
+      "summary": "حسابات الموردين AP",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 287",
+      "issue_number": null
+    },
+    {
+      "id": "P288",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 288 — أعمار الديون",
+      "summary": "أعمار الديون",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 288",
+      "issue_number": null
+    },
+    {
+      "id": "P289",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 289 — التحصيلات",
+      "summary": "التحصيلات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 289",
+      "issue_number": null
+    },
+    {
+      "id": "P290",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 290 — تسوية البنود",
+      "summary": "تسوية البنود",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 290",
+      "issue_number": null
+    },
+    {
+      "id": "P291",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 291 — الخزينة والبنوك",
+      "summary": "الخزينة والبنوك",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 291",
+      "issue_number": null
+    },
+    {
+      "id": "P292",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 292 — الخزائن",
+      "summary": "الخزائن",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 292",
+      "issue_number": null
+    },
+    {
+      "id": "P293",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 293 — الصندوق",
+      "summary": "الصندوق",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 293",
+      "issue_number": null
+    },
+    {
+      "id": "P294",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 294 — البنوك",
+      "summary": "البنوك",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 294",
+      "issue_number": null
+    },
+    {
+      "id": "P295",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 295 — القبض",
+      "summary": "القبض",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 295",
+      "issue_number": null
+    },
+    {
+      "id": "P296",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 296 — الصرف",
+      "summary": "الصرف",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 296",
+      "issue_number": null
+    },
+    {
+      "id": "P297",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 297 — التسويات البنكية",
+      "summary": "التسويات البنكية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 297",
+      "issue_number": null
+    },
+    {
+      "id": "P298",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 298 — تسويات الموردين",
+      "summary": "تسويات الموردين",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 298",
+      "issue_number": null
+    },
+    {
+      "id": "P299",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 299 — المستحق المتراكم",
+      "summary": "المستحق المتراكم",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 299",
+      "issue_number": null
+    },
+    {
+      "id": "P300",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 300 — المستحق السداد",
+      "summary": "المستحق السداد",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 300",
+      "issue_number": null
+    },
+    {
+      "id": "P301",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 301 — المدفوع",
+      "summary": "المدفوع",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 301",
+      "issue_number": null
+    },
+    {
+      "id": "P302",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 302 — العقود المضمونة",
+      "summary": "العقود المضمونة",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 302",
+      "issue_number": null
+    },
+    {
+      "id": "P303",
+      "section": "Sidebar IA",
+      "domain": "Finance & Treasury",
+      "title": "V2 | Sidebar 303 — التسويات المرتبطة بالتحصيل",
+      "summary": "التسويات المرتبطة بالتحصيل",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 303",
+      "issue_number": null
+    },
+    {
+      "id": "P304",
+      "section": "Sidebar IA",
+      "domain": "Reports & BI",
+      "title": "V2 | Sidebar 304 — التقارير والتحليلات",
+      "summary": "التقارير والتحليلات",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 304",
+      "issue_number": null
+    },
+    {
+      "id": "P305",
+      "section": "Sidebar IA",
+      "domain": "Reports & BI",
+      "title": "V2 | Sidebar 305 — التقارير",
+      "summary": "التقارير",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 305",
+      "issue_number": null
+    },
+    {
+      "id": "P306",
+      "section": "Sidebar IA",
+      "domain": "Reports & BI",
+      "title": "V2 | Sidebar 306 — تقارير التشغيل",
+      "summary": "تقارير التشغيل",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 306",
+      "issue_number": null
+    },
+    {
+      "id": "P307",
+      "section": "Sidebar IA",
+      "domain": "Reports & BI",
+      "title": "V2 | Sidebar 307 — تقارير المبيعات",
+      "summary": "تقارير المبيعات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 307",
+      "issue_number": null
+    },
+    {
+      "id": "P308",
+      "section": "Sidebar IA",
+      "domain": "Reports & BI",
+      "title": "V2 | Sidebar 308 — تقارير المخزون",
+      "summary": "تقارير المخزون",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 308",
+      "issue_number": null
+    },
+    {
+      "id": "P309",
+      "section": "Sidebar IA",
+      "domain": "Reports & BI",
+      "title": "V2 | Sidebar 309 — التقارير المالية",
+      "summary": "التقارير المالية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 309",
+      "issue_number": null
+    },
+    {
+      "id": "P310",
+      "section": "Sidebar IA",
+      "domain": "Reports & BI",
+      "title": "V2 | Sidebar 310 — تقارير خدمة العملاء",
+      "summary": "تقارير خدمة العملاء",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 310",
+      "issue_number": null
+    },
+    {
+      "id": "P311",
+      "section": "Sidebar IA",
+      "domain": "Reports & BI",
+      "title": "V2 | Sidebar 311 — التحليلات",
+      "summary": "التحليلات",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 311",
+      "issue_number": null
+    },
+    {
+      "id": "P312",
+      "section": "Sidebar IA",
+      "domain": "Reports & BI",
+      "title": "V2 | Sidebar 312 — BI",
+      "summary": "BI",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 312",
+      "issue_number": null
+    },
+    {
+      "id": "P313",
+      "section": "Sidebar IA",
+      "domain": "Reports & BI",
+      "title": "V2 | Sidebar 313 — مؤشرات الأداء",
+      "summary": "مؤشرات الأداء",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 313",
+      "issue_number": null
+    },
+    {
+      "id": "P314",
+      "section": "Sidebar IA",
+      "domain": "Reports & BI",
+      "title": "V2 | Sidebar 314 — لوحات الإدارة التنفيذية",
+      "summary": "لوحات الإدارة التنفيذية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 314",
+      "issue_number": null
+    },
+    {
+      "id": "P315",
+      "section": "Sidebar IA",
+      "domain": "Reports & BI",
+      "title": "V2 | Sidebar 315 — تحليلات الربحية",
+      "summary": "تحليلات الربحية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 315",
+      "issue_number": null
+    },
+    {
+      "id": "P316",
+      "section": "Sidebar IA",
+      "domain": "Reports & BI",
+      "title": "V2 | Sidebar 316 — تحليلات القنوات",
+      "summary": "تحليلات القنوات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 316",
+      "issue_number": null
+    },
+    {
+      "id": "P317",
+      "section": "Sidebar IA",
+      "domain": "Applications & Restaurant",
+      "title": "V2 | Sidebar 317 — التطبيقات والقنوات الرقمية",
+      "summary": "التطبيقات والقنوات الرقمية",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 317",
+      "issue_number": null
+    },
+    {
+      "id": "P318",
+      "section": "Sidebar IA",
+      "domain": "Applications & Restaurant",
+      "title": "V2 | Sidebar 318 — التطبيقات",
+      "summary": "التطبيقات",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 318",
+      "issue_number": null
+    },
+    {
+      "id": "P319",
+      "section": "Sidebar IA",
+      "domain": "Applications & Restaurant",
+      "title": "V2 | Sidebar 319 — معاينة التطبيق",
+      "summary": "معاينة التطبيق",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 319",
+      "issue_number": null
+    },
+    {
+      "id": "P320",
+      "section": "Sidebar IA",
+      "domain": "Applications & Restaurant",
+      "title": "V2 | Sidebar 320 — تنزيل تطبيق العميل",
+      "summary": "تنزيل تطبيق العميل",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 320",
+      "issue_number": null
+    },
+    {
+      "id": "P321",
+      "section": "Sidebar IA",
+      "domain": "Applications & Restaurant",
+      "title": "V2 | Sidebar 321 — تنزيل تطبيق السائق",
+      "summary": "تنزيل تطبيق السائق",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 321",
+      "issue_number": null
+    },
+    {
+      "id": "P322",
+      "section": "Sidebar IA",
+      "domain": "Applications & Restaurant",
+      "title": "V2 | Sidebar 322 — تنزيل تطبيق الفان",
+      "summary": "تنزيل تطبيق الفان",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 322",
+      "issue_number": null
+    },
+    {
+      "id": "P323",
+      "section": "Sidebar IA",
+      "domain": "Applications & Restaurant",
+      "title": "V2 | Sidebar 323 — إصدارات التطبيقات",
+      "summary": "إصدارات التطبيقات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 323",
+      "issue_number": null
+    },
+    {
+      "id": "P324",
+      "section": "Sidebar IA",
+      "domain": "Applications & Restaurant",
+      "title": "V2 | Sidebar 324 — الطلب الرقمي / المطاعم",
+      "summary": "الطلب الرقمي / المطاعم",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 324",
+      "issue_number": null
+    },
+    {
+      "id": "P325",
+      "section": "Sidebar IA",
+      "domain": "Applications & Restaurant",
+      "title": "V2 | Sidebar 325 — القائمة الرقمية",
+      "summary": "القائمة الرقمية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 325",
+      "issue_number": null
+    },
+    {
+      "id": "P326",
+      "section": "Sidebar IA",
+      "domain": "Applications & Restaurant",
+      "title": "V2 | Sidebar 326 — رموز QR",
+      "summary": "رموز QR",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 326",
+      "issue_number": null
+    },
+    {
+      "id": "P327",
+      "section": "Sidebar IA",
+      "domain": "Applications & Restaurant",
+      "title": "V2 | Sidebar 327 — النشر",
+      "summary": "النشر",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 327",
+      "issue_number": null
+    },
+    {
+      "id": "P328",
+      "section": "Sidebar IA",
+      "domain": "Applications & Restaurant",
+      "title": "V2 | Sidebar 328 — التحليلات",
+      "summary": "التحليلات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 328",
+      "issue_number": null
+    },
+    {
+      "id": "P329",
+      "section": "Sidebar IA",
+      "domain": "Applications & Restaurant",
+      "title": "V2 | Sidebar 329 — الطلبات الرقمية",
+      "summary": "الطلبات الرقمية",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 329",
+      "issue_number": null
+    },
+    {
+      "id": "P330",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 330 — الإدارة والأمن والإعدادات",
+      "summary": "الإدارة والأمن والإعدادات",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 330",
+      "issue_number": null
+    },
+    {
+      "id": "P331",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 331 — المستخدمون والصلاحيات",
+      "summary": "المستخدمون والصلاحيات",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 331",
+      "issue_number": null
+    },
+    {
+      "id": "P332",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 332 — المستخدمون",
+      "summary": "المستخدمون",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 332",
+      "issue_number": null
+    },
+    {
+      "id": "P333",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 333 — إضافة مستخدم",
+      "summary": "إضافة مستخدم",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 333",
+      "issue_number": null
+    },
+    {
+      "id": "P334",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 334 — أرشفة / حذف مستخدم",
+      "summary": "أرشفة / حذف مستخدم",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 334",
+      "issue_number": null
+    },
+    {
+      "id": "P335",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 335 — الأدوار",
+      "summary": "الأدوار",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 335",
+      "issue_number": null
+    },
+    {
+      "id": "P336",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 336 — تعيين الأدوار",
+      "summary": "تعيين الأدوار",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 336",
+      "issue_number": null
+    },
+    {
+      "id": "P337",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 337 — شجرة الصلاحيات والصفحات",
+      "summary": "شجرة الصلاحيات والصفحات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 337",
+      "issue_number": null
+    },
+    {
+      "id": "P338",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 338 — مراجعة الوصول الفعلي",
+      "summary": "مراجعة الوصول الفعلي",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 338",
+      "issue_number": null
+    },
+    {
+      "id": "P339",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 339 — الأمن والحوكمة",
+      "summary": "الأمن والحوكمة",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 339",
+      "issue_number": null
+    },
+    {
+      "id": "P340",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 340 — نطاقات البيانات",
+      "summary": "نطاقات البيانات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 340",
+      "issue_number": null
+    },
+    {
+      "id": "P341",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 341 — حدود الاعتماد",
+      "summary": "حدود الاعتماد",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 341",
+      "issue_number": null
+    },
+    {
+      "id": "P342",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 342 — التفويضات المؤقتة",
+      "summary": "التفويضات المؤقتة",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 342",
+      "issue_number": null
+    },
+    {
+      "id": "P343",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 343 — سجل التدقيق",
+      "summary": "سجل التدقيق",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 343",
+      "issue_number": null
+    },
+    {
+      "id": "P344",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 344 — الموديولات والإعدادات",
+      "summary": "الموديولات والإعدادات",
+      "type": "navigation-group",
+      "source": "Part 2 §4, source paragraph 344",
+      "issue_number": null
+    },
+    {
+      "id": "P345",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 345 — سجل الموديولات",
+      "summary": "سجل الموديولات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 345",
+      "issue_number": null
+    },
+    {
+      "id": "P346",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 346 — حالة التفعيل",
+      "summary": "حالة التفعيل",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 346",
+      "issue_number": null
+    },
+    {
+      "id": "P347",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 347 — إعدادات المنصة",
+      "summary": "إعدادات المنصة",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 347",
+      "issue_number": null
+    },
+    {
+      "id": "P348",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 348 — الإشعارات",
+      "summary": "الإشعارات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 348",
+      "issue_number": null
+    },
+    {
+      "id": "P349",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 349 — الترجمات",
+      "summary": "الترجمات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 349",
+      "issue_number": null
+    },
+    {
+      "id": "P350",
+      "section": "Sidebar IA",
+      "domain": "Administration",
+      "title": "V2 | Sidebar 350 — التحديثات",
+      "summary": "التحديثات",
+      "type": "navigation-item",
+      "source": "Part 2 §4, source paragraph 350",
+      "issue_number": null
+    }
+  ]
+}
