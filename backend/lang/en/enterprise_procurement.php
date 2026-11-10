@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'errors' => [
+        'self_approval' => 'A purchaser cannot approve a purchase request they created or submitted.',
+    ],
     'title' => 'Procurement Workbench',
     'section' => 'ERP · Procurement',
     'purchase_order_short' => 'PO',
