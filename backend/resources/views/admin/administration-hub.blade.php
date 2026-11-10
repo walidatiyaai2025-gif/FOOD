@@ -135,7 +135,12 @@ html[dir=ltr] .main{grid-column:2}
 </article>
 <article class="card utility-card" data-admin-card="users-permissions">
 <div><h3>{{ __('admin.administration_hub.users_permissions') }}</h3><p class="muted">{{ __('admin.administration_hub.users_permissions_description') }}</p></div>
-@if($canSecurity)<a class="action" href="{{ route('admin.security.index') }}">{{ __('admin.administration_hub.open') }}</a>@else<span class="restricted">{{ __('admin.administration_hub.restricted') }}</span>@endif
+@if($canSecurity)
+<div class="actions" data-security-navigation>
+<a class="action" href="{{ route('admin.security.index') }}">{{ __('admin.administration_hub.open') }}</a>
+<a class="action secondary" data-security-audit-entry href="{{ route('admin.security.index', ['section' => 'audit']) }}">{{ __('admin.security.tabs.audit') }}</a>
+</div>
+@else<span class="restricted">{{ __('admin.administration_hub.restricted') }}</span>@endif
 </article>
 @if($canSystemUpdate)
 <article class="card utility-card" data-admin-card="system-updates">
