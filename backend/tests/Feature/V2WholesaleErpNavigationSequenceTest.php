@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enterprise\Modules\ModuleRegistry;
 use App\Enums\StoreBusinessProfile;
 use App\Models\Role;
 use App\Models\User;
@@ -46,6 +47,15 @@ final class V2WholesaleErpNavigationSequenceTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+        // The Sidebar now requires exact-version operational certification.
+        // Exercise the intentionally ready business-journey order only in this
+        // fixture: production defaults remain uncertified until approved.
+        foreach (['procurement', 'inventory_wms', 'finance', 'treasury', 'enterprise_bi'] as $code) {
+            config()->set(
+                'enterprise_module_readiness.certified_versions.'.$code,
+                app(ModuleRegistry::class)->manifest($code)->version,
+            );
+        }
     }
 
     public function test_registered_default_positions_are_unique_and_follow_wholesale_business_sequence(): void
