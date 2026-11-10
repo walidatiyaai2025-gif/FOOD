@@ -658,15 +658,19 @@ final class SecurityController extends Controller
             'store_id' => ['nullable', 'integer', 'exists:stores,id'],
             'permission_ids' => ['nullable', 'array'],
             'permission_ids.*' => ['integer', 'exists:permissions,id'],
+            'inherit' => ['sometimes', 'boolean'],
         ]);
+
+        $inheritFromRole = (bool) ($validated['inherit'] ?? false);
 
         $rbac->replaceUserPermissions(
             $this->actor($request),
             $user,
-            array_map('intval', $validated['permission_ids'] ?? []),
+            $inheritFromRole ? [] : array_map('intval', $validated['permission_ids'] ?? []),
             (string) $validated['scope_type'],
             isset($validated['store_id']) ? (int) $validated['store_id'] : null,
             $request,
+            $inheritFromRole,
         );
 
         return back()->with('status', __('security_permissions.user_permissions_saved'));

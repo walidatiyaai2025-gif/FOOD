@@ -239,6 +239,7 @@ final class RbacManager
         string $scopeType,
         ?int $storeId,
         Request $request,
+        bool $inheritFromRole = false,
     ): User {
         $this->preparePermissionMutation();
 
@@ -308,7 +309,14 @@ final class RbacManager
 
         $scopeKey = $scopeType === 'global' ? 'global' : 'store:'.$storeId;
         $baselineCodes = collect($target->inheritedPermissionCodes($storeId));
-        $selectedIdSet = collect($selectedPermissionIds)->flip();
+        // Explicit INHERIT removes only manageable overrides in this scope.
+        // Role/module/readiness authority remains the live baseline, not a copied grant set.
+        $selectedIdSet = $inheritFromRole
+            ? $manageablePermissions
+                ->filter(static fn (Permission $permission): bool => $baselineCodes->contains((string) $permission->code))
+                ->keys()
+                ->flip()
+            : collect($selectedPermissionIds)->flip();
         $before = $this->userSnapshot($target);
 
         DB::transaction(function () use (
