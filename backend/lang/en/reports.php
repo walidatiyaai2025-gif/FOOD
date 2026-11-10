@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'title' => 'Management Reports',
+    'title' => 'Reports Center',
     'description' => 'Executive reporting across sales, products, customers, B2B and operations with governed exports.',
     'families' => [
         'orders' => 'Orders & Sales',
