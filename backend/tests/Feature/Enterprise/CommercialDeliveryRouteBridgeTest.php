@@ -238,7 +238,9 @@ final class CommercialDeliveryRouteBridgeTest extends TestCase
 
     private function superAdmin(): User
     {
-        $user = User::factory()->create();
+        // Authorization fixtures must be active; disabled Super Admin accounts
+        // cannot acquire an operational tenant scope under V2 P376.
+        $user = User::factory()->create(['is_active' => true]);
         $role = Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail();
         $user->roles()->attach($role->id);
 
