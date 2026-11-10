@@ -5,8 +5,8 @@ namespace App\Services;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 
 final class AdminSidebarManager
 {
