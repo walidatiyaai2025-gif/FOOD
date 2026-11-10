@@ -125,6 +125,7 @@ $roleLabel = static function ($role): string {
 </summary>
 <div class="security-modal-stack">
     <div class="note">{{ __('security_permissions.user_permissions_description') }}</div>
+    <div class="note">{{ __('security_permissions.permission_state_legend') }}</div>
     @if($managedUser->roles->contains(fn($role) => $role->code === 'SUPER_ADMIN'))
         <div class="note">{{ __('security_permissions.user_permissions_super_admin_locked') }}</div>
     @else
@@ -141,6 +142,7 @@ $roleLabel = static function ($role): string {
                 'permissionGroupLabels' => $permissionGroupLabels,
                 'privilegedPermissionCodes' => $privilegedPermissionCodes,
                 'permissionBoundaryNote' => __('security_permissions.user_permissions_description'),
+                'permissionStates' => $userPermissionStatesByUser->get((int) $managedUser->id, [])['global'] ?? [],
                 'showPermissionScopeRule' => false,
             ])
             <button class="btn primary" type="submit">{{ __('security_permissions.user_permissions_save') }}</button>
@@ -164,6 +166,7 @@ $roleLabel = static function ($role): string {
                 'permissionGroupLabels' => $userPermissionGroupLabels,
                 'privilegedPermissionCodes' => $privilegedPermissionCodes,
                 'permissionBoundaryNote' => __('security_permissions.user_permissions_description'),
+                'permissionStates' => ($userPermissionStatesByUser->get((int) $managedUser->id, [])['stores'] ?? [])[(int) $permissionStore->id] ?? [],
                 'showPermissionScopeRule' => false,
             ])
             <button class="btn primary" type="submit">{{ __('security_permissions.user_permissions_save') }}</button>
@@ -255,7 +258,6 @@ $roleLabel = static function ($role): string {
 <span class="muted" data-role-results-count data-count-template="{{ __('admin.security.role_search_count') }}" aria-live="polite">{{ __('admin.security.role_search_count', ['shown' => $roles->count(), 'total' => $roles->count()]) }}</span>
 </div>
 <p class="muted role-search-empty" data-role-search-empty hidden>{{ __('admin.security.role_search_empty') }}</p>
-@php($v2BusinessPermissionRoots = ['b2b', 'stores', 'catalog', 'lookups', 'inventory', 'orders', 'customers', 'promotions', 'finance', 'reports', 'support', 'notifications', 'coupons', 'live_ads', 'drivers', 'deliveries', 'van', 'field_ops', 'territories', 'whatsapp', 'smart_ordering', 'chatbot'])
 <div class="role-grid" id="security-role-grid">@foreach($roles as $role)@php
     $pids=$role->permissions->pluck('id')->map(fn($id)=>(int)$id)->all();
     $roleMeta=$jobRoleMeta[$role->code] ?? null;
@@ -270,14 +272,6 @@ $roleLabel = static function ($role): string {
         implode(' ', (array) ($roleMeta['responsibilities'] ?? [])),
         implode(' ', (array) ($roleMeta['access_boundaries'] ?? [])),
     ]);
-    // This is a read-only projection of actual permission_role rows, not
-    // an effective per-user/store grant, entitlement or Sidebar visibility.
-    $v2BusinessPermissions = $role->permissions
-        ->pluck('code')
-        ->map(static fn (string $code): string => explode('.', $code, 2)[0])
-        ->filter(static fn (string $domain): bool => in_array($domain, $v2BusinessPermissionRoots, true))
-        ->countBy()
-        ->sortKeys();
 @endphp
 <details class="card {{ $roleAvailable ? '' : 'role-unavailable' }}" data-foodex-operational-modal data-role-search-card data-role-search-text="{{ $roleSearchText }}" data-role-archived="{{ $role->archived_at ? '1' : '0' }}">
 <summary>{{ $displayRoleName }} <span class="badge {{ $role->is_active?'active':'inactive' }}">{{ $role->archived_at ? __('admin.security.archived_role') : ($role->is_active ? __('admin.security.active') : __('admin.security.inactive')) }}</span>@if($role->is_system)<span class="badge system">{{ __('admin.security.system_role') }}</span>@endif @if(is_array($roleMeta))<span class="badge">{{ $roleAvailable?__('job_roles.availability.available'):__('job_roles.availability.unavailable') }}</span>@endif</summary>
@@ -308,17 +302,6 @@ $roleLabel = static function ($role): string {
 @else
 <div class="job-role-tags"><span class="badge">{{ __('job_roles.custom') }}</span></div>
 @endif
-<section class="role-business-aggregate" data-v2-business-permission-summary="{{ $role->code }}" data-v2-business-role-scope="{{ $role->scope }}" aria-label="{{ __('v2_role_permissions.business_aggregate_title') }}">
-<strong>{{ __('v2_role_permissions.business_aggregate_title') }}</strong>
-<div class="job-role-tags">
-@forelse($v2BusinessPermissions as $domain => $count)
-<span class="badge" data-v2-business-domain="{{ $domain }}">{{ __('security_permissions.groups.'.$domain) }}: {{ __('v2_role_permissions.business_aggregate_count', ['count' => $count]) }}</span>
-@empty
-<span class="muted">{{ __('v2_role_permissions.business_aggregate_none') }}</span>
-@endforelse
-</div>
-<p class="muted">{{ __('v2_role_permissions.business_aggregate_note') }}</p>
-</section>
 <div class="muted">{{ __('admin.security.assignments_count') }}: {{ (int)$role->users_count+(int)$role->store_assignments_count }}</div>
 </div>
 @can('roles.manage')
