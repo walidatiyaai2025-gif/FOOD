@@ -84,7 +84,7 @@ final class V2SidebarLocaleResponsiveRouteQaTest extends TestCase
             $this->assertStringContainsString("launcher.setAttribute('aria-expanded', 'false')", $html);
             $this->assertStringContainsString("event.key === 'Escape'", $html);
             $this->assertStringContainsString("event.key !== 'Tab'", $html);
-            $this->assertStringContainsString("setBackgroundInert(true)", $html);
+            $this->assertStringContainsString('setBackgroundInert(true)', $html);
             $this->assertStringContainsString('href="'.route('admin.catalog.index').'"', $html);
             $this->assertStringNotContainsString('href="'.route('admin.sidebar-access.roles').'"', $html);
         }
