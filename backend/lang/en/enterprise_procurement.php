@@ -3,6 +3,7 @@
 return [
     'errors' => [
         'self_approval' => 'A purchaser cannot approve a purchase request they created or submitted.',
+        'self_award' => 'The buyer, submitter or RFQ creator cannot award their own purchase request.',
     ],
     'title' => 'Procurement Workbench',
     'section' => 'ERP · Procurement',
