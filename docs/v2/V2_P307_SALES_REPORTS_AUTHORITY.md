@@ -24,7 +24,7 @@ Issue: #2637 | Parent: #2503 | Integration target: `Foodex_V2` only
 1. One permitted Reports Center destination in Analytics and both genuine sales-family tabs in Arabic/English.
 2. Server-rendered real reports return HTTP 200 for the global authorized actor, preserve RTL/LTR and select the correct family.
 3. Roleless actors cannot see the menu entry, fetch the report or export it (HTTP 403).
-4. Retail store-scoped actors use the assigned-store Reports module only; another store is 404, and the unscoped Reports Center remains 403.
+4. Retail store-scoped actors use the assigned-store Reports module (foreign store 404); the canonical report endpoint requires an explicit store (missing store redirects with a validation error), accepts their assigned store and returns 403 for an unauthorized store.
 
 Related existing tests: `V2ReportsCenterSidebarMigrationTest` and `ManagementReportingSuiteTest`.
 
