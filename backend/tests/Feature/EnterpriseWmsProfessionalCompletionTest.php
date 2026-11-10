@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Wms\ReorderPolicyService;
 use App\Enterprise\Wms\WarehouseLocationService;
 use App\Enterprise\Wms\WmsDemandPlanningService;
@@ -25,6 +26,8 @@ final class EnterpriseWmsProfessionalCompletionTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+        // Explicit test-only approval of the exact ERP module version; never a runtime default.
+        config()->set('enterprise_module_readiness.certified_versions.inventory_wms', app(ModuleRegistry::class)->manifest('inventory_wms')->version);
     }
 
     public function test_location_metadata_and_provenance_never_create_a_second_stock_balance(): void
