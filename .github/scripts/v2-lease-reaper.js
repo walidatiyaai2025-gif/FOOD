@@ -18,7 +18,7 @@ function parseState(body) {
   }
   if (!fields.OWNER || !fields.BRANCH) return null;
   return {
-    owner: fields.OWNER, branch: fields.BRANCH.replace(/^'`|'`$/g, ''),
+    owner: fields.OWNER, branch: fields.BRANCH.replace(/[^A-Za-z0-9._/-]/g, ''),
     head: fields.HEAD || '', pr: fields.PR || '',
     state: (fields.STATE || 'CLAIMED').toUpperCase(),
     heartbeat: fields.HEARTBEAT || '', claimedAt: fields.CLAIMED_AT || '',
