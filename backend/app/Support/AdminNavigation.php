@@ -261,6 +261,9 @@ class AdminNavigation
                 'b2c_customers',
                 'b2c_customer_groups',
                 'b2c_promotions',
+                // Canonical Retail Content already has store-scoped HTTP authority;
+                // keep the existing menu entry discoverable without granting rights.
+                'b2c_content',
                 'b2c_reports',
                 'b2c_settings',
             ];
