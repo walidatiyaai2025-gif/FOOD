@@ -212,6 +212,8 @@ class _FoodexCustomerAppState extends State<FoodexCustomerApp>
     _sessionHttpClient = CustomerSessionHttpClient(
       lowDataHttpClient,
       onUnauthorized: _onSessionExpired,
+      isCurrentToken: (token) =>
+          _session.isAuthenticated && _session.accessToken == token,
     );
     _loadRemoteTranslations();
     _configurePush();

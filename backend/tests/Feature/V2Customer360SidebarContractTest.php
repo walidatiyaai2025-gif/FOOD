@@ -33,7 +33,7 @@ final class V2Customer360SidebarContractTest extends TestCase
     public function test_wholesale_account_manager_gets_one_registered_customer_360_destination_in_arabic_and_english(): void
     {
         $actor = $this->globalUser('B2B_ACCOUNT_MANAGER');
-        $this->store('B2B', 'P187-WHOLESALE', 'P187 Wholesale');
+        $wholesaleStore = $this->store('B2B', 'P187-WHOLESALE', 'P187 Wholesale');
 
         $this->assertTrue(Route::has('admin.customer-360.index'));
         $this->assertTrue($actor->hasPermission('b2b.accounts.view'));
@@ -54,8 +54,9 @@ final class V2Customer360SidebarContractTest extends TestCase
                 ->assertOk()
                 ->assertViewIs('admin.customer-360-index')
                 ->assertViewHas('navContext', 'customer_360')
-                ->assertViewHas('access', function (array $access): bool {
+                ->assertViewHas('access', function (array $access) use ($wholesaleStore): bool {
                     return $access['mode'] === 'b2b'
+                        && in_array($wholesaleStore, $access['b2b_store_ids'], true)
                         && $access['b2c_store_ids'] === [];
                 })
                 ->assertSee('dir="'.$direction.'"', false)

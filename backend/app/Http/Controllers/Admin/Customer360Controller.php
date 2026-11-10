@@ -1463,13 +1463,7 @@ final class Customer360Controller extends Controller
             ];
         }
 
-        // Wholesale account managers may access their scoped Customer 360 records
-        // without gaining access to other B2B dashboard modules. The broader
-        // channel allowlist remains authoritative for those other destinations.
-        if (
-            $this->navigation->canAccess($actor, 'b2b')
-            || ($actor->hasRole('B2B_ACCOUNT_MANAGER') && $actor->hasPermission('b2b.accounts.view'))
-        ) {
+        if ($this->navigation->canAccess($actor, 'b2b')) {
             $b2bPermission = $actor->hasPermission('b2b.accounts.view')
                 ? 'b2b.accounts.view'
                 : ($this->navigation->usesCustomerServiceDashboardProfile($actor) && $actor->hasPermission('customers.view')
