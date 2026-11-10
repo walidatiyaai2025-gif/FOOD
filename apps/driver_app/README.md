@@ -1,6 +1,6 @@
 # FOODEX Driver App
 
-The Driver App uses one Flutter codebase for Android and iOS. Production Driver runtime supports Retail (B2C) work and explicitly assigned Wholesale (B2B) Driver work. Automatic B2B routing remains Van-first; B2B Driver assignments are manual Order Operations overrides only.
+The Driver App uses one Flutter codebase for Android and iOS. Driver fulfillment target is Retail (B2C) only; B2B is Van-only including manual dispatch. Historical B2B Driver runtime restrictions and Flutter convergence are V2 #2939.
 
 ## Runtime journey
 
@@ -16,7 +16,7 @@ The Driver App uses one Flutter codebase for Android and iOS. Production Driver 
 
 - Assignment APIs are shared and enforce the authenticated Driver channel/store.
 - B2B Driver sessions are allowed only for active principal-Wholesale B2B Driver identities with `deliveries.b2b.execute`.
-- Automatic B2B routing and Van execution remain Van-first; B2B Driver work must come from an explicit manual Dashboard dispatch.
+- B2B is Van-only, with no manual or automatic Driver fallback; new B2B Driver assignments are denied server-side.
 - Backend authorization remains authoritative; client route separation is an additional UX boundary, not a security substitute.
 - Loading, empty, error, offline and expired-session outcomes are explicit.
 - Arabic RTL and English LTR use the shared FOODEX theme and translation catalog.
@@ -44,3 +44,5 @@ flutter build ios --debug --no-codesign
 ```
 
 The repository `required-ci-gate` runs Driver Flutter and iOS validation whenever `apps/driver_app/**` changes.
+
+> V2 #2939 must revoke legacy B2B Driver execution tokens, align Flutter states and validate notification routing; existing B2B Driver role is not authorization for new wholesale fulfillment.

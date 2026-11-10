@@ -330,7 +330,7 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
             'driver_id' => $b2bDriver->id,
             'order_id' => $b2bOrder->id,
         ])->assertConflict()
-            ->assertSee('B2B Driver assignment is available only through authorized manual Order Operations dispatch.');
+            ->assertSee('Wholesale orders require Van fulfillment.');
 
         $this->assertDatabaseMissing('driver_assignments', [
             'driver_id' => $b2bDriver->id,

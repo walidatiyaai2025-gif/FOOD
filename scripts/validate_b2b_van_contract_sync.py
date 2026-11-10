@@ -81,10 +81,10 @@ def validate(root: Path) -> list[str]:
     driver_doc = (root / "docs/workflows/DRIVER_WORKFLOW.md").read_text(encoding="utf-8")
     van_doc = (root / "docs/workflows/VAN_WORKFLOW.md").read_text(encoding="utf-8")
 
-    for marker in ("Van for automatic routing", "authorized manual Driver or Van dispatch", "awaiting_dispatch", "No automatic Driver fallback"):
+    for marker in ("Van only, including manual dispatch", "No Driver fallback", "awaiting_dispatch"):
         if marker not in order_doc:
             errors.append(f"ORDER_LIFECYCLE is missing B2B fulfillment marker: {marker}")
-    for marker in ("explicitly assigned B2B / Wholesale Drivers", "manual Order Operations dispatch", "No automatic B2B Driver fallback"):
+    for marker in ("B2C / Retail only", "no automatic or manual B2B Driver fallback", "B2B Driver assignments cannot be created"):
         if marker not in driver_doc:
             errors.append(f"DRIVER_WORKFLOW is missing manual B2B Driver marker: {marker}")
     for marker in ("automatic routing runtime", "Automatic B2B routing never falls back to a Driver", "/api/v1/van/orders", "/api/v1/van/remittances"):
@@ -96,18 +96,18 @@ def validate(root: Path) -> list[str]:
     )
     driver_surface = registry["surfaces"]["driver"]
     driver_functions = driver_surface.get("functions", [])
-    required_manual_driver_routes = {
+    legacy_driver_routes = {
         "driver.b2b.home": "/driver/b2b/home",
         "driver.b2b.deliveries": "/driver/b2b/deliveries",
         "driver.b2b.notifications": "/driver/b2b/notifications",
     }
     by_id = {str(item.get("id", "")): item for item in driver_functions if isinstance(item, dict)}
-    for route_id, route in required_manual_driver_routes.items():
+    for route_id, route in legacy_driver_routes.items():
         item = by_id.get(route_id)
-        if item is None or str(item.get("route", "")) != route or item.get("scope") != "manual_dispatch_only":
-            errors.append(f"Driver route authority is missing scoped manual B2B route: {route_id}")
-    if "Van-first" not in str(driver_surface.get("fulfillment_policy", "")):
-        errors.append("Driver route authority must preserve Van-first automatic B2B routing.")
+        if item is None or str(item.get("route", "")) != route or item.get("scope") != "legacy_transition_pending_2939":
+            errors.append(f"Driver route authority is missing legacy transitional B2B route: {route_id}")
+    if "Van-only" not in str(driver_surface.get("fulfillment_policy", "")):
+        errors.append("Driver route authority must keep Van-only B2B fulfillment.")
 
     van_actions = {
         item.get("id")
@@ -163,7 +163,7 @@ def main() -> int:
         for error in errors:
             print(f"ERROR: {error}")
         return 1
-    print("B2B Van-first + manual Driver/Van dispatch contract synchronization validated.")
+    print("B2B Van-only / B2C Driver-only dispatch contract synchronization validated.")
     return 0
 
 
