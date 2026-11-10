@@ -166,6 +166,26 @@ final class V2RoleCodeHistoryTest extends TestCase
         }
     }
 
+    public function test_rollback_refuses_to_drop_archival_state_after_first_retirement(): void
+    {
+        $admin = $this->superAdmin();
+        $role = $this->customRole('V2_ARCHIVED_ROLLBACK_2836');
+        Sanctum::actingAs($admin);
+        $this->deleteJson('/api/v1/admin/security/roles/'.$role->id)->assertNoContent();
+
+        $migration = require database_path('migrations/2026_11_10_210000_add_role_archive_timestamp.php');
+
+        try {
+            $migration->down();
+            $this->fail('Rollback must never erase role tombstones.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Cannot drop role archival state', $exception->getMessage());
+        }
+
+        $this->assertTrue(Schema::hasColumn('roles', 'archived_at'));
+        $this->assertNotNull($role->fresh()->archived_at);
+    }
+
     private function superAdmin(): User
     {
         $user = User::factory()->create(['is_active' => true, 'locale' => 'en']);
