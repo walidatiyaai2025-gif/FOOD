@@ -69,6 +69,37 @@ final class V2RoleSidebarDenialLivePreviewTest extends TestCase
         $this->assertSame(0, $role->fresh()->permissions()->count());
     }
 
+    public function test_non_ready_enterprise_module_is_denied_by_real_operational_readiness_in_both_locales(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'p367-readiness-admin@example.test');
+        $role = $this->customRole('P367_PROCUREMENT', 'global');
+
+        // A role permission alone must never turn an uncertified module into an
+        // apparently usable workspace; readiness is the same source as navigation.
+        config()->set('enterprise_module_readiness.certified_versions', []);
+        $permission = Permission::query()->where('code', 'procurement.suppliers.view')->firstOrFail();
+        $role->permissions()->sync([$permission->id]);
+        $before = $role->permissions()->pluck('permissions.id')->all();
+
+        foreach (['ar', 'en'] as $locale) {
+            $admin->forceFill(['locale' => $locale])->save();
+
+            $html = (string) $this->actingAs($admin)->get(route('admin.sidebar-access.roles', [
+                'role_id' => $role->id,
+            ], false))->assertOk()->getContent();
+
+            $this->assertMatchesRegularExpression(
+                '/data-v2-role-node="erp_procurement"[^>]*data-preview-module-ready="0"/',
+                $html,
+            );
+            $this->assertStringContainsString(__('v2_role_permissions.preview_module_blocked', [], $locale), $html);
+            $this->assertStringContainsString(__('v2_role_permissions.preview_module', [], $locale), $html);
+        }
+
+        $this->assertEqualsCanonicalizing($before, $role->fresh()->permissions()->pluck('permissions.id')->all());
+        $this->assertSame(0, DB::table('audit_logs')->where('event', 'role.updated')->count());
+    }
+
     public function test_non_privileged_actor_cannot_read_the_preview_or_mutate_role_permissions(): void
     {
         $role = $this->customRole('P367_RESTRICTED', 'global');

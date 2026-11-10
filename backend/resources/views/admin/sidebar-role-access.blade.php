@@ -63,6 +63,7 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
 @php($nodeScope = (string) ($item['meta']['scope'] ?? 'unspecified'))
 @php($nodeChannel = (string) ($item['meta']['channel'] ?? 'unspecified'))
 @php($nodeModule = (string) ($item['meta']['module'] ?? ''))
+@php($nodeModuleReady = $nodeModule === '' ? null : ($moduleReadinessByCode[$nodeModule] ?? false))
 @php($nodeScopeAllowed = ! in_array($nodeScope, ['global', 'store'], true) || $selectedRole->scope === $nodeScope)
 @php($roleChannelListKey = $selectedRole->scope === 'store' ? 'store_roles' : 'global_roles')
 @php($nodeChannelRoles = in_array($nodeChannel, ['b2b', 'b2c'], true) ? (array) config('admin.channels.'.$nodeChannel.'.'.$roleChannelListKey, []) : [])
@@ -73,7 +74,7 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
     data-preview-scope-ok="{{ $nodeScopeAllowed ? '1' : '0' }}" data-preview-channel-ok="{{ $nodeChannelAllowed ? '1' : '0' }}"
     data-preview-excluded="{{ $nodeRoleExcluded ? '1' : '0' }}" data-preview-privileged="{{ $selectedRole->code === 'SUPER_ADMIN' ? '1' : '0' }}"
     data-preview-enabled="{{ $item['global_enabled'] ? '1' : '0' }}" data-preview-hidden="{{ $item['override'] === false ? '1' : '0' }}"
-    data-preview-module="{{ $nodeModule !== '' ? '1' : '0' }}">
+    data-preview-module="{{ $nodeModule !== '' ? '1' : '0' }}" data-preview-module-ready="{{ $nodeModuleReady === null ? 'unknown' : ($nodeModuleReady ? '1' : '0') }}">
 <div class="access-check">
 <strong>{{ ($item['label_'.app()->getLocale()] ?? null) ?: __($item['label']) }}</strong>
 </div>
@@ -81,6 +82,7 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
 <span class="badge code">{{ $item['key'] }}</span>
 @if(!$item['base_allowed'])<span class="badge">{{ __('sidebar_admin.not_allowed_by_rbac') }}</span>@endif
 @if(!$item['global_enabled'])<span class="badge">{{ __('sidebar_admin.globally_disabled') }}</span>@endif
+@if($nodeModuleReady === false)<span class="badge">{{ __('v2_role_permissions.preview_module_blocked') }}</span>@endif
 @if($item['override']===false)<span class="badge">{{ __('v2_role_permissions.hidden_by_preference') }}</span>@endif
 </div>
 @if($item['permissions']===[])
@@ -154,6 +156,7 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
         permissions: @json(__('v2_role_permissions.preview_permissions')),
         preference: @json(__('v2_role_permissions.preview_preference')),
         module: @json(__('v2_role_permissions.preview_module')),
+        moduleBlocked: @json(__('v2_role_permissions.preview_module_blocked')),
         server: @json(__('v2_role_permissions.preview_server')),
         summary: @json(__('v2_role_permissions.preview_summary'))
     };
@@ -172,6 +175,7 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
             if (node.dataset.previewExcluded === '1') reasons.push(copy.excluded);
             if (node.dataset.previewScopeOk !== '1') reasons.push(copy.scope);
             if (node.dataset.previewChannelOk !== '1') reasons.push(copy.channel);
+            if (node.dataset.previewModuleReady === '0') reasons.push(copy.moduleBlocked);
             const required = (node.dataset.previewPermissions || '').split('|').filter(Boolean);
             const matched = required.filter(code => selected.has(code)).length;
             const permissionOk = node.dataset.previewPrivileged === '1' || required.length === 0 ||
