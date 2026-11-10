@@ -104,8 +104,13 @@ final class V2DenyPrecedenceAuthorizationTest extends TestCase
             ->assertOk();
     }
 
-    private function override(User $user, Permission $permission, string $scopeKey, string $effect, ?int $storeId = null): void
-    {
+    private function override(
+        User $user,
+        Permission $permission,
+        string $scopeKey,
+        string $effect,
+        ?int $storeId = null,
+    ): void {
         DB::table('user_permission_overrides')->insert([
             'user_id' => $user->id,
             'permission_id' => $permission->id,
