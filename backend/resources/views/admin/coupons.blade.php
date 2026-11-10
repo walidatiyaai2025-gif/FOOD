@@ -75,7 +75,8 @@
 @if(in_array((int) $coupon->id, $manageableCouponIds, true))
 <details data-foodex-operational-modal style="margin-top:14px"><summary style="cursor:pointer;font-weight:800">{{ __('coupons.update') }}</summary>
 <form method="post" action="{{ route('admin.coupons.update',$coupon) }}" class="coupon-grid" style="margin-top:14px">@csrf @method('patch')
-<label>{{ __('coupons.channel') }}<select name="channel">@if($canB2b)<option value="b2b" @selected($coupon->channel==='b2b')>{{ __('coupons.b2b') }}</option>@endif@if($retailStores!==[])<option value="b2c" @selected($coupon->channel==='b2c')>{{ __('coupons.b2c') }}</option>@endif</select></label>
+<label>{{ __('coupons.channel') }}<select name="channel">@if($canB2b)<option value="b2b" @selected($coupon->channel==='b2b')>{{ __('coupons.b2b') }}</option>@endif
+@if($retailStores!==[])<option value="b2c" @selected($coupon->channel==='b2c')>{{ __('coupons.b2c') }}</option>@endif</select></label>
 <label>{{ __('coupons.store') }}<select name="store_id"><option value="">—</option>@foreach($retailStores as $store)<option value="{{ $store['id'] }}" @selected((int)$coupon->store_id===(int)$store['id'])>{{ $store['name'] }}</option>@endforeach</select></label>
 <label>{{ __('coupons.code') }}<input name="code" value="{{ $coupon->code }}" required></label>
 <label>{{ __('coupons.discount_type') }}<select name="discount_type"><option value="percentage" @selected($coupon->discount_type==='percentage')>{{ __('coupons.percentage') }}</option><option value="fixed" @selected($coupon->discount_type==='fixed')>{{ __('coupons.fixed') }}</option><option value="free_shipping" @selected($coupon->discount_type==='free_shipping')>{{ __('coupons.free_shipping') }}</option></select></label>
