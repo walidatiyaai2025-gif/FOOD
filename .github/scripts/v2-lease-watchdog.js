@@ -79,7 +79,7 @@ async function run({ github, context, core, nowMs = Date.now() }) {
   const { owner, repo } = context.repo;
   // Search is scoped by title to avoid walking unrelated repo backlog.
   const issues = await listPages(args => github.rest.search.issuesAndPullRequests(args), {
-    q: 'repo:' + owner + '/' + repo + ' is:issue is:open in:title V2',
+    q: 'repo:' + owner + '/' + repo + ' is:issue is:open in:title V2 label:worker:active,worker:waiting-ci',
     sort: 'created',
     order: 'asc',
   });
@@ -87,7 +87,7 @@ async function run({ github, context, core, nowMs = Date.now() }) {
   let scanned = 0, released = 0, active = 0;
   for (const issue of issues.filter(isV2)) {
     const labels = (issue.labels || []).map(name);
-    // Include unlabelled claimed Issues so a claim comment cannot be missed.
+    // Explicit worker label is REQUIRED when claiming. Do not scan 423+ unclaimed backlog items every five minutes.
     const comments = await listPages(args => github.rest.issues.listComments(args), {
       owner, repo, issue_number: issue.number,
     }, 10);
