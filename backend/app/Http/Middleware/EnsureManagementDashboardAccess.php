@@ -32,7 +32,16 @@ class EnsureManagementDashboardAccess
 
         App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
 
-        abort_unless($user->is_active, 403);
+        if (! $user->is_active) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return $request->expectsJson()
+                ? response()->json(['message' => __('admin_login.not_authorized')], 401)
+                : redirect()->route('admin.b2c.login');
+        }
+
         abort_unless($this->navigation->canUseDashboard($user), 403);
 
         $routeName = $request->route()?->getName();
