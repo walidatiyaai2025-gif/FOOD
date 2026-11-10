@@ -120,7 +120,7 @@ def validate(root: Path, registry: dict[str, Any]) -> list[str]:
             if function_id.startswith("driver.b2b") or "/driver/b2b/" in route:
                 if function.get("scope") != "legacy_transition_pending_2939":
                     errors.append(
-                        f"Driver route registry must flag legacy B2B function as transitional: {function_id or route}"
+                        f"Driver route registry exposes unscoped B2B function: {function_id or route}"
                     )
         if "Van-only" not in str(driver.get("fulfillment_policy", "")):
             errors.append(
