@@ -59,6 +59,28 @@ final class V2InventoryWarehouseSidebarPersonaContractTest extends TestCase
         }
     }
 
+    public function test_repaired_inventory_link_preserves_existing_compact_admin_menu(): void
+    {
+        app(WholesalePrincipal::class)->warehouseId();
+
+        foreach (['B2B_ADMIN', 'SUPER_ADMIN'] as $roleCode) {
+            $actor = $this->globalRoleUser($roleCode);
+
+            $this->assertTrue($actor->hasPermission('inventory.view'));
+            $items = $this->visibleItems($actor);
+            $this->assertArrayNotHasKey(
+                'b2b_inventory',
+                $items,
+                "The established compact {$roleCode} menu must not be changed by the specialist repair.",
+            );
+
+            // The hidden link does not revoke independently authorized HTTP access.
+            $this->actingAs($actor)
+                ->get(route('admin.b2b.module', ['module' => 'inventory'], false))
+                ->assertOk();
+        }
+    }
+
     public function test_uncertified_wms_never_appears_as_operational_page_for_inventory_role(): void
     {
         app(WholesalePrincipal::class)->warehouseId();
