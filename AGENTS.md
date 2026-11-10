@@ -1553,3 +1553,17 @@ Backend/Dashboard-only closure work must not rebuild Customer/Driver/Van unless 
 - remaining roadmap work is explicitly deferred outside this release boundary.
 
 Until those conditions are true, workers must report the exact blocker and continue the next dependency-safe closure action rather than opening new scope.
+
+
+---
+
+## V2 owner-isolated program — mandatory branch override (2026-11-10)
+
+**Applies whenever an Issue starts with `V2`, targets `Foodex_V2`, or implements FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx.**
+
+- Only `Foodex_V2` is the long-lived V2 integration branch. It is an explicit owner-named exception to the normal issue-scoped branch rule. All workers still create one standard issue-numbered feature branch and one PR per V2 Issue.
+- Every V2 PR MUST target `Foodex_V2`, never `main`. No main merge, promotion, direct push, tag/release deployment, protected-main registry update, or production update unless the owner provides a **new explicit official instruction**.
+- Before V2 PR integration, verify target branch and latest exact-head required CI. Protect cross-app impact with separate Customer, Driver and Van issues when affected. Existing unrelated production lanes remain on main and are not silently migrated.
+- Master #2503 stays OPEN until every source requirement, ERP role, Sidebar node, mobile impact and final acceptance gate has a linked, validated, integrated issue. Do not close requirement issues on scaffold or unverified UI output.
+- Read `docs/v2/V2_ISOLATION_GOVERNANCE.md` and V2 trace manifest first. This addendum supplements rather than weakens the repository-wide policy above.
+- This in-branch written policy cannot itself configure a GitHub protected-branch ruleset; maintainers must separately lock cross-branch promotions in repository Settings. Absence of ruleset is not permission to merge to main.
