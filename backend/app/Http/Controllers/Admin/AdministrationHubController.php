@@ -37,6 +37,7 @@ final class AdministrationHubController extends Controller
             'navContext' => 'administration_hub',
             'canAppPreview' => $user->hasRole('SUPER_ADMIN') || $user->hasPermission('app_preview.view'),
             'canPlatformManage' => $user->hasRole('SUPER_ADMIN') || $user->hasPermission('platform.manage'),
+            'canPlatformSettings' => Gate::forUser($user)->allows('platform.manage'),
             'canSecurity' => $user->hasRole('SUPER_ADMIN') || $user->hasPermission('security.view'),
             'canFinanceSupport' => $user->hasRole('SUPER_ADMIN') || $user->hasPermission('finance.view'),
             'canMobileSettings' => $user->hasRole('SUPER_ADMIN')
