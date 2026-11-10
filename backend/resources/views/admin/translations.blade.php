@@ -20,7 +20,9 @@
         input,select,textarea { width:100%; border:1px solid #cbd5e1; border-radius:10px; padding:10px 12px; background:white; }
         textarea { min-height:88px; resize:vertical; }
         button { border:0; border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:700; }
-        .primary { background:#111827; color:white; }
+        .primary { background:var(--foodex-green, #137a35); color:white; min-height:44px; }
+        :is(button, input, select, textarea, a):focus-visible { outline:3px solid #137a35; outline-offset:2px; }
+        .secondary { min-height:44px; }
         .secondary { background:#eef2ff; color:#3730a3; }
         .grid { display:grid; gap:14px; }
         .card-head { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:12px; }
@@ -61,8 +63,8 @@
     @endif
 
     <form class="filters" method="get" action="{{ route('admin.translations.index') }}">
-        <input name="q" value="{{ $search }}" placeholder="{{ __('admin.translations.search') }}">
-        <select name="surface">
+        <input name="q" value="{{ $search }}" aria-label="{{ __('admin.translations.search') }}" placeholder="{{ __('admin.translations.search') }}">
+        <select name="surface" aria-label="{{ __('admin.translations.all_surfaces') }}">
             <option value="">{{ __('admin.translations.all_surfaces') }}</option>
             @foreach ($surfaces as $item)
                 <option value="{{ $item }}" @selected($surface === $item)>{{ strtoupper($item) }}</option>
@@ -83,12 +85,12 @@
                     @method('PATCH')
                     <div class="langs">
                         <div>
-                            <label>{{ __('admin.translations.arabic') }}</label>
-                            <textarea name="ar" lang="ar" dir="rtl" required>{{ old('ar', $translation->ar) }}</textarea>
+                            <label for="translation-ar-{{ $translation->id }}">{{ __('admin.translations.arabic') }}</label>
+                            <textarea id="translation-ar-{{ $translation->id }}" name="ar" lang="ar" dir="rtl" required>{{ old('ar', $translation->ar) }}</textarea>
                         </div>
                         <div>
-                            <label>{{ __('admin.translations.english') }}</label>
-                            <textarea name="en" lang="en" dir="ltr" required>{{ old('en', $translation->en) }}</textarea>
+                            <label for="translation-en-{{ $translation->id }}">{{ __('admin.translations.english') }}</label>
+                            <textarea id="translation-en-{{ $translation->id }}" name="en" lang="en" dir="ltr" required>{{ old('en', $translation->en) }}</textarea>
                         </div>
                     </div>
                     <div class="actions">
