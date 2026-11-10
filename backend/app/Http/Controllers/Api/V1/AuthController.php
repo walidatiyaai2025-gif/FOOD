@@ -55,18 +55,15 @@ class AuthController extends Controller
         if ($app === 'driver') {
             $driver = DB::table('drivers')
                 ->where('user_id', $user->id)
-                ->whereIn('driver_type', ['b2b', 'b2c'])
+                ->where('driver_type', 'b2c')
                 ->where('is_active', true)
                 ->first(['driver_type']);
-            $driverChannel = strtolower((string) ($driver->driver_type ?? ''));
-            $driverRole = $driverChannel === 'b2b' ? 'B2B_DRIVER' : 'B2C_DRIVER';
             abort_unless(
                 $driver !== null
-                    && in_array($driverChannel, ['b2b', 'b2c'], true)
-                    && $user->hasRole($driverRole)
-                    && $user->hasPermission('deliveries.'.$driverChannel.'.execute'),
+                    && $user->hasRole('B2C_DRIVER')
+                    && $user->hasPermission('deliveries.b2c.execute'),
                 403,
-                'This account is not authorized for the Driver app.',
+                'Driver App login is available only to authorized Retail (B2C) drivers. Wholesale execution belongs to the Van App.',
             );
         }
 
@@ -134,20 +131,16 @@ class AuthController extends Controller
         if ($validated['app'] === 'driver') {
             $driver = DB::table('drivers')
                 ->where('user_id', $user->id)
-                ->whereIn('driver_type', ['b2b', 'b2c'])
+                ->where('driver_type', 'b2c')
                 ->where('is_active', true)
                 ->first(['driver_type']);
-            $driverChannel = strtolower((string) ($driver->driver_type ?? ''));
-            $driverRole = $driverChannel === 'b2b' ? 'B2B_DRIVER' : 'B2C_DRIVER';
-
             if (
                 $driver === null
-                || ! in_array($driverChannel, ['b2b', 'b2c'], true)
-                || ! $user->hasRole($driverRole)
-                || ! $user->hasPermission('deliveries.'.$driverChannel.'.execute')
+                || ! $user->hasRole('B2C_DRIVER')
+                || ! $user->hasPermission('deliveries.b2c.execute')
             ) {
                 throw ValidationException::withMessages([
-                    'username' => ['This username is not authorized for the Driver app.'],
+                    'username' => ['Driver trial login is available only for Retail (B2C) drivers.'],
                 ]);
             }
         } else {

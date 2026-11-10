@@ -538,14 +538,20 @@ final class SecurityController extends Controller
             'email' => ['required', 'email', 'max:190', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'min:10', 'max:100', 'confirmed'],
             'locale' => ['required', Rule::in(['ar', 'en'])],
-            'role_id' => ['required', 'integer', 'exists:roles,id'],
+            'role_id' => ['nullable', 'integer', 'exists:roles,id', 'required_without:store_role_assignment'],
+            'store_role_assignment' => ['nullable', 'string', 'regex:/^[1-9][0-9]*:[1-9][0-9]*$/'],
             'is_active' => ['required', 'boolean'],
         ]);
 
         $actor = $this->actor($request);
-        $roleId = (int) $validated['role_id'];
+        $globalRoleIds = isset($validated['role_id']) ? [(int) $validated['role_id']] : [];
+        $storeRoles = [];
+        if (! empty($validated['store_role_assignment'])) {
+            [$storeId, $storeRoleId] = array_map('intval', explode(':', $validated['store_role_assignment'], 2));
+            $storeRoles[] = ['store_id' => $storeId, 'role_id' => $storeRoleId];
+        }
 
-        DB::transaction(function () use ($validated, $actor, $roleId, $request, $rbac, $audit): void {
+        DB::transaction(function () use ($validated, $actor, $globalRoleIds, $storeRoles, $request, $rbac, $audit): void {
             $username = trim((string) ($validated['username'] ?? ''));
             $user = User::query()->create([
                 'name' => trim((string) $validated['name']),
@@ -557,8 +563,8 @@ final class SecurityController extends Controller
                 'is_platform_customer' => false,
             ]);
 
-            $rbac->replaceUserRoles($actor, $user, [$roleId], [], $request);
-            $fresh = $user->refresh()->load('roles:id,code,name');
+            $rbac->replaceUserRoles($actor, $user, $globalRoleIds, $storeRoles, $request);
+            $fresh = $user->refresh()->load(['roles:id,code,name', 'storeRoleAssignments.role:id,code,name']);
 
             $audit->record(
                 'user.created',
@@ -571,6 +577,10 @@ final class SecurityController extends Controller
                     'locale' => (string) $fresh->locale,
                     'is_active' => (bool) $fresh->is_active,
                     'global_roles' => $fresh->roles->pluck('code')->sort()->values()->all(),
+                    'store_roles' => $fresh->storeRoleAssignments->map(static fn ($assignment): array => [
+                        'store_id' => (int) $assignment->store_id,
+                        'role_code' => (string) $assignment->role->code,
+                    ])->values()->all(),
                 ],
                 $request,
             );
@@ -639,6 +649,8 @@ final class SecurityController extends Controller
     public function updateUserPermissions(Request $request, User $user, RbacManager $rbac): RedirectResponse
     {
         Gate::authorize('users.roles.manage');
+        abort_if($user->isPlatformOwner(), 403);
+
         $validated = $request->validate([
             'scope_type' => ['required', Rule::in(['global', 'store'])],
             'store_id' => ['nullable', 'integer', 'exists:stores,id'],
@@ -665,6 +677,7 @@ final class SecurityController extends Controller
         AuditLogger $audit,
     ): RedirectResponse {
         Gate::authorize('users.roles.manage');
+        abort_if($user->isPlatformOwner(), 403);
         $actor = $this->actor($request);
 
         AdminMfaCredential::query()
@@ -684,6 +697,8 @@ final class SecurityController extends Controller
     public function storeSsoIdentity(Request $request, User $user, AuditLogger $audit): RedirectResponse
     {
         Gate::authorize('users.roles.manage');
+        abort_if($user->isPlatformOwner(), 403);
+
         $data = $request->validate([
             'provider' => ['required', 'string', 'max:80'],
             'subject' => [
@@ -728,7 +743,8 @@ final class SecurityController extends Controller
     ): RedirectResponse {
         Gate::authorize('users.roles.manage');
         $actor = $this->actor($request);
-        $user = $identity->user()->firstOrFail();
+        $user = User::query()->findOrFail($identity->user_id);
+        abort_if($user->isPlatformOwner(), 403);
         $provider = $identity->provider;
         $identity->delete();
 
@@ -752,7 +768,8 @@ final class SecurityController extends Controller
     ): RedirectResponse {
         Gate::authorize('users.status.manage');
         $actor = $this->actor($request);
-        $target = $securitySession->user()->firstOrFail();
+        $target = User::query()->findOrFail($securitySession->user_id);
+        abort_if($target->isPlatformOwner(), 403);
         $sessions->revoke($securitySession, $actor);
         $audit->record(
             'management.session.revoked',

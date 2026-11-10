@@ -55,11 +55,9 @@ class MerchantIntelligenceIntegratedGate1122Test extends TestCase
         $driverFunctions = collect(data_get($authority, 'surfaces.driver.functions', []));
         $driverFunctionIds = $driverFunctions->pluck('id')->all();
         $this->assertContains('driver.b2c.deliveries', $driverFunctionIds);
-        $this->assertContains('driver.b2b.deliveries', $driverFunctionIds);
-        $this->assertSame(
-            'legacy_transition_pending_2939',
-            data_get($driverFunctions->firstWhere('id', 'driver.b2b.deliveries'), 'scope'),
-        );
+        // Active route authority must not advertise retired B2B Driver execution.
+        // Historical B2B delivery records remain available through authorized reads.
+        $this->assertNotContains('driver.b2b.deliveries', $driverFunctionIds);
 
         $vanScreens = data_get($authority, 'surfaces.van.production_screens', []);
         foreach (['dashboard', 'routes', 'orders', 'wallet', 'remittance'] as $screen) {
