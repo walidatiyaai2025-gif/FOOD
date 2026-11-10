@@ -59,6 +59,8 @@ class AdministrationHubTest extends TestCase
             ->assertSee('Van App')
             ->assertSee('data-admin-card="settings-center"', false)
             ->assertSee('data-admin-card="platform-settings"', false)
+            ->assertSee('data-admin-card="module-activation-status"', false)
+            ->assertSee(route('admin.enterprise-modules.index').'#module-activation-status', false)
             ->assertSee(route('admin.settings.index').'#settings-platform', false)
             ->assertSee('data-admin-card="system-updates"', false)
             ->assertSee(route('admin.system-update.index'), false)
@@ -135,7 +137,8 @@ class AdministrationHubTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.administration.index'))
             ->assertOk()
-            ->assertDontSee('data-admin-card="platform-settings"', false);
+            ->assertDontSee('data-admin-card="platform-settings"', false)
+            ->assertDontSee('data-admin-card="module-activation-status"', false);
     }
 
     private function superAdmin(string $locale = 'en'): User

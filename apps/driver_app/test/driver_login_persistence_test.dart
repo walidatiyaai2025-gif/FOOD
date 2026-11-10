@@ -45,6 +45,22 @@ class _FailingAuth implements DriverAuthRepository {
   Future<void> logout(String token) async {}
 }
 
+class _LegacyWholesaleAuth extends _Auth {
+  @override
+  Future<DriverSession> login({
+    required String email,
+    required String password,
+  }) async =>
+      const DriverSession(
+        token: 'legacy-wholesale-token',
+        name: 'Wholesale Driver',
+        email: 'wholesale@example.test',
+        locale: 'ar',
+        channel: DriverChannel.b2b,
+        storeId: 1,
+      );
+}
+
 class _Store implements DriverSessionStore {
   DriverStoredSession? stored;
 
@@ -263,6 +279,35 @@ void main() {
     expect(biometric, isTrue);
   });
 
+  testWidgets('legacy B2B login never invokes Driver runtime callback',
+      (tester) async {
+    var authenticated = false;
+    await tester.pumpWidget(
+      _host(
+        store: _Store(),
+        biometric: const _Biometric(),
+        repository: _LegacyWholesaleAuth(),
+        onAuthenticated: (_, __, ___) => authenticated = true,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('driver-login-email')),
+      'wholesale@example.test',
+    );
+    await tester.enterText(
+      find.byKey(const Key('driver-login-password')),
+      'password',
+    );
+    final submit = find.byKey(const Key('driver-login-submit'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(authenticated, isFalse);
+    expect(find.textContaining('غير مصرح'), findsOneWidget);
+  });
+
   testWidgets('saved biometric session can authenticate without password',
       (tester) async {
     final store = _Store()
@@ -352,7 +397,8 @@ void main() {
     expect(saved?.biometricEnabled, isFalse);
   });
 
-  testWidgets('saved B2B fingerprint login', (tester) async {
+  testWidgets('legacy B2B biometric session is cleared before Driver execution',
+      (tester) async {
     final store = _Store()
       ..stored = const DriverStoredSession(
         session: DriverSession(
@@ -366,45 +412,25 @@ void main() {
         biometricEnabled: true,
       );
 
-    DriverSession? authenticatedSession;
-    bool? remembered;
-    bool? biometricEnabled;
+    var authenticated = false;
     await tester.pumpWidget(
       _host(
         store: store,
         biometric: const _Biometric(),
-        onAuthenticated: (session, remember, biometric) {
-          authenticatedSession = session;
-          remembered = remember;
-          biometricEnabled = biometric;
-        },
+        onAuthenticated: (_, __, ___) => authenticated = true,
       ),
     );
     await tester.pumpAndSettle();
 
-    final fingerprint = find.byKey(const Key('driver-login-biometric'));
-    expect(fingerprint, findsOneWidget);
-    expect(find.byKey(const Key('driver-login-email')), findsNothing);
-    expect(find.byKey(const Key('driver-login-password')), findsNothing);
-    expect(find.byKey(const Key('driver-login-submit')), findsNothing);
-    expect(find.byKey(const Key('driver-login-remember')), findsNothing);
-    expect(
-        find.byKey(const Key('driver-login-biometric-toggle')), findsNothing);
-    expect(find.byKey(const Key('driver-login-logout')), findsOneWidget);
-
-    await tester.ensureVisible(fingerprint);
-    await tester.tap(fingerprint);
-    await tester.pumpAndSettle();
-    expect(authenticatedSession?.token, 'wholesale-biometric-token');
-    expect(authenticatedSession?.channel, DriverChannel.b2b);
-    expect(remembered, isTrue);
-    expect(biometricEnabled, isTrue);
+    expect(authenticated, isFalse);
+    expect(store.stored, isNull);
+    expect(find.byKey(const Key('driver-login-biometric')), findsNothing);
+    expect(find.byKey(const Key('driver-login-submit')), findsOneWidget);
   });
 
   testWidgets('sign out clears saved session and restores sign-in form',
       (tester) async {
     for (final entry in const <(DriverChannel, Locale, String)>[
-      (DriverChannel.b2b, Locale('ar'), 'تسجيل الخروج'),
       (DriverChannel.b2c, Locale('en'), 'Sign out'),
     ]) {
       final store = _Store()

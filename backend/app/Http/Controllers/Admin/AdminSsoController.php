@@ -87,9 +87,13 @@ final class AdminSsoController extends Controller
             $request,
         );
 
-        $defaultTarget = $this->navigation->usesCustomerServiceDashboardProfile($user)
+        // The security/control-plane role must not get a permanent operational
+        // landing through SSO when password login already uses governance.
+        $defaultTarget = $user->hasRole('SUPER_ADMIN')
             ? $this->navigation->defaultWorkspaceUrl($user, 'b2b')
-            : ($this->workspaceLanding->urlFor($user, $request) ?? route('admin.index'));
+            : ($this->navigation->usesCustomerServiceDashboardProfile($user)
+                ? $this->navigation->defaultWorkspaceUrl($user, 'b2b')
+                : ($this->workspaceLanding->urlFor($user, $request) ?? route('admin.index')));
 
         if ($this->policy->requiresMfa($user)) {
             $request->session()->put('mfa_intended', $defaultTarget);

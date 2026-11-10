@@ -243,6 +243,45 @@ class AdminSidebarManagementTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_only_active_sidebar_business_group_receives_direction_aware_highlight(): void
+    {
+        $admin = $this->globalUser('SUPER_ADMIN', 'sidebar-active-group@example.test');
+
+        foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
+            $admin->forceFill(['locale' => $locale])->save();
+
+            $response = $this->actingAs($admin)
+                ->get(route('admin.sidebar-layout.index', [], false))
+                ->assertOk();
+
+            $html = $response->getContent();
+            $this->assertIsString($html);
+            $this->assertStringContainsString('<html lang="'.$locale.'" dir="'.$direction.'">', $html);
+
+            // The current Administration group is visually distinct from any
+            // group the user opened manually; no other group gains this marker.
+            $this->assertMatchesRegularExpression(
+                '/<details class="foodex-nav-group is-current-group" data-group="administration"[^>]*\\sopen\\s*>/',
+                $html,
+            );
+            $this->assertMatchesRegularExpression(
+                '/<details class="foodex-nav-group " data-group="overview"/',
+                $html,
+            );
+            preg_match_all('/<details class="foodex-nav-group is-current-group"/', $html, $activeMatches);
+            $this->assertCount(1, $activeMatches[0]);
+
+            // Theme tokens and logical start border are shared by RTL/LTR and
+            // remain visible in the compact sidebar without changing navigation.
+            $this->assertStringContainsString(
+                'border-inline-start:3px solid var(--foodex-green)',
+                $html,
+            );
+            $this->assertStringContainsString('background:var(--foodex-green-soft)', $html);
+            $this->assertStringContainsString('aria-current="page"', $html);
+        }
+    }
+
     public function test_super_admin_can_open_both_sidebar_management_pages(): void
     {
         $admin = $this->globalUser('SUPER_ADMIN', 'sidebar-owner@example.test');

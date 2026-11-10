@@ -58,6 +58,20 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <a class="module-back" href="{{ route('admin.settings.index') }}">{{ __('enterprise_modules.back') }}</a>
 </div>
 
+<section id="module-activation-status" class="module-card" aria-labelledby="module-activation-heading" data-module-activation-status>
+<h2 id="module-activation-heading">{{ __('enterprise_modules.state') }}</h2>
+<p>{{ __('enterprise_modules.description') }}</p>
+<div class="module-meta">
+@foreach($activationCounts as $state => $count)
+<div data-module-activation-state="{{ $state }}">
+<span>{{ __('enterprise_modules.states.'.$state) }}</span>
+<strong>{{ $count }}</strong>
+<a class="module-open" href="{{ route('admin.enterprise-modules.index', ['state' => $state]) }}">{{ __('enterprise_grid.apply') }}</a>
+</div>
+@endforeach
+</div>
+</section>
+
 @if (session('status')) <div class="module-state-message foodex-state" role="status">{{ session('status') }}</div> @endif
 @if ($errors->any()) <div class="module-state-message foodex-state" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div> @endif
 

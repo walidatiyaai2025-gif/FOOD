@@ -123,31 +123,30 @@
           "id": "driver.b2c.wallet",
           "route": "/driver/b2c/wallet",
           "authority": "DriverWalletPage"
-        },
-        {
-          "id": "driver.b2b.home",
-          "route": "/driver/b2b/home",
-          "authority": "DriverNavigator._homeFor",
-          "scope": "legacy_transition_pending_2939"
-        },
-        {
-          "id": "driver.b2b.deliveries",
-          "route": "/driver/b2b/deliveries",
-          "authority": "DriverJourneyRuntimePage",
-          "scope": "legacy_transition_pending_2939"
-        },
-        {
-          "id": "driver.b2b.notifications",
-          "route": "/driver/b2b/notifications",
-          "authority": "DriverNotificationPage",
-          "scope": "legacy_transition_pending_2939"
         }
       ],
       "forbidden_files": [
         "apps/driver_app/lib/features/tasks/driver_journey.dart"
       ],
       "forbidden_markers": [],
-      "fulfillment_policy": "B2B fulfillment is Van-only. Driver B2B routes are historical transition surfaces pending restricted runtime in V2 #2939; no manual B2B Driver dispatch."
+      "fulfillment_policy": "Driver runtime is Retail B2C-only, including manual assignment, login, execution and push. B2B wholesale is Van-only; old B2B Driver routes are retained only as denied legacy deep links.",
+      "legacy_routes_denied": [
+        {
+          "id": "driver.b2b.home",
+          "route": "/driver/b2b/home",
+          "reason": "legacy_b2b_driver_execution_disabled"
+        },
+        {
+          "id": "driver.b2b.deliveries",
+          "route": "/driver/b2b/deliveries",
+          "reason": "legacy_b2b_driver_execution_disabled"
+        },
+        {
+          "id": "driver.b2b.notifications",
+          "route": "/driver/b2b/notifications",
+          "reason": "legacy_b2b_driver_execution_disabled"
+        }
+      ]
     },
     "van": {
       "authority_source": "apps/van_app/lib/features/foundation/van_screen_inventory.dart",

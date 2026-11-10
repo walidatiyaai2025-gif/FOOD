@@ -16,25 +16,44 @@ class DriverB2BCutoverTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_b2b_driver_can_login_to_driver_app_for_manual_dispatch_execution(): void
+    public function test_legacy_b2b_driver_login_is_denied_without_deleting_driver_or_audit_identity(): void
     {
-        [$user] = $this->legacyB2bDriver('cutover-login@example.test');
+        [$user, $driver] = $this->legacyB2bDriver('cutover-login@example.test');
 
         $this->postJson('/api/v1/auth/login', [
             'email' => $user->email,
             'password' => 'correct-password',
             'app' => 'driver',
-        ])->assertOk()
-            ->assertJsonPath('user.driver_scope.channel', 'b2b')
-            ->assertJsonPath('user.driver_scope.store_id', app(WholesalePrincipal::class)->storeId());
+        ])->assertForbidden();
 
-        $this->assertDatabaseHas('personal_access_tokens', [
+        $this->assertDatabaseMissing('personal_access_tokens', [
             'tokenable_id' => $user->id,
             'name' => 'foodex-driver',
         ]);
+        $this->assertDatabaseHas('drivers', [
+            'id' => $driver->id,
+            'driver_type' => 'b2b',
+            'is_active' => true,
+        ]);
     }
 
-    public function test_b2b_driver_can_register_driver_push_device_for_manual_dispatch_execution(): void
+    public function test_existing_b2b_driver_token_cannot_read_or_execute_assignments(): void
+    {
+        [$user] = $this->legacyB2bDriver('cutover-existing-token@example.test');
+
+        Sanctum::actingAs($user, ['app:driver']);
+
+        $this->getJson('/api/v1/driver/assignments')->assertForbidden();
+        $this->postJson('/api/v1/driver/assignments/777/status', [
+            'status' => 'accepted',
+        ])->assertForbidden();
+        $this->postJson('/api/v1/driver/assignments/777/collections', [
+            'amount' => 10,
+        ])->assertForbidden();
+        $this->getJson('/api/v1/driver/wallet')->assertForbidden();
+    }
+
+    public function test_legacy_b2b_driver_cannot_register_driver_push_device(): void
     {
         [$user] = $this->legacyB2bDriver('cutover-push@example.test');
 
@@ -44,10 +63,10 @@ class DriverB2BCutoverTest extends TestCase
             'app' => 'driver',
             'platform' => 'android',
             'environment' => 'production',
-            'token' => 'manual-b2b-driver-device-token',
-        ])->assertCreated();
+            'token' => 'legacy-b2b-driver-device-token',
+        ])->assertForbidden();
 
-        $this->assertDatabaseHas('push_device_tokens', [
+        $this->assertDatabaseMissing('push_device_tokens', [
             'user_id' => $user->id,
             'app' => 'driver',
             'target_channel' => 'b2b',

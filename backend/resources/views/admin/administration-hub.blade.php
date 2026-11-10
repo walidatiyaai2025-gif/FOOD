@@ -139,6 +139,12 @@ html[dir=ltr] .main{grid-column:2}
 <a class="action" href="{{ route('admin.settings.index') }}#settings-platform">{{ __('admin.administration_hub.open') }}</a>
 </article>
 @endif
+@if($canPlatformSettings)
+<article class="card utility-card" data-admin-card="module-activation-status">
+<div><h3>{{ __('enterprise_modules.state') }}</h3><p class="muted">{{ __('enterprise_modules.description') }}</p></div>
+<a class="action" href="{{ route('admin.enterprise-modules.index') }}#module-activation-status">{{ __('admin.administration_hub.open') }}</a>
+</article>
+@endif
 <article class="card utility-card" data-admin-card="users-permissions">
 <div><h3>{{ __('admin.administration_hub.users_permissions') }}</h3><p class="muted">{{ __('admin.administration_hub.users_permissions_description') }}</p></div>
 @if($canSecurity)
