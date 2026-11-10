@@ -8,6 +8,7 @@ use App\Models\PlatformCustomer;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\PlatformCustomerService;
 use App\Services\RetailWholesaleAccountService;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
@@ -105,8 +106,27 @@ final class V2AccountsCreditLimitsAuthorityTest extends TestCase
 
     public function test_retail_finance_role_cannot_edit_wholesale_credit_or_access_foreign_store(): void
     {
-        [$ownedPlatform, $account, $ownedStoreId] = $this->linkedWholesaleAccount('P191-OWNED');
-        [$foreignPlatform] = $this->linkedWholesaleAccount('P191-FOREIGN');
+        [$wholesalePlatform, $account, $ownedStoreId] = $this->linkedWholesaleAccount('P191-OWNED');
+        [, , $foreignStoreId] = $this->linkedWholesaleAccount('P191-FOREIGN');
+
+        $ownedCustomer = app(PlatformCustomerService::class)->register([
+            'name' => 'P191 Retail Owned',
+            'email' => 'p191-retail-owned@example.test',
+            'phone' => '+201000001911',
+            'password' => 'Password123!',
+            'locale' => 'en',
+            'store_id' => $ownedStoreId,
+        ]);
+        $foreignCustomer = app(PlatformCustomerService::class)->register([
+            'name' => 'P191 Retail Foreign',
+            'email' => 'p191-retail-foreign@example.test',
+            'phone' => '+201000001912',
+            'password' => 'Password123!',
+            'locale' => 'en',
+            'store_id' => $foreignStoreId,
+        ]);
+        $ownedPlatform = PlatformCustomer::query()->where('user_id', $ownedCustomer->id)->firstOrFail();
+        $foreignPlatform = PlatformCustomer::query()->where('user_id', $foreignCustomer->id)->firstOrFail();
         $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
         $actor->storeRoleAssignments()->create([
             'store_id' => $ownedStoreId,
@@ -128,6 +148,10 @@ final class V2AccountsCreditLimitsAuthorityTest extends TestCase
                     'credit_limit' => '999.000',
                 ])
                 ->assertForbidden();
+
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.customer-360.show', ['platformCustomer' => $wholesalePlatform->id]))
+                ->assertNotFound();
 
             $this->actingAs($actor->fresh())
                 ->get(route('admin.customer-360.show', ['platformCustomer' => $foreignPlatform->id]))
