@@ -17,7 +17,7 @@
 | `GET /api/v1/admin/inventory` | `CUSTOMER_SUPPORT` with no retail store assignment | B2C inventory | 403 |
 | `AdminNavigation::groupsFor` | both documented Retail roles on Store 2 | Sidebar projection | Retail customer groups visible; B2B customer groups absent |
 | `GET admin.b2c.customer-groups.index` | same store-scoped actor | Retail navigation, AR/EN | 200 |
-| `GET admin.b2b.customer-groups.index` | same actor | Cross-channel navigation, AR/EN | 403 |
+| `GET admin.b2b.customer-groups.index` | same actor | Cross-channel navigation, AR/EN | 404 (tenant/channel concealment) |
 | `POST /api/v1/admin/inventory/{inventory}/adjust` | same unrelated global-role actor | either retail store | 404, no movement |
 
 The tested path is already present in `backend/routes/api.php`. `InventoryController` resolves list visibility through `Inventory::accessibleTo()` and must enforce a per-record tenant boundary before mutating inventory. `OperationalTenantScope` is the authoritative store-permission check. The test deliberately creates distinct stores/catalogs/products/warehouses, not shared cross-store records.
@@ -40,3 +40,7 @@ The tested path is already present in `backend/routes/api.php`. `InventoryContro
 4. Exact-head Laravel regression, security, localization, Repository Policy, V2 Isolation and required child CI jobs must pass before merge. The historical snapshot is not a guarantee of current RBAC state.
 
 **Manual owner/staging/UAT:** deferred to final V2 program by owner decision on #2503. Synthetic-only regression is not a substitute for the archived/current account audit.
+
+### HTTP denial semantics
+
+The B2B customer-groups endpoint deliberately returns `404` for an actor whose only active assignments are in a Retail store; it does not disclose whether a Wholesale resource exists. The regression asserts actual safe denial, not an invented `403` status. `403` remains appropriate on routes that report insufficient permission before resource lookup; never weaken the server authorizer to make status assertions pass.
