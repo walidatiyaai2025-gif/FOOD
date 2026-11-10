@@ -37,8 +37,9 @@ final class V2ProcurementSidebarPersonaContractTest extends TestCase
     {
         $manager = $this->userWithRoles(['PROCUREMENT_MANAGER']);
 
-        $this->assertTrue($manager->hasPermission('procurement.suppliers.view'));
-        $this->assertTrue($manager->hasPermission('reports.view'));
+        // Built-in Procurement permissions fail closed until its required module is enabled.
+        $this->assertFalse($manager->hasPermission('procurement.suppliers.view'));
+        $this->assertFalse($manager->hasPermission('reports.view'));
         $this->assertFalse($manager->hasPermission('inventory.view'));
         $this->assertFalse($manager->hasPermission('finance.view'));
 
@@ -50,7 +51,7 @@ final class V2ProcurementSidebarPersonaContractTest extends TestCase
 
             $this->assertArrayHasKey('enterprise_action_center', $items);
             $this->assertArrayHasKey('erp_center', $items);
-            $this->assertArrayHasKey('reports_center', $items);
+            $this->assertArrayNotHasKey('reports_center', $items);
             $this->assertArrayNotHasKey('erp_procurement', $items);
             $this->assertArrayNotHasKey('erp_wms', $items);
             $this->assertArrayNotHasKey('erp_finance', $items);
@@ -70,7 +71,8 @@ final class V2ProcurementSidebarPersonaContractTest extends TestCase
 
     public function test_procurement_link_requires_exact_certified_healthy_module_entitlement_and_real_permission(): void
     {
-        $actor = $this->userWithRoles(['B2B_ADMIN', 'PROCUREMENT_MANAGER']);
+        // A legitimate Wholesale procurement specialist needs no blanket B2B_ADMIN role.
+        $actor = $this->userWithRoles(['PROCUREMENT_MANAGER']);
         $denied = $this->userWithRoles(['FINANCE']);
         $store = $this->wholesaleStore();
 
@@ -92,6 +94,10 @@ final class V2ProcurementSidebarPersonaContractTest extends TestCase
         $this->assertArrayNotHasKey('erp_procurement', $this->navigationItems($actor->fresh()));
 
         config()->set('enterprise_module_readiness.certified_versions.procurement', $version);
+        $this->assertTrue($actor->hasPermission('procurement.suppliers.view', $store));
+        $this->assertTrue($actor->hasPermission('reports.view', $store));
+        $this->assertFalse($actor->hasPermission('inventory.view', $store));
+        $this->assertFalse($actor->hasPermission('finance.view', $store));
 
         foreach (['ar', 'en'] as $locale) {
             app()->setLocale($locale);
@@ -103,6 +109,7 @@ final class V2ProcurementSidebarPersonaContractTest extends TestCase
             $this->assertSame('admin.erp.procurement.index', $item['route']);
             $this->assertSame([], $item['params']);
             $this->assertArrayNotHasKey('erp_procurement', $this->navigationItems($denied->fresh()));
+            $this->assertArrayHasKey('reports_center', $this->navigationItems($actor->fresh()));
 
             $this->actingAs($actor->fresh())
                 ->get(route('admin.erp.procurement.index', ['store_id' => $store, 'tab' => 'suppliers']))
