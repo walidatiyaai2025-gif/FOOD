@@ -1,0 +1,448 @@
+{
+  "schema": 1,
+  "source": "FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx",
+  "parent_issue": 2503,
+  "base": "Foodex_V2",
+  "items": [
+    {
+      "id": "P006",
+      "domain": "AUTH",
+      "summary": "السايدبار يعكس الوصول الحقيقي لا Visibility مستقل",
+      "title": "V2 | AUTH P006 — السايدبار يعكس الوصول الحقيقي لا Visibility مستقل",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P007",
+      "domain": "AUTH",
+      "summary": "إظهار رابط الصفحة تلقائيًا عندما يسمح Route والنطاق",
+      "title": "V2 | AUTH P007 — إظهار رابط الصفحة تلقائيًا عندما يسمح Route والنطاق",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P008",
+      "domain": "AUTH",
+      "summary": "إخفاء غير المصرح ورفض الوصول المباشر 403",
+      "title": "V2 | AUTH P008 — إخفاء غير المصرح ورفض الوصول المباشر 403",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P009",
+      "domain": "AUTH",
+      "summary": "احتساب Effective Permission من الأدوار العامة والمتاجر وAllow/Deny والنطاق",
+      "title": "V2 | AUTH P009 — احتساب Effective Permission من الأدوار العامة والمتاجر وAllow/Deny والنطاق",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P010",
+      "domain": "AUTH",
+      "summary": "إظهار المجموعات فقط عند وجود روابط مأذونة وعدم استخدام is_enabled",
+      "title": "V2 | AUTH P010 — إظهار المجموعات فقط عند وجود روابط مأذونة وعدم استخدام is_enabled",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P011",
+      "domain": "AUTH",
+      "summary": "قصر Sidebar Layout على ترتيب وتجميع وتسمية وأيقونة",
+      "title": "V2 | AUTH P011 — قصر Sidebar Layout على ترتيب وتجميع وتسمية وأيقونة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P012",
+      "domain": "AUTH",
+      "summary": "سياسة صريحة لوصلات المساعدة والملف الشخصي",
+      "title": "V2 | AUTH P012 — سياسة صريحة لوصلات المساعدة والملف الشخصي",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P013",
+      "domain": "AUTH",
+      "summary": "دالة قرار واحدة RouteAuthorized + Permission + Scope + Module",
+      "title": "V2 | AUTH P013 — دالة قرار واحدة RouteAuthorized + Permission + Scope + Module",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T015R01",
+      "domain": "AUDIT",
+      "summary": "التحقق من حسابات المستخدمين النشطة وتصنيف الـ20 حسابًا",
+      "title": "V2 | AUDIT T015R01 — التحقق من حسابات المستخدمين النشطة وتصنيف الـ20 حسابًا",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T015R02",
+      "domain": "AUDIT",
+      "summary": "جرد 48 دورًا و21 مستخدمًا بالفعل في التعيينات",
+      "title": "V2 | AUDIT T015R02 — جرد 48 دورًا و21 مستخدمًا بالفعل في التعيينات",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T015R03",
+      "domain": "AUDIT",
+      "summary": "جرد 146 صلاحية و773 علاقة دور-صلاحية",
+      "title": "V2 | AUDIT T015R03 — جرد 146 صلاحية و773 علاقة دور-صلاحية",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T015R04",
+      "domain": "AUDIT",
+      "summary": "تدقيق 31 تعيين دور عام و3 تعيينات متجر",
+      "title": "V2 | AUDIT T015R04 — تدقيق 31 تعيين دور عام و3 تعيينات متجر",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T015R05",
+      "domain": "AUDIT",
+      "summary": "تصنيف 7 حسابات دون دور بلا حذف أو منح تلقائي",
+      "title": "V2 | AUDIT T015R05 — تصنيف 7 حسابات دون دور بلا حذف أو منح تلقائي",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T015R06",
+      "domain": "AUDIT",
+      "summary": "مقارنة 13 مجموعة و61 عنصرًا و25 تعطيلًا مسجلًا",
+      "title": "V2 | AUDIT T015R06 — مقارنة 13 مجموعة و61 عنصرًا و25 تعطيلًا مسجلًا",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T015R07",
+      "domain": "AUDIT",
+      "summary": "إزالة اعتماد نظام الوصول على جدول Role Visibility الفارغ",
+      "title": "V2 | AUDIT T015R07 — إزالة اعتماد نظام الوصول على جدول Role Visibility الفارغ",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T015R08",
+      "domain": "AUDIT",
+      "summary": "مراجعة أثر عدم وجود User Permission Overrides في اللقطة",
+      "title": "V2 | AUDIT T015R08 — مراجعة أثر عدم وجود User Permission Overrides في اللقطة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T019R01",
+      "domain": "AUDIT",
+      "summary": "فصل التعيينات المتداخلة في حساب info وحماية الوصول",
+      "title": "V2 | AUDIT T019R01 — فصل التعيينات المتداخلة في حساب info وحماية الوصول",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T019R02",
+      "domain": "AUDIT",
+      "summary": "فصل مهام الشراء والمحاسبة والخزينة في foodexaccount",
+      "title": "V2 | AUDIT T019R02 — فصل مهام الشراء والمحاسبة والخزينة في foodexaccount",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T019R03",
+      "domain": "AUDIT",
+      "summary": "تبسيط أدوار خدمة العملاء المتداخلة لحساب export",
+      "title": "V2 | AUDIT T019R03 — تبسيط أدوار خدمة العملاء المتداخلة لحساب export",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T019R04",
+      "domain": "AUDIT",
+      "summary": "تدقيق Supervisor وصلاحياته 37 في الحساب rehab",
+      "title": "V2 | AUDIT T019R04 — تدقيق Supervisor وصلاحياته 37 في الحساب rehab",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T019R05",
+      "domain": "AUDIT",
+      "summary": "فحص التقييد بمتجر 2 للمستخدم store1",
+      "title": "V2 | AUDIT T019R05 — فحص التقييد بمتجر 2 للمستخدم store1",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T019R06",
+      "domain": "AUDIT",
+      "summary": "تحديد نوع الحسابات السبعة بلا دور وعدم تعميمها كمشكلة",
+      "title": "V2 | AUDIT T019R06 — تحديد نوع الحسابات السبعة بلا دور وعدم تعميمها كمشكلة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P022",
+      "domain": "AUTH",
+      "summary": "إصلاح AdminSidebarManager بعد تطبيق مظهر القائمة على قرار الإذن",
+      "title": "V2 | AUTH P022 — إصلاح AdminSidebarManager بعد تطبيق مظهر القائمة على قرار الإذن",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P023",
+      "domain": "AUTH",
+      "summary": "إلغاء أثر admin_sidebar_groups/items/role_visibility الأمني",
+      "title": "V2 | AUTH P023 — إلغاء أثر admin_sidebar_groups/items/role_visibility الأمني",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P024",
+      "domain": "AUTH",
+      "summary": "إزالة OR المرئي للأدوار واستبداله بقرار RBAC الفعلي",
+      "title": "V2 | AUTH P024 — إزالة OR المرئي للأدوار واستبداله بقرار RBAC الفعلي",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P025",
+      "domain": "AUTH",
+      "summary": "توحيد PLATFORM_OWNER مع قرار صلاحيات صريح",
+      "title": "V2 | AUTH P025 — توحيد PLATFORM_OWNER مع قرار صلاحيات صريح",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P026",
+      "domain": "AUDIT",
+      "summary": "مطابقة قائمة الكود والإنتاج الفعلية قبل تشخيص الحجب",
+      "title": "V2 | AUDIT P026 — مطابقة قائمة الكود والإنتاج الفعلية قبل تشخيص الحجب",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T028R01",
+      "domain": "AUTH",
+      "summary": "استعادة ERP وfield_operations عندما يأذن الوصول الحقيقي",
+      "title": "V2 | AUTH T028R01 — استعادة ERP وfield_operations عندما يأذن الوصول الحقيقي",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T028R02",
+      "domain": "AUTH",
+      "summary": "عدم حجب صفحات منتجات ومخزون B2B/B2C عبر is_enabled",
+      "title": "V2 | AUTH T028R02 — عدم حجب صفحات منتجات ومخزون B2B/B2C عبر is_enabled",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T028R03",
+      "domain": "AUTH",
+      "summary": "عدم إخفاء Action Center وWorkspaces وTreasury عبر الشكل",
+      "title": "V2 | AUTH T028R03 — عدم إخفاء Action Center وWorkspaces وTreasury عبر الشكل",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T028R04",
+      "domain": "AUTH",
+      "summary": "اختبار النتيجة عند غياب قواعد ظهور دور مستقلة",
+      "title": "V2 | AUTH T028R04 — اختبار النتيجة عند غياب قواعد ظهور دور مستقلة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P031",
+      "domain": "SECURITY",
+      "summary": "عزل Wholesale عن Retail وعن المتجر الآخر في كل Route",
+      "title": "V2 | SECURITY P031 — عزل Wholesale عن Retail وعن المتجر الآخر في كل Route",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P032",
+      "domain": "SECURITY",
+      "summary": "ربط View/Create/Update/Delete/Approve/Execute بإذن دقيق",
+      "title": "V2 | SECURITY P032 — ربط View/Create/Update/Delete/Approve/Execute بإذن دقيق",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P033",
+      "domain": "SECURITY",
+      "summary": "منع شراء أو خزينة من تجاوز SoD وحدود التفويض",
+      "title": "V2 | SECURITY P033 — منع شراء أو خزينة من تجاوز SoD وحدود التفويض",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P034",
+      "domain": "SECURITY",
+      "summary": "تفسير منع Module وEntitlement ونطاق الشركة في التشخيص",
+      "title": "V2 | SECURITY P034 — تفسير منع Module وEntitlement ونطاق الشركة في التشخيص",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P035",
+      "domain": "SECURITY",
+      "summary": "اختبارات تفصل حماية الخادم عن إخفاء رابط القائمة",
+      "title": "V2 | SECURITY P035 — اختبارات تفصل حماية الخادم عن إخفاء رابط القائمة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T037R01",
+      "domain": "AUTH",
+      "summary": "Sidebar Inventory شامل Route وAction وPermission وScope وModule",
+      "title": "V2 | AUTH T037R01 — Sidebar Inventory شامل Route وAction وPermission وScope وModule",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T037R02",
+      "domain": "AUTH",
+      "summary": "Navigation يعتمد Authorizer الحقيقي بدلاً من Visibility",
+      "title": "V2 | AUTH T037R02 — Navigation يعتمد Authorizer الحقيقي بدلاً من Visibility",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T037R03",
+      "domain": "RBAC",
+      "summary": "أقل صلاحيات لكل وظيفة وتنظيف info وfoodexaccount وexport",
+      "title": "V2 | RBAC T037R03 — أقل صلاحيات لكل وظيفة وتنظيف info وfoodexaccount وexport",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T037R04",
+      "domain": "QA",
+      "summary": "مصفوفة مستخدمين وأدوار ومتاجر لاختبار قائمة وروابط HTTP",
+      "title": "V2 | QA T037R04 — مصفوفة مستخدمين وأدوار ومتاجر لاختبار قائمة وروابط HTTP",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "T037R05",
+      "domain": "RELEASE",
+      "summary": "تحديث آمن عبر PR وCI وUpdate ZIP والنسخ الاحتياطي",
+      "title": "V2 | RELEASE T037R05 — تحديث آمن عبر PR وCI وUpdate ZIP والنسخ الاحتياطي",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P040",
+      "domain": "QA",
+      "summary": "إثبات الظهور والوصول الصحيح حتى إن عطّل Sidebar Layout",
+      "title": "V2 | QA P040 — إثبات الظهور والوصول الصحيح حتى إن عطّل Sidebar Layout",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P041",
+      "domain": "QA",
+      "summary": "إثبات اختفاء الرابط و403 عند Deny أو فقد إذن",
+      "title": "V2 | QA P041 — إثبات اختفاء الرابط و403 عند Deny أو فقد إذن",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P042",
+      "domain": "QA",
+      "summary": "إثبات تعدد الأدوار المتعارضة دون قواعد ظهور إضافية",
+      "title": "V2 | QA P042 — إثبات تعدد الأدوار المتعارضة دون قواعد ظهور إضافية",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P043",
+      "domain": "QA",
+      "summary": "منع دور متجر تجزئة 2 من رابط أو Route متجر 3",
+      "title": "V2 | QA P043 — منع دور متجر تجزئة 2 من رابط أو Route متجر 3",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P044",
+      "domain": "QA",
+      "summary": "إخفاء العنصر عند Module أو Entitlement غير متاح",
+      "title": "V2 | QA P044 — إخفاء العنصر عند Module أو Entitlement غير متاح",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P045",
+      "domain": "QA",
+      "summary": "إخفاء المجموعة الفارغة وتجنب المسارات الميتة",
+      "title": "V2 | QA P045 — إخفاء المجموعة الفارغة وتجنب المسارات الميتة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P046",
+      "domain": "QA",
+      "summary": "حدود SUPER_ADMIN وPLATFORM_OWNER للعمليات الحساسة",
+      "title": "V2 | QA P046 — حدود SUPER_ADMIN وPLATFORM_OWNER للعمليات الحساسة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P047",
+      "domain": "QA",
+      "summary": "مصفوفة AR/EN وموبايل وديسكتوب وترتيب القائمة",
+      "title": "V2 | QA P047 — مصفوفة AR/EN وموبايل وديسكتوب وترتيب القائمة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P049",
+      "domain": "RBAC",
+      "summary": "تحويل Sidebar Role Access إلى محرر شجرة صلاحيات حقيقي",
+      "title": "V2 | RBAC P049 — تحويل Sidebar Role Access إلى محرر شجرة صلاحيات حقيقي",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P050",
+      "domain": "SIDEBAR",
+      "summary": "فصل Sidebar Layout عن قرار السماح للروابط",
+      "title": "V2 | SIDEBAR P050 — فصل Sidebar Layout عن قرار السماح للروابط",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P051",
+      "domain": "GOV",
+      "summary": "اعتماد تشكيل الأدوار النهائية وتقسيم الشراء والمحاسبة والخزينة",
+      "title": "V2 | GOV P051 — اعتماد تشكيل الأدوار النهائية وتقسيم الشراء والمحاسبة والخزينة",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P052",
+      "domain": "GOV",
+      "summary": "اعتماد تصنيف الحسابات بلا أدوار إدارية",
+      "title": "V2 | GOV P052 — اعتماد تصنيف الحسابات بلا أدوار إدارية",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P053",
+      "domain": "AUDIT",
+      "summary": "التحقق من إصدار Dashboard الحي وتطابقه مع GitHub",
+      "title": "V2 | AUDIT P053 — التحقق من إصدار Dashboard الحي وتطابقه مع GitHub",
+      "type": "functional",
+      "issue_number": null
+    },
+    {
+      "id": "P054",
+      "domain": "SECURITY",
+      "summary": "سياسات مستقلة لاستثناءات الوظائف الحساسة",
+      "title": "V2 | SECURITY P054 — سياسات مستقلة لاستثناءات الوظائف الحساسة",
+      "type": "functional",
+      "issue_number": null
+    }
+  ]
+}
