@@ -6,6 +6,7 @@ use App\Domain\SmartOrdering\SmartOrderingEnterpriseEntitlementBridge;
 use App\Domain\WhatsApp\RuntimePolicy;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
+use App\Enterprise\Modules\ModuleOperationalReadiness;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enums\StoreBusinessProfile;
 use App\Models\Store;
@@ -13,11 +14,15 @@ use App\Models\User;
 use App\Services\AdminSidebarManager;
 use App\Services\OperationalTenantScope;
 use Illuminate\Support\Facades\Route;
+use Throwable;
 
 class AdminNavigation
 {
     /** @var array<string, bool> */
     private array $enterpriseModuleAccessMemo = [];
+
+    /** @var array<string, bool> */
+    private array $operationalReadinessMemo = [];
 
     /** @var array<int, array<string, array<string, mixed>>> */
     private array $visibleChannelsMemo = [];
@@ -34,6 +39,7 @@ class AdminNavigation
     public function __construct(
         private readonly ModuleRegistry $enterpriseModules,
         private readonly ModuleEntitlementResolver $enterpriseEntitlements,
+        private readonly ModuleOperationalReadiness $operationalReadiness,
         private readonly TenantContextResolver $tenantContext,
         private readonly SmartOrderingEnterpriseEntitlementBridge $restaurantSaasAccess,
         private readonly AdminSidebarManager $sidebarManager,
@@ -806,9 +812,9 @@ class AdminNavigation
         array $params = [],
     ): ?array {
         if ($user->isPlatformOwner() && Route::has('admin.enterprise-modules.show')
-            && ! $this->enterpriseModules->isEnabled($moduleCode)) {
-            // Hard-disabled/uninstalled modules remain discoverable in their
-            // diagnostics, never as deceptively functional runtime links.
+            && ! $this->moduleOperationallyReady($moduleCode)) {
+            // Even the owner must see uncertified/degraded/disabled modules in
+            // their diagnostics, not via an unapproved operational route.
             return [
                 'key' => $key,
                 'label' => $label,
@@ -819,11 +825,40 @@ class AdminNavigation
         }
 
         $item = $this->routeItemScoped($user, $key, $label, $route, $permission, $params);
-        if ($item === null || ! $this->enterpriseModuleAccessible($user, $moduleCode)) {
+        if ($item === null
+            || ! $this->enterpriseModuleAccessible($user, $moduleCode)
+            || ! $this->moduleOperationallyReady($moduleCode)) {
+            // A navigation preference or ENABLED lifecycle is never a runtime
+            // certification. Keep operational links aligned with ERP Center.
             return null;
         }
 
         return $item;
+    }
+
+    /**
+     * Exact-manifest operational approval is required before revealing a
+     * runnable ERP module. The separate ERP Center is informational while
+     * readiness is pending. This check grants no permission or entitlement.
+     */
+    private function moduleOperationallyReady(string $moduleCode): bool
+    {
+        if (array_key_exists($moduleCode, $this->operationalReadinessMemo)) {
+            return $this->operationalReadinessMemo[$moduleCode];
+        }
+
+        try {
+            return $this->operationalReadinessMemo[$moduleCode] =
+                $this->operationalReadiness->status(
+                    $moduleCode,
+                    $this->enterpriseModules->manifest($moduleCode)->version,
+                    $this->enterpriseModules->state($moduleCode),
+                ) === 'ready';
+        } catch (Throwable) {
+            // Missing manifests, broken probes and malformed runtime state
+            // must never accidentally expose an operational destination.
+            return $this->operationalReadinessMemo[$moduleCode] = false;
+        }
     }
 
     private function enterpriseModuleAccessible(User $user, string $moduleCode): bool
