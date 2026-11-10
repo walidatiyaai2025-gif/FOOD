@@ -87,7 +87,7 @@ class V2WorkspacesOverviewAuthorityTest extends TestCase
             ->assertSee(__('enterprise_workspaces.empty'));
     }
 
-    public function test_store_only_and_roleless_actors_cannot_enter_platform_workspaces(): void
+    public function test_store_scoped_workspaces_are_discoverable_without_platform_escalation_and_roleless_is_denied(): void
     {
         $storeId = $this->retailStore('V2-WORKSPACES-RETAIL');
         $retail = User::query()->create([
@@ -113,15 +113,47 @@ class V2WorkspacesOverviewAuthorityTest extends TestCase
             'locale' => 'en',
         ]);
 
-        foreach ([$retail, $roleless] as $actor) {
-            $overview = collect(app(AdminNavigation::class)->groupsFor($actor))->firstWhere('key', 'overview');
-            $keys = array_column($overview['children'] ?? [], 'key');
-            $this->assertNotContains('enterprise_workspaces', $keys);
-            $this->actingAs($actor)->get(route('admin.enterprise-workspaces.index'))->assertForbidden();
-            $this->actingAs($actor)
-                ->get(route('admin.enterprise-workspaces.index', ['workspace' => 'finance']))
-                ->assertForbidden();
+        $composer = app(EnterpriseWorkspaceComposer::class);
+        $available = $composer->availableWorkspaceKeys($retail);
+        $this->assertContains('sales', $available);
+        $this->assertFalse($retail->hasPermission('platform.manage'));
+
+        $overview = collect(app(AdminNavigation::class)->groupsFor($retail))->firstWhere('key', 'overview');
+        $this->assertIsArray($overview);
+        $items = collect($overview['children'])->keyBy('key');
+        $this->assertTrue($items->has('enterprise_workspaces'));
+        $this->assertSame('admin.enterprise-workspaces.index', $items->get('enterprise_workspaces')['route']);
+
+        $this->actingAs($retail)
+            ->get(route('admin.enterprise-workspaces.index'))
+            ->assertOk();
+        $this->actingAs($retail)
+            ->get(route('admin.enterprise-workspaces.index', ['workspace' => 'sales']))
+            ->assertOk();
+
+        // A legitimate scoped entry must not grant platform-only privileged cards.
+        if (in_array('executive', $available, true)) {
+            $executive = $composer->compose($retail, 'executive');
+            $this->assertIsArray($executive);
+            $this->assertNotContains('system_health', array_column($executive['cards'], 'key'));
         }
+
+        // Removing the effective grant still denies a direct workspace URL.
+        config()->set('enterprise_workspaces.workspaces.executive.access_any', ['platform.manage']);
+        $this->actingAs($retail)
+            ->get(route('admin.enterprise-workspaces.index', ['workspace' => 'executive']))
+            ->assertForbidden();
+
+        $rolelessOverview = collect(app(AdminNavigation::class)->groupsFor($roleless))
+            ->firstWhere('key', 'overview');
+        $rolelessKeys = array_column($rolelessOverview['children'] ?? [], 'key');
+        $this->assertNotContains('enterprise_workspaces', $rolelessKeys);
+        $this->actingAs($roleless)
+            ->get(route('admin.enterprise-workspaces.index'))
+            ->assertForbidden();
+        $this->actingAs($roleless)
+            ->get(route('admin.enterprise-workspaces.index', ['workspace' => 'sales']))
+            ->assertForbidden();
     }
 
     public function test_unrecognized_workspace_path_has_no_hidden_fallback(): void
