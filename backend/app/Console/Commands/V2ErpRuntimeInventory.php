@@ -41,7 +41,7 @@ final class V2ErpRuntimeInventory extends Command
 
         $routes = [];
         foreach (Route::getRoutes()->getRoutes() as $route) {
-            if (! $route instanceof RoutingRoute || ! $this->isRelevantRoute($route)) {
+            if (! $this->isRelevantRoute($route)) {
                 continue;
             }
 
