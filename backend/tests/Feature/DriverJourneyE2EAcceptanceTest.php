@@ -338,9 +338,10 @@ class DriverJourneyE2EAcceptanceTest extends TestCase
         ]);
 
         Sanctum::actingAs($b2bDriverUser, ['app:driver']);
+        // A legacy B2B Driver token is denied before assignment resolution.
         $this->getJson('/api/v1/driver/assignments')
-            ->assertConflict()
-            ->assertSee('Wholesale drivers must belong to the principal Wholesale store.');
+            ->assertForbidden()
+            ->assertSee('Driver App execution is available only for authorized Retail (B2C) drivers.');
     }
 
     private function transition(int $assignmentId, string $status, string $key)

@@ -82,7 +82,7 @@ void main() {
     expect(result.token, 'abc');
   });
 
-  test('HTTP auth derives B2B driver channel from backend scope', () async {
+  test('HTTP auth rejects legacy B2B Driver scope', () async {
     final client = MockClient((request) async {
       expect(request.url.path, '/api/v1/auth/login');
       return http.Response(
@@ -109,13 +109,13 @@ void main() {
       client: client,
     );
 
-    final result = await repo.login(
-      email: 'b2b-driver@example.test',
-      password: 'secret-password',
+    await expectLater(
+      repo.login(
+        email: 'b2b-driver@example.test',
+        password: 'secret-password',
+      ),
+      throwsA(isA<DriverRoleDeniedException>()),
     );
-    expect(result.channel, DriverChannel.b2b);
-    expect(result.storeId, 1);
-    expect(result.token, 'b2b-token');
   });
 
   test(
@@ -233,8 +233,7 @@ void main() {
     ]);
   });
 
-  test('HTTP assignment repository accepts B2B manual assignment runtime',
-      () async {
+  test('HTTP assignment repository refuses legacy B2B runtime', () async {
     final requests = <String>[];
     final repo = HttpDriverAssignmentRepository(
       'https://foodex.example/',
@@ -294,15 +293,15 @@ void main() {
       }),
     );
 
-    final rows = await repo.list(DriverChannel.b2b);
-    expect(rows.single.channel, DriverChannel.b2b);
-    expect(rows.single.reference, '#119');
-    await repo.transition(19, DriverChannel.b2b, 'accepted');
-
-    expect(requests, [
-      'GET /api/v1/driver/assignments',
-      'POST /api/v1/driver/assignments/19/status',
-    ]);
+    await expectLater(
+      repo.list(DriverChannel.b2b),
+      throwsA(isA<DriverRoleDeniedException>()),
+    );
+    await expectLater(
+      repo.transition(19, DriverChannel.b2b, 'accepted'),
+      throwsA(isA<DriverRoleDeniedException>()),
+    );
+    expect(requests, isEmpty);
   });
 
   test('HTTP assignment repository loads central failed-delivery reasons',

@@ -60,12 +60,14 @@ final class PushDeviceController extends Controller
         } elseif ($data['app'] === 'driver') {
             $driverChannel = strtolower((string) DB::table('drivers')
                 ->where('user_id', $user->id)
-                ->whereIn('driver_type', ['b2b', 'b2c'])
+                ->where('driver_type', 'b2c')
                 ->where('is_active', true)
                 ->value('driver_type'));
-            $allowed = in_array($driverChannel, ['b2b', 'b2c'], true)
-                && $user->hasPermission('deliveries.'.$driverChannel.'.execute');
-            abort_unless($allowed, 403);
+            $allowed = $driverChannel === 'b2c'
+                && $user->tokenCan('app:driver')
+                && $user->hasRole('B2C_DRIVER')
+                && $user->hasPermission('deliveries.b2c.execute');
+            abort_unless($allowed, 403, 'Only authorized Retail (B2C) drivers may register Driver App push devices.');
         } elseif ($data['app'] === 'van') {
             if (! $user->hasPermission('van.login')) {
                 $context = $this->vanRuntimeContexts->resolve($user);
