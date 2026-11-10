@@ -119,13 +119,13 @@ final class V2BuiltInRoleCloneGovernanceTest extends TestCase
 
             $this->actingAs($admin->fresh())
                 ->post(route('admin.security.roles.clone', $superRole), [
-                    'code' => 'V2_ESCALATED_'.$locale,
+                    'code' => 'V2_ESCALATED_'.strtoupper($locale),
                     'name' => 'Forbidden control plane copy',
                 ])
                 ->assertRedirect()
                 ->assertSessionHasErrors(['role' => __('v2_role_clone.privileged_source')]);
 
-            $this->assertDatabaseMissing('roles', ['code' => 'V2_ESCALATED_'.$locale]);
+            $this->assertDatabaseMissing('roles', ['code' => 'V2_ESCALATED_'.strtoupper($locale)]);
         }
     }
 
