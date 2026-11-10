@@ -45,6 +45,21 @@ class _FailingAuth implements DriverAuthRepository {
   Future<void> logout(String token) async {}
 }
 
+class _LegacyWholesaleAuth extends _Auth {
+  @override
+  Future<DriverSession> login({
+    required String email,
+    required String password,
+  }) async => const DriverSession(
+        token: 'legacy-wholesale-token',
+        name: 'Wholesale Driver',
+        email: 'wholesale@example.test',
+        locale: 'ar',
+        channel: DriverChannel.b2b,
+        storeId: 1,
+      );
+}
+
 class _Store implements DriverSessionStore {
   DriverStoredSession? stored;
 
@@ -261,6 +276,35 @@ void main() {
     expect(session?.channel, DriverChannel.b2c);
     expect(remember, isTrue);
     expect(biometric, isTrue);
+  });
+
+  testWidgets('legacy B2B login never invokes Driver runtime callback',
+      (tester) async {
+    var authenticated = false;
+    await tester.pumpWidget(
+      _host(
+        store: _Store(),
+        biometric: const _Biometric(),
+        repository: _LegacyWholesaleAuth(),
+        onAuthenticated: (_, __, ___) => authenticated = true,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('driver-login-email')),
+      'wholesale@example.test',
+    );
+    await tester.enterText(
+      find.byKey(const Key('driver-login-password')),
+      'password',
+    );
+    final submit = find.byKey(const Key('driver-login-submit'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(authenticated, isFalse);
+    expect(find.textContaining('غير مصرح'), findsOneWidget);
   });
 
   testWidgets('saved biometric session can authenticate without password',
