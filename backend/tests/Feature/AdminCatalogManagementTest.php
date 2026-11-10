@@ -27,8 +27,11 @@ class AdminCatalogManagementTest extends TestCase
         $user = $this->superAdmin('ar');
 
         $this->actingAs($user)->get('/admin')
+            ->assertRedirect(route('admin.administration.index'));
+
+        $this->actingAs($user)->get(route('admin.administration.index'))
             ->assertOk()
-            ->assertSee('data-foodex-executive-overview', false);
+            ->assertSee('dir="rtl"', false);
 
         $this->actingAs($user)->get('/admin/b2b/dashboard')
             ->assertOk()
