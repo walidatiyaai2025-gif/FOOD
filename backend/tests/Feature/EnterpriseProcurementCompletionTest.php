@@ -175,6 +175,14 @@ final class EnterpriseProcurementCompletionTest extends TestCase
         $order = $this->approvedOrder($actor, $context, $supplier->id, 2, 5.000);
 
         $completion = app(ProcurementCompletionManager::class);
+        // The real admin HTTP route is guarded by ERP readiness + Dashboard
+        // global entry, independently of the service's scoped procurement RBAC.
+        // Grant both only to this synthetic fixture, never to production roles.
+        config()->set(
+            'enterprise_module_readiness.certified_versions.procurement',
+            app(ModuleRegistry::class)->manifest('procurement')->version,
+        );
+        $this->grantPlatformErpAccess($actor);
         [$contractChecker, $contractCheckerContext] = ProcurementSecondApprover::forSameStore($actor, $context);
         $contract = $completion->createContract($actor, $context, [
             'supplier_id' => $supplier->id,
