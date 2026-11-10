@@ -97,21 +97,28 @@ final class V2OperationsFleetSidebarPersonaContractTest extends TestCase
         $this->assertFalse($actor->hasPermission('orders.view', $foreignStore));
         $this->assertFalse($actor->hasPermission('drivers.b2b.view'));
 
-        $keys = $this->visibleItems($actor);
-        $this->assertArrayHasKey('b2c_incoming_orders', $keys);
-        $this->assertArrayNotHasKey('field_ops_vans', $keys);
-        $this->assertArrayNotHasKey('field_ops_assignments', $keys);
-        $this->assertArrayNotHasKey('b2b_drivers', $keys);
+        foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
+            app()->setLocale($locale);
+            $actor->forceFill(['locale' => $locale])->save();
+            $actor = $actor->fresh();
 
-        $this->actingAs($actor)
-            ->get(route('admin.b2c.module', ['module' => 'incoming_orders', 'store_id' => $ownStore], false))
-            ->assertOk();
+            $keys = $this->visibleItems($actor);
+            $this->assertArrayHasKey('b2c_incoming_orders', $keys);
+            $this->assertArrayNotHasKey('field_ops_vans', $keys);
+            $this->assertArrayNotHasKey('field_ops_assignments', $keys);
+            $this->assertArrayNotHasKey('b2b_drivers', $keys);
 
-        $foreign = $this->actingAs($actor)->get(route('admin.b2c.module', [
-            'module' => 'incoming_orders',
-            'store_id' => $foreignStore,
-        ], false));
-        $this->assertContains($foreign->getStatusCode(), [403, 404]);
+            $this->actingAs($actor)
+                ->get(route('admin.b2c.module', ['module' => 'incoming_orders', 'store_id' => $ownStore], false))
+                ->assertOk()
+                ->assertSee('dir="'.$direction.'"', false);
+
+            $foreign = $this->actingAs($actor)->get(route('admin.b2c.module', [
+                'module' => 'incoming_orders',
+                'store_id' => $foreignStore,
+            ], false));
+            $this->assertContains($foreign->getStatusCode(), [403, 404]);
+        }
 
         foreach (['admin.field-operations.vans', 'admin.field-operations.assignments'] as $route) {
             $this->actingAs($actor)->get(route($route, [], false))->assertForbidden();
