@@ -13,7 +13,7 @@
 `backend/tests/Feature/V2CustomerServiceProfilesRoleBoundaryTest.php` covers:
 
 1. Real wholesale Customer 360 list/detail GET in AR RTL and EN LTR; agent's editable identity remains limited to email/password, including attempted name/phone over-posting, and verifies the persisted result + audit.
-2. Global service agent cannot GET/PATCH a Retail-only profile, in AR and EN; no side effect.
+2. Global service agent cannot GET/PATCH a **genuinely Retail-only legacy identity with no materialized B2B account**, in AR and EN; no side effect. Regular new platform registrations do receive a wholesale identity from `PlatformCustomerService::register()` even when Retail-originated, so wholesale visibility for those dual-channel identities is intentional; the test removes their synthetic test-fixture wholesale records to model the legacy Retail-only case.
 3. Store-scoped retail customer support can GET own profile but not foreign store or identity PATCH, in AR and EN; no side effect or audit.
 4. Explicit `customers.view` DENY and unprivileged roleless identities cannot GET list or PATCH identity directly in either language, and cannot cause a write.
 
