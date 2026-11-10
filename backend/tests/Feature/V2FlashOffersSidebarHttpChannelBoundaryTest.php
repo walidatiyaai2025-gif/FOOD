@@ -195,7 +195,7 @@ final class V2FlashOffersSidebarHttpChannelBoundaryTest extends TestCase
     {
         return (int) DB::table('stores')->insertGetId([
             'store_type_id' => DB::table('store_types')->where('code', $type)->value('id'),
-            'business_profile' => $type === 'B2C' ? 'RETAIL_STORE' : 'WHOLESALE_PRINCIPAL',
+            ...($type === 'B2C' ? ['business_profile' => 'RETAIL_STORE'] : []),
             'code' => $code,
             'name' => $code,
             'is_active' => true,
