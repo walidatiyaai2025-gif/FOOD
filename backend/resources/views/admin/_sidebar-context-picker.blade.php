@@ -16,7 +16,7 @@
     </style>
     <section class="foodex-work-context" data-foodex-work-context aria-label="{{ __('sidebar_contexts.title') }}">
         <details>
-            <summary>
+            <summary aria-label="{{ __('sidebar_contexts.title') }}">
                 <span class="foodex-work-context-title">{{ __('sidebar_contexts.title') }}</span>
                 <span aria-hidden="true">⌄</span>
             </summary>
