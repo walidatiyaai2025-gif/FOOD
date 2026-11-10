@@ -17,7 +17,7 @@ New `backend/tests/Feature/V2FinanceSidebarPersonaContractTest.php` creates synt
 
 1. For **Arabic and English**, global Finance role permissions and real visible Treasury/Reports named routes resolve successfully via HTTP; non-finance admin, notifications, procurement and WMS entries are unavailable.
 2. With intentionally absent module operational certifications, ERP Finance/Treasury operational links remain hidden even when the actor retains `finance.view`; this is a fail-closed readiness proof.
-3. A B2C-only `RETAIL_FINANCE` assignment yields only its owned store in the real `OperationalTenantScope`, does not expose global platform ERP/treasury Sidebar entries, rejects direct platform ERP access and rejects a forged treasury-master `store_id` from a foreign store. A roleless actor is also denied.
+3. A B2C-only `RETAIL_FINANCE` assignment yields only its owned store in the real `OperationalTenantScope`, does not expose global platform ERP/treasury Sidebar entries, rejects direct platform ERP access and rejects a forged treasury-master `store_id` from a foreign store with concealment-safe HTTP 404 (while roleless dashboard access returns HTTP 403). A roleless actor is also denied.
 4. The inspection does not mutate finance ledgers, invoices, stock, bank accounts, role grants or audit data. No production code or routes are changed.
 
 This is intentionally additive proof over the real controller/role/module sources, **not** a duplicate Sidebar or fabricated finance feature. The existing RBAC, procurement, AP, treasury maker/checker and finance posting suites remain authoritative for transaction-level SoD. Disabled/uncertified modules must never be made visible just to satisfy this test.
