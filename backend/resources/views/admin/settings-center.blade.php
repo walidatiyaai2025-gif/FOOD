@@ -59,7 +59,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </div>
 
 @foreach($settingGroups as $groupKey => $group)
-<section class="settings-section" data-settings-group="{{ $groupKey }}">
+<section id="settings-{{ $groupKey }}" class="settings-section" data-settings-group="{{ $groupKey }}">
 <div class="settings-section-head">
 <h2>{{ $group['title'] }}</h2>
 <p class="settings-muted">{{ $group['description'] }}</p>
