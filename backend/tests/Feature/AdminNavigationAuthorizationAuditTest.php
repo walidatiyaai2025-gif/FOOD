@@ -235,15 +235,18 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
             ->assertOk();
     }
 
-    public function test_v2_notifications_overview_entry_uses_canonical_authorization(): void
+    public function test_v2_notifications_administration_entry_uses_canonical_authorization(): void
     {
         $superAdmin = $this->globalUser('SUPER_ADMIN', 'v2-notifications-super@example.test');
         $this->assertTrue($superAdmin->hasPermission('notifications.manage'));
 
-        $superItems = collect(app(AdminNavigation::class)->groupsFor($superAdmin))
-            ->firstWhere('key', 'overview')['children'];
+        $superGroups = collect(app(AdminNavigation::class)->groupsFor($superAdmin));
+        $administration = $superGroups->firstWhere('key', 'administration');
+        $this->assertIsArray($administration);
 
-        $notificationItem = collect($superItems)->firstWhere('key', 'notifications_center');
+        $notificationItem = collect($administration['children'])->firstWhere('key', 'notifications_center');
+        $overview = $superGroups->firstWhere('key', 'overview');
+        $this->assertFalse(collect($overview['children'] ?? [])->contains('key', 'notifications_center'));
         $this->assertNotNull($notificationItem);
         $this->assertSame('admin.notifications.index', $notificationItem['route']);
         $this->assertSame('notifications.title', $notificationItem['label']);
