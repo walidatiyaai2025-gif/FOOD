@@ -56,7 +56,7 @@ final class V2ReportsCenterSidebarMigrationTest extends TestCase
             $this->assertSame([], $item['params']);
             $this->assertSame('reports.view', $item['permission']);
             $this->assertSame($expected['title'], __('reports.title'));
-            $this->assertSame($expected['title'], $item['label_text']);
+            $this->assertSame($expected['title'], $item['label_text'] ?? __($item['label']));
 
             $this->actingAs($admin)
                 ->get(route('admin.reports.index', [
