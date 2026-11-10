@@ -13,12 +13,25 @@ final class EnterpriseScopeAuthorizer
         string $scopeType,
         int $scopeId,
     ): bool {
-        if ($permission === '' || $scopeId < 1) {
+        if ($permission === '' || $scopeId < 1
+            || ! $user->is_active
+            || $context->userId !== (int) $user->getKey()) {
             return false;
         }
 
         if ($user->hasRole('SUPER_ADMIN')) {
-            return $context->supportAccess || $context->isWholesale();
+            // Explicit retail support access is scoped to the exact store
+            // hierarchy selected by the operator. It must not become a
+            // cross-store ERP privilege merely because the role is global.
+            if ($context->isRetail()) {
+                return $context->supportAccess
+                    && $context->enterpriseScope !== null
+                    && $context->enterpriseScope->contains($scopeType, $scopeId);
+            }
+
+            // Keep the existing wholesale control-plane authority. Tenant
+            // context is resolved server-side by TenantContextResolver.
+            return $context->isWholesale();
         }
 
         if ($context->enterpriseScope === null) {
