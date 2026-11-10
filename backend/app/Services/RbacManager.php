@@ -447,10 +447,6 @@ final class RbacManager
             $values['permission_ids'] = Permission::query()->pluck('id')->map(static fn ($id): int => (int) $id)->all();
         }
 
-        if ($role->is_system && $role->scope !== $values['scope']) {
-            throw ValidationException::withMessages(['scope' => [__('admin.security.errors.system_scope')]]);
-        }
-
         if ($values['scope'] === 'store' && $role->users()->exists()) {
             throw ValidationException::withMessages(['scope' => [__('admin.security.errors.scope_has_global_assignments')]]);
         }
