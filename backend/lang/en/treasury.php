@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'nav_title' => 'Treasury master data',
+    'nav_title' => 'Treasury',
     'title' => 'Treasury master data',
     'eyebrow' => 'Finance & Treasury',
     'description' => 'Manage scoped cashboxes and bank accounts without changing payment, receipt, or posting flows.',
