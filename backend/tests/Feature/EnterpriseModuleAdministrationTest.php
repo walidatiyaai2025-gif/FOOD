@@ -49,6 +49,55 @@ final class EnterpriseModuleAdministrationTest extends TestCase
             ->assertSee('مركز الإعدادات');
     }
 
+    public function test_enabled_module_is_not_presented_as_operationally_certified(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'en', 'module-readiness@example.test');
+        app(EnterpriseModuleAdministration::class)->perform('sample_optional', 'enable', $admin);
+
+        $snapshot = app(EnterpriseModuleAdministration::class)->module('sample_optional');
+        $this->assertSame('ENABLED', $snapshot['state']);
+        $this->assertSame('uncertified', $snapshot['operational_readiness']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.enterprise-modules.show', ['module' => 'sample_optional']))
+            ->assertOk()
+            ->assertSee('Operational readiness')
+            ->assertSee('Not certified')
+            ->assertSee('data-module-readiness="uncertified"', false);
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+        $this->actingAs($admin->fresh())
+            ->get(route('admin.enterprise-modules.show', ['module' => 'sample_optional']))
+            ->assertOk()
+            ->assertSee('الجاهزية التشغيلية')
+            ->assertSee('غير معتمدة');
+    }
+
+    public function test_activation_summary_uses_registry_state_and_links_to_server_filtered_modules(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'en', 'module-activation@example.test');
+
+        $this->actingAs($admin)
+            ->get(route('admin.enterprise-modules.index'))
+            ->assertOk()
+            ->assertSee('id="module-activation-status"', false)
+            ->assertSee('data-module-activation-state="DISABLED"', false)
+            ->assertSee(route('admin.enterprise-modules.index', ['state' => 'DISABLED']), false)
+            ->assertSee('Lifecycle state');
+
+        $this->actingAs($admin)
+            ->get(route('admin.enterprise-modules.index', ['state' => 'DISABLED']))
+            ->assertOk()
+            ->assertSee('data-module-activation-state="DISABLED"', false);
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+        $this->actingAs($admin->fresh())
+            ->get(route('admin.enterprise-modules.index'))
+            ->assertOk()
+            ->assertSee('dir="rtl"', false)
+            ->assertSee('حالة دورة الحياة');
+    }
+
     public function test_non_platform_admin_is_denied_module_administration(): void
     {
         $finance = $this->userWithRole('FINANCE', 'en', 'module-finance@example.test');

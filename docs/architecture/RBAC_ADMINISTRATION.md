@@ -4,9 +4,9 @@ FOODEX authorization is server-authoritative. Dashboard visibility is a usabilit
 
 ## Role model
 
-Roles have an immutable code, display name, optional description, active state, system/custom marker and scope: `global`, `store`, or `both`. System roles defined in `ROLE_ARCHITECTURE.md` cannot be deleted. `SUPER_ADMIN` is always active, global and unrestricted. The last active SUPER_ADMIN account or assignment cannot be removed.
+Roles have an immutable code and scope, display name, optional description, active state, optional archival timestamp, and system/custom marker. Supported role scope values are: `global`, `store`, or `both`. System roles defined in `ROLE_ARCHITECTURE.md` cannot be deleted. `SUPER_ADMIN` is always active, global and unrestricted. The last active SUPER_ADMIN account or assignment cannot be removed.
 
-Custom roles can be created, cloned, edited, activated/deactivated and deleted after their assignments are removed. A delegated role administrator cannot grant permissions outside the administrator's own effective permission set, preventing privilege escalation.
+Custom roles can be created, cloned, edited, activated/deactivated and permanently archived only after all assignments are removed. Archival deactivates a role while retaining its original code, row, permissions and audit history; archived roles cannot be reactivated, updated, cloned, re-archived or have their codes reused. Role scope is immutable after creation; use a new code for a different scope. A delegated role administrator cannot grant permissions outside the administrator's own effective permission set, preventing privilege escalation.
 
 ## Effective permissions
 
@@ -14,13 +14,13 @@ Global assignments grant only roles whose scope is `global` or `both`. Store ass
 
 ## User onboarding and status
 
-The canonical Security workspace supports audited user onboarding for operators with `users.roles.manage`. A new user is created together with one initial global business-role assignment in a single transaction. The same role-grant authority and built-in-role availability checks used for later role changes are applied before the transaction can commit, so delegated operators cannot onboard a user with authority above their own. Passwords use the User model's hashed cast and are never written to audit payloads.
+The canonical Security workspace supports audited user onboarding for operators with `users.roles.manage`. A new user is created together with at least one initial authorized role assignment in a single transaction: a global business role, a scoped role for one active Retail/B2C store, or both. Store-only onboarding grants **no implicit global role**. The form presents only grantable, currently available roles and human-readable store/role combinations, while the server independently validates role scope, store activity, built-in-role readiness and the actor's grant authority through the same RBAC manager used for later role changes. Rejected assignments roll back user creation, so delegated operators cannot onboard a user with authority above their own or across unrelated stores. Passwords use the User model's hashed cast and are never written to audit payloads.
 
 Authorized administrators can activate or deactivate accounts with `users.status.manage`. Deactivation stores the timestamp and optional reason, revokes Sanctum personal access tokens immediately, and is also enforced on each authenticated API/dashboard request. Reactivation restores access without recreating the user.
 
 ## Audit events
 
-The security center records `user.created`, `user.status_changed`, `user.roles_changed`, `role.created`, `role.updated`, and `role.deleted` through the shared audit logger.
+The security center records `user.created`, `user.status_changed`, `user.roles_changed`, `role.created`, `role.updated`, and `role.archived` through the shared audit logger. Historical `role.deleted` events remain unchanged; V2 does not rewrite old audit records.
 
 ## Administration surfaces
 

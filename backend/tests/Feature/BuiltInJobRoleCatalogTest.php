@@ -21,6 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 use Tests\TestCase;
 
 final class BuiltInJobRoleCatalogTest extends TestCase
@@ -383,6 +384,70 @@ final class BuiltInJobRoleCatalogTest extends TestCase
             ->get(route('admin.security.index', ['section' => 'roles']))
             ->assertOk()
             ->assertSee('Procurement Manager'); // role governance card remains visible/auditable
+    }
+
+    public function test_all_canonical_job_roles_have_bilingual_governance_and_real_access_boundaries(): void
+    {
+        $catalog = app(BuiltInJobRoleCatalog::class);
+
+        foreach (['ar', 'en'] as $locale) {
+            App::setLocale($locale);
+            foreach ($catalog->definitions() as $code => $definition) {
+                $role = $catalog->presentation($code);
+
+                $this->assertNotEmpty($role['name'], $code.' / '.$locale);
+                $this->assertNotEmpty($role['description'], $code.' / '.$locale);
+                $this->assertNotEmpty($role['responsibilities'], $code.' / '.$locale);
+                $this->assertNotEmpty($role['access_boundaries'], $code.' / '.$locale);
+                $this->assertSame($definition['scope'], $role['scope']);
+            }
+
+            $store = $catalog->presentation('B2C_STORE_ADMIN');
+            $this->assertContains(__('job_roles.boundaries.store'), $store['access_boundaries']);
+            $this->assertContains(__('job_roles.boundaries.business_profiles'), $store['access_boundaries']);
+            $this->assertContains(__('job_roles.boundaries.required_modules'), $catalog->presentation('PROCUREMENT_MANAGER')['access_boundaries']);
+            $this->assertContains(__('job_roles.boundaries.legacy_b2b_driver'), $catalog->presentation('B2B_DRIVER')['access_boundaries']);
+            $this->assertContains(__('job_roles.boundaries.b2c_driver'), $catalog->presentation('B2C_DRIVER')['access_boundaries']);
+            $this->assertContains(__('job_roles.boundaries.b2b_van'), $catalog->presentation('VAN_OPERATOR')['access_boundaries']);
+        }
+    }
+
+    public function test_undocumented_built_in_role_is_rejected_before_catalog_activation(): void
+    {
+        config()->set('job_roles.roles.GOVERNANCE_UNDOCUMENTED', [
+            'domain' => 'sales',
+            'scope' => 'global',
+            'business_scope' => 'tenant',
+            'level' => 'viewer',
+            'required_modules' => [],
+            'optional_modules' => [],
+            'permissions' => ['reports.view'],
+        ]);
+
+        try {
+            app(BuiltInJobRoleCatalog::class)->reconcile();
+            $this->fail('An undocumented canonical role must never be activated.');
+        } catch (RuntimeException $exception) {
+            $this->assertStringContainsString('GOVERNANCE_UNDOCUMENTED', $exception->getMessage());
+            $this->assertDatabaseMissing('roles', ['code' => 'GOVERNANCE_UNDOCUMENTED']);
+        }
+    }
+
+    public function test_governance_access_boundaries_are_visible_on_the_authorized_existing_roles_tab(): void
+    {
+        $admin = $this->superAdmin();
+
+        foreach (['en', 'ar'] as $locale) {
+            $admin->forceFill(['locale' => $locale])->save();
+            App::setLocale($locale);
+
+            $this->actingAs($admin->fresh())
+                ->get(route('admin.security.index', ['section' => 'roles']))
+                ->assertOk()
+                ->assertSee(__('job_roles.access_boundaries'))
+                ->assertSee(__('job_roles.boundaries.server_authority'))
+                ->assertSee(__('job_roles.boundaries.legacy_b2b_driver'));
+        }
     }
 
     private function enableModule(string $code): void

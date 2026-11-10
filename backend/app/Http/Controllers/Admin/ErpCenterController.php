@@ -6,6 +6,7 @@ use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementManager;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
 use App\Enterprise\Health\ModuleHealthService;
+use App\Enterprise\Modules\ModuleOperationalReadiness;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Http\Controllers\Controller;
@@ -56,6 +57,7 @@ final class ErpCenterController extends Controller
         private readonly ModuleEntitlementResolver $entitlements,
         private readonly TenantContextResolver $tenants,
         private readonly ModuleHealthService $health,
+        private readonly ModuleOperationalReadiness $readiness,
         private readonly EnterpriseActionCenter $actionCenter,
         private readonly EnterpriseMyWork $myWork,
     ) {}
@@ -274,7 +276,12 @@ final class ErpCenterController extends Controller
 
         if ($state === ModuleState::ENABLED && $entitled) {
             $healthStatus = strtolower($this->health->report($moduleCode)->status->value);
-            $status = $healthStatus === 'healthy' ? 'available' : 'degraded';
+            $readinessStatus = $this->readiness->status(
+                $moduleCode,
+                $this->modules->manifest($moduleCode)->version,
+                $state,
+            );
+            $status = $readinessStatus === 'ready' ? 'available' : 'degraded';
         } elseif ($state === ModuleState::ENABLED) {
             $status = 'not_entitled';
         } else {
@@ -285,8 +292,7 @@ final class ErpCenterController extends Controller
             };
         }
 
-        $actionable = $state === ModuleState::ENABLED
-            && $entitled
+        $actionable = $status === 'available'
             && Route::has($route);
 
         return $this->card(

@@ -29,7 +29,7 @@ class AppVersionLocalizationTest extends TestCase
             }
 
             $this->post('/admin/settings/app-versions', $this->payload())
-                ->assertRedirect('/admin/settings/app-versions')
+                ->assertRedirect('/admin/settings/app-versions?app=driver&platform=ios')
                 ->assertSessionHas('status', __('app_versions.saved', [], $locale));
             $this->get('/admin/settings/app-versions')->assertOk()
                 ->assertSee(__('app_versions.driver', [], $locale))

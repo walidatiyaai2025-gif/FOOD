@@ -22,6 +22,14 @@ final class ErpCenterTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+        // Existing available-card fixtures are explicitly version-certified.
+        config()->set('enterprise_module_readiness.certified_versions', [
+            'procurement' => 2,
+            'inventory_wms' => 1,
+            'finance' => 1,
+            'treasury' => 1,
+            'enterprise_bi' => 1,
+        ]);
     }
 
     public function test_disabled_module_is_explicit_and_never_exposes_an_operational_cta(): void
@@ -168,6 +176,26 @@ final class ErpCenterTest extends TestCase
 
         $this->assertDatabaseMissing('enterprise_module_entitlements', [
             'module_code' => 'procurement',
+        ]);
+    }
+
+    public function test_enabled_entitled_but_uncertified_erp_module_has_no_operational_link(): void
+    {
+        $actor = $this->userWithGlobalRole('SUPER_ADMIN', 'en', 'erp-uncertified@example.test');
+        app(EnterpriseModuleAdministration::class)->perform('procurement', 'enable', $actor);
+        app(ModuleEntitlementManager::class)->set('procurement', EntitlementScope::platform(), true);
+        config()->set('enterprise_module_readiness.certified_versions.procurement', null);
+
+        $response = $this->actingAs($actor)->get(route('admin.erp.index'));
+        $response->assertOk();
+
+        $card = collect($response->viewData('cards'))->firstWhere('key', 'procurement');
+        $this->assertIsArray($card);
+        $this->assertSame('degraded', $card['status']);
+        $this->assertNull($card['url']);
+        $this->assertDatabaseHas('enterprise_modules', [
+            'code' => 'procurement',
+            'state' => 'ENABLED',
         ]);
     }
 

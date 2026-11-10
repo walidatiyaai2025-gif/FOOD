@@ -27,6 +27,9 @@ class AdminNavigation
     /** @var array<string, bool> */
     private array $permissionMemo = [];
 
+    /** @var array<string, int|null> */
+    private array $retailModuleStoreMemo = [];
+
     public function __construct(
         private readonly ModuleRegistry $enterpriseModules,
         private readonly ModuleEntitlementResolver $enterpriseEntitlements,
@@ -75,11 +78,14 @@ class AdminNavigation
         // then marketing/reporting. Administration stays last and never invents cross-channel links.
         $groups = [
             $this->group('overview', 'admin.nav_groups.overview', '⌂', [
-                $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
+                $this->canAccessMyWork($user)
                     ? $this->routeItemOpen('enterprise_action_center', 'enterprise_action_center.nav_title', 'admin.action-center.index')
                     : null,
                 $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemOpen('enterprise_workspaces', 'enterprise_workspaces.nav_title', 'admin.enterprise-workspaces.index')
+                    : null,
+                $isSuperAdmin && $this->hasPermission($user, 'notifications.manage')
+                    ? $this->routeItemOpen('notifications_center', 'notifications.title', 'admin.notifications.index')
                     : null,
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'dashboard', 'admin.premium_nav.dashboard', null),
                 $this->module($user, $channels, 'b2b', 'dashboard', 'admin.channels.b2b', null),
@@ -259,6 +265,13 @@ class AdminNavigation
 
         if (! is_array($channelDefinition) || ! is_string($channelDefinition['route'] ?? null)) {
             return route('admin.index');
+        }
+
+        // Platform control-plane users should not be assigned a daily operational
+        // workspace merely because their broad security role spans both channels.
+        // Explicit authorized deep links remain handled separately at login.
+        if ($this->isSuperAdmin($user)) {
+            return route('admin.administration.index');
         }
 
         if ($this->usesCustomerServiceDashboardProfile($user)) {
@@ -500,6 +513,27 @@ class AdminNavigation
             ->exists();
     }
 
+    public function canAccessMyWork(User $user): bool
+    {
+        if (! $user->is_active || $this->usesCustomerServiceDashboardProfile($user)) {
+            return false;
+        }
+
+        if ($this->canAccessPlatformErp($user)) {
+            return true;
+        }
+
+        $retailStoreIds = $this->tenantContext->retailStoreIds($user);
+
+        return $retailStoreIds !== [] && $user->storeRoleAssignments()
+            ->whereIn('store_id', $retailStoreIds)
+            ->whereHas('role', fn ($query) => $query
+                ->where('roles.is_active', true)
+                ->where('roles.scope', 'store')
+                ->where('roles.code', 'B2C_STORE_ADMIN'))
+            ->exists();
+    }
+
     public function usesCustomerServiceDashboardProfile(User $user): bool
     {
         if ($this->isSuperAdmin($user)) {
@@ -556,13 +590,58 @@ class AdminNavigation
             return null;
         }
 
+        $params = ['module' => $module];
+
+        if ($channel === 'b2c' && ! $this->isSuperAdmin($user)) {
+            // A worker may have different permissions in multiple Retail stores.
+            // Never link a permitted module to the first assigned store when the
+            // permission belongs to another store: that creates a dead 403 link.
+            // This is only navigation context; the controller still authorizes
+            // the exact store and permission independently for every request.
+            $storeId = $this->retailStoreForModule($user, $permission);
+            if ($storeId === null) {
+                return null;
+            }
+
+            $params['store_id'] = (string) $storeId;
+        }
+
         return [
             'key' => "{$channel}_{$module}",
             'label' => $label,
             'route' => "admin.{$channel}.module",
-            'params' => ['module' => $module],
+            'params' => $params,
             'permission' => $permission,
         ];
+    }
+
+    private function retailStoreForModule(User $user, ?string $permission): ?int
+    {
+        $memoKey = $user->getKey().':'.($permission ?? '*');
+        if (array_key_exists($memoKey, $this->retailModuleStoreMemo)) {
+            return $this->retailModuleStoreMemo[$memoKey];
+        }
+
+        $assigned = $this->tenantContext->retailStoreIds($user);
+        if ($assigned === []) {
+            return $this->retailModuleStoreMemo[$memoKey] = null;
+        }
+
+        $storeIds = Store::query()
+            ->businessProfile(StoreBusinessProfile::RETAIL_STORE)
+            ->where('stores.is_active', true)
+            ->whereIn('stores.id', $assigned)
+            ->orderBy('stores.id')
+            ->pluck('stores.id');
+
+        foreach ($storeIds as $storeId) {
+            $storeId = (int) $storeId;
+            if ($permission === null || $user->hasPermission($permission, $storeId)) {
+                return $this->retailModuleStoreMemo[$memoKey] = $storeId;
+            }
+        }
+
+        return $this->retailModuleStoreMemo[$memoKey] = null;
     }
 
     private function hasChannelPermission(User $user, string $channel, ?string $permission): bool

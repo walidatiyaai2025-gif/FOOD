@@ -44,6 +44,8 @@ aside.foodex-sidebar-expanded{width:var(--foodex-sidebar-width)!important}
 .foodex-sidebar-search{position:relative}.foodex-sidebar-search input{width:100%;padding-inline-start:38px}.foodex-sidebar-search .foodex-svg-icon{position:absolute;inset-inline-start:11px;top:12px;width:18px;height:18px;color:var(--foodex-muted)}
 .foodex-nav{display:grid;gap:6px}.foodex-nav-group{border:1px solid transparent;border-radius:12px}.foodex-nav-group summary{list-style:none;cursor:pointer;min-height:46px;display:grid;grid-template-columns:30px minmax(0,1fr) 18px;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;font-weight:800;color:var(--foodex-ink)}.foodex-nav-group-icon{display:grid;place-items:center;width:28px;height:28px;font-size:1.35rem;line-height:1}.foodex-nav-group summary::-webkit-details-marker{display:none}.foodex-nav-group summary:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
 .foodex-nav-group[open]{border-color:var(--foodex-border);background:#fbfcfd}.foodex-nav-group[open] summary{color:var(--foodex-green-dark)}.foodex-nav-group[open] .foodex-nav-chevron{transform:rotate(180deg)}
+/* Current page context is distinct from manually expanded groups; logical start supports RTL/LTR. */
+.foodex-nav-group.is-current-group{border-color:var(--foodex-border);border-inline-start:3px solid var(--foodex-green);background:var(--foodex-green-soft)}.foodex-nav-group.is-current-group>summary{color:var(--foodex-green-dark)}
 .foodex-nav-children{display:grid;gap:3px;padding:0 7px 7px}.foodex-nav-subchildren{display:grid;gap:2px;margin-inline-start:14px;padding-inline-start:8px;border-inline-start:1px dashed var(--foodex-border)}.foodex-nav-subchildren .foodex-nav-link{min-height:40px}.foodex-nav-link{min-height:46px;display:grid;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:9px;padding:7px 9px;border-radius:10px;color:var(--foodex-ink);text-decoration:none}.foodex-nav-link>.foodex-svg-icon{width:24px;height:24px}.foodex-nav-link:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}.foodex-nav-link.active{background:var(--foodex-action-green);color:#fff;box-shadow:0 8px 18px rgba(21,138,58,.14)}
 .foodex-nav-label{display:block;min-width:0}.foodex-nav-label strong{display:block;font-size:.86rem;line-height:1.2}.foodex-nav-label small{display:block;color:var(--foodex-muted);font-size:.67rem;margin-top:2px}.foodex-nav-link.active small{color:rgba(255,255,255,.8)}
 aside.foodex-sidebar-collapsed .foodex-sidebar-brand span:last-child,
@@ -56,6 +58,7 @@ aside.foodex-sidebar-collapsed .foodex-sidebar-head{justify-content:center;flex-
 aside.foodex-sidebar-collapsed .foodex-sidebar-brand{justify-content:center;width:100%}
 aside.foodex-sidebar-collapsed .foodex-sidebar-toggle{width:100%}
 aside.foodex-sidebar-collapsed .foodex-nav-group{border:0;background:transparent}
+aside.foodex-sidebar-collapsed .foodex-nav-group.is-current-group{border-inline-start:3px solid var(--foodex-green);background:var(--foodex-green-soft)}
 aside.foodex-sidebar-collapsed .foodex-nav-group summary{grid-template-columns:1fr;place-items:center;padding:7px}
 aside.foodex-sidebar-collapsed .foodex-nav-group:not([open]) .foodex-nav-children{display:none}
 aside.foodex-sidebar-collapsed .foodex-nav-group[open] .foodex-nav-children{padding:3px 0}
@@ -139,7 +142,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
         @foreach($navGroups as $group)
             @php($groupActive = $containsContext($group, (string)($navContext??'')))
             @php($groupPrimary = $group['label_text'] ?? __($group['label']))
-            <details class="foodex-nav-group" data-group="{{ $group['key'] }}" data-nav-group="{{ $group['key'] }}" {{ $groupActive?'open':'' }}>
+            <details class="foodex-nav-group {{ $groupActive?'is-current-group':'' }}" data-group="{{ $group['key'] }}" data-nav-group="{{ $group['key'] }}" {{ $groupActive?'open':'' }}>
                 <summary>
                     <span class="foodex-nav-group-icon" aria-hidden="true">{{ $group['icon'] }}</span>
                     <span>{{ $groupPrimary }}</span>
@@ -154,6 +157,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
         @endforeach
     </nav>
 
+    @include('admin._sidebar-personalization')
     @include('admin._assistant-chat')
 </div>
 

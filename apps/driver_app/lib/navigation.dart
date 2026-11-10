@@ -80,6 +80,12 @@ class DriverNavigator {
     final name = settings.name ?? DriverRoutes.root;
     DriverRuntimeInspector.instance.recordNavigation(name);
 
+    // Legacy B2B Driver deep-links must never open operational screens.
+    // Server authentication and middleware independently enforce the same rule.
+    if (channel != DriverChannel.b2c) {
+      return _page(const _DriverRouteDenied(), settings);
+    }
+
     if (name == DriverRoutes.root) return _page(_homeFor(channel), settings);
 
     if (!DriverRoutes.belongsTo(name, channel)) {

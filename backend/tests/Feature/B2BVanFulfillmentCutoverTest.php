@@ -97,7 +97,7 @@ class B2BVanFulfillmentCutoverTest extends TestCase
         );
     }
 
-    public function test_cutover_preserves_authorized_manual_b2b_driver_dispatch(): void
+    public function test_cutover_reconciles_even_manual_b2b_driver_dispatch(): void
     {
         [$order, , $actor, $store] = $this->orderInsideTerritory('CUTOVER-MANUAL-DRIVER', 'b2b');
         [$driver, $driverAssignment] = $this->activeDriver($order, $store, 'b2b');
@@ -121,16 +121,15 @@ class B2BVanFulfillmentCutoverTest extends TestCase
         $this->assertSame(0, $result['summary']['postflight']['b2b_active_driver']);
         $this->assertDatabaseHas('driver_assignments', [
             'id' => $driverAssignment->id,
-            'status' => 'assigned',
+            'status' => 'reassigned',
         ]);
         $this->assertDatabaseHas('order_dispatch_states', [
             'order_id' => $order->id,
-            'status' => 'assigned',
-            'routing_reason' => 'customer_service_driver_assignment',
-            'current_assignee_type' => 'driver',
-            'current_assignee_id' => $driver->id,
+            'status' => 'awaiting_dispatch',
+            'current_assignee_type' => null,
+            'current_assignee_id' => null,
         ]);
-        $this->assertDatabaseMissing('audit_logs', [
+        $this->assertDatabaseHas('audit_logs', [
             'event' => 'fulfillment.cutover.driver_ended',
             'auditable_id' => $driverAssignment->id,
         ]);

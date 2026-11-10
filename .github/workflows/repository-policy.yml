@@ -49,6 +49,10 @@ jobs:
 
       - name: Syntax-check Worker Watchdog
         run: node --check .github/scripts/worker-watchdog.js
+      - name: Test V2 lease watchdog reconciliation
+        run: |
+          node --check .github/scripts/v2-lease-watchdog.js
+          node --test .github/scripts/v2-lease-watchdog.test.js .github/scripts/v2-lease-watchdog.reconciliation.test.js
 
       - name: Test FOODEX skill router
         run: python3 -m unittest discover -s scripts/tests -p 'test_foodex_skill_router.py'

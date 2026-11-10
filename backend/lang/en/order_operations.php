@@ -236,7 +236,7 @@ return [
     ],
     'lifecycle_labels' => [
         'awaiting_driver_assignment' => 'New order · awaiting driver assignment',
-        'awaiting_dispatch_assignment' => 'New order · awaiting Driver or Van assignment',
+        'awaiting_dispatch_assignment' => 'New order · awaiting Van assignment',
         'assigned_driver' => 'Order assigned to driver',
         'assigned_van' => 'Order assigned to Van',
         'driver_processing' => 'Driver is processing the order',

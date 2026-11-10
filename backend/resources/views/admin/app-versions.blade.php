@@ -6,6 +6,12 @@
     <title>{{ __('app_versions.title') }} · FOODEX</title>
     @include('admin._brand-components')
 @include('admin._settings-page-polish')
+<style>
+.foodex-app-versions-nav{max-width:1180px;margin:0 auto 16px;display:flex;flex-wrap:wrap;gap:8px}
+.foodex-app-versions-nav .settings-page-link{min-height:var(--foodex-touch-target)}
+.foodex-app-versions-nav .settings-page-link[aria-current="page"]{background:var(--foodex-action-green);color:var(--foodex-surface);border-color:var(--foodex-action-green)}
+</style>
+
 </head>
 <body>
 <div class="foodex-admin-layout" data-foodex-mobile-web-page="app-versions">
@@ -28,6 +34,13 @@
     <p class="settings-page-note">{{ $ar
         ? 'هذه هي سياسة الإصدار الرسمية التي يعتمد عليها تطبيق الهاتف عند بدء التشغيل. إعدادات Mobile Runtime منفصلة ومعلوماتية ولا تستبدل هذه السياسة.'
         : 'This is the authoritative startup/update policy consumed by the mobile apps. Mobile Runtime settings are separate informational metadata and do not replace this policy.' }}</p>
+
+    <nav class="foodex-app-versions-nav" aria-label="{{ __('app_versions.app') }}">
+        @foreach (['customer', 'driver', 'van'] as $app)
+            <a class="settings-page-link" href="{{ route('admin.app-versions.index', ['app' => $app, 'platform' => $selectedPlatform]) }}"
+                @if ($selectedApp === $app) aria-current="page" @endif>{{ __('app_versions.'.$app) }}</a>
+        @endforeach
+    </nav>
 
     @if (session('status')) <p class="foodex-state" role="status">{{ session('status') }}</p> @endif
     @if ($errors->any()) <div class="foodex-state" role="alert"><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div> @endif

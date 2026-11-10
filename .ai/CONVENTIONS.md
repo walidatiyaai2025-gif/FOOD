@@ -51,6 +51,11 @@ vendor/bin/pint --test app routes tests
 
 For every page/screen change, first read `.ai/skills/foodex-uiux.md`, `.ai/skills/ui-pattern-library.md`, `.ai/skills/page-patterns.md`, `.ai/skills/ui-route-authority.md`, and `.ai/skills/ui-accessibility.md`, then the matching Dashboard/Customer/Driver/Van UIUX skill. Read `.ai/skills/ui-interaction-safety.md` for mutations and `.ai/skills/ui-performance.md` for list/search/live/high-growth surfaces. The surface skill points to the current production token/component files that must be reused. UI completion requires `.ai/skills/uiux-audit.md` PASS plus `.ai/skills/uiux-evidence.md` wherever runtime visual/interaction proof is required.
 
+## Sidebar depth contract (V2)
+- The authorized Dashboard sidebar is restricted to three presentation levels: business group -> page -> child page. The group counts as level 1.
+- Reject a deeper layout on the server with a field-scoped, localized validation error. Read-time normalization of historic deep/cyclic parent settings must preserve each previously authorized link exactly once without creating new permissions.
+- The canonical scope and role checks remain owned by the route/controller and `AdminNavigation`; nesting and visibility are never authorization grants.
+
 ## Dashboard UI
 
 Before changing Dashboard UI read:

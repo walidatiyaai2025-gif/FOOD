@@ -123,31 +123,30 @@
           "id": "driver.b2c.wallet",
           "route": "/driver/b2c/wallet",
           "authority": "DriverWalletPage"
-        },
-        {
-          "id": "driver.b2b.home",
-          "route": "/driver/b2b/home",
-          "authority": "DriverNavigator._homeFor",
-          "scope": "manual_dispatch_only"
-        },
-        {
-          "id": "driver.b2b.deliveries",
-          "route": "/driver/b2b/deliveries",
-          "authority": "DriverJourneyRuntimePage",
-          "scope": "manual_dispatch_only"
-        },
-        {
-          "id": "driver.b2b.notifications",
-          "route": "/driver/b2b/notifications",
-          "authority": "DriverNotificationPage",
-          "scope": "manual_dispatch_only"
         }
       ],
       "forbidden_files": [
         "apps/driver_app/lib/features/tasks/driver_journey.dart"
       ],
       "forbidden_markers": [],
-      "fulfillment_policy": "Automatic B2B routing remains Van-first; Driver B2B routes execute only explicitly assigned manual Order Operations work."
+      "fulfillment_policy": "Driver runtime is Retail B2C-only, including manual assignment, login, execution and push. B2B wholesale is Van-only; old B2B Driver routes are retained only as denied legacy deep links.",
+      "legacy_routes_denied": [
+        {
+          "id": "driver.b2b.home",
+          "route": "/driver/b2b/home",
+          "reason": "legacy_b2b_driver_execution_disabled"
+        },
+        {
+          "id": "driver.b2b.deliveries",
+          "route": "/driver/b2b/deliveries",
+          "reason": "legacy_b2b_driver_execution_disabled"
+        },
+        {
+          "id": "driver.b2b.notifications",
+          "route": "/driver/b2b/notifications",
+          "reason": "legacy_b2b_driver_execution_disabled"
+        }
+      ]
     },
     "van": {
       "authority_source": "apps/van_app/lib/features/foundation/van_screen_inventory.dart",

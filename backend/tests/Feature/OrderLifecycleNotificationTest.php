@@ -433,7 +433,7 @@ class OrderLifecycleNotificationTest extends TestCase
         Queue::assertPushed(DispatchPushNotification::class, 5);
     }
 
-    public function test_manual_b2b_driver_dispatch_receives_driver_app_notifications(): void
+    public function test_historical_b2b_driver_dispatch_does_not_generate_new_driver_notifications(): void
     {
         $this->seed(CoreReferenceSeeder::class);
         Queue::fake();
@@ -489,7 +489,7 @@ class OrderLifecycleNotificationTest extends TestCase
         $service = app(OrderLifecycleNotificationService::class);
         $service->driverAssigned($order, $assignment, null, true);
 
-        $this->assertDatabaseHas('notifications', [
+        $this->assertDatabaseMissing('notifications', [
             'user_id' => $driverUser->id,
             'app' => 'driver',
             'target_channel' => 'b2b',
@@ -522,13 +522,16 @@ class OrderLifecycleNotificationTest extends TestCase
 
         $service->orderStatusChanged($order->fresh(), 'ready', 'out_for_delivery');
 
-        $this->assertDatabaseHas('notifications', [
+        $this->assertDatabaseMissing('notifications', [
             'user_id' => $driverUser->id,
             'app' => 'driver',
             'target_channel' => 'b2b',
             'type' => 'order.status_changed',
         ]);
-        Queue::assertPushed(DispatchPushNotification::class, 2);
+        $this->assertSame(0, DB::table('notifications')
+            ->where('user_id', $driverUser->id)
+            ->where('app', 'driver')
+            ->count());
     }
 
     /** @return array{0:Order,1:User} */

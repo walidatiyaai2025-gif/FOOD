@@ -120,7 +120,7 @@ class DashboardUiComplianceTest extends TestCase
         $this->assertStringContainsString('OrderDispatchState::query()', $controller);
         $this->assertStringContainsString('OrderVanAssignment::query()', $controller);
         $this->assertStringContainsString('OrderManualDispatchService $dispatch', $controller);
-        $this->assertStringContainsString("'customer_service_override' => true", $controller);
+        $this->assertStringContainsString('assertManualDispatchActor', $controller);
 
         $this->assertStringContainsString("name('operations.orders.dispatch')", $routes);
         $this->assertStringContainsString("name('operations.orders.dispatch.clear')", $routes);

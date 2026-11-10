@@ -61,7 +61,7 @@ class AppVersionPolicyTest extends TestCase
             'app' => 'customer', 'platform' => 'ios',
             'latest_version' => '2.1.0', 'minimum_supported_version' => '2.0.0',
             'store_url' => 'https://apps.apple.com/app/id123456789',
-        ])->assertRedirect('/admin/settings/app-versions');
+        ])->assertRedirect('/admin/settings/app-versions?app=customer&platform=ios');
 
         $this->assertDatabaseHas('app_versions', ['app' => 'customer', 'platform' => 'ios', 'latest_version' => '2.1.0']);
         $this->assertDatabaseHas('audit_logs', ['event' => 'app_version_policy.updated', 'user_id' => $user->id]);

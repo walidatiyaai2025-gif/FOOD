@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 
 final class AdminSidebarManager
@@ -258,6 +259,28 @@ final class AdminSidebarManager
             return [];
         }
 
+        // Fail closed on stale/missing route names before applying layout and
+        // role visibility. A hidden/disabled feature can leave a registered
+        // Sidebar item behind; never show a link that Laravel cannot resolve.
+        // Preserve the Platform Owner's complete *valid* diagnostic inventory.
+        foreach ($groups as &$group) {
+            $group['children'] = array_values(array_filter(
+                (array) ($group['children'] ?? []),
+                static fn (array $item): bool => is_string($item['route'] ?? null)
+                    && Route::has($item['route']),
+            ));
+        }
+        unset($group);
+
+        $groups = array_values(array_filter(
+            $groups,
+            static fn (array $group): bool => $group['children'] !== [],
+        ));
+
+        if ($groups === []) {
+            return [];
+        }
+
         // The internally registered owner must see the authoritative module
         // inventory even if an administrator hid a sidebar item/group. Disabled
         // runtime modules still resolve to diagnostics in AdminNavigation.
@@ -330,41 +353,57 @@ final class AdminSidebarManager
             $items = $entry['items'];
             uasort($items, static fn (array $a, array $b): int => $a['sort_order'] <=> $b['sort_order'] ?: strcmp($a['key'], $b['key']));
 
-            $childrenByParent = [];
+            // Group = level 1, root page = level 2, child page = level 3.
+            // Historic configurations may contain deeper chains or cycles. Flatten
+            // each authorized descendant under its highest reachable root rather
+            // than losing links or permitting unbounded Blade recursion.
+            $effectiveParents = [];
             foreach ($items as $key => $item) {
-                $parent = is_string($item['parent_key'] ?? null) ? $item['parent_key'] : null;
-                if ($parent !== null && $parent !== $key && isset($items[$parent])) {
+                $candidate = $item['parent_key'] ?? null;
+                $seen = [$key => true];
+
+                while (is_string($candidate) && $candidate !== '' && isset($items[$candidate])) {
+                    if (isset($seen[$candidate])) {
+                        $candidate = null;
+
+                        break;
+                    }
+
+                    $seen[$candidate] = true;
+                    $next = $items[$candidate]['parent_key'] ?? null;
+                    if (! is_string($next) || $next === '' || ! isset($items[$next])) {
+                        break;
+                    }
+
+                    $candidate = $next;
+                }
+
+                $effectiveParents[$key] = is_string($candidate) && isset($items[$candidate])
+                    ? $candidate
+                    : null;
+            }
+
+            $childrenByParent = [];
+            foreach ($effectiveParents as $key => $parent) {
+                if ($parent !== null) {
                     $childrenByParent[$parent][] = $key;
                 }
             }
 
-            $build = function (string $key, array $trail = []) use (&$build, $items, $childrenByParent): array {
-                $item = $items[$key];
-                if (in_array($key, $trail, true)) {
-                    $item['children'] = [];
-
-                    return $item;
-                }
-
-                $trail[] = $key;
-                $item['children'] = array_map(
-                    fn (string $childKey): array => $build($childKey, $trail),
-                    $childrenByParent[$key] ?? [],
-                );
-
-                return $item;
-            };
-
             $nested = [];
-            foreach (array_keys($items) as $key) {
-                $parent = is_string($items[$key]['parent_key'] ?? null) ? $items[$key]['parent_key'] : null;
-                if ($parent === null || ! isset($items[$parent]) || $parent === $key) {
-                    $nested[] = $build($key);
+            foreach ($items as $key => $item) {
+                if ($effectiveParents[$key] !== null) {
+                    continue;
                 }
-            }
 
-            if ($nested === []) {
-                $nested = array_map(fn (string $key): array => $build($key), array_keys($items));
+                $item['children'] = [];
+                foreach ($childrenByParent[$key] ?? [] as $childKey) {
+                    $child = $items[$childKey];
+                    $child['children'] = [];
+                    $item['children'][] = $child;
+                }
+
+                $nested[] = $item;
             }
 
             $group = $entry['group'];
