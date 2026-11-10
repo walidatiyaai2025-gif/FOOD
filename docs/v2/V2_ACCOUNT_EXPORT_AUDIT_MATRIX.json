@@ -1,0 +1,168 @@
+{
+  "schema": 1,
+  "source": "FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx",
+  "parent_issue": 2503,
+  "base": "Foodex_V2",
+  "items": [
+    {
+      "id": "T5R1",
+      "document_source_pointer": "Native DOCX Table 5, data row 1",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 1",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R2",
+      "document_source_pointer": "Native DOCX Table 5, data row 2",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 2",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R3",
+      "document_source_pointer": "Native DOCX Table 5, data row 3",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 3",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R4",
+      "document_source_pointer": "Native DOCX Table 5, data row 4",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 4",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R5",
+      "document_source_pointer": "Native DOCX Table 5, data row 5",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 5",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R6",
+      "document_source_pointer": "Native DOCX Table 5, data row 6",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 6",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R7",
+      "document_source_pointer": "Native DOCX Table 5, data row 7",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 7",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R8",
+      "document_source_pointer": "Native DOCX Table 5, data row 8",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 8",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R9",
+      "document_source_pointer": "Native DOCX Table 5, data row 9",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 9",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R10",
+      "document_source_pointer": "Native DOCX Table 5, data row 10",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 10",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R11",
+      "document_source_pointer": "Native DOCX Table 5, data row 11",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 11",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R12",
+      "document_source_pointer": "Native DOCX Table 5, data row 12",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 12",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R13",
+      "document_source_pointer": "Native DOCX Table 5, data row 13",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 13",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R14",
+      "document_source_pointer": "Native DOCX Table 5, data row 14",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 14",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R15",
+      "document_source_pointer": "Native DOCX Table 5, data row 15",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 15",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R16",
+      "document_source_pointer": "Native DOCX Table 5, data row 16",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 16",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R17",
+      "document_source_pointer": "Native DOCX Table 5, data row 17",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 17",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R18",
+      "document_source_pointer": "Native DOCX Table 5, data row 18",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 18",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R19",
+      "document_source_pointer": "Native DOCX Table 5, data row 19",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 19",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    },
+    {
+      "id": "T5R20",
+      "document_source_pointer": "Native DOCX Table 5, data row 20",
+      "title": "V2 | RBAC Exported Account Audit — Table 5 / Row 20",
+      "domain": "user-role-assignments",
+      "summary": "Validate this exact exported user's account classification, active/scoped roles, effect on permissions and Sidebar. Preserve privacy; do not display credentials or change production account.",
+      "issue_number": null
+    }
+  ]
+}
