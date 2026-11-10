@@ -34,8 +34,12 @@ final class V2ArchivedIdentityAccessRetentionTest extends TestCase
         $this->patchJson("/api/v1/admin/security/users/{$target->id}/status", [
             'is_active' => false,
             'reason' => 'V2 archive',
-        ])->assertOk();
+        ])->assertOk()->assertJsonPath('data.is_active', false);
 
+        // The API request used a separately hydrated route model. Rehydrate the
+        // prior Dashboard identity from storage rather than using the stale
+        // in-memory test fixture (which still has is_active=true).
+        $this->assertFalse($target->refresh()->is_active);
         $this->actingAs($target)->get('/admin/security')->assertForbidden();
         $this->post('/admin/b2b/login', [
             'email' => $target->email,
