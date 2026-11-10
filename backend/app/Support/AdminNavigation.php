@@ -12,6 +12,7 @@ use App\Enums\StoreBusinessProfile;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\AdminSidebarManager;
+use App\Services\EnterpriseWorkspaceComposer;
 use App\Services\OperationalTenantScope;
 use Illuminate\Support\Facades\Route;
 use Throwable;
@@ -40,6 +41,7 @@ class AdminNavigation
         private readonly TenantContextResolver $tenantContext,
         private readonly SmartOrderingEnterpriseEntitlementBridge $restaurantSaasAccess,
         private readonly AdminSidebarManager $sidebarManager,
+        private readonly EnterpriseWorkspaceComposer $enterpriseWorkspaces,
     ) {}
 
     /** @return array<string, array<string, mixed>> */
@@ -76,6 +78,9 @@ class AdminNavigation
         $hideRetailWorkspaces = $isSuperAdmin && ! $user->isPlatformOwner();
         $canAccessPlatformErp = $this->canAccessPlatformErp($user);
         $canAccessPlatformNavigation = $canAccessPlatformErp;
+        // Avoid repeating global Super Admin role queries for an already-authorized platform actor.
+        $canAccessWorkspaces = $canAccessPlatformNavigation
+            || $this->enterpriseWorkspaces->availableWorkspaceKeys($user) !== [];
         $useCustomerServiceDashboardProfile = $this->usesCustomerServiceDashboardProfile($user);
 
         // Business-first order: enter a channel, define stores/catalog/accounts, execute operations,
@@ -85,7 +90,9 @@ class AdminNavigation
                 $this->canAccessMyWork($user)
                     ? $this->routeItemOpen('enterprise_action_center', 'enterprise_action_center.nav_title', 'admin.action-center.index')
                     : null,
-                $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
+                // Use the same effective platform/store-scope decision as the actual HTTP workspace controller.
+                // A scoped Retail sales workspace must not be a hidden, direct-URL-only destination.
+                $canAccessWorkspaces && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemOpen('enterprise_workspaces', 'enterprise_workspaces.nav_title', 'admin.enterprise-workspaces.index')
                     : null,
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'dashboard', 'admin.premium_nav.dashboard', null),
@@ -142,7 +149,9 @@ class AdminNavigation
                     : null,
             ]),
             $this->group('customer_service', 'admin.nav_groups.customer_service', '◉', [
-                $canAccessPlatformNavigation ? $this->whatsAppInboxItem($user) : null,
+                // The canonical Inbox route accepts authorized store-scoped Retail support
+                // actors as well as global operators. ERP visibility is not a grant.
+                $this->whatsAppInboxItem($user),
             ]),
             $this->group('operations', 'admin.nav_groups.operations', '↻', [
                 $this->routeItemScoped($user, 'order_operations', 'admin.order_management', 'admin.operations.orders.index', 'orders.view'),
@@ -157,7 +166,7 @@ class AdminNavigation
                 $this->routeItemAny($user, 'field_ops_overview', 'admin.field_operations.overview', 'admin.field-operations.overview', ['field_ops.manage', 'drivers.b2b.view', 'drivers.tracking.view', 'customers.view', 'territories.manage', 'finance.view']),
                 $this->routeItemAny($user, 'field_ops_fleet', 'admin.field_operations.fleet', 'admin.field-operations.fleet', ['drivers.tracking.view']),
                 $this->routeItemAny($user, 'field_ops_vans', 'admin.field_operations.vans', 'admin.field-operations.vans', ['drivers.b2b.view']),
-                $this->routeItemAny($user, 'field_ops_assignments', 'admin.field_operations.assignments', 'admin.field-operations.assignments', ['drivers.b2b.view', 'field_ops.manage']),
+                $this->routeItemAny($user, 'field_ops_assignments', 'admin.field_operations.assignments', 'admin.field-operations.assignments', ['drivers.b2b.view']),
                 $this->routeItemAll($user, 'field_ops_customers', 'admin.field_operations.customers', 'admin.field-operations.customers', ['customers.view', 'drivers.b2b.view']),
                 $this->routeItemAll($user, 'field_ops_visits', 'admin.field_operations.visits', 'admin.field-operations.visits', ['drivers.b2b.view', 'customers.view']),
                 $this->routeItemAny($user, 'field_ops_territories', 'admin.field_operations.territories', 'admin.field-operations.territories', ['territories.manage', 'field_ops.manage']),
@@ -246,9 +255,9 @@ class AdminNavigation
                 'b2c_products',
                 'b2c_inventory',
                 'b2c_orders',
-                // Canonical Retail incoming orders uses this key; hiding it here
-                // created a dead-end for genuinely authorized store staff.
-                'b2c_incoming_orders',
+                // The actual B2C drivers HTTP workspace is already scoped by
+                // role, business profile and store; keep it discoverable here.
+                'b2c_drivers',
                 'b2c_customers',
                 'b2c_customer_groups',
                 'b2c_promotions',

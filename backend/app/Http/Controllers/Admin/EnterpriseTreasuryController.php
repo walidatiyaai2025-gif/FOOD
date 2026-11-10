@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Entitlements\ModuleEntitlementResolver;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Reporting\ReportExportManager;
 use App\Enterprise\Reporting\ReportQuery;
@@ -57,6 +58,7 @@ final class EnterpriseTreasuryController extends Controller
         private readonly TenantContextResolver $tenants,
         private readonly AdminNavigation $navigation,
         private readonly ModuleRegistry $modules,
+        private readonly ModuleEntitlementResolver $entitlements,
     ) {}
 
     public function index(Request $request): View
@@ -109,6 +111,12 @@ final class EnterpriseTreasuryController extends Controller
             'bankAccounts' => $bankAccounts,
             'targetLabels' => $targetLabels,
             'canManage' => $this->allowed($actor, $storeId, 'finance.manage'),
+            // P297 reconciliation actions must match the service's store-scoped
+            // capability requirements; finance.manage alone is not authority.
+            'canManageReconciliation' => $this->allowed($actor, $storeId, 'finance.manage')
+                && $this->entitlements->allows('treasury', new EntitlementScope(EntitlementScope::STORE, $storeId), 'treasury.reconciliation.manage'),
+            'canApproveReconciliation' => $this->allowed($actor, $storeId, 'finance.manage')
+                && $this->entitlements->allows('treasury', new EntitlementScope(EntitlementScope::STORE, $storeId), 'treasury.reconciliation.approve'),
             'rows' => null,
             'dashboard' => null,
             'forecast' => null,

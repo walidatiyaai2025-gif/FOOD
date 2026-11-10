@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enterprise\Modules\ModuleOperationalReadiness;
+use App\Enterprise\Modules\ModuleRegistry;
 use App\Http\Controllers\Controller;
 use App\Models\Permission;
 use App\Models\Role;
@@ -18,8 +20,12 @@ use Illuminate\Validation\ValidationException;
 
 final class SidebarManagementController extends Controller
 {
-    public function roleAccess(Request $request, AdminSidebarManager $sidebar): View
-    {
+    public function roleAccess(
+        Request $request,
+        AdminSidebarManager $sidebar,
+        ModuleRegistry $moduleRegistry,
+        ModuleOperationalReadiness $moduleReadiness,
+    ): View {
         Gate::authorize('roles.manage');
         $this->useActorLocale($request);
 
@@ -40,8 +46,22 @@ final class SidebarManagementController extends Controller
         // authority for role changes, scope and elevated grants.
         $matrix = $sidebar->roleMatrix($selectedRole);
         $permissionCodes = [];
+        $moduleReadinessByCode = [];
         foreach ($matrix['groups'] as $group) {
             foreach ($group['items'] as $item) {
+                $moduleCode = $item['meta']['module'] ?? null;
+                if (is_string($moduleCode) && $moduleCode !== '' && ! array_key_exists($moduleCode, $moduleReadinessByCode)) {
+                    try {
+                        $moduleReadinessByCode[$moduleCode] = $moduleReadiness->status(
+                            $moduleCode,
+                            $moduleRegistry->manifest($moduleCode)->version,
+                            $moduleRegistry->state($moduleCode),
+                        ) === 'ready';
+                    } catch (\Throwable) {
+                        // Fail closed without leaking internal health details to the preview.
+                        $moduleReadinessByCode[$moduleCode] = false;
+                    }
+                }
                 foreach ($item['permissions'] as $code) {
                     $permissionCodes[$code] = true;
                 }
@@ -73,6 +93,7 @@ final class SidebarManagementController extends Controller
             'roles' => $roles,
             'selectedRole' => $selectedRole,
             'matrix' => $matrix,
+            'moduleReadinessByCode' => $moduleReadinessByCode,
             'pagePermissionsByCode' => $pagePermissionsByCode,
             'selectedPermissionIds' => $selectedPermissionIds,
             'preservedPermissionIds' => array_values(array_diff($selectedPermissionIds, $pagePermissionIds)),

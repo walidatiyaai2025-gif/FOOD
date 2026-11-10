@@ -111,10 +111,15 @@ final class FieldOperationsController extends Controller
             }
         }
 
-        $outstanding = $canFinance
+        // The custody card shares the same authorized B2B store boundary as
+        // the dashboard KPIs and selected store filter. An unscoped total would
+        // disclose a foreign Retail/Wholesale account balance in this view.
+        $summaryStoreIds = $selectedStoreId === null ? $storeIds : [$selectedStoreId];
+        $outstanding = $canFinance && $summaryStoreIds !== []
             ? (float) DB::table('custody_ledger_entries')
                 ->join('collection_accounts', 'collection_accounts.id', '=', 'custody_ledger_entries.collection_account_id')
                 ->where('collection_accounts.actor_type', 'van')
+                ->whereIn('collection_accounts.store_id', $summaryStoreIds)
                 ->sum('custody_ledger_entries.amount')
             : 0.0;
 
