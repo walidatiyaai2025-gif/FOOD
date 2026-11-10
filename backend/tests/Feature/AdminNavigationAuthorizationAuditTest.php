@@ -235,6 +235,39 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
             ->assertOk();
     }
 
+    public function test_v2_notifications_overview_entry_uses_canonical_authorization(): void
+    {
+        $superAdmin = $this->globalUser('SUPER_ADMIN', 'v2-notifications-super@example.test');
+        $this->assertTrue($superAdmin->hasPermission('notifications.manage'));
+
+        $superItems = collect(app(AdminNavigation::class)->groupsFor($superAdmin))
+            ->firstWhere('key', 'overview')['children'];
+
+        $notificationItem = collect($superItems)->firstWhere('key', 'notifications_center');
+        $this->assertNotNull($notificationItem);
+        $this->assertSame('admin.notifications.index', $notificationItem['route']);
+        $this->assertSame('notifications.title', $notificationItem['label']);
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.notifications.index'))
+            ->assertOk();
+
+        foreach ([
+            $this->globalUser('B2B_ADMIN', 'v2-notifications-b2b@example.test'),
+            $this->retailAdmin('v2-notifications-retail@example.test'),
+        ] as $unauthorized) {
+            $this->assertFalse(
+                collect(app(AdminNavigation::class)->groupsFor($unauthorized))
+                    ->flatMap(fn (array $group) => $group['children'])
+                    ->contains('key', 'notifications_center'),
+            );
+
+            $this->actingAs($unauthorized)
+                ->get(route('admin.notifications.index'))
+                ->assertForbidden();
+        }
+    }
+
     public function test_global_platform_admin_keeps_platform_navigation_entries(): void
     {
         $user = $this->globalUser('B2B_ADMIN', 'nav-platform-sidebar@example.test');
