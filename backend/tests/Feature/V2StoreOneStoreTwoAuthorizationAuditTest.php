@@ -143,7 +143,7 @@ class V2StoreOneStoreTwoAuthorizationAuditTest extends TestCase
                 ->assertOk();
             $this->actingAs($user)
                 ->get(route('admin.b2b.customer-groups.index'))
-                ->assertForbidden();
+                ->assertNotFound();
         }
     }
 
