@@ -50,6 +50,8 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
 <h2 id="v2-role-preview-title">{{ __('v2_role_permissions.preview_title') }}</h2>
 <p class="muted">{{ __('v2_role_permissions.preview_description') }}</p>
 <p class="preview-summary" role="status" aria-live="polite" data-v2-preview-summary>{{ __('v2_role_permissions.preview_initial') }}</p>
+<p class="muted">{{ __('v2_role_permissions.preview_module') }}</p>
+<p class="muted">{{ __('v2_role_permissions.preview_server') }}</p>
 </section>
 <div class="matrix">
 @php($seenPermissionCodes = [])
