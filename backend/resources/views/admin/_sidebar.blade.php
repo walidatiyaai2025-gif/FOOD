@@ -41,7 +41,9 @@ aside.foodex-sidebar-expanded{width:var(--foodex-sidebar-width)!important}
 .foodex-sidebar-brand{min-height:48px;display:flex;align-items:center;gap:9px;color:var(--foodex-green-dark);font-weight:800;text-decoration:none;white-space:nowrap;overflow:hidden}
 .foodex-sidebar-brand-mark{width:42px;height:34px;flex:0 0 42px;border-radius:8px;display:grid;place-items:center;background:#fff;overflow:hidden;border:1px solid var(--foodex-border)}\n.foodex-sidebar-brand-mark img{width:100%;height:100%;object-fit:contain}
 .foodex-sidebar-toggle{width:40px;height:40px;flex:0 0 40px;border:1px solid var(--foodex-border);border-radius:10px;background:#fff;color:var(--foodex-green-dark);cursor:pointer;font-size:18px}
-.foodex-sidebar-search{position:relative}.foodex-sidebar-search input{width:100%;padding-inline-start:38px}.foodex-sidebar-search .foodex-svg-icon{position:absolute;inset-inline-start:11px;top:12px;width:18px;height:18px;color:var(--foodex-muted)}
+.foodex-sidebar-search{position:relative}.foodex-sidebar-search input{width:100%;padding-inline-start:38px}
+.foodex-nav-link[hidden],.foodex-nav-subchildren[hidden],.foodex-nav-group[hidden],.foodex-sidebar-search-empty[hidden]{display:none!important}
+.foodex-sidebar-search-empty{margin:4px 8px;padding:10px 12px;border:1px dashed var(--foodex-border);border-radius:10px;color:var(--foodex-muted);font-size:.82rem}.foodex-sidebar-search .foodex-svg-icon{position:absolute;inset-inline-start:11px;top:12px;width:18px;height:18px;color:var(--foodex-muted)}
 .foodex-nav{display:grid;gap:6px}.foodex-nav-group{border:1px solid transparent;border-radius:12px}.foodex-nav-group summary{list-style:none;cursor:pointer;min-height:46px;display:grid;grid-template-columns:30px minmax(0,1fr) 18px;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;font-weight:800;color:var(--foodex-ink)}.foodex-nav-group-icon{display:grid;place-items:center;width:28px;height:28px;font-size:1.35rem;line-height:1}.foodex-nav-group summary::-webkit-details-marker{display:none}.foodex-nav-group summary:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
 .foodex-nav-group[open]{border-color:var(--foodex-border);background:#fbfcfd}.foodex-nav-group[open] summary{color:var(--foodex-green-dark)}.foodex-nav-group[open] .foodex-nav-chevron{transform:rotate(180deg)}
 /* Current page context is distinct from manually expanded groups; logical start supports RTL/LTR. */
@@ -133,9 +135,9 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
         <button class="foodex-sidebar-toggle" type="button" aria-label="{{ __('admin.sidebar_toggle') }}" aria-expanded="false" data-foodex-sidebar-toggle>☰</button>
     </div>
 
-    <div class="foodex-sidebar-search">
+    <div class="foodex-sidebar-search" role="search">
         @include('admin._premium-icon',['name'=>'search'])
-        <input type="search" data-foodex-nav-search placeholder="{{ __('admin.sidebar_search') }}" autocomplete="off">
+        <input type="search" data-foodex-nav-search aria-label="{{ __('admin.sidebar_search') }}" placeholder="{{ __('admin.sidebar_search') }}" autocomplete="off">
     </div>
 
     <nav class="foodex-nav" aria-label="{{ __('admin.navigation') }}" data-foodex-nav>
@@ -156,6 +158,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
             </details>
         @endforeach
     </nav>
+    <p class="foodex-sidebar-search-empty" data-foodex-nav-search-empty role="status" aria-live="polite" hidden>{{ __('sidebar_admin.search_empty') }}</p>
 
     @include('admin._sidebar-personalization')
     @include('admin._assistant-chat')
@@ -382,21 +385,61 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     syncViewport();
 
     const groups = [...(nav?.querySelectorAll('[data-group]') || [])];
+    const emptyState = shell.querySelector('[data-foodex-nav-search-empty]');
     groups.forEach(group => {
         if (!group.querySelector('[aria-current="page"]') && !compactMedia.matches) group.open = false;
     });
 
-    search?.addEventListener('input', () => {
-        const needle = search.value.trim().toLocaleLowerCase();
+    // Search only the already RBAC/tenant/module-authorized links rendered by
+    // AdminNavigation. Never request or index hidden server-side destinations.
+    const normalized = value => (value || '').trim().normalize('NFKC').toLocaleLowerCase();
+    let previousExpansion = null;
+    const updateSearch = () => {
+        const needle = normalized(search?.value);
+        if (needle && previousExpansion === null) {
+            previousExpansion = new Map(groups.map(group => [group, group.open]));
+        }
+
+        let matchingLinks = 0;
         groups.forEach(group => {
-            let visible=false;
-            group.querySelectorAll('.foodex-nav-link').forEach(link => {
-                const match = needle==='' || (link.dataset.navLabel||'').includes(needle);
-                link.hidden=!match; visible ||= match;
+            const groupLabel = normalized(group.querySelector('summary')?.textContent);
+            const matchGroup = needle !== '' && groupLabel.includes(needle);
+            const links = [...group.querySelectorAll('.foodex-nav-link')];
+            links.forEach(link => {
+                const label = normalized(link.dataset.navLabel || link.textContent);
+                link.hidden = needle !== '' && !matchGroup && !label.includes(needle);
             });
-            group.hidden=!visible;
-            if(needle!=='' && visible) group.open=true;
+
+            // Keep a parent destination visible when its nested child matches,
+            // so a search result retains its actual business/navigation context.
+            group.querySelectorAll('.foodex-nav-subchildren').forEach(children => {
+                const hasMatch = !!children.querySelector('.foodex-nav-link:not([hidden])');
+                children.hidden = needle !== '' && !hasMatch;
+                if (needle !== '' && hasMatch) {
+                    const parent = children.previousElementSibling;
+                    if (parent?.matches('.foodex-nav-link')) parent.hidden = false;
+                }
+            });
+
+            const visibleCount = group.querySelectorAll('.foodex-nav-link:not([hidden])').length;
+            matchingLinks += visibleCount;
+            group.hidden = needle !== '' && visibleCount === 0;
+            if (needle !== '') group.open = visibleCount > 0;
+            else if (previousExpansion !== null) group.open = previousExpansion.get(group) ?? false;
         });
+        if (!needle) previousExpansion = null;
+        if (emptyState) emptyState.hidden = !needle || matchingLinks > 0;
+    };
+
+    search?.addEventListener('input', updateSearch);
+    search?.addEventListener('keydown', event => {
+        if (event.key !== 'Escape' || !search.value) return;
+        // First Escape clears search; a second Escape can close the mobile drawer.
+        event.stopPropagation();
+        event.preventDefault();
+        search.value = '';
+        updateSearch();
+        search.focus({ preventScroll: true });
     });
 })();
 </script>
