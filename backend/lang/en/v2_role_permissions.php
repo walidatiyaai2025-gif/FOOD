@@ -26,6 +26,7 @@ return [
     'preview_module' => 'Platform module readiness is checked here; actual user and tenant entitlements still require server authorization.',
     'preview_module_blocked' => 'Module not operationally ready; this navigation item cannot be used.',
     'preview_server' => 'The live server alone decides final route, role, tenant and store authorization.',
+    'preview_action_boundary' => 'This preview describes potential page-link visibility only. It does not authorize Approve, Post or Dispatch actions. Each action requires its own server-side permission, scope and segregation-of-duties checks.',
     'preview_summary' => ':eligible role-eligible items; :restricted restricted or hidden. Final user access not confirmed.',
     'save' => 'Save role permissions',
     'confirm' => 'Changing this role affects every assigned user. Continue?',
