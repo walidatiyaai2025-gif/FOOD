@@ -152,6 +152,7 @@ final class V2SidebarAuthorizedGroupCountsTest extends TestCase
             );
             if ($count <= 1) {
                 $this->assertSame(0, $found, 'Single-link groups should not display a noisy count.');
+
                 continue;
             }
 
