@@ -26,6 +26,13 @@ final class V2RetailContentSidebarHttpTest extends TestCase
 
         config()->set('security.mfa.enforce_privileged', false);
         $this->seed(CoreReferenceSeeder::class);
+
+        // Test the canonical default navigation, not admin-saved presentation
+        // preferences left by unrelated scenarios. These are optional display
+        // overrides and must not be confused with effective route permission.
+        DB::table('admin_sidebar_role_visibility')->delete();
+        DB::table('admin_sidebar_items')->delete();
+        DB::table('admin_sidebar_groups')->delete();
     }
 
     public function test_authorized_retail_content_is_discoverable_and_opens_in_arabic_and_english(): void
