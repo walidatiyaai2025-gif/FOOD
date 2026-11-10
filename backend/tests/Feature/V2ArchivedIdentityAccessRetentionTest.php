@@ -78,6 +78,24 @@ final class V2ArchivedIdentityAccessRetentionTest extends TestCase
             'status' => 'issued',
         ]);
 
+        $invoiceItemId = (int) DB::table('invoice_items')->insertGetId([
+            'invoice_id' => $invoice->id,
+            'description' => 'Retained historical line',
+            'quantity' => 1,
+            'unit_price' => 75.000,
+            'line_total' => 75.000,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $paymentId = (int) DB::table('payments')->insertGetId([
+            'invoice_id' => $invoice->id,
+            'provider' => 'offline',
+            'status' => 'captured',
+            'amount' => 75.000,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         Sanctum::actingAs($user);
         app(RbacManager::class)->setUserActive(
             $actor,
@@ -99,6 +117,8 @@ final class V2ArchivedIdentityAccessRetentionTest extends TestCase
             'customer_id' => $customer->id,
             'invoice_number' => 'V2-ARCHIVE-INV-1',
         ]);
+        $this->assertDatabaseHas('invoice_items', ['id' => $invoiceItemId, 'invoice_id' => $invoice->id]);
+        $this->assertDatabaseHas('payments', ['id' => $paymentId, 'invoice_id' => $invoice->id]);
         $this->assertDatabaseHas('customers', ['id' => $customer->id]);
         $this->assertDatabaseHas('audit_logs', ['event' => 'user.status_changed', 'auditable_id' => $user->id]);
     }
@@ -112,6 +132,8 @@ final class V2ArchivedIdentityAccessRetentionTest extends TestCase
             ['VAN_OPERATOR', '/api/v1/van/visits'],
         ] as [$role, $endpoint]) {
             $user = $this->userWithRole($role);
+            Sanctum::actingAs($user);
+            $this->getJson('/api/v1/profile')->assertOk();
             app(RbacManager::class)->setUserActive(
                 $actor,
                 $user,
