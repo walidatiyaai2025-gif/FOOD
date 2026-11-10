@@ -32,8 +32,8 @@ final class V2SidebarFavoritesQuickAccessTest extends TestCase
                 ->assertSee(__('sidebar_personalization.favorites_title', [], $locale));
 
             $html = (string) $response->getContent();
-            $this->assertStringContainsString("nav.before(favoritesPanel)", $html);
-            $this->assertStringContainsString("favoritesList.replaceChildren()", $html);
+            $this->assertStringContainsString('nav.before(favoritesPanel)', $html);
+            $this->assertStringContainsString('favoritesList.replaceChildren()', $html);
 
             preg_match_all('/data-nav-group="([^"]+)"/', $html, $matches);
             $this->assertEqualsCanonicalizing(
@@ -81,11 +81,10 @@ final class V2SidebarFavoritesQuickAccessTest extends TestCase
         $this->assertStringContainsString('button.textContent = title', $component);
         $this->assertStringContainsString('group.open = true', $component);
         $this->assertStringContainsString("favoritesList.addEventListener('click'", $component);
-        $this->assertStringContainsString("group.dataset.navGroup === button.dataset.favoriteGroup", $component);
-        $this->assertStringContainsString("!prefs.hidden.includes(group.dataset.navGroup)", $component);
-        $this->assertStringContainsString("favoritesPanel.hidden = favoritesList.childElementCount === 0", $component);
+        $this->assertStringContainsString('group.dataset.navGroup === button.dataset.favoriteGroup', $component);
+        $this->assertStringContainsString('!prefs.hidden.includes(group.dataset.navGroup)', $component);
         $this->assertStringContainsString("button.setAttribute('aria-label', names.openFavorite", $component);
-        $this->assertStringContainsString("favoritesPanel.hidden = favoritesList.childElementCount === 0", $component);
+        $this->assertStringContainsString('favoritesPanel.hidden = favoritesList.childElementCount === 0', $component);
         $this->assertStringContainsString("search.dispatchEvent(new Event('input', {bubbles:true}))", $component);
         $this->assertStringContainsString('min-height:44px', $component);
         $this->assertStringNotContainsString("createElement('a')", $component);
