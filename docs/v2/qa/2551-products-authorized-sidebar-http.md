@@ -27,7 +27,7 @@ The Sidebar item and HTTP action are separately checked; visibility never consti
 New `backend/tests/Feature/V2ProductsAuthorizedSidebarHttpTest.php` checks:
 
 1. Authorized global `B2B_ADMIN` discovers `b2b_products` in the Catalog group, exact route/permission/label, and receives real Products workspace HTTP 200 in Arabic RTL and English LTR.
-2. `B2C_STORE_ADMIN` discovers `b2c_products` with the *assigned* `store_id`, receives HTTP 200 in both locales, and receives HTTP 403 when requesting a foreign retail store. Read-only navigation cannot alter the product count.
+2. `B2C_STORE_ADMIN` discovers `b2c_products` with the *assigned* `store_id`, receives HTTP 200 in both locales, and receives HTTP 404 when requesting a foreign retail store (intentional non-disclosure via workspace store resolution). Read-only navigation cannot alter the product count.
 3. Roleless and inactive identities receive no Product links and HTTP 403; Retail-only actor cannot enter Wholesale Products.
 4. Unknown channel module names return HTTP 404 and cannot be passed off as a valid product destination.
 
