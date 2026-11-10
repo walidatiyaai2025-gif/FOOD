@@ -74,6 +74,33 @@
         updateImpact();
     });
 
+    // P363: browse the roles already rendered by the authorized server
+    // response. Filtering never changes access, grants or role assignments.
+    document.querySelectorAll('[data-role-search-panel]').forEach((panel) => {
+        const input = panel.querySelector('[data-role-search]');
+        const count = panel.querySelector('[data-role-results-count]');
+        const empty = panel.querySelector('[data-role-search-empty]');
+        const cards = [...panel.querySelectorAll('[data-role-search-card]')];
+        if (!input) return;
+
+        const apply = () => {
+            const query = normalize(input.value.trim()).normalize('NFKC');
+            let shown = 0;
+            cards.forEach((card) => {
+                const value = normalize(card.dataset.roleSearchText || '').normalize('NFKC');
+                card.hidden = query !== '' && !value.includes(query);
+                if (!card.hidden) shown += 1;
+            });
+            if (count) {
+                const template = count.dataset.countTemplate || '';
+                count.textContent = template.replace(':shown', String(shown)).replace(':total', String(cards.length));
+            }
+            if (empty) empty.hidden = shown !== 0;
+        };
+        input.addEventListener('input', apply);
+        apply();
+    });
+
     document.querySelectorAll('[data-list-search]').forEach((input) => {
         const root = input.closest('[data-permission-picker], form') || document;
         const apply = () => {
