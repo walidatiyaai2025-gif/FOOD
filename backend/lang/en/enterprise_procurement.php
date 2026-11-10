@@ -2,6 +2,7 @@
 
 return [
     'errors' => [
+        'contract_self_approval' => 'A supplier contract creator cannot activate the same agreement; a separately authorized approver is required.',
         'self_approval' => 'A purchaser cannot approve a purchase request they created or submitted.',
         'self_award' => 'The buyer, submitter or RFQ creator cannot award their own purchase request.',
     ],
