@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\ProcurementSecondApprover;
 use Tests\TestCase;
 
 final class EnterpriseProcurementCompletionTest extends TestCase
@@ -63,7 +64,8 @@ final class EnterpriseProcurementCompletionTest extends TestCase
             ]],
         ]);
         $requests->submit($actor, $context, $request->id);
-        $requests->approve($actor, $context, $request->id);
+        [$checker, $checkerContext] = ProcurementSecondApprover::forSameStore($actor, $context);
+        $requests->approve($checker, $checkerContext, $request->id);
 
         $completion = app(ProcurementCompletionManager::class);
         $rfq = $completion->createRfq($actor, $context, $request->id, [
@@ -379,7 +381,8 @@ final class EnterpriseProcurementCompletionTest extends TestCase
             ]],
         ]);
         $requests->submit($actor, $context, $request->id);
-        $requests->approve($actor, $context, $request->id);
+        [$checker, $checkerContext] = ProcurementSecondApprover::forSameStore($actor, $context);
+        $requests->approve($checker, $checkerContext, $request->id);
 
         return app(PurchaseOrderManager::class)->createFromApprovedRequest($actor, $context, $request->id);
     }
