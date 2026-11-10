@@ -3,6 +3,7 @@ $selectedPermissionIds = $selectedPermissionIds ?? [];
 $permissionInputName = $permissionInputName ?? 'permission_ids';
 $permissionBoundaryNote = $permissionBoundaryNote ?? __('security_permissions.grant_boundary_note');
 $showPermissionScopeRule = $showPermissionScopeRule ?? true;
+$permissionStates = $permissionStates ?? null;
 @endphp
 <div class="permission-picker" data-permission-picker data-impact-form
      data-impact-added="{{ __('security_permissions.impact_added') }}"
@@ -31,8 +32,9 @@ $showPermissionScopeRule = $showPermissionScopeRule ?? true;
                     @php
                         $isChecked = in_array((int) $permission->id, $selectedPermissionIds, true);
                         $label = $permissionLabels[(int) $permission->id] ?? $permission->name;
+                        $permissionState = $permissionStates[(int) $permission->id] ?? null;
                     @endphp
-                    <label class="permission-option" data-search-item data-search-text="{{ $label }} {{ $permission->code }}">
+                    <label class="permission-option" data-search-item data-search-text="{{ $label }} {{ $permission->code }}" @if($permissionState !== null) data-permission-state="{{ $permissionState }}" @endif>
                         <input type="checkbox"
                                name="{{ $permissionInputName }}[]"
                                value="{{ $permission->id }}"
@@ -42,6 +44,9 @@ $showPermissionScopeRule = $showPermissionScopeRule ?? true;
                         <span>
                             <strong>{{ $label }}</strong>
                             <small class="permission-code">{{ __('security_permissions.technical_code') }}: <code>{{ $permission->code }}</code></small>
+                            @if($permissionState !== null)
+                                <small class="badge" data-permission-state-label>{{ __('security_permissions.permission_state_'.$permissionState) }}</small>
+                            @endif
                             @if(in_array($permission->code, $privilegedPermissionCodes, true))
                                 <small class="badge system">{{ __('security_permissions.privileged') }}</small>
                             @endif

@@ -125,6 +125,7 @@ $roleLabel = static function ($role): string {
 </summary>
 <div class="security-modal-stack">
     <div class="note">{{ __('security_permissions.user_permissions_description') }}</div>
+    <div class="note">{{ __('security_permissions.permission_state_legend') }}</div>
     @if($managedUser->roles->contains(fn($role) => $role->code === 'SUPER_ADMIN'))
         <div class="note">{{ __('security_permissions.user_permissions_super_admin_locked') }}</div>
     @else
@@ -141,6 +142,7 @@ $roleLabel = static function ($role): string {
                 'permissionGroupLabels' => $permissionGroupLabels,
                 'privilegedPermissionCodes' => $privilegedPermissionCodes,
                 'permissionBoundaryNote' => __('security_permissions.user_permissions_description'),
+                'permissionStates' => $userPermissionStatesByUser->get((int) $managedUser->id, [])['global'] ?? [],
                 'showPermissionScopeRule' => false,
             ])
             <button class="btn primary" type="submit">{{ __('security_permissions.user_permissions_save') }}</button>
@@ -164,6 +166,7 @@ $roleLabel = static function ($role): string {
                 'permissionGroupLabels' => $userPermissionGroupLabels,
                 'privilegedPermissionCodes' => $privilegedPermissionCodes,
                 'permissionBoundaryNote' => __('security_permissions.user_permissions_description'),
+                'permissionStates' => ($userPermissionStatesByUser->get((int) $managedUser->id, [])['stores'] ?? [])[(int) $permissionStore->id] ?? [],
                 'showPermissionScopeRule' => false,
             ])
             <button class="btn primary" type="submit">{{ __('security_permissions.user_permissions_save') }}</button>
