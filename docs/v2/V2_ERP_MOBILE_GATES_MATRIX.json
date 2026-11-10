@@ -12,7 +12,9 @@
       "summary": "Role B2B_ADMIN: مدير أعمال الجملة",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير أعمال الجملة; no inherited blanket Super Admin access.",
       "issue_number": 2681,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2681"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2681",
+      "document_source_pointer": "Native DOCX Table 10, data row 1",
+      "matrix_key": "T122R1"
     },
     {
       "id": "T122R2",
@@ -22,7 +24,9 @@
       "summary": "Role SECURITY_ADMINISTRATOR: مسؤول الأمن والصلاحيات",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول الأمن والصلاحيات; no inherited blanket Super Admin access.",
       "issue_number": 2682,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2682"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2682",
+      "document_source_pointer": "Native DOCX Table 10, data row 2",
+      "matrix_key": "T122R2"
     },
     {
       "id": "T122R3",
@@ -32,7 +36,9 @@
       "summary": "Role SALES_MANAGER: مدير المبيعات",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير المبيعات; no inherited blanket Super Admin access.",
       "issue_number": 2683,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2683"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2683",
+      "document_source_pointer": "Native DOCX Table 10, data row 3",
+      "matrix_key": "T122R3"
     },
     {
       "id": "T122R4",
@@ -42,7 +48,9 @@
       "summary": "Role SALES_OFFICER: مسؤول المبيعات",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول المبيعات; no inherited blanket Super Admin access.",
       "issue_number": 2684,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2684"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2684",
+      "document_source_pointer": "Native DOCX Table 10, data row 4",
+      "matrix_key": "T122R4"
     },
     {
       "id": "T122R5",
@@ -52,7 +60,9 @@
       "summary": "Role CUSTOMER_SERVICE_MANAGER: مدير خدمة العملاء",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير خدمة العملاء; no inherited blanket Super Admin access.",
       "issue_number": 2685,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2685"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2685",
+      "document_source_pointer": "Native DOCX Table 10, data row 5",
+      "matrix_key": "T122R5"
     },
     {
       "id": "T122R6",
@@ -62,7 +72,9 @@
       "summary": "Role CUSTOMER_SERVICE_SUPERVISOR: مشرف خدمة العملاء",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مشرف خدمة العملاء; no inherited blanket Super Admin access.",
       "issue_number": 2686,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2686"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2686",
+      "document_source_pointer": "Native DOCX Table 10, data row 6",
+      "matrix_key": "T122R6"
     },
     {
       "id": "T122R7",
@@ -72,7 +84,9 @@
       "summary": "Role CUSTOMER_SERVICE_AGENT: موظف خدمة العملاء",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for موظف خدمة العملاء; no inherited blanket Super Admin access.",
       "issue_number": 2687,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2687"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2687",
+      "document_source_pointer": "Native DOCX Table 10, data row 7",
+      "matrix_key": "T122R7"
     },
     {
       "id": "T122R8",
@@ -82,7 +96,9 @@
       "summary": "Role PROCUREMENT_MANAGER: مدير المشتريات",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير المشتريات; no inherited blanket Super Admin access.",
       "issue_number": 2688,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2688"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2688",
+      "document_source_pointer": "Native DOCX Table 10, data row 8",
+      "matrix_key": "T122R8"
     },
     {
       "id": "T122R9",
@@ -92,7 +108,9 @@
       "summary": "Role PROCUREMENT_BUYER: مسؤول مشتريات / مشتري",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول مشتريات / مشتري; no inherited blanket Super Admin access.",
       "issue_number": 2689,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2689"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2689",
+      "document_source_pointer": "Native DOCX Table 10, data row 9",
+      "matrix_key": "T122R9"
     },
     {
       "id": "T122R10",
@@ -102,7 +120,9 @@
       "summary": "Role PROCUREMENT_APPROVER: معتمد المشتريات",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for معتمد المشتريات; no inherited blanket Super Admin access.",
       "issue_number": 2690,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2690"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2690",
+      "document_source_pointer": "Native DOCX Table 10, data row 10",
+      "matrix_key": "T122R10"
     },
     {
       "id": "T122R11",
@@ -112,7 +132,9 @@
       "summary": "Role WAREHOUSE_MANAGER: مدير المستودع",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير المستودع; no inherited blanket Super Admin access.",
       "issue_number": 2691,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2691"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2691",
+      "document_source_pointer": "Native DOCX Table 10, data row 11",
+      "matrix_key": "T122R11"
     },
     {
       "id": "T122R12",
@@ -122,7 +144,9 @@
       "summary": "Role INVENTORY_CONTROLLER: مراقب المخزون",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مراقب المخزون; no inherited blanket Super Admin access.",
       "issue_number": 2692,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2692"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2692",
+      "document_source_pointer": "Native DOCX Table 10, data row 12",
+      "matrix_key": "T122R12"
     },
     {
       "id": "T122R13",
@@ -132,7 +156,9 @@
       "summary": "Role FINANCE: مدير المالية",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير المالية; no inherited blanket Super Admin access.",
       "issue_number": 2693,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2693"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2693",
+      "document_source_pointer": "Native DOCX Table 10, data row 13",
+      "matrix_key": "T122R13"
     },
     {
       "id": "T122R14",
@@ -142,7 +168,9 @@
       "summary": "Role ACCOUNTING_MANAGER: رئيس الحسابات / مدير المحاسبة",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for رئيس الحسابات / مدير المحاسبة; no inherited blanket Super Admin access.",
       "issue_number": 2694,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2694"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2694",
+      "document_source_pointer": "Native DOCX Table 10, data row 14",
+      "matrix_key": "T122R14"
     },
     {
       "id": "T122R15",
@@ -152,7 +180,9 @@
       "summary": "Role ACCOUNTANT: محاسب",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for محاسب; no inherited blanket Super Admin access.",
       "issue_number": 2695,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2695"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2695",
+      "document_source_pointer": "Native DOCX Table 10, data row 15",
+      "matrix_key": "T122R15"
     },
     {
       "id": "T122R16",
@@ -162,7 +192,9 @@
       "summary": "Role AR_OFFICER: مسؤول حسابات العملاء",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول حسابات العملاء; no inherited blanket Super Admin access.",
       "issue_number": 2696,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2696"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2696",
+      "document_source_pointer": "Native DOCX Table 10, data row 16",
+      "matrix_key": "T122R16"
     },
     {
       "id": "T122R17",
@@ -172,7 +204,9 @@
       "summary": "Role AP_OFFICER: مسؤول حسابات الموردين",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول حسابات الموردين; no inherited blanket Super Admin access.",
       "issue_number": 2697,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2697"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2697",
+      "document_source_pointer": "Native DOCX Table 10, data row 17",
+      "matrix_key": "T122R17"
     },
     {
       "id": "T122R18",
@@ -182,7 +216,9 @@
       "summary": "Role TREASURY_MANAGER: مدير الخزينة",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير الخزينة; no inherited blanket Super Admin access.",
       "issue_number": 2698,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2698"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2698",
+      "document_source_pointer": "Native DOCX Table 10, data row 18",
+      "matrix_key": "T122R18"
     },
     {
       "id": "T122R19",
@@ -192,7 +228,9 @@
       "summary": "Role TREASURY_OFFICER: مسؤول الخزينة / أمين الصندوق",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مسؤول الخزينة / أمين الصندوق; no inherited blanket Super Admin access.",
       "issue_number": 2699,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2699"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2699",
+      "document_source_pointer": "Native DOCX Table 10, data row 19",
+      "matrix_key": "T122R19"
     },
     {
       "id": "T122R20",
@@ -202,7 +240,9 @@
       "summary": "Role FLEET_MANAGER: مدير الأسطول",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مدير الأسطول; no inherited blanket Super Admin access.",
       "issue_number": 2700,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2700"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2700",
+      "document_source_pointer": "Native DOCX Table 10, data row 20",
+      "matrix_key": "T122R20"
     },
     {
       "id": "T122R21",
@@ -212,7 +252,9 @@
       "summary": "Role DISPATCH_SUPERVISOR: مشرف التوزيع والتوجيه",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مشرف التوزيع والتوجيه; no inherited blanket Super Admin access.",
       "issue_number": 2701,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2701"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2701",
+      "document_source_pointer": "Native DOCX Table 10, data row 21",
+      "matrix_key": "T122R21"
     },
     {
       "id": "T122R22",
@@ -222,7 +264,9 @@
       "summary": "Role VAN_OPERATOR: مشغل الفان",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مشغل الفان; no inherited blanket Super Admin access.",
       "issue_number": 2702,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2702"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2702",
+      "document_source_pointer": "Native DOCX Table 10, data row 22",
+      "matrix_key": "T122R22"
     },
     {
       "id": "T122R23",
@@ -232,7 +276,9 @@
       "summary": "Role EXECUTIVE_VIEWER: مستعرض الإدارة التنفيذية",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for مستعرض الإدارة التنفيذية; no inherited blanket Super Admin access.",
       "issue_number": 2703,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2703"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2703",
+      "document_source_pointer": "Native DOCX Table 10, data row 23",
+      "matrix_key": "T122R23"
     },
     {
       "id": "T122R24",
@@ -242,7 +288,9 @@
       "summary": "Role BUSINESS_ANALYST: محلل الأعمال والتقارير",
       "details": "Review precise permission set, responsibility, channel/store/company, maker-checker, delegation and sidebar projection for محلل الأعمال والتقارير; no inherited blanket Super Admin access.",
       "issue_number": 2704,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2704"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2704",
+      "document_source_pointer": "Native DOCX Table 10, data row 24",
+      "matrix_key": "T122R24"
     },
     {
       "id": "T115R1",
@@ -252,7 +300,9 @@
       "summary": "التشغيل الأساسي",
       "details": "عميل الجملة والطلب والتسليم، عزل الجملة والتجزئة، اختبارات رحلة فعلية",
       "issue_number": 2705,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2705"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2705",
+      "document_source_pointer": "Native DOCX Table 9, data row 1",
+      "matrix_key": "T115R1"
     },
     {
       "id": "T115R2",
@@ -262,7 +312,9 @@
       "summary": "الضبط التجاري",
       "details": "تسعير المورد/العميل والخصم والربحية والائتمان الموحد والتحصيل الجزئي",
       "issue_number": 2706,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2706"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2706",
+      "document_source_pointer": "Native DOCX Table 9, data row 2",
+      "matrix_key": "T115R2"
     },
     {
       "id": "T115R3",
@@ -272,7 +324,9 @@
       "summary": "المشتريات والمخزون",
       "details": "الشراء وأمانة المورد والدفعات والملكية والصلاحية والجرد والمرتجعات",
       "issue_number": 2707,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2707"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2707",
+      "document_source_pointer": "Native DOCX Table 9, data row 3",
+      "matrix_key": "T115R3"
     },
     {
       "id": "T115R4",
@@ -282,7 +336,9 @@
       "summary": "الفانات والتوزيع",
       "details": "عهدة الفان والزيارة والتسليم والبيع الميداني والتسوية والمزامنة المحدودة",
       "issue_number": 2708,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2708"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2708",
+      "document_source_pointer": "Native DOCX Table 9, data row 4",
+      "matrix_key": "T115R4"
     },
     {
       "id": "T115R5",
@@ -292,7 +348,9 @@
       "summary": "المحاسبة المتكاملة",
       "details": "GL/AR/AP والخزينة والبنوك وتسويات الموردين وربحية القنوات",
       "issue_number": 2709,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2709"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2709",
+      "document_source_pointer": "Native DOCX Table 9, data row 5",
+      "matrix_key": "T115R5"
     },
     {
       "id": "T353R1",
@@ -302,7 +360,9 @@
       "summary": "مدير الجملة والمبيعات",
       "details": "Target allowed menu groups: نظرة عامة والعملاء والمبيعات والطلبات والكتالوج والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
       "issue_number": 2710,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2710"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2710",
+      "document_source_pointer": "Native DOCX Table 11, data row 1",
+      "matrix_key": "T353R1"
     },
     {
       "id": "T353R2",
@@ -312,7 +372,9 @@
       "summary": "خدمة العملاء",
       "details": "Target allowed menu groups: نظرة عامة والعملاء وخدمة العملاء وواتساب والطلبات والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
       "issue_number": 2711,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2711"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2711",
+      "document_source_pointer": "Native DOCX Table 11, data row 2",
+      "matrix_key": "T353R2"
     },
     {
       "id": "T353R3",
@@ -322,7 +384,9 @@
       "summary": "المشتريات",
       "details": "Target allowed menu groups: نظرة عامة والمشتريات والموردون والمخزون والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
       "issue_number": 2712,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2712"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2712",
+      "document_source_pointer": "Native DOCX Table 11, data row 3",
+      "matrix_key": "T353R3"
     },
     {
       "id": "T353R4",
@@ -332,7 +396,9 @@
       "summary": "المخزون والمستودعات",
       "details": "Target allowed menu groups: نظرة عامة والمخزون والمستودعات والجرد والتحويلات والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
       "issue_number": 2713,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2713"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2713",
+      "document_source_pointer": "Native DOCX Table 11, data row 4",
+      "matrix_key": "T353R4"
     },
     {
       "id": "T353R5",
@@ -342,7 +408,9 @@
       "summary": "المالية والمحاسبة",
       "details": "Target allowed menu groups: نظرة عامة والمالية والذمم والخزينة والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
       "issue_number": 2714,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2714"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2714",
+      "document_source_pointer": "Native DOCX Table 11, data row 5",
+      "matrix_key": "T353R5"
     },
     {
       "id": "T353R6",
@@ -352,7 +420,9 @@
       "summary": "العمليات والتوزيع والأسطول",
       "details": "Target allowed menu groups: نظرة عامة والطلبات والتنفيذ والأسطول والفانات والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
       "issue_number": 2715,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2715"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2715",
+      "document_source_pointer": "Native DOCX Table 11, data row 6",
+      "matrix_key": "T353R6"
     },
     {
       "id": "T353R7",
@@ -362,7 +432,9 @@
       "summary": "مدير متجر التجزئة",
       "details": "Target allowed menu groups: نظرة عامة والمتجر والطلبات والعملاء والمخزون والتسويق والتقارير. Must apply real permission/scope/module/readiness; never assume from role label.",
       "issue_number": 2716,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2716"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2716",
+      "document_source_pointer": "Native DOCX Table 11, data row 7",
+      "matrix_key": "T353R7"
     },
     {
       "id": "T353R8",
@@ -372,7 +444,9 @@
       "summary": "مسؤول الأمن والصلاحيات",
       "details": "Target allowed menu groups: الإدارة والمستخدمون والأدوار ومراجعة الوصول وسجل التدقيق. Must apply real permission/scope/module/readiness; never assume from role label.",
       "issue_number": 2717,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2717"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2717",
+      "document_source_pointer": "Native DOCX Table 11, data row 8",
+      "matrix_key": "T353R8"
     },
     {
       "id": "T356R1",
@@ -382,7 +456,9 @@
       "summary": "enterprise_action_center",
       "details": "Remap existing sidebar item enterprise_action_center to نظرة عامة/مركز الإجراءات without duplicate route, stale key or privilege change.",
       "issue_number": 2718,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2718"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2718",
+      "document_source_pointer": "Native DOCX Table 12, data row 1",
+      "matrix_key": "T356R1"
     },
     {
       "id": "T356R2",
@@ -392,7 +468,9 @@
       "summary": "enterprise_workspaces",
       "details": "Remap existing sidebar item enterprise_workspaces to نظرة عامة/مساحات العمل without duplicate route, stale key or privilege change.",
       "issue_number": 2719,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2719"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2719",
+      "document_source_pointer": "Native DOCX Table 12, data row 2",
+      "matrix_key": "T356R2"
     },
     {
       "id": "T356R3",
@@ -402,7 +480,9 @@
       "summary": "customer_360",
       "details": "Remap existing sidebar item customer_360 to العملاء/العملاء 360 without duplicate route, stale key or privilege change.",
       "issue_number": 2720,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2720"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2720",
+      "document_source_pointer": "Native DOCX Table 12, data row 3",
+      "matrix_key": "T356R3"
     },
     {
       "id": "T356R4",
@@ -412,7 +492,9 @@
       "summary": "order_operations",
       "details": "Remap existing sidebar item order_operations to الطلبات والعمليات/إدارة الطلبات without duplicate route, stale key or privilege change.",
       "issue_number": 2721,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2721"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2721",
+      "document_source_pointer": "Native DOCX Table 12, data row 4",
+      "matrix_key": "T356R4"
     },
     {
       "id": "T356R5",
@@ -422,7 +504,9 @@
       "summary": "commercial_sales_control",
       "details": "Remap existing sidebar item commercial_sales_control to الكتالوج والتسعير/التحكم التجاري والتسعير without duplicate route, stale key or privilege change.",
       "issue_number": 2722,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2722"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2722",
+      "document_source_pointer": "Native DOCX Table 12, data row 5",
+      "matrix_key": "T356R5"
     },
     {
       "id": "T356R6",
@@ -432,7 +516,9 @@
       "summary": "whatsapp_inbox",
       "details": "Remap existing sidebar item whatsapp_inbox to خدمة العملاء وواتساب/صندوق الواتساب without duplicate route, stale key or privilege change.",
       "issue_number": 2723,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2723"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2723",
+      "document_source_pointer": "Native DOCX Table 12, data row 6",
+      "matrix_key": "T356R6"
     },
     {
       "id": "T356R7",
@@ -442,7 +528,9 @@
       "summary": "field_ops_overview",
       "details": "Remap existing sidebar item field_ops_overview to الأسطول والعمليات الميدانية/نظرة عامة للعمليات الميدانية without duplicate route, stale key or privilege change.",
       "issue_number": 2724,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2724"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2724",
+      "document_source_pointer": "Native DOCX Table 12, data row 7",
+      "matrix_key": "T356R7"
     },
     {
       "id": "T356R8",
@@ -452,7 +540,9 @@
       "summary": "field_ops_routing",
       "details": "Remap existing sidebar item field_ops_routing to الأسطول والعمليات الميدانية/التوجيه والمسارات without duplicate route, stale key or privilege change.",
       "issue_number": 2725,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2725"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2725",
+      "document_source_pointer": "Native DOCX Table 12, data row 8",
+      "matrix_key": "T356R8"
     },
     {
       "id": "T356R9",
@@ -462,7 +552,9 @@
       "summary": "treasury_master",
       "details": "Remap existing sidebar item treasury_master to المالية والخزينة/الخزينة without duplicate route, stale key or privilege change.",
       "issue_number": 2726,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2726"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2726",
+      "document_source_pointer": "Native DOCX Table 12, data row 9",
+      "matrix_key": "T356R9"
     },
     {
       "id": "T356R10",
@@ -472,7 +564,9 @@
       "summary": "reports_center",
       "details": "Remap existing sidebar item reports_center to التقارير والتحليلات/مركز التقارير without duplicate route, stale key or privilege change.",
       "issue_number": 2727,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2727"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2727",
+      "document_source_pointer": "Native DOCX Table 12, data row 10",
+      "matrix_key": "T356R10"
     },
     {
       "id": "T356R11",
@@ -482,7 +576,9 @@
       "summary": "app_preview",
       "details": "Remap existing sidebar item app_preview to التطبيقات/معاينة التطبيق without duplicate route, stale key or privilege change.",
       "issue_number": 2728,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2728"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2728",
+      "document_source_pointer": "Native DOCX Table 12, data row 11",
+      "matrix_key": "T356R11"
     },
     {
       "id": "T356R12",
@@ -492,7 +588,9 @@
       "summary": "sidebar_role_access",
       "details": "Remap existing sidebar item sidebar_role_access to الإدارة/شجرة الصفحات والصلاحيات without duplicate route, stale key or privilege change.",
       "issue_number": 2729,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2729"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2729",
+      "document_source_pointer": "Native DOCX Table 12, data row 12",
+      "matrix_key": "T356R12"
     },
     {
       "id": "MOB-C01",
@@ -502,7 +600,9 @@
       "summary": "RBAC/account disable/archive and authentication session revocation",
       "details": "Source P069/P070/P079/P142. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
       "issue_number": 2730,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2730"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2730",
+      "document_source_pointer": "Derived cross-app impact item (trace origin in details and V2 source relationship)",
+      "matrix_key": "MOB-C01"
     },
     {
       "id": "MOB-C02",
@@ -512,7 +612,9 @@
       "summary": "B2B/B2C authorized customer identity and store-scoped navigation",
       "details": "Source P031/P110/P119. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
       "issue_number": 2731,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2731"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2731",
+      "document_source_pointer": "Derived cross-app impact item (trace origin in details and V2 source relationship)",
+      "matrix_key": "MOB-C02"
     },
     {
       "id": "MOB-C03",
@@ -522,7 +624,9 @@
       "summary": "Wholesale credit, pricing, discount and partial collection parity",
       "details": "Source T115R02/P129. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
       "issue_number": 2732,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2732"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2732",
+      "document_source_pointer": "Derived cross-app impact item (trace origin in details and V2 source relationship)",
+      "matrix_key": "MOB-C03"
     },
     {
       "id": "MOB-C04",
@@ -532,7 +636,9 @@
       "summary": "Order status, invoice, notification and storefront parity under V2",
       "details": "Source T115R01/P118. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
       "issue_number": 2733,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2733"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2733",
+      "document_source_pointer": "Derived cross-app impact item (trace origin in details and V2 source relationship)",
+      "matrix_key": "MOB-C04"
     },
     {
       "id": "MOB-D01",
@@ -542,7 +648,9 @@
       "summary": "Role change, access denial, biometric session and token invalidation",
       "details": "Source P069/P079/P142. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
       "issue_number": 2734,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2734"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2734",
+      "document_source_pointer": "Derived cross-app impact item (trace origin in details and V2 source relationship)",
+      "matrix_key": "MOB-D01"
     },
     {
       "id": "MOB-D02",
@@ -552,7 +660,9 @@
       "summary": "B2C-only dispatch, assignment, status, proof and notification workflow",
       "details": "Source P110/T115R04. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
       "issue_number": 2735,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2735"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2735",
+      "document_source_pointer": "Derived cross-app impact item (trace origin in details and V2 source relationship)",
+      "matrix_key": "MOB-D02"
     },
     {
       "id": "MOB-D03",
@@ -562,7 +672,9 @@
       "summary": "Wallet/collection role scope, finance settlement and API contracts",
       "details": "Source P033/T115R05. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
       "issue_number": 2736,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2736"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2736",
+      "document_source_pointer": "Derived cross-app impact item (trace origin in details and V2 source relationship)",
+      "matrix_key": "MOB-D03"
     },
     {
       "id": "MOB-V01",
@@ -572,7 +684,9 @@
       "summary": "Role change, access denial, offline identity and token invalidation",
       "details": "Source P069/P079/P142. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
       "issue_number": 2737,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2737"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2737",
+      "document_source_pointer": "Derived cross-app impact item (trace origin in details and V2 source relationship)",
+      "matrix_key": "MOB-V01"
     },
     {
       "id": "MOB-V02",
@@ -582,7 +696,9 @@
       "summary": "B2B-only van assignment, routes, visits and territory authorization",
       "details": "Source P110/T115R04. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
       "issue_number": 2738,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2738"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2738",
+      "document_source_pointer": "Derived cross-app impact item (trace origin in details and V2 source relationship)",
+      "matrix_key": "MOB-V02"
     },
     {
       "id": "MOB-V03",
@@ -592,7 +708,9 @@
       "summary": "Consignment stock, direct sales, trip settlements and offline replay",
       "details": "Source T115R03/T115R04. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
       "issue_number": 2739,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2739"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2739",
+      "document_source_pointer": "Derived cross-app impact item (trace origin in details and V2 source relationship)",
+      "matrix_key": "MOB-V03"
     },
     {
       "id": "MOB-ALL01",
@@ -602,7 +720,9 @@
       "summary": "Contract compatibility and shared identity RBAC matrix for all three APKs",
       "details": "Source P009/P032/P144. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
       "issue_number": 2740,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2740"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2740",
+      "document_source_pointer": "Derived cross-app impact item (trace origin in details and V2 source relationship)",
+      "matrix_key": "MOB-ALL01"
     },
     {
       "id": "MOB-ALL02",
@@ -612,7 +732,9 @@
       "summary": "AR/EN accessible mobile E2E CI and synchronized signed build evidence",
       "details": "Source P112/P145. Scope and test affected APIs, auth/roles, UI and launch/scope, prove app runtime behavior. No blank 'no impact' assumption.",
       "issue_number": 2741,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2741"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2741",
+      "document_source_pointer": "Derived cross-app impact item (trace origin in details and V2 source relationship)",
+      "matrix_key": "MOB-ALL02"
     },
     {
       "id": "G001",
@@ -622,7 +744,9 @@
       "summary": "V2 isolated branch governance and GitHub main-merge protection ruleset",
       "details": "Source P137. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
       "issue_number": 2742,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2742"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2742",
+      "document_source_pointer": "Derived program acceptance gate, required by master #2503 and relevant source lines",
+      "matrix_key": "G001"
     },
     {
       "id": "G002",
@@ -632,7 +756,9 @@
       "summary": "Full source paragraph/table row/Sidebar traceability and coverage audit",
       "details": "Source P385. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
       "issue_number": 2743,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2743"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2743",
+      "document_source_pointer": "Derived program acceptance gate, required by master #2503 and relevant source lines",
+      "matrix_key": "G002"
     },
     {
       "id": "G003",
@@ -642,7 +768,9 @@
       "summary": "V2 exact-head Required CI, policy, AR/EN, Flutter and Laravel testing",
       "details": "Source P112/P145. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
       "issue_number": 2744,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2744"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2744",
+      "document_source_pointer": "Derived program acceptance gate, required by master #2503 and relevant source lines",
+      "matrix_key": "G003"
     },
     {
       "id": "G004",
@@ -652,7 +780,9 @@
       "summary": "V2 signed Setup ZIP / web installer / production dependencies fresh MySQL install",
       "details": "Source P112. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
       "issue_number": 2745,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2745"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2745",
+      "document_source_pointer": "Derived program acceptance gate, required by master #2503 and relevant source lines",
+      "matrix_key": "G004"
     },
     {
       "id": "G005",
@@ -662,7 +792,9 @@
       "summary": "V2 signed Admin Update ZIP / Dashboard Update Center / backup and recovery",
       "details": "Source P112. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
       "issue_number": 2746,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2746"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2746",
+      "document_source_pointer": "Derived program acceptance gate, required by master #2503 and relevant source lines",
+      "matrix_key": "G005"
     },
     {
       "id": "G006",
@@ -672,7 +804,9 @@
       "summary": "V2 v124/v125/v127 upgrade compatibility, preserve data and rollback tests",
       "details": "Source P112. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
       "issue_number": 2747,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2747"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2747",
+      "document_source_pointer": "Derived program acceptance gate, required by master #2503 and relevant source lines",
+      "matrix_key": "G006"
     },
     {
       "id": "G007",
@@ -682,7 +816,9 @@
       "summary": "V2 full end-to-end ERP/RBAC/sidebar authorization security acceptance",
       "details": "Source P109/P144. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
       "issue_number": 2748,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2748"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2748",
+      "document_source_pointer": "Derived program acceptance gate, required by master #2503 and relevant source lines",
+      "matrix_key": "G007"
     },
     {
       "id": "G008",
@@ -692,7 +828,9 @@
       "summary": "V2 synchronized Customer, Driver and Van Android builds and provenance",
       "details": "Source P112/T115R04. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
       "issue_number": 2749,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2749"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2749",
+      "document_source_pointer": "Derived program acceptance gate, required by master #2503 and relevant source lines",
+      "matrix_key": "G008"
     },
     {
       "id": "G009",
@@ -702,7 +840,10 @@
       "summary": "V2 real UX audit mobile/desktop RTL/LTR all personas and 177 Sidebar nodes",
       "details": "Source P145/P369-373. Gate may close only with exact source SHA, tested artifacts, evidence, links to relevant child issues and no production or main promotion.",
       "issue_number": 2750,
-      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2750"
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2750",
+      "document_source_pointer": "Derived program acceptance gate, required by master #2503 and relevant source lines",
+      "matrix_key": "G009"
     }
-  ]
+  ],
+  "source_anchor_note": "Table indexes are 0-based from DOCX document.tables; data row 1 means first row after header. Legacy Txxx keys are stable work item names, not Word table numbers."
 }
