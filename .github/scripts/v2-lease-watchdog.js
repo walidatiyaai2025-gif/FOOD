@@ -21,17 +21,35 @@ function isV2(issue) {
   return /^V2(?:\s|[:|\[-])/i.test(issue.title || '') && issue.state === 'open' && !issue.pull_request;
 }
 function parseClaim(comments) {
-  // A worker must explicitly claim with the canonical state marker.
-  for (let i = comments.length - 1; i >= 0; i--) {
-    const c = comments[i];
-    if (!(c.body || '').includes(STATE)) continue;
-    const body = c.body.slice(c.body.lastIndexOf(STATE) + STATE.length);
-    const kv = Object.fromEntries(body.split(/\r?\n/).map(line => line.match(/^\s*([A-Z_]+)\s*:\s*(.*?)\s*$/)).filter(Boolean).map(m => [m[1], m[2]]));
-    if (!kv.STATE && !kv.OWNER && !kv.BRANCH) continue;
-    if (['HANDOFF', 'RELEASED', 'UNCLAIMED'].includes((kv.STATE || '').toUpperCase())) return null;
-    return { owner: kv.OWNER || c.user?.login || '', branch: kv.BRANCH || '', pr: Number(kv.PR) || 0, createdMs: time(c.created_at), commentId: c.id, state: (kv.STATE || '').toUpperCase(), heartbeatMs: time(kv.HEARTBEAT) };
+  // Track the original claim, not the latest heartbeat/status comment.
+  // Repeated WAITING_CI comments cannot extend a 30-minute inactivity TTL.
+  let claim = null;
+  const inactive = new Set(['HANDOFF', 'HANDOFF_READY', 'RELEASED', 'UNCLAIMED', 'INTEGRATED_PENDING_ACCEPTANCE']);
+  for (const c of comments || []) {
+    const body = c.body || '';
+    if (body.includes(RELEASE_MARK) || body.includes('<!-- foodex-watchdog:handoff')) {
+      claim = null;
+      continue;
+    }
+    const marker = body.lastIndexOf(STATE);
+    if (marker < 0) continue;
+    const kv = Object.fromEntries(body.slice(marker + STATE.length).split(/\r?\n/)
+      .map(line => line.match(/^\s*([A-Z_]+)\s*:\s*(.*?)\s*$/))
+      .filter(Boolean).map(m => [m[1], m[2]]));
+    const state = (kv.STATE || 'ACTIVE').toUpperCase();
+    if (inactive.has(state)) { claim = null; continue; }
+    if (!kv.OWNER || !time(c.created_at)) continue;
+    // A worker may claim before creating its issue branch; keep the empty
+    // branch identity until a subsequent checkpoint supplies the real ref.
+    const branch = kv.BRANCH || '';
+    if (!claim || claim.owner !== kv.OWNER || claim.branch !== branch) {
+      claim = { owner: kv.OWNER, branch, claimId: c.id,
+        createdMs: time(c.created_at) };
+    }
+    claim = { ...claim, commentId: c.id, state, pr: Number(kv.PR) || 0,
+      blocker: (kv.BLOCKER || '').toLowerCase(), heartbeatMs: time(kv.HEARTBEAT) };
   }
-  return null;
+  return claim;
 }
 function activityDecision({ nowMs, claim, latestCommitMs, latestPrCommitMs, ciRunning }) {
   if (!claim || !claim.createdMs) return { release: false, why: 'no-verifiable-claim' };
@@ -47,34 +65,54 @@ function activityDecision({ nowMs, claim, latestCommitMs, latestPrCommitMs, ciRu
   return { release: true, why: 'idle-over-30m', workMs };
 }
 function claimIdentity(c) {
-  return String(c.commentId) + ':' + String(c.createdMs);
+  return String(c.claimId || c.commentId) + ':' + String(c.createdMs);
 }
 
 async function listPages(fetch, config, maxPages = 15) {
   const found = [];
   for (let page = 1; page <= maxPages; page++) {
-    const items = await fetch({ ...config, per_page: 100, page });
-    found.push(...items.data);
-    if (items.data.length < 100) break;
+    const response = await fetch({ ...config, per_page: 100, page });
+    // GitHub Search returns { data: { items: [...] } }, while REST list
+    // endpoints return { data: [...] }. A malformed response must fail closed.
+    const pageItems = Array.isArray(response?.data) ? response.data : response?.data?.items;
+    if (!Array.isArray(pageItems)) throw Error('Invalid GitHub pagination payload; refuse incomplete sweep');
+    found.push(...pageItems);
+    if (pageItems.length < 100) break;
     if (page === maxPages) throw Error('V2 scan pagination limit reached; refuse incomplete sweep');
   }
   return found;
 }
-async function commitMs(github, owner, repo, ref) {
-  if (!ref) return 0;
+async function branchState(github, owner, repo, branch) {
+  if (!branch) return { sha: '', commitMs: 0 };
   try {
-    const r = await github.rest.repos.getCommit({ owner, repo, ref });
-    return time(r.data.commit?.committer?.date) || time(r.data.commit?.author?.date);
+    const ref = await github.rest.repos.getBranch({ owner, repo, branch });
+    const sha = ref.data.commit.sha;
+    const commit = await github.rest.repos.getCommit({ owner, repo, ref: sha });
+    return { sha, commitMs: time(commit.data.commit?.committer?.date)
+      || time(commit.data.commit?.author?.date) };
   } catch (err) {
-    if (err.status === 404) return 0;
+    if (err.status === 404) return { sha: '', commitMs: 0 };
     throw err;
   }
 }
-async function ciInProgress(github, owner, repo, head) {
+async function ciInProgress(github, owner, repo, head, branch) {
   if (!head) return false;
-  const r = await github.rest.checks.listForRef({ owner, repo, ref: head, per_page: 100 });
-  return (r.data.check_runs || []).some(check => check.status !== 'completed');
+  const [checks, workflows] = await Promise.all([
+    github.rest.checks.listForRef({ owner, repo, ref: head, per_page: 100 }),
+    github.rest.actions.listWorkflowRunsForRepo({ owner, repo, branch, per_page: 100 }),
+  ]);
+  const checkActive = (checks.data.check_runs || []).some(check =>
+    check.status !== 'completed' && check.name !== 'Release V2 claims with no real work for 30 minutes');
+  const workflowActive = (workflows.data.workflow_runs || []).some(run =>
+    run.head_sha === head && run.status !== 'completed'
+    && !['FOODEX V2 Idle Lease Watchdog', 'Worker Watchdog'].includes(run.name));
+  return checkActive || workflowActive;
 }
+function humanGate(labels, claim) {
+  return labels.some(l => l === 'gate:human' || l.startsWith('gate:'))
+    || ['human', 'approval', 'credentials', 'device', 'production', 'deploy'].includes(claim?.blocker);
+}
+
 async function run({ github, context, core, nowMs = Date.now() }) {
   const { owner, repo } = context.repo;
   // Search is scoped by title to avoid walking unrelated repo backlog.
@@ -101,14 +139,15 @@ async function run({ github, context, core, nowMs = Date.now() }) {
         (claim.branch && pr.head?.ref === claim.branch)
       )
     );
-    const head = ownPr?.head?.sha || claim.branch;
-    const [commit, ciRunning] = await Promise.all([
-      commitMs(github, owner, repo, head),
-      ownPr ? ciInProgress(github, owner, repo, ownPr.head.sha) : Promise.resolve(false),
-    ]);
+    // Use the *live issue branch*, not a potentially stale PR-search head.
+    const firstBranch = await branchState(github, owner, repo, claim.branch);
+    const head = firstBranch.sha || ownPr?.head?.sha || '';
+    const ciRunning = await ciInProgress(github, owner, repo, head, claim.branch);
+    if (humanGate(labels, claim)) { active += 1; continue; }
+
     const decision = activityDecision({
-      nowMs, claim, latestCommitMs: commit,
-      latestPrCommitMs: commit, ciRunning,
+      nowMs, claim, latestCommitMs: firstBranch.commitMs,
+      latestPrCommitMs: firstBranch.commitMs, ciRunning,
     });
     if (!decision.release) { active += 1; continue; }
     const marker = RELEASE_MARK + 'issue=' + issue.number + ' claim=' + claimIdentity(claim) + ' -->';
@@ -122,9 +161,24 @@ async function run({ github, context, core, nowMs = Date.now() }) {
       core.info('#' + issue.number + ': skip; claim changed during scan');
       continue;
     }
+    // A newer push or newly queued exact-head CI cancels the handoff.
+    // Labels are re-read because a new worker may have claimed since search.
+    const live = await github.rest.issues.get({ owner, repo, issue_number: issue.number });
+    const liveLabels = (live.data.labels || []).map(name);
+    if (!isV2(live.data) || !liveLabels.some(l => ACTIVE.has(l))
+        || humanGate(liveLabels, claim)) continue;
+    const secondBranch = await branchState(github, owner, repo, claim.branch);
+    if (secondBranch.sha !== firstBranch.sha) continue;
+    const secondCi = await ciInProgress(github, owner, repo,
+      secondBranch.sha || head, claim.branch);
+    const secondDecision = activityDecision({
+      nowMs, claim, latestCommitMs: secondBranch.commitMs,
+      latestPrCommitMs: secondBranch.commitMs, ciRunning: secondCi,
+    });
+    if (!secondDecision.release) continue;
     // Labels are best-effort queue signals. Release never deletes original branch/PR.
     for (const currentLabel of [...ACTIVE]) {
-      if (!labels.includes(currentLabel)) continue;
+      if (!liveLabels.includes(currentLabel)) continue;
       try {
         await github.rest.issues.removeLabel({ owner, repo, issue_number: issue.number, name: currentLabel });
       } catch (err) { if (err.status !== 404) throw err; }
@@ -148,4 +202,4 @@ async function run({ github, context, core, nowMs = Date.now() }) {
   core.info('V2 idle-lease sweep: ' + JSON.stringify({ scanned, released, active, matchingIssues: issues.length }));
   return { scanned, released, active };
 }
-module.exports = { LIMIT_MS, isV2, parseClaim, activityDecision, claimIdentity, run };
+module.exports = { LIMIT_MS, isV2, parseClaim, activityDecision, claimIdentity, listPages, run };
