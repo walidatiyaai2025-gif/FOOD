@@ -60,7 +60,7 @@ final class V2ErpWholesaleRetailScopeIsolationTest extends TestCase
         ]);
     }
 
-    public function test_a_context_belongs_to_exactly_one_active_authenticated_actor(): void
+    public function test_privileged_support_context_is_bound_to_its_active_actor(): void
     {
         $store = $this->retailStore('V2-P102-ACTOR');
         $admin = $this->userWithGlobalRole('SUPER_ADMIN');
@@ -85,6 +85,38 @@ final class V2ErpWholesaleRetailScopeIsolationTest extends TestCase
 
         $admin->forceFill(['is_active' => true])->save();
         $this->assertTrue($authorizer->allows($admin->fresh(), $context, 'finance.manage', 'store', $store->id));
+    }
+
+    public function test_non_privileged_maker_uses_own_scoped_permissions_with_a_same_store_checker_context(): void
+    {
+        $allowed = $this->retailStore('V2-P102-SOD');
+        $foreign = $this->retailStore('V2-P102-FOREIGN');
+        $maker = User::factory()->create(['is_active' => true]);
+        $checker = User::factory()->create(['is_active' => true]);
+        $role = Role::query()->where('code', 'RETAIL_CUSTOMER_SUPPORT')->firstOrFail();
+
+        foreach ([$maker, $checker] as $actor) {
+            DB::table('user_store_roles')->insert([
+                'user_id' => $actor->id,
+                'store_id' => $allowed->id,
+                'role_id' => $role->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $context = app(TenantContextResolver::class)->retail($checker, $allowed->id);
+        $authorizer = app(EnterpriseScopeAuthorizer::class);
+
+        // Existing Finance posting calls can evaluate the original maker's
+        // authority against the separately authorized checker's same-store
+        // context. Only Super Admin bypass requires strict actor identity.
+        $this->assertNotSame($maker->id, $context->userId);
+        $this->assertTrue($authorizer->allows($maker, $context, 'customers.view', 'store', $allowed->id));
+        $this->assertFalse($authorizer->allows($maker, $context, 'customers.view', 'store', $foreign->id));
+
+        $maker->forceFill(['is_active' => false])->save();
+        $this->assertFalse($authorizer->allows($maker->fresh(), $context, 'customers.view', 'store', $allowed->id));
     }
 
     public function test_retail_store_role_and_wholesale_role_cannot_switch_to_the_other_channel_in_ar_and_en(): void
