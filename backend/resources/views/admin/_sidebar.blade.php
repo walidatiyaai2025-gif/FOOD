@@ -432,6 +432,7 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     };
 
     search?.addEventListener('input', updateSearch);
+    updateSearch(); // Honor browser-restored search values without exposing an unfiltered list.
     search?.addEventListener('keydown', event => {
         if (event.key !== 'Escape' || !search.value) return;
         // First Escape clears search; a second Escape can close the mobile drawer.
