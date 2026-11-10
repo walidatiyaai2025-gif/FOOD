@@ -233,8 +233,7 @@ void main() {
     ]);
   });
 
-  test('HTTP assignment repository refuses legacy B2B runtime',
-      () async {
+  test('HTTP assignment repository refuses legacy B2B runtime', () async {
     final requests = <String>[];
     final repo = HttpDriverAssignmentRepository(
       'https://foodex.example/',
