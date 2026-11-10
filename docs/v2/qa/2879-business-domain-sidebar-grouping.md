@@ -26,7 +26,7 @@ The new `V2BusinessDomainSidebarGroupingTest` proves:
 - source registry and persisted default layout agree for sales/catalog, inventory/WMS, orders/operations, finance and administration; P358 ERP modules stay in their proper business domains;
 - every group has Arabic and English locale labels, with real Dashboard HTTP responses in AR RTL and EN LTR;
 - B2B actor's authorized catalog/orders entries are in their real business groups, while B2C inventory is absent; Orders HTTP path responds only with effective authorization;
-- B2C assigned store sees retail inventory/operations, cannot see wholesale items, and is forbidden from B2B dashboard and a foreign B2C store;
+- B2C assigned store sees authorized retail inventory; incoming-orders may correctly be absent when its actual module/route readiness denies display, but if rendered it must belong to Operations. No wholesale inventory, B2B dashboard or foreign-store access is conferred;
 - roleless and inactive actors receive no authoritative navigation and no direct-URL access.
 
 No server RBAC rules, routes, entitlements, group registry, database, API payload or user preferences are changed.
