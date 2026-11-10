@@ -2,9 +2,9 @@
 
 return [
     'eyebrow' => 'Navigation governance',
-    'role_access_nav' => 'Sidebar access by role',
+    'role_access_nav' => 'Page Tree & Permissions',
     'layout_nav' => 'Sidebar organizer',
-    'role_access_title' => 'Sidebar access by role',
+    'role_access_title' => 'Page Tree & Permissions',
     'role_access_description' => 'Control which already-authorized dashboard pages appear in the sidebar for each role. This layer never bypasses server-side RBAC.',
     'layout_title' => 'Sidebar organizer',
     'layout_description' => 'Rename, regroup, nest, enable/disable, and order the dashboard sidebar without changing route authorization.',
