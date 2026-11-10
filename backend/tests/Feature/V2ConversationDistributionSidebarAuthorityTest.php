@@ -131,15 +131,32 @@ final class V2ConversationDistributionSidebarAuthorityTest extends TestCase
         $own = $this->store('B2C', 'P201-RETAIL-A');
         $foreign = $this->store('B2C', 'P201-RETAIL-B');
         $conversation = $this->conversation($this->customer($own, 'b2c', 'P201 Retail Buyer')->getKey(), $own);
-        $supervisor = $this->globalUser('CUSTOMER_SERVICE_SUPERVISOR', 'P201 Global Supervisor');
+        // The authorized writer must belong to the conversation's Retail store.
+        // A wholesale-only global supervisor is not a B2C assignment actor.
+        $storeSupervisor = $this->storeUser('RETAIL_CUSTOMER_SUPPORT', $own);
         $foreignAgent = $this->storeUser('RETAIL_CUSTOMER_SUPPORT', $foreign);
 
-        $this->actingAs($supervisor)->patch(route('admin.whatsapp-inbox.assign', [
+        $this->assertTrue($storeSupervisor->hasPermission('whatsapp.conversations.assign', $own));
+        $this->assertFalse($storeSupervisor->hasPermission('whatsapp.conversations.assign', $foreign));
+        $this->assertFalse($foreignAgent->hasPermission('whatsapp.conversations.reply', $own));
+
+        $this->actingAs($storeSupervisor)->patch(route('admin.whatsapp-inbox.assign', [
             'conversation' => $conversation,
         ]), [
             'agent_id' => $foreignAgent->getKey(),
             'expected_version' => 0,
         ])->assertSessionHasErrors('agent_id');
+
+        // An actor with only global wholesale Customer Service privileges is
+        // rejected *before* any Retail recipient selection or optimistic write.
+        $wholesaleSupervisor = $this->globalUser('CUSTOMER_SERVICE_SUPERVISOR', 'P201 Wholesale Supervisor');
+        $this->assertFalse($wholesaleSupervisor->hasPermission('whatsapp.conversations.assign', $own));
+        $this->actingAs($wholesaleSupervisor)->patch(route('admin.whatsapp-inbox.assign', [
+            'conversation' => $conversation,
+        ]), [
+            'agent_id' => $foreignAgent->getKey(),
+            'expected_version' => 0,
+        ])->assertForbidden();
 
         $this->assertDatabaseHas('whats_app_conversations', [
             'id' => $conversation,
@@ -195,6 +212,7 @@ final class V2ConversationDistributionSidebarAuthorityTest extends TestCase
     {
         return (int) DB::table('stores')->insertGetId([
             'store_type_id' => DB::table('store_types')->where('code', $channel)->value('id'),
+            'business_profile' => $channel === 'B2C' ? 'RETAIL_STORE' : null,
             'code' => $code,
             'name' => $code,
             'is_active' => true,
