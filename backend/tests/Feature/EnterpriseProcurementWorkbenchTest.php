@@ -9,10 +9,10 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
+use App\Support\TenantContextResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
-use App\Support\TenantContextResolver;
 use Tests\Support\ProcurementSecondApprover;
 use Tests\TestCase;
 
