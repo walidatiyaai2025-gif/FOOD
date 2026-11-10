@@ -169,6 +169,7 @@ final class EnterpriseModuleAdministrationController extends Controller
             'gridState' => $grid,
             'visibleColumns' => $grid->columns,
             'moduleStates' => $moduleStates,
+            'activationCounts' => $activationCounts,
             'savedViews' => $savedViews,
             'savedViewStateToken' => $this->savedViews->stateToken(
                 self::SURFACE_KEY,
