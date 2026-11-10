@@ -92,6 +92,52 @@ final class V2SidebarAuthorityMatrixTest extends TestCase
         }
     }
 
+    public function test_user_with_global_wholesale_and_store_retail_roles_keeps_each_channel_and_store_boundary(): void
+    {
+        $ownStore = $this->retailStore('P156-MIXED-OWN');
+        $otherStore = $this->retailStore('P156-MIXED-FOREIGN');
+        $mixed = $this->globalActor('B2B_ADMIN', 'mixed');
+
+        DB::table('user_store_roles')->insert([
+            'user_id' => $mixed->getKey(),
+            'role_id' => Role::query()->where('code', 'RETAIL_INVENTORY')->firstOrFail()->getKey(),
+            'store_id' => $ownStore,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
+            app()->setLocale($locale);
+            $mixed->forceFill(['locale' => $locale])->save();
+
+            $this->assertSame(
+                ['b2b', 'b2c'],
+                array_keys(app(AdminNavigation::class)->for($mixed->fresh())),
+            );
+            $this->assertNotNull($this->item($mixed->fresh(), 'catalog_management'));
+            $retailItem = $this->item($mixed->fresh(), 'b2c_inventory');
+            $this->assertNotNull($retailItem);
+            $this->assertSame((string) $ownStore, $retailItem['params']['store_id']);
+
+            $this->actingAs($mixed)
+                ->get(route('admin.catalog.index', [], false))
+                ->assertOk()
+                ->assertSee('dir="'.$direction.'"', false);
+            $this->actingAs($mixed)
+                ->get(route('admin.b2c.module', [
+                    'module' => 'inventory',
+                    'store_id' => $ownStore,
+                ], false))
+                ->assertOk()
+                ->assertSee('dir="'.$direction.'"', false);
+            $foreignResponse = $this->actingAs($mixed)->get(route('admin.b2c.module', [
+                'module' => 'inventory',
+                'store_id' => $otherStore,
+            ], false));
+            $this->assertContains($foreignResponse->getStatusCode(), [403, 404]);
+        }
+    }
+
     public function test_explicit_permission_deny_blocks_forged_visible_sidebar_and_direct_url_in_both_locales(): void
     {
         $role = Role::query()->where('code', 'B2B_ADMIN')->firstOrFail();
@@ -186,6 +232,14 @@ final class V2SidebarAuthorityMatrixTest extends TestCase
                 ->get(route('admin.erp.procurement.index', [], false))
                 ->assertForbidden();
         }
+
+        // Disabling a module is a different state from enabled-but-uncertified.
+        config()->set('enterprise_module_readiness.certified_versions.procurement', $version);
+        app(EnterpriseModuleAdministration::class)->perform('procurement', 'disable', $owner);
+        $this->assertNull($this->item($owner->fresh(), 'erp_procurement'));
+        $this->actingAs($owner)
+            ->get(route('admin.erp.procurement.index', [], false))
+            ->assertForbidden();
 
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'enterprise.module.entitlement_changed',
