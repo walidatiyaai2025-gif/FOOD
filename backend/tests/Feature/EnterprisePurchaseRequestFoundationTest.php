@@ -16,6 +16,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Tests\Support\ProcurementSecondApprover;
 use Tests\TestCase;
 
 final class EnterprisePurchaseRequestFoundationTest extends TestCase
@@ -78,8 +79,9 @@ final class EnterprisePurchaseRequestFoundationTest extends TestCase
         $this->assertSame('submitted', $submitted->status);
         $this->assertSame($actor->id, $submitted->submitted_by);
 
-        $approved = $manager->approve($actor, $context, $request->id, 'Approved for purchase');
-        $approvedAgain = $manager->approve($actor, $context, $request->id, 'Ignored retry note');
+        [$checker, $checkerContext] = ProcurementSecondApprover::forSameStore($actor, $context);
+        $approved = $manager->approve($checker, $checkerContext, $request->id, 'Approved for purchase');
+        $approvedAgain = $manager->approve($checker, $checkerContext, $request->id, 'Ignored retry note');
         $this->assertSame('approved', $approved->status);
         $this->assertSame($approved->decided_at?->toISOString(), $approvedAgain->decided_at?->toISOString());
         $this->assertSame(
@@ -92,6 +94,48 @@ final class EnterprisePurchaseRequestFoundationTest extends TestCase
 
         $this->expectException(ValidationException::class);
         $manager->reject($actor, $context, $request->id, 'Conflicting retry');
+    }
+
+    public function test_creator_and_submitter_cannot_approve_their_own_purchase_even_with_approval_permission(): void
+    {
+        [$creator, , $context] = $this->scopedUser([
+            'procurement.purchase_requests.view',
+            'procurement.purchase_requests.manage',
+            'procurement.purchase_requests.approve',
+        ], 'PR-SOD');
+        [$submitter, $submitterContext] = ProcurementSecondApprover::forSameStore($creator, $context);
+        [$checker, $checkerContext] = ProcurementSecondApprover::forSameStore($creator, $context);
+
+        $manager = app(PurchaseRequestManager::class);
+        $request = $manager->create($creator, $context, $this->requestPayload('Maker checker'));
+        $manager->submit($submitter, $submitterContext, $request->id);
+
+        foreach ([[$creator, $context], [$submitter, $submitterContext]] as [$blockedActor, $blockedContext]) {
+            try {
+                $manager->approve($blockedActor, $blockedContext, $request->id);
+                $this->fail('The creator or submitter must not approve their own purchase request.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('decision', $exception->errors());
+            }
+        }
+
+        $this->assertDatabaseHas('enterprise_purchase_requests', [
+            'id' => $request->id,
+            'status' => 'submitted',
+            'decided_by' => null,
+        ]);
+        $this->assertSame(0, DB::table('audit_logs')
+            ->where('event', 'enterprise.purchase_request.approved')
+            ->where('auditable_id', $request->id)
+            ->count());
+
+        $approved = $manager->approve($checker, $checkerContext, $request->id);
+        $this->assertSame($checker->id, $approved->decided_by);
+        $this->assertSame('approved', $approved->status);
+        $this->assertSame(1, DB::table('audit_logs')
+            ->where('event', 'enterprise.purchase_request.approved')
+            ->where('auditable_id', $request->id)
+            ->count());
     }
 
     public function test_request_queries_are_bounded_and_cross_store_access_is_denied(): void

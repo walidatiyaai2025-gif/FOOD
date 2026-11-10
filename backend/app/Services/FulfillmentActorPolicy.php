@@ -43,26 +43,7 @@ final class FulfillmentActorPolicy
 
     public function assertManualDispatchActor(Order $order, string $actor): void
     {
-        $channel = strtolower(trim((string) $order->channel));
-        $actual = strtolower(trim($actor));
-        $allowed = match ($channel) {
-            'b2b' => [self::DRIVER, self::VAN],
-            'b2c' => [self::DRIVER],
-            default => throw ValidationException::withMessages([
-                'channel' => ['Unsupported order channel for manual fulfillment.'],
-            ]),
-        };
-
-        if (! in_array($actual, $allowed, true)) {
-            throw ValidationException::withMessages([
-                'assignee_type' => [
-                    sprintf(
-                        'Order channel %s cannot be manually dispatched to %s.',
-                        $channel,
-                        $actual === '' ? 'unknown' : $actual,
-                    ),
-                ],
-            ]);
-        }
+        // No manual exceptions to the canonical order-channel executor.
+        $this->assertOrderActor($order, $actor);
     }
 }

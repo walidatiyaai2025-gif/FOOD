@@ -261,24 +261,7 @@ final class B2BVanFulfillmentCutoverService
             ->lockForUpdate()
             ->get();
 
-        $manualDriverId = $dispatch instanceof OrderDispatchState
-            && $dispatch->status === 'assigned'
-            && $dispatch->current_assignee_type === FulfillmentActorPolicy::DRIVER
-            && $dispatch->current_assignee_id !== null
-            && $dispatch->routing_reason === 'customer_service_driver_assignment'
-                ? (int) $dispatch->current_assignee_id
-                : null;
-        $preserveManualDriver = $manualDriverId !== null
-            && $activeDrivers->contains(
-                fn (DriverAssignment $assignment): bool => (int) $assignment->driver_id === $manualDriverId
-                    && strtolower((string) $assignment->assignment_type) === 'b2b',
-            );
-
         foreach ($activeDrivers as $assignment) {
-            if ($preserveManualDriver && (int) $assignment->driver_id === $manualDriverId) {
-                continue;
-            }
-
             $before = $assignment->toArray();
             $assignment->forceFill([
                 'status' => 'reassigned',
@@ -292,10 +275,6 @@ final class B2BVanFulfillmentCutoverService
                 $before,
                 $assignment->fresh()->toArray(),
             );
-        }
-
-        if ($preserveManualDriver) {
-            return;
         }
 
         if ($dispatch instanceof OrderDispatchState && $dispatch->current_assignee_type === FulfillmentActorPolicy::DRIVER) {

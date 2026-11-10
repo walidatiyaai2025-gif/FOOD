@@ -284,7 +284,8 @@ class MobilePushSettingsTest extends TestCase
             'is_active' => true,
         ]);
 
-        Sanctum::actingAs($driver);
+        // Driver push registration requires an explicit Driver App bearer scope.
+        Sanctum::actingAs($driver, ['app:driver']);
         $deviceId = $this->postJson('/api/v1/push/devices', [
             'app' => 'driver',
             'platform' => 'android',

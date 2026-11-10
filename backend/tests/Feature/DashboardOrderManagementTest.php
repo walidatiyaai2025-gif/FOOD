@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\B2bCustomerService;
 use App\Services\B2cCustomerService;
+use App\Services\VanRegistryService;
 use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -310,10 +311,26 @@ class DashboardOrderManagementTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $registry = app(VanRegistryService::class);
+        $van = $registry->createVan(['code' => 'VAN-GOLD-ORDER-DISPATCH']);
+        $registry->assign($admin, $van, [
+            'assignment_type' => 'primary',
+            'effective_from' => '2026-10-01T00:00:00Z',
+        ]);
+
+        $this->actingAs($admin)
+            ->patchJson('/admin/operations/orders/'.$order->id.'/dispatch', [
+                'assignee_type' => 'driver',
+                'assignee_id' => $driver,
+                'reason' => 'Wholesale Driver override forbidden',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('assignee_type');
+
         $this->actingAs($admin)
             ->get('/admin/b2b/orders')
             ->assertOk()
-            ->assertSee('New order · awaiting Driver or Van assignment')
+            ->assertSee('New order · awaiting Van assignment')
             ->assertSee('Cancel order')
             ->assertDontSee('Approve order')
             ->assertDontSee('value="ready"', false);
@@ -321,8 +338,8 @@ class DashboardOrderManagementTest extends TestCase
         DB::table('orders')->where('id', $order->id)->update(['payment_method' => 'account_credit']);
 
         $this->actingAs($admin)->patch('/admin/operations/orders/'.$order->id.'/dispatch', [
-            'assignee_type' => 'driver',
-            'assignee_id' => $driver,
+            'assignee_type' => 'van',
+            'assignee_id' => $van->id,
             'reason' => 'Assignment must revalidate credit',
         ])->assertStatus(409);
 
@@ -337,8 +354,8 @@ class DashboardOrderManagementTest extends TestCase
         DB::table('orders')->where('id', $order->id)->update(['payment_method' => 'cash_on_delivery']);
 
         $this->actingAs($admin)->patch('/admin/operations/orders/'.$order->id.'/dispatch', [
-            'assignee_type' => 'driver',
-            'assignee_id' => $driver,
+            'assignee_type' => 'van',
+            'assignee_id' => $van->id,
             'reason' => 'Start wholesale fulfillment',
         ])->assertRedirect();
 
@@ -545,11 +562,16 @@ class DashboardOrderManagementTest extends TestCase
         $this->assertNotNull($order);
         $this->assertSame(2, DB::table('order_items')->where('order_id', $order->id)->count());
 
-        $driver = $this->driver($store, 'b2b', 'multi-b2b-driver@example.test');
+        $registry = app(VanRegistryService::class);
+        $van = $registry->createVan(['code' => 'VAN-MULTILINE-WHOLESALE']);
+        $registry->assign($admin, $van, [
+            'assignment_type' => 'primary',
+            'effective_from' => '2026-10-01T00:00:00Z',
+        ]);
 
         $this->actingAs($admin)->patch('/admin/operations/orders/'.$order->id.'/dispatch', [
-            'assignee_type' => 'driver',
-            'assignee_id' => $driver,
+            'assignee_type' => 'van',
+            'assignee_id' => $van->id,
             'reason' => 'Start multi-line wholesale fulfillment',
         ])->assertRedirect();
 

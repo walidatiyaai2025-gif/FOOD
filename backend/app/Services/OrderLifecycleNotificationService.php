@@ -179,44 +179,8 @@ final class OrderLifecycleNotificationService
 
         $channel = strtolower((string) $order->channel);
         if ($channel === 'b2b') {
-            $dispatchAssigneeType = strtolower((string) DB::table('order_dispatch_states')
-                ->where('order_id', $order->getKey())
-                ->value('current_assignee_type'));
-
-            if ($dispatchAssigneeType === 'driver') {
-                $driverAssignment = $to === 'cancelled'
-                    ? $this->latestAssignment($order)
-                    : $this->activeAssignment($order);
-                if ($driverAssignment instanceof DriverAssignment) {
-                    $this->notifyDriverUser(
-                        $order,
-                        (int) $driverAssignment->driver_id,
-                        'order.status_changed',
-                        'driver-'.$eventKey,
-                        $to === 'cancelled'
-                            ? 'تم إلغاء الطلب '.DisplayNumber::reference($order->getKey())
-                            : 'تحديث الطلب '.DisplayNumber::reference($order->getKey()),
-                        $to === 'cancelled'
-                            ? 'Order cancelled '.DisplayNumber::reference($order->getKey())
-                            : 'Order update '.DisplayNumber::reference($order->getKey()),
-                        $to === 'cancelled'
-                            ? 'تم إلغاء الطلب ولم يعد متاحاً للتنفيذ.'
-                            : 'حالة الطلب الآن: '.$to,
-                        $to === 'cancelled'
-                            ? 'The order was cancelled and is no longer actionable.'
-                            : 'Order status is now: '.$to,
-                        [
-                            'assignment_id' => (int) $driverAssignment->getKey(),
-                            'from_status' => $from,
-                            'status' => $to,
-                            'to_status' => $to,
-                            'access_revoked' => $to === 'cancelled',
-                        ],
-                    );
-                }
-
-                return;
-            }
+            // B2B execution is Van-only. Never notify a historical Driver
+            // assignment as though it remained an actionable runtime actor.
 
             $assignment = $to === 'cancelled'
                 ? $this->latestVanAssignment($order)
@@ -307,7 +271,7 @@ final class OrderLifecycleNotificationService
         bool $manualB2bDispatch = false,
     ): void {
         $channel = strtolower((string) $order->channel);
-        if ($channel !== 'b2c' && ! ($channel === 'b2b' && $manualB2bDispatch)) {
+        if ($channel !== 'b2c') {
             return;
         }
 
@@ -655,20 +619,9 @@ final class OrderLifecycleNotificationService
 
     private function driverRuntimeOwnsOrder(Order $order, int $driverId): bool
     {
-        $channel = strtolower((string) $order->channel);
-        if ($channel === 'b2c') {
-            return true;
-        }
-        if ($channel !== 'b2b') {
-            return false;
-        }
-
-        return DB::table('order_dispatch_states')
-            ->where('order_id', $order->getKey())
-            ->where('status', 'assigned')
-            ->where('current_assignee_type', 'driver')
-            ->where('current_assignee_id', $driverId)
-            ->exists();
+        // Legacy B2B Driver delivery history stays in the database, never in
+        // the active Driver runtime's notification audience.
+        return strtolower((string) $order->channel) === 'b2c';
     }
 
     private function notifyDriverUser(
@@ -683,7 +636,7 @@ final class OrderLifecycleNotificationService
         array $extraData = [],
     ): void {
         $channel = strtolower((string) $order->channel);
-        if (! in_array($channel, ['b2b', 'b2c'], true)) {
+        if ($channel !== 'b2c') {
             return;
         }
 

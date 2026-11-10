@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Tests\Support\ProcurementSecondApprover;
 use Tests\TestCase;
 
 final class EnterpriseGoodsReceiptFoundationTest extends TestCase
@@ -362,7 +363,8 @@ final class EnterpriseGoodsReceiptFoundationTest extends TestCase
             ]],
         ]);
         $requests->submit($actor, $context, $request->id);
-        $requests->approve($actor, $context, $request->id);
+        [$checker, $checkerContext] = ProcurementSecondApprover::forSameStore($actor, $context);
+        $requests->approve($checker, $checkerContext, $request->id);
 
         return app(PurchaseOrderManager::class)->createFromApprovedRequest($actor, $context, $request->id);
     }

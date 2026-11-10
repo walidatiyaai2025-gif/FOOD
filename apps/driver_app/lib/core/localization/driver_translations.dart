@@ -97,7 +97,10 @@ class DriverTranslations extends InheritedWidget {
         'الدخول بالبصمة غير متاح. سجل الدخول بكلمة المرور.',
     'driver.login.required': 'أدخل البريد الإلكتروني وكلمة المرور',
     'driver.login.invalid': 'بيانات الدخول غير صحيحة',
-    'driver.login.role_denied': 'هذا الحساب ليس حساب سائق فودكس مصرحًا له',
+    'driver.login.role_denied':
+        'هذا الحساب غير مصرح له بتطبيق السائق؛ التطبيق مخصص لتوصيلات التجزئة فقط.',
+    'driver.login.wholesale_denied':
+        'انتهى دعم توصيل طلبات الجملة عبر تطبيق السائق. يتم تنفيذ طلبات الجملة عبر تطبيق الفان فقط. سجّل الدخول بحساب سائق تجزئة مصرح له.',
     'driver.config.missing': 'عنوان خادم فودكس غير مضبوط لهذا الإصدار',
     'driver.logout': 'تسجيل الخروج',
     'driver.update.checking_title': 'التحقق من إصدار فودكس',
@@ -402,7 +405,9 @@ class DriverTranslations extends InheritedWidget {
     'driver.login.required': 'Enter email and password',
     'driver.login.invalid': 'Invalid sign-in details',
     'driver.login.role_denied':
-        'This account is not an authorized FOODEX driver',
+        'This account is not authorized for the Driver App. Driver deliveries are Retail (B2C) only.',
+    'driver.login.wholesale_denied':
+        'Wholesale deliveries are no longer supported in Driver App. Wholesale orders are fulfilled through Van App only. Sign in with an authorized Retail driver account.',
     'driver.config.missing':
         'The FOODEX server URL is not configured for this build',
     'driver.logout': 'Sign out',

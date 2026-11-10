@@ -102,6 +102,14 @@ final class EnterpriseModuleAdministrationController extends Controller
         );
 
         $modules = $this->modules->modules();
+        // Snapshot before filters so activation totals always reflect the authoritative platform registry.
+        $activationCounts = array_fill_keys($moduleStates, 0);
+        foreach ($modules as $module) {
+            $state = (string) $module['state'];
+            if (array_key_exists($state, $activationCounts)) {
+                $activationCounts[$state]++;
+            }
+        }
 
         if ($grid->search !== null) {
             $needle = mb_strtolower($grid->search);
@@ -161,6 +169,7 @@ final class EnterpriseModuleAdministrationController extends Controller
             'gridState' => $grid,
             'visibleColumns' => $grid->columns,
             'moduleStates' => $moduleStates,
+            'activationCounts' => $activationCounts,
             'savedViews' => $savedViews,
             'savedViewStateToken' => $this->savedViews->stateToken(
                 self::SURFACE_KEY,

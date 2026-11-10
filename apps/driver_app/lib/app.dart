@@ -114,6 +114,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
     with WidgetsBindingObserver {
   late Map<String, String> _translations;
   DriverSession? _session;
+  bool _legacyWholesaleSessionDenied = false;
   final GlobalKey<NavigatorState> _driverNavigatorKey =
       GlobalKey<NavigatorState>();
   final GlobalKey<ScaffoldMessengerState> _messengerKey =
@@ -138,7 +139,11 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
     super.initState();
     assert(_appVersion.isNotEmpty);
     WidgetsBinding.instance.addObserver(this);
-    _session = widget.initialSession;
+    _session = widget.initialSession?.channel == DriverChannel.b2c
+        ? widget.initialSession
+        : null;
+    _legacyWholesaleSessionDenied =
+        widget.initialSession?.channel == DriverChannel.b2b;
     _translations = Map<String, String>.from(widget.translationOverrides);
     DriverRuntimeInspector.instance.recordNavigation(
       _session == null ? 'driver.login' : widget.initialRoute,
@@ -166,10 +171,17 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
     if (oldWidget.initialSession != widget.initialSession &&
         widget.initialSession != null) {
       _locationGateReady = false;
-      _session = widget.initialSession;
-      _bindPushSession();
-      _configureDiagnostics(widget.initialSession!);
-      _configureLocationTracking(widget.initialSession!);
+      final next = widget.initialSession!;
+      _legacyWholesaleSessionDenied = next.channel == DriverChannel.b2b;
+      _session = next.channel == DriverChannel.b2c ? next : null;
+      if (_session != null) {
+        _bindPushSession();
+        _configureDiagnostics(next);
+        _configureLocationTracking(next);
+      } else {
+        _disposeLocationTracking();
+        unawaited(_clearRememberedSession());
+      }
     }
     if (oldWidget.pushService != widget.pushService) {
       unawaited(_pushOpenSubscription?.cancel());
@@ -461,7 +473,13 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
   Future<void> _restoreRememberedSession() async {
     try {
       final stored = await _sessionStore.read();
-      if (!mounted || stored == null || stored.biometricEnabled) return;
+      if (!mounted || stored == null) return;
+      if (stored.session.channel != DriverChannel.b2c) {
+        await _clearRememberedSession();
+        if (mounted) setState(() => _legacyWholesaleSessionDenied = true);
+        return;
+      }
+      if (stored.biometricEnabled) return;
       _authenticated(stored.session, true, false);
     } catch (_) {
       // Secure storage may be unavailable on unsupported preview/test runtimes.
@@ -473,6 +491,12 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
     bool rememberMe = false,
     bool biometricEnabled = false,
   ]) {
+    if (session.channel != DriverChannel.b2c) {
+      unawaited(_clearRememberedSession());
+      if (mounted) setState(() => _legacyWholesaleSessionDenied = true);
+      return;
+    }
+    _legacyWholesaleSessionDenied = false;
     DriverRuntimeInspector.instance.recordNavigation(
       DriverRoutes.home(session.channel),
     );
@@ -601,6 +625,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
                 sessionStore: _sessionStore,
                 biometricAuthenticator: _biometricAuthenticator,
                 onAuthenticated: _authenticated,
+                legacyWholesaleDenied: _legacyWholesaleSessionDenied,
               )
             : assignments == null
                 ? const _DriverRuntimeConfigurationError()

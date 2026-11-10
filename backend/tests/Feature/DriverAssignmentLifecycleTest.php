@@ -1073,7 +1073,7 @@ class DriverAssignmentLifecycleTest extends TestCase
                 'driver_id' => $driver->id,
                 'order_id' => $order->id,
             ])->assertConflict()
-                ->assertSee('B2B Driver assignment is available only through authorized manual Order Operations dispatch.');
+                ->assertSee('Wholesale orders require Van fulfillment.');
 
             $this->assertDatabaseMissing('driver_assignments', [
                 'driver_id' => $driver->id,
@@ -1108,11 +1108,11 @@ class DriverAssignmentLifecycleTest extends TestCase
 
         Sanctum::actingAs($driverUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments')
-            ->assertConflict()
-            ->assertSee('Wholesale drivers must belong to the principal Wholesale store.');
+            ->assertForbidden()
+            ->assertSee('Driver App execution is available only for authorized Retail (B2C) drivers.');
     }
 
-    public function test_b2b_driver_runtime_accepts_principal_wholesale_assignment(): void
+    public function test_legacy_b2b_principal_assignment_stays_historical_but_execution_is_denied(): void
     {
         $this->seed(CoreReferenceSeeder::class);
         [$storeId, $order] = $this->order('b2b');
@@ -1137,11 +1137,13 @@ class DriverAssignmentLifecycleTest extends TestCase
 
         Sanctum::actingAs($driverUser, ['app:driver']);
         $this->getJson('/api/v1/driver/assignments?scope=active')
-            ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $assignment->id)
-            ->assertJsonPath('data.0.assignment_type', 'b2b')
-            ->assertJsonPath('data.0.order.status', 'out_for_delivery');
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('driver_assignments', [
+            'id' => $assignment->id,
+            'assignment_type' => 'b2b',
+            'status' => 'assigned',
+        ]);
     }
 
     public function test_cross_channel_assignment_and_execution_are_denied(): void

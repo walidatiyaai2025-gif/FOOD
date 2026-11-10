@@ -236,7 +236,7 @@ return [
     ],
     'lifecycle_labels' => [
         'awaiting_driver_assignment' => 'طلب جديد · بانتظار تعيين سائق',
-        'awaiting_dispatch_assignment' => 'طلب جديد · بانتظار تعيين سائق أو فان',
+        'awaiting_dispatch_assignment' => 'طلب جديد · بانتظار تعيين فان',
         'assigned_driver' => 'تم تعيين الطلب لسائق',
         'assigned_van' => 'تم تعيين الطلب لفان',
         'driver_processing' => 'السائق يقوم بمعالجة الطلب',
