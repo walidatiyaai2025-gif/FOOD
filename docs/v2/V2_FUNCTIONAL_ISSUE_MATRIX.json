@@ -316,7 +316,8 @@
       "summary": "تفسير منع Module وEntitlement ونطاق الشركة في التشخيص",
       "title": "V2 | SECURITY P034 — تفسير منع Module وEntitlement ونطاق الشركة في التشخيص",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2785,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2785"
     },
     {
       "id": "P035",
@@ -324,7 +325,8 @@
       "summary": "اختبارات تفصل حماية الخادم عن إخفاء رابط القائمة",
       "title": "V2 | SECURITY P035 — اختبارات تفصل حماية الخادم عن إخفاء رابط القائمة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2786,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2786"
     },
     {
       "id": "T037R01",
@@ -332,7 +334,8 @@
       "summary": "Sidebar Inventory شامل Route وAction وPermission وScope وModule",
       "title": "V2 | AUTH T037R01 — Sidebar Inventory شامل Route وAction وPermission وScope وModule",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2787,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2787"
     },
     {
       "id": "T037R02",
@@ -340,7 +343,8 @@
       "summary": "Navigation يعتمد Authorizer الحقيقي بدلاً من Visibility",
       "title": "V2 | AUTH T037R02 — Navigation يعتمد Authorizer الحقيقي بدلاً من Visibility",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2788,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2788"
     },
     {
       "id": "T037R03",
@@ -348,7 +352,8 @@
       "summary": "أقل صلاحيات لكل وظيفة وتنظيف info وfoodexaccount وexport",
       "title": "V2 | RBAC T037R03 — أقل صلاحيات لكل وظيفة وتنظيف info وfoodexaccount وexport",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2789,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2789"
     },
     {
       "id": "T037R04",
@@ -356,7 +361,8 @@
       "summary": "مصفوفة مستخدمين وأدوار ومتاجر لاختبار قائمة وروابط HTTP",
       "title": "V2 | QA T037R04 — مصفوفة مستخدمين وأدوار ومتاجر لاختبار قائمة وروابط HTTP",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2790,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2790"
     },
     {
       "id": "T037R05",
@@ -364,7 +370,8 @@
       "summary": "تحديث آمن عبر PR وCI وUpdate ZIP والنسخ الاحتياطي",
       "title": "V2 | RELEASE T037R05 — تحديث آمن عبر PR وCI وUpdate ZIP والنسخ الاحتياطي",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2791,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2791"
     },
     {
       "id": "P040",
@@ -372,7 +379,8 @@
       "summary": "إثبات الظهور والوصول الصحيح حتى إن عطّل Sidebar Layout",
       "title": "V2 | QA P040 — إثبات الظهور والوصول الصحيح حتى إن عطّل Sidebar Layout",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2792,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2792"
     },
     {
       "id": "P041",
@@ -380,7 +388,8 @@
       "summary": "إثبات اختفاء الرابط و403 عند Deny أو فقد إذن",
       "title": "V2 | QA P041 — إثبات اختفاء الرابط و403 عند Deny أو فقد إذن",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2793,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2793"
     },
     {
       "id": "P042",
@@ -388,7 +397,8 @@
       "summary": "إثبات تعدد الأدوار المتعارضة دون قواعد ظهور إضافية",
       "title": "V2 | QA P042 — إثبات تعدد الأدوار المتعارضة دون قواعد ظهور إضافية",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2794,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2794"
     },
     {
       "id": "P043",
@@ -396,7 +406,8 @@
       "summary": "منع دور متجر تجزئة 2 من رابط أو Route متجر 3",
       "title": "V2 | QA P043 — منع دور متجر تجزئة 2 من رابط أو Route متجر 3",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2795,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2795"
     },
     {
       "id": "P044",
@@ -404,7 +415,8 @@
       "summary": "إخفاء العنصر عند Module أو Entitlement غير متاح",
       "title": "V2 | QA P044 — إخفاء العنصر عند Module أو Entitlement غير متاح",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2796,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2796"
     },
     {
       "id": "P045",
@@ -412,7 +424,8 @@
       "summary": "إخفاء المجموعة الفارغة وتجنب المسارات الميتة",
       "title": "V2 | QA P045 — إخفاء المجموعة الفارغة وتجنب المسارات الميتة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2797,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2797"
     },
     {
       "id": "P046",
@@ -420,7 +433,8 @@
       "summary": "حدود SUPER_ADMIN وPLATFORM_OWNER للعمليات الحساسة",
       "title": "V2 | QA P046 — حدود SUPER_ADMIN وPLATFORM_OWNER للعمليات الحساسة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2798,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2798"
     },
     {
       "id": "P047",
@@ -428,7 +442,8 @@
       "summary": "مصفوفة AR/EN وموبايل وديسكتوب وترتيب القائمة",
       "title": "V2 | QA P047 — مصفوفة AR/EN وموبايل وديسكتوب وترتيب القائمة",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2799,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2799"
     },
     {
       "id": "P049",
@@ -436,7 +451,8 @@
       "summary": "تحويل Sidebar Role Access إلى محرر شجرة صلاحيات حقيقي",
       "title": "V2 | RBAC P049 — تحويل Sidebar Role Access إلى محرر شجرة صلاحيات حقيقي",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2800,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2800"
     },
     {
       "id": "P050",
@@ -444,7 +460,8 @@
       "summary": "فصل Sidebar Layout عن قرار السماح للروابط",
       "title": "V2 | SIDEBAR P050 — فصل Sidebar Layout عن قرار السماح للروابط",
       "type": "functional",
-      "issue_number": null
+      "issue_number": 2801,
+      "url": "https://github.com/walidatiyaai2025-gif/FOOD/issues/2801"
     },
     {
       "id": "P051",
