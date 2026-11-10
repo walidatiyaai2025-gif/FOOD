@@ -12,6 +12,7 @@ use App\Enums\StoreBusinessProfile;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\AdminSidebarManager;
+use App\Services\EnterpriseWorkspaceComposer;
 use App\Services\OperationalTenantScope;
 use Illuminate\Support\Facades\Route;
 use Throwable;
@@ -40,6 +41,7 @@ class AdminNavigation
         private readonly TenantContextResolver $tenantContext,
         private readonly SmartOrderingEnterpriseEntitlementBridge $restaurantSaasAccess,
         private readonly AdminSidebarManager $sidebarManager,
+        private readonly EnterpriseWorkspaceComposer $enterpriseWorkspaces,
     ) {}
 
     /** @return array<string, array<string, mixed>> */
@@ -85,7 +87,9 @@ class AdminNavigation
                 $this->canAccessMyWork($user)
                     ? $this->routeItemOpen('enterprise_action_center', 'enterprise_action_center.nav_title', 'admin.action-center.index')
                     : null,
-                $canAccessPlatformNavigation && ! $useCustomerServiceDashboardProfile
+                // Use the same effective platform/store-scope decision as the actual HTTP workspace controller.
+                // A scoped Retail sales workspace must not be a hidden, direct-URL-only destination.
+                $this->enterpriseWorkspaces->availableWorkspaceKeys($user) !== [] && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemOpen('enterprise_workspaces', 'enterprise_workspaces.nav_title', 'admin.enterprise-workspaces.index')
                     : null,
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'dashboard', 'admin.premium_nav.dashboard', null),
