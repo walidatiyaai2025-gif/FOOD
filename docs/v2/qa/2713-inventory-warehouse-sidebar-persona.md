@@ -34,6 +34,16 @@ New automated regression: `backend/tests/Feature/V2InventoryWarehouseSidebarPers
 - Data/audit: read/navigation-only; inventory adjustments, transfers, receipts and stock movements continue to use their existing audited and store-validated handlers. Finance maker/checker remains unchanged.
 - Accessibility and responsive behavior: shared Dashboard template unchanged; real browser and screen-reader acceptance remains part of the final V2 isolated UI/UAT gate under #2750.
 
+## WMS readiness bypass boundary (added regression)
+
+The real WMS entry already exists at `admin.erp.wms.index` with tabs `overview`, `transfers`, `counts` and `reports`; operation routes include `admin.erp.wms.counts.store` and `admin.erp.wms.transfers.store`. They are NOT alternate names for the legacy `admin.b2b.module?module=inventory` page.
+
+- `EnsureErpOperationalReadiness` is applied to the full `admin` route group and maps `admin.erp.wms.*` to `inventory_wms`. When `enterprise_module_readiness.certified_versions` contains no WMS certification, the middleware denies even a direct GET/POST with **403**, regardless of a legacy `inventory.view` grant.
+- `V2InventoryWarehouseSidebarPersonaContractTest` now checks this distinction in Arabic/RTL and English/LTR: the authorized legacy inventory page remains HTTP 200; the uncertified WMS link is absent; four WMS tab deep links and both count/transfer POST endpoints must return HTTP 403. These are automated regression assertions, **not** proof of WMS production certification.
+- The default operational readiness configuration remains empty and is not changed by #2713. No workflow attestation, entitlement, permission, or stock mutation is fabricated or granted here. #2858 / PR #3065 independently owns stronger ERP operational evidence verification; its code and test fixture paths must not be edited by this worker.
+
+**Remaining functional acceptance:** prove authorized `WAREHOUSE_MANAGER` and `INVENTORY_CONTROLLER` with real scoped enabled-and-certified WMS, warehouse/store denial boundaries, read/report/count/transfer journeys and maker/checker where required, plus downstream module version/evidence checks. WMS certification itself must await G0–G13 evidence; never force-enable WMS to make this persona look complete. The PR remains DRAFT pending those requirements and latest exact-head CI.
+
 ## Important completion boundary
 
 This change repairs the **legacy, permission-backed B2B inventory navigation**. It does not claim that inventory WMS stock counts/transfers and inventory report experiences are operationally certified. If #2713 requires those additional actual workflows for completion, retain the Issue and PR in active/blocked-repo state until the relevant ERP readiness children and acceptance evidence are integrated. Do not unlock an uncertified module or award global `reports.view` solely to make a Sidebar item appear.
