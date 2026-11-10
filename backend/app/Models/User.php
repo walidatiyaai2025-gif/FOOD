@@ -160,7 +160,8 @@ class User extends Authenticatable
             return false;
         }
         if ($storeEffect === 'allow') {
-            return $this->hasPermissionScopeContext($storeId);
+            return $this->permissionFitsStoreChannel($permissionCode, (string) $this->storeChannel($storeId))
+                && $this->hasPermissionScopeContext($storeId);
         }
         if ($globalEffect === 'allow') {
             if (! $this->permissionFitsActiveGlobalRoleDomain($permissionCode)) {
@@ -342,6 +343,12 @@ class User extends Authenticatable
                 && (! $globalContext || ! $this->permissionFitsActiveGlobalRoleDomain((string) $row->code))) {
                 continue;
             }
+            if ($row->scope_key !== 'global' && $row->effect === 'allow'
+                && ($storeId === null
+                    || ! $this->hasPermissionScopeContext($storeId)
+                    || ! $this->permissionFitsStoreChannel((string) $row->code, (string) $this->storeChannel($storeId)))) {
+                continue;
+            }
 
             // A store ALLOW must never erase an earlier global DENY.
             // A store DENY still overrides a global ALLOW.
@@ -392,6 +399,24 @@ class User extends Authenticatable
             && ! str_starts_with($permissionCode, 'deliveries.b2c.');
 
         return $allowedByRetail || $allowedByWholesale;
+    }
+
+    /**
+     * Domain boundary for explicit per-store ALLOW. This is a scope ceiling,
+     * not a grant: active store assignments and route authorization remain
+     * independently required. Reused by OperationalTenantScope to avoid
+     * treating a forged Retail override as a Wholesale permission.
+     */
+    public function permissionFitsStoreChannel(string $permissionCode, string $channel): bool
+    {
+        return match ($channel) {
+            'b2c' => $permissionCode !== 'users.delete'
+                && ! $this->permissionCrossesRetailBoundary($permissionCode),
+            'b2b' => $this->permissionFitsActiveGlobalRoleDomain($permissionCode)
+                && ! str_starts_with($permissionCode, 'drivers.b2c.')
+                && ! str_starts_with($permissionCode, 'deliveries.b2c.'),
+            default => false,
+        };
     }
 
     private function permissionCrossesRetailBoundary(string $code): bool

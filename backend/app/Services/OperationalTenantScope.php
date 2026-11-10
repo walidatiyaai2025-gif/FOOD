@@ -40,6 +40,38 @@ final class OperationalTenantScope
             ->pluck('stores.id')
             ->map(static fn ($id): int => (int) $id);
 
+        // An authorized per-user STORE ALLOW may extend the role template
+        // within an existing, active Retail store assignment. Candidate rows
+        // require an exact matching persisted scope key; no global/foreign
+        // store or forged cross-channel permission is inferred from a layout.
+        // One bounded query avoids evaluating permissions for every store.
+        if ($user->has_permission_overrides
+            && ($channel === null || $channel === 'B2C')
+            && $user->permissionFitsStoreChannel($permission, 'b2c')) {
+            $storeAllows = DB::table('user_permission_overrides as overrides')
+                ->join('permissions as allowed_permissions', 'allowed_permissions.id', '=', 'overrides.permission_id')
+                ->join('user_store_roles as assigned', function ($join): void {
+                    $join->on('assigned.user_id', '=', 'overrides.user_id')
+                        ->on('assigned.store_id', '=', 'overrides.store_id');
+                })
+                ->join('roles as assigned_roles', 'assigned_roles.id', '=', 'assigned.role_id')
+                ->join('stores', 'stores.id', '=', 'assigned.store_id')
+                ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                ->where('overrides.user_id', $user->getKey())
+                ->where('overrides.effect', 'allow')
+                ->where('allowed_permissions.code', $permission)
+                ->where('assigned_roles.is_active', true)
+                ->where('assigned_roles.scope', 'store')
+                ->where('stores.is_active', true)
+                ->where('store_types.code', 'B2C')
+                ->get(['stores.id', 'overrides.scope_key'])
+                ->filter(static fn ($row): bool => $row->scope_key === 'store:'.$row->id)
+                ->pluck('id')
+                ->map(static fn ($id): int => (int) $id);
+
+            $ids = $ids->merge($storeAllows);
+        }
+
         if ($user->hasPermission($permission)) {
             $globalRoles = $user->roles()
                 ->where('roles.is_active', true)
