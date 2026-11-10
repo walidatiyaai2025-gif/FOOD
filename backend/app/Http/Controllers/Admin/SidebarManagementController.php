@@ -45,11 +45,23 @@ final class SidebarManagementController extends Controller
     public function updateRoleAccess(Request $request, Role $role, AdminSidebarManager $sidebar): RedirectResponse
     {
         Gate::authorize('roles.manage');
+        $this->useActorLocale($request);
 
         $validated = $request->validate([
             'item_keys' => ['nullable', 'array'],
             'item_keys.*' => ['string', 'max:120'],
         ]);
+
+        // A business group is a presentation container, never an item grant.
+        // Reject unknown/group keys atomically before changing visibility or audit.
+        $registeredItems = $sidebar->registry()['items'];
+        foreach ($validated['item_keys'] ?? [] as $index => $key) {
+            if (! array_key_exists($key, $registeredItems)) {
+                throw ValidationException::withMessages([
+                    "item_keys.{$index}" => __('sidebar_admin.invalid_item'),
+                ]);
+            }
+        }
 
         $before = $sidebar->roleMatrix($role);
         $sidebar->saveRoleVisibility($role, array_values($validated['item_keys'] ?? []));
