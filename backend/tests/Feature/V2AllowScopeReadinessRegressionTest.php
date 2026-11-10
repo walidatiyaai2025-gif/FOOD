@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
+use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\Store;
 use App\Models\User;
 use App\Services\OperationalTenantScope;
 use Database\Seeders\CoreReferenceSeeder;
@@ -102,7 +104,12 @@ final class V2AllowScopeReadinessRegressionTest extends TestCase
 
     public function test_explicit_allow_cannot_open_disabled_procurement_module_route(): void
     {
-        $this->store('B2B', 'P141-PROCUREMENT-WHOLESALE');
+        $wholesaleId = $this->store('B2B', 'P141-PROCUREMENT-WHOLESALE');
+        // The real workbench requires a provisioned company/legal-entity scope.
+        // Missing hierarchy returns unrelated 409 and masks the ALLOW regression.
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore(
+            Store::query()->findOrFail($wholesaleId),
+        );
         $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
         $actor->roles()->attach([
             Role::query()->where('code', 'B2B_ADMIN')->firstOrFail()->id,
@@ -119,14 +126,14 @@ final class V2AllowScopeReadinessRegressionTest extends TestCase
             $actor->forceFill(['locale' => $locale])->save();
 
             $this->actingAs($actor->fresh())
-                ->get('/admin/erp/procurement?tab=suppliers')
+                ->get(route('admin.erp.procurement.index', ['store_id' => $wholesaleId, 'tab' => 'suppliers']))
                 ->assertNotFound();
         }
 
         $this->enableProcurement();
 
         $this->actingAs($actor->fresh())
-            ->get('/admin/erp/procurement?tab=suppliers')
+            ->get(route('admin.erp.procurement.index', ['store_id' => $wholesaleId, 'tab' => 'suppliers']))
             ->assertOk();
     }
 

@@ -7,6 +7,7 @@
 - **Security**: `User::hasPermission`, `User::effectivePermissionCodes`, `OperationalTenantScope`, canonical Security permission override route, and `EnterpriseProcurementController` module-readiness gate. No client-side role names or Sidebar check can grant access.
 - **Existing routes**: `/admin/b2c/orders`, `/admin/b2b/orders`, `/admin/erp/procurement`, and the existing Security user-permissions mutation endpoint.
 - **Threat model**: deliberately seed even forged/stale ALLOW rows in test database to prove fail-closed *read-side* behavior, as well as a genuine unauthorized PUT rejected on the server. Seeded rows are not normal approved user-grant workflow.
+- **Valid procurement test context:** provision the authoritative organization/company/legal-entity hierarchy for the B2B store, and supply its exact `store_id` to the real route; missing enterprise scope independently returns HTTP 409 and is not permission evidence.
 
 ## Regression matrix
 
