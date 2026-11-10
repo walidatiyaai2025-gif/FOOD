@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 
 final class AdminSidebarManager
@@ -254,6 +255,28 @@ final class AdminSidebarManager
      */
     public function apply(User $user, array $groups): array
     {
+        if ($groups === []) {
+            return [];
+        }
+
+        // Fail closed on stale/missing route names before applying layout and
+        // role visibility. A hidden/disabled feature can leave a registered
+        // Sidebar item behind; never show a link that Laravel cannot resolve.
+        // Preserve the Platform Owner's complete *valid* diagnostic inventory.
+        foreach ($groups as &$group) {
+            $group['children'] = array_values(array_filter(
+                (array) ($group['children'] ?? []),
+                static fn (array $item): bool => is_string($item['route'] ?? null)
+                    && Route::has($item['route']),
+            ));
+        }
+        unset($group);
+
+        $groups = array_values(array_filter(
+            $groups,
+            static fn (array $group): bool => $group['children'] !== [],
+        ));
+
         if ($groups === []) {
             return [];
         }
