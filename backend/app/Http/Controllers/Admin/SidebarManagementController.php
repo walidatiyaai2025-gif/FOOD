@@ -63,7 +63,7 @@ final class SidebarManagementController extends Controller
 
         $actor = $request->user();
         $canEditRolePermissions = $selectedRole->archived_at === null
-            && $selectedRole->code !== 'PLATFORM_OWNER'
+            && ! in_array($selectedRole->code, ['PLATFORM_OWNER', 'SUPER_ADMIN'], true)
             && ! app(BuiltInJobRoleCatalog::class)->isBuiltIn((string) $selectedRole->code)
             && ($actor->hasRole('SUPER_ADMIN')
                 || $selectedRole->permissions->pluck('code')
