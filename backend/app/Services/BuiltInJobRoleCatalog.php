@@ -182,6 +182,7 @@ final class BuiltInJobRoleCatalog
                 'name' => $code,
                 'description' => '',
                 'responsibilities' => [],
+                'access_boundaries' => [],
                 'permission_summary' => [],
                 'domain' => __('job_roles.domains.custom'),
                 'scope' => '',
@@ -209,6 +210,7 @@ final class BuiltInJobRoleCatalog
                 ? array_values((array) __($root.'.responsibilities'))
                 : [],
             'permission_summary' => array_slice($permissionSummaries, 0, 8),
+            'access_boundaries' => $this->accessBoundaries($definition),
             'domain_label' => __('job_roles.domains.'.$definition['domain']),
             'scope_label' => __('job_roles.scopes.'.$definition['business_scope']),
             'level_label' => __('job_roles.levels.'.$definition['level']),
@@ -240,6 +242,8 @@ final class BuiltInJobRoleCatalog
 
         DB::transaction(function () use ($permissions, $allPermissionCodes, &$rolesTouched, &$grantsTouched): void {
             foreach ($this->definitions() as $code => $definition) {
+                $this->assertGovernanceDocumented($code);
+
                 $codes = $definition['permissions'] === ['*'] ? $allPermissionCodes : $definition['permissions'];
                 $missing = array_values(array_diff($codes, $permissions->keys()->all()));
                 if ($missing !== []) {
@@ -322,6 +326,71 @@ final class BuiltInJobRoleCatalog
         $permissions = $definition['permissions'];
         if ($permissions === [] || (in_array('*', $permissions, true) && $permissions !== ['*'])) {
             throw new RuntimeException('Built-in role ['.$definition['code'].'] has an invalid permission bundle.');
+        }
+    }
+
+    /**
+     * Descriptive boundaries are derived from the authoritative assignment and
+     * module metadata. They never grant access or replace route authorization.
+     *
+     * @param  array<string,mixed>  $definition
+     * @return list<string>
+     */
+    private function accessBoundaries(array $definition): array
+    {
+        $scope = $definition['scope'] === 'store'
+            ? 'store'
+            : ($definition['business_scope'] === 'platform' ? 'platform' : 'global');
+
+        $boundaries = [__('job_roles.boundaries.'.$scope)];
+
+        if ($definition['business_profiles'] !== []) {
+            $boundaries[] = __('job_roles.boundaries.business_profiles');
+        }
+        if ($definition['required_modules'] !== []) {
+            $boundaries[] = __('job_roles.boundaries.required_modules');
+        }
+        if (in_array($definition['domain'], ['procurement', 'finance', 'treasury'], true)) {
+            $boundaries[] = __('job_roles.boundaries.financial_controls');
+        }
+
+        $actorBoundary = match ($definition['code']) {
+            'B2B_DRIVER' => 'legacy_b2b_driver',
+            'B2C_DRIVER' => 'b2c_driver',
+            'VAN_OPERATOR' => 'b2b_van',
+            default => null,
+        };
+        if ($actorBoundary !== null) {
+            $boundaries[] = __('job_roles.boundaries.'.$actorBoundary);
+        }
+
+        $boundaries[] = __('job_roles.boundaries.server_authority');
+
+        return $boundaries;
+    }
+
+    /**
+     * A canonical role must have an explicit bilingual governance record before
+     * reconciliation can activate it. This is a release/approval gate, not a UI
+     * visibility shortcut. Existing custom roles remain under RbacManager.
+     */
+    private function assertGovernanceDocumented(string $code): void
+    {
+        foreach (['ar', 'en'] as $locale) {
+            $root = 'job_roles.roles.'.$code;
+            foreach (['name', 'description'] as $field) {
+                $key = $root.'.'.$field;
+                $value = Lang::get($key, [], $locale, false);
+                if (! is_string($value) || $value === $key || trim($value) === '') {
+                    throw new RuntimeException('Built-in role ['.$code.'] lacks '.$locale.' governance '.$field.'.');
+                }
+            }
+
+            $responsibilities = Lang::get($root.'.responsibilities', [], $locale, false);
+            if (! is_array($responsibilities) || $responsibilities === []
+                || collect($responsibilities)->contains(fn (mixed $item): bool => ! is_string($item) || trim($item) === '')) {
+                throw new RuntimeException('Built-in role ['.$code.'] lacks '.$locale.' governance responsibilities.');
+            }
         }
     }
 

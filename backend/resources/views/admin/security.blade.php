@@ -254,6 +254,10 @@ $roleLabel = static function ($role): string {
 <strong>{{ __('job_roles.responsibilities') }}</strong>
 <ul class="job-role-responsibilities">@foreach($roleMeta['responsibilities'] as $responsibility)<li>{{ $responsibility }}</li>@endforeach</ul>
 @endif
+@if(($roleMeta['access_boundaries'] ?? []) !== [])
+<strong>{{ __('job_roles.access_boundaries') }}</strong>
+<ul class="job-role-responsibilities" data-role-access-boundaries>@foreach($roleMeta['access_boundaries'] as $boundary)<li>{{ $boundary }}</li>@endforeach</ul>
+@endif
 @if(($roleMeta['permission_summary'] ?? []) !== [])
 <strong>{{ __('job_roles.permission_summary') }}</strong>
 <div class="job-role-tags">@foreach($roleMeta['permission_summary'] as $summary)<span class="badge">{{ $summary }}</span>@endforeach</div>
