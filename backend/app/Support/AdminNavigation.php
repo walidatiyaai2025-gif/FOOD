@@ -78,6 +78,9 @@ class AdminNavigation
         $hideRetailWorkspaces = $isSuperAdmin && ! $user->isPlatformOwner();
         $canAccessPlatformErp = $this->canAccessPlatformErp($user);
         $canAccessPlatformNavigation = $canAccessPlatformErp;
+        // Avoid repeating global Super Admin role queries for an already-authorized platform actor.
+        $canAccessWorkspaces = $canAccessPlatformNavigation
+            || $this->enterpriseWorkspaces->availableWorkspaceKeys($user) !== [];
         $useCustomerServiceDashboardProfile = $this->usesCustomerServiceDashboardProfile($user);
 
         // Business-first order: enter a channel, define stores/catalog/accounts, execute operations,
@@ -89,7 +92,7 @@ class AdminNavigation
                     : null,
                 // Use the same effective platform/store-scope decision as the actual HTTP workspace controller.
                 // A scoped Retail sales workspace must not be a hidden, direct-URL-only destination.
-                $this->enterpriseWorkspaces->availableWorkspaceKeys($user) !== [] && ! $useCustomerServiceDashboardProfile
+                $canAccessWorkspaces && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemOpen('enterprise_workspaces', 'enterprise_workspaces.nav_title', 'admin.enterprise-workspaces.index')
                     : null,
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'dashboard', 'admin.premium_nav.dashboard', null),
