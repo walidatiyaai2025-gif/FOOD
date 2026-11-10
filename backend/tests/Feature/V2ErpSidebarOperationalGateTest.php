@@ -58,7 +58,7 @@ final class V2ErpSidebarOperationalGateTest extends TestCase
 
         $item = $this->navigationItem($actor, 'erp_procurement');
         $this->assertSame('admin.erp.procurement.index', $item['route']);
-        $this->assertSame('procurement.suppliers.view', $item['permission']);
+        $this->assertNull($item['permission']); // Route still enforces its own authorization.
 
         $this->actingAs($actor)->get(route('admin.erp.index'))
             ->assertOk()
