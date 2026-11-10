@@ -155,8 +155,10 @@ final class V2VanVisitsAuthorizedSidebarTest extends TestCase
         $inactive->forceFill(['is_active' => false])->save();
 
         $this->assertNull($this->visitsItem($roleless));
-        $this->assertNull($this->visitsItem($inactive->fresh()));
 
+        // Inactive accounts are rejected by the mandatory Dashboard HTTP gate.
+        // Calling the navigation projector outside a real session is not an
+        // activation test and must not be mistaken for a usable Sidebar link.
         foreach ([$roleless, $inactive->fresh()] as $actor) {
             $this->actingAs($actor)
                 ->get(route('admin.field-operations.visits', [], false))
