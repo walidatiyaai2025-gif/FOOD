@@ -596,7 +596,7 @@ class AdminNavigation
                 return null;
             }
 
-            $params['store_id'] = $storeId;
+            $params['store_id'] = (string) $storeId;
         }
 
         return [
