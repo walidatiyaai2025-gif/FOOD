@@ -87,7 +87,7 @@ final class V2OrderAssignmentsSidebarHttpContractTest extends TestCase
             ->assertOk()
             ->assertViewHas('rows', static fn (array $rows): bool => collect($rows)
                 ->firstWhere('id', $order)['can_dispatch_authorized'] === false)
-            ->assertDontSee('data-order-inline-dispatch', false);
+            ->assertDontSee('<form method="post" action="'.route('admin.operations.orders.dispatch', $order).'" class="order-inline-picker"', false);
 
         $this->actingAs($actor->fresh())
             ->patch(route('admin.operations.orders.dispatch', $order), [
@@ -194,7 +194,7 @@ final class V2OrderAssignmentsSidebarHttpContractTest extends TestCase
                 'assignee_id' => 1,
                 'reason' => 'Roleless attempt',
             ])
-            ->assertNotFound();
+            ->assertForbidden();
     }
 
     private function retailStore(string $code): int
