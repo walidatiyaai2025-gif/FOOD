@@ -105,6 +105,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
     </section>
     @endif
 
+    @if($canManage)
     <section class="panel">
         <h2>{{ __('notifications.create_campaign') }}</h2>
         <form method="post" action="{{ route('admin.notification-campaigns.store') }}" class="js-campaign-form" enctype="multipart/form-data">
@@ -156,6 +157,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
             </div>
         </form>
     </section>
+    @endif
 
     <form class="panel row" method="get">
         <input name="q" value="{{ $search }}" placeholder="{{ __('notifications.search') }}">
@@ -187,7 +189,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
                 <div><small>{{ __('notifications.popup_frequency') }}</small><strong>{{ __('notifications.popup_frequency_options.'.($campaign->popup_frequency ?? 'once_per_session')) }}</strong></div>
             </div>
 
-            @if(!in_array($campaign->status,['completed','cancelled'],true))
+            @if($canManage && !in_array($campaign->status,['completed','cancelled'],true))
             <details data-foodex-operational-modal>
                             <summary style="cursor:pointer;font-weight:800">{{ __('notifications.edit_campaign') }}</summary>
                 <form method="post" action="{{ route('admin.notification-campaigns.update',$campaign) }}" class="js-campaign-form" enctype="multipart/form-data" style="margin-top:12px">
@@ -234,7 +236,7 @@ label{display:block;font-size:.78rem;font-weight:700;color:var(--foodex-muted);m
             </details>
             @endif
 
-            @if(!in_array($campaign->status,['completed','cancelled'],true) || $campaign->status!=='cancelled')
+            @if($canManage && (!in_array($campaign->status,['completed','cancelled'],true) || $campaign->status!=='cancelled'))
             <details class="row-actions" data-notification-campaign-actions>
                 <summary aria-label="{{ __('notifications.actions') }}">⋮</summary>
                 <div class="row-action-menu">
