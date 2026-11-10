@@ -62,6 +62,7 @@ final class V2EnterpriseWorkspacesSidebarMigrationTest extends TestCase
             $this->actingAs($admin)
                 ->get(route('admin.enterprise-workspaces.index'))
                 ->assertOk()
+                ->assertSee('lang="'.$locale.'"', false)
                 ->assertSee('dir="'.$expected['dir'].'"', false)
                 ->assertSee($expected['heading'])
                 ->assertSee('data-foodex-mobile-web-page="enterprise-workspaces"', false)
@@ -70,6 +71,7 @@ final class V2EnterpriseWorkspacesSidebarMigrationTest extends TestCase
 
         $definition = config('admin_sidebar.items.enterprise_workspaces');
         $this->assertSame('overview', $definition['group']);
+        $this->assertSame('enterprise_workspaces.nav_title', $definition['label']);
         $this->assertSame('global', $definition['scope']);
         $this->assertSame([], $definition['permissions']);
     }
