@@ -25,18 +25,16 @@ final class V2SidebarMetadata
         $result = [];
 
         foreach ($this->navigation->groupsFor($user) as $group) {
-            $key = (string) ($group['key'] ?? '');
+            $key = $group['key'];
             if ($key === '' || ! isset($registry['groups'][$key])) {
                 continue;
             }
 
             $items = [];
-            foreach ((array) ($group['children'] ?? []) as $node) {
-                if (is_array($node)) {
-                    $item = $this->item($node, $key, $registry['items'], $layout['items']);
-                    if ($item !== null) {
-                        $items[] = $item;
-                    }
+            foreach ($group['children'] as $node) {
+                $item = $this->item($node, $key, $registry['items'], $layout['items']);
+                if ($item !== null) {
+                    $items[] = $item;
                 }
             }
 
