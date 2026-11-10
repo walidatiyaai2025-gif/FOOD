@@ -1,13 +1,13 @@
 # FOODEX Van Workflow
 
 Status: **Authoritative**
-Updated: 2026-10-26
+Updated: 2026-11-10
 
 ## Ownership
 
 The Van App remains the automatic routing runtime for **B2B / Wholesale** and is also available for authorized manual B2B dispatch.
 
-Automatic B2B routing never falls back to a Driver. If Smart Routing cannot select an eligible Van, the order stays in `awaiting_dispatch`. An authorized Order Operations user may then explicitly choose either a B2B Driver or a Van; choosing a Driver is a manual override, not automatic fallback behavior.
+B2B routing and manual dispatch are **Van-only**. If Smart Routing cannot select an eligible Van, the order stays in `awaiting_dispatch`. An authorized Order Operations user may manually select an eligible Van only; no B2B Driver exception exists.
 
 ## Canonical lifecycle
 
@@ -20,7 +20,7 @@ Automatic B2B routing never falls back to a Driver. If Smart Routing cannot sele
 7. Retry uses `POST /api/v1/van/orders/{order}/execution/retry` and returns the order to the server-authorized `out_for_delivery` state.
 8. COD collection uses the authoritative customer/invoice context, posts one idempotent collection and exposes its receipt.
 9. Wallet/remittance preserve custody provenance and idempotency.
-10. Live location/tracking resolves the currently assigned B2B execution actor: automatic/Van dispatch uses Van location, while an explicit manual Driver override uses that B2B Driver's location.
+10. Live B2B location/tracking resolves only the currently assigned Van. Historical B2B Driver tracking remains read-only evidence and must not become a new execution actor.
 
 ## Execution states
 
@@ -58,4 +58,4 @@ Routing/assignment history and immutable Van execution events provide audit prov
 
 ## Channel boundary
 
-Van fulfillment authority must not become a B2C fallback. B2C remains Driver-owned. B2B automatic routing remains Van-first even though authorized manual B2B dispatch may select a Driver.
+Van fulfillment authority must not become a B2C fallback. B2C remains Driver-owned. B2B automatic **and manual** routing are Van-only; no B2B Driver fallback or override is permitted.
