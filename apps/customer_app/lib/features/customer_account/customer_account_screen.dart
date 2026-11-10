@@ -214,7 +214,8 @@ class _CustomerAccountScreenState extends State<CustomerAccountScreen>
       );
     } on B2cAccountException catch (error) {
       if (!mounted) return;
-      final passwordRejected = error.fieldErrors['password']?.isNotEmpty == true;
+      final passwordRejected =
+          error.fieldErrors['password']?.isNotEmpty == true;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(customerAccountDeletionErrorMessage(
