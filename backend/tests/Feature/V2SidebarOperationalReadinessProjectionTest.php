@@ -40,20 +40,22 @@ final class V2SidebarOperationalReadinessProjectionTest extends TestCase
 
         $this->assertTrue(app(ModuleRegistry::class)->isEnabled('procurement'));
         $this->assertTrue($operator->hasPermission('procurement.suppliers.view'));
-        $beforeAudits = DB::table('audit_logs')->count();
 
         foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $dir) {
             app()->setLocale($locale);
             $operator->forceFill(['locale' => $locale])->save();
 
+            // Sidebar projection is read-only; ERP Center itself may bootstrap
+            // local test modules and emit unrelated lifecycle audit events.
+            $beforeNavigation = DB::table('audit_logs')->count();
             $this->assertNull($this->navigationItem($operator->fresh(), 'erp_procurement'));
+            $this->assertSame($beforeNavigation, DB::table('audit_logs')->count());
             $this->actingAs($operator->fresh())
                 ->get(route('admin.erp.index'))
                 ->assertOk()
                 ->assertSee('dir="'.$dir.'"', false);
         }
 
-        $this->assertSame($beforeAudits, DB::table('audit_logs')->count());
     }
 
     public function test_exact_version_certification_with_healthy_probe_restores_only_the_real_authorized_route(): void
