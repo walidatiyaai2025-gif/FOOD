@@ -168,7 +168,7 @@ $roleRiskMessages = collect(array_keys($roleRiskPairs))
         <label class="v2-tree-scope-picker">
             <span>{{ __('admin.security.page_tree_preview_scope') }}</span>
             <select data-v2-user-tree-scope aria-label="{{ __('admin.security.page_tree_preview_scope') }}">
-                <option value="global">{{ __('admin.security.global_roles') }}</option>
+                <option value="">{{ __('admin.security.global_roles') }}</option>
                 @foreach($stores as $previewStore)
                     @if($grantableStoreRolesByStore->get((int)$previewStore->id, collect())->isNotEmpty())
                         <option value="{{ $previewStore->id }}">{{ $previewStore->name }}</option>
