@@ -5,6 +5,15 @@
         ->sortKeys();
     $configuredApprovalLimits = $roleApprovalLimits->get((int) $role->id, collect());
     $roleStores = $roleAssignedStores->get((int) $role->id, collect());
+    $configuredDataScopes = $roleDataScopes->get((int) $role->id, collect());
+    $roleScopeTypeLabels = [
+        'platform' => __('enterprise_security.scope_platform'),
+        'organization' => __('enterprise_security.scope_organization'),
+        'company' => __('enterprise_security.scope_company'),
+        'legal_entity' => __('enterprise_security.scope_legal_entity'),
+        'business_unit' => __('enterprise_security.scope_business_unit'),
+        'store' => __('enterprise_security.scope_store'),
+    ];
 @endphp
 <section class="note" data-v2-custom-role-details="{{ (int) $role->id }}" aria-label="{{ __('admin.security.custom_role_details.title') }}">
     <h4>{{ __('admin.security.custom_role_details.title') }}</h4>
@@ -29,6 +38,22 @@
         </ul>
     @endif
     <p class="muted">{{ __('admin.security.custom_role_details.store_boundary') }}</p>
+    <h5>{{ __('admin.security.custom_role_details.data_scopes') }}</h5>
+    @if($configuredDataScopes->isEmpty())
+        <p class="muted" data-v2-custom-role-no-scopes>{{ __('admin.security.custom_role_details.no_active_scopes') }}</p>
+    @else
+        <ul data-v2-custom-role-data-scopes>
+            @foreach($configuredDataScopes as $configuredScope)
+                <li>
+                    {{ $roleScopeTypeLabels[$configuredScope->scope_type] ?? __('enterprise_security.unavailable_scope') }}
+                    @if($configuredScope->scope_type !== 'platform')
+                        — {{ $roleDataScopeNames->get($configuredScope->scope_key, __('enterprise_security.unavailable_scope')) }}
+                    @endif
+                </li>
+            @endforeach
+        </ul>
+    @endif
+    <p class="muted">{{ __('admin.security.custom_role_details.scope_boundary') }}</p>
     <h5>{{ __('admin.security.custom_role_details.permission_modules') }}</h5>
     @if($rolePermissionNamespaces->isEmpty())
         <p class="muted" role="status">{{ __('admin.security.custom_role_details.no_permissions') }}</p>
