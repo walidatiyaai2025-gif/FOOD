@@ -124,7 +124,25 @@ final class V2CustomRoleDetailsContractTest extends TestCase
         ]);
         $storeRole->permissions()->attach(Permission::query()->where('code', 'security.view')->firstOrFail());
         $storeActor = User::factory()->create(['is_active' => true]);
-        $this->actingAs($storeActor)
+        $storeTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $storeTypeId,
+            'code' => 'V2-P098-RESTRICTED',
+            'name' => 'P098 restricted store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('user_store_roles')->insert([
+            'user_id' => $storeActor->id,
+            'role_id' => $storeRole->id,
+            'store_id' => $storeId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->assertTrue($storeActor->fresh()->hasPermission('security.view', $storeId));
+        $this->assertFalse($storeActor->fresh()->hasPermission('security.view'));
+        $this->actingAs($storeActor->fresh())
             ->get('/admin/security?section=roles')
             ->assertForbidden();
 
