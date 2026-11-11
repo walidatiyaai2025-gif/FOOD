@@ -124,13 +124,19 @@ void main() {
   test('malformed order, receipt or remittance rows never disappear silently',
       () async {
     for (final field in const ['orders', 'transactions', 'remittances']) {
-      final brokenWallet = {..._wallet(), field: [null, 23, 'bad-row']};
+      final brokenWallet = {
+        ..._wallet(),
+        field: [null, 23, 'bad-row']
+      };
       await expectLater(
         _repository([brokenWallet]).wallet(),
         throwsA(isA<DriverApiException>()),
         reason: 'financial $field rows cannot be silently filtered',
       );
-      final nonList = {..._wallet(), field: {'id': 1}};
+      final nonList = {
+        ..._wallet(),
+        field: {'id': 1}
+      };
       await expectLater(
         _repository([nonList]).wallet(),
         throwsA(isA<DriverApiException>()),
