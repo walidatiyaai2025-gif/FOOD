@@ -64,13 +64,14 @@ final class DashboardDeploymentProvenance
             $commit = null;
         }
 
-        $known = $installedVersion !== null
-            && $sourceVersion !== null
-            && $buildVersion !== null
-            && $commit !== null;
-        $metadataState = ! $known ? 'unknown'
-            : ($installedVersion === $sourceVersion && $sourceVersion === $buildVersion
-                ? 'consistent' : 'mismatch');
+        $knownVersions = array_values(array_filter(
+            [$installedVersion, $sourceVersion, $buildVersion],
+            static fn (?string $version): bool => $version !== null,
+        ));
+        $hasConflict = count(array_unique($knownVersions)) > 1;
+        $complete = count($knownVersions) === 3 && $commit !== null;
+        $metadataState = $hasConflict ? 'mismatch'
+            : ($complete ? 'consistent' : 'unknown');
 
         $githubState = 'not_checked';
         if ($verifyGithub) {
