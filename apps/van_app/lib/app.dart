@@ -26,6 +26,7 @@ import 'features/orders/van_order_detail_page.dart';
 
 typedef VanLocationTrackingFactory = VanLocationTrackingController Function(
   VanSession session,
+  Future<void> Function() onSessionInvalidated,
 );
 
 class FoodexVanApp extends StatefulWidget {
@@ -212,12 +213,21 @@ class _FoodexVanAppState extends State<FoodexVanApp>
     });
   }
 
+  Future<void> _onTrackingSessionInvalidated(VanSession trackedSession) async {
+    // A late 401/403 from an old heartbeat must never log out a new login.
+    if (!mounted || _session?.token != trackedSession.token) return;
+    await _logout();
+  }
+
   void _configureLocationTracking(VanSession session) {
     _disposeLocationTracking();
     final factory = widget.locationTrackingFactory;
     if (factory == null || !session.canUseVan) return;
 
-    final tracking = factory(session);
+    final tracking = factory(
+      session,
+      () => _onTrackingSessionInvalidated(session),
+    );
     _locationTracking = tracking;
     tracking.start();
   }
