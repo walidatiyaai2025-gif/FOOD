@@ -73,7 +73,7 @@ void main() {
     (Locale('en'), 'English Driver session renewal'),
   ]) {
     testWidgets(
-      'stale 401/403 callback cannot revoke a newer $testCase',
+      'stale 401/403 callback cannot revoke a newer ${testCase.$2}',
       (tester) async {
         final gate = _Gate();
         final oldSession = _session('old-token');
@@ -85,7 +85,6 @@ void main() {
         Widget appFor(DriverSession session) => FoodexDriverApp(
               key: const ValueKey('driver-session-identity-test'),
               locale: testCase.$1,
-              apiBaseUrl: '',
               translationFetcher: (_) async => const <String, String>{},
               initialRoute: DriverRoutes.b2cHome,
               initialSession: session,
