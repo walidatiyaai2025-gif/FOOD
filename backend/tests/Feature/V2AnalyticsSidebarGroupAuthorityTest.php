@@ -184,6 +184,41 @@ final class V2AnalyticsSidebarGroupAuthorityTest extends TestCase
         }
     }
 
+    public function test_mixed_wholesale_and_retail_roles_preserve_reporting_scope_per_channel(): void
+    {
+        $own = $this->store('B2C', 'P304-MIXED-OWN');
+        $foreign = $this->store('B2C', 'P304-MIXED-OTHER');
+        $this->store('B2B', 'P304-MIXED-WHOLESALE');
+        $actor = $this->globalActor('B2B_ADMIN', 'p304-mixed@example.test');
+        $retailRole = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+
+        DB::table('user_store_roles')->insert([
+            'user_id' => $actor->id,
+            'store_id' => $own,
+            'role_id' => $retailRole->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        foreach (['ar', 'en'] as $locale) {
+            app()->setLocale($locale);
+            $actor->forceFill(['locale' => $locale])->save();
+
+            $items = collect($this->analyticsFor($actor->fresh())['children'] ?? [])
+                ->keyBy('key');
+            $this->assertTrue($items->has('reports_center'));
+            $this->assertTrue($items->has('b2c_reports'));
+            $this->assertSame((string) $own, $items->get('b2c_reports')['params']['store_id']);
+
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.b2c.module', ['module' => 'reports', 'store_id' => $own], false))
+                ->assertOk();
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.b2c.module', ['module' => 'reports', 'store_id' => $foreign], false))
+                ->assertNotFound();
+        }
+    }
+
     private function analyticsFor(User $user): ?array
     {
         return collect(app(AdminNavigation::class)->groupsFor($user))
