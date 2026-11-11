@@ -100,10 +100,14 @@ final class V2BusinessAnalystReportingAuthorityTest extends TestCase
             $response->assertOk()->assertSee('dir="'.$direction.'"', false);
         }
 
-        $this->actingAs($actor->fresh())
-            ->get($this->exportUrl())
-            ->assertOk()
-            ->assertHeader('Cache-Control', 'private, no-store');
+        $export = $this->actingAs($actor->fresh())->get($this->exportUrl());
+        $export->assertOk();
+
+        // Symfony can normalize header directive order; require both protective
+        // directives rather than comparing an ordering with no HTTP semantics.
+        $cacheControl = (string) $export->headers->get('Cache-Control');
+        $this->assertContains('private', array_map('trim', explode(',', $cacheControl)));
+        $this->assertContains('no-store', array_map('trim', explode(',', $cacheControl)));
 
         app(ModuleLifecycleManager::class)->transition('enterprise_bi', ModuleState::DISABLED);
 
