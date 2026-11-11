@@ -956,21 +956,22 @@ class AdminNavigation
             ];
         }
 
-        $retailStoreIds = app(TenantContextResolver::class)->retailStoreIds($user);
-        if ($retailStoreIds === []) {
+        // A store-role grant is not an effective permission: explicit per-user
+        // global/store DENYs must win before advertising links become visible.
+        // Match each feature's existing HTTP authorizer, not Sidebar preferences.
+        $retailStoreIds = $this->tenantContext->retailStoreIds($user);
+        $authorizedStoreIds = app(OperationalTenantScope::class)
+            ->allowedStoreIds($user, $permission, 'b2c');
+        $eligibleStoreIds = array_values(array_intersect($retailStoreIds, $authorizedStoreIds));
+
+        if ($eligibleStoreIds === []) {
             return null;
         }
 
-        $allowed = $user->storeRoleAssignments()
-            ->whereIn('store_id', $retailStoreIds)
-            ->whereHas('store', fn ($query) => $query
-                ->where('stores.is_active', true)
-                ->where("stores.{$featureColumn}", true))
-            ->whereHas('role', fn ($query) => $query
-                ->where('roles.is_active', true)
-                ->where('roles.scope', 'store')
-                ->whereHas('permissions', fn ($permissions) => $permissions
-                    ->where('permissions.code', $permission)))
+        $allowed = Store::query()
+            ->whereIn('stores.id', $eligibleStoreIds)
+            ->where('stores.is_active', true)
+            ->where("stores.{$featureColumn}", true)
             ->exists();
 
         if (! $allowed) {
