@@ -67,7 +67,9 @@ void main() {
     );
   });
 
-  test('Van login maps a server 403 to access denied rather than a generic API error', () async {
+  test(
+      'Van login maps a server 403 to access denied rather than a generic API error',
+      () async {
     final repo = HttpVanAuthRepository(
       'https://foodex.example/',
       client: MockClient((request) async {
@@ -76,7 +78,8 @@ void main() {
         expect(body['app'], 'van');
         return http.Response(
           jsonEncode({
-            'message': 'No effective Van assignment is available for this account.',
+            'message':
+                'No effective Van assignment is available for this account.',
           }),
           403,
           headers: {'content-type': 'application/json'},
@@ -90,7 +93,9 @@ void main() {
     );
   });
 
-  test('Van login denies 200 payload with van.login but no effective assignment', () async {
+  test(
+      'Van login denies 200 payload with van.login but no effective assignment',
+      () async {
     final repo = HttpVanAuthRepository(
       'https://foodex.example/',
       client: MockClient((_) async => http.Response(
