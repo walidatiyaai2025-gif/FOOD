@@ -57,7 +57,8 @@ class GeolocatorVanLocationSource implements VanLocationSource {
       latitude: position.latitude,
       longitude: position.longitude,
       accuracy: position.accuracy >= 0 ? position.accuracy : null,
-      speed: position.speed >= 0 && position.speed <= 500 ? position.speed : null,
+      speed:
+          position.speed >= 0 && position.speed <= 500 ? position.speed : null,
       heading: position.heading >= 0 && position.heading <= 360
           ? position.heading
           : null,
