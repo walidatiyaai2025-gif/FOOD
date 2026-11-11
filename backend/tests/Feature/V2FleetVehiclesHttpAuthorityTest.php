@@ -14,6 +14,7 @@ use App\Services\VanRegistryService;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -191,8 +192,8 @@ final class V2FleetVehiclesHttpAuthorityTest extends TestCase
             ->assertForbidden();
     }
 
-    /** @return \Illuminate\Support\Collection<int, array<string, mixed>> */
-    private function vehicleNavigation(User $user): \Illuminate\Support\Collection
+    /** @return Collection<int, array<string, mixed>> */
+    private function vehicleNavigation(User $user): Collection
     {
         return collect(app(AdminNavigation::class)->groupsFor($user))
             ->flatMap(static fn (array $group): array => collect($group['children'])
