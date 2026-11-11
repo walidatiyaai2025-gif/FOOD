@@ -134,7 +134,7 @@ final class SecurityController extends Controller
                 continue;
             }
 
-            $modelClass::query()->whereIn('id', $ids)->get(['id', 'name'])
+            $modelClass::query()->whereIn('id', $ids)->where('is_active', true)->get(['id', 'name'])
                 ->each(fn ($record) => $roleDataScopeNames->put($scopeType.':'.$record->id, (string) $record->name));
         }
 
