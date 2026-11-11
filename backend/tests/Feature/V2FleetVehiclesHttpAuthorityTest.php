@@ -61,7 +61,7 @@ final class V2FleetVehiclesHttpAuthorityTest extends TestCase
             $item = $children->first();
             $this->assertSame('field_operations', $item['group_key']);
             $this->assertSame('admin.field-operations.vans', $item['route']);
-            $this->assertSame('drivers.b2b.view', $item['permissions'][0] ?? null);
+            $this->assertNull($item['permission']); // Server controller enforces drivers.b2b.view.
 
             $this->actingAs($actor->fresh())
                 ->get(route('admin.field-operations.vans'))
