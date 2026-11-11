@@ -39,6 +39,8 @@ class V2RestaurantDigitalOrdersStoreScopeTest extends TestCase
                 ->assertSee('dir="'.$direction.'"', false)
                 ->assertSee('data-restaurant-saas-workspace-nav', false)
                 ->assertSee('data-workspace-item="orders"', false)
+                ->assertSee('name="store_id" value="'.$first.'"', false)
+                ->assertSee('store_id='.$first.'&amp;tab=branches', false)
                 ->assertViewHas('stores', fn ($stores): bool => collect($stores)
                     ->pluck('id')->map(fn ($id): int => (int) $id)->all() === [$first]);
 
@@ -142,7 +144,9 @@ class V2RestaurantDigitalOrdersStoreScopeTest extends TestCase
                 'store_id' => $storeId,
                 'support_access' => 1,
             ]))
-            ->assertOk();
+            ->assertOk()
+            ->assertSee('name="support_access" value="1"', false)
+            ->assertSee('name="store_id" value="'.$storeId.'"', false);
     }
 
     private function workspaceNav(User $user, int $storeId): string
