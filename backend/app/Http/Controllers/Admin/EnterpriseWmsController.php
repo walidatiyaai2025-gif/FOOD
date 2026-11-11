@@ -132,8 +132,8 @@ final class EnterpriseWmsController extends Controller
         // a view-only user must never see mutation forms or action links.
         $manageableCountWarehouseIds = $tab === 'counts'
             && in_array($storeId, $this->tenantScope->allowedStoreIds($actor, 'inventory.manage'), true)
-                ? $this->warehouseScope->authorizedWarehouseIds($actor, $storeId, 'inventory.manage')
-                : [];
+            ? $this->warehouseScope->authorizedWarehouseIds($actor, $storeId, 'inventory.manage')
+            : [];
         $canManageCounts = $warehouseId !== null
             && in_array($warehouseId, $manageableCountWarehouseIds, true);
 
