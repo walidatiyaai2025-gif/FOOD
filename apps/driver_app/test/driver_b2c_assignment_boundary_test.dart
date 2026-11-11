@@ -69,7 +69,12 @@ void main() {
               _assignment('b2c', 11),
               // Deliberately lacks an id: the wrong-channel row must fail
               // before any foreign order/customer data are parsed.
-              {'assignment_type': 'b2b', 'order': {'customer': {'name': 'X'}}},
+              {
+                'assignment_type': 'b2b',
+                'order': {
+                  'customer': {'name': 'X'}
+                }
+              },
             ],
           }),
           200,
