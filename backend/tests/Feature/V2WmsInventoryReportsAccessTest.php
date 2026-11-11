@@ -84,7 +84,7 @@ final class V2WmsInventoryReportsAccessTest extends TestCase
             'tab' => 'reports',
             'store_id' => $b['store_id'],
             'warehouse_id' => $b['warehouse_id'],
-        ]))->assertForbidden();
+        ]))->assertNotFound();
 
         $this->actingAs($actor)->get(route('admin.erp.wms.index', [
             'tab' => 'reports',
@@ -158,7 +158,7 @@ final class V2WmsInventoryReportsAccessTest extends TestCase
         // Disabling an entitled module must prevent all report reads without
         // deleting canonical stock, reservation balances or access history.
         app(ModuleLifecycleManager::class)->transition('inventory_wms', ModuleState::DISABLED);
-        $this->actingAs($actor)->get($allowed)->assertNotFound();
+        $this->actingAs($actor)->get($allowed)->assertForbidden();
         $this->assertDatabaseHas('inventories', [
             'id' => $fixture['inventory_id'],
             'quantity' => 10,
