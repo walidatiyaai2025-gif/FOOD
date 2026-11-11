@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 final class V2UserRestoreSafetyTest extends TestCase
@@ -79,14 +80,14 @@ final class V2UserRestoreSafetyTest extends TestCase
         $target = $this->userWithRole('B2B_ADMIN');
         $url = '/api/v1/admin/security/users/'.$target->id.'/status';
 
-        $this->actingAs($admin)
-            ->patchJson($url, ['is_active' => false, 'reason' => 'API archive without approval'])
+        Sanctum::actingAs($admin);
+
+        $this->patchJson($url, ['is_active' => false, 'reason' => 'API archive without approval'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('impact_reviewed');
         $this->assertTrue((bool) $target->fresh()->is_active);
 
-        $this->actingAs($admin)
-            ->patchJson($url, $this->reviewedStatus($target, false, 'API archive with full review'))
+        $this->patchJson($url, $this->reviewedStatus($target, false, 'API archive with full review'))
             ->assertOk()
             ->assertJsonPath('data.is_active', false);
     }
