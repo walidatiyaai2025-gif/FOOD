@@ -44,9 +44,17 @@ class AdvertisingCouponsAndMobileTrialTest extends TestCase
             ->firstWhere('key', 'advertising');
         $this->assertNotNull($advertising);
         $this->assertSame(
-            ['notification_campaigns', 'coupons'],
+            ['notification_campaigns'],
             collect($advertising['children'])->pluck('key')->values()->all(),
         );
+
+        // P233 is a Catalog & Pricing capability, never a duplicate
+        // Advertising navigation link or a direct-URL-only destination.
+        $groups = collect(app(AdminNavigation::class)->groupsFor($admin));
+        $catalog = $groups->firstWhere('key', 'catalog');
+        $this->assertNotNull($catalog);
+        $this->assertCount(1, collect($catalog['children'])->where('key', 'coupons'));
+        $this->assertCount(1, $groups->flatMap(static fn (array $group): array => $group['children'])->where('key', 'coupons'));
     }
 
     public function test_coupon_index_renders_coupons_without_optional_dates(): void

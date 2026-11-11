@@ -90,7 +90,7 @@ return [
 
         'notification_campaigns' => ['group' => 'advertising', 'label' => 'notifications.sidebar_campaigns', 'order' => 10, 'scope' => 'both', 'permissions' => ['notifications.view']],
         'live_ads' => ['group' => 'advertising', 'label' => 'live_ads.title', 'order' => 20, 'scope' => 'both', 'permissions' => ['live_ads.view']],
-        'coupons' => ['group' => 'advertising', 'label' => 'coupons.title', 'order' => 30, 'scope' => 'both', 'permissions' => ['coupons.view']],
+        'coupons' => ['group' => 'catalog', 'label' => 'coupons.title', 'order' => 85, 'scope' => 'both', 'permissions' => ['coupons.view']],
 
         'treasury_master' => ['group' => 'finance', 'label' => 'treasury.nav_title', 'order' => 10, 'scope' => 'global', 'permissions' => ['finance.view']],
 

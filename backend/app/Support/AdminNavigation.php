@@ -136,6 +136,9 @@ class AdminNavigation
                 $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemEnterpriseModule($user, 'erp_wms', 'admin.erp_center.modules.wms.title', 'admin.erp.wms.index', 'inventory_wms', 'inventory.view')
                     : null,
+                // P233: Coupons belong to the canonical Catalog & Pricing domain.
+                // Their existing controller and scoped feature authorizer remain intact.
+                $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled'),
             ]),
             $this->group('accounts', 'admin.nav_groups.accounts', '◎', [
                 $this->routeItemScoped($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'customers.view')
@@ -195,14 +198,10 @@ class AdminNavigation
                 $useCustomerServiceDashboardProfile
                     ? $this->routeItemAdvertising($user, 'live_ads', 'live_ads.title', 'admin.live-ads.index', 'live_ads.view', 'live_ads_enabled')
                     : null,
-                $useCustomerServiceDashboardProfile
-                    ? $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled')
-                    : null,
             ]),
             $this->group('advertising', 'admin.nav_groups.advertising', '◉', $useCustomerServiceDashboardProfile ? [] : [
                 $this->routeItemAdvertising($user, 'notification_campaigns', 'notifications.sidebar_campaigns', 'admin.notification-campaigns.index', 'notifications.view', 'advertising_enabled'),
                 $this->routeItemAdvertising($user, 'live_ads', 'live_ads.title', 'admin.live-ads.index', 'live_ads.view', 'live_ads_enabled'),
-                $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled'),
             ]),
             $this->group('finance', 'admin.nav_groups.finance', '¤', [
                 $canAccessPlatformNavigation ? $this->routeItemScoped($user, 'treasury_master', 'treasury.nav_title', 'admin.treasury.master.index', 'finance.view') : null,

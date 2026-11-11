@@ -58,13 +58,15 @@ final class CustomerServiceManagerWorkspaceTest extends TestCase
         $catalogKeys = collect($groups->get('catalog')['children'])->pluck('key')->all();
         $this->assertContains('catalog_management', $catalogKeys);
         $this->assertContains('b2b_inventory', $catalogKeys);
+        // P233 canonical coupons belong to Catalog & Pricing, not Marketing.
+        $this->assertContains('coupons', $catalogKeys);
 
         $this->assertTrue($groups->has('marketing'));
         $marketingKeys = collect($groups->get('marketing')['children'])->pluck('key')->all();
         $this->assertContains('whatsapp_campaigns', $marketingKeys);
         $this->assertContains('notification_campaigns', $marketingKeys);
         $this->assertContains('live_ads', $marketingKeys);
-        $this->assertContains('coupons', $marketingKeys);
+        $this->assertNotContains('coupons', $marketingKeys);
         $this->assertNotContains('whatsapp_chatbot', $marketingKeys);
 
         $this->assertFalse($groups->has('advertising'));
@@ -110,12 +112,14 @@ final class CustomerServiceManagerWorkspaceTest extends TestCase
         $catalogKeys = collect($groups->get('catalog')['children'])->pluck('key')->all();
         $this->assertContains('catalog_management', $catalogKeys);
         $this->assertContains('b2b_inventory', $catalogKeys);
+        // P233 canonical coupons belong to Catalog & Pricing, not Marketing.
+        $this->assertContains('coupons', $catalogKeys);
 
         $marketingKeys = collect($groups->get('marketing')['children'])->pluck('key')->all();
         $this->assertContains('whatsapp_campaigns', $marketingKeys);
         $this->assertContains('notification_campaigns', $marketingKeys);
         $this->assertContains('live_ads', $marketingKeys);
-        $this->assertContains('coupons', $marketingKeys);
+        $this->assertNotContains('coupons', $marketingKeys);
         $this->assertNotContains('whatsapp_chatbot', $marketingKeys);
 
         $this->assertFalse($groups->has('advertising'));
