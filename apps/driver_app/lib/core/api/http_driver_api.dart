@@ -171,9 +171,16 @@ class HttpDriverAssignmentRepository
           if (raw is! Map) {
             throw const DriverApiException('Invalid assignment row.');
           }
-          return _assignment(Map<String, dynamic>.from(raw));
+          final data = Map<String, dynamic>.from(raw);
+          // The server must scope this response to the authenticated B2C
+          // Driver. Never silently hide a foreign-channel assignment: a
+          // mixed response is a contract violation, not a successful list.
+          if ((data['assignment_type'] ?? '').toString().toLowerCase() !=
+              channel.name) {
+            throw const DriverApiException('Invalid assignment channel.');
+          }
+          return _assignment(data);
         })
-        .where((assignment) => assignment.channel == channel)
         .toList(growable: false);
   }
 
