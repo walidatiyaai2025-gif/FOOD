@@ -458,9 +458,42 @@ final class SecurityController extends Controller
             ->get();
         $audit = $this->auditExplorer($request);
 
+        // T015R03: source-to-current audit is restricted to Super Admin.
+        // The pivot records grants as stored; it cannot represent effective ALLOW/DENY,
+        // tenant, module readiness or financial SoD decisions by itself.
+        $permissionRoleAudit = null;
+        if ($section === 'roles' && $isSuperAdmin) {
+            $catalogCodes = Permission::query()->orderBy('code')->pluck('code');
+            $linkedCodes = DB::table('permission_role')
+                ->join('permissions', 'permissions.id', '=', 'permission_role.permission_id')
+                ->pluck('permissions.code');
+            $linkedByNamespace = $linkedCodes->groupBy(
+                static fn (string $code): string => Str::before($code, '.'),
+            );
+
+            $permissionRoleAudit = [
+                'permission_count' => $catalogCodes->count(),
+                'relation_count' => $linkedCodes->count(),
+                'unused_count' => Permission::query()->whereDoesntHave('roles')->count(),
+                'active_role_relation_count' => DB::table('permission_role')
+                    ->join('roles', 'roles.id', '=', 'permission_role.role_id')
+                    ->where('roles.is_active', true)
+                    ->whereNull('roles.archived_at')
+                    ->count(),
+                'namespaces' => $catalogCodes->groupBy(
+                    static fn (string $code): string => Str::before($code, '.'),
+                )->map(static fn ($codes, string $namespace): array => [
+                    'code' => $namespace,
+                    'permissions' => $codes->count(),
+                    'relations' => $linkedByNamespace->get($namespace, collect())->count(),
+                ])->values()->all(),
+            ];
+        }
+
         return view('admin.security', [
             'users' => $users,
             'roles' => $roles,
+            'permissionRoleAudit' => $permissionRoleAudit,
             'globalRoles' => $globalRoles,
             'grantableStoreRolesByStore' => $grantableStoreRolesByStore,
             'jobRoleMeta' => $jobRoleMeta,
