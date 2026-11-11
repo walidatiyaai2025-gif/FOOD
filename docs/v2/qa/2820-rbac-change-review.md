@@ -17,10 +17,10 @@ Source: `FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx` P084. Paren
 
 ## Implemented in this PR
 
-1. The canonical individual-permission mutation requires an 8–500 character explanation in the existing Dashboard POST/PATCH boundary; no absent reason can silently mutate effective access.
+1. Canonical RBAC mutation review now requires an 8–500 character explanation for individual user permission overrides, user role assignments and custom role edits on both Dashboard and security API boundaries. No missing reason can silently change these live grants.
 2. Both global and store-scoped permission forms present the same required bilingual reason and a clear **non-approval** SoD warning. The existing permission picker already identifies proposed added/removed permissions and marks privileged permissions before save.
-3. The existing RbacManager maintains authority, scope checks and high-risk per-user escalation rejection; it records before/after snapshots and now additionally stores the provided review reason in the authorized `user.permissions_changed` AuditLog after-payload.
-4. Existing functional regression tests receive explicit legitimate reasons; issue-specific tests prove rejection/DB integrity when reason is omitted, successful persisted deny + AuditLog before/after with reason, and AR/EN/RTL labeling.
+3. The existing RbacManager maintains authority, scope checks and high-risk per-user escalation rejection; it records before/after snapshots plus the provided review reason in `user.permissions_changed`, `user.roles_changed` and `role.updated` AuditLog after-payloads. Enterprise security scope/approval/delegation changes continue through the existing independent maker/checker workflow and `enterprise.security.change_applied` audit, not an alternative UI approval.
+4. Existing functional regression tests receive explicit legitimate reasons. Issue-specific tests prove no-reason validation/DB integrity in Dashboard and API, persisted deny and role changes with AuditLog before/after/reason, AR/EN/RTL, and a subsequent real HTTP Security Center request denied immediately after removing the actor's `security.view` role permission (no stale authority).
 5. No new authorization grant, role, migration, public endpoint, or dashboard navigation route was created.
 
 ## Cross-application impact
@@ -31,6 +31,8 @@ Source: `FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx` P084. Paren
 
 ## Remaining P084 scope to complete before closing the Issue
 
-This initial implementation hardens **individual-permission overrides** only. P084's holistic coverage must still explicitly verify or implement change reason and audited before/after review for **role definitions, user role assignments, additional Enterprise approval/delegation mutations**, and prove invalidation of any cached effective-permission snapshot / active privileged session without breaking current requests. Separate maker/checker workflows must remain authoritative. A static UI warning is not proof that every SoD workflow is certified.
+P084 Security Center now covers **individual-permission overrides, role definition updates and user role assignment updates**. Existing per-role/user before–after AuditLog snapshots carry the stated reason. The role-assignment selector already shows dynamic configuration-driven SoD risk-pair warnings, while operational maker/checker remains server-authoritative. User permission resolution queries live DB state; the added HTTP test verifies revoked privileges immediately fail closed on the next authenticated request instead of trusting any cosmetic Sidebar state. Existing Enterprise approval/delegation requests are handled through separately audited, independent maker/checker workflow (#2857 etc); this PR does not bypass or replace that workflow.
+
+**Before declaring complete:** verify exact-head Pint/PHPStan, Laravel tests, AR/EN, V2 Isolation and MySQL/Redis install/upgrade/recovery; fix any test fixtures using obsolete update contract. Confirm no need to invalidate a materialized authorization cache or active session after role changes (or implement it with regression evidence). Do not state that all historic app/device UAT was run.
 
 Do not close #2820 until those remaining source requirements, relevant permission/SoD regression, and all exact final-head Required CI checks are green. Owner-manual/browser/UAT acceptance remains deferred under #2503; **no main, release, tag, staging, production or cPanel deployment**.
