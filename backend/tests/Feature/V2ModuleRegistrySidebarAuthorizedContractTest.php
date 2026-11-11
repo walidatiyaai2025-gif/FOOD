@@ -52,7 +52,7 @@ final class V2ModuleRegistrySidebarAuthorizedContractTest extends TestCase
                 ->assertOk()
                 ->assertSee('dir="'.$direction.'"', false)
                 ->assertSee($title)
-                ->assertSee('data-module-readiness="uncertified"', false);
+                ->assertSee('data-module-readiness="inactive"', false);
         }
     }
 
