@@ -75,9 +75,7 @@ final class V2WholesalePriceListsSidebarHttpTest extends TestCase
                 ->assertSee('P226 Price List Product')
                 ->assertSee('P226 Gold Tier')
                 ->assertViewHas('module', 'pricing')
-                ->assertViewHas('moduleData', static fn (array $data): bool =>
-                    collect($data['rows'] ?? [])->contains(static fn (array $row): bool =>
-                        $row['product'] === 'P226 Price List Product'
+                ->assertViewHas('moduleData', static fn (array $data): bool => collect($data['rows'] ?? [])->contains(static fn (array $row): bool => $row['product'] === 'P226 Price List Product'
                         && $row['tier'] === 'P226 Gold Tier'));
         }
     }
@@ -111,9 +109,7 @@ final class V2WholesalePriceListsSidebarHttpTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.b2b.pricing-approvals'))
             ->assertOk()
-            ->assertViewHas('moduleData', static fn (array $data): bool =>
-                collect($data['rows'] ?? [])->contains(static fn (array $row): bool =>
-                    $row['product'] === 'P226 Price List Product'
+            ->assertViewHas('moduleData', static fn (array $data): bool => collect($data['rows'] ?? [])->contains(static fn (array $row): bool => $row['product'] === 'P226 Price List Product'
                     && $row['unit_price'] === '7.250 EGP'
                     && $row['minimum_quantity'] === '5.000'));
     }
@@ -215,11 +211,8 @@ final class V2WholesalePriceListsSidebarHttpTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.b2b.pricing-approvals', ['store_id' => $retail]))
             ->assertOk()
-            ->assertViewHas('moduleData', static fn (array $data): bool =>
-                collect($data['rows'] ?? [])->contains(static fn (array $row): bool =>
-                    $row['product'] === 'P226 Price List Product')
-                && ! collect($data['rows'] ?? [])->contains(static fn (array $row): bool =>
-                    $row['product'] === 'P226 Retail Only Product'));
+            ->assertViewHas('moduleData', static fn (array $data): bool => collect($data['rows'] ?? [])->contains(static fn (array $row): bool => $row['product'] === 'P226 Price List Product')
+                && ! collect($data['rows'] ?? [])->contains(static fn (array $row): bool => $row['product'] === 'P226 Retail Only Product'));
 
         $this->actingAs($admin)
             ->post(route('admin.b2b.pricing.save'), [
