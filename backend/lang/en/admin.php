@@ -704,6 +704,13 @@ return [
         'role_search_empty' => 'No roles match your search.',
         'roles_title' => 'Role & permission matrix',
         'assignment_audit' => [
+            'registry_title' => 'Registered roles and assignment usage',
+            'registry_historical' => 'Historical source T015R02: :registered registered roles, of which :assigned DISTINCT roles were assigned. The source does not claim 21 distinct users.',
+            'registry_registered' => 'Registered roles (all statuses)',
+            'registry_assigned' => 'Distinct roles with any saved assignment',
+            'registry_unassigned' => 'Roles without any saved assignment',
+            'registry_active' => 'Assigned roles still active and non-archived',
+            'registry_distinction' => 'Role counts and distinct assigned accounts are separate measures. Inactive or archived role links remain counted for audit purposes; neither a saved role link nor the historical snapshot proves effective access. No identity, role or assignment changes are made.',
             'title' => 'Global and store role assignment audit',
             'historical' => 'Historical source T015R04: :global global role assignments and :store store-scoped assignments. Live figures are read from current stored rows.',
             'global' => 'Global assignments',
