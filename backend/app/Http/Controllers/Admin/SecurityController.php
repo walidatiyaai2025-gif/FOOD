@@ -807,25 +807,26 @@ final class SecurityController extends Controller
         $username = trim((string) ($validated['username'] ?? ''));
         $email = strtolower(trim((string) $validated['email']));
         $emailChanged = $email !== strtolower((string) $user->email);
+        $usernameChanged = ($username === '' ? null : strtolower($username)) !== $user->username;
+        $loginChanged = $emailChanged || $usernameChanged;
 
-        DB::transaction(function () use ($user, $actor, $request, $audit, $sessions, $validated, $before, $username, $email, $emailChanged): void {
+        DB::transaction(function () use ($user, $actor, $request, $audit, $sessions, $validated, $before, $username, $email, $emailChanged, $loginChanged): void {
             $user->fill([
                 'name' => trim((string) $validated['name']),
                 'username' => $username === '' ? null : strtolower($username),
                 'email' => $email,
                 'locale' => (string) $validated['locale'],
             ]);
+            // A changed email or username invalidates old login sessions.
+            if ($loginChanged) {
+                $user->forceFill(['remember_token' => Str::random(60)]);
+            }
             if ($emailChanged) {
-                // Verified old address and existing remembered sessions must
-                // not remain trusted after an administrator changes login ID.
-                $user->forceFill([
-                    'email_verified_at' => null,
-                    'remember_token' => Str::random(60),
-                ]);
+                $user->forceFill(['email_verified_at' => null]);
             }
             $user->save();
 
-            if ($emailChanged) {
+            if ($loginChanged) {
                 $user->tokens()->delete();
                 $sessions->revokeForUser($user, $actor);
             }
@@ -837,6 +838,7 @@ final class SecurityController extends Controller
                 'locale' => $user->locale,
                 'change_reason' => trim((string) $validated['change_reason']),
                 'reverify_email' => $emailChanged,
+                'login_sessions_revoked' => $loginChanged,
             ], $request);
         }, 3);
 

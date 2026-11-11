@@ -82,7 +82,7 @@ final class V2UserCreateEditAccountScopeTest extends TestCase
 
         $payload['email'] = 'wrong.p079@example.test';
         $payload['account_scope'] = 'global';
-        $this->actingAs($admin)->from(route('admin.security.index', ['section'=>'users'], false))
+        $this->actingAs($admin)->from(route('admin.security.index', ['section' => 'users'], false))
             ->post(route('admin.security.users.store', [], false), $payload)
             ->assertSessionHasErrors('account_scope');
         $this->assertDatabaseMissing('users', ['email' => 'wrong.p079@example.test']);
@@ -127,6 +127,30 @@ final class V2UserCreateEditAccountScopeTest extends TestCase
         $this->assertStringNotContainsString('SecurePass!2026', (string) $audit->after);
     }
 
+    public function test_username_only_login_change_revokes_existing_tokens_without_resetting_verified_email(): void
+    {
+        $admin = $this->actor();
+        $target = User::factory()->create([
+            'username' => 'old.p079.user',
+            'is_platform_customer' => false,
+        ]);
+        $target->createToken('original-client');
+        $this->assertNotNull($target->email_verified_at);
+
+        $this->actingAs($admin)->patch(route('admin.security.users.profile', $target, false), [
+            'name' => $target->name,
+            'username' => 'new.p079.user',
+            'email' => $target->email,
+            'locale' => $target->locale,
+            'change_reason' => 'Authorized username identity correction',
+        ])->assertRedirect();
+
+        $fresh = $target->fresh();
+        $this->assertSame('new.p079.user', $fresh->username);
+        $this->assertNotNull($fresh->email_verified_at);
+        $this->assertSame(0, $fresh->tokens()->count());
+    }
+
     public function test_protected_super_admin_customer_and_delegated_manager_cannot_edit_identity(): void
     {
         $admin = $this->actor();
@@ -138,12 +162,12 @@ final class V2UserCreateEditAccountScopeTest extends TestCase
         $role->permissions()->attach(\App\Models\Permission::query()->where('code', 'users.roles.manage')->firstOrFail());
         $delegated->roles()->attach($role);
 
-        $payload = ['name'=>'Hijacked', 'username'=>'bad.p079', 'email'=>'hijacked.p079@example.test', 'locale'=>'en', 'change_reason'=>'Illicit profile takeover attempt'];
+        $payload = ['name' => 'Hijacked', 'username' => 'bad.p079', 'email' => 'hijacked.p079@example.test', 'locale' => 'en', 'change_reason' => 'Illicit profile takeover attempt'];
         foreach ([$protected, $customer] as $target) {
             $this->actingAs($admin)->patch(route('admin.security.users.profile', $target, false), $payload)->assertForbidden();
             $this->assertSame($target->name, $target->fresh()->name);
         }
-        $normal = User::factory()->create(['is_platform_customer'=>false]);
+        $normal = User::factory()->create(['is_platform_customer' => false]);
         $this->actingAs($delegated)->patch(route('admin.security.users.profile', $normal, false), $payload)->assertForbidden();
         $this->assertNotSame('Hijacked', $normal->fresh()->name);
     }
@@ -151,15 +175,15 @@ final class V2UserCreateEditAccountScopeTest extends TestCase
     public function test_profile_change_requires_reason_and_bilingual_security_center_declares_account_channel(): void
     {
         $admin = $this->actor();
-        $target = User::factory()->create(['is_platform_customer'=>false]);
+        $target = User::factory()->create(['is_platform_customer' => false]);
         $this->actingAs($admin)->patch(route('admin.security.users.profile', $target, false), [
-            'name'=>'No reason','username'=>'new.name','email'=>$target->email,'locale'=>'en',
+            'name' => 'No reason','username' => 'new.name','email' => $target->email,'locale' => 'en',
         ])->assertSessionHasErrors('change_reason');
         $this->assertSame($target->name, $target->fresh()->name);
 
-        foreach (['ar'=>'rtl','en'=>'ltr'] as $locale=>$dir) {
-            $admin->forceFill(['locale'=>$locale])->save();
-            $response = $this->actingAs($admin)->get(route('admin.security.index', ['section'=>'users'], false))->assertOk()
+        foreach (['ar' => 'rtl','en' => 'ltr'] as $locale => $dir) {
+            $admin->forceFill(['locale' => $locale])->save();
+            $response = $this->actingAs($admin)->get(route('admin.security.index', ['section' => 'users'], false))->assertOk()
                 ->assertSee(__('admin.security.account_scope_title'))
                 ->assertSee(__('admin.security.edit_user_profile'))
                 ->assertSee('data-security-edit-profile', false)
@@ -170,7 +194,7 @@ final class V2UserCreateEditAccountScopeTest extends TestCase
 
     private function actor(): User
     {
-        $admin = User::factory()->create(['locale'=>'en', 'is_active'=>true, 'is_platform_customer'=>false]);
+        $admin = User::factory()->create(['locale' => 'en', 'is_active' => true, 'is_platform_customer' => false]);
         $admin->roles()->attach(Role::query()->where('code','SUPER_ADMIN')->firstOrFail());
 
         return $admin;
