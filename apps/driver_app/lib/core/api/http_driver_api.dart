@@ -561,12 +561,42 @@ class HttpDriverAssignmentRepository
     if (decoded is! Map<String, dynamic> || decoded['data'] is! List) {
       throw const DriverApiException('Invalid wallet response.');
     }
-    return (decoded['data'] as List)
-        .whereType<Map>()
-        .map(
-          (row) => DriverWalletAccount.fromJson(Map<String, dynamic>.from(row)),
-        )
-        .toList(growable: false);
+    return (decoded['data'] as List).map((raw) {
+      if (raw is! Map) {
+        throw const DriverApiException('Invalid wallet response.');
+      }
+      final data = Map<String, dynamic>.from(raw);
+      final id = data['id'];
+      final currency = data['currency'];
+      final status = data['status'];
+      // A finance response must not silently turn missing balances into
+      // zero or discard malformed collection/remittance rows. The wallet
+      // screen already preserves last-confirmed values on failed refresh.
+      if (id is! num ||
+          id <= 0 ||
+          id.toInt() != id ||
+          currency is! String ||
+          currency.trim().isEmpty ||
+          status is! String ||
+          status.trim().isEmpty ||
+          data['custody_balance'] is! num ||
+          data['available_to_remit'] is! num) {
+        throw const DriverApiException('Invalid wallet response.');
+      }
+      for (final key in const ['unsettled_collections', 'total_collected']) {
+        if (data.containsKey(key) && data[key] != null && data[key] is! num) {
+          throw const DriverApiException('Invalid wallet response.');
+        }
+      }
+      for (final key in const ['orders', 'transactions', 'remittances']) {
+        if (!data.containsKey(key)) continue;
+        final entries = data[key];
+        if (entries is! List || entries.any((item) => item is! Map)) {
+          throw const DriverApiException('Invalid wallet response.');
+        }
+      }
+      return DriverWalletAccount.fromJson(data);
+    }).toList(growable: false);
   }
 
   @override
