@@ -294,8 +294,19 @@ $roleRiskMessages = collect(array_keys($roleRiskPairs))
     }, true);
 
     document.addEventListener('click', (event) => {
-        const button = event.target instanceof Element
-            ? event.target.closest('[data-v2-user-tree-refresh]') : null;
+        if (!(event.target instanceof Element)) return;
+
+        // FOODEX's shared operational modal converts the native <details>
+        // to a button/host/dialog. Its open click bubbles here after the
+        // shared runtime activates the dialog; native toggle is only fallback.
+        const openButton = event.target.closest('[data-foodex-dialog-open]');
+        if (openButton) {
+            const host = openButton.closest('.foodex-operational-dialog-host');
+            const section = host?.querySelector('[data-v2-user-page-tree]');
+            if (section) refresh(getForm(section));
+        }
+
+        const button = event.target.closest('[data-v2-user-tree-refresh]');
         if (button) refresh(getForm(button));
     });
 })();
