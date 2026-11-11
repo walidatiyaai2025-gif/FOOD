@@ -140,12 +140,130 @@ void main() {
       ),
     );
   });
+
+  test('malformed selector Retail rows fail closed before storing a scope',
+      () async {
+    final store = _MemoryContextStore();
+    final switcher = CustomerCommerceContextSwitcher(
+      storefrontApi: const _SelectorApi(payload: {
+        'retail_stores': [
+          {'id': 22, 'name': 'Retail B'},
+          'unexpected authorized store row',
+        ],
+        'wholesale_stores': [
+          {'id': 7, 'is_platform_principal': true},
+        ],
+        'entitlements': {
+          'direct_b2b': true,
+          'principal_wholesale_store_id': 7,
+        },
+      }),
+      contextStore: store,
+    );
+
+    await expectLater(
+      switcher.switchTo(
+        session: session,
+        requested: const CustomerCommerceContext(
+          channel: CustomerCommerceChannel.retail,
+          storeId: 22,
+        ),
+      ),
+      throwsA(
+        isA<CustomerCommerceContextSwitchException>().having(
+          (error) => error.code,
+          'code',
+          'retail_selector_rows_invalid',
+        ),
+      ),
+    );
+    expect(store.value, isNull);
+  });
+
+  test('a wholesale marker without entitlement identity cannot activate B2B',
+      () async {
+    final store = _MemoryContextStore();
+    final switcher = CustomerCommerceContextSwitcher(
+      storefrontApi: const _SelectorApi(payload: {
+        'retail_stores': <Object>[],
+        'wholesale_stores': [
+          {'id': 7, 'is_platform_principal': true},
+        ],
+        'entitlements': {'direct_b2b': true},
+      }),
+      contextStore: store,
+    );
+
+    await expectLater(
+      switcher.switchTo(
+        session: session,
+        requested: const CustomerCommerceContext(
+          channel: CustomerCommerceChannel.wholesale,
+          storeId: 7,
+        ),
+      ),
+      throwsA(
+        isA<CustomerCommerceContextSwitchException>().having(
+          (error) => error.code,
+          'code',
+          'principal_wholesale_contract_mismatch',
+        ),
+      ),
+    );
+    expect(store.value, isNull);
+  });
+
+  test('duplicate Retail scope and missing entitlements are rejected',
+      () async {
+    const base = {
+      'wholesale_stores': <Object>[],
+      'entitlements': {'direct_b2b': false},
+      'retail_stores': [
+        {'id': 22, 'name': 'Retail B'},
+        {'id': 22, 'name': 'Retail duplicate'},
+      ],
+    };
+
+    final duplicate = CustomerCommerceContextSwitcher(
+      storefrontApi: const _SelectorApi(payload: base),
+      contextStore: _MemoryContextStore(),
+    );
+    await expectLater(
+      duplicate.availableTargets(session),
+      throwsA(
+        isA<CustomerCommerceContextSwitchException>().having(
+          (error) => error.code,
+          'code',
+          'duplicate_retail_context',
+        ),
+      ),
+    );
+
+    final noEntitlements = CustomerCommerceContextSwitcher(
+      storefrontApi: const _SelectorApi(payload: {
+        'wholesale_stores': <Object>[],
+        'retail_stores': <Object>[],
+      }),
+      contextStore: _MemoryContextStore(),
+    );
+    await expectLater(
+      noEntitlements.availableTargets(session),
+      throwsA(
+        isA<CustomerCommerceContextSwitchException>().having(
+          (error) => error.code,
+          'code',
+          'selector_entitlements_invalid',
+        ),
+      ),
+    );
+  });
 }
 
 class _SelectorApi implements StorefrontApi {
-  const _SelectorApi({this.markPrincipal = true});
+  const _SelectorApi({this.markPrincipal = true, this.payload});
 
   final bool markPrincipal;
+  final Map<String, dynamic>? payload;
 
   @override
   Future<Map<String, dynamic>> selection({
@@ -154,6 +272,7 @@ class _SelectorApi implements StorefrontApi {
     String? area,
     bool support = false,
   }) async =>
+      payload ??
       {
         'retail_stores': [
           {'id': 22, 'name': 'Retail B'},

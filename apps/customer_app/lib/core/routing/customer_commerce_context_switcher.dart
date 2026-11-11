@@ -58,13 +58,26 @@ class CustomerCommerceContextSwitcher {
     final entitlements = _map(payload['entitlements']);
     final principalId =
         _positiveInt(entitlements['principal_wholesale_store_id']);
-    final wholesaleRows = _rows(payload['wholesale_stores']);
-    final retailRows = _rows(payload['retail_stores']);
+    final wholesaleRows = _rows(payload['wholesale_stores'], 'wholesale');
+    final retailRows = _rows(payload['retail_stores'], 'retail');
+
+    // A principal marker without the corresponding authoritative entitlement
+    // ID must never mint a locally selectable Wholesale commerce context.
+    if (wholesaleRows.isNotEmpty && principalId == null) {
+      throw const CustomerCommerceContextSwitchException(
+        'principal_wholesale_contract_mismatch',
+      );
+    }
 
     CustomerCommerceSwitchTarget? principal;
     for (final row in wholesaleRows) {
       final storeId = _positiveInt(row['id']);
-      if (storeId == null || row['is_platform_principal'] != true) {
+      if (storeId == null) {
+        throw const CustomerCommerceContextSwitchException(
+          'wholesale_store_id_invalid',
+        );
+      }
+      if (row['is_platform_principal'] != true) {
         continue;
       }
       if (principalId != null && storeId != principalId) {
@@ -105,8 +118,15 @@ class CustomerCommerceContextSwitcher {
     final seenRetail = <int>{};
     for (final row in retailRows) {
       final storeId = _positiveInt(row['id'] ?? row['store_id']);
-      if (storeId == null || !seenRetail.add(storeId)) {
-        continue;
+      if (storeId == null) {
+        throw const CustomerCommerceContextSwitchException(
+          'retail_store_id_invalid',
+        );
+      }
+      if (!seenRetail.add(storeId)) {
+        throw const CustomerCommerceContextSwitchException(
+          'duplicate_retail_context',
+        );
       }
       targets.add(
         CustomerCommerceSwitchTarget(
@@ -170,16 +190,32 @@ class CustomerCommerceContextSwitcher {
     }
   }
 
-  static List<Map<String, dynamic>> _rows(Object? raw) {
-    if (raw is! List) return const <Map<String, dynamic>>[];
-    return raw
-        .whereType<Map>()
-        .map((row) => Map<String, dynamic>.from(row))
-        .toList(growable: false);
+  static List<Map<String, dynamic>> _rows(Object? raw, String scope) {
+    if (raw is! List) {
+      throw CustomerCommerceContextSwitchException(
+        '${scope}_selector_rows_invalid',
+      );
+    }
+    final rows = <Map<String, dynamic>>[];
+    for (final row in raw) {
+      if (row is! Map || row.keys.any((key) => key is! String)) {
+        throw CustomerCommerceContextSwitchException(
+          '${scope}_selector_rows_invalid',
+        );
+      }
+      rows.add(Map<String, dynamic>.from(row));
+    }
+    return List<Map<String, dynamic>>.unmodifiable(rows);
   }
 
-  static Map<String, dynamic> _map(Object? raw) =>
-      raw is Map ? Map<String, dynamic>.from(raw) : const <String, dynamic>{};
+  static Map<String, dynamic> _map(Object? raw) {
+    if (raw is! Map || raw.keys.any((key) => key is! String)) {
+      throw const CustomerCommerceContextSwitchException(
+        'selector_entitlements_invalid',
+      );
+    }
+    return Map<String, dynamic>.from(raw);
+  }
 
   static int? _positiveInt(Object? raw) {
     final value = raw is int ? raw : int.tryParse(raw?.toString() ?? '');
