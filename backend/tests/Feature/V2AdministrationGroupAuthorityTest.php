@@ -56,7 +56,15 @@ final class V2AdministrationGroupAuthorityTest extends TestCase
         $this->assertContains('sidebar_role_access', $keys);
         $this->assertContains('sidebar_layout', $keys);
         $this->assertNotContains('platform_owner_modules', $keys);
-        $this->assertNotContains('administration_hub', $keys);
+        // Role management legitimately exposes the shared Hub, but never
+        // implies Platform Owner settings or the privileged system updater.
+        $this->assertContains('administration_hub', $keys);
+
+        $this->actingAs($operator)
+            ->get(route('admin.administration.index'))
+            ->assertOk()
+            ->assertViewHas('canPlatformManage', false)
+            ->assertViewHas('canSystemUpdate', false);
     }
 
     public function test_roleless_and_inactive_users_cannot_open_administration(): void
