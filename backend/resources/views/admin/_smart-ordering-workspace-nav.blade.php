@@ -42,7 +42,16 @@
         && ($restaurantStoreId > 0
             ? $restaurantActor->hasPermission('smart_ordering.manage', $restaurantStoreId)
             : $restaurantNav->hasPermissionInScope($restaurantActor, 'smart_ordering.manage'));
-    $restaurantCanOrders = $restaurantActor && $restaurantNav->hasPermissionInScope($restaurantActor, 'orders.view');
+    // The Digital Orders destination authorizes the selected Retail store
+    // through the same store role, Restaurant profile and SaaS entitlement.
+    // A global orders.view grant alone must not advertise a dead store link.
+    $restaurantCanOrders = $restaurantActor && $restaurantStoreId > 0
+        && app(\App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess::class)->canNavigateToStore(
+            $restaurantActor,
+            $restaurantStoreId,
+            'orders.view',
+            $restaurantSupport,
+        );
     $restaurantCanQr = $restaurantActor
         && ($restaurantStoreId > 0
             ? $restaurantActor->hasPermission('smart_ordering.qr.view', $restaurantStoreId)
