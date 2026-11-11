@@ -141,8 +141,11 @@ final class SidebarManagementController extends Controller
         Gate::authorize('roles.manage');
         $this->useActorLocale($request);
 
+        $layout = $sidebar->layoutData();
+
         return view('admin.sidebar-layout', [
-            'layout' => $sidebar->layoutData(),
+            'layout' => $layout,
+            'sidebarAudit' => $sidebar->inventoryAudit($layout),
             'protectedItems' => $sidebar->registry()['protected_items'],
             'protectedGroups' => $sidebar->registry()['protected_groups'],
             'navGroups' => app(AdminNavigation::class)->groupsFor($request->user()),
