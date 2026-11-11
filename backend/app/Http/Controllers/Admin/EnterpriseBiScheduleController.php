@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Modules\EnterpriseBiReadinessGate;
 use App\Enterprise\Reporting\ReportAccessResolver;
 use App\Enterprise\Reporting\ReportQuery;
 use App\Enterprise\Reporting\ReportRegistry;
@@ -23,8 +24,10 @@ final class EnterpriseBiScheduleController extends Controller
         ReportRegistry $reports,
         ReportAccessResolver $access,
         ScheduledReportManager $schedules,
+        EnterpriseBiReadinessGate $readiness,
     ): RedirectResponse {
         $actor = $this->actor($request);
+        $readiness->assertReady();
         $validated = $request->validate([
             'report' => ['required', 'string', 'max:120'],
             'scope_type' => ['required', Rule::in([EntitlementScope::STORE, EntitlementScope::LEGAL_ENTITY])],
@@ -98,8 +101,10 @@ final class EnterpriseBiScheduleController extends Controller
         int $schedule,
         ReportRegistry $reports,
         ReportAccessResolver $access,
+        EnterpriseBiReadinessGate $readiness,
     ): RedirectResponse {
         $actor = $this->actor($request);
+        $readiness->assertReady();
         $validated = $request->validate([
             'enabled' => ['required', 'boolean'],
             'interval_minutes' => ['required', 'integer', 'min:15', 'max:525600'],
