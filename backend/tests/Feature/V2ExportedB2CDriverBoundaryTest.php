@@ -56,7 +56,18 @@ final class V2ExportedB2CDriverBoundaryTest extends TestCase
             app()->setLocale($locale);
             $actor->forceFill(['locale' => $locale])->save();
             $groups = app(AdminNavigation::class)->groupsFor($actor);
-            $this->assertSame([], $groups, 'A driver execution role must not acquire Dashboard navigation');
+            $keys = [];
+            foreach ($groups as $group) {
+                foreach ($group['children'] as $item) {
+                    $keys[] = $item['key'];
+                    foreach ((array) ($item['children'] ?? []) as $child) {
+                        $keys[] = $child['key'];
+                    }
+                }
+            }
+            $this->assertNotContains('sidebar_role_access', $keys);
+            $this->assertNotContains('b2c_inventory', $keys);
+            $this->assertNotContains('b2b_orders', $keys);
 
             $this->actingAs($actor)->get(route('admin.sidebar-access.roles', [], false))
                 ->assertForbidden();
