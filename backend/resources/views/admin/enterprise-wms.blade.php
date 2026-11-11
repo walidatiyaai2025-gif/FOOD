@@ -52,6 +52,9 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @if($tab==='overview')
 @include('admin._enterprise-wms-overview')
 
+@elseif($tab==='warehouses')
+@include('admin._enterprise-wms-warehouses')
+
 @elseif($tab==='movements')
 <h2>{{ __('enterprise_wms.movements.title') }}</h2><p class="wms-sub">{{ __('enterprise_wms.movements.subtitle') }}</p>
 <div class="wms-table-wrap"><table class="wms-table foodex-table" data-pagination-required="server-bounded"><thead><tr><th>{{ __('enterprise_wms.common.product') }}</th><th>{{ __('enterprise_wms.movements.type') }}</th><th>{{ __('enterprise_wms.common.quantity') }}</th><th>{{ __('enterprise_wms.common.reason') }}</th><th>{{ __('enterprise_wms.common.created') }}</th></tr></thead><tbody>

@@ -28,6 +28,7 @@ final class EnterpriseWmsController extends Controller
 {
     private const TABS = [
         'overview',
+        'warehouses',
         'movements',
         'transfers',
         'counts',
