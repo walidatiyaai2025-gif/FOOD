@@ -10,7 +10,7 @@
 1. `AdminNavigation::groupsFor` first computes role/permission, tenant/channel, scope and module readiness eligibility, then calls `AdminSidebarManager::apply` to *suppress or format* that canonical list.
 2. `admin_sidebar_role_visibility.is_visible=true` does not create a permission. The role-matrix `base_allowed` check cannot be overridden by a saved display preference.
 3. `is_visible=false` and `admin_sidebar_items.is_enabled=false` hide an already-authorized link, but must not change the server's permission decision or `permission_role` rows.
-4. A B2B operator cannot acquire B2C customer-group navigation from a cosmetic preference. Direct HTTP scope is independently denied.
+4. A B2B operator cannot acquire B2C customer-group navigation from a cosmetic preference. Direct HTTP scope is independently denied (404 when no authorized B2C store exists).
 5. Users without `roles.manage` cannot read or mutate Sidebar security/layout administration by guessing the URL. Protected presentation keys do not grant route access.
 6. Database writes in these tests are synthetic local fixtures; no production user, permission or store data is read or changed.
 
@@ -18,7 +18,7 @@
 `backend/tests/Feature/V2SidebarPresentationCannotGrantAccessTest.php` exercises real Laravel HTTP and the canonical navigation service:
 - permitted B2B customer-group route remains 200 after cosmetic hide, with unchanged permission relationships;
 - saved visible notification preference remains denied without `notifications.manage` (Sidebar absent, HTTP 403, role-matrix base_allowed false);
-- cosmetic B2C visibility cannot promote a B2B role across channels (HTTP 403);
+- cosmetic B2C visibility cannot promote a B2B role across channels (HTTP 404 when no authorized store is found);
 - global UI-only disabled flag does not revoke a granted route;
 - roleless account cannot access or mutate the admin Sidebar editor (HTTP 403, no preference row inserted).
 
