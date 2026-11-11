@@ -147,6 +147,10 @@ $roleLabel = static function ($role): string {
                 'permissionStates' => $userPermissionStatesByUser->get((int) $managedUser->id, [])['global'] ?? [],
                 'showPermissionScopeRule' => false,
             ])
+            <div class="note" role="status">{{ __('security_permissions.sod_change_warning') }}</div>
+            <label class="permission-change-reason">{{ __('security_permissions.change_reason') }}
+                <textarea name="change_reason" required minlength="8" maxlength="500" autocomplete="off" placeholder="{{ __('security_permissions.change_reason_hint') }}">{{ old('change_reason') }}</textarea>
+            </label>
             <button class="btn primary" type="submit">{{ __('security_permissions.user_permissions_save') }}</button>
             <button class="btn primary" style="min-height:44px;background:var(--foodex-green);color:#fff" type="submit" name="inherit" value="1"
                     onclick="return confirm('{{ __('security_permissions.user_permissions_inherit_confirm') }}')"
@@ -171,6 +175,10 @@ $roleLabel = static function ($role): string {
                 'permissionStates' => ($userPermissionStatesByUser->get((int) $managedUser->id, [])['stores'] ?? [])[(int) $permissionStore->id] ?? [],
                 'showPermissionScopeRule' => false,
             ])
+            <div class="note" role="status">{{ __('security_permissions.sod_change_warning') }}</div>
+            <label class="permission-change-reason">{{ __('security_permissions.change_reason') }}
+                <textarea name="change_reason" required minlength="8" maxlength="500" autocomplete="off" placeholder="{{ __('security_permissions.change_reason_hint') }}">{{ old('change_reason') }}</textarea>
+            </label>
             <button class="btn primary" type="submit">{{ __('security_permissions.user_permissions_save') }}</button>
             <button class="btn primary" style="min-height:44px;background:var(--foodex-green);color:#fff" type="submit" name="inherit" value="1"
                     onclick="return confirm('{{ __('security_permissions.user_permissions_inherit_confirm') }}')"
