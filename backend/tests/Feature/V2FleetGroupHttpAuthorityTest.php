@@ -147,7 +147,7 @@ final class V2FleetGroupHttpAuthorityTest extends TestCase
         $this->actingAs($actor)->get(route('admin.field-operations.fleet.feed'))->assertForbidden();
     }
 
-    public function test_retail_tracking_can_open_map_but_cannot_read_wholesale_fleet(): void
+    public function test_retail_store_scoped_tracking_does_not_grant_global_b2b_fleet_or_foreign_feed(): void
     {
         $retail = $this->store('B2C', 'P2590-RETAIL-OWN');
         $wholesale = $this->store('B2B', 'P2590-FOREIGN-WHOLESALE');
@@ -162,28 +162,26 @@ final class V2FleetGroupHttpAuthorityTest extends TestCase
         ]);
         $actor = $this->retailAdmin((int) $retail->getKey());
 
-        foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
+        foreach (['ar', 'en'] as $locale) {
             app()->setLocale($locale);
             $actor->forceFill(['locale' => $locale])->save();
 
             $children = $this->fieldOperationsChildren($actor->fresh());
-            $this->assertContains('field_ops_fleet', $children->pluck('key')->all());
+            $this->assertNotContains('field_ops_fleet', $children->pluck('key')->all());
             $this->assertNotContains('field_ops_vans', $children->pluck('key')->all());
 
+            // Store-level Retail tracking is not a global B2B Fleet grant.
             $this->actingAs($actor->fresh())
                 ->get(route('admin.field-operations.fleet'))
-                ->assertOk()
-                ->assertViewHas('section', 'fleet')
-                ->assertSee('dir="'.$direction.'"', false);
+                ->assertForbidden();
 
             $this->actingAs($actor->fresh())
                 ->get(route('admin.field-operations.fleet.feed'))
-                ->assertOk()
-                ->assertJsonCount(0, 'data');
+                ->assertForbidden();
 
             $this->actingAs($actor->fresh())
                 ->get(route('admin.field-operations.fleet.feed', ['store_id' => $wholesale->getKey()]))
-                ->assertNotFound();
+                ->assertForbidden();
 
             $this->actingAs($actor->fresh())
                 ->get(route('admin.field-operations.vans'))
@@ -254,9 +252,12 @@ final class V2FleetGroupHttpAuthorityTest extends TestCase
         $actor->roles()->attach(Role::query()->where('code', 'FINANCE')->firstOrFail());
 
         $children = $this->fieldOperationsChildren($actor->fresh());
-        $this->assertContains('field_ops_fleet', $children->pluck('key')->all());
+        $this->assertNotContains('field_ops_fleet', $children->pluck('key')->all());
         $this->assertNotContains('field_ops_vans', $children->pluck('key')->all());
 
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.field-operations.fleet'))
+            ->assertForbidden();
         $this->actingAs($actor->fresh())
             ->get(route('admin.field-operations.vans'))
             ->assertForbidden();
@@ -300,7 +301,7 @@ final class V2FleetGroupHttpAuthorityTest extends TestCase
 
         return Store::query()->create([
             'store_type_id' => $storeType->getKey(),
-            'business_profile' => $type === 'B2C' ? StoreBusinessProfile::RETAIL_STORE->value : null,
+            ...($type === 'B2C' ? ['business_profile' => StoreBusinessProfile::RETAIL_STORE->value] : []),
             'code' => $code,
             'name' => $code,
             'is_active' => true,
