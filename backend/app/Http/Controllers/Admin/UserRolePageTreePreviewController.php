@@ -50,6 +50,7 @@ final class UserRolePageTreePreviewController extends Controller
         $storeId = isset($input['store_id']) ? (int) $input['store_id'] : null;
         $globalIds = array_map('intval', $input['global_role_ids'] ?? []);
         $storeIds = array_map('intval', $input['store_role_ids'] ?? []);
+        abort_if(array_intersect($globalIds, $storeIds) !== [] || count($globalIds) + count($storeIds) > 30, 422);
 
         // Preview only an existing active Retail store from the same picker.
         // An invented id or global-vs-store mismatch may not unlock a tree.
@@ -68,6 +69,9 @@ final class UserRolePageTreePreviewController extends Controller
         abort_unless($roles->count() === count($ids), 422);
 
         $superAdmin = $actor->hasRole('SUPER_ADMIN');
+        if ($scope === 'store' && ! $superAdmin) {
+            abort_unless($actor->hasPermission('users.roles.manage', $storeId), 403);
+        }
         $globalGrantCodes = $superAdmin ? collect() : collect($actor->effectivePermissionCodes());
         $storeGrantCodes = $superAdmin ? collect() : collect($actor->effectivePermissionCodes($storeId));
         foreach ($ids as $id) {
@@ -89,6 +93,7 @@ final class UserRolePageTreePreviewController extends Controller
         $moduleReady = [];
         foreach ($ids as $id) {
             $role = $roles->get($id);
+            abort_unless($role instanceof Role, 422);
             foreach ($sidebar->roleMatrix($role)['groups'] as $group) {
                 foreach ($group['items'] as $item) {
                     $key = (string) $item['key'];
