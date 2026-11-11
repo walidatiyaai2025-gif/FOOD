@@ -128,6 +128,15 @@ final class EnterpriseWmsController extends Controller
             ? $this->dashboard->inventory360($actor, (int) $validated['inventory_id'])
             : null;
 
+        // Count creation/completion requires exact store + warehouse manage authority;
+        // a view-only user must never see mutation forms or action links.
+        $manageableCountWarehouseIds = $tab === 'counts'
+            && in_array($storeId, $this->tenantScope->allowedStoreIds($actor, 'inventory.manage'), true)
+            ? $this->warehouseScope->authorizedWarehouseIds($actor, $storeId, 'inventory.manage')
+            : [];
+        $canManageCounts = $warehouseId !== null
+            && in_array($warehouseId, $manageableCountWarehouseIds, true);
+
         // Locations are readable with inventory.view, but their forms must
         // project the very same store + warehouse inventory.manage authority
         // that saveZone/saveBin/assignInventory enforce server-side.
@@ -165,6 +174,8 @@ final class EnterpriseWmsController extends Controller
             'warehouseId' => $warehouseId,
             'inventoryLookup' => $inventoryLookup,
             'canManageLocations' => $canManageLocations,
+            'canManageCounts' => $canManageCounts,
+            'manageableCountWarehouseIds' => $manageableCountWarehouseIds,
             'canManageReservations' => $canManageReservations,
             'canProcurementHandoff' => $this->navigation->hasPermissionInScope(
                 $actor,
@@ -232,7 +243,7 @@ final class EnterpriseWmsController extends Controller
             'inventory_ids.*' => ['required', 'integer', 'min:1'],
             'request_key' => ['required', 'string', 'max:120'],
         ]);
-        $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
+        $this->assertWarehouseMutationContext($actor, (int) $data['store_id'], (int) $data['warehouse_id']);
 
         $count = $this->counts->start(
             $actor,
@@ -256,7 +267,12 @@ final class EnterpriseWmsController extends Controller
             'counts' => ['required', 'array', 'min:1', 'max:100'],
             'counts.*' => ['required', 'numeric', 'min:0'],
         ]);
-        $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
+        $this->assertWarehouseMutationContext($actor, (int) $data['store_id'], (int) $data['warehouse_id']);
+        abort_unless(DB::table('enterprise_inventory_counts')
+            ->where('id', $count)
+            ->where('store_id', (int) $data['store_id'])
+            ->where('warehouse_id', (int) $data['warehouse_id'])
+            ->exists(), 404);
         $this->counts->complete($actor, $count, $data['counts']);
         $this->locations->captureCount($actor, $count);
         $this->captureReferenceMovements($actor, 'enterprise_inventory_count', $count, 'cycle_count_adjustment');
@@ -419,7 +435,7 @@ final class EnterpriseWmsController extends Controller
             'name' => ['required', 'string', 'max:160'],
             'is_active' => ['nullable', 'boolean'],
         ]);
-        $this->assertLocationsMutationContext($actor, (int) $data['store_id'], (int) $data['warehouse_id']);
+        $this->assertWarehouseMutationContext($actor, (int) $data['store_id'], (int) $data['warehouse_id']);
         $this->locations->saveZone($actor, (int) $data['warehouse_id'], (string) $data['code'], (string) $data['name'], (bool) ($data['is_active'] ?? true));
 
         return $this->backTo('locations', $data, __('enterprise_wms.messages.zone_saved'));
@@ -436,7 +452,7 @@ final class EnterpriseWmsController extends Controller
             'name' => ['required', 'string', 'max:160'],
             'is_active' => ['nullable', 'boolean'],
         ]);
-        $this->assertLocationsMutationContext($actor, (int) $data['store_id'], (int) $data['warehouse_id']);
+        $this->assertWarehouseMutationContext($actor, (int) $data['store_id'], (int) $data['warehouse_id']);
         $this->locations->saveBin(
             $actor,
             (int) $data['warehouse_id'],
@@ -458,7 +474,7 @@ final class EnterpriseWmsController extends Controller
             'inventory_id' => ['required', 'integer', 'min:1'],
             'bin_id' => ['required', 'integer', 'min:1'],
         ]);
-        $this->assertLocationsMutationContext($actor, (int) $data['store_id'], (int) $data['warehouse_id']);
+        $this->assertWarehouseMutationContext($actor, (int) $data['store_id'], (int) $data['warehouse_id']);
         abort_unless(DB::table('inventories')
             ->where('id', (int) $data['inventory_id'])
             ->where('warehouse_id', (int) $data['warehouse_id'])
@@ -583,7 +599,7 @@ final class EnterpriseWmsController extends Controller
 
         if ($tab === 'counts') {
             $data['countRows'] = $this->counts->listForStore($actor, $storeId, null, 50);
-            if ($countId !== null && $data['countRows']->contains(fn ($row): bool => (int) $row->getKey() === $countId)) {
+            if ($countId !== null && $data['countRows']->contains(fn ($row): bool => (int) $row->getKey() === $countId && (int) $row->warehouse_id === $warehouseId)) {
                 $data['selectedCountId'] = $countId;
                 $data['countLines'] = DB::table('enterprise_inventory_count_lines as line')
                     ->join('products as product', 'product.id', '=', 'line.product_id')
@@ -712,7 +728,7 @@ final class EnterpriseWmsController extends Controller
         $this->tenantScope->assertStore($actor, $storeId, $permission);
     }
 
-    private function assertLocationsMutationContext(User $actor, int $storeId, int $warehouseId): void
+    private function assertWarehouseMutationContext(User $actor, int $storeId, int $warehouseId): void
     {
         $this->tenantScope->assertStore($actor, $storeId, 'inventory.manage');
         $warehouse = $this->warehouseScope->assertWarehouse($actor, $warehouseId, 'inventory.manage');
