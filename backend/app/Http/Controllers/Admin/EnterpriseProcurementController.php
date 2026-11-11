@@ -718,13 +718,17 @@ final class EnterpriseProcurementController extends Controller
         abort_unless(is_array($selected), 403);
         $storeId = (int) $selected['id'];
 
-        // A global ERP role (including Super Admin) is not an entitlement
-        // override for a store that has explicitly denied this module.
-        // This context is shared by reads and every state-changing action.
-        abort_unless($this->entitlements->allows(
-            'procurement',
-            new EntitlementScope(EntitlementScope::STORE, $storeId),
-        ), 403);
+        // Legacy deployments with no Procurement entitlement policies still
+        // use existing role/tenant authorization. Once any Procurement
+        // entitlement is configured, its hierarchical DENY/ALLOW decisions
+        // are authoritative for reads and every state-changing action.
+        // A global role (including Super Admin) cannot override store DENY.
+        if (DB::table('enterprise_module_entitlements')->where('module_code', 'procurement')->exists()) {
+            abort_unless($this->entitlements->allows(
+                'procurement',
+                new EntitlementScope(EntitlementScope::STORE, $storeId),
+            ), 403);
+        }
 
         $context = $selected['channel'] === 'b2c'
             ? $this->tenants->retail($actor, $storeId, $actor->hasRole('SUPER_ADMIN'), $request)
