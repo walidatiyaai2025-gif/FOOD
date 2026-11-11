@@ -40,6 +40,7 @@ class V2SensitiveFunctionExceptionPolicyTest extends TestCase
         $this->actingAs($admin)
             ->from('/admin/security?section=users')
             ->put(route('admin.security.users.permissions', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'scope_type' => 'global',
                 'permission_ids' => $selected,
             ])
