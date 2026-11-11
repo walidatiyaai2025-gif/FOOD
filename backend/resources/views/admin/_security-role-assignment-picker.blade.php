@@ -23,7 +23,7 @@ $rolePresentation = static function ($role) use ($jobRoleMeta): array {
         'built_in' => false,
     ];
 };
-// Blade's escaped echo performs the single HTML escape. A prior explicit e()\n// made DOM dataset JSON invalid and silently disabled role conflict warnings.\n$roleRiskPairs = (array) config('job_roles.risk_pairs', []);
+$roleRiskPairs = (array) config('job_roles.risk_pairs', []);
 $roleRiskMessages = collect(array_keys($roleRiskPairs))
     ->mapWithKeys(fn (string $key): array => [$key => __('job_roles.risk_warnings.'.$key)])
     ->all();
