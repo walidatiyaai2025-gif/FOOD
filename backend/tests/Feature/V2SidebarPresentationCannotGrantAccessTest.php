@@ -135,6 +135,34 @@ final class V2SidebarPresentationCannotGrantAccessTest extends TestCase
         ]);
     }
 
+    public function test_inactive_and_archived_roles_are_not_eligible_for_sidebar_display(): void
+    {
+        $role = $this->b2bAdminRole();
+        $role->load('permissions:id,code');
+        $this->assertContains('customers.view', $role->permissions->pluck('code')->all());
+
+        // A stored role grant does not make an inactive role eligible.
+        $role->forceFill(['is_active' => false])->save();
+        $disabled = collect(app(AdminSidebarManager::class)->roleMatrix($role)['groups'])
+            ->flatMap(static fn (array $group): array => $group['items'])
+            ->firstWhere('key', 'customer_groups');
+
+        $this->assertIsArray($disabled);
+        $this->assertFalse($disabled['base_allowed']);
+        $this->assertFalse($disabled['visible_for_role']);
+
+        // Archiving retains historic grants, but no longer projects them as
+        // effective access. The synthetic fixture never touches real accounts.
+        $role->forceFill(['is_active' => true, 'archived_at' => now()])->save();
+        $archived = collect(app(AdminSidebarManager::class)->roleMatrix($role)['groups'])
+            ->flatMap(static fn (array $group): array => $group['items'])
+            ->firstWhere('key', 'customer_groups');
+
+        $this->assertIsArray($archived);
+        $this->assertFalse($archived['base_allowed']);
+        $this->assertFalse($archived['visible_for_role']);
+    }
+
     private function b2bAdminRole(): Role
     {
         return Role::query()->where('code', 'B2B_ADMIN')->firstOrFail();
