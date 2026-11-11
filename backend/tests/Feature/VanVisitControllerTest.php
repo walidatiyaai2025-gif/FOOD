@@ -42,7 +42,7 @@ class VanVisitControllerTest extends TestCase
 
         VanVisit::query()->create([
             'actor_user_id' => $actor->id,
-            'customer_type' => 'b2c',
+            'customer_type' => 'b2b',
             'customer_id' => 43,
             'store_id' => 8,
             'status' => 'planned',
@@ -52,6 +52,53 @@ class VanVisitControllerTest extends TestCase
         $this->getJson('/api/v1/van/visits')
             ->assertOk()
             ->assertJsonPath('data.0.route_key', 'ROUTE-LEGACY');
+    }
+
+    public function test_van_visit_routes_reject_b2c_and_hide_legacy_b2c_visits_even_for_the_same_actor(): void
+    {
+        $actor = $this->vanActor();
+
+        $b2b = VanVisit::query()->create([
+            'actor_user_id' => $actor->id,
+            'customer_type' => 'b2b',
+            'customer_id' => 42,
+            'store_id' => 7,
+            'status' => 'planned',
+        ]);
+        $legacyB2c = VanVisit::query()->create([
+            'actor_user_id' => $actor->id,
+            'customer_type' => 'b2c',
+            'customer_id' => 43,
+            'store_id' => 8,
+            'status' => 'planned',
+        ]);
+
+        $this->getJson('/api/v1/van/visits')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $b2b->id)
+            ->assertJsonPath('data.0.customer_type', 'b2b')
+            ->assertJsonPath('meta.total', 1);
+
+        $this->getJson('/api/v1/van/customers/b2c/43')->assertNotFound();
+        $this->postJson('/api/v1/van/visits/'.$legacyB2c->id.'/transition', [
+            'status' => 'started',
+        ])->assertNotFound();
+
+        $this->postJson('/api/v1/van/visits', [
+            'customer_type' => 'b2c',
+            'customer_id' => 43,
+            'idempotency_key' => 'v2-denied-van-b2c',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['customer_type']);
+
+        $this->assertDatabaseHas('van_visits', [
+            'id' => $legacyB2c->id,
+            'status' => 'planned',
+        ]);
+        $this->assertDatabaseMissing('van_visits', [
+            'idempotency_key' => 'v2-denied-van-b2c',
+        ]);
     }
 
     private function vanActor(): User
