@@ -254,7 +254,8 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
       return;
     }
 
-    final tracking = factory?.call(session, _sessionExpired) ??
+    final onSessionInvalid = () => _expireSessionIfCurrent(session);
+    final tracking = factory?.call(session, onSessionInvalid) ??
         DriverLocationTrackingService(
           locationSource: GeolocatorDriverLocationSource(
             locale: session.locale,
@@ -263,7 +264,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
             baseUrl: _baseUrl,
             token: session.token,
           ),
-          onSessionInvalid: _sessionExpired,
+          onSessionInvalid: onSessionInvalid,
         );
 
     _locationTracking = tracking;
@@ -354,7 +355,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
             assignmentId = matches.single.id;
           }
         } on DriverSessionExpiredException {
-          _sessionExpired();
+          _expireSessionIfCurrent(session);
           return;
         } catch (_) {
           assignmentId = null;
@@ -524,6 +525,13 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
     }
   }
 
+  void _expireSessionIfCurrent(DriverSession expectedSession) {
+    // A delayed heartbeat, notification or route failure from a previous
+    // Driver token must not revoke the new logged-in identity.
+    if (!mounted || _session?.token != expectedSession.token) return;
+    _sessionExpired();
+  }
+
   void _sessionExpired() {
     _seenPushAlerts.clear();
     _lastPushAssignmentId = null;
@@ -610,7 +618,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
             repository: assignments,
             notificationRepository: notifications,
             pushAlerts: widget.pushService?.alerts,
-            onSessionExpired: _sessionExpired,
+            onSessionExpired: () => _expireSessionIfCurrent(session),
             onLogout: () {
               _logout();
             },
