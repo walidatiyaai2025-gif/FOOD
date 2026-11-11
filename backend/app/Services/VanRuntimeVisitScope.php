@@ -14,9 +14,18 @@ final class VanRuntimeVisitScope
     {
         $context = $request->attributes->get('van_runtime_context');
         $vanId = is_array($context) ? (int) ($context['van_id'] ?? 0) : 0;
+        $assignmentId = is_array($context) ? (int) ($context['assignment_id'] ?? 0) : 0;
 
         return VanVisit::query()
             ->where('customer_type', 'b2b')
+            ->when($assignmentId > 0, static function (Builder $query) use ($assignmentId): void {
+                // A reassigned operator must not inherit the previous assignment's
+                // Van visits. Preserve legacy records without assignment tags.
+                $query->where(function (Builder $assignment) use ($assignmentId): void {
+                    $assignment->whereNull('metadata->van_assignment_id')
+                        ->orWhere('metadata->van_assignment_id', $assignmentId);
+                });
+            })
             ->where(function (Builder $query) use ($actor, $vanId): void {
                 // Preserve legacy untagged visits from this operator, but
                 // never follow the same operator into a different Van's
