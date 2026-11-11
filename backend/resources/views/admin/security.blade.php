@@ -87,7 +87,7 @@ $roleLabel = static function ($role): string {
 <span class="badge">{{ $users->total() }} {{ __('admin.security.users') }}</span>
 </div>
 </div>
-<form method="get" class="filters"><input type="hidden" name="section" value="users"><input class="grow" type="text" name="q" value="{{ $search }}" placeholder="{{ __('admin.security.search_users') }}"><select name="status"><option value="all" @selected($statusFilter==='all')>{{ __('admin.security.all_statuses') }}</option><option value="active" @selected($statusFilter==='active')>{{ __('admin.security.active') }}</option><option value="inactive" @selected($statusFilter==='inactive')>{{ __('admin.security.inactive') }}</option></select><button class="btn primary foodex-filter-action">{{ __('admin.security.filter') }}</button></form>
+<form method="get" class="filters"><input type="hidden" name="section" value="users"><input class="grow" type="text" name="q" value="{{ $search }}" placeholder="{{ __('admin.security.search_users') }}"><select name="status"><option value="all" @selected($statusFilter==='all')>{{ __('admin.security.all_statuses') }}</option><option value="active" @selected($statusFilter==='active')>{{ __('admin.security.active') }}</option><option value="inactive" @selected($statusFilter==='inactive')>{{ __('admin.security.inactive') }}</option></select><select name="assignment" aria-label="{{ __('admin.security.assignment_filter') }}"><option value="all" @selected($assignmentFilter==='all')>{{ __('admin.security.all_assignments') }}</option><option value="roleless" @selected($assignmentFilter==='roleless')>{{ __('admin.security.roleless_accounts') }}</option></select><button class="btn primary foodex-filter-action">{{ __('admin.security.filter') }}</button></form>
 
 <div class="security-user-table-wrap">
 <table class="security-user-table foodex-table" data-security-users-table>
@@ -99,7 +99,9 @@ $roleLabel = static function ($role): string {
 <td><div class="security-user-role-list">
 @foreach($managedUser->roles as $role)<span class="badge">{{ $roleLabel($role) }}</span>@endforeach
 @foreach($managedUser->storeRoleAssignments as $a)<span class="badge">{{ $a->store?->name }} · {{ $roleLabel($a->role) }}</span>@endforeach
-@if($managedUser->roles->isEmpty() && $managedUser->storeRoleAssignments->isEmpty())<span class="muted">—</span>@endif
+@if($managedUser->roles->isEmpty() && $managedUser->storeRoleAssignments->isEmpty())
+<span class="badge" data-roleless-classification="{{ $managedUser->is_platform_customer ? 'customer' : 'review' }}">{{ $managedUser->is_platform_customer ? __('admin.security.roleless_customer') : __('admin.security.roleless_review') }}</span>
+@endif
 </div></td>
 <td>
 <span class="badge {{ $managedUser->is_active?'active':'inactive' }}">{{ $managedUser->is_active?__('admin.security.active'):__('admin.security.inactive') }}</span>

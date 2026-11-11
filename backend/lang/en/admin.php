@@ -682,6 +682,8 @@ return [
         'tabs' => ['users' => 'Users', 'roles' => 'Roles & permissions', 'governance' => 'Security & governance', 'sessions' => 'Sessions', 'audit' => 'Audit log'],
         'users_title' => 'User access', 'users_description' => 'Search users, review status and role assignments, then make controlled access changes.',
         'users' => 'users', 'user' => 'User', 'username' => 'Username', 'search_users' => 'Search name or email', 'all_statuses' => 'All statuses',
+        'assignment_filter' => 'Role assignment filter', 'all_assignments' => 'All role assignments', 'roleless_accounts' => 'Accounts without role assignments',
+        'roleless_customer' => 'Platform customer — no admin role required', 'roleless_review' => 'No assigned role — review account type',
         'create_user' => '+ New user', 'create_user_submit' => 'Create user', 'user_name' => 'Full name', 'username_optional' => 'Optional; generated from email when blank',
         'email' => 'Email', 'locale' => 'Language', 'locale_ar' => 'Arabic', 'locale_en' => 'English', 'password' => 'Password',
         'password_confirmation' => 'Confirm password', 'initial_role' => 'Initial business role', 'select_role' => 'Select a role',
