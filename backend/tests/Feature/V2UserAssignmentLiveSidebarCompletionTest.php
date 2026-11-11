@@ -82,6 +82,7 @@ final class V2UserAssignmentLiveSidebarCompletionTest extends TestCase
 
         $this->actingAs($admin)
             ->put(route('admin.security.users.roles', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'global_role_ids' => [$global->id],
                 'store_role_ids' => [$store1 => [$storeRole->id]],
             ])
@@ -153,6 +154,7 @@ final class V2UserAssignmentLiveSidebarCompletionTest extends TestCase
 
         $this->actingAs($roleless)
             ->put(route('admin.security.users.roles', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'global_role_ids' => [$global->id],
             ])
             ->assertForbidden();
@@ -175,6 +177,7 @@ final class V2UserAssignmentLiveSidebarCompletionTest extends TestCase
         $this->actingAs($admin)
             ->from(route('admin.security.index', ['section' => 'users']))
             ->put(route('admin.security.users.roles', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'global_role_ids' => [$global->id],
                 'store_role_ids' => [$wholesale => [$storeRole->id]],
             ])

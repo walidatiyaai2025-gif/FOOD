@@ -787,6 +787,7 @@ final class SecurityController extends Controller
             'store_role_ids' => ['nullable', 'array'],
             'store_role_ids.*' => ['array'],
             'store_role_ids.*.*' => ['integer', 'exists:roles,id'],
+            'change_reason' => ['required', 'string', 'min:8', 'max:500'],
         ]);
 
         $storeRoles = [];
@@ -819,6 +820,7 @@ final class SecurityController extends Controller
             'permission_ids' => ['nullable', 'array'],
             'permission_ids.*' => ['integer', 'exists:permissions,id'],
             'inherit' => ['sometimes', 'boolean'],
+            'change_reason' => ['required', 'string', 'min:8', 'max:500'],
         ]);
 
         $inheritFromRole = (bool) ($validated['inherit'] ?? false);
@@ -1048,6 +1050,10 @@ final class SecurityController extends Controller
             'permission_ids' => ['nullable', 'array'],
             'permission_ids.*' => ['integer', 'distinct', 'exists:permissions,id'],
         ];
+
+        if (! $includeCode) {
+            $rules['change_reason'] = ['required', 'string', 'min:8', 'max:500'];
+        }
 
         if ($includeCode) {
             $rules['code'] = ['required', 'string', 'max:50', 'regex:/^[A-Z][A-Z0-9_]{2,49}$/', Rule::unique('roles', 'code')];

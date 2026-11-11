@@ -73,6 +73,7 @@ final class V2BuiltInRoleCloneGovernanceTest extends TestCase
 
         $this->actingAs($admin)
             ->patch(route('admin.security.roles.update', $role), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'name' => 'Tampered',
                 'description' => 'Changed',
                 'scope' => $role->scope,

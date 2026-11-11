@@ -47,6 +47,7 @@ final class V2UserRoleAssignmentNavigationAuthorityTest extends TestCase
 
         $this->actingAs($admin)
             ->put(route('admin.security.users.roles', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'global_role_ids' => [$role->getKey()],
                 'store_role_ids' => [],
             ])
@@ -86,6 +87,7 @@ final class V2UserRoleAssignmentNavigationAuthorityTest extends TestCase
 
             $this->actingAs($viewer)
                 ->put(route('admin.security.users.roles', $target), [
+                    'change_reason' => 'Regression fixture approved RBAC access change',
                     'global_role_ids' => [$grant->getKey()],
                 ])
                 ->assertForbidden();
@@ -112,6 +114,7 @@ final class V2UserRoleAssignmentNavigationAuthorityTest extends TestCase
             ->assertForbidden();
         $this->actingAs($actor)
             ->put(route('admin.security.users.roles', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'global_role_ids' => [$role->getKey()],
             ])
             ->assertForbidden();
@@ -133,6 +136,7 @@ final class V2UserRoleAssignmentNavigationAuthorityTest extends TestCase
         $this->actingAs($admin)
             ->from(route('admin.security.index', ['section' => 'users']))
             ->put(route('admin.security.users.roles', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'global_role_ids' => [$store->getKey()],
             ])
             ->assertRedirect()
@@ -140,6 +144,7 @@ final class V2UserRoleAssignmentNavigationAuthorityTest extends TestCase
 
         $this->actingAs($admin)
             ->put(route('admin.security.users.roles', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'store_role_ids' => [$storeId => [$global->getKey()]],
             ])
             ->assertRedirect()
@@ -170,6 +175,7 @@ final class V2UserRoleAssignmentNavigationAuthorityTest extends TestCase
 
         $this->actingAs($admin)
             ->put(route('admin.security.users.roles', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'global_role_ids' => [],
                 'store_role_ids' => [$own => [$role->getKey()]],
             ])

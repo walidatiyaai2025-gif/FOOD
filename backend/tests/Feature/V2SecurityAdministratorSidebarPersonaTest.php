@@ -115,6 +115,7 @@ final class V2SecurityAdministratorSidebarPersonaTest extends TestCase
         $this->actingAs($actor)
             ->from('/admin/security?section=users')
             ->put(route('admin.security.users.permissions', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'scope_type' => 'global',
                 'permission_ids' => [$protected->id],
             ])
