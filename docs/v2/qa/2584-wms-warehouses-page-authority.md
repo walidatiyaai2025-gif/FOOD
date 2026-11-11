@@ -13,9 +13,10 @@
 
 `backend/tests/Feature/V2WmsWarehousesPageAuthorityTest.php` checks:
 1. AR/EN authorized warehouse list and canonical exact-record link; active and foreign-store filtering; no ledger mutation.
-2. Explicit warehouse scope filtering even inside the same store, direct unauthorized warehouse and cross-store 404.
-3. Roleless 403 and revoked store/module entitlement 404; stock movement remains untouched.
+2. Explicit warehouse scope filtering even inside the same store, direct unauthorized warehouse, cross-store and B2C→B2B cross-channel 404.
+3. Two store roles retain authorized view, but explicit store-level inventory.view deny wins (403); roleless 403 and revoked store/module entitlement 404.
 4. Disabling WMS module lifecycle denies 403 and retains canonical warehouse records.
+5. AR/EN empty warehouse catalog safely renders the shared empty state, with no nonexistent warehouse links.
 
 Additional already-existing regressions: `EnterpriseWmsWorkbenchTest`, `V2WmsLocationsAuthorityTest`, `V2WmsInventoryReportsAccessTest` and `V2WmsReservationActionAuthorityTest` preserve store/warehouse WMS data and mutation contracts. Exact PR HEAD Required CI, Repository Policy, V2 Isolation, Laravel/Pint/PHPStan and localization must all be green before integration. No local run or manual browser audit is claimed by this document.
 
