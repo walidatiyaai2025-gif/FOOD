@@ -1,7 +1,7 @@
 <section class="fieldops-card" data-v2-van-movement-log aria-labelledby="v2-van-movement-log-title">
                 <h2 id="v2-van-movement-log-title">{{ __('field_operations.movement_log.title') }}</h2>
                 <p class="fieldops-muted">{{ __('field_operations.movement_log.description') }}</p>
-                <div class="table-wrap"><table class="foodex-ops-grid">
+                <div class="table-wrap"><table class="foodex-ops-grid" data-pagination-required="server-bounded">
                     <thead><tr>
                         <th scope="col">{{ __('field_operations.movement_log.order') }}</th>
                         <th scope="col">{{ __('field_operations.movement_log.from') }}</th>
