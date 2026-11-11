@@ -72,7 +72,7 @@ final class V2WmsLocationsAuthorityTest extends TestCase
                 ->assertSee('dir="'.$direction.'"', false)
                 ->assertSee(__('enterprise_wms.locations.title'))
                 ->assertSee('data-wms-locations', false)
-                ->assertDontSee('data-wms-mutation', false);
+                ->assertDontSee('<div class="wms-location-forms">', false);
 
             $this->actingAs($viewer->fresh())->post(route('admin.erp.wms.locations.zones.store'), [
                 'store_id' => $fixture['store_id'],
@@ -277,7 +277,7 @@ final class V2WmsLocationsAuthorityTest extends TestCase
         ]))
             ->assertOk()
             ->assertViewHas('canManageLocations', false)
-            ->assertDontSee('data-wms-mutation', false);
+            ->assertDontSee('<div class="wms-location-forms">', false);
 
         $this->actingAs($actor)->post(route('admin.erp.wms.locations.bins.store'), [
             'store_id' => $fixture['store_id'],
@@ -324,7 +324,7 @@ final class V2WmsLocationsAuthorityTest extends TestCase
         ]))
             ->assertOk()
             ->assertViewHas('canManageLocations', false)
-            ->assertDontSee('data-wms-mutation', false);
+            ->assertDontSee('<div class="wms-location-forms">', false);
 
         $this->actingAs($actor->fresh())->post(route('admin.erp.wms.locations.zones.store'), [
             'store_id' => $fixture['store_id'],
