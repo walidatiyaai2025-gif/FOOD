@@ -42,6 +42,7 @@ final class V2CustomRoleOverrideIsolationTest extends TestCase
 
         $this->actingAs($admin)
             ->put(route('admin.security.users.permissions', $userWithOverride), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'scope_type' => 'global',
                 'permission_ids' => [],
             ])
@@ -60,6 +61,7 @@ final class V2CustomRoleOverrideIsolationTest extends TestCase
         $this->actingAs($admin)
             ->from(route('admin.security.index', ['section' => 'roles']))
             ->patch(route('admin.security.roles.update', $role), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'name' => 'Custom dispatch and management',
                 'description' => 'Role template updated independently',
                 'scope' => 'global',
@@ -112,6 +114,7 @@ final class V2CustomRoleOverrideIsolationTest extends TestCase
 
         $this->actingAs($admin)
             ->put(route('admin.security.users.permissions', $member), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'scope_type' => 'global',
                 'permission_ids' => [],
             ])
@@ -120,6 +123,7 @@ final class V2CustomRoleOverrideIsolationTest extends TestCase
 
         $this->actingAs($unauthorized)
             ->patch(route('admin.security.roles.update', $role), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'name' => 'Unauthorized replacement',
                 'scope' => 'global',
                 'is_active' => true,
