@@ -49,7 +49,7 @@ final class V2WholesaleRetailRouteBoundaryTest extends TestCase
                 ->assertOk()
                 ->assertSee('dir="'.$direction.'"', false);
 
-            foreach (['dashboard', 'orders', 'inventory'] as $module) {
+            foreach (['dashboard', 'products', 'inventory'] as $module) {
                 $route = $module === 'dashboard' ? 'admin.b2c.dashboard' : 'admin.b2c.module';
                 $parameters = $module === 'dashboard' ? [] : ['module' => $module];
 
@@ -71,7 +71,7 @@ final class V2WholesaleRetailRouteBoundaryTest extends TestCase
                 ->get(route('admin.b2b.dashboard', ['store_id' => $this->wholesaleStore], false))
                 ->assertForbidden();
 
-            foreach (['products', 'inventory', 'orders'] as $module) {
+            foreach (['products', 'inventory', 'reports'] as $module) {
                 $this->actingAs($actor->fresh())
                     ->get(route('admin.b2b.module', [
                         'module' => $module,
@@ -91,7 +91,7 @@ final class V2WholesaleRetailRouteBoundaryTest extends TestCase
 
             $this->actingAs($actor->fresh())
                 ->get(route('admin.b2c.module', [
-                    'module' => 'orders',
+                    'module' => 'inventory',
                     'store_id' => $this->retailStore,
                 ], false))
                 ->assertOk()
@@ -100,7 +100,7 @@ final class V2WholesaleRetailRouteBoundaryTest extends TestCase
             foreach ([$this->otherRetailStore, $this->wholesaleStore] as $forbiddenId) {
                 $this->actingAs($actor->fresh())
                     ->get(route('admin.b2c.module', [
-                        'module' => 'orders',
+                        'module' => 'inventory',
                         'store_id' => $forbiddenId,
                     ], false))
                     ->assertNotFound();
@@ -114,7 +114,7 @@ final class V2WholesaleRetailRouteBoundaryTest extends TestCase
 
         $this->actingAs($actor)
             ->get(route('admin.b2c.module', [
-                'module' => 'orders',
+                'module' => 'inventory',
                 'store_id' => $this->retailStore,
             ], false))
             ->assertForbidden();
@@ -126,7 +126,7 @@ final class V2WholesaleRetailRouteBoundaryTest extends TestCase
 
         $this->actingAs($actor)
             ->get(route('admin.b2c.module', [
-                'module' => 'orders',
+                'module' => 'inventory',
                 'store_id' => $this->retailStore,
                 'support_access' => 1,
             ], false))
@@ -144,6 +144,13 @@ final class V2WholesaleRetailRouteBoundaryTest extends TestCase
         $this->assertTrue(Route::has('admin.b2c.dashboard'));
         $this->assertTrue(Route::has('admin.b2b.module'));
         $this->assertTrue(Route::has('admin.b2c.module'));
+        $this->assertTrue(Route::has('admin.b2c.orders.canonical'));
+        // /b2c/orders has a more specific OrderOperationsController route.
+        // Tests of B2cWorkspaceController must use /b2c/inventory instead.
+        $this->assertSame(
+            route('admin.b2c.orders.canonical', [], false),
+            route('admin.b2c.module', ['module' => 'orders'], false),
+        );
 
         $roleless = User::factory()->create(['is_active' => true, 'locale' => 'en']);
 
