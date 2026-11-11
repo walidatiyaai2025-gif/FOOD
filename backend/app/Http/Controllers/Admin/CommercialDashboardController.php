@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\B2bPricingMode;
+use App\Services\WholesalePrincipal;
 use App\Services\CommercialFeatureFlags;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
@@ -79,10 +81,22 @@ final class CommercialDashboardController extends Controller
                 ->get(['id', 'name']);
         }
 
+        // P226 reuses the established B2B pricing-list workspace; never link a
+        // different store or bypass the independent pricing permission/readiness.
+        $pricingListsUrl = null;
+        if ($storeId > 0
+            && $storeId === app(WholesalePrincipal::class)->storeId()
+            && $user->hasPermission('b2b.pricing.view')
+            && in_array($storeId, app(OperationalTenantScope::class)->allowedStoreIds($user, 'b2b.pricing.view', 'b2b'), true)
+            && app(B2bPricingMode::class)->tiersEnabled($storeId)) {
+            $pricingListsUrl = route('admin.b2b.pricing-approvals');
+        }
+
         return $this->render($request, $user, $storeId, 'sales-control', [
             'products' => $products,
             'selectedProduct' => $selectedProduct,
             'productCount' => $productCount,
+            'pricingListsUrl' => $pricingListsUrl,
             'policies' => DB::table('product_commercial_policies')->whereIn('product_id', $selectedProductIds)->get()->keyBy('product_id'),
             'sellingUnits' => DB::table('product_selling_units')->whereIn('product_id', $selectedProductIds)->orderBy('id')->get()->groupBy('product_id'),
             'availabilityWindows' => DB::table('product_availability_windows')->whereIn('product_id', $selectedProductIds)->orderBy('id')->get()->groupBy('product_id'),
