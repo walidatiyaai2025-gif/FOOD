@@ -45,6 +45,7 @@ final class SmartOrderingOperationsController extends Controller
         $actor = $this->actor($request);
 
         $validated = $request->validate([
+            'store_id' => ['nullable', 'integer', 'min:1'],
             'status' => ['nullable', Rule::in(['NEW', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'COMPLETED', 'CANCELLED'])],
             'fulfillment_mode' => ['nullable', Rule::in(['dine_in', 'pickup', 'delivery'])],
             'branch' => ['nullable', 'uuid'],
@@ -59,6 +60,15 @@ final class SmartOrderingOperationsController extends Controller
         $tab = (string) ($validated['tab'] ?? 'orders');
         $permission = $tab === 'payments' ? 'finance.view' : 'orders.view';
         $storeIds = $this->restaurantAccess->allowedStoreIds($actor, $permission, $request);
+
+        // The selected Retail store is an authority boundary, not an ignored
+        // display filter. Never silently return another authorized store's
+        // orders when an unowned or disabled store_id was explicitly requested.
+        if (! empty($validated['store_id'])) {
+            $selectedStoreId = (int) $validated['store_id'];
+            abort_unless(in_array($selectedStoreId, $storeIds, true), 404);
+            $storeIds = [$selectedStoreId];
+        }
 
         $query = DB::table('smart_ordering_order_contexts as soc')
             ->join('orders as o', 'o.id', '=', 'soc.order_id')

@@ -314,6 +314,18 @@ final class RbacManager
 
         $scopeKey = $scopeType === 'global' ? 'global' : 'store:'.$storeId;
         $baselineCodes = collect($target->inheritedPermissionCodes($storeId));
+        if (! $inheritFromRole) {
+            $sensitiveEscalations = $selectedPermissions->pluck('code')
+                ->filter(static fn (string $code): bool => SensitivePermissionOverridePolicy::requiresIndependentApproval($code)
+                    && ! $baselineCodes->contains($code));
+
+            if ($sensitiveEscalations->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'permission_ids' => [__('security_permissions.sensitive_override_requires_independent_approval')],
+                ]);
+            }
+        }
+
         // Explicit INHERIT removes only manageable overrides in this scope.
         // Role/module/readiness authority remains the live baseline, not a copied grant set.
         $selectedIdSet = $inheritFromRole

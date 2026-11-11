@@ -47,6 +47,27 @@ final class RestaurantSaasStoreAccess
         return $storeIds;
     }
 
+    /**
+     * A non-throwing projection of the analytics destination's existing HTTP
+     * authority for restaurant workspace links. Displaying a tab never grants
+     * a permission: the destination still enforces allowedStoreIds().
+     */
+    public function canNavigateToStore(
+        User $actor,
+        int $storeId,
+        string $permission,
+        bool $supportAccess = false,
+    ): bool {
+        if ($storeId < 1 || ($actor->hasRole('SUPER_ADMIN') && ! $supportAccess)) {
+            return false;
+        }
+
+        return in_array($storeId, $this->scope->allowedStoreIds($actor, $permission, 'b2c'), true)
+            && $actor->hasPermission($permission, $storeId)
+            && $this->profiles->isRestaurant($storeId)
+            && $this->entitlements->storeEnabled($storeId);
+    }
+
     public function assertStore(
         User $actor,
         int $storeId,
