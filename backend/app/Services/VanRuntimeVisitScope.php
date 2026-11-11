@@ -18,12 +18,24 @@ final class VanRuntimeVisitScope
         return VanVisit::query()
             ->where('customer_type', 'b2b')
             ->where(function (Builder $query) use ($actor, $vanId): void {
-            $query->where('actor_user_id', $actor->getKey());
+                // Preserve legacy untagged visits from this operator, but
+                // never follow the same operator into a different Van's
+                // explicitly attributed visits after reassignment.
+                $query->where(function (Builder $owned) use ($actor, $vanId): void {
+                    $owned->where('actor_user_id', $actor->getKey());
 
-            if ($vanId > 0) {
-                $query->orWhere('metadata->van_id', $vanId);
-            }
-        });
+                    if ($vanId > 0) {
+                        $owned->where(function (Builder $assigned) use ($vanId): void {
+                            $assigned->whereNull('metadata->van_id')
+                                ->orWhere('metadata->van_id', $vanId);
+                        });
+                    }
+                });
+
+                if ($vanId > 0) {
+                    $query->orWhere('metadata->van_id', $vanId);
+                }
+            });
     }
 
     public function contains(Request $request, User $actor, VanVisit $visit): bool
