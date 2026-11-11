@@ -64,11 +64,11 @@ final class V2WmsWarehousesPageAuthorityTest extends TestCase
                 ->assertSee('dir="'.$direction.'"', false)
                 ->assertSee('data-wms-warehouse-id="'.$fixture['warehouse_id'].'"', false)
                 ->assertSee('data-wms-warehouse-id="'.$fixture['other_local_warehouse_id'].'"', false)
-                ->assertSee(route('admin.erp.wms.index', [
+                ->assertSee(e(route('admin.erp.wms.index', [
                     'tab' => 'overview',
                     'store_id' => $fixture['store_id'],
                     'warehouse_id' => $fixture['warehouse_id'],
-                ]), false)
+                ])), false)
                 ->assertDontSee('P254-FOREIGN-WH')
                 ->assertDontSee('data-wms-warehouse-id="'.$fixture['foreign_warehouse_id'].'"', false);
         }
