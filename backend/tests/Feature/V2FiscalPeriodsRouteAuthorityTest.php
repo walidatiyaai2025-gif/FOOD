@@ -314,10 +314,15 @@ final class V2FiscalPeriodsRouteAuthorityTest extends TestCase
             app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
         }
 
-        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')
-            ->where('scope', 'store')
-            ->where('is_active', true)
-            ->firstOrFail();
+        // The seeded B2C_STORE_ADMIN already has finance.manage.
+        // Use a dedicated least-privilege role to prove viewer/manager separation.
+        $role = Role::query()->create([
+            'code' => 'V2_2612_'.str_replace('-', '_', $storeCode),
+            'name' => 'V2 Fiscal Period '.$storeCode,
+            'scope' => 'store',
+            'is_active' => true,
+            'is_system' => false,
+        ]);
 
         foreach ($permissions as $permissionCode) {
             $permission = Permission::query()->firstOrCreate(
