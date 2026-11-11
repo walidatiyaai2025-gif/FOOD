@@ -31,6 +31,13 @@ final class V2UserAssignmentLiveSidebarCompletionTest extends TestCase
         $admin = $this->superAdmin();
         $target = User::factory()->create(['is_active' => true]);
 
+        // The shared FOODEX UI converts native details to a button/host.
+        // The picker must initialize from that real trigger, not only toggle.
+        $sharedModals = file_get_contents(resource_path('views/admin/_brand-components.blade.php'));
+        $this->assertIsString($sharedModals);
+        $this->assertStringContainsString('trigger.dataset.foodexDialogOpen', $sharedModals);
+        $this->assertStringContainsString('details.replaceWith(host)', $sharedModals);
+
         foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
             $admin->forceFill(['locale' => $locale])->save();
 
@@ -48,6 +55,8 @@ final class V2UserAssignmentLiveSidebarCompletionTest extends TestCase
                 ->assertSee('data-v2-user-tree-status', false)
                 ->assertSee("addEventListener('toggle'", false)
                 ->assertSee('HTMLDetailsElement', false)
+                ->assertSee("closest('[data-foodex-dialog-open]'", false)
+                ->assertSee("closest('.foodex-operational-dialog-host')", false)
                 ->assertSee('if (section) refresh(getForm(section))', false)
                 ->assertSee('const nextScope = storeMatch ? storeMatch[1]', false)
                 ->assertSee('selector.value = nextScope', false)
