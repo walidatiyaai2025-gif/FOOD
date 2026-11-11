@@ -28,8 +28,11 @@ final class V2RetailStoreAdminPersonaAuthorityTest extends TestCase
         $navigation = app(AdminNavigation::class);
         $this->assertSame(['b2c'], array_keys($navigation->for($actor)));
 
-        $groups = collect($navigation->groupsFor($actor));
-        $keys = $groups->flatMap(fn (array $group) => collect($group['children'])->pluck('key'))->values()->all();
+        // Saved Sidebar layout can nest a page under its authorized domain root.
+        // Inspect the actual rendered tree, not just top-level group children.
+        $groups = $navigation->groupsFor($actor);
+        $items = collect($this->allVisibleItems($groups));
+        $keys = $items->pluck('key')->all();
 
         foreach ([
             'b2c_dashboard',
@@ -52,12 +55,10 @@ final class V2RetailStoreAdminPersonaAuthorityTest extends TestCase
                 || $key === 'retail_store_provisioning',
         )));
 
-        foreach ($groups as $group) {
-            foreach ($group['children'] as $item) {
-                if (str_starts_with($item['key'], 'b2c_')) {
-                    $this->assertSame((string) $owned, (string) ($item['params']['store_id'] ?? ''),
-                        $item['key'].' must use the assigned Retail store instead of a global context.');
-                }
+        foreach ($items as $item) {
+            if (str_starts_with($item['key'], 'b2c_')) {
+                $this->assertSame((string) $owned, (string) ($item['params']['store_id'] ?? ''),
+                    $item['key'].' must use the assigned Retail store instead of a global context.');
             }
         }
     }
@@ -122,8 +123,7 @@ final class V2RetailStoreAdminPersonaAuthorityTest extends TestCase
         $actor->forceFill(['has_permission_overrides' => true])->save();
 
         $navigation = app(AdminNavigation::class);
-        $item = collect($navigation->groupsFor($actor))
-            ->flatMap(fn (array $group) => $group['children'])
+        $item = collect($this->allVisibleItems($navigation->groupsFor($actor)))
             ->firstWhere('key', 'b2c_inventory');
 
         $this->assertIsArray($item);
@@ -136,6 +136,30 @@ final class V2RetailStoreAdminPersonaAuthorityTest extends TestCase
             ->get(route('admin.b2c.module', ['module' => 'inventory', 'store_id' => $allowed]))
             ->assertOk()
             ->assertViewHas('storeIds', [$allowed]);
+    }
+
+    /**
+     * Resolve actual Sidebar placement including saved parent-child layout,
+     * without mistaking a nested link for an absent/unauthorized destination.
+     *
+     * @param list<array<string, mixed>> $groups
+     * @return list<array<string, mixed>>
+     */
+    private function allVisibleItems(array $groups): array
+    {
+        $items = [];
+        $visit = function (array $nodes) use (&$visit, &$items): void {
+            foreach ($nodes as $node) {
+                $items[] = $node;
+                $visit((array) ($node['children'] ?? []));
+            }
+        };
+
+        foreach ($groups as $group) {
+            $visit((array) ($group['children'] ?? []));
+        }
+
+        return $items;
     }
 
     private function retailStore(string $code): int
