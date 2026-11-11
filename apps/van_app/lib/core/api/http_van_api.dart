@@ -45,6 +45,12 @@ class HttpVanAuthRepository implements VanAuthRepository {
     if (response.statusCode == 401 || response.statusCode == 422) {
       throw const VanAuthenticationException();
     }
+    if (response.statusCode == 403) {
+      // The server rejected Van role or active assignment authority.
+      // Preserve access-denied semantics so clients never treat it as
+      // transient connectivity or silently restore a privileged session.
+      throw const VanAccessDeniedException();
+    }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw const VanApiException();
     }

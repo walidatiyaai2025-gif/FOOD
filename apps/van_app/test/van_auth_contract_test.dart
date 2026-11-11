@@ -67,6 +67,63 @@ void main() {
     );
   });
 
+  test(
+      'Van login maps a server 403 to access denied rather than a generic API error',
+      () async {
+    final repo = HttpVanAuthRepository(
+      'https://foodex.example/',
+      client: MockClient((request) async {
+        expect(request.url.path, '/api/v1/auth/login');
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['app'], 'van');
+        return http.Response(
+          jsonEncode({
+            'message':
+                'No effective Van assignment is available for this account.',
+          }),
+          403,
+          headers: {'content-type': 'application/json'},
+        );
+      }),
+    );
+
+    await expectLater(
+      repo.login(email: 'denied@example.test', password: 'irrelevant'),
+      throwsA(isA<VanAccessDeniedException>()),
+    );
+  });
+
+  test(
+      'Van login denies 200 payload with van.login but no effective assignment',
+      () async {
+    final repo = HttpVanAuthRepository(
+      'https://foodex.example/',
+      client: MockClient((_) async => http.Response(
+            jsonEncode({
+              'token': 'must-not-be-accepted',
+              'user': {
+                'name': 'Unassigned Operator',
+                'email': 'unassigned@example.test',
+                'locale': 'ar',
+                'permissions': ['van.login'],
+                'van_scope': {
+                  'van_id': 8,
+                  'van_code': 'VAN-8',
+                  'assignment_id': 0,
+                },
+              },
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          )),
+    );
+
+    await expectLater(
+      repo.login(email: 'unassigned@example.test', password: 'irrelevant'),
+      throwsA(isA<VanAccessDeniedException>()),
+    );
+  });
+
   test('authenticated client maps 401 to session expiry', () async {
     final api = VanApiClient(
       'https://foodex.example/',
