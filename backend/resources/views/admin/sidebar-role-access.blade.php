@@ -6,6 +6,20 @@
 <style>
 body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.role-picker,.access-group,.access-item{background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:16px}.hero{padding:20px;margin-bottom:16px}.hero h1{margin:0 0 6px}.muted{color:var(--foodex-muted)}.role-picker{display:flex;gap:12px;align-items:end;flex-wrap:wrap;padding:16px;margin-bottom:16px}.role-picker label{display:grid;gap:6px;font-weight:800;min-width:min(420px,100%)}select,button{font:inherit}.role-picker select{min-height:42px;border:1px solid var(--foodex-border);border-radius:10px;padding:8px 10px;background:var(--foodex-surface);color:var(--foodex-ink)}.notice,.errors{padding:12px 14px;border-radius:12px;margin-bottom:14px}.notice{background:var(--foodex-green-soft)}.errors{background:var(--foodex-orange-soft)}.matrix{display:grid;gap:14px}.access-group{padding:16px}.access-group h2{margin:0 0 12px;font-size:1.05rem}.access-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}.access-item{padding:12px;display:grid;gap:8px}.access-item.unavailable{opacity:.65;background:var(--foodex-background)}.access-check{display:flex;gap:9px;align-items:flex-start;font-weight:800}.access-check input{margin-top:4px}.permission-check{display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 2px;font-weight:700}.permission-check input{width:22px;height:22px;flex:0 0 auto;accent-color:var(--foodex-green)}.permission-row{display:grid;gap:4px}.permission-row code{direction:ltr;unicode-bidi:isolate;overflow-wrap:anywhere}.read-only-note{padding:12px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-background)}.meta{display:flex;gap:6px;flex-wrap:wrap}.node-details{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:8px;margin:0}.node-details>div{min-width:0;padding:8px;border-radius:9px;background:var(--foodex-background)}.node-details dt{font-size:.75rem;color:var(--foodex-muted);font-weight:800}.node-details dd{margin:4px 0 0;overflow-wrap:anywhere;font-size:.88rem}.node-details .code{font-size:.78rem}.node-help{font-size:.78rem}.badge{border-radius:999px;padding:3px 8px;font-size:.75rem;background:var(--foodex-background);border:1px solid var(--foodex-border)}.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.75rem;overflow-wrap:anywhere}.preview-panel{padding:14px;border:1px solid var(--foodex-border);border-radius:12px;background:var(--foodex-background);margin:10px 0 16px}.preview-panel h2{font-size:1rem;margin:0 0 6px}.preview-status{font-weight:800;margin:5px 0}.preview-reasons{padding-inline-start:20px;margin:6px 0 0;font-size:.85rem}.preview-reasons li{margin-block:3px}.preview-summary{font-weight:700}.actions{position:sticky;bottom:0;display:flex;justify-content:flex-end;padding:14px 0;background:linear-gradient(transparent,var(--foodex-background) 35%)}.save{border:0;border-radius:11px;background:var(--foodex-green);color:#fff;padding:11px 18px;font-weight:900;cursor:pointer}@media(max-width:767px){.sidebar-access{padding:12px}.access-grid{grid-template-columns:1fr}.role-picker{align-items:stretch}.role-picker label{min-width:0;width:100%}}
 </style>
+<style>
+.v2-role-workbench{display:grid;grid-template-columns:minmax(210px,.7fr) minmax(230px,.9fr) minmax(480px,1.9fr);gap:14px;align-items:start}
+.v2-role-workbench>.role-picker{display:grid;margin:0;min-width:0;align-content:start}
+.v2-role-workbench>.role-picker label{min-width:0;width:100%}
+.v2-role-workbench>[data-v2-role-preview-form]{min-width:0}
+.v2-role-business-column{min-width:0;display:grid;gap:10px;padding:16px;border:1px solid var(--foodex-border);border-radius:16px;background:var(--foodex-surface)}
+.v2-role-business-column h2{font-size:1.05rem;margin:0}
+.v2-role-business-column p{margin:0}
+.v2-role-business-groups{display:grid;gap:8px}
+.v2-role-business-group{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-background)}
+.v2-role-business-group span{font-weight:700}
+.v2-role-business-group strong{font-variant-numeric:tabular-nums}
+@media(max-width:1200px){.v2-role-workbench{grid-template-columns:minmax(0,1fr)}}
+</style>
 @include('admin._brand-components')
 </head>
 <body>
@@ -19,6 +33,7 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
 </div>
 @if(session('status'))<div class="notice" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="errors" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+<div class="v2-role-workbench" data-v2-role-workbench>
 <form method="get" class="role-picker">
 <label>{{ __('sidebar_admin.choose_role') }}
 <select name="role_id" onchange="this.form.submit()">
@@ -27,6 +42,33 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
 <noscript><button type="submit">{{ __('sidebar_admin.load_role') }}</button></noscript>
 <div class="muted">{{ __('sidebar_admin.role_scope') }}: <strong>{{ __('v2_role_permissions.scope_'.$selectedRole->scope) }}</strong></div>
 </form>
+
+@php
+    // A role's saved permission codes are not its assigned users' effective
+    // grants; tenant, override, channel and module guards remain server-owned.
+    $v2BusinessPermissionRoots = ['b2b', 'stores', 'catalog', 'lookups', 'inventory', 'orders', 'customers', 'promotions', 'finance', 'reports', 'support', 'notifications', 'coupons', 'live_ads', 'drivers', 'deliveries', 'van', 'field_ops', 'territories', 'whatsapp', 'smart_ordering', 'chatbot'];
+    $v2RoleBusinessPermissions = $selectedRole->permissions
+        ->pluck('code')
+        ->map(static fn (string $code): string => explode('.', $code, 2)[0])
+        ->filter(static fn (string $domain): bool => in_array($domain, $v2BusinessPermissionRoots, true))
+        ->countBy()
+        ->sortKeys();
+@endphp
+<section class="v2-role-business-column" data-v2-business-permission-summary="{{ $selectedRole->code }}" data-v2-business-role-scope="{{ $selectedRole->scope }}" aria-labelledby="v2-role-business-summary-title">
+<h2 id="v2-role-business-summary-title">{{ __('v2_role_permissions.business_aggregate_title') }}</h2>
+<p class="muted">{{ __('sidebar_admin.role_scope') }}: {{ __('v2_role_permissions.scope_'.$selectedRole->scope) }}</p>
+<div class="v2-role-business-groups">
+@forelse($v2RoleBusinessPermissions as $domain => $count)
+<div class="v2-role-business-group" data-v2-business-domain="{{ $domain }}">
+<span>{{ __('security_permissions.groups.'.$domain) }}</span>
+<strong>{{ __('v2_role_permissions.business_aggregate_count', ['count' => $count]) }}</strong>
+</div>
+@empty
+<p class="muted">{{ __('v2_role_permissions.business_aggregate_none') }}</p>
+@endforelse
+</div>
+<p class="muted">{{ __('v2_role_permissions.business_aggregate_note') }}</p>
+</section>
 
 <form method="post" action="{{ route('admin.security.roles.update', $selectedRole) }}"
     data-v2-role-preview-form data-confirm="{{ __('v2_role_permissions.confirm') }}"
@@ -137,6 +179,7 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
 <div class="actions"><button class="save foodex-action-primary" type="submit">{{ __('v2_role_permissions.save') }}</button></div>
 @endif
 </form>
+</div>
 </main>
 </div>
 <script>
