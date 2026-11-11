@@ -5,8 +5,8 @@ Scope: read-only provenance on existing authenticated System Administration → 
 ## Data authority and semantics
 
 1. Installed database version: latest system_versions row by installed_at, id; same source as Update Center. Failure to read it means UNKNOWN.
-2. Server source version: VERSION from the actual deployed directory.
-3. Build version and source commit: declared Release/BUILD_INFO.json. SHA must be exactly 40 hexadecimal characters. Missing/invalid data means UNKNOWN.
+2. Server source version: VERSION from the actual deployed directory, using bounded 128-byte regular-file read, strict three-component version syntax and no symlink following.
+3. Build version and source commit: declared Release/BUILD_INFO.json, bounded to 128 KiB, no symlink following or out-of-repository path reads. SHA must be exactly 40 hexadecimal characters. Missing/invalid data means UNKNOWN.
 4. Metadata state is CONSISTENT only if all three versions are present and identical AND a syntactically valid source commit is recorded. Any two available but conflicting version values cause MISMATCH, even when the database row is absent; otherwise UNKNOWN is used for incomplete data.
 5. Optional GitHub lookup: an authenticated platform admin explicitly requests verify_source=1; the server makes a bounded fixed-host GET to https://api.github.com/repos/walidatiyaai2025-gif/FOOD/commits/<sha> with 3-second timeout and no tokens. Exact SHA 200 = found; 404 = not_found; other results = unknown. Normal page and export never call GitHub.
 
