@@ -416,6 +416,10 @@ $roleLabel = static function ($role): string {
     'privilegedPermissionCodes' => $privilegedPermissionCodes,
 ])
 @endif
+<div class="note" role="status">{{ __('security_permissions.sod_change_warning') }}</div>
+<label class="permission-change-reason">{{ __('security_permissions.change_reason') }}
+    <textarea name="change_reason" required minlength="8" maxlength="500" autocomplete="off" placeholder="{{ __('security_permissions.change_reason_hint') }}">{{ old('change_reason') }}</textarea>
+</label>
 <button class="btn primary">{{ __('admin.security.save_role') }}</button></form>
 @else
 @if($role->archived_at)
