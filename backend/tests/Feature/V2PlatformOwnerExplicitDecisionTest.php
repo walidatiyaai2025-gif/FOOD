@@ -86,6 +86,7 @@ final class V2PlatformOwnerExplicitDecisionTest extends TestCase
         ])->assertForbidden();
 
         $this->putJson("/api/v1/admin/security/users/{$owner->id}/roles", [
+            'change_reason' => 'Regression fixture approved RBAC access change',
             'global_role_ids' => [],
             'store_roles' => [],
         ])->assertForbidden();
