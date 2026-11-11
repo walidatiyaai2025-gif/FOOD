@@ -153,6 +153,75 @@ final class V2ErpEntitlementCheckerBoundaryTest extends TestCase
             ->count());
     }
 
+    public function test_explicit_store_deny_preserves_independent_sibling_b2b_entitlement(): void
+    {
+        $primary = $this->wholesaleStore();
+        $sibling = Store::query()->create([
+            'store_type_id' => $primary->store_type_id,
+            'code' => 'P111-B2B-SIBLING',
+            'name' => 'P111 B2B sibling',
+            'is_active' => true,
+        ]);
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($sibling);
+
+        $admin = $this->actor('SUPER_ADMIN');
+        $buyer = $this->actor('PROCUREMENT_BUYER');
+        app(EnterpriseModuleAdministration::class)->perform('procurement', 'enable', $admin);
+
+        $entitlements = app(ModuleEntitlementManager::class);
+        $entitlements->set('procurement', EntitlementScope::platform(), true, null, $admin);
+        $entitlements->set(
+            'procurement',
+            new EntitlementScope(EntitlementScope::STORE, $primary->id),
+            false,
+            null,
+            $admin,
+        );
+
+        foreach (['ar', 'en'] as $locale) {
+            $buyer->forceFill(['locale' => $locale])->save();
+
+            $this->actingAs($buyer->fresh())->get(route('admin.erp.procurement.index', [
+                'store_id' => $primary->id,
+                'tab' => 'requests',
+            ]))->assertForbidden();
+
+            $this->actingAs($buyer->fresh())->get(route('admin.erp.procurement.index', [
+                'store_id' => $sibling->id,
+                'tab' => 'requests',
+            ]))->assertOk();
+        }
+
+        $request = [
+            'currency_code' => 'KWD',
+            'reason' => 'P111 independent B2B store scope',
+            'item_code' => 'P111-SCOPE-SKU',
+            'description' => 'Cross-store entitlement enforcement',
+            'quantity' => 1,
+            'unit' => 'case',
+            'estimated_unit_cost' => '1.000',
+        ];
+
+        $this->actingAs($buyer->fresh())->post(route('admin.erp.procurement.requests.store'), [
+            ...$request,
+            'store_id' => $primary->id,
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('enterprise_purchase_requests', [
+            'reason' => $request['reason'],
+        ]);
+
+        $this->actingAs($buyer->fresh())->post(route('admin.erp.procurement.requests.store'), [
+            ...$request,
+            'store_id' => $sibling->id,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('enterprise_purchase_requests', [
+            'store_id' => $sibling->id,
+            'reason' => $request['reason'],
+        ]);
+    }
+
     private function wholesaleStore(): Store
     {
         $store = Store::query()->findOrFail(app(WholesalePrincipal::class)->storeId());
