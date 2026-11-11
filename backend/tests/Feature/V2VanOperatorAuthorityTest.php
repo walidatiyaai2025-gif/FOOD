@@ -5,12 +5,15 @@ namespace Tests\Feature;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\Van;
+use App\Models\VanAssignment;
 use App\Services\BuiltInJobRoleCatalog;
 use App\Services\VanRegistryService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
@@ -166,7 +169,7 @@ final class V2VanOperatorAuthorityTest extends TestCase
         return $user->fresh();
     }
 
-    /** @return array{0: \App\Models\Van, 1: \App\Models\VanAssignment} */
+    /** @return array{0: Van, 1: VanAssignment} */
     private function assign(User $operator, string $code): array
     {
         $registry = app(VanRegistryService::class);
@@ -181,7 +184,7 @@ final class V2VanOperatorAuthorityTest extends TestCase
     }
 
     /** @param array<string,mixed> $extra */
-    private function vanLogin(User $operator, array $extra = []): \Illuminate\Testing\TestResponse
+    private function vanLogin(User $operator, array $extra = []): TestResponse
     {
         return $this->postJson('/api/v1/auth/login', [
             'email' => $operator->email,
