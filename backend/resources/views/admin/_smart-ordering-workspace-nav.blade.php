@@ -47,7 +47,16 @@
         && ($restaurantStoreId > 0
             ? $restaurantActor->hasPermission('smart_ordering.qr.view', $restaurantStoreId)
             : $restaurantNav->hasPermissionInScope($restaurantActor, 'smart_ordering.qr.view'));
-    $restaurantCanAnalytics = $restaurantActor && $restaurantNav->hasPermissionInScope($restaurantActor, 'smart_ordering.analytics.view');
+    // The tab/launcher must mirror the destination's real Retail store scope,
+    // Restaurant profile and STORE:smart_ordering master entitlement. A broad
+    // global permission alone must never advertise a 403/404 analytics link.
+    $restaurantCanAnalytics = $restaurantActor && $restaurantStoreId > 0
+        && app(\App\Domain\RestaurantSaaS\RestaurantSaasStoreAccess::class)->canNavigateToStore(
+            $restaurantActor,
+            $restaurantStoreId,
+            'smart_ordering.analytics.view',
+            $restaurantSupport,
+        );
     $restaurantCanInventory = $restaurantActor
         && ($restaurantStoreId > 0
             ? $restaurantActor->hasPermission('inventory.view', $restaurantStoreId)
