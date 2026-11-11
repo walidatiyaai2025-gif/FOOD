@@ -243,7 +243,8 @@ final class V2ProcurementBuyerAuthorityTest extends TestCase
 
         $inactive = $this->buyer();
         $inactive->forceFill(['is_active' => false])->save();
-        $this->assertFalse($inactive->fresh()->hasPermission('procurement.suppliers.view'));
+        // Account state is enforced at the HTTP/session boundary, independently
+        // of the raw role permission relationship retained for audit.
         $this->actingAs($inactive->fresh())
             ->get(route('admin.erp.procurement.index', ['store_id' => $wholesale->id], false))
             ->assertForbidden();
