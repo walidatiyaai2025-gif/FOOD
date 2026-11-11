@@ -9,15 +9,15 @@ Source: FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx / P308; paren
 - Placement: **Reuse/Extend** existing WMS Workbench inventory reporting tab rather than creating a duplicate admin page or Sidebar. Canonical path: Admin → Inventory/WMS Workbench → **WMS reports** tab; route `admin.erp.wms.index?tab=reports`. Existing inventory/workspace navigation remains authoritative; no new Sidebar item, route, or shadow visibility policy.
 - Existing data sources: eight `WmsReportingService` read models and bounded queries, `WarehouseScope` scoped warehouse identities, `OperationalTenantScope` exact store permissions, `inventory_wms` enterprise module/store entitlement, financial valuation joined only to active approved policy. No report creates/updates stock movement or reservation.
 - Existing cards resolve real canonical tabs for selected store/warehouse; previously displayed raw `wms_*` read model codes in the user interface. The changed partial replaces them with AR/EN localized **Open report / فتح التقرير**, preserving the existing meaningful report title and deep link.
-- Permission: server-side `inventory.view`; unauthorized requests fail 403. Foreign authorized store fails 403, foreign warehouse fails 404, disabled warehouse-module entitlement fails 404. No frontend hiding substitutes for HTTP authorization.
+- Permission: server-side `inventory.view`; unauthorized requests fail 403. A foreign store without inventory.view is concealed with 404, and a foreign warehouse within the selected store is also concealed with 404. A revoked store-level module entitlement fails 404, while a disabled global WMS module lifecycle is denied by the HTTP module guard with 403. No frontend hiding substitutes for HTTP authorization.
 - UI: existing WMS shell, nav context `erp_wms`, FOODEX theme, native focusable anchor cards, grid responsive below 900/767px. No new IDs in forms; AR/EN catalogs, RTL/LTR from document shell. Existing empty and bounded states remain.
 
 ## Acceptance / tests
 
 `backend/tests/Feature/V2WmsInventoryReportsAccessTest.php` tests:
 1. Real canonical authorized `tab=reports` HTTP response for each language, with all eight report models linked, translated action and title, RTL/LTR, absence of internal read model names.
-2. Exact store permission denial and warehouse concealment against a second store; additionally, an explicit read-only warehouse assignment denies other warehouses even INSIDE the same store.
-3. Disabled inventory_wms lifecycle denies the report route while leaving stock and reservations unchanged; re-enabling restores authorized read only.
+2. Exact store permission denial using 404 to conceal an unassigned store and 404 to conceal a forbidden warehouse; additionally, an explicit read-only warehouse assignment denies other warehouses even INSIDE the same store.
+3. Disabled inventory_wms lifecycle returns 403 from the existing HTTP guard, leaving stock and reservations unchanged; re-enabling restores authorized read only.
 4. Denial of Customer Service Agent without `inventory.view` and of a formerly authorized inventory user after enterprise WMS store entitlement is revoked.
 5. Before/after check for unchanged inventory quantity, reserved quantity and stock movement count.
 
