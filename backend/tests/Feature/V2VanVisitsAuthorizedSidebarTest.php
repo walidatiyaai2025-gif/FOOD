@@ -195,8 +195,15 @@ final class V2VanVisitsAuthorizedSidebarTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $foreignCustomer = (int) DB::table('b2b_customers')->insertGetId([
+            'name' => 'P268-FOREIGN-WHOLESALE-CUSTOMER',
+            'phone' => '9000022222',
+            'email' => 'p268-foreign-wholesale@example.test',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $this->recordVisit($actor, 'b2b', $wholesaleCustomer, $ownStore);
-        $this->recordVisit($actor, 'b2b', $wholesaleCustomer, $otherStore);
+        $this->recordVisit($actor, 'b2b', $foreignCustomer, $otherStore);
         $this->recordVisit($actor, 'b2c', $retailCustomer, $retailStore);
 
         // The current user's B2B store is visible; B2C and other wholesale stores are not.
@@ -209,6 +216,7 @@ final class V2VanVisitsAuthorizedSidebarTest extends TestCase
                 ->assertSee('dir="'.$direction.'"', false)
                 ->assertSee('P268-OWN-WHOLESALE-CUSTOMER')
                 ->assertDontSee('P268-RETAIL-PRIVATE-CUSTOMER')
+                ->assertDontSee('P268-FOREIGN-WHOLESALE-CUSTOMER')
                 ->assertDontSee('P268-RETAIL-PRIVATE')
                 ->assertDontSee('P268-WHOLESALE-OTHER');
         }
@@ -230,6 +238,13 @@ final class V2VanVisitsAuthorizedSidebarTest extends TestCase
 
         $retailVisit = $this->recordVisit($actor, 'b2c', 98765, $retailStore);
         $foreignVisit = $this->recordVisit($actor, 'b2b', 98765, $otherStore);
+        $unscopedVisit = VanVisit::query()->create([
+            'actor_user_id' => $actor->id,
+            'customer_type' => 'b2b',
+            'customer_id' => 98765,
+            'store_id' => null,
+            'status' => 'planned',
+        ]);
         $ownVisit = $this->recordVisit($actor, 'b2b', 98765, $ownStore);
         $initialCount = VanVisit::query()->count();
 
@@ -245,6 +260,10 @@ final class V2VanVisitsAuthorizedSidebarTest extends TestCase
         $this->actingAs($actor)
             ->post(route('admin.field-operations.visits.transition', $foreignVisit), ['status' => 'started'])
             ->assertNotFound();
+        $this->actingAs($actor)
+            ->post(route('admin.field-operations.visits.transition', $unscopedVisit), ['status' => 'started'])
+            ->assertNotFound();
+        $this->assertDatabaseHas('van_visits', ['id' => $unscopedVisit->id, 'status' => 'planned']);
         $this->assertDatabaseHas('van_visits', ['id' => $retailVisit->id, 'status' => 'planned']);
         $this->assertDatabaseHas('van_visits', ['id' => $foreignVisit->id, 'status' => 'planned']);
 

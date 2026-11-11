@@ -551,10 +551,13 @@ final class FieldOperationsController extends Controller
         $allowedB2bStores = $this->b2bStoreIds($user);
         $canReadAllWholesale = $user->hasRole('SUPER_ADMIN') || $user->hasRole('B2B_ADMIN')
             || $user->hasRole('OPERATIONS') || $user->hasRole('FINANCE');
-        $visibleVisits = VanVisit::query()->where('customer_type', 'b2b');
-        if (! $canReadAllWholesale) {
-            $visibleVisits->whereIn('store_id', $allowedB2bStores);
-        }
+        $visibleVisits = VanVisit::query()->where('customer_type', 'b2b')
+            ->where(function ($query) use ($allowedB2bStores, $canReadAllWholesale): void {
+                $query->whereIn('store_id', $allowedB2bStores);
+                if ($canReadAllWholesale) {
+                    $query->orWhereNull('store_id');
+                }
+            });
 
         $visits = (clone $visibleVisits)->with(['actor', 'noOrderReason'])->orderByDesc('created_at')->paginate(30);
         $visits->setCollection($visits->getCollection()->map(function (VanVisit $visit): VanVisit {
@@ -663,7 +666,11 @@ final class FieldOperationsController extends Controller
             'route_key' => ['nullable', 'string', 'max:128'],
         ]);
 
-        if (isset($data['store_id'])) {
+        $platformWide = $user->hasRole('SUPER_ADMIN') || $user->hasRole('B2B_ADMIN')
+            || $user->hasRole('OPERATIONS') || $user->hasRole('FINANCE');
+        if (! isset($data['store_id'])) {
+            abort_unless($platformWide, 404);
+        } else {
             abort_unless(in_array((int) $data['store_id'], $this->b2bStoreIds($user), true), 404);
         }
 
@@ -715,7 +722,13 @@ final class FieldOperationsController extends Controller
         $this->authorizeAll($user, ['drivers.b2b.manage', 'customers.view']);
 
         abort_unless($visit->customer_type === 'b2b', 404);
-        if ($visit->store_id !== null) {
+        if ($visit->store_id === null) {
+            abort_unless(
+                $user->hasRole('SUPER_ADMIN') || $user->hasRole('B2B_ADMIN')
+                    || $user->hasRole('OPERATIONS') || $user->hasRole('FINANCE'),
+                404,
+            );
+        } else {
             abort_unless(in_array((int) $visit->store_id, $this->b2bStoreIds($user), true), 404);
         }
 
