@@ -19,7 +19,7 @@ The existing Customer Service Manager role may also have authorized Catalog/Adve
 - Existing WhatsApp Inbox visibility follows the module runtime policy AND the effective permission. A disabled runtime is not silently activated by the assigned role.
 - Customer-service presentation excludes Super Admin/ERP control-plane, Live Driver Tracking and Retail order links, while authorized service routes remain.
 - Direct Retail Orders, Retail Customer module and Security administration routes are denied; Finance approval and platform administration permissions are absent.
-- Explicit per-user `reports.view`, `whatsapp.inbox.view`, and `whatsapp.conversations.view` DENYs remove Sidebar links **and** enforce direct HTTP 403 without removing unrelated Customer Service or Wholesale Orders access.
+- Explicit per-user `reports.view`, `whatsapp.inbox.view`, and `whatsapp.conversations.view` DENYs remove Sidebar links; reporting HTTP returns 403, while WhatsApp Inbox HTTP returns 403 if the runtime is operational or 404 when the existing capability middleware hides the disabled module. Unrelated Customer Service and Wholesale Orders remain authorized.
 - Roleless and inactive users cannot reach real service/order/reporting HTTP endpoints.
 
 Only synthetic test identities and disposable CI test data are used. No existing role definitions, user grants, live records, migrations, OpenAPI, routes, Dashboard Blade, app source or production server state are modified.
