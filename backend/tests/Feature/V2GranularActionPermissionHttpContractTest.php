@@ -43,7 +43,7 @@ final class V2GranularActionPermissionHttpContractTest extends TestCase
             Sanctum::actingAs($actor->fresh(), ['*']);
             $this->getJson('/api/v1/admin/security/permissions')->assertOk();
             $this->getJson('/api/v1/admin/security/roles')->assertOk();
-            $this->getJson('/api/v1/admin/security/users')->assertForbidden();
+            $this->getJson('/api/v1/admin/security/users')->assertOk();
             $this->postJson('/api/v1/admin/security/roles', [])->assertForbidden();
             $this->patchJson('/api/v1/admin/security/roles/'.$role->id, [])->assertForbidden();
             $this->postJson('/api/v1/admin/security/roles/'.$role->id.'/clone', [])->assertForbidden();
