@@ -254,7 +254,7 @@ class _FoodexDriverAppState extends State<FoodexDriverApp>
       return;
     }
 
-    final onSessionInvalid = () => _expireSessionIfCurrent(session);
+    void onSessionInvalid() => _expireSessionIfCurrent(session);
     final tracking = factory?.call(session, onSessionInvalid) ??
         DriverLocationTrackingService(
           locationSource: GeolocatorDriverLocationSource(
