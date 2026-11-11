@@ -900,6 +900,7 @@ Route::prefix('admin')
         Route::post('/security/demo-data', [SecurityController::class, 'seedDemoData'])->name('security.demo-data.seed');
         Route::delete('/security/demo-data', [SecurityController::class, 'clearDemoData'])->name('security.demo-data.clear');
         Route::post('/security/users', [SecurityController::class, 'storeUser'])->middleware('throttle:20,1')->name('security.users.store');
+        Route::patch('/security/users/{user}/profile', [SecurityController::class, 'updateUserProfile'])->middleware('throttle:20,1')->name('security.users.profile');
         Route::patch('/security/users/{user}/status', [SecurityController::class, 'updateUserStatus'])->name('security.users.status');
         Route::put('/security/users/{user}/roles', [SecurityController::class, 'updateUserRoles'])->name('security.users.roles');
         Route::put('/security/users/{user}/permissions', [SecurityController::class, 'updateUserPermissions'])->name('security.users.permissions');

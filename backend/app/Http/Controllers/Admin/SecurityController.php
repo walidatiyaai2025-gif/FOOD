@@ -702,6 +702,8 @@ final class SecurityController extends Controller
             'locale' => ['required', Rule::in(['ar', 'en'])],
             'role_id' => ['nullable', 'integer', 'exists:roles,id', 'required_without:store_role_assignment'],
             'store_role_assignment' => ['nullable', 'string', 'regex:/^[1-9][0-9]*:[1-9][0-9]*$/'],
+            // Optional for pre-existing API/automation clients; required by the new Dashboard selector.
+            'account_scope' => ['sometimes', Rule::in(['global', 'store', 'mixed'])],
             'is_active' => ['required', 'boolean'],
         ]);
 
@@ -711,6 +713,20 @@ final class SecurityController extends Controller
         if (! empty($validated['store_role_assignment'])) {
             [$storeId, $storeRoleId] = array_map('intval', explode(':', $validated['store_role_assignment'], 2));
             $storeRoles[] = ['store_id' => $storeId, 'role_id' => $storeRoleId];
+        }
+
+        // Account type/channel is a projection of canonical role assignments,
+        // never a new stored grant. Existing integration clients without this
+        // field retain their validated role/store assignment semantics.
+        if (isset($validated['account_scope'])) {
+            $hasGlobal = $globalRoleIds !== [];
+            $hasStore = $storeRoles !== [];
+            $actualScope = $hasGlobal && $hasStore ? 'mixed' : ($hasGlobal ? 'global' : 'store');
+            if ($actualScope !== $validated['account_scope']) {
+                throw ValidationException::withMessages([
+                    'account_scope' => [__('admin.security.account_scope_mismatch')],
+                ]);
+            }
         }
 
         DB::transaction(function () use ($validated, $actor, $globalRoleIds, $storeRoles, $request, $rbac, $audit): void {
@@ -751,6 +767,82 @@ final class SecurityController extends Controller
         return redirect()
             ->route('admin.security.index', ['section' => 'users'])
             ->with('status', __('admin.security.user_created'));
+    }
+
+    /**
+     * Identity-only edit: role and channel/store authority remain exclusively
+     * with the canonical audited RbacManager role assignment endpoints.
+     */
+    public function updateUserProfile(
+        Request $request,
+        User $user,
+        AuditLogger $audit,
+        AdminSessionRegistry $sessions,
+    ): RedirectResponse {
+        Gate::authorize('users.roles.manage');
+        $actor = $this->actor($request);
+
+        // Identity takeover is too sensitive for delegated role managers; owner,
+        // SUPER_ADMIN and consumer identities have their own governance paths.
+        abort_unless($actor->hasRole('SUPER_ADMIN'), 403);
+        abort_if(
+            $user->isPlatformOwner() || $user->hasRole('SUPER_ADMIN') || (bool) $user->is_platform_customer,
+            403,
+        );
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'username' => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('users', 'username')->ignore($user->id)],
+            'email' => ['required', 'email', 'max:190', Rule::unique('users', 'email')->ignore($user->id)],
+            'locale' => ['required', Rule::in(['ar', 'en'])],
+            'change_reason' => ['required', 'string', 'min:8', 'max:500'],
+        ]);
+
+        $before = [
+            'name' => $user->name,
+            'username' => $user->username,
+            'email' => $user->email,
+            'locale' => $user->locale,
+        ];
+        $username = trim((string) ($validated['username'] ?? ''));
+        $email = strtolower(trim((string) $validated['email']));
+        $emailChanged = $email !== strtolower((string) $user->email);
+        $usernameChanged = ($username === '' ? null : strtolower($username)) !== $user->username;
+        $loginChanged = $emailChanged || $usernameChanged;
+
+        DB::transaction(function () use ($user, $actor, $request, $audit, $sessions, $validated, $before, $username, $email, $emailChanged, $loginChanged): void {
+            $user->fill([
+                'name' => trim((string) $validated['name']),
+                'username' => $username === '' ? null : strtolower($username),
+                'email' => $email,
+                'locale' => (string) $validated['locale'],
+            ]);
+            // A changed email or username invalidates old login sessions.
+            if ($loginChanged) {
+                $user->forceFill(['remember_token' => Str::random(60)]);
+            }
+            if ($emailChanged) {
+                $user->forceFill(['email_verified_at' => null]);
+            }
+            $user->save();
+
+            if ($loginChanged) {
+                $user->tokens()->delete();
+                $sessions->revokeForUser($user, $actor);
+            }
+
+            $audit->record('user.profile_updated', $actor, $user, $before, [
+                'name' => $user->name,
+                'username' => $user->username,
+                'email' => $user->email,
+                'locale' => $user->locale,
+                'change_reason' => trim((string) $validated['change_reason']),
+                'reverify_email' => $emailChanged,
+                'login_sessions_revoked' => $loginChanged,
+            ], $request);
+        }, 3);
+
+        return back()->with('status', __('admin.security.user_profile_saved'));
     }
 
     public function updateUserStatus(Request $request, User $user, RbacManager $rbac): RedirectResponse
