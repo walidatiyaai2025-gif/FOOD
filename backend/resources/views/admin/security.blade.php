@@ -49,6 +49,12 @@ $roleLabel = static function ($role): string {
 <summary class="btn primary">{{ __('admin.security.create_user') }}</summary>
 <form method="post" action="{{ route('admin.security.users.store') }}" class="security-create-form" data-security-create-user>
 @csrf
+<label class="span-2">{{ __('admin.security.account_scope_title') }}
+<select name="account_scope" required aria-describedby="v2-account-scope-hint">
+<option value="global" @selected(old('account_scope','global')==='global')>{{ __('admin.security.account_scope_global') }}</option>
+<option value="store" @selected(old('account_scope')==='store')>{{ __('admin.security.account_scope_store') }}</option>
+<option value="mixed" @selected(old('account_scope')==='mixed')>{{ __('admin.security.account_scope_mixed') }}</option>
+</select><span id="v2-account-scope-hint" class="muted">{{ __('admin.security.account_scope_hint') }}</span></label>
 <label>{{ __('admin.security.user_name') }}<input name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name"></label>
 <label>{{ __('admin.security.username') }}<input name="username" value="{{ old('username') }}" maxlength="80" autocomplete="username" placeholder="{{ __('admin.security.username_optional') }}"></label>
 <label>{{ __('admin.security.email') }}<input type="email" name="email" value="{{ old('email') }}" required maxlength="190" autocomplete="email"></label>
@@ -95,7 +101,8 @@ $roleLabel = static function ($role): string {
 <tbody>
 @forelse($users as $managedUser)
 <tr>
-<td><div class="security-user-identity"><strong>{{ $managedUser->name }}</strong><span class="muted">{{ $managedUser->email }}</span><span class="muted">{{ __('admin.security.username') }}: {{ $managedUser->username ?: '—' }}</span></div></td>
+@php($v2AccountScope = (bool)$managedUser->is_platform_customer ? 'customer' : ($managedUser->roles->isNotEmpty() && $managedUser->storeRoleAssignments->isNotEmpty() ? 'mixed' : ($managedUser->storeRoleAssignments->isNotEmpty() ? 'store' : ($managedUser->roles->isNotEmpty() ? 'global' : 'unassigned'))))
+<td><div class="security-user-identity"><strong>{{ $managedUser->name }}</strong><span class="muted">{{ $managedUser->email }}</span><span class="muted">{{ __('admin.security.username') }}: {{ $managedUser->username ?: '—' }}</span><span class="muted" data-v2-account-scope="{{ $v2AccountScope }}">{{ __('admin.security.account_scope_'.$v2AccountScope) }}</span></div></td>
 <td><div class="security-user-role-list">
 @foreach($managedUser->roles as $role)<span class="badge">{{ $roleLabel($role) }}</span>@endforeach
 @foreach($managedUser->storeRoleAssignments as $a)<span class="badge">{{ $a->store?->name }} · {{ $roleLabel($a->role) }}</span>@endforeach
@@ -111,6 +118,27 @@ $roleLabel = static function ($role): string {
 @can('users.roles.manage')
 <details data-foodex-operational-modal><summary class="btn secondary">{{ __('admin.security.manage') }}</summary>
 <div class="security-modal-stack">
+
+@if(auth()->user()->hasRole('SUPER_ADMIN') && ! $managedUser->isPlatformOwner() && ! $managedUser->hasRole('SUPER_ADMIN') && ! $managedUser->is_platform_customer)
+<details class="card" data-security-edit-profile="{{ $managedUser->id }}">
+<summary>{{ __('admin.security.edit_user_profile') }}</summary>
+<form method="post" action="{{ route('admin.security.users.profile', $managedUser) }}" class="security-create-form" data-security-profile-form>
+@csrf @method('patch')
+<label>{{ __('admin.security.user_name') }}<input name="name" value="{{ $managedUser->name }}" required maxlength="120" autocomplete="name"></label>
+<label>{{ __('admin.security.username') }}<input name="username" value="{{ $managedUser->username }}" maxlength="80" autocomplete="username"></label>
+<label>{{ __('admin.security.email') }}<input type="email" name="email" value="{{ $managedUser->email }}" required maxlength="190" autocomplete="email"></label>
+<label>{{ __('admin.security.locale') }}<select name="locale" required>
+<option value="ar" @selected($managedUser->locale==='ar')>{{ __('admin.security.locale_ar') }}</option>
+<option value="en" @selected($managedUser->locale==='en')>{{ __('admin.security.locale_en') }}</option>
+</select></label>
+<p class="muted span-2">{{ __('admin.security.edit_user_roles_note') }}</p>
+<label class="span-2">{{ __('admin.security.edit_user_change_reason') }}
+<textarea name="change_reason" required minlength="8" maxlength="500" autocomplete="off" placeholder="{{ __('admin.security.edit_user_change_reason_hint') }}"></textarea>
+</label>
+<div class="span-2 actions"><button class="btn primary" type="submit">{{ __('admin.security.save_user_profile') }}</button></div>
+</form>
+</details>
+@endif
 @include('admin._security-role-assignment-picker', [
     'managedUser' => $managedUser,
     'globalRoles' => $globalRoles,
