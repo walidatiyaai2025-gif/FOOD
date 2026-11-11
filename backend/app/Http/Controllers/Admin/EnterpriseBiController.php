@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Modules\EnterpriseBiReadinessGate;
 use App\Enterprise\Reporting\EnterpriseBiWorkspaceService;
 use App\Enterprise\Reporting\ReportAccessResolver;
 use App\Enterprise\Reporting\ReportBuilderExecutor;
@@ -170,10 +171,12 @@ final class EnterpriseBiController extends Controller
         ReportAccessResolver $access,
         ReportBuilderExecutor $executor,
         EnterpriseBiWorkspaceService $workspace,
+        EnterpriseBiReadinessGate $readiness,
     ): View {
         $actor = $request->user();
         abort_unless($actor instanceof User && $actor->is_active, 403);
         abort_unless($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('reports.view'), 403);
+        $readiness->assertReady();
 
         $catalog = collect($this->catalog($actor, $registry, $access));
         $selectedCode = trim((string) $request->query('report', ''));
