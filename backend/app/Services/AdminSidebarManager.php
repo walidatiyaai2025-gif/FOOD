@@ -487,6 +487,13 @@ final class AdminSidebarManager
     /** @param list<string> $permissions */
     private function roleCanUseItem(Role $role, array $meta, array $permissions): bool
     {
+        // Historical grants remain stored for audit, but a disabled or archived
+        // role cannot be shown as effectively eligible in the Sidebar editor.
+        // Runtime role collection already excludes inactive roles.
+        if (! $role->is_active || $role->archived_at !== null) {
+            return false;
+        }
+
         if (in_array($role->code, array_values((array) ($meta['exclude_roles'] ?? [])), true)) {
             return false;
         }
