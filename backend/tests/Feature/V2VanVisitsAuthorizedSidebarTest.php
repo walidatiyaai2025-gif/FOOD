@@ -11,6 +11,7 @@ use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
@@ -281,6 +282,59 @@ final class V2VanVisitsAuthorizedSidebarTest extends TestCase
             ->post(route('admin.field-operations.visits.transition', $ownVisit), ['status' => 'started'])
             ->assertRedirect();
         $this->assertDatabaseHas('van_visits', ['id' => $ownVisit->id, 'status' => 'started']);
+    }
+
+    public function test_platform_wholesale_operator_can_create_b2b_visit_but_never_b2c_visit(): void
+    {
+        $operator = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $operator->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail()->id);
+        $storeId = $this->scopeStore('P268-PLATFORM-CREATE-B2B', 'B2B');
+        $customerId = (int) DB::table('b2b_customers')->insertGetId([
+            'name' => 'P268-PLATFORM-CREATE-CUSTOMER',
+            'phone' => '9000033333',
+            'email' => 'p268-platform-create@example.test',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $vanId = (int) DB::table('vans')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'code' => 'P268-PLATFORM-VAN',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $assignmentId = (int) DB::table('van_assignments')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'van_id' => $vanId,
+            'representative_user_id' => $operator->id,
+            'status' => 'active',
+            'effective_from' => now()->subDay(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($operator)->post(route('admin.field-operations.visits.store'), [
+            'assignment_id' => $assignmentId,
+            'customer_type' => 'b2b',
+            'customer_id' => $customerId,
+            'store_id' => $storeId,
+        ])->assertRedirect();
+        $this->assertDatabaseHas('van_visits', [
+            'customer_type' => 'b2b',
+            'customer_id' => $customerId,
+            'store_id' => $storeId,
+            'actor_user_id' => $operator->id,
+            'status' => 'planned',
+        ]);
+
+        $before = VanVisit::query()->count();
+        $this->actingAs($operator)->post(route('admin.field-operations.visits.store'), [
+            'assignment_id' => $assignmentId,
+            'customer_type' => 'b2c',
+            'customer_id' => $customerId,
+            'store_id' => $storeId,
+        ])->assertSessionHasErrors('customer_type');
+        $this->assertSame($before, VanVisit::query()->count());
     }
 
     private function scopeStore(string $code, string $type): int
