@@ -6,7 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\AdminMfaCredential;
 use App\Models\AdminSecuritySession;
 use App\Models\EnterpriseApprovalLimit;
+use App\Models\EnterpriseBusinessUnit;
+use App\Models\EnterpriseCompany;
 use App\Models\EnterpriseDelegation;
+use App\Models\EnterpriseLegalEntity;
+use App\Models\EnterpriseOrganization;
+use App\Models\EnterpriseRoleDataScope;
 use App\Models\EnterpriseSsoIdentity;
 use App\Models\EnterpriseWorkflowRequest;
 use App\Models\Permission;
@@ -100,6 +105,38 @@ final class SecurityController extends Controller
                 ->get()
                 ->groupBy('role_id')
             : collect();
+
+        // Role data-scope grants are separately governed in Enterprise Security.
+        // Resolve only referenced entity labels, preserving orphaned historical
+        // IDs as unavailable rather than presenting them as live authority.
+        $roleDataScopeRows = $section === 'roles'
+            ? EnterpriseRoleDataScope::query()
+                ->whereIn('role_id', $roles->pluck('id'))
+                ->where('is_active', true)
+                ->orderBy('scope_type')
+                ->get()
+            : collect();
+        $roleDataScopes = $roleDataScopeRows->groupBy('role_id');
+        $roleDataScopeNames = collect();
+        foreach ([
+            'organization' => EnterpriseOrganization::class,
+            'company' => EnterpriseCompany::class,
+            'legal_entity' => EnterpriseLegalEntity::class,
+            'business_unit' => EnterpriseBusinessUnit::class,
+            'store' => Store::class,
+        ] as $scopeType => $modelClass) {
+            $ids = $roleDataScopeRows->where('scope_type', $scopeType)
+                ->pluck('scope_id')
+                ->filter()
+                ->unique()
+                ->all();
+            if ($ids === []) {
+                continue;
+            }
+
+            $modelClass::query()->whereIn('id', $ids)->get(['id', 'name'])
+                ->each(fn ($record) => $roleDataScopeNames->put($scopeType.':'.$record->id, (string) $record->name));
+        }
 
         // Store names are read from actual role assignments; no inferred store
         // ownership or per-user effective authorization is implied.
@@ -527,6 +564,8 @@ final class SecurityController extends Controller
             'roles' => $roles,
             'roleApprovalLimits' => $roleApprovalLimits,
             'roleAssignedStores' => $roleAssignedStores,
+            'roleDataScopes' => $roleDataScopes,
+            'roleDataScopeNames' => $roleDataScopeNames,
             'permissionRoleAudit' => $permissionRoleAudit,
             'roleAssignmentAudit' => $roleAssignmentAudit,
             'globalRoles' => $globalRoles,
