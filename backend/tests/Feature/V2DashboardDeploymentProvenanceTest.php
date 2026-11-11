@@ -90,6 +90,17 @@ final class V2DashboardDeploymentProvenanceTest extends TestCase
         $this->assertSame('unknown', $service->inspect(false, $version, $build)['metadata_state']);
     }
 
+    public function test_source_and_build_conflict_is_reported_even_without_installed_database_row(): void
+    {
+        [$version, $build] = $this->fixtures('1.0.127', json_encode([
+            'version' => '1.0.95', 'source_commit' => str_repeat('f', 40),
+        ], JSON_THROW_ON_ERROR));
+        $result = app(DashboardDeploymentProvenance::class)->inspect(false, $version, $build);
+        $this->assertNull($result['installed_version']);
+        $this->assertSame('mismatch', $result['metadata_state']);
+        $this->assertSame('not_checked', $result['github_state']);
+    }
+
     public function test_github_not_found_or_outage_never_attests_deployed_files(): void
     {
         SystemVersion::query()->create(['version' => '1.0.127', 'installed_at' => now()]);
