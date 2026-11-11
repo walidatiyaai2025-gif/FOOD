@@ -7,6 +7,7 @@ use App\Enterprise\Entitlements\ModuleEntitlementManager;
 use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserStoreRole;
@@ -113,6 +114,47 @@ final class V2WmsWarehousesPageAuthorityTest extends TestCase
             'warehouse_id' => $fixture['foreign_warehouse_id'],
         ]))->assertNotFound();
 
+        $this->assertSame(0, DB::table('stock_movements')->count());
+    }
+
+    public function test_explicit_inventory_view_deny_wins_over_multiple_store_roles(): void
+    {
+        $fixture = $this->fixture();
+        $actor = $this->operator($fixture['store_id']);
+        $extraRole = Role::query()->create([
+            'code' => 'V2_P254_WMS_VIEW_SECOND',
+            'name' => 'Second WMS View Role',
+            'scope' => 'store',
+            'is_active' => true,
+            'is_system' => false,
+        ]);
+        $extraRole->permissions()->attach(
+            Permission::query()->where('code', 'inventory.view')->firstOrFail()->id,
+        );
+        UserStoreRole::query()->create([
+            'user_id' => $actor->id,
+            'store_id' => $fixture['store_id'],
+            'role_id' => $extraRole->id,
+        ]);
+
+        $url = route('admin.erp.wms.index', [
+            'tab' => 'warehouses',
+            'store_id' => $fixture['store_id'],
+        ]);
+        $this->actingAs($actor)->get($url)->assertOk();
+
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $actor->id,
+            'permission_id' => Permission::query()->where('code', 'inventory.view')->firstOrFail()->id,
+            'scope_key' => 'store:'.$fixture['store_id'],
+            'store_id' => $fixture['store_id'],
+            'effect' => 'deny',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $actor->forceFill(['has_permission_overrides' => true])->save();
+
+        $this->actingAs($actor->fresh())->get($url)->assertForbidden();
         $this->assertSame(0, DB::table('stock_movements')->count());
     }
 
