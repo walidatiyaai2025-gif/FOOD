@@ -47,7 +47,7 @@ final class V2ErpPostingLifecycleContractTest extends TestCase
     {
         $store = $this->store('V2-P109-ERP');
         $maker = $this->actor($store, 'V2_P109_MAKER', ['finance.view', 'finance.manage'], 'ar');
-        $checker = $this->actor($store, 'V2_P109_CHECKER', ['finance.view', 'finance.approve'], 'en');
+        $checker = $this->actor($store, 'V2_P109_CHECKER', ['finance.view', 'finance.approve', 'finance.post'], 'en');
         $poster = $this->actor($store, 'V2_P109_POSTER', ['finance.view', 'finance.post'], 'en');
         $reader = $this->actor($store, 'V2_P109_READER', ['finance.view'], 'en');
 
