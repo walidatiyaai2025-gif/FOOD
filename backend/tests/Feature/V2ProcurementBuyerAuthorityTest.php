@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Entitlements\ModuleEntitlementManager;
 use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
@@ -271,5 +273,14 @@ final class V2ProcurementBuyerAuthorityTest extends TestCase
         $lifecycle = app(ModuleLifecycleManager::class);
         $lifecycle->transition('procurement', ModuleState::ENABLING);
         $lifecycle->transition('procurement', ModuleState::ENABLED);
+
+        // The real Sidebar requires an explicit platform entitlement in
+        // addition to an enabled, healthy, exact-version-certified module.
+        // Without it, the role retains its grants but has no operational link.
+        app(ModuleEntitlementManager::class)->set(
+            'procurement',
+            EntitlementScope::platform(),
+            true,
+        );
     }
 }
