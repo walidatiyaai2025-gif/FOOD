@@ -295,6 +295,7 @@ return [
     'tabs' => [
         'aria' => 'Commercial policy administration',
         'sales_control' => 'Sales Control',
+        'price_lists' => 'Price lists',
         'flash_offers' => 'Flash Offers',
         'back_store' => 'Back to store workspace',
     ],

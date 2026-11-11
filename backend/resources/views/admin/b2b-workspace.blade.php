@@ -74,6 +74,11 @@
 <aside class="sidebar">@include('admin._sidebar')</aside>
 <main class="main foodex-admin-page">
 @include('admin._global-header')
+    @if($module === 'dashboard' && in_array('pricing', $visibleModules, true))
+    <nav class="links workspace-inline-form" aria-label="{{ __('commercial.tabs.price_lists') }}">
+        <a class="foodex-primary" data-v2-pricing-lists-hub href="{{ route('admin.b2b.pricing-approvals') }}">{{ __('commercial.tabs.price_lists') }}</a>
+    </nav>
+    @endif
     @if($module !== 'dashboard')
     <div class="headline foodex-page-toolbar">
         <div>
