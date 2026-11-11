@@ -27,8 +27,9 @@ The tab and launcher now use `RestaurantSaasStoreAccess::canNavigateToStore()` â
 1. Retail store admin with enabled Restaurant SaaS + analytics permission reaches the real HTTP analytics page in **EN/LTR** and **AR/RTL**, with shared tab and management-launcher entry.
 2. Foreign unassigned store access is HTTP 404 and never exposed as an analytics tab/link.
 3. Assigned Retail store with disabled `STORE:smart_ordering` entitlement returns HTTP 404 for analytics and no link, while another enabled assigned store retains its tab.
-4. Super Admin has no implicit support entry; without explicit support HTTP 403, with explicit support the canonical route is reachable.
-5. All authorization remains server-side; no roles, permission grants, data or entitlement writes in product code.
+4. A user with multiple assigned Retail stores and a scoped `deny` override for analytics cannot enter or see the denied store's tab, but can still reach the separately authorized store.
+5. Super Admin has no implicit support entry; without explicit support HTTP 403, with explicit support the canonical route is reachable.
+6. All authorization remains server-side; no roles, permission grants, data or entitlement writes in product code.
 
 ## Mobile / security impact matrix
 
