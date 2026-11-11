@@ -44,7 +44,7 @@ final class V2CustomerServiceAgentRoleAuthorityTest extends TestCase
             'whatsapp.inbox.view', 'whatsapp.conversations.view',
             'whatsapp.conversations.reply', 'whatsapp.conversations.assign',
             'whatsapp.internal_notes.manage', 'stores.view', 'customers.view',
-            'orders.view', 'orders.create', 'orders.dispatch',
+            'orders.view', 'orders.customer_service_discount', 'orders.create', 'orders.dispatch',
         ];
 
         $this->assertEqualsCanonicalizing($expected, $definition['permissions']);
