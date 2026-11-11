@@ -77,6 +77,7 @@ final class V2MultiRoleRegistryConflictContractTest extends TestCase
 
         $this->actingAs($admin)
             ->put(route('admin.security.users.roles', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'global_role_ids' => [$catalog->id, $customers->id],
                 'store_role_ids' => [$storeOne => [$inventory->id]],
             ])
@@ -116,6 +117,7 @@ final class V2MultiRoleRegistryConflictContractTest extends TestCase
         $this->actingAs($admin)
             ->from(route('admin.security.index', ['section' => 'users']))
             ->put(route('admin.security.users.roles', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'global_role_ids' => [$catalog->id],
                 'store_role_ids' => [$wholesale => [$inventory->id]],
             ])
@@ -128,6 +130,7 @@ final class V2MultiRoleRegistryConflictContractTest extends TestCase
         $roleless = User::factory()->create(['is_active' => true]);
         $this->actingAs($roleless)
             ->put(route('admin.security.users.roles', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'global_role_ids' => [$catalog->id],
             ])
             ->assertForbidden();
