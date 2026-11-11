@@ -207,7 +207,7 @@ final class ReportController extends Controller
 
         $validated = $request->validate([
             ...$this->rules(),
-            'report' => ['required', 'in:orders,products,customers,operations,sales_exceptions,field_operations'],
+            'report' => ['required', 'in:orders,channels,products,customers,operations,sales_exceptions,field_operations'],
             'format' => ['required', 'in:xlsx,docx,pdf'],
         ]);
 
