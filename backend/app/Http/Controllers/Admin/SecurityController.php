@@ -819,6 +819,7 @@ final class SecurityController extends Controller
             'permission_ids' => ['nullable', 'array'],
             'permission_ids.*' => ['integer', 'exists:permissions,id'],
             'inherit' => ['sometimes', 'boolean'],
+            'change_reason' => ['required', 'string', 'min:8', 'max:500'],
         ]);
 
         $inheritFromRole = (bool) ($validated['inherit'] ?? false);
