@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementManager;
+use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
+use App\Enterprise\Modules\ModuleState;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserStoreRole;
@@ -115,6 +117,58 @@ final class V2WmsInventoryReportsAccessTest extends TestCase
         );
 
         $this->actingAs($operator)->get($route)->assertNotFound();
+    }
+
+    public function test_report_access_respects_explicit_warehouse_scope_and_disabled_module_lifecycle(): void
+    {
+        $fixture = $this->fixture('P308-SCOPE');
+        $actor = $this->inventoryOperator($fixture['store_id']);
+        $otherWarehouse = (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $fixture['store_id'],
+            'code' => 'WH-P308-OTHER',
+            'name' => 'Forbidden same-store warehouse',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('enterprise_warehouse_user_scopes')->insert([
+            'user_id' => $actor->id,
+            'warehouse_id' => $fixture['warehouse_id'],
+            'can_manage' => false,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $allowed = route('admin.erp.wms.index', [
+            'tab' => 'reports',
+            'store_id' => $fixture['store_id'],
+            'warehouse_id' => $fixture['warehouse_id'],
+        ]);
+        $forbidden = route('admin.erp.wms.index', [
+            'tab' => 'reports',
+            'store_id' => $fixture['store_id'],
+            'warehouse_id' => $otherWarehouse,
+        ]);
+
+        $this->actingAs($actor)->get($allowed)->assertOk();
+        $this->actingAs($actor)->get($forbidden)->assertNotFound();
+
+        // Disabling an entitled module must prevent all report reads without
+        // deleting canonical stock, reservation balances or access history.
+        app(ModuleLifecycleManager::class)->transition('inventory_wms', ModuleState::DISABLED);
+        $this->actingAs($actor)->get($allowed)->assertNotFound();
+        $this->assertDatabaseHas('inventories', [
+            'id' => $fixture['inventory_id'],
+            'quantity' => 10,
+            'reserved_quantity' => 2,
+        ]);
+
+        app(ModuleLifecycleManager::class)->transition('inventory_wms', ModuleState::ENABLING);
+        app(ModuleLifecycleManager::class)->transition('inventory_wms', ModuleState::ENABLED);
+        $this->actingAs($actor)->get($allowed)->assertOk();
+        $this->actingAs($actor)->get($forbidden)->assertNotFound();
     }
 
     /** @return array{store_id:int,warehouse_id:int,inventory_id:int} */
