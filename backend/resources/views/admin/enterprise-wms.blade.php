@@ -82,14 +82,14 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 
 @elseif($tab==='counts')
 <h2>{{ __('enterprise_wms.counts.title') }}</h2><p class="wms-sub">{{ __('enterprise_wms.counts.subtitle') }}</p>
-@if($warehouseId && $inventoryLookup->isNotEmpty())
+@if($canManageCounts && $warehouseId && $inventoryLookup->isNotEmpty())
 <form class="wms-form" method="post" action="{{ route('admin.erp.wms.counts.store') }}" data-wms-mutation>@csrf
 <input type="hidden" name="store_id" value="{{ $storeId }}"><input type="hidden" name="warehouse_id" value="{{ $warehouseId }}"><input type="hidden" name="request_key" value="{{ (string)\Illuminate\Support\Str::uuid() }}">
 <div class="wms-checks">@foreach($inventoryLookup as $item)<label class="wms-check"><input type="checkbox" name="inventory_ids[]" value="{{ $item->inventory_id }}"><span><strong>{{ $item->product_name }}</strong><br><small>{{ $item->sku }} · {{ \App\Support\DisplayNumber::quantity((float)$item->quantity) }}</small></span></label>@endforeach</div>
 <button class="foodex-action-primary" type="submit">{{ __('enterprise_wms.counts.new') }}</button>
 </form>
 @endif
-@if($selectedCountId && $countLines->isNotEmpty())
+@if($canManageCounts && $selectedCountId && $countLines->isNotEmpty())
 <form class="wms-form" method="post" action="{{ route('admin.erp.wms.counts.complete',$selectedCountId) }}" data-wms-mutation>@csrf
 <input type="hidden" name="store_id" value="{{ $storeId }}"><input type="hidden" name="warehouse_id" value="{{ $warehouseId }}">
 @foreach($countLines as $line)<label class="wms-field"><span>{{ $line->product_name }} · {{ __('enterprise_wms.counts.expected') }} {{ \App\Support\DisplayNumber::quantity((float)$line->expected_quantity) }}</span><input type="number" name="counts[{{ $line->inventory_id }}]" min="0" step="0.001" value="{{ $line->counted_quantity ?? $line->expected_quantity }}" required></label>@endforeach
@@ -97,7 +97,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 </form>
 @endif
 <div class="wms-table-wrap"><table class="wms-table foodex-table" data-pagination-required="server-bounded"><thead><tr><th>{{ __('enterprise_wms.common.warehouse') }}</th><th>{{ __('enterprise_wms.common.status') }}</th><th>{{ __('enterprise_wms.common.created') }}</th><th>{{ __('enterprise_wms.common.actions') }}</th></tr></thead><tbody>
-@forelse($countRows as $row)<tr><td>{{ $warehouseLabels->get((int)$row->warehouse_id)?->name ?? '—' }}</td><td><span class="wms-badge">{{ __('enterprise_wms.counts.statuses.'.$row->status) }}</span></td><td>{{ $row->created_at?->format('Y-m-d H:i') ?? $row->created_at }}</td><td>@if($row->status==='open') {{-- localization-gate: allow workflow enum control-flow literal; rendered status is localized. --}}<a class="foodex-action-primary" href="{{ route('admin.erp.wms.index',['tab'=>'counts','store_id'=>$storeId,'warehouse_id'=>$row->warehouse_id,'count_id'=>$row->id]) }}">{{ __('enterprise_wms.counts.manage') }}</a>@endif</td></tr>@empty<tr><td colspan="4" class="wms-empty">{{ __('enterprise_wms.common.none') }}</td></tr>@endforelse
+@forelse($countRows as $row)<tr><td>{{ $warehouseLabels->get((int)$row->warehouse_id)?->name ?? '—' }}</td><td><span class="wms-badge">{{ __('enterprise_wms.counts.statuses.'.$row->status) }}</span></td><td>{{ $row->created_at?->format('Y-m-d H:i') ?? $row->created_at }}</td><td>@if($row->status==='open' && in_array((int)$row->warehouse_id,$manageableCountWarehouseIds,true)) {{-- localization-gate: allow workflow enum control-flow literal; rendered status is localized. --}}<a class="foodex-action-primary" href="{{ route('admin.erp.wms.index',['tab'=>'counts','store_id'=>$storeId,'warehouse_id'=>$row->warehouse_id,'count_id'=>$row->id]) }}">{{ __('enterprise_wms.counts.manage') }}</a>@endif</td></tr>@empty<tr><td colspan="4" class="wms-empty">{{ __('enterprise_wms.common.none') }}</td></tr>@endforelse
 </tbody></table></div>
 
 @elseif($tab==='adjustments')
