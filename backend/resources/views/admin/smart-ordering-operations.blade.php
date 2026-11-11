@@ -100,29 +100,42 @@
 
 @include('admin._smart-ordering-workspace-nav')
 
+@php
+    // The selected store and explicit support-access context must survive
+    // local tab navigation, filters and reset; otherwise the next page may
+    // silently switch from one restaurant to the multi-store aggregate.
+    $restaurantOperationsRouteScope = array_filter([
+        'store_id' => request()->integer('store_id') ?: null,
+        'support_access' => request()->boolean('support_access') ? 1 : null,
+    ], static fn ($value) => $value !== null);
+@endphp
+
 <nav class="foodex-tabs" data-restaurant-saas-operations-nav aria-label="{{ __('smart_ordering.operations_tab') }}">
-<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'orders']) }}" @if($tab==='orders') aria-current="page" @endif>{{ __('smart_ordering.orders_tab') }}</a>
-<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'branches']) }}" @if($tab==='branches') aria-current="page" @endif>{{ __('smart_ordering.branches_tab') }}</a>
-<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'tables']) }}" @if($tab==='tables') aria-current="page" @endif>{{ __('smart_ordering.tables_tab') }}</a>
-<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'kitchen']) }}" @if($tab==='kitchen') aria-current="page" @endif>{{ __('smart_ordering.kitchen_tab') }}</a>
-<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'workforce']) }}" @if($tab==='workforce') aria-current="page" @endif>{{ __('smart_ordering.workforce_tab') }}</a>
-<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'reservations']) }}" @if($tab==='reservations') aria-current="page" @endif>{{ __('smart_ordering.reservations_tab') }}</a>
-<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'waitlist']) }}" @if($tab==='waitlist') aria-current="page" @endif>{{ __('smart_ordering.waitlist_tab') }}</a>
-<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'guest_book']) }}" @if($tab==='guest_book') aria-current="page" @endif>{{ __('smart_ordering.guest_book_tab') }}</a>
+<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',[...$restaurantOperationsRouteScope, 'tab'=>'orders']) }}" @if($tab==='orders') aria-current="page" @endif>{{ __('smart_ordering.orders_tab') }}</a>
+<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',[...$restaurantOperationsRouteScope, 'tab'=>'branches']) }}" @if($tab==='branches') aria-current="page" @endif>{{ __('smart_ordering.branches_tab') }}</a>
+<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',[...$restaurantOperationsRouteScope, 'tab'=>'tables']) }}" @if($tab==='tables') aria-current="page" @endif>{{ __('smart_ordering.tables_tab') }}</a>
+<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',[...$restaurantOperationsRouteScope, 'tab'=>'kitchen']) }}" @if($tab==='kitchen') aria-current="page" @endif>{{ __('smart_ordering.kitchen_tab') }}</a>
+<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',[...$restaurantOperationsRouteScope, 'tab'=>'workforce']) }}" @if($tab==='workforce') aria-current="page" @endif>{{ __('smart_ordering.workforce_tab') }}</a>
+<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',[...$restaurantOperationsRouteScope, 'tab'=>'reservations']) }}" @if($tab==='reservations') aria-current="page" @endif>{{ __('smart_ordering.reservations_tab') }}</a>
+<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',[...$restaurantOperationsRouteScope, 'tab'=>'waitlist']) }}" @if($tab==='waitlist') aria-current="page" @endif>{{ __('smart_ordering.waitlist_tab') }}</a>
+<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',[...$restaurantOperationsRouteScope, 'tab'=>'guest_book']) }}" @if($tab==='guest_book') aria-current="page" @endif>{{ __('smart_ordering.guest_book_tab') }}</a>
 @if($user->hasPermission('finance.view') || $stores->contains(fn($store) => $user->hasPermission('finance.view',(int)$store->id)))
-<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',['tab'=>'payments']) }}" @if($tab==='payments') aria-current="page" @endif>{{ __('smart_ordering.payments_tab') }}</a>
+<a class="foodex-tab" href="{{ route('admin.smart-ordering.operations.index',[...$restaurantOperationsRouteScope, 'tab'=>'payments']) }}" @if($tab==='payments') aria-current="page" @endif>{{ __('smart_ordering.payments_tab') }}</a>
 @endif
 </nav>
 
 @if($tab==='orders')
 <form method="get" class="foodex-card so-toolbar">
+@foreach($restaurantOperationsRouteScope as $key => $value)
+<input type="hidden" name="{{ $key }}" value="{{ $value }}">
+@endforeach
 <input type="hidden" name="tab" value="orders">
 <label>{{ __('smart_ordering.filters.status') }}<select name="status"><option value="">{{ __('smart_ordering.filters.all') }}</option>@foreach(array_keys(__('smart_ordering.statuses')) as $status)<option value="{{ $status }}" @selected(request('status')===$status)>{{ __('smart_ordering.statuses.'.$status) }}</option>@endforeach</select></label>
 <label>{{ __('smart_ordering.filters.mode') }}<select name="fulfillment_mode"><option value="">{{ __('smart_ordering.filters.all') }}</option>@foreach(['dine_in','pickup','delivery'] as $mode)<option value="{{ $mode }}" @selected(request('fulfillment_mode')===$mode)>{{ __('smart_ordering.modes.'.$mode) }}</option>@endforeach</select></label>
 <label>{{ __('smart_ordering.filters.branch') }}<select name="branch"><option value="">{{ __('smart_ordering.filters.all') }}</option>@foreach($branches as $branch)<option value="{{ $branch->public_id }}" @selected(request('branch')===$branch->public_id)>{{ $branch->name }}</option>@endforeach</select></label>
 <label>{{ __('smart_ordering.filters.from') }}<input type="date" name="from" value="{{ request('from') }}"></label>
 <label>{{ __('smart_ordering.filters.to') }}<input type="date" name="to" value="{{ request('to') }}"></label>
-<div class="so-actions"><button class="foodex-primary" type="submit">{{ __('smart_ordering.filters.apply') }}</button><a href="{{ route('admin.smart-ordering.operations.index',['tab'=>'orders']) }}">{{ __('smart_ordering.filters.reset') }}</a></div>
+<div class="so-actions"><button class="foodex-primary" type="submit">{{ __('smart_ordering.filters.apply') }}</button><a href="{{ route('admin.smart-ordering.operations.index',[...$restaurantOperationsRouteScope, 'tab'=>'orders']) }}">{{ __('smart_ordering.filters.reset') }}</a></div>
 </form>
 
 <section class="foodex-card so-table-wrap">
@@ -182,6 +195,9 @@
 </section>
 
 <form method="get" class="foodex-card so-toolbar so-payment-filter">
+@foreach($restaurantOperationsRouteScope as $key => $value)
+<input type="hidden" name="{{ $key }}" value="{{ $value }}">
+@endforeach
 <input type="hidden" name="tab" value="payments">
 <label>{{ __('smart_ordering.payments.filters.status') }}
 <select name="payment_status">
@@ -207,7 +223,7 @@
 </label>
 <div class="so-actions">
 <button class="foodex-primary" type="submit">{{ __('smart_ordering.payments.filters.apply') }}</button>
-<a href="{{ route('admin.smart-ordering.operations.index',['tab'=>'payments']) }}">{{ __('smart_ordering.payments.filters.reset') }}</a>
+<a href="{{ route('admin.smart-ordering.operations.index',[...$restaurantOperationsRouteScope, 'tab'=>'payments']) }}">{{ __('smart_ordering.payments.filters.reset') }}</a>
 </div>
 </form>
 

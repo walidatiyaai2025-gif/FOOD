@@ -20,6 +20,7 @@ use App\Services\AuditLogger;
 use App\Services\BuiltInJobRoleCatalog;
 use App\Services\DemoDataManager;
 use App\Services\RbacManager;
+use App\Services\RoleAssignmentAudit;
 use Database\Seeders\ProductDemoSeeder;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -35,7 +36,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class SecurityController extends Controller
 {
-    public function index(Request $request, DemoDataManager $demoData, BuiltInJobRoleCatalog $jobRoles): View
+    public function index(Request $request, DemoDataManager $demoData, BuiltInJobRoleCatalog $jobRoles, RoleAssignmentAudit $assignmentAudit): View
     {
         Gate::authorize('security.view');
         $this->useActorLocale($request);
@@ -50,10 +51,14 @@ final class SecurityController extends Controller
         }
         $search = trim((string) $request->query('q', ''));
         $status = (string) $request->query('status', 'all');
+        $assignment = (string) $request->query('assignment', 'all');
         $section = (string) $request->query('section', 'users');
 
         if (! in_array($status, ['all', 'active', 'inactive'], true)) {
             $status = 'all';
+        }
+        if (! in_array($assignment, ['all', 'roleless'], true)) {
+            $assignment = 'all';
         }
         if (! in_array($section, ['users', 'roles', 'governance', 'sessions', 'audit'], true)) {
             $section = 'users';
@@ -68,6 +73,11 @@ final class SecurityController extends Controller
             }))
             ->when($status === 'active', fn ($query) => $query->where('is_active', true))
             ->when($status === 'inactive', fn ($query) => $query->where('is_active', false))
+            // T015R05: distinguish genuinely roleless identities without inventing grants.
+            // Both global and store assignments count; do not treat customers as staff defects.
+            ->when($assignment === 'roleless', fn ($query) => $query
+                ->whereDoesntHave('roles')
+                ->whereDoesntHave('storeRoleAssignments'))
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
@@ -449,9 +459,48 @@ final class SecurityController extends Controller
             ->get();
         $audit = $this->auditExplorer($request);
 
+        // T015R04: raw global/store assignment rows are visible to Super Admin only.
+        $roleAssignmentAudit = $section === 'roles' && $isSuperAdmin
+            ? $assignmentAudit->snapshot()
+            : null;
+
+        // T015R03: source-to-current audit is restricted to Super Admin.
+        // The pivot records grants as stored; it cannot represent effective ALLOW/DENY,
+        // tenant, module readiness or financial SoD decisions by itself.
+        $permissionRoleAudit = null;
+        if ($section === 'roles' && $isSuperAdmin) {
+            $catalogCodes = Permission::query()->orderBy('code')->pluck('code');
+            $linkedCodes = DB::table('permission_role')
+                ->join('permissions', 'permissions.id', '=', 'permission_role.permission_id')
+                ->pluck('permissions.code');
+            $linkedByNamespace = $linkedCodes->groupBy(
+                static fn (string $code): string => Str::before($code, '.'),
+            );
+
+            $permissionRoleAudit = [
+                'permission_count' => $catalogCodes->count(),
+                'relation_count' => $linkedCodes->count(),
+                'unused_count' => Permission::query()->whereDoesntHave('roles')->count(),
+                'active_role_relation_count' => DB::table('permission_role')
+                    ->join('roles', 'roles.id', '=', 'permission_role.role_id')
+                    ->where('roles.is_active', true)
+                    ->whereNull('roles.archived_at')
+                    ->count(),
+                'namespaces' => $catalogCodes->groupBy(
+                    static fn (string $code): string => Str::before($code, '.'),
+                )->map(static fn ($codes, string $namespace): array => [
+                    'code' => $namespace,
+                    'permissions' => $codes->count(),
+                    'relations' => $linkedByNamespace->get($namespace, collect())->count(),
+                ])->values()->all(),
+            ];
+        }
+
         return view('admin.security', [
             'users' => $users,
             'roles' => $roles,
+            'permissionRoleAudit' => $permissionRoleAudit,
+            'roleAssignmentAudit' => $roleAssignmentAudit,
             'globalRoles' => $globalRoles,
             'grantableStoreRolesByStore' => $grantableStoreRolesByStore,
             'jobRoleMeta' => $jobRoleMeta,
@@ -483,6 +532,7 @@ final class SecurityController extends Controller
             ],
             'search' => $search,
             'statusFilter' => $status,
+            'assignmentFilter' => $assignment,
             'securitySection' => $section,
             'demoSummary' => $demoData->summary(),
             'governance' => $governance,

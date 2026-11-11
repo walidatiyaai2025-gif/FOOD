@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MarketingCoupon;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
@@ -55,6 +56,12 @@ final class CouponManagementController extends Controller
             ->paginate(25)
             ->withQueryString();
 
+        $manageableCouponIds = $this->visibleCoupons($actor, 'coupons.manage')
+            ->whereIn('id', $coupons->getCollection()->pluck('id'))
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+
         return view('admin.coupons', [
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
@@ -64,8 +71,10 @@ final class CouponManagementController extends Controller
             'channelFilter' => $channel,
             'statusFilter' => $status,
             'canB2b' => $actor->hasRole('SUPER_ADMIN') || ($actor->hasRole('B2B_ADMIN') && $actor->hasPermission('coupons.manage')),
+            'canManageCoupons' => $actor->hasPermission('coupons.manage') || $this->allowedRetailStoreIds($actor, 'coupons.manage') !== [],
+            'manageableCouponIds' => $manageableCouponIds,
             'canAllChannels' => $actor->hasRole('SUPER_ADMIN'),
-            'retailStores' => $this->allowedRetailStores($actor),
+            'retailStores' => $this->allowedRetailStores($actor, 'coupons.manage'),
         ]);
     }
 
@@ -136,21 +145,11 @@ final class CouponManagementController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
 
-        if ($actor->hasPermission($permission)) {
-            return $actor;
+        if (! $actor->hasPermission($permission)) {
+            // The canonical scope evaluator applies user-level global/store DENYs,
+            // rather than trusting an inherited store-role permission row.
+            abort_unless($this->allowedRetailStoreIds($actor, $permission) !== [], 403);
         }
-
-        $retailIds = app(TenantContextResolver::class)->retailStoreIds($actor);
-        $hasScoped = $retailIds !== [] && $actor->storeRoleAssignments()
-            ->whereIn('store_id', $retailIds)
-            ->whereHas('store', fn ($query) => $query->where('stores.is_active', true)->where('stores.coupons_enabled', true))
-            ->whereHas('role', fn ($query) => $query
-                ->where('roles.is_active', true)
-                ->where('roles.scope', 'store')
-                ->whereHas('permissions', fn ($permissions) => $permissions->where('permissions.code', $permission)))
-            ->exists();
-
-        abort_unless($hasScoped, 403);
 
         return $actor;
     }
@@ -158,20 +157,20 @@ final class CouponManagementController extends Controller
     private function authorizeCoupon(Request $request, MarketingCoupon $coupon, string $permission): User
     {
         $actor = $this->authorizeAccess($request, $permission);
-        abort_unless($this->visibleCoupons($actor)->whereKey($coupon->id)->exists(), 404);
+        abort_unless($this->visibleCoupons($actor, $permission)->whereKey($coupon->id)->exists(), 404);
 
         return $actor;
     }
 
     /** @return Builder<MarketingCoupon> */
-    private function visibleCoupons(User $actor): Builder
+    private function visibleCoupons(User $actor, string $permission = 'coupons.view'): Builder
     {
         if ($actor->hasRole('SUPER_ADMIN')) {
             return MarketingCoupon::query();
         }
 
-        $retailIds = $this->allowedRetailStoreIds($actor);
-        $canB2b = $actor->hasRole('B2B_ADMIN') && $actor->hasPermission('coupons.view');
+        $retailIds = $this->allowedRetailStoreIds($actor, $permission);
+        $canB2b = $actor->hasRole('B2B_ADMIN') && $actor->hasPermission($permission);
 
         return MarketingCoupon::query()->where(function (Builder $query) use ($canB2b, $retailIds): void {
             if ($canB2b) {
@@ -203,35 +202,43 @@ final class CouponManagementController extends Controller
         }
 
         abort_unless($channel === 'b2c' && $storeId !== null, 422);
-        abort_unless(in_array($storeId, $this->allowedRetailStoreIds($actor), true), 404);
+        abort_unless(in_array($storeId, $this->allowedRetailStoreIds($actor, 'coupons.manage'), true), 404);
 
         return ['b2c', $storeId, 'b2c:'.$storeId];
     }
 
     /** @return list<int> */
-    private function allowedRetailStoreIds(User $actor): array
+    private function allowedRetailStoreIds(User $actor, string $permission = 'coupons.view'): array
     {
-        $query = DB::table('stores')
+        $ids = app(OperationalTenantScope::class)->allowedStoreIds($actor, $permission, 'b2c');
+
+        if (! $actor->hasRole('SUPER_ADMIN')) {
+            // Preserve the existing assigned-store boundary even when an actor
+            // also holds an unrelated global grant for the requested ability.
+            $assigned = app(TenantContextResolver::class)->retailStoreIds($actor);
+            $ids = array_values(array_intersect($ids, $assigned));
+        }
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return DB::table('stores')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->where('store_types.code', 'B2C')
             ->where('stores.is_active', true)
-            ->where('stores.coupons_enabled', true);
-
-        if ($actor->hasRole('SUPER_ADMIN') === false) {
-            $ids = app(TenantContextResolver::class)->retailStoreIds($actor);
-            if ($ids === []) {
-                return [];
-            }
-            $query->whereIn('stores.id', $ids);
-        }
-
-        return $query->orderBy('stores.id')->pluck('stores.id')->map(static fn ($id): int => (int) $id)->all();
+            ->where('stores.coupons_enabled', true)
+            ->whereIn('stores.id', $ids)
+            ->orderBy('stores.id')
+            ->pluck('stores.id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
     }
 
     /** @return list<array{id:int,name:string}> */
-    private function allowedRetailStores(User $actor): array
+    private function allowedRetailStores(User $actor, string $permission = 'coupons.view'): array
     {
-        $ids = $this->allowedRetailStoreIds($actor);
+        $ids = $this->allowedRetailStoreIds($actor, $permission);
         if ($ids === []) {
             return [];
         }
