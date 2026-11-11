@@ -178,6 +178,7 @@ final class V2WmsInventoryReportsAccessTest extends TestCase
     private function inventoryOperator(int $storeId): User
     {
         $operator = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $this->grantPlatformErpAccess($operator);
         UserStoreRole::query()->create([
             'user_id' => $operator->getKey(),
             'store_id' => $storeId,
