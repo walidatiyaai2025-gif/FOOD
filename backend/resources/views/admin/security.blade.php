@@ -101,8 +101,22 @@ $roleLabel = static function ($role): string {
 <tbody>
 @forelse($users as $managedUser)
 <tr>
-@php($v2AccountScope = (bool)$managedUser->is_platform_customer ? 'customer' : ($managedUser->roles->isNotEmpty() && $managedUser->storeRoleAssignments->isNotEmpty() ? 'mixed' : ($managedUser->storeRoleAssignments->isNotEmpty() ? 'store' : ($managedUser->roles->isNotEmpty() ? 'global' : 'unassigned'))))
-<td><div class="security-user-identity"><strong>{{ $managedUser->name }}</strong><span class="muted">{{ $managedUser->email }}</span><span class="muted">{{ __('admin.security.username') }}: {{ $managedUser->username ?: '—' }}</span><span class="muted" data-v2-account-scope="{{ $v2AccountScope }}">{{ __('admin.security.account_scope_'.$v2AccountScope) }}</span></div></td>
+<td><div class="security-user-identity">
+<strong>{{ $managedUser->name }}</strong>
+<span class="muted">{{ $managedUser->email }}</span>
+<span class="muted">{{ __('admin.security.username') }}: {{ $managedUser->username ?: '—' }}</span>
+@if((bool) $managedUser->is_platform_customer)
+<span class="muted" data-v2-account-scope="customer">{{ __('admin.security.account_scope_customer') }}</span>
+@elseif($managedUser->roles->isNotEmpty() && $managedUser->storeRoleAssignments->isNotEmpty())
+<span class="muted" data-v2-account-scope="mixed">{{ __('admin.security.account_scope_mixed') }}</span>
+@elseif($managedUser->storeRoleAssignments->isNotEmpty())
+<span class="muted" data-v2-account-scope="store">{{ __('admin.security.account_scope_store') }}</span>
+@elseif($managedUser->roles->isNotEmpty())
+<span class="muted" data-v2-account-scope="global">{{ __('admin.security.account_scope_global') }}</span>
+@else
+<span class="muted" data-v2-account-scope="unassigned">{{ __('admin.security.account_scope_unassigned') }}</span>
+@endif
+</div></td>
 <td><div class="security-user-role-list">
 @foreach($managedUser->roles as $role)<span class="badge">{{ $roleLabel($role) }}</span>@endforeach
 @foreach($managedUser->storeRoleAssignments as $a)<span class="badge">{{ $a->store?->name }} · {{ $roleLabel($a->role) }}</span>@endforeach

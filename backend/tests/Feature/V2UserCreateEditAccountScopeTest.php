@@ -133,6 +133,7 @@ final class V2UserCreateEditAccountScopeTest extends TestCase
         $admin = $this->actor();
         $target = User::factory()->create([
             'username' => 'old.p079.user',
+            'locale' => 'en',
             'is_platform_customer' => false,
         ]);
         $target->createToken('original-client');
@@ -144,7 +145,7 @@ final class V2UserCreateEditAccountScopeTest extends TestCase
             'email' => $target->email,
             'locale' => $target->locale,
             'change_reason' => 'Authorized username identity correction',
-        ])->assertRedirect();
+        ])->assertRedirect()->assertSessionHasNoErrors();
 
         $fresh = $target->fresh();
         $this->assertSame('new.p079.user', $fresh->username);
