@@ -869,6 +869,39 @@ class EnterpriseRbacTest extends TestCase
             ->where('auditable_id', $role->id)->latest('id')->firstOrFail()->after['change_reason']);
     }
 
+    public function test_security_permission_revocation_fails_closed_on_next_authorized_http_read(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN');
+        $operator = User::factory()->create(['is_active' => true]);
+        $role = Role::query()->create([
+            'code' => 'P084_DYNAMIC_SECURITY_READ',
+            'name' => 'Security read test role',
+            'scope' => 'global',
+            'is_system' => false,
+            'is_active' => true,
+        ]);
+        $view = Permission::query()->where('code', 'security.view')->firstOrFail();
+        $role->permissions()->attach($view->id);
+        $operator->roles()->attach($role);
+
+        $this->actingAs($operator)->get('/admin/security?section=users')->assertOk();
+
+        $this->actingAs($admin)
+            ->patch(route('admin.security.roles.update', $role), [
+                'name' => $role->name,
+                'scope' => 'global',
+                'is_active' => true,
+                'permission_ids' => [],
+                'change_reason' => 'Remove security read scope after review',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($operator->fresh())
+            ->get('/admin/security?section=users')
+            ->assertForbidden();
+    }
+
     public function test_security_api_enforces_permission_and_exposes_effective_permissions(): void
     {
         $denied = $this->userWithGlobalRole('B2B_ADMIN');
