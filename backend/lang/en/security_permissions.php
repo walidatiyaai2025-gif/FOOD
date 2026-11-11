@@ -123,7 +123,7 @@ return [
     'permission_state_blocked' => 'Blocked',
     'permission_state_legend' => 'States reflect effective role permissions and user overrides for this scope. Module readiness and action policies remain subject to server authorization.',
     'user_permissions_title' => 'Individual user permissions',
-    'user_permissions_description' => 'The role remains the baseline. Checked permissions are the user’s final access for this scope; saving creates only the required allow/deny overrides. Changing the user’s assigned role resets these individual overrides to the new role baseline.',
+    'user_permissions_description' => 'The role remains the baseline. Checked permissions are the user’s final access for this scope; saving creates only the required allow/deny overrides. Changing the user’s assigned role resets these individual overrides to the new role baseline. Sensitive platform, security, finance posting/approval and update actions cannot be enabled by individual Allow exceptions; they require an approved role and the independent action policy.',
     'user_permissions_global' => 'Global user permissions',
     'user_permissions_store' => 'Store user permissions · :store',
     'user_permissions_save' => 'Save user permissions',
