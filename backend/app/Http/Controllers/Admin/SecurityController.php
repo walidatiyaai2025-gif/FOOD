@@ -50,10 +50,14 @@ final class SecurityController extends Controller
         }
         $search = trim((string) $request->query('q', ''));
         $status = (string) $request->query('status', 'all');
+        $assignment = (string) $request->query('assignment', 'all');
         $section = (string) $request->query('section', 'users');
 
         if (! in_array($status, ['all', 'active', 'inactive'], true)) {
             $status = 'all';
+        }
+        if (! in_array($assignment, ['all', 'roleless'], true)) {
+            $assignment = 'all';
         }
         if (! in_array($section, ['users', 'roles', 'governance', 'sessions', 'audit'], true)) {
             $section = 'users';
@@ -68,6 +72,11 @@ final class SecurityController extends Controller
             }))
             ->when($status === 'active', fn ($query) => $query->where('is_active', true))
             ->when($status === 'inactive', fn ($query) => $query->where('is_active', false))
+            // T015R05: distinguish genuinely roleless identities without inventing grants.
+            // Both global and store assignments count; do not treat customers as staff defects.
+            ->when($assignment === 'roleless', fn ($query) => $query
+                ->whereDoesntHave('roles')
+                ->whereDoesntHave('storeRoleAssignments'))
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
@@ -483,6 +492,7 @@ final class SecurityController extends Controller
             ],
             'search' => $search,
             'statusFilter' => $status,
+            'assignmentFilter' => $assignment,
             'securitySection' => $section,
             'demoSummary' => $demoData->summary(),
             'governance' => $governance,

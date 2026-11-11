@@ -680,6 +680,8 @@ return [
         'tabs' => ['users' => 'المستخدمون', 'roles' => 'الأدوار والصلاحيات', 'governance' => 'الأمان والحوكمة', 'sessions' => 'الجلسات', 'audit' => 'سجل التدقيق'],
         'users_title' => 'صلاحيات المستخدمين', 'users_description' => 'ابحث عن المستخدم وراجع حالته وأدواره ثم نفّذ تغييرات الوصول بشكل آمن.',
         'users' => 'مستخدم', 'user' => 'المستخدم', 'username' => 'اسم المستخدم', 'search_users' => 'بحث بالاسم أو البريد', 'all_statuses' => 'كل الحالات',
+        'assignment_filter' => 'تصفية إسناد الأدوار', 'all_assignments' => 'كل إسنادات الأدوار', 'roleless_accounts' => 'حسابات بلا أدوار مسندة',
+        'roleless_customer' => 'عميل منصة — لا يتطلب دور إدارة', 'roleless_review' => 'بلا دور مسند — يلزم مراجعة نوع الحساب',
         'create_user' => '+ مستخدم جديد', 'create_user_submit' => 'إنشاء المستخدم', 'user_name' => 'الاسم الكامل', 'username_optional' => 'اختياري؛ يتم توليده من البريد إذا تُرك فارغًا',
         'email' => 'البريد الإلكتروني', 'locale' => 'اللغة', 'locale_ar' => 'العربية', 'locale_en' => 'الإنجليزية', 'password' => 'كلمة المرور',
         'password_confirmation' => 'تأكيد كلمة المرور', 'initial_role' => 'الدور الوظيفي الأولي', 'select_role' => 'اختر الدور',
