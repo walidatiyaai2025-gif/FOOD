@@ -6,7 +6,7 @@
 
 The canonical Administration → Security Center → Users panel already exposes authenticated, server-authorized current user records; an AR/EN active/inactive status filter; search; 15-row pagination; and role associations. Neighboring #2763 installed the read-only `assignment=roleless` filter, and #2760 separately owns the **role-registry usage** audit. This issue does **not** fork any of those implementations or change the shared view, controller, role-grant writer or business policy.
 
-T015R01's historical **20 accounts** are an archival source observation, **not an asserted count of current users**. A synthetic 20-account Laravel/DB fixture exercises the existing production code path without touching any real account. Account identity and actual status/assignment must be reconciled with an authorized original export/current database by an appropriate operator before historical per-row acceptance; the public GitHub issue cannot carry real user identifiers.
+The original 2026-11-09 source (section 2, "الوضع المرصود في ملف قاعدة البيانات") records **20 user rows, all with `is_active = 1` in the exported snapshot**. That is historical export evidence, **not proof of the current live installation**, nor evidence that every account is still active. It does not authorize listing user identities or changing status. A synthetic 20-account Laravel/DB fixture first reproduces the all-active count (20 active / 0 inactive), then marks six test-only rows inactive through test setup to verify dynamically recomputed filters (14 / 6). It exercises the existing production query code path without touching any real account. Account identity and actual status/assignment must be reconciled with an authorized original export/current database by an appropriate operator before historical per-row acceptance; the public GitHub issue cannot carry real user identifiers.
 
 ## Authorization and accounting model
 
@@ -26,9 +26,9 @@ T015R01's historical **20 accounts** are an archival source observation, **not a
 | Scoped Retail store operator | 4 | 3 | 1 | `user_store_roles` |
 | Platform customer | 5 | 4 | 1 | `is_platform_customer=true`, no admin role required |
 | Unassigned / requires review | 5 | 3 | 2 | neither global nor store role |
-| **Synthetic total** | **20** | **14** | **6** | Not historical production evidence |
+| **Synthetic total (after six test-only status changes)** | **20** | **14** | **6** | Historical source was 20 active, zero inactive |
 
-Tests assert authenticated real route, 20-item search count, page 1=15/page 2=5, active/inactive status results, ten roleless results and three inactive-roleless results, distinct customer/review classification, Arabic RTL status filtering, store-actor HTTP 403, unchanged user status, no implicit role grants or removals, and no `user.status_changed` audit writes.
+Tests assert authenticated real route, 20-item search count, page 1=15/page 2=5, original all-active-snapshot test phase (20/0) and changed-current-data phase (14/6), active/inactive status results, ten roleless results and three inactive-roleless results, distinct customer/review classification, Arabic RTL status filtering, store-actor HTTP 403, unchanged user status, no implicit role grants or removals, and no `user.status_changed` audit writes.
 
 ## Customer / Driver / Van impact review
 
