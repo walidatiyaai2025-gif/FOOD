@@ -118,14 +118,23 @@ final class V2ErpEntitlementCheckerBoundaryTest extends TestCase
             ->where('auditable_id', $requestId)
             ->count());
 
-        // Restoring entitlement only restores route eligibility. The maker
-        // cannot decide their own request, even when assigned both grants.
+        // Restoring entitlement only restores route eligibility. Even a
+        // maker who later receives the checker role cannot approve their own
+        // previously submitted request.
         $entitlements->set('procurement', $storeScope, true, null, $admin);
+        $buyer->roles()->attach(Role::query()->where('code', 'PROCUREMENT_APPROVER')->firstOrFail());
+        $this->assertTrue($buyer->fresh()->hasPermission('procurement.purchase_requests.approve', $store->id));
 
         $this->actingAs($buyer->fresh())->post(route('admin.erp.procurement.requests.decision', $requestId), [
             'store_id' => $store->id,
             'decision' => 'approve',
-        ])->assertForbidden();
+        ])->assertSessionHasErrors('decision');
+
+        $this->assertDatabaseHas('enterprise_purchase_requests', [
+            'id' => $requestId,
+            'status' => 'submitted',
+            'decided_by' => null,
+        ]);
 
         $this->actingAs($checker->fresh())->post(route('admin.erp.procurement.requests.decision', $requestId), [
             'store_id' => $store->id,
