@@ -86,6 +86,10 @@ jobs:
             exit 1
           fi
 
+      - name: Exercise strict comparator regression matrix
+        working-directory: .
+        run: python3 -m unittest discover -s scripts/tests -p 'test_enterprise_performance_compare.py'
+
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
