@@ -579,6 +579,19 @@ final class FieldOperationsController extends Controller
         // Do not even load the global Van assignment selector for a forbidden form.
         $canCreateVisit = $canReadAllWholesale;
         $assignments = $canCreateVisit ? $this->registry->effectiveAssignments()->load('van') : collect();
+        // Van visits are B2B-only. Even an existing active Van assignment
+        // must not select a Retail/B2C driver as its operator.
+        $eligibleDriverIds = DB::table('drivers')
+            ->where('driver_type', 'b2b')
+            ->where('is_active', true)
+            ->whereIn('id', $assignments->pluck('driver_id')->filter()->values())
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+        $assignments = $assignments
+            ->filter(static fn (VanAssignment $assignment): bool => $assignment->driver_id === null
+                || in_array((int) $assignment->driver_id, $eligibleDriverIds, true))
+            ->values();
         // Lookup labels are names, not raw internal user/driver IDs.
         $representativeLabels = DB::table('users')
             ->whereIn('id', $assignments->pluck('representative_user_id')->filter()->values())
@@ -692,6 +705,17 @@ final class FieldOperationsController extends Controller
 
         $assignment = VanAssignment::query()->with('van')->findOrFail((int) $data['assignment_id']);
         abort_unless($assignment->status === 'active', 422, 'Only an active Van assignment can receive a planned visit.');
+        if ($assignment->driver_id !== null) {
+            // A crafted assignment_id cannot bring a B2C Driver into a B2B Van visit.
+            abort_unless(
+                DB::table('drivers')
+                    ->where('id', (int) $assignment->driver_id)
+                    ->where('driver_type', 'b2b')
+                    ->where('is_active', true)
+                    ->exists(),
+                404,
+            );
+        }
 
         $plannedAt = isset($data['planned_at']) ? Carbon::parse((string) $data['planned_at']) : now();
         abort_if($plannedAt->lt($assignment->effective_from), 422, 'Visit is before assignment start.');

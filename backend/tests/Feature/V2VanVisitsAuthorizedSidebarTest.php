@@ -346,6 +346,55 @@ final class V2VanVisitsAuthorizedSidebarTest extends TestCase
         $this->assertSame($before, VanVisit::query()->count());
     }
 
+    public function test_retail_driver_assignment_is_not_available_or_accepted_for_a_wholesale_van_visit(): void
+    {
+        $operator = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $operator->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail()->id);
+        $retailDriver = User::factory()->create(['is_active' => true]);
+        $driverId = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $retailDriver->id,
+            'driver_type' => 'b2c',
+            'is_active' => true,
+            'is_available' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $customerId = (int) DB::table('b2b_customers')->insertGetId([
+            'name' => 'P268-RETAIL-DRIVER-TEST-B2B-CUSTOMER',
+            'phone' => '9000044444',
+            'email' => 'p268-retail-driver-b2b@example.test',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $vanId = (int) DB::table('vans')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'code' => 'P268-RETAIL-DRIVER-VAN',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $assignmentId = (int) DB::table('van_assignments')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'van_id' => $vanId,
+            'driver_id' => $driverId,
+            'status' => 'active',
+            'effective_from' => now()->subDay(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->actingAs($operator)->get(route('admin.field-operations.visits'))
+            ->assertOk()
+            ->assertDontSee('P268-RETAIL-DRIVER-VAN');
+
+        $before = VanVisit::query()->count();
+        $this->actingAs($operator)->post(route('admin.field-operations.visits.store'), [
+            'assignment_id' => $assignmentId,
+            'customer_type' => 'b2b',
+            'customer_id' => $customerId,
+        ])->assertNotFound();
+        $this->assertSame($before, VanVisit::query()->count());
+    }
+
     private function scopeStore(string $code, string $type): int
     {
         return (int) DB::table('stores')->insertGetId([
