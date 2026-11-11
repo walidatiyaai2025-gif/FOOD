@@ -2574,6 +2574,9 @@ final class OrderOperationsController extends Controller
                     'to_status' => (string) $event->to_status,
                     'proof_type' => $event->proof_type,
                     'proof_path' => $event->proof_path,
+                    'proof_available' => is_string($event->proof_path)
+                        && trim((string) $event->proof_path) !== ''
+                        && Storage::disk('public')->exists((string) $event->proof_path),
                     'reason_code' => $event->reason_code,
                     'note' => $event->note,
                     'captured_at' => $event->captured_at,
