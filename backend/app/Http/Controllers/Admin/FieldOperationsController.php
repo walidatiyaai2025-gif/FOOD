@@ -578,7 +578,15 @@ final class FieldOperationsController extends Controller
         // A per-store actor has no authorized B2B customer-to-store creation mapping.
         // Do not even load the global Van assignment selector for a forbidden form.
         $canCreateVisit = $canReadAllWholesale;
-        $assignments = $canCreateVisit ? $this->registry->effectiveAssignments() : collect();
+        $assignments = $canCreateVisit ? $this->registry->effectiveAssignments()->load('van') : collect();
+        // Lookup labels are names, not raw internal user/driver IDs.
+        $representativeLabels = DB::table('users')
+            ->whereIn('id', $assignments->pluck('representative_user_id')->filter()->values())
+            ->pluck('name', 'id');
+        $driverLabels = DB::table('drivers')
+            ->join('users', 'users.id', '=', 'drivers.user_id')
+            ->whereIn('drivers.id', $assignments->pluck('driver_id')->filter()->values())
+            ->pluck('users.name', 'drivers.id');
         $reasons = VanNoOrderReason::query()
             ->where('is_active', true)
             ->orderBy('sort_order')
@@ -653,6 +661,8 @@ final class FieldOperationsController extends Controller
             'visitRoutes',
             'visitOrders',
             'canCreateVisit',
+            'representativeLabels',
+            'driverLabels',
         ));
     }
 

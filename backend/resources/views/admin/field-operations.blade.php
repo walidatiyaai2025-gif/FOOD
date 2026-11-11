@@ -550,11 +550,11 @@
 
         @if($fieldOperationsSection === 'visits')
             @if($canManageVan && ($canCreateVisit ?? false))
-            <details class="fieldops-card">
+            <details class="fieldops-card" data-foodex-operational-modal data-modal-button-class="foodex-action-primary">
                 <summary><strong>{{ __('field_operations.plan_customer_visit') }}</strong></summary>
                 <form method="post" action="{{ route('admin.field-operations.visits.store') }}" class="fieldops-form" style="margin-top:14px">@csrf
                     <div class="fieldops-form-grid">
-                        <label>{{ __('field_operations.van_assignment') }}<select name="assignment_id" required><option value="">—</option>@foreach($assignments as $a)<option value="{{ $a->id }}">{{ $a->van?->code ?: '#'.$a->van_id }} · {{ $a->territory_key ?: '—' }} · {{ $a->representative_user_id ? 'User #'.$a->representative_user_id : 'Driver #'.$a->driver_id }}</option>@endforeach</select></label>
+                        <label>{{ __('field_operations.van_assignment') }}<select name="assignment_id" required><option value="">—</option>@foreach($assignments as $a)<option value="{{ $a->id }}">{{ $a->van?->code ?: __('field_operations.van') }} · {{ $a->territory_key ?: '—' }} · {{ $a->representative_user_id ? ($representativeLabels[$a->representative_user_id] ?? __('field_operations.operator')) : ($driverLabels[$a->driver_id] ?? __('field_operations.driver')) }}</option>@endforeach</select></label>
                         <label>{{ __('field_operations.customer_type') }}<select name="customer_type" data-visit-customer-type><option value="b2b">B2B</option></select></label>
                         <label>{{ __('field_operations.customer') }}<select name="customer_id" data-visit-customer required><option value="">—</option>@foreach($visitCustomers as $customer)<option value="{{ $customer->id }}" data-customer-type="{{ $customer->type }}">{{ $customer->label }} · {{ __('field_operations.customer_types.'.$customer->type) }}</option>@endforeach</select></label>
                         <label>{{ __('field_operations.planned_at') }}<input type="datetime-local" name="planned_at"></label>

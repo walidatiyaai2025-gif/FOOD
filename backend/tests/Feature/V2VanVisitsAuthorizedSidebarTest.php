@@ -314,6 +314,14 @@ final class V2VanVisitsAuthorizedSidebarTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        // The authorized create route is reachable through the shared
+        // accessible operational modal rather than a long inline accordion.
+        $this->actingAs($operator)->get(route('admin.field-operations.visits'))
+            ->assertOk()
+            ->assertSee('data-foodex-operational-modal', false)
+            ->assertSee('data-modal-button-class="foodex-action-primary"', false)
+            ->assertSee($operator->name);
+
         $this->actingAs($operator)->post(route('admin.field-operations.visits.store'), [
             'assignment_id' => $assignmentId,
             'customer_type' => 'b2b',
