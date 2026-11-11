@@ -14,7 +14,7 @@ Source: FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx, P383; parent
 ## P383 gap and issue-scoped change
 P077 had introduced a candidate tree endpoint and button but opened the user's Manage modal with no initial preview, and clicking a store-role checkbox left the auxiliary selector on Global. This made the live tree appear unrelated to the last selected store assignment unless operators also changed a second selector manually.
 
-The existing picker now refreshes its candidate tree upon opening the native, keyboard-accessible Manage details modal (`toggle`, capture phase), and automatically switches preview scope to the exact Retail store of the changed store-role checkbox. A changed global checkbox switches it back to Global. Explicit scope selection and Refresh still work. Each form owns its own loading/error/empty state, async generation guard and current selection; textual preview labels use `textContent` (no HTML insertion). The existing role form, backend assignment service and canonical validation stay unchanged.
+The existing picker now refreshes its candidate tree upon opening the canonical FOODEX Manage dialog. The shared `_brand-components.blade.php` enhancer replaces the original native `<details>` with a labelled button, modal host and accessible dialog (`data-foodex-dialog-open`); the picker observes that real trigger, with native `toggle` capture only as a fallback when enhancement has not run. It automatically switches preview scope to the exact Retail store of the changed store-role checkbox. A changed global checkbox switches it back to Global. Explicit scope selection and Refresh still work. Each form owns its own loading/error/empty state, async generation guard and current selection; textual preview labels use `textContent` (no HTML insertion). The existing role form, backend assignment service and canonical validation stay unchanged.
 
 This preview is **not** an authorization grant nor an exact simulation of target user's effective Sidebar: existing DENY overrides, tenant/channel context, module entitlement/readiness, record ownership and route/action guards still decide access at the server. Display text identifies the candidate nature. A rejected role/store cannot be made effective by a preview.
 
@@ -22,7 +22,7 @@ This preview is **not** an authorization grant nor an exact simulation of target
 | Surface | Classification | Evidence |
 |---|---|---|
 | Backend / Laravel | Tests only | Existing GET/PUT routes, RBAC engine, audit and permission checks unchanged; targeted HTTP tests exercise real assignment and scoped preview |
-| Dashboard | Affected | Existing Security Center Manage modal auto-initializes and follows the exact selected store; AR/EN, RTL/LTR, native details+select controls, accessible status/empty/error retained |
+| Dashboard | Affected | Existing Security Center Manage modal auto-initializes and follows the exact selected store; AR/EN, RTL/LTR, shared labelled modal trigger + native select controls, accessible status/empty/error retained |
 | Customer Flutter | Not affected | No API v1, Customer authentication, navigation, orders, invoices or entitlement payload touched |
 | Driver Flutter | Not affected | No API v1, B2C DRIVER dispatch, assignment, wallet or state updates changed |
 | Van Flutter | Not affected | No API v1, B2B VAN routing, trips, visits, stock or offline changes |
