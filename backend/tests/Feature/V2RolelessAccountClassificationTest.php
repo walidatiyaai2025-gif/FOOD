@@ -42,12 +42,13 @@ final class V2RolelessAccountClassificationTest extends TestCase
         $response = $this->actingAs($admin)
             ->get(route('admin.security.index', ['section' => 'users', 'assignment' => 'roleless']));
         $response->assertOk()
-            ->assertViewHas('users', fn ($users): bool => $users->total() === 7)
+            ->assertViewHas('users', fn ($users): bool => $users->total() === 7
+                && ! $users->getCollection()->contains('id', $admin->id))
             ->assertSee('Platform customer — no admin role required')
             ->assertSee('No assigned role — review account type')
             ->assertSee('data-roleless-classification="customer"', false)
             ->assertSee('data-roleless-classification="review"', false)
-            ->assertDontSee($admin->email);
+            ->assertSee('Unassigned V2 7');
 
         foreach (array_merge($customerIds, $reviewIds) as $id) {
             $this->assertDatabaseHas('users', ['id' => $id]);
