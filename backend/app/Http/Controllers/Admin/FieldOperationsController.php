@@ -657,6 +657,12 @@ final class FieldOperationsController extends Controller
         $user = $this->actor($request);
         $this->authorizeAll($user, ['drivers.b2b.manage', 'customers.view']);
 
+        // A store-scoped operator has no authoritative B2B customer-to-store
+        // ownership mapping. Do not allow arbitrary customer IDs in create.
+        $platformWide = $user->hasRole('SUPER_ADMIN') || $user->hasRole('B2B_ADMIN')
+            || $user->hasRole('OPERATIONS') || $user->hasRole('FINANCE');
+        abort_unless($platformWide, 403);
+
         $data = $request->validate([
             'assignment_id' => ['required', 'integer', 'exists:van_assignments,id'],
             'customer_type' => ['required', Rule::in(['b2b'])],
@@ -666,11 +672,7 @@ final class FieldOperationsController extends Controller
             'route_key' => ['nullable', 'string', 'max:128'],
         ]);
 
-        $platformWide = $user->hasRole('SUPER_ADMIN') || $user->hasRole('B2B_ADMIN')
-            || $user->hasRole('OPERATIONS') || $user->hasRole('FINANCE');
-        if (! isset($data['store_id'])) {
-            abort_unless($platformWide, 404);
-        } else {
+        if (isset($data['store_id'])) {
             abort_unless(in_array((int) $data['store_id'], $this->b2bStoreIds($user), true), 404);
         }
 

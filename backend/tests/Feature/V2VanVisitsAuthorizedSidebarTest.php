@@ -248,7 +248,17 @@ final class V2VanVisitsAuthorizedSidebarTest extends TestCase
         $ownVisit = $this->recordVisit($actor, 'b2b', 98765, $ownStore);
         $initialCount = VanVisit::query()->count();
 
+        // Per-store managers cannot bind an arbitrary global B2B customer
+        // without a verified wholesale customer-to-store ownership relation.
         $this->actingAs($actor)->post(route('admin.field-operations.visits.store'), [
+            'customer_type' => 'b2b',
+            'customer_id' => 98765,
+            'store_id' => $ownStore,
+        ])->assertForbidden();
+
+        $platformAdmin = User::factory()->create(['is_active' => true]);
+        $platformAdmin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail()->id);
+        $this->actingAs($platformAdmin)->post(route('admin.field-operations.visits.store'), [
             'customer_type' => 'b2c',
             'customer_id' => 98765,
         ])->assertSessionHasErrors('customer_type');
