@@ -26,7 +26,7 @@
         .commercial-page-header p{margin:0;color:var(--foodex-muted);max-width:760px}
         .commercial-eyebrow{font-size:.76rem;font-weight:800;color:var(--foodex-green-dark);letter-spacing:.02em}
         .commercial-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:8px;box-shadow:var(--foodex-shadow-sm)}
-        .commercial-tabs a{min-height:40px;padding:0 14px;border:1px solid transparent;border-radius:var(--foodex-radius-control);text-decoration:none;font-weight:800;display:inline-flex;align-items:center;justify-content:center;color:var(--foodex-muted)}
+        .commercial-tabs a{min-height:44px;padding:0 14px;border:1px solid transparent;border-radius:var(--foodex-radius-control);text-decoration:none;font-weight:800;display:inline-flex;align-items:center;justify-content:center;color:var(--foodex-muted)}
         .commercial-tabs a:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
         .commercial-tabs a.active{background:var(--foodex-action-green);color:#fff;border-color:var(--foodex-action-green);box-shadow:0 8px 18px rgba(21,138,58,.14)}
         .contract-banner{padding:14px 16px;border:1px solid #cfe5d6;border-radius:var(--foodex-radius-card);background:linear-gradient(135deg,var(--foodex-green-soft),#fff);box-shadow:var(--foodex-shadow-sm);display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 14px;align-items:center}
@@ -144,6 +144,9 @@
     <div class="commercial-tabs" aria-label="{{ __('commercial.tabs.aria') }}">
         <a class="{{ $section === 'sales-control' ? 'active' : '' }}" href="{{ route('admin.commercial.sales-control', $scope) }}">{{ __('commercial.tabs.sales_control') }}</a>
         <a class="{{ $section === 'flash-offers' ? 'active' : '' }}" href="{{ route($flashRoutePrefix, $scope) }}">{{ __('commercial.tabs.flash_offers') }}</a>
+        @if(!empty($pricingListsUrl))
+        <a data-v2-pricing-lists-link aria-label="{{ __('commercial.tabs.price_lists') }}" href="{{ $pricingListsUrl }}">{{ __('commercial.tabs.price_lists') }}</a>
+        @endif
         <a href="{{ route($storeChannel === 'b2b' ? 'admin.b2b.module' : 'admin.b2c.module', ['module' => $section === 'sales-control' ? 'products' : 'promotions'] + $scope) }}">{{ __('commercial.tabs.back_store') }}</a>
     </div>
 
