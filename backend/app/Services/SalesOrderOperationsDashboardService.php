@@ -18,6 +18,7 @@ final class SalesOrderOperationsDashboardService
         'payment',
         'invoice',
         'cancelled_refunded',
+        'failed_returns',
     ];
 
     private const NON_REVENUE_STATUSES = ['cancelled', 'refunded'];
@@ -90,7 +91,8 @@ final class SalesOrderOperationsDashboardService
                 'COUNT(*) as total_orders, '.
                 "SUM(CASE WHEN orders.status NOT IN ('delivered','cancelled','refunded','failed') THEN 1 ELSE 0 END) as open_orders, ".
                 "SUM(CASE WHEN orders.status NOT IN ('delivered','cancelled','refunded','failed') AND orders.created_at <= ? THEN 1 ELSE 0 END) as delayed_orders, ".
-                "SUM(CASE WHEN orders.status IN ('cancelled','refunded') THEN 1 ELSE 0 END) as cancelled_refunded",
+                "SUM(CASE WHEN orders.status IN ('cancelled','refunded') THEN 1 ELSE 0 END) as cancelled_refunded, ".
+                "SUM(CASE WHEN orders.status IN ('failed','refunded') THEN 1 ELSE 0 END) as failed_returns",
                 [$delayCutoff],
             )
             ->first();
@@ -99,6 +101,7 @@ final class SalesOrderOperationsDashboardService
         $openOrders = (int) ($metrics->open_orders ?? 0);
         $delayedOrders = (int) ($metrics->delayed_orders ?? 0);
         $cancelledRefunded = (int) ($metrics->cancelled_refunded ?? 0);
+        $failedReturns = (int) ($metrics->failed_returns ?? 0);
 
         $awaitingDispatchQuery = DB::table('orders')
             ->join('order_dispatch_states', function ($join): void {
@@ -294,6 +297,7 @@ final class SalesOrderOperationsDashboardService
                 'delayed_orders' => $delayedOrders,
                 'awaiting_dispatch' => $awaitingDispatch,
                 'cancelled_refunded' => $cancelledRefunded,
+                'failed_returns' => $failedReturns,
                 'open_within_sla_percent' => $openWithinSlaPercent,
                 'average_fulfillment_minutes' => $fulfillmentAverage,
             ],
@@ -311,6 +315,7 @@ final class SalesOrderOperationsDashboardService
                 ['key' => 'delayed', 'count' => $delayedOrders],
                 ['key' => 'awaiting_dispatch', 'count' => $awaitingDispatch],
                 ['key' => 'cancelled_refunded', 'count' => $cancelledRefunded],
+                ['key' => 'failed_returns', 'count' => $failedReturns],
             ],
             'generated_at' => CarbonImmutable::now('Asia/Kuwait')->format('Y-m-d H:i'),
         ];
@@ -361,6 +366,12 @@ final class SalesOrderOperationsDashboardService
                         ->whereColumn('invoices.order_id', 'orders.id')
                         ->whereNotIn('invoices.status', ['cancelled', 'void', 'voided']);
                 });
+
+            return;
+        }
+
+        if ($exception === 'failed_returns') {
+            $query->whereIn('orders.status', ['failed', 'refunded']);
 
             return;
         }
