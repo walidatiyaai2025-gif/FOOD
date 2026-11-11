@@ -138,6 +138,29 @@ final class V2WmsReservationActionAuthorityTest extends TestCase
         ]))->assertNotFound();
     }
 
+    public function test_direct_cross_store_reservation_request_cannot_change_foreign_inventory(): void
+    {
+        $local = $this->fixture('LOCAL');
+        $foreign = $this->fixture('FOREIGN');
+        $manager = $this->userWithStoreRole($local['store_id'], false);
+
+        $this->actingAs($manager)->post(route('admin.erp.wms.reservations.store'), [
+            ...$this->validReservation($foreign),
+            'business_reference' => 'P257 direct cross-store attempt',
+        ])->assertNotFound();
+
+        $this->assertDatabaseHas('inventories', [
+            'id' => $local['inventory_id'],
+            'reserved_quantity' => 1,
+        ]);
+        $this->assertDatabaseHas('inventories', [
+            'id' => $foreign['inventory_id'],
+            'reserved_quantity' => 1,
+        ]);
+        $this->assertSame(0, DB::table('stock_movements')
+            ->where('reference_type', 'wms_workbench')->count());
+    }
+
     public function test_disabled_wms_entitlement_denies_reservations_without_modifying_stock(): void
     {
         $fixture = $this->fixture();
@@ -162,12 +185,12 @@ final class V2WmsReservationActionAuthorityTest extends TestCase
     }
 
     /** @return array{store_id:int,warehouse_id:int,other_warehouse_id:int,product_id:int,inventory_id:int,other_inventory_id:int} */
-    private function fixture(): array
+    private function fixture(string $suffix = 'DEFAULT'): array
     {
         $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
         $storeId = (int) DB::table('stores')->insertGetId([
             'store_type_id' => $typeId,
-            'code' => 'V2-P257',
+            'code' => 'V2-P257-'.$suffix,
             'name' => 'WMS Reservation Store',
             'is_active' => true,
             'created_at' => now(),
@@ -177,7 +200,7 @@ final class V2WmsReservationActionAuthorityTest extends TestCase
         $catalogId = (int) DB::table('catalogs')->insertGetId([
             'store_id' => $storeId,
             'channel' => 'b2c',
-            'code' => 'v2-p257',
+            'code' => 'v2-p257-'.$suffix,
             'name' => 'V2 P257 Catalog',
             'is_active' => true,
             'is_migration_quarantine' => false,
@@ -187,7 +210,7 @@ final class V2WmsReservationActionAuthorityTest extends TestCase
         $productId = (int) DB::table('products')->insertGetId([
             'catalog_id' => $catalogId,
             'unit_id' => $unitId,
-            'sku' => 'V2-P257-SKU',
+            'sku' => 'V2-P257-SKU-'.$suffix,
             'name' => 'V2 Reserved Product',
             'is_active' => true,
             'created_at' => now(),
@@ -195,7 +218,7 @@ final class V2WmsReservationActionAuthorityTest extends TestCase
         ]);
         $warehouseId = (int) DB::table('warehouses')->insertGetId([
             'store_id' => $storeId,
-            'code' => 'V2-P257-A',
+            'code' => 'V2-P257-A-'.$suffix,
             'name' => 'Warehouse A',
             'is_active' => true,
             'created_at' => now(),
@@ -203,7 +226,7 @@ final class V2WmsReservationActionAuthorityTest extends TestCase
         ]);
         $otherWarehouseId = (int) DB::table('warehouses')->insertGetId([
             'store_id' => $storeId,
-            'code' => 'V2-P257-B',
+            'code' => 'V2-P257-B-'.$suffix,
             'name' => 'Warehouse B',
             'is_active' => true,
             'created_at' => now(),
