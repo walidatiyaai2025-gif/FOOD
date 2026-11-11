@@ -76,6 +76,7 @@ final class V2RoleTemplateVsUserOverrideIsolationTest extends TestCase
             // this target. The peer continues to inherit from the template.
             $this->actingAs($actor)
                 ->put(route('admin.security.users.permissions', $target), [
+                    'change_reason' => 'Regression fixture approved RBAC access change',
                     'scope_type' => 'global',
                     'permission_ids' => [$view->id],
                 ])
@@ -136,6 +137,7 @@ final class V2RoleTemplateVsUserOverrideIsolationTest extends TestCase
                 ->assertForbidden();
             $this->actingAs($blocked)
                 ->put(route('admin.security.users.permissions', $target), [
+                    'change_reason' => 'Regression fixture approved RBAC access change',
                     'scope_type' => 'global',
                     'permission_ids' => [$view->id, $manage->id],
                 ])
@@ -152,7 +154,7 @@ final class V2RoleTemplateVsUserOverrideIsolationTest extends TestCase
     }
 
     /** @param list<int> $permissions
-     * @return array{name:string,description:string,scope:string,is_active:int,permission_ids:list<int>}
+     * @return array{name:string,description:string,scope:string,is_active:int,permission_ids:list<int>,change_reason:string}
      */
     private function roleValues(Role $role, array $permissions): array
     {
@@ -161,6 +163,7 @@ final class V2RoleTemplateVsUserOverrideIsolationTest extends TestCase
             'description' => (string) $role->description,
             'scope' => 'global',
             'is_active' => 1,
+            'change_reason' => 'Regression fixture approved RBAC role edit',
             'permission_ids' => $permissions,
         ];
     }
