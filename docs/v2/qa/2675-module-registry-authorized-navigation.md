@@ -38,3 +38,5 @@ The source-only test/doc delta leaves B2B=VAN ONLY, B2C=DRIVER ONLY, tenant isol
 - Local command when environment available: `cd backend && php artisan test --filter=V2ModuleRegistrySidebarAuthorizedContractTest`.
 - **Required CI is pending until a PR and exact final head exist.** Do not assert success based on a build or on older workflow runs. Enforce Repository Policy, V2 Isolation Gate, Required CI Gate and relevant Laravel/security/localization gates before merge.
 - `MANUAL_ACCEPTANCE: DEFERRED_TO_V2_FINAL` under owner decision on #2503; no tag, release, production deployment, or main integration is authorized.
+
+**PR gate scan label:** Mobile impact — Customer: no contract change; Driver: no contract change; Van: no contract change. This is descriptive evidence, not a substitute for HTTP authorization tests.
