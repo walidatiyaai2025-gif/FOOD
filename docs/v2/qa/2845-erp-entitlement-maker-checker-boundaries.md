@@ -17,7 +17,8 @@ Source: `FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx`, P111; pare
 1. Lifecycle-enabled, platform-entitled, explicitly operationally certified Procurement with an existing buyer-submitted purchase request.
 2. Store-level entitlement revocation after submit; Arabic and English HTTP GET and approval POST return 403 for checker, maker and Super Admin as applicable, and no approval transition/audit occurs.
 3. Restoration of the same store entitlement and dual-role maker self-approval rejection with a localized validation error; the separate checker succeeds once with a persisted approval audit.
-4. Scoped proof on the canonical Wholesale store; no Retail B2C role or cross-store authority is granted.
+4. A separate active B2B sibling store remains authorized when the canonical Wholesale store has an explicit store-level DENY, including Arabic/English HTTP reads and a persisted positive sibling mutation. The denied store's identical mutation returns HTTP 403 with no new purchase request. This proves the global buyer role cannot bypass a per-store DENY without incorrectly blocking another entitled store.
+5. The sibling is a test-only B2B store created under the existing organization hierarchy; no Retail B2C role, cross-store grant or live tenant data is introduced.
 
 **Product parity:** Backend/Dashboard authorized Procurement HTTP behavior is impacted; Customer app public API and Flutter files are unchanged (no customer quote/order/credit or public endpoint change). Driver app unchanged (no B2C dispatch, assignments, collections or runtime endpoint change). Van app unchanged (no B2B visit, delivery, territory or dispatch API change). B2B = Van only and B2C = Driver only are preserved.
 
