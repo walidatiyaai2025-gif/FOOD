@@ -11,7 +11,8 @@ void main() {
     b2bRetailStoreId: 91,
   );
 
-  test('principal Wholesale is first and switches to existing b2b home', () async {
+  test('principal Wholesale is first and switches to existing b2b home',
+      () async {
     final store = _MemoryContextStore();
     final switcher = CustomerCommerceContextSwitcher(
       storefrontApi: _SelectorApi(),
