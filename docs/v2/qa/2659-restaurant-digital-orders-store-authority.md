@@ -14,13 +14,15 @@ Before this change, `SmartOrderingOperationsController::index` loaded `Restauran
 
 The HTTP GET now validates positive integer `store_id`. If supplied, it must belong to the canonical allowed Retail store IDs after server-side `orders.view`, Restaurant profile and `STORE:smart_ordering` master entitlement checks. An unowned/disabled store selection produces 404. An allowed selection narrows **all subsequent orders, branches, store picker and operational read models** to that one store. Omitting `store_id` keeps the authorized multi-store aggregate behavior. Payments tab retains `finance.view` authority.
 
+The existing Operations tab links, Orders/Payments filters and reset actions now **retain the validated `store_id` and explicit `support_access` context**, so navigating between operations tabs does not silently return to a multi-store aggregate or drop the support gate. These are existing links and forms, with no new UI text or CSS.
+
 The shared Restaurant workspace's `$restaurantCanOrders` is now a read-only presentation projection via existing `RestaurantSaasStoreAccess::canNavigateToStore($actor, selectedStore, 'orders.view', supportAccess)` instead of broad global permission. The launcher (customer orders, orders, KDS etc.) inherits the same flag. Real server-side authorization remains in the controller; no UI flag can ever grant access. A Super Admin must enter an explicit Retail support context.
 
 ## Acceptance / regression
 
 `backend/tests/Feature/V2RestaurantDigitalOrdersStoreScopeTest.php` covers:
 
-1. Real authenticated HTTP `tab=orders` responses for authorized Retail stores in **AR/RTL** and **EN/LTR** with shared tab/launcher and only the requested store in `stores`.
+1. Real authenticated HTTP `tab=orders` responses for authorized Retail stores in **AR/RTL** and **EN/LTR** with shared tab/launcher, only the requested store in `stores`, and selected-store context preserved in tab links and filter forms.
 2. Foreign unassigned Retail store `store_id` returns 404, no digital-orders navigation entry.
 3. Assigned but Restaurant SaaS master-disabled store returns 404, while the other enabled store is still reachable and listed.
 4. Mixed B2B global role + B2C store role with explicit scoped `orders.view` DENY cannot bypass the denied store nor see its link; a separately allowed store continues to work.
