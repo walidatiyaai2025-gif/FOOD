@@ -16,9 +16,10 @@ Source: FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx / P308; paren
 
 `backend/tests/Feature/V2WmsInventoryReportsAccessTest.php` tests:
 1. Real canonical authorized `tab=reports` HTTP response for each language, with all eight report models linked, translated action and title, RTL/LTR, absence of internal read model names.
-2. Exact store permission denial and warehouse concealment against a second store.
-3. Denial of Customer Service Agent without `inventory.view` and of a formerly authorized inventory user after enterprise WMS store entitlement is revoked.
-4. Before/after check for unchanged inventory quantity, reserved quantity and stock movement count.
+2. Exact store permission denial and warehouse concealment against a second store; additionally, an explicit read-only warehouse assignment denies other warehouses even INSIDE the same store.
+3. Disabled inventory_wms lifecycle denies the report route while leaving stock and reservations unchanged; re-enabling restores authorized read only.
+4. Denial of Customer Service Agent without `inventory.view` and of a formerly authorized inventory user after enterprise WMS store entitlement is revoked.
+5. Before/after check for unchanged inventory quantity, reserved quantity and stock movement count.
 
 Existing regression includes `EnterpriseWmsProfessionalCompletionTest` and `EnterpriseWmsReportingFoundationTest`, including query bounds, valuation and report data shape. Exact-head Laravel, localization, security, Policy, V2 Isolation and deployment acceptance CI must pass before merging. No production database was modified.
 
