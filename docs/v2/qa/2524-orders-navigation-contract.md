@@ -9,7 +9,7 @@ Source: `FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx`, P194 / Cus
 - Placement decision: **REUSE** the operational orders grid and the already-scoped Retail workspace. A third route, duplicated sidebar entry, placeholder or inactive ERP module would be incorrect.
 - Navigation type: `SIDEBAR`, existing Operations group; actual order details/timeline/actions remain contextual. Dashboard mobile uses the same authorized sidebar tree/off-canvas and shared Orders grid UI. Arabic/English direction and HTTP rendering are tested without changing views.
 - Permissions: read `orders.view` at the server, distinct from `orders.manage`, `orders.dispatch` and `orders.create`. An explicit effective DENY removes read access and both links for the relevant user.
-- Scope: Retail `B2C` active store assignment plus allowed Retail business profile for store module; B2B/Wholesale handled by separate operational scope, never granted to a Retail-only operator. A foreign store ID is a masked 404; no cross-channel escalation. Disabled/inactive store and unsupported Restaurant orders module are unavailable.
+- Scope: Retail `B2C` active store assignment plus allowed Retail business profile for the dedicated Sidebar module; B2B/Wholesale uses a separate operational scope and is never granted to a Retail-only operator. Foreign stores are masked 404; no cross-channel escalation. Inactive stores are unavailable. A Restaurant has no dedicated Retail `b2c_orders` Sidebar link, but the older explicit `/admin/b2c/orders` compatibility route (`admin.b2c.orders.canonical`) precedes and shadows `/admin/b2c/{module}`; authorized Restaurant users may legitimately read their scoped orders via `OrderOperationsController` at that URL. Its HTTP 200 is NOT evidence that the profile-gated workspace controller was invoked.
 
 ## Executable acceptance
 
@@ -18,7 +18,7 @@ Source: `FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx`, P194 / Cus
 1. One authorized Retail store has both canonical links and can open each actual business surface.
 2. Cross-store and Retail-to-Wholesale reads (including a forged direct order details URL) are denied.
 3. Effective global `orders.view` DENY removes both links and returns HTTP denial.
-4. A Restaurant profile cannot open the unsupported Retail Orders module; an inactive Retail store cannot provide a valid operational read scope.
+4. A Restaurant profile lacks the Retail-only `b2c_orders` menu, while the intentionally earlier canonical Orders alias remains readable only with proper `orders.view` authorization; an inactive Retail store cannot provide a valid operational read scope.
 5. A roleless principal cannot acquire any Orders sidebar or direct-route permission.
 
 These tests are regression and contract evidence, **not** a claim of manual browser/device, load, release, or production acceptance. The existing Orders page supplies its shared empty/filter/error states and accessibility composition; final responsive/mobile browser UAT remains under #2503/#2750. No new ERP entitlement or readiness state is invented for preexisting operational orders.
