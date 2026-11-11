@@ -25,7 +25,7 @@ class V2ArabicSidebarNamingTest extends TestCase
         $arabicLabels = [
             'admin.customer_360' => 'العملاء 360',
             'admin.nav_groups.erp' => 'تخطيط موارد المؤسسة (ERP)',
-            'admin.nav_groups.catalog' => 'المنتجات والكتالوج',
+            'admin.nav_groups.catalog' => 'الكتالوج والتسعير',
             'admin.nav_groups.advertising' => 'الإعلانات',
             'admin.nav_groups.analytics' => 'التقارير والتحليلات',
             'admin.catalog_management' => 'إدارة المنتجات والتصنيفات',

@@ -106,7 +106,7 @@ final class V2PlatformNavigationPresentationBoundaryTest extends TestCase
         }
     }
 
-    public function test_retail_store_role_cannot_obtain_platform_navigation_or_cross_store_treasury_from_visual_settings(): void
+    public function test_retail_store_role_preserves_scoped_workspaces_without_platform_or_cross_store_treasury_grants(): void
     {
         $storeId = $this->store('B2C', 'V2-T028R03-RETAIL');
         $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
@@ -135,7 +135,7 @@ final class V2PlatformNavigationPresentationBoundaryTest extends TestCase
             $actor->forceFill(['locale' => $locale])->save();
             $keys = $this->visibleKeys($actor);
             $this->assertContains('enterprise_action_center', $keys);
-            $this->assertNotContains('enterprise_workspaces', $keys);
+            $this->assertContains('enterprise_workspaces', $keys);
             $this->assertNotContains('treasury_master', $keys);
 
             $this->actingAs($actor)

@@ -88,12 +88,13 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
 <p class="read-only-note" role="status">{{ __('v2_role_permissions.read_only') }}</p>
 @endif
 <p class="muted">{{ __('v2_role_permissions.scope_note') }}</p>
-<section class="preview-panel" aria-labelledby="v2-role-preview-title">
+<section class="preview-panel" aria-labelledby="v2-role-preview-title" aria-describedby="v2-role-preview-action-boundary">
 <h2 id="v2-role-preview-title">{{ __('v2_role_permissions.preview_title') }}</h2>
 <p class="muted">{{ __('v2_role_permissions.preview_description') }}</p>
 <p class="preview-summary" role="status" aria-live="polite" data-v2-preview-summary>{{ __('v2_role_permissions.preview_initial') }}</p>
 <p class="muted">{{ __('v2_role_permissions.preview_module') }}</p>
 <p class="muted">{{ __('v2_role_permissions.preview_server') }}</p>
+<p id="v2-role-preview-action-boundary" class="read-only-note" role="note" data-v2-preview-no-action-grant>{{ __('v2_role_permissions.preview_action_boundary') }}</p>
 </section>
 <div class="matrix">
 @php($seenPermissionCodes = [])
