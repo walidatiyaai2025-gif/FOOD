@@ -17,6 +17,20 @@ body{margin:0}.layout-page{padding:24px;max-width:1600px;margin:auto}.hero,.pane
 @if(session('status'))<div class="notice" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="errors" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
+<section class="panel" data-sidebar-inventory-audit aria-labelledby="sidebar-inventory-audit-title">
+<h2 id="sidebar-inventory-audit-title">{{ __('sidebar_admin.inventory_title') }}</h2>
+<p class="muted">{{ __('sidebar_admin.inventory_source', ['groups' => 13, 'items' => 61, 'disabled' => 25]) }}</p>
+<p data-sidebar-inventory-groups><strong>{{ __('sidebar_admin.inventory_groups') }}</strong>: {{ __('sidebar_admin.inventory_current') }} {{ $sidebarAudit['groups'] }} · {{ __('sidebar_admin.inventory_delta') }} {{ $sidebarAudit['groups'] - 13 }}</p>
+<p data-sidebar-inventory-items><strong>{{ __('sidebar_admin.inventory_items') }}</strong>: {{ __('sidebar_admin.inventory_current') }} {{ $sidebarAudit['items'] }} · {{ __('sidebar_admin.inventory_delta') }} {{ $sidebarAudit['items'] - 61 }}</p>
+@if($sidebarAudit['disabled_records'] === null)
+<p role="status" data-sidebar-inventory-storage-missing>{{ __('sidebar_admin.inventory_storage_missing') }}</p>
+@else
+<p data-sidebar-inventory-disabled><strong>{{ __('sidebar_admin.inventory_disabled') }}</strong>: {{ __('sidebar_admin.inventory_current') }} {{ $sidebarAudit['disabled_records'] }} · {{ __('sidebar_admin.inventory_delta') }} {{ $sidebarAudit['disabled_records'] - 25 }}</p>
+<p class="muted">{{ __('sidebar_admin.inventory_breakdown', ['groups' => $sidebarAudit['disabled_groups'], 'items' => $sidebarAudit['disabled_items'], 'roles' => $sidebarAudit['hidden_role_records']]) }}</p>
+@endif
+<p class="muted">{{ __('sidebar_admin.inventory_caveat') }}</p>
+</section>
+
 <form method="post" action="{{ route('admin.sidebar-layout.update') }}">
 @csrf @method('put')
 <section class="panel">
