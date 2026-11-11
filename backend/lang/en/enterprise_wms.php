@@ -13,6 +13,7 @@ return [
     ],
     'tabs' => [
         'overview' => 'Stock overview',
+        'warehouses' => 'Warehouses',
         'movements' => 'Movements',
         'transfers' => 'Transfers',
         'counts' => 'Counts',
