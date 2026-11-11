@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Entitlements\ModuleEntitlementResolver;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Procurement\GoodsReceiptManager;
 use App\Enterprise\Procurement\ProcurementCompletionManager;
@@ -54,6 +56,7 @@ final class EnterpriseProcurementController extends Controller
         private readonly TenantContextResolver $tenants,
         private readonly AdminNavigation $navigation,
         private readonly ModuleRegistry $modules,
+        private readonly ModuleEntitlementResolver $entitlements,
     ) {}
 
     public function index(Request $request): View
@@ -714,6 +717,14 @@ final class EnterpriseProcurementController extends Controller
         $selected = collect($options)->firstWhere('id', $requested > 0 ? $requested : $options[0]['id']);
         abort_unless(is_array($selected), 403);
         $storeId = (int) $selected['id'];
+
+        // A global ERP role (including Super Admin) is not an entitlement
+        // override for a store that has explicitly denied this module.
+        // This context is shared by reads and every state-changing action.
+        abort_unless($this->entitlements->allows(
+            'procurement',
+            new EntitlementScope(EntitlementScope::STORE, $storeId),
+        ), 403);
 
         $context = $selected['channel'] === 'b2c'
             ? $this->tenants->retail($actor, $storeId, $actor->hasRole('SUPER_ADMIN'), $request)
