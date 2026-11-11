@@ -84,9 +84,10 @@ final class RbacManager
             ]);
         }
 
-        $before = $this->userSnapshot($target);
-
-        DB::transaction(function () use ($target, $actor, $active, $reason): void {
+        // The audit and lifecycle mutation form one DB transaction. A failed
+        // audit write must not leave an untraceable archive or revoked session.
+        return DB::transaction(function () use ($target, $actor, $active, $reason, $request): User {
+            $before = $this->userSnapshot($target);
             $target->forceFill([
                 'is_active' => $active,
                 'deactivated_at' => $active ? null : now(),
@@ -99,19 +100,19 @@ final class RbacManager
                 $target->tokens()->delete();
                 $this->securitySessions->revokeForUser($target, $actor);
             }
+
+            $fresh = $target->refresh();
+            $after = $this->userSnapshot($fresh);
+            if ($reason !== null && trim($reason) !== '') {
+                // Reactivation clears the account's deactivation_reason, but the
+                // restoration reason remains in the committed audit history.
+                $after['change_reason'] = trim($reason);
+                $after['impact_reviewed'] = $request->boolean('impact_reviewed');
+            }
+            $this->audit->record('user.status_changed', $actor, $fresh, $before, $after, $request);
+
+            return $fresh;
         });
-
-        $fresh = $target->refresh();
-        $after = $this->userSnapshot($fresh);
-        if ($reason !== null && trim($reason) !== '') {
-            // Reactivation clears the account's deactivation_reason, but the
-            // independently supplied restoration reason remains in the audit.
-            $after['change_reason'] = trim($reason);
-            $after['impact_reviewed'] = $request->boolean('impact_reviewed');
-        }
-        $this->audit->record('user.status_changed', $actor, $fresh, $before, $after, $request);
-
-        return $fresh;
     }
 
     /**

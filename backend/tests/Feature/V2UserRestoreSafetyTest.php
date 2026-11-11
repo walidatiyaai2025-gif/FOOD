@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\AuditLog;
+use App\Services\AuditLogger;
+use App\Services\RbacManager;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -90,6 +93,44 @@ final class V2UserRestoreSafetyTest extends TestCase
         $this->patchJson($url, $this->reviewedStatus($target, false, 'API archive with full review'))
             ->assertOk()
             ->assertJsonPath('data.is_active', false);
+    }
+
+
+    public function test_failed_audit_rolls_back_archival_and_all_session_revocations(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN');
+        $target = $this->userWithRole('B2B_ADMIN');
+        $token = $target->createToken('preserved-when-audit-fails');
+
+        $audit = \Mockery::mock(AuditLogger::class);
+        $audit->shouldReceive('record')
+            ->once()
+            ->andThrow(new \RuntimeException('audit persistence failed'));
+        $this->app->instance(AuditLogger::class, $audit);
+
+        try {
+            app(RbacManager::class)->setUserActive(
+                $admin,
+                $target,
+                false,
+                'Archived after impact review',
+                Request::create('/admin/security', 'PATCH', [
+                    'impact_reviewed' => true,
+                    'confirm_email' => $target->email,
+                ]),
+            );
+            $this->fail('An account may not be archived without a committed audit.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('audit persistence failed', $exception->getMessage());
+        }
+
+        $this->assertTrue((bool) $target->fresh()->is_active);
+        $this->assertNull($target->fresh()->deactivated_at);
+        $this->assertDatabaseHas('personal_access_tokens', ['id' => $token->accessToken->id]);
+        $this->assertDatabaseMissing('audit_logs', [
+            'event' => 'user.status_changed',
+            'auditable_id' => $target->id,
+        ]);
     }
 
     /** @return array<string, mixed> */
