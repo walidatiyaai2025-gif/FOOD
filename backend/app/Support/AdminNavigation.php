@@ -178,9 +178,9 @@ class AdminNavigation
                 $this->routeItemAny($user, 'field_ops_finance', 'admin.field_operations.finance', 'admin.field-operations.finance', ['finance.view']),
             ]),
             $this->group('marketing', 'admin.nav_groups.marketing', '✦', [
-                $useCustomerServiceDashboardProfile
-                    ? $this->routeItem($user, 'whatsapp_campaigns', 'whatsapp.campaigns.nav_title', 'admin.whatsapp-campaigns.index', 'whatsapp.campaigns.view')
-                    : $this->whatsAppCampaignsItem($user),
+                // The campaign link must obey the same operational capability gate
+                // as whatsapp.capability:campaigns on its HTTP destination.
+                $this->whatsAppCampaignsItem($user),
                 $useCustomerServiceDashboardProfile
                     ? null
                     : $this->routeItem($user, 'whatsapp_chatbot', 'chatbot.nav_title', 'admin.whatsapp-chatbot.index', 'chatbot.view'),
