@@ -135,6 +135,7 @@ return [
     'user_permission_scope_invalid' => 'The selected user permission scope is invalid.',
     'user_permission_role_required' => 'Assign at least one active global role before managing global user permissions.',
     'user_permission_store_scope_invalid' => 'The user does not have an active authorization context for the selected store.',
+        'sensitive_override_requires_independent_approval' => 'Sensitive functions require an approved role and their independent action/approval policy. Individual user Allow overrides cannot grant them.',
     'user_permission_domain_invalid' => 'One or more selected permissions are outside the Wholesale/Retail domain of this user’s assigned role.',
     'user_permissions_super_admin_locked' => 'SUPER_ADMIN access is protected and cannot be narrowed or extended with individual overrides.',
 ];
