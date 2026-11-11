@@ -270,7 +270,7 @@ $roleRiskMessages = collect(array_keys($roleRiskPairs))
         if (!form) return;
         if (isRoleChoice(node)) {
             const selector = form.querySelector('[data-v2-user-tree-scope]');
-            const storeMatch = node.name.match(/^store_role_ids\\[([1-9]\\d*)\\]\\[\\]$/);
+            const storeMatch = node.name.match(/^store_role_ids\[([1-9]\d*)\]\[\]$/);
             const nextScope = storeMatch ? storeMatch[1] : '';
             if (selector && [...selector.options].some((option) => option.value === nextScope)) {
                 selector.value = nextScope;
