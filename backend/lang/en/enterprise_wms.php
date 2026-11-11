@@ -238,6 +238,7 @@ return [
         ],
     ],
     'reports' => [
+        'open_report' => 'Open report',
         'title' => 'WMS reports',
         'subtitle' => 'Bounded authorized reports over the same inventory and movement authorities, with large exports handed to shared reporting infrastructure.',
         'inventory_summary' => 'Inventory summary / value',
