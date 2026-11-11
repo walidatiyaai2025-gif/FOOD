@@ -11,7 +11,7 @@
 | Boundary | Source code / automated assertion | Open acceptance |
 | --- | --- | --- |
 | Built-in catalog | `B2C_DRIVER` is globally scoped and seeds the single `deliveries.b2c.execute` permission; `User::inheritedPermissionCodes` agrees | Check the current real account's effective assignments and overrides privately |
-| No accidental administrative powers | No `orders.view`, `inventory.view`, `roles.manage`, `users.delete` or B2B/Van grants; no store inventory scope; no authorized Dashboard groups; direct Security/Wholesale routes denied in AR and EN | Real account's current Sidebar and direct-URL AR/EN, RTL/LTR, responsive and a11y verification |
+| No accidental administrative powers | No `orders.view`, `inventory.view`, `roles.manage`, `users.delete` or B2B/Van grants; no store inventory scope; permission-scoped Security, Retail inventory and Wholesale order leaves are absent from Sidebar; direct Security/Wholesale HTTP denied in AR and EN. Legacy global-role ERP *group* discoverability requires separate correction (see below) | Real account's current Sidebar and direct-URL AR/EN, RTL/LTR, responsive and a11y verification |
 | Driver App impersonation | Login without an active Retail `drivers` profile returns 403; direct Driver wallet with a driver app token returns 403; a Wholesale profile cannot convert B2C role into B2B delivery authority; account and historical rows retained | Verify real account's current profile, active flag, store channel and device-token/session revocation |
 | Retail Driver positive path | Authorized synthetic `B2C` profile can log in and create the app-specific Driver token | Isolated staging Driver UI and current account authorization |
 | Explicit user DENY | Global `deliveries.b2c.execute` DENY defeats the role grant for new Driver login and existing authenticated Driver API access; no extra token is created | Review real current user overrides, approvals and audit provenance |
@@ -22,7 +22,7 @@
 
 ## Per-application impact
 - **Backend/API:** regression-only coverage of existing `AuthController`, `EnsureDriverRuntimeAccess`, `EnsureVanRuntimeAccess`, effective role/override and tenant-scope contracts; **no API shape, route, policy, migration, grant or production code changes**.
-- **Dashboard:** current authoritative Sidebar and HTTP denial exercised in Arabic and English. No UI/source update. Independent browser RTL/LTR/responsive/keyboard/screen-reader acceptance remains pending.
+- **Dashboard:** current authoritative Sidebar and HTTP denial exercised in Arabic and English. No UI/source update. **Outstanding discoverability gap:** on current Foodex_V2, \`AdminNavigation::canAccessPlatformErp\` checks for any active global role, including a global Driver role. This can expose broad ERP/Administration entry links even though the actual protected HTTP routes and permissions remain denied. The new test deliberately asserts the absence of forbidden *permission-scoped business leaves* and denied direct HTTP, **not** an unsupported empty Sidebar. The shared \`backend/app/Support/AdminNavigation.php\` is currently owned by open V2 PR #3064 (Issue #2713); do not collide with its worker. Coordinate a separate non-overlapping correction and new role-only navigation regression before marking #2908 complete. Independent browser RTL/LTR/responsive/keyboard/screen-reader acceptance remains pending.
 - **Customer:** **not affected** — no Customer API, payload, customer identity, catalog, checkout or Flutter code change.
 - **Driver:** **no changed app contract** — regression exercises existing B2C Driver login and runtime guard; no Flutter, API schema, push, GPS, assignment or dispatch modification. Separate mobile issue is unnecessary for this test-only change, but mobile runtime UAT is unverified.
 - **Van:** **not affected** — denied Driver cross-app access is asserted; no Van assignment, visit, payment, or Flutter behavior changed.
@@ -30,5 +30,5 @@
 
 ## Delivery and handoff
 - One issue-scoped branch: `test/2908-v2-exported-b2c-driver-role-boundary`; one PR whose **base must be Foodex_V2**, with exact-head required CI evidence, no automatic promotion to main.
-- **Keep #2908 OPEN** after integration until the historical account is reconciled to current authorized evidence and real scoped/role/tenant/Sidebar/browser acceptance is complete. A synthetic role-level test cannot establish the private account's current status.
+- **Keep #2908 OPEN** after integration until the historical account is reconciled to current authorized evidence, the over-broad platform ERP entry visibility for role-only Driver accounts is corrected without cross-worker collisions, and real scoped/role/tenant/Sidebar/browser acceptance is complete. A synthetic role-level test cannot establish the private account's current status.
 - No main commit, PR, merge, tag, release, signed ZIP publication, cPanel or production deployment is authorized.
