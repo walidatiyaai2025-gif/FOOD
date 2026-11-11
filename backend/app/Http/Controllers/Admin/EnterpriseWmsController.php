@@ -139,6 +139,19 @@ final class EnterpriseWmsController extends Controller
                 true,
             );
 
+        // The reservation form must project the same store + warehouse
+        // inventory.manage decision as the mutation endpoint. Having
+        // inventory.view alone never authorizes reserving or releasing stock.
+        $canManageReservations = $tab === 'reservations'
+            && $warehouseId !== null
+            && $inventoryLookup->isNotEmpty()
+            && in_array($storeId, $this->tenantScope->allowedStoreIds($actor, 'inventory.manage'), true)
+            && in_array(
+                $warehouseId,
+                $this->warehouseScope->authorizedWarehouseIds($actor, $storeId, 'inventory.manage'),
+                true,
+            );
+
         return view('admin.enterprise-wms', array_merge($data, [
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
@@ -151,6 +164,7 @@ final class EnterpriseWmsController extends Controller
             'warehouseId' => $warehouseId,
             'inventoryLookup' => $inventoryLookup,
             'canManageLocations' => $canManageLocations,
+            'canManageReservations' => $canManageReservations,
             'canProcurementHandoff' => $this->navigation->hasPermissionInScope(
                 $actor,
                 'procurement.purchase_requests.view',
