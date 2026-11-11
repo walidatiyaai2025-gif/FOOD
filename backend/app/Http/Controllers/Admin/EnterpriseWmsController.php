@@ -404,7 +404,7 @@ final class EnterpriseWmsController extends Controller
             'name' => ['required', 'string', 'max:160'],
             'is_active' => ['nullable', 'boolean'],
         ]);
-        $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
+        $this->assertLocationsMutationContext($actor, (int) $data['store_id'], (int) $data['warehouse_id']);
         $this->locations->saveZone($actor, (int) $data['warehouse_id'], (string) $data['code'], (string) $data['name'], (bool) ($data['is_active'] ?? true));
 
         return $this->backTo('locations', $data, __('enterprise_wms.messages.zone_saved'));
@@ -421,7 +421,7 @@ final class EnterpriseWmsController extends Controller
             'name' => ['required', 'string', 'max:160'],
             'is_active' => ['nullable', 'boolean'],
         ]);
-        $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
+        $this->assertLocationsMutationContext($actor, (int) $data['store_id'], (int) $data['warehouse_id']);
         $this->locations->saveBin(
             $actor,
             (int) $data['warehouse_id'],
@@ -443,7 +443,11 @@ final class EnterpriseWmsController extends Controller
             'inventory_id' => ['required', 'integer', 'min:1'],
             'bin_id' => ['required', 'integer', 'min:1'],
         ]);
-        $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
+        $this->assertLocationsMutationContext($actor, (int) $data['store_id'], (int) $data['warehouse_id']);
+        abort_unless(DB::table('inventories')
+            ->where('id', (int) $data['inventory_id'])
+            ->where('warehouse_id', (int) $data['warehouse_id'])
+            ->exists(), 404);
         $this->locations->assignInventory($actor, (int) $data['inventory_id'], (int) $data['bin_id']);
 
         return $this->backTo('locations', $data, __('enterprise_wms.messages.inventory_bin_saved'), [
@@ -691,6 +695,15 @@ final class EnterpriseWmsController extends Controller
     private function assertStore(User $actor, int $storeId, string $permission): void
     {
         $this->tenantScope->assertStore($actor, $storeId, $permission);
+    }
+
+    private function assertLocationsMutationContext(User $actor, int $storeId, int $warehouseId): void
+    {
+        $this->tenantScope->assertStore($actor, $storeId, 'inventory.manage');
+        $warehouse = $this->warehouseScope->assertWarehouse($actor, $warehouseId, 'inventory.manage');
+
+        // Hidden form context is untrusted, even when managing multiple stores.
+        abort_unless((int) $warehouse->store_id === $storeId, 404);
     }
 
     /** @param array<string, mixed> $data
