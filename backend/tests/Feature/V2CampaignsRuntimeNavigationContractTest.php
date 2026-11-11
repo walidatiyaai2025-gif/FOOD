@@ -50,7 +50,7 @@ final class V2CampaignsRuntimeNavigationContractTest extends TestCase
     {
         $this->configureCampaigns(true);
 
-        foreach (['CUSTOMER_SERVICE_AGENT', 'CUSTOMER_SERVICE_SUPERVISOR'] as $role) {
+        foreach (['CUSTOMER_SERVICE_MANAGER', 'CUSTOMER_SERVICE_AGENT', 'CUSTOMER_SERVICE_SUPERVISOR'] as $role) {
             foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
                 app()->setLocale($locale);
                 $actor = $this->campaignViewer($role, $locale);

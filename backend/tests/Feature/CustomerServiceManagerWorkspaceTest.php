@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\WhatsApp\RuntimePolicy;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\AdminNavigation;
@@ -63,7 +64,9 @@ final class CustomerServiceManagerWorkspaceTest extends TestCase
 
         $this->assertTrue($groups->has('marketing'));
         $marketingKeys = collect($groups->get('marketing')['children'])->pluck('key')->all();
-        $this->assertContains('whatsapp_campaigns', $marketingKeys);
+        // Role grants remain, but an unready WhatsApp runtime must not create a dead link.
+        $this->assertFalse(app(RuntimePolicy::class)->allowsCampaignManagement());
+        $this->assertNotContains('whatsapp_campaigns', $marketingKeys);
         $this->assertContains('notification_campaigns', $marketingKeys);
         $this->assertContains('live_ads', $marketingKeys);
         $this->assertNotContains('coupons', $marketingKeys);
@@ -116,7 +119,9 @@ final class CustomerServiceManagerWorkspaceTest extends TestCase
         $this->assertContains('coupons', $catalogKeys);
 
         $marketingKeys = collect($groups->get('marketing')['children'])->pluck('key')->all();
-        $this->assertContains('whatsapp_campaigns', $marketingKeys);
+        // Role grants remain, but an unready WhatsApp runtime must not create a dead link.
+        $this->assertFalse(app(RuntimePolicy::class)->allowsCampaignManagement());
+        $this->assertNotContains('whatsapp_campaigns', $marketingKeys);
         $this->assertContains('notification_campaigns', $marketingKeys);
         $this->assertContains('live_ads', $marketingKeys);
         $this->assertNotContains('coupons', $marketingKeys);
