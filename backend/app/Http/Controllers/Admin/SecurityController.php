@@ -101,6 +101,20 @@ final class SecurityController extends Controller
                 ->groupBy('role_id')
             : collect();
 
+        // Store names are read from actual role assignments; no inferred store
+        // ownership or per-user effective authorization is implied.
+        $roleAssignedStores = $section === 'roles'
+            ? DB::table('user_store_roles')
+                ->join('stores', 'stores.id', '=', 'user_store_roles.store_id')
+                ->whereIn('user_store_roles.role_id', $roles->pluck('id'))
+                ->select('user_store_roles.role_id', 'stores.code as store_code', 'stores.name as store_name')
+                ->selectRaw('COUNT(*) as assignments_count')
+                ->groupBy('user_store_roles.role_id', 'stores.id', 'stores.code', 'stores.name')
+                ->orderBy('stores.name')
+                ->get()
+                ->groupBy('role_id')
+            : collect();
+
         $stores = Store::query()
             ->select('stores.*')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
@@ -512,6 +526,7 @@ final class SecurityController extends Controller
             'users' => $users,
             'roles' => $roles,
             'roleApprovalLimits' => $roleApprovalLimits,
+            'roleAssignedStores' => $roleAssignedStores,
             'permissionRoleAudit' => $permissionRoleAudit,
             'roleAssignmentAudit' => $roleAssignmentAudit,
             'globalRoles' => $globalRoles,
