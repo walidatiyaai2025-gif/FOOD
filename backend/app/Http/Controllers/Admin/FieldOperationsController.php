@@ -257,6 +257,7 @@ final class FieldOperationsController extends Controller
             )
             ->where('order_van_assignments.van_id', $van->id)
             ->where('orders.channel', 'b2b')
+            ->whereIn('orders.store_id', $this->b2bStoreIds($user))
             ->orderByRaw("CASE WHEN order_van_assignments.status = 'active' THEN 0 ELSE 1 END")
             ->orderByDesc('order_van_assignments.assigned_at')
             ->limit(50)
