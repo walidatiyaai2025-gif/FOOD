@@ -43,7 +43,10 @@
             ? $restaurantActor->hasPermission('smart_ordering.manage', $restaurantStoreId)
             : $restaurantNav->hasPermissionInScope($restaurantActor, 'smart_ordering.manage'));
     $restaurantCanOrders = $restaurantActor && $restaurantNav->hasPermissionInScope($restaurantActor, 'orders.view');
-    $restaurantCanQr = $restaurantActor && $restaurantNav->hasPermissionInScope($restaurantActor, 'smart_ordering.qr.view');
+    $restaurantCanQr = $restaurantActor
+        && ($restaurantStoreId > 0
+            ? $restaurantActor->hasPermission('smart_ordering.qr.view', $restaurantStoreId)
+            : $restaurantNav->hasPermissionInScope($restaurantActor, 'smart_ordering.qr.view'));
     $restaurantCanAnalytics = $restaurantActor && $restaurantNav->hasPermissionInScope($restaurantActor, 'smart_ordering.analytics.view');
     $restaurantCanInventory = $restaurantActor
         && ($restaurantStoreId > 0

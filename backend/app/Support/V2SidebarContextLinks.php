@@ -12,7 +12,8 @@ final class V2SidebarContextLinks
 {
     /** @var array<string, list<string>> */
     private const ENTRY_KEYS = [
-        'platform' => ['enterprise_workspaces', 'administration_hub'],
+        // Enterprise Workspaces may be store-scoped; it is not proof of platform context.
+        'platform' => ['administration_hub'],
         'wholesale' => ['b2b_dashboard'],
         'retail' => ['b2c_dashboard'],
         'restaurant' => ['smart_ordering'],

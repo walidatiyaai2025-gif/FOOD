@@ -94,6 +94,7 @@ return [
             'payment' => 'دفع فاشل / ملغى',
             'invoice' => 'تم التسليم بدون فاتورة صالحة',
             'cancelled_refunded' => 'ملغي / مسترد',
+            'failed_returns' => 'الفشل والإرجاع',
         ],
         'sla_help' => 'الطلبات المفتوحة التي لم تتجاوز 24 ساعة.',
         'fulfillment_buckets' => [

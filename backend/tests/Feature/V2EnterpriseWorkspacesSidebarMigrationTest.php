@@ -76,7 +76,7 @@ final class V2EnterpriseWorkspacesSidebarMigrationTest extends TestCase
         $this->assertSame([], $definition['permissions']);
     }
 
-    public function test_workspace_caption_does_not_expose_platform_navigation_to_store_only_or_roleless_users(): void
+    public function test_workspace_caption_exposes_scoped_retail_without_roleless_or_foreign_store_grants(): void
     {
         $owned = $this->retailStore('V2-2719-OWNED');
         $foreign = $this->retailStore('V2-2719-FOREIGN');
@@ -99,11 +99,15 @@ final class V2EnterpriseWorkspacesSidebarMigrationTest extends TestCase
                     ->flatMap(static fn (array $group): array => $group['children'])
                     ->pluck('key')
                     ->all();
-                $this->assertNotContains('enterprise_workspaces', $visible);
+                if ($actor->is($retail)) {
+                    $this->assertContains('enterprise_workspaces', $visible);
+                } else {
+                    $this->assertNotContains('enterprise_workspaces', $visible);
+                }
             }
 
-            // Existing Retail routes remain store-scoped; a platform Sidebar rename
-            // must not give a Retail actor access to another store's dashboard.
+            // The visible Retail Workspaces route remains store-scoped; the Sidebar
+            // label is not a platform grant or cross-store dashboard authority.
             $this->actingAs($retail)
                 ->get(route('admin.b2c.module', ['module' => 'dashboard', 'store_id' => $owned]))
                 ->assertOk();
