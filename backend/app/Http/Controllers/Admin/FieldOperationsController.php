@@ -575,7 +575,10 @@ final class FieldOperationsController extends Controller
 
             return $visit;
         }));
-        $assignments = $this->registry->effectiveAssignments();
+        // A per-store actor has no authorized B2B customer-to-store creation mapping.
+        // Do not even load the global Van assignment selector for a forbidden form.
+        $canCreateVisit = $canReadAllWholesale;
+        $assignments = $canCreateVisit ? $this->registry->effectiveAssignments() : collect();
         $reasons = VanNoOrderReason::query()
             ->where('is_active', true)
             ->orderBy('sort_order')
@@ -649,6 +652,7 @@ final class FieldOperationsController extends Controller
             'visitStores',
             'visitRoutes',
             'visitOrders',
+            'canCreateVisit',
         ));
     }
 

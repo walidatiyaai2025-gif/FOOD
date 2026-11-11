@@ -549,7 +549,7 @@
         @endif
 
         @if($fieldOperationsSection === 'visits')
-            @if($canManageVan)
+            @if($canManageVan && ($canCreateVisit ?? false))
             <details class="fieldops-card">
                 <summary><strong>{{ __('field_operations.plan_customer_visit') }}</strong></summary>
                 <form method="post" action="{{ route('admin.field-operations.visits.store') }}" class="fieldops-form" style="margin-top:14px">@csrf

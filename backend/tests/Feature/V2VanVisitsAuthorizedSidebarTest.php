@@ -216,6 +216,7 @@ final class V2VanVisitsAuthorizedSidebarTest extends TestCase
                 ->assertOk()
                 ->assertSee('dir="'.$direction.'"', false)
                 ->assertSee('P268-OWN-WHOLESALE-CUSTOMER')
+                ->assertDontSee('name="assignment_id"', false)
                 ->assertDontSee('P268-RETAIL-PRIVATE-CUSTOMER')
                 ->assertDontSee('P268-FOREIGN-WHOLESALE-CUSTOMER')
                 ->assertDontSee('P268-RETAIL-PRIVATE')
