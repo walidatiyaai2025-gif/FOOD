@@ -70,6 +70,7 @@ final class V2RoleCodeHistoryTest extends TestCase
         ])->assertUnprocessable()->assertJsonValidationErrors('code');
 
         $this->patchJson('/api/v1/admin/security/roles/'.$role->id, [
+            'change_reason' => 'Regression fixture approved RBAC access change',
             'name' => 'Reactivated',
             'scope' => 'global',
             'is_active' => true,
@@ -95,6 +96,7 @@ final class V2RoleCodeHistoryTest extends TestCase
         Sanctum::actingAs($admin);
 
         $this->patchJson('/api/v1/admin/security/roles/'.$role->id, [
+            'change_reason' => 'Regression fixture approved RBAC access change',
             'name' => 'Different business meaning',
             'scope' => 'store',
             'is_active' => true,
