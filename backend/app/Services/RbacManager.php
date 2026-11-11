@@ -45,6 +45,16 @@ final class RbacManager
         );
     }
 
+    /** @param array<string, mixed> $snapshot
+     *  @return array<string, mixed>
+     */
+    private function auditedChangeSnapshot(Request $request, array $snapshot): array
+    {
+        $reason = trim((string) $request->input('change_reason', ''));
+
+        return $reason === '' ? $snapshot : [...$snapshot, 'change_reason' => $reason];
+    }
+
     public function setUserActive(User $actor, User $target, bool $active, ?string $reason, Request $request): User
     {
         abort_if($target->isPlatformOwner(), 403, 'Platform Owner status is internally managed.');
@@ -229,7 +239,7 @@ final class RbacManager
         $fresh = $target->refresh()->load(['roles', 'storeRoleAssignments.role', 'storeRoleAssignments.store']);
         $this->finalizePermissionMutation($actor, $fresh, 'user.roles_changed', $request);
         $fresh = $target->refresh()->load(['roles', 'storeRoleAssignments.role', 'storeRoleAssignments.store']);
-        $this->audit->record('user.roles_changed', $actor, $fresh, $before, $this->userSnapshot($fresh), $request);
+        $this->audit->record('user.roles_changed', $actor, $fresh, $before, $this->auditedChangeSnapshot($request, $this->userSnapshot($fresh)), $request);
 
         return $fresh;
     }
@@ -393,12 +403,7 @@ final class RbacManager
             $actor,
             $fresh,
             $before,
-            array_merge(
-                $this->userSnapshot($fresh),
-                $request->filled('change_reason')
-                    ? ['change_reason' => trim((string) $request->input('change_reason'))]
-                    : [],
-            ),
+            $this->auditedChangeSnapshot($request, $this->userSnapshot($fresh)),
             $request,
         );
 
@@ -503,7 +508,7 @@ final class RbacManager
         $fresh = $role->refresh()->load('permissions');
         $this->finalizePermissionMutation($actor, $fresh, 'role.updated', $request);
         $fresh = $role->refresh()->load('permissions');
-        $this->audit->record('role.updated', $actor, $fresh, $before, $this->roleSnapshot($fresh), $request);
+        $this->audit->record('role.updated', $actor, $fresh, $before, $this->auditedChangeSnapshot($request, $this->roleSnapshot($fresh)), $request);
 
         return $fresh;
     }
