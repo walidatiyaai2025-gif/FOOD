@@ -48,7 +48,9 @@
 
 <div class="card"><h3>{{ __('security_governance.reports.title') }}</h3><div class="security-report-grid">
 @foreach(['effective-access','privileged-changes','delegations','mfa','auth-audit'] as $report)
+@if($report !== 'effective-access' || auth()->user()?->hasRole('SUPER_ADMIN'))
 <a href="{{ route('admin.security.reports.export',['report'=>$report]) }}"><span>{{ __('security_governance.reports.'.str_replace('-','_',$report)) }}</span><strong>{{ __('security_governance.reports.export') }}</strong></a>
+@endif
 @endforeach
 </div></div>
 </section>
