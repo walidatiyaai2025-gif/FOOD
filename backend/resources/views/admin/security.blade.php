@@ -267,6 +267,18 @@ $roleLabel = static function ($role): string {
 @if($roleAssignmentAudit !== null)
 <section class="card" data-v2-role-assignment-audit aria-labelledby="v2-role-assignment-title">
 <h3 id="v2-role-assignment-title">{{ __('admin.security.assignment_audit.title') }}</h3>
+<div data-v2-role-registry-audit aria-label="{{ __('admin.security.assignment_audit.registry_title') }}">
+<h4>{{ __('admin.security.assignment_audit.registry_title') }}</h4>
+<p class="muted">{{ __('admin.security.assignment_audit.registry_historical', ['registered' => 48, 'assigned' => 21]) }}</p>
+<div class="role-grid">
+<div class="card" data-v2-role-registry-total><strong>{{ __('admin.security.assignment_audit.registry_registered') }}</strong><p class="foodex-number">{{ $roleAssignmentAudit['role_registry_total'] }} · {{ __('admin.security.assignment_audit.delta') }} {{ $roleAssignmentAudit['role_registry_total'] - 48 }}</p></div>
+<div class="card" data-v2-role-registry-assigned><strong>{{ __('admin.security.assignment_audit.registry_assigned') }}</strong><p class="foodex-number">{{ $roleAssignmentAudit['role_registry_assigned'] }} · {{ __('admin.security.assignment_audit.delta') }} {{ $roleAssignmentAudit['role_registry_assigned'] - 21 }}</p></div>
+<div class="card"><strong>{{ __('admin.security.assignment_audit.registry_unassigned') }}</strong><p class="foodex-number">{{ $roleAssignmentAudit['role_registry_unassigned'] }}</p></div>
+<div class="card"><strong>{{ __('admin.security.assignment_audit.registry_active') }}</strong><p class="foodex-number">{{ $roleAssignmentAudit['role_registry_active_assigned'] }}</p></div>
+</div>
+<p class="muted">{{ __('admin.security.assignment_audit.registry_distinction') }}</p>
+</div>
+
 <p class="muted">{{ __('admin.security.assignment_audit.historical', ['global' => 31, 'store' => 3]) }}</p>
 <div class="role-grid">
 <div class="card" data-v2-global-assignments><strong>{{ __('admin.security.assignment_audit.global') }}</strong><p class="foodex-number">{{ $roleAssignmentAudit['global_assignments'] }} · {{ __('admin.security.assignment_audit.delta') }} {{ $roleAssignmentAudit['global_assignments'] - 31 }}</p></div>

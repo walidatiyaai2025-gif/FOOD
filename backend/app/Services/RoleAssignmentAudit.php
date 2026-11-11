@@ -29,14 +29,20 @@ final class RoleAssignmentAudit
             ->groupBy('role_id')
             ->pluck('assignments', 'role_id');
 
-        $roleRows = Role::query()
+        // Retain the complete role registry before filtering to assigned roles.
+        // The historic 21 figure counts DISTINCT assigned roles, not users.
+        $registeredRoles = Role::query()
             ->orderBy('code')
-            ->get(['id', 'code', 'name', 'scope'])
+            ->get(['id', 'code', 'name', 'scope', 'is_active', 'archived_at']);
+
+        $roleRows = $registeredRoles
             ->map(static fn (Role $role): array => [
                 'code' => (string) $role->code,
                 'name' => (string) $role->name,
                 'global' => (int) $globalByRole->get($role->id, 0),
                 'store' => (int) $storeByRole->get($role->id, 0),
+                'is_active' => (bool) $role->is_active,
+                'archived' => $role->archived_at !== null,
             ])
             ->filter(static fn (array $row): bool => $row['global'] + $row['store'] > 0)
             ->values()
@@ -67,7 +73,15 @@ final class RoleAssignmentAudit
                 ->count();
         };
 
+        $assignedRoleCount = count($roleRows);
+
         return [
+            'role_registry_total' => $registeredRoles->count(),
+            'role_registry_assigned' => $assignedRoleCount,
+            'role_registry_unassigned' => $registeredRoles->count() - $assignedRoleCount,
+            'role_registry_active_assigned' => collect($roleRows)
+                ->filter(static fn (array $role): bool => $role['is_active'] && ! $role['archived'])
+                ->count(),
             'global_assignments' => (int) DB::table('role_user')->count(),
             'store_assignments' => (int) DB::table('user_store_roles')->count(),
             'assigned_users' => User::query()
