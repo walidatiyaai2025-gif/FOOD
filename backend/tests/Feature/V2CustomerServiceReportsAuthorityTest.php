@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\StoreBusinessProfile;
+use App\Models\Customer;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\ManagementReportService;
@@ -204,8 +205,16 @@ final class V2CustomerServiceReportsAuthorityTest extends TestCase
 
     private function retailCustomer(int $storeId, string $name, string $email): int
     {
+        // The legacy customers foreign key remains non-null on orders. Keep
+        // the historical identity alongside the channel-specific customer.
+        $legacy = Customer::query()->create([
+            'type' => 'b2c',
+            'name' => $name,
+            'email' => $email,
+        ]);
+
         return (int) DB::table('b2c_customers')->insertGetId([
-            'legacy_customer_id' => null,
+            'legacy_customer_id' => $legacy->getKey(),
             'store_id' => $storeId,
             'user_id' => null,
             'name' => $name,
@@ -220,6 +229,7 @@ final class V2CustomerServiceReportsAuthorityTest extends TestCase
     {
         DB::table('orders')->insert([
             'store_id' => $storeId,
+            'customer_id' => (int) DB::table('b2c_customers')->where('id', $customerId)->value('legacy_customer_id'),
             'b2c_customer_id' => $customerId,
             'order_number' => $number,
             'channel' => 'b2c',
