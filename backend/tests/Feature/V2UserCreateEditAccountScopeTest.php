@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
@@ -159,7 +160,7 @@ final class V2UserCreateEditAccountScopeTest extends TestCase
         $customer = User::factory()->create(['is_platform_customer' => true]);
         $delegated = User::factory()->create();
         $role = Role::query()->create(['code' => 'P079_DELEGATE', 'name' => 'Delegated', 'scope' => 'global', 'is_active' => true, 'is_system' => false]);
-        $role->permissions()->attach(\App\Models\Permission::query()->where('code', 'users.roles.manage')->firstOrFail());
+        $role->permissions()->attach(Permission::query()->where('code', 'users.roles.manage')->firstOrFail());
         $delegated->roles()->attach($role);
 
         $payload = ['name' => 'Hijacked', 'username' => 'bad.p079', 'email' => 'hijacked.p079@example.test', 'locale' => 'en', 'change_reason' => 'Illicit profile takeover attempt'];
@@ -177,11 +178,11 @@ final class V2UserCreateEditAccountScopeTest extends TestCase
         $admin = $this->actor();
         $target = User::factory()->create(['is_platform_customer' => false]);
         $this->actingAs($admin)->patch(route('admin.security.users.profile', $target, false), [
-            'name' => 'No reason','username' => 'new.name','email' => $target->email,'locale' => 'en',
+            'name' => 'No reason', 'username' => 'new.name', 'email' => $target->email, 'locale' => 'en',
         ])->assertSessionHasErrors('change_reason');
         $this->assertSame($target->name, $target->fresh()->name);
 
-        foreach (['ar' => 'rtl','en' => 'ltr'] as $locale => $dir) {
+        foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $dir) {
             $admin->forceFill(['locale' => $locale])->save();
             $response = $this->actingAs($admin)->get(route('admin.security.index', ['section' => 'users'], false))->assertOk()
                 ->assertSee(__('admin.security.account_scope_title'))
@@ -195,7 +196,7 @@ final class V2UserCreateEditAccountScopeTest extends TestCase
     private function actor(): User
     {
         $admin = User::factory()->create(['locale' => 'en', 'is_active' => true, 'is_platform_customer' => false]);
-        $admin->roles()->attach(Role::query()->where('code','SUPER_ADMIN')->firstOrFail());
+        $admin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
 
         return $admin;
     }
