@@ -127,6 +127,18 @@ final class EnterpriseWmsController extends Controller
             ? $this->dashboard->inventory360($actor, (int) $validated['inventory_id'])
             : null;
 
+        // Locations are readable with inventory.view, but their forms must
+        // project the very same store + warehouse inventory.manage authority
+        // that saveZone/saveBin/assignInventory enforce server-side.
+        $canManageLocations = $tab === 'locations'
+            && $warehouseId !== null
+            && in_array($storeId, $this->tenantScope->allowedStoreIds($actor, 'inventory.manage'), true)
+            && in_array(
+                $warehouseId,
+                $this->warehouseScope->authorizedWarehouseIds($actor, $storeId, 'inventory.manage'),
+                true,
+            );
+
         return view('admin.enterprise-wms', array_merge($data, [
             'user' => $actor,
             'navGroups' => $this->navigation->groupsFor($actor),
@@ -138,6 +150,7 @@ final class EnterpriseWmsController extends Controller
             'warehouses' => $warehouses,
             'warehouseId' => $warehouseId,
             'inventoryLookup' => $inventoryLookup,
+            'canManageLocations' => $canManageLocations,
             'canProcurementHandoff' => $this->navigation->hasPermissionInScope(
                 $actor,
                 'procurement.purchase_requests.view',
