@@ -127,18 +127,28 @@ final class V2OrdersSidebarAuthorizationContractTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_disabled_retail_store_and_unsupported_restaurant_module_do_not_advertise_orders(): void
+    public function test_inactive_store_is_denied_and_restaurant_uses_canonical_authorized_orders_alias(): void
     {
         $restaurantId = $this->retailStore('P194-RESTAURANT', StoreBusinessProfile::RESTAURANT);
         $restaurantAdmin = $this->retailAdmin($restaurantId, 'p194-restaurant@example.test');
 
         $this->assertNotContains('b2c_orders', $this->navigationKeys($restaurantAdmin));
+
+        // The pre-existing /admin/b2c/orders canonical alias precedes the
+        // profile-gated /admin/b2c/{module} route. Authorized Restaurant users
+        // may view scoped Orders via that alias, without a Retail-only menu.
+        $url = route('admin.b2c.module', [
+            'module' => 'orders',
+            'store_id' => $restaurantId,
+        ]);
+        $this->assertSame(
+            route('admin.b2c.orders.canonical', ['store_id' => $restaurantId]),
+            $url,
+        );
         $this->actingAs($restaurantAdmin)
-            ->get(route('admin.b2c.module', [
-                'module' => 'orders',
-                'store_id' => $restaurantId,
-            ]))
-            ->assertNotFound();
+            ->get($url)
+            ->assertOk()
+            ->assertSee('dir="ltr"', false);
 
         $storeId = $this->retailStore('P194-INACTIVE');
         $actor = $this->retailAdmin($storeId, 'p194-inactive@example.test');
