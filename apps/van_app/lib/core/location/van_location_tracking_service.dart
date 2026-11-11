@@ -57,7 +57,8 @@ class GeolocatorVanLocationSource implements VanLocationSource {
       latitude: position.latitude,
       longitude: position.longitude,
       accuracy: position.accuracy >= 0 ? position.accuracy : null,
-      speed: position.speed >= 0 && position.speed <= 500 ? position.speed : null,
+      speed:
+          position.speed >= 0 && position.speed <= 500 ? position.speed : null,
       heading: position.heading >= 0 && position.heading <= 360
           ? position.heading
           : null,
@@ -132,7 +133,10 @@ class VanLocationTrackingController {
       stop();
       await onSessionExpired?.call();
     } on VanAccessDeniedException {
+      // A Van heartbeat is guarded by the live assignment and Van role.
+      // Losing either must invalidate the app session, not just stop GPS.
       stop();
+      await onSessionExpired?.call();
     } on VanOfflineException {
       // Keep the tracker alive; the next cadence will retry automatically.
     } on VanApiException {
