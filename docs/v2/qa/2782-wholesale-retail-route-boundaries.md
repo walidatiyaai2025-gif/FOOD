@@ -15,11 +15,13 @@ The Dashboard uses the existing `B2bWorkspaceController` and `B2cWorkspaceContro
 | B2B_ADMIN global | `admin.b2b.dashboard` | 200 | Authorized Wholesale |
 | B2B_ADMIN global | `admin.b2c.dashboard` / `admin.b2c.module` with forged Retail store | 403 | No Wholesale → Retail pivot |
 | B2C_STORE_ADMIN assigned Retail A | `admin.b2b.dashboard` / `admin.b2b.module` with forged Wholesale store | 403 | No Retail → Wholesale pivot |
-| B2C_STORE_ADMIN Retail A | `admin.b2c.module?module=orders&store_id=A` | 200 | Authorized own-store view |
+| B2C_STORE_ADMIN Retail A | `admin.b2c.module?module=inventory&store_id=A` | 200 | Authorized own-store view |
 | B2C_STORE_ADMIN Retail A | Same with Retail B or Wholesale store ID | 404 | Other store hidden, channel mismatch rejected |
 | SUPER_ADMIN | Explicit Retail store without `support_access=1` | 403 | Platform identity alone cannot enter Retail support context |
 | SUPER_ADMIN | Retail store with `support_access=1` | 200 + audit log | Explicit support action independently authorized/audited |
 | Roleless active user | Both channel dashboards | 403 | No implicit access merely through a route name |
+
+The canonical `/admin/b2c/orders` URI is explicitly registered earlier as `admin.b2c.orders.canonical` and dispatched to `OrderOperationsController::b2cIndex`, even when URL generation uses `admin.b2c.module` with `module=orders`. That operations center implements its own role/channel/store policy. It must not be mistaken for `B2cWorkspaceController::show` when verifying Retail support opt-in. The B2C workspace HTTP tests therefore use `module=inventory`, which resolves to the actual workspace controller. A future P031 route inventory must review **both** route families independently.
 
 The tests exercise both **Arabic RTL** and **English LTR**, verify persistence of the support audit event and do not modify role grants, store assignments after fixture setup, records, or any accounting balance. Cross-tenant 404 assertions distinguish disclosure from denial.
 
