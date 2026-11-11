@@ -294,6 +294,26 @@ final class FieldOperationsController extends Controller
             }, 'invoice_id')
             ->get();
 
+        // P265: operational movements are immutable Van delivery execution
+        // transitions, NOT a GPS track (fleet_current_locations holds only
+        // each actor's latest heartbeat). Limit source rows and tenant scope
+        // in SQL before rendering the existing Van detail page.
+        $movementRows = DB::table('order_van_execution_events as event')
+            ->join('orders', 'orders.id', '=', 'event.order_id')
+            ->where('event.van_id', $van->getKey())
+            ->where('orders.channel', 'b2b')
+            ->whereIn('orders.store_id', $this->b2bStoreIds($user))
+            ->orderByDesc('event.captured_at')
+            ->orderByDesc('event.id')
+            ->limit(50)
+            ->get([
+                'event.id',
+                'event.from_status',
+                'event.to_status',
+                'event.captured_at',
+                'orders.order_number',
+            ]);
+
         $canViewFinanceLinks = $user->hasRole('SUPER_ADMIN') || $user->hasPermission('finance.view');
 
         return $this->render($request, 'van-detail', compact(
@@ -305,6 +325,7 @@ final class FieldOperationsController extends Controller
             'representativeNames',
             'territoryNames',
             'b2bOrders',
+            'movementRows',
             'canViewFinanceLinks',
         ));
     }
