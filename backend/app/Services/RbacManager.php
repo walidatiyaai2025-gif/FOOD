@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 final class RbacManager
@@ -67,6 +68,22 @@ final class RbacManager
             throw ValidationException::withMessages(['is_active' => [__('admin.security.errors.last_super_admin')]]);
         }
 
+        // P073: a status change is not an implicit archive/restore approval.
+        // Both impact acknowledgement and account-specific typed confirmation
+        // are validated server-side, including for direct API clients.
+        if ((bool) $target->is_active !== $active) {
+            if ($reason === null || mb_strlen(trim($reason)) < 8) {
+                throw ValidationException::withMessages([
+                    'reason' => [__('admin.security.lifecycle_reason_required')],
+                ]);
+            }
+
+            $request->validate([
+                'impact_reviewed' => ['required', 'accepted'],
+                'confirm_email' => ['required', 'string', 'max:190', Rule::in([(string) $target->email])],
+            ]);
+        }
+
         $before = $this->userSnapshot($target);
 
         DB::transaction(function () use ($target, $actor, $active, $reason): void {
@@ -85,7 +102,14 @@ final class RbacManager
         });
 
         $fresh = $target->refresh();
-        $this->audit->record('user.status_changed', $actor, $fresh, $before, $this->userSnapshot($fresh), $request);
+        $after = $this->userSnapshot($fresh);
+        if ($reason !== null && trim($reason) !== '') {
+            // Reactivation clears the account's deactivation_reason, but the
+            // independently supplied restoration reason remains in the audit.
+            $after['change_reason'] = trim($reason);
+            $after['impact_reviewed'] = $request->boolean('impact_reviewed');
+        }
+        $this->audit->record('user.status_changed', $actor, $fresh, $before, $after, $request);
 
         return $fresh;
     }
