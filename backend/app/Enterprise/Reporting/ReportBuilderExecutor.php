@@ -149,7 +149,12 @@ final class ReportBuilderExecutor
         }
 
         foreach ($query->measures as $measure) {
-            $source = $measure === 'orders' ? 'order_count' : $measure;
+            // Orders Summary emits order_count, while the canonical
+            // profitability projection emits orders. Accept both source keys
+            // without changing the public report measure name or other models.
+            $source = $measure === 'orders' && array_key_exists('order_count', $row)
+                ? 'order_count'
+                : $measure;
             if (! array_key_exists($source, $row)) {
                 throw ValidationException::withMessages([
                     'read_model' => ["Read model did not return measure [{$measure}]."],
