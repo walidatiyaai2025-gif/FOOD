@@ -76,7 +76,10 @@ final class UserRolePageTreePreviewController extends Controller
         $storeGrantCodes = $superAdmin ? collect() : collect($actor->effectivePermissionCodes($storeId));
         foreach ($ids as $id) {
             $role = $roles->get($id);
-            abort_unless($role !== null && $role->is_active && $role->archived_at === null, 422);
+            if (! $role instanceof Role) {
+                abort(422);
+            }
+            abort_if(! $role->is_active || $role->archived_at !== null, 422);
             $isStoreRole = in_array($id, $storeIds, true);
             abort_unless($role->scope === ($isStoreRole ? 'store' : 'global'), 422);
             abort_unless($jobRoles->isAvailable((string) $role->code, $isStoreRole ? $storeId : null), 422);
@@ -93,7 +96,9 @@ final class UserRolePageTreePreviewController extends Controller
         $moduleReady = [];
         foreach ($ids as $id) {
             $role = $roles->get($id);
-            abort_unless($role instanceof Role, 422);
+            if (! $role instanceof Role) {
+                abort(422);
+            }
             foreach ($sidebar->roleMatrix($role)['groups'] as $group) {
                 foreach ($group['items'] as $item) {
                     $key = (string) $item['key'];
