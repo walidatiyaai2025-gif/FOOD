@@ -20,6 +20,31 @@ class V2CouponsSidebarAuthorizationTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
     }
 
+    public function test_p233_coupon_sidebar_has_one_catalog_owner_and_real_http_in_both_locales(): void
+    {
+        $store = $this->store('V2-P233-CATALOG');
+        $actor = $this->retailUser([$store], 'v2-p233-catalog@example.test');
+
+        $this->assertSame('catalog', config('admin_sidebar.items.coupons.group'));
+
+        foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
+            app()->setLocale($locale);
+            $actor->forceFill(['locale' => $locale])->save();
+            $groups = collect(app(AdminNavigation::class)->groupsFor($actor->fresh()));
+            $catalog = $groups->firstWhere('key', 'catalog');
+
+            $this->assertNotNull($catalog);
+            $matches = collect($catalog['children'])->where('key', 'coupons');
+            $this->assertCount(1, $matches);
+            $this->assertSame('admin.coupons.index', $matches->first()['route']);
+            $this->assertCount(1, $groups->flatMap(static fn (array $group): array => $group['children'])->where('key', 'coupons'));
+
+            $this->actingAs($actor->fresh())->get(route('admin.coupons.index'))
+                ->assertOk()
+                ->assertSee('dir="'.$direction.'"', false);
+        }
+    }
+
     public function test_retail_coupon_navigation_and_http_respect_exact_store_denials(): void
     {
         $storeA = $this->store('V2-COUPON-DENIED');
