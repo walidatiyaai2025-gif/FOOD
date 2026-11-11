@@ -114,7 +114,35 @@ final class V2WmsWarehousesPageAuthorityTest extends TestCase
             'warehouse_id' => $fixture['foreign_warehouse_id'],
         ]))->assertNotFound();
 
+        $this->actingAs($actor)->get(route('admin.erp.wms.index', [
+            'tab' => 'warehouses',
+            'store_id' => $fixture['wholesale_store_id'],
+            'warehouse_id' => $fixture['wholesale_warehouse_id'],
+        ]))->assertNotFound();
+
         $this->assertSame(0, DB::table('stock_movements')->count());
+    }
+
+    public function test_no_authorized_warehouses_renders_localized_empty_state(): void
+    {
+        $storeType = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $storeId = $this->store($storeType, 'P254-EMPTY-STORE');
+        $this->enableEnterpriseWmsForStore($storeId);
+        $actor = $this->operator($storeId);
+
+        foreach (['en' => 'ltr', 'ar' => 'rtl'] as $locale => $direction) {
+            app()->setLocale($locale);
+            $actor->forceFill(['locale' => $locale])->save();
+
+            $this->actingAs($actor->fresh())->get(route('admin.erp.wms.index', [
+                'tab' => 'warehouses',
+                'store_id' => $storeId,
+            ]))
+                ->assertOk()
+                ->assertSee(__('enterprise_wms.common.none'))
+                ->assertSee('dir="'.$direction.'"', false)
+                ->assertDontSee('data-wms-warehouse-id=', false);
+        }
     }
 
     public function test_explicit_inventory_view_deny_wins_over_multiple_store_roles(): void
@@ -202,18 +230,22 @@ final class V2WmsWarehousesPageAuthorityTest extends TestCase
         ]);
     }
 
-    /** @return array{store_id:int,foreign_store_id:int,warehouse_id:int,other_local_warehouse_id:int,foreign_warehouse_id:int} */
+    /** @return array{store_id:int,foreign_store_id:int,warehouse_id:int,other_local_warehouse_id:int,foreign_warehouse_id:int,wholesale_store_id:int,wholesale_warehouse_id:int} */
     private function fixture(): array
     {
         $storeType = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
         $storeId = $this->store($storeType, 'P254-OWN-STORE');
         $foreignStore = $this->store($storeType, 'P254-FOREIGN-STORE');
+        $wholesaleType = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $wholesaleStore = $this->store($wholesaleType, 'P254-FOREIGN-B2B');
         $warehouseId = $this->warehouse($storeId, 'P254-PRIMARY-WH');
         $otherLocalWarehouse = $this->warehouse($storeId, 'P254-OTHER-WH');
         $foreignWarehouse = $this->warehouse($foreignStore, 'P254-FOREIGN-WH');
+        $wholesaleWarehouse = $this->warehouse($wholesaleStore, 'P254-FOREIGN-B2B-WH');
 
         $this->enableEnterpriseWmsForStore($storeId);
         $this->enableEnterpriseWmsForStore($foreignStore);
+        $this->enableEnterpriseWmsForStore($wholesaleStore);
 
         return [
             'store_id' => $storeId,
@@ -221,6 +253,8 @@ final class V2WmsWarehousesPageAuthorityTest extends TestCase
             'warehouse_id' => $warehouseId,
             'other_local_warehouse_id' => $otherLocalWarehouse,
             'foreign_warehouse_id' => $foreignWarehouse,
+            'wholesale_store_id' => $wholesaleStore,
+            'wholesale_warehouse_id' => $wholesaleWarehouse,
         ];
     }
 
