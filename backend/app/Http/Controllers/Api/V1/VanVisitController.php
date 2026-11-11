@@ -120,7 +120,15 @@ final class VanVisitController extends Controller
                 ->first();
 
             if ($existing instanceof VanVisit) {
-                abort_unless((int) $existing->actor_user_id === (int) $actor->getKey(), 409);
+                // Reusing an idempotency key cannot authorize a different
+                // customer, a legacy Retail visit or a prior Van assignment.
+                abort_unless(
+                    (int) $existing->actor_user_id === (int) $actor->getKey()
+                    && (string) $existing->customer_type === $type
+                    && (int) $existing->customer_id === $customerId
+                    && app(VanRuntimeVisitScope::class)->contains($request, $actor, $existing),
+                    409,
+                );
 
                 return $existing;
             }
