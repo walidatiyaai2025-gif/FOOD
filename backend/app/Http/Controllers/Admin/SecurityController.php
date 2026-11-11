@@ -89,6 +89,18 @@ final class SecurityController extends Controller
             ->orderBy('code')
             ->get();
 
+        // P098: show stored, active role approval ceilings without inferring
+        // effective user access or a store assignment from the role itself.
+        $roleApprovalLimits = $section === 'roles'
+            ? EnterpriseApprovalLimit::query()
+                ->whereIn('role_id', $roles->pluck('id'))
+                ->where('is_active', true)
+                ->orderBy('permission_code')
+                ->orderBy('currency')
+                ->get()
+                ->groupBy('role_id')
+            : collect();
+
         $stores = Store::query()
             ->select('stores.*')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
@@ -499,6 +511,7 @@ final class SecurityController extends Controller
         return view('admin.security', [
             'users' => $users,
             'roles' => $roles,
+            'roleApprovalLimits' => $roleApprovalLimits,
             'permissionRoleAudit' => $permissionRoleAudit,
             'roleAssignmentAudit' => $roleAssignmentAudit,
             'globalRoles' => $globalRoles,
