@@ -23,6 +23,46 @@ final class AdminSidebarManager
         ];
     }
 
+    /**
+     * Read-only reconciliation of the registered Sidebar and saved display flags.
+     * Saved role-hide rows are preferences, never unique denied pages.
+     *
+     * @param  array{groups:array<string,array<string,mixed>>,items:array<string,array<string,mixed>>}  $layout
+     * @return array{groups:int,items:int,disabled_groups:int,disabled_items:int,hidden_role_records:int|null,disabled_records:int|null}
+     */
+    public function inventoryAudit(array $layout): array
+    {
+        $disabledGroups = 0;
+        foreach ($layout['groups'] as $group) {
+            if (! (bool) ($group['is_enabled'] ?? true)) {
+                $disabledGroups++;
+            }
+        }
+
+        $disabledItems = 0;
+        foreach ($layout['items'] as $item) {
+            if (! (bool) ($item['is_enabled'] ?? true)) {
+                $disabledItems++;
+            }
+        }
+
+        // Never report a false zero when saved configuration storage is missing.
+        $hiddenRoleRecords = $this->tablesReady()
+            ? (int) DB::table('admin_sidebar_role_visibility')->where('is_visible', false)->count()
+            : null;
+
+        return [
+            'groups' => count($layout['groups']),
+            'items' => count($layout['items']),
+            'disabled_groups' => $disabledGroups,
+            'disabled_items' => $disabledItems,
+            'hidden_role_records' => $hiddenRoleRecords,
+            'disabled_records' => $hiddenRoleRecords === null
+                ? null
+                : $disabledGroups + $disabledItems + $hiddenRoleRecords,
+        ];
+    }
+
     /** @return array{groups:array<string,array<string,mixed>>,items:array<string,array<string,mixed>>} */
     public function layoutData(): array
     {
