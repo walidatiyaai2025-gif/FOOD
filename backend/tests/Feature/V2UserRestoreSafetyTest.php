@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\AuditLog;
-use App\Services\AuditLogger;
-use App\Services\RbacManager;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AuditLogger;
+use App\Services\RbacManager;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -94,7 +94,6 @@ final class V2UserRestoreSafetyTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.is_active', false);
     }
-
 
     public function test_failed_audit_rolls_back_archival_and_all_session_revocations(): void
     {
