@@ -28,7 +28,9 @@ void main() {
           requested = request.url;
           expect(request.headers['Authorization'], 'Bearer van-token');
           return http.Response(
-            jsonEncode({'data': [visit('b2b')]}),
+            jsonEncode({
+              'data': [visit('b2b')]
+            }),
             200,
           );
         }),
@@ -51,11 +53,11 @@ void main() {
         'https://foodex.example/',
         'van-token',
         client: MockClient((request) async => http.Response(
-          jsonEncode({
-            'data': [visit('b2b'), visit('b2c')],
-          }),
-          200,
-        )),
+              jsonEncode({
+                'data': [visit('b2b'), visit('b2c')],
+              }),
+              200,
+            )),
       ),
     );
 
