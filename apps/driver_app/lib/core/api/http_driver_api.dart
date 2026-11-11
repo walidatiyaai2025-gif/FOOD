@@ -584,9 +584,7 @@ class HttpDriverAssignmentRepository
         throw const DriverApiException('Invalid wallet response.');
       }
       for (final key in const ['unsettled_collections', 'total_collected']) {
-        if (data.containsKey(key) &&
-            data[key] != null &&
-            data[key] is! num) {
+        if (data.containsKey(key) && data[key] != null && data[key] is! num) {
           throw const DriverApiException('Invalid wallet response.');
         }
       }
