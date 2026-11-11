@@ -264,6 +264,56 @@ $roleLabel = static function ($role): string {
 <p class="muted">{{ __('admin.security.permission_audit.caveat') }}</p>
 </section>
 @endif
+@if($roleAssignmentAudit !== null)
+<section class="card" data-v2-role-assignment-audit aria-labelledby="v2-role-assignment-title">
+<h3 id="v2-role-assignment-title">{{ __('admin.security.assignment_audit.title') }}</h3>
+<p class="muted">{{ __('admin.security.assignment_audit.historical', ['global' => 31, 'store' => 3]) }}</p>
+<div class="role-grid">
+<div class="card" data-v2-global-assignments><strong>{{ __('admin.security.assignment_audit.global') }}</strong><p class="foodex-number">{{ $roleAssignmentAudit['global_assignments'] }} · {{ __('admin.security.assignment_audit.delta') }} {{ $roleAssignmentAudit['global_assignments'] - 31 }}</p></div>
+<div class="card" data-v2-store-assignments><strong>{{ __('admin.security.assignment_audit.store') }}</strong><p class="foodex-number">{{ $roleAssignmentAudit['store_assignments'] }} · {{ __('admin.security.assignment_audit.delta') }} {{ $roleAssignmentAudit['store_assignments'] - 3 }}</p></div>
+<div class="card"><strong>{{ __('admin.security.assignment_audit.users') }}</strong><p class="foodex-number">{{ $roleAssignmentAudit['assigned_users'] }}</p></div>
+<div class="card"><strong>{{ __('admin.security.assignment_audit.stores') }}</strong><p class="foodex-number">{{ $roleAssignmentAudit['distinct_stores'] }}</p></div>
+</div>
+<h4>{{ __('admin.security.assignment_audit.scope_check') }}</h4>
+<div class="role-grid">
+<div class="card"><strong>{{ __('admin.security.assignment_audit.wrong_global_scope') }}</strong><p class="foodex-number">{{ $roleAssignmentAudit['invalid_global_scope'] }}</p></div>
+<div class="card"><strong>{{ __('admin.security.assignment_audit.wrong_store_scope') }}</strong><p class="foodex-number">{{ $roleAssignmentAudit['invalid_store_scope'] }}</p></div>
+<div class="card"><strong>{{ __('admin.security.assignment_audit.inactive_roles') }}</strong><p class="foodex-number">{{ $roleAssignmentAudit['inactive_role_links'] }}</p></div>
+<div class="card"><strong>{{ __('admin.security.assignment_audit.inactive_stores') }}</strong><p class="foodex-number">{{ $roleAssignmentAudit['inactive_store_links'] }}</p></div>
+</div>
+@if($roleAssignmentAudit['invalid_global_scope'] + $roleAssignmentAudit['invalid_store_scope'] + $roleAssignmentAudit['inactive_role_links'] + $roleAssignmentAudit['inactive_store_links'] > 0)
+<p class="notice" role="status" data-v2-assignment-anomalies>{{ __('admin.security.assignment_audit.anomaly_warning') }}</p>
+@endif
+<h4>{{ __('admin.security.assignment_audit.by_role') }}</h4>
+@if($roleAssignmentAudit['roles'] === [])
+<p class="muted" role="status">{{ __('admin.security.assignment_audit.no_assignments') }}</p>
+@else
+<div class="role-grid" data-v2-assignment-role-breakdown>
+@foreach($roleAssignmentAudit['roles'] as $assignmentRole)
+<div class="card">
+<strong>{{ \Illuminate\Support\Facades\Lang::has('admin.role_names.'.$assignmentRole['code']) ? __('admin.role_names.'.$assignmentRole['code']) : $assignmentRole['name'] }}</strong>
+<div class="muted">{{ __('admin.security.assignment_audit.global') }}: {{ $assignmentRole['global'] }} · {{ __('admin.security.assignment_audit.store') }}: {{ $assignmentRole['store'] }}</div>
+</div>
+@endforeach
+</div>
+@endif
+<h4>{{ __('admin.security.assignment_audit.by_store') }}</h4>
+@if($roleAssignmentAudit['stores'] === [])
+<p class="muted" role="status">{{ __('admin.security.assignment_audit.no_store_assignments') }}</p>
+@else
+<div class="role-grid" data-v2-assignment-store-breakdown>
+@foreach($roleAssignmentAudit['stores'] as $assignmentStore)
+<div class="card">
+<strong>{{ $assignmentStore['name'] }}</strong>
+<div class="muted">{{ __('admin.security.assignment_audit.store') }}: {{ $assignmentStore['assignments'] }} · {{ $assignmentStore['active'] ? __('admin.security.active') : __('admin.security.inactive') }}</div>
+</div>
+@endforeach
+</div>
+@endif
+<p class="muted">{{ __('admin.security.assignment_audit.caveat') }}</p>
+</section>
+@endif
+
 
 @can('roles.manage')
 <details class="card" data-foodex-operational-modal><summary>{{ __('admin.security.create_role') }}</summary><form method="post" action="{{ route('admin.security.roles.store') }}">@csrf
