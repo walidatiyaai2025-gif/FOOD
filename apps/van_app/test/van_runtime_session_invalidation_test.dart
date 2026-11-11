@@ -159,9 +159,7 @@ void main() {
 
   for (final locale in const [Locale('ar'), Locale('en')]) {
     testWidgets(
-      'revoked runtime returns to localized Van login (' +
-          locale.languageCode +
-          ')',
+      'revoked runtime returns to localized Van login (${locale.languageCode})',
       (tester) async {
         final auth = _Auth();
         final saved = _SessionStore()..value = _original;
