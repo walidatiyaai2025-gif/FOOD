@@ -183,6 +183,12 @@ final class V2WmsLocationsAuthorityTest extends TestCase
             'P255-SCOPE',
         );
 
+        $this->actingAs($actor)->get(route('admin.erp.wms.index', [
+            'tab' => 'locations',
+            'store_id' => $fixture['other_store_id'],
+            'warehouse_id' => $fixture['other_warehouse_id'],
+        ]))->assertNotFound();
+
         // Even an actor legitimately managing both stores must not spoof a
         // different warehouse against the submitted store context.
         $otherStoreRole = $this->roleWithPermissions(
@@ -237,7 +243,7 @@ final class V2WmsLocationsAuthorityTest extends TestCase
             'tab' => 'locations',
             'store_id' => $fixture['other_store_id'],
             'warehouse_id' => $fixture['other_warehouse_id'],
-        ]))->assertNotFound();
+        ]))->assertOk();
 
         $this->actingAs($actor)->get(route('admin.erp.wms.index', [
             'tab' => 'locations',
