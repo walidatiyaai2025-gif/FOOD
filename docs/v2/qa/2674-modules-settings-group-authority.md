@@ -17,7 +17,7 @@
 `backend/tests/Feature/V2ModulesSettingsGroupAuthorizedContractTest.php` verifies the real Settings Center output and route authority:
 
 1. A Super Admin in both Arabic/RTL and English/LTR sees the **existing** platform Settings group and the five real, routed controls, plus successfully opens the module registry and update center without making any state-changing request.
-2. Restricted FINANCE/B2B_ADMIN/roleless users cannot get actionable links for the privileged module/update controls, and direct GET to all five protected routes returns HTTP 403. No registrations/audit mutations.
+2. Restricted FINANCE/B2B_ADMIN actors see non-interactive controls. A roleless user cannot open Settings Center at all (Management Dashboard HTTP 403). All three actor types receive HTTP 403 for direct GET to five protected routes; no registrations/audit mutations.
 3. A store-scoped B2C Store Admin does not inherit `platform.manage` from a store role.
 4. A temporary synthetic role grant of `platform.manage` makes the Module Control Plane visible and accessible; a user-level explicit global DENY revokes both the tile link and HTTP route. This is a test transaction, never a live role grant.
 
