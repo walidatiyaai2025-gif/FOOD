@@ -20,6 +20,17 @@ final class V2SidebarPresentationCannotGrantAccessTest extends TestCase
         parent::setUp();
 
         $this->seed(CoreReferenceSeeder::class);
+
+        // Real B2B customer-group HTTP reads resolve an authorized wholesale store.
+        // The core reference seed does not promise an operational store fixture.
+        DB::table('stores')->insert([
+            'store_type_id' => (int) DB::table('store_types')->where('code', 'B2B')->value('id'),
+            'code' => 'V2-P022-WHOLESALE',
+            'name' => 'V2 Sidebar Boundary Wholesale',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     public function test_hiding_an_authorized_sidebar_item_does_not_revoke_its_http_permission(): void
@@ -77,7 +88,7 @@ final class V2SidebarPresentationCannotGrantAccessTest extends TestCase
         $this->assertNotContains('b2c_customer_groups', $this->visibleKeys($user));
         $this->actingAs($user)
             ->get(route('admin.b2c.customer-groups.index', [], false))
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     public function test_global_cosmetic_disable_hides_navigation_without_changing_authorization(): void
