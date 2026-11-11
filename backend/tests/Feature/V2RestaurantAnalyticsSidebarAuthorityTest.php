@@ -107,6 +107,38 @@ class V2RestaurantAnalyticsSidebarAuthorityTest extends TestCase
             ->assertOk();
     }
 
+    public function test_p328_explicit_store_deny_wins_over_assigned_role_and_other_allowed_store(): void
+    {
+        $deniedId = $this->retailStore('V2-P328-DENIED');
+        $allowedId = $this->retailStore('V2-P328-SECOND');
+        $this->enableRestaurantSaasForTestStore($deniedId);
+        $this->enableRestaurantSaasForTestStore($allowedId);
+        $user = $this->retailOperator([$deniedId, $allowedId]);
+
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $user->id,
+            'permission_id' => (int) DB::table('permissions')
+                ->where('code', 'smart_ordering.analytics.view')
+                ->value('id'),
+            'scope_key' => 'store:'.$deniedId,
+            'store_id' => $deniedId,
+            'effect' => 'deny',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $user->forceFill(['has_permission_overrides' => true])->save();
+
+        $access = app(RestaurantSaasStoreAccess::class);
+        $this->assertFalse($access->canNavigateToStore($user, $deniedId, 'smart_ordering.analytics.view'));
+        $this->assertTrue($access->canNavigateToStore($user, $allowedId, 'smart_ordering.analytics.view'));
+
+        $this->actingAs($user)
+            ->get(route('admin.smart-ordering.analytics.index', ['store_id' => $deniedId]))
+            ->assertNotFound();
+        $this->assertStringNotContainsString('data-workspace-item="analytics"', $this->workspaceNav($user, $deniedId));
+        $this->assertStringContainsString('data-workspace-item="analytics"', $this->workspaceNav($user, $allowedId));
+    }
+
     private function workspaceNav(User $user, int $storeId): string
     {
         request()->query->set('store_id', (string) $storeId);
