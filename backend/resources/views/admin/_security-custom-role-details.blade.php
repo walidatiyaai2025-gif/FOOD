@@ -4,6 +4,7 @@
         ->groupBy(static fn ($permission): string => \Illuminate\Support\Str::before((string) $permission->code, '.'))
         ->sortKeys();
     $configuredApprovalLimits = $roleApprovalLimits->get((int) $role->id, collect());
+    $roleStores = $roleAssignedStores->get((int) $role->id, collect());
 @endphp
 <section class="note" data-v2-custom-role-details="{{ (int) $role->id }}" aria-label="{{ __('admin.security.custom_role_details.title') }}">
     <h4>{{ __('admin.security.custom_role_details.title') }}</h4>
@@ -17,6 +18,16 @@
         <dt>{{ __('admin.security.custom_role_details.saved_assignments') }}</dt>
         <dd>{{ __('admin.security.custom_role_details.assignment_totals', ['global' => (int) $role->users_count, 'store' => (int) $role->store_assignments_count]) }}</dd>
     </dl>
+    <h5>{{ __('admin.security.custom_role_details.assigned_stores') }}</h5>
+    @if($roleStores->isEmpty())
+        <p class="muted">{{ __('admin.security.custom_role_details.no_assigned_stores') }}</p>
+    @else
+        <ul data-v2-custom-role-assigned-stores>
+            @foreach($roleStores as $assignedStore)
+                <li>{{ $assignedStore->store_name }} <span class="muted">{{ __('admin.security.custom_role_details.store_assignment_count', ['count' => (int) $assignedStore->assignments_count]) }}</span></li>
+            @endforeach
+        </ul>
+    @endif
     <p class="muted">{{ __('admin.security.custom_role_details.store_boundary') }}</p>
     <h5>{{ __('admin.security.custom_role_details.permission_modules') }}</h5>
     @if($rolePermissionNamespaces->isEmpty())
