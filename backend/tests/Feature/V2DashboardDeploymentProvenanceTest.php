@@ -101,6 +101,42 @@ final class V2DashboardDeploymentProvenanceTest extends TestCase
         $this->assertSame('not_checked', $result['github_state']);
     }
 
+    public function test_symlinked_or_oversized_metadata_is_never_read_or_exported(): void
+    {
+        SystemVersion::query()->create(['version' => '1.0.127', 'installed_at' => now()]);
+        $sha = str_repeat('a', 40);
+        [$version, $build] = $this->fixtures('1.0.127', json_encode([
+            'version' => '1.0.127', 'source_commit' => $sha,
+        ], JSON_THROW_ON_ERROR));
+        $service = app(DashboardDeploymentProvenance::class);
+
+        File::put($build, str_repeat('s', 131073));
+        $oversized = $service->inspect(false, $version, $build);
+        $this->assertSame('unknown', $oversized['metadata_state']);
+        $this->assertNull($oversized['source_commit']);
+
+        File::put($build, json_encode([
+            'version' => '1.0.127', 'source_commit' => $sha,
+        ], JSON_THROW_ON_ERROR));
+        File::put($version, 'APP_KEY=secret-should-never-appear');
+        $invalid = $service->inspect(false, $version, $build);
+        $this->assertNull($invalid['source_version']);
+        $this->assertSame('unknown', $invalid['metadata_state']);
+
+        // Symlinked metadata must not be followed even when it points inside
+        // the repository and the target contains valid-looking values.
+        File::put($version, '1.0.127');
+        $target = dirname($version).'/hidden-version';
+        File::put($target, '1.0.127');
+        File::delete($version);
+        if (! symlink($target, $version)) {
+            $this->markTestSkipped('The filesystem does not support symlinks.');
+        }
+        $linked = $service->inspect(false, $version, $build);
+        $this->assertNull($linked['source_version']);
+        $this->assertSame('unknown', $linked['metadata_state']);
+    }
+
     public function test_github_not_found_or_outage_never_attests_deployed_files(): void
     {
         SystemVersion::query()->create(['version' => '1.0.127', 'installed_at' => now()]);
