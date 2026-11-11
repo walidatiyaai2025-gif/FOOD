@@ -13,6 +13,7 @@ return [
     ],
     'tabs' => [
         'overview' => 'نظرة المخزون',
+        'warehouses' => 'المستودعات',
         'movements' => 'الحركات',
         'transfers' => 'التحويلات',
         'counts' => 'الجرد',
