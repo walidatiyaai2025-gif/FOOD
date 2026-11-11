@@ -35,7 +35,7 @@ final class V2ActiveUserAccountClassificationAuditTest extends TestCase
         for ($number = 1; $number <= 20; $number++) {
             $user = User::factory()->create([
                 'name' => sprintf('V2 T015R01 Account %02d', $number),
-                'is_active' => ! in_array($number, $inactive, true),
+                'is_active' => true,
                 'is_platform_customer' => $number >= 11 && $number <= 15,
             ]);
             $userIds[] = $user->id;
@@ -64,6 +64,19 @@ final class V2ActiveUserAccountClassificationAuditTest extends TestCase
             ->assertOk()
             ->assertViewHas('users', fn ($users): bool => $users->total() === 20 && $users->count() === 5)
             ->assertSee('V2 T015R01 Account 20');
+
+        // Reproduce the source snapshot's all-active cohort before proving
+        // that filters follow changed current data instead of a fixed count.
+        $this->get(route('admin.security.index', [...$query, 'status' => 'active']))
+            ->assertOk()
+            ->assertViewHas('users', fn ($users): bool => $users->total() === 20);
+
+        $this->get(route('admin.security.index', [...$query, 'status' => 'inactive']))
+            ->assertOk()
+            ->assertViewHas('users', fn ($users): bool => $users->total() === 0);
+
+        $inactiveUserIds = array_map(static fn (int $number): int => $userIds[$number - 1], $inactive);
+        User::query()->whereIn('id', $inactiveUserIds)->update(['is_active' => false]);
 
         $this->get(route('admin.security.index', [...$query, 'status' => 'active']))
             ->assertOk()
