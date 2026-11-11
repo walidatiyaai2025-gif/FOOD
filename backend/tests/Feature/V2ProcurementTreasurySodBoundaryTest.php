@@ -17,6 +17,7 @@ use App\Models\Store;
 use App\Models\User;
 use App\Support\TenantContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -178,7 +179,7 @@ final class V2ProcurementTreasurySodBoundaryTest extends TestCase
         try {
             $service->post($outsider, $otherContext, $draft->id);
             $this->fail('Another store must not see the first store payment.');
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $exception) {
+        } catch (ModelNotFoundException $exception) {
             $this->assertNotNull($exception);
         } catch (HttpException $exception) {
             $this->assertSame(403, $exception->getStatusCode());
