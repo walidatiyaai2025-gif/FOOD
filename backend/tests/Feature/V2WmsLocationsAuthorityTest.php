@@ -183,6 +183,56 @@ final class V2WmsLocationsAuthorityTest extends TestCase
             'P255-SCOPE',
         );
 
+        // Even an actor legitimately managing both stores must not spoof a
+        // different warehouse against the submitted store context.
+        $otherStoreRole = $this->roleWithPermissions(
+            ['inventory.view', 'inventory.manage'],
+            'P255-DUAL',
+        );
+        UserStoreRole::query()->create([
+            'user_id' => $actor->id,
+            'store_id' => $fixture['other_store_id'],
+            'role_id' => $otherStoreRole->id,
+        ]);
+
+        $this->actingAs($actor)->post(route('admin.erp.wms.locations.zones.store'), [
+            'store_id' => $fixture['store_id'],
+            'warehouse_id' => $fixture['other_warehouse_id'],
+            'code' => 'P255-DUAL-FORGED',
+            'name' => 'Dual store spoof',
+        ])->assertNotFound();
+
+        $this->actingAs($actor)->post(route('admin.erp.wms.locations.bins.store'), [
+            'store_id' => $fixture['other_store_id'],
+            'warehouse_id' => $fixture['warehouse_id'],
+            'code' => 'P255-DUAL-BIN',
+            'name' => 'Dual store spoof',
+        ])->assertNotFound();
+
+        $this->assertDatabaseMissing('enterprise_warehouse_zones', ['code' => 'P255-DUAL-FORGED']);
+        $this->assertDatabaseMissing('enterprise_warehouse_bins', ['code' => 'P255-DUAL-BIN']);
+
+        $otherWarehouseInSameStore = $this->warehouse($fixture['store_id'], 'P255-WH-2');
+        $otherInventory = (int) DB::table('inventories')->insertGetId([
+            'warehouse_id' => $otherWarehouseInSameStore,
+            'product_id' => (int) DB::table('inventories')
+                ->where('id', $fixture['inventory_id'])->value('product_id'),
+            'quantity' => 5,
+            'reserved_quantity' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->actingAs($actor)->post(route('admin.erp.wms.locations.assignments.store'), [
+            'store_id' => $fixture['store_id'],
+            'warehouse_id' => $fixture['warehouse_id'],
+            'inventory_id' => $otherInventory,
+            'bin_id' => 1,
+        ])->assertNotFound();
+
+        $this->assertDatabaseMissing('enterprise_inventory_bin_assignments', [
+            'inventory_id' => $otherInventory,
+        ]);
+
         $this->actingAs($actor)->get(route('admin.erp.wms.index', [
             'tab' => 'locations',
             'store_id' => $fixture['other_store_id'],
