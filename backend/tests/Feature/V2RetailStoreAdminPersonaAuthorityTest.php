@@ -142,7 +142,7 @@ final class V2RetailStoreAdminPersonaAuthorityTest extends TestCase
      * Resolve actual Sidebar placement including saved parent-child layout,
      * without mistaking a nested link for an absent/unauthorized destination.
      *
-     * @param list<array<string, mixed>> $groups
+     * @param  list<array<string, mixed>>  $groups
      * @return list<array<string, mixed>>
      */
     private function allVisibleItems(array $groups): array
