@@ -145,7 +145,7 @@ final class V2RolePermissionUiToHttpAuthorizationTest extends TestCase
     }
 
     /** @param list<int> $ids
-     * @return array{name:string,description:?string,scope:string,is_active:int,permission_ids:list<int>}
+     * @return array{name:string,description:?string,scope:string,is_active:int,permission_ids:list<int>,change_reason:string}
      */
     private function roleValues(Role $role, array $ids): array
     {
@@ -154,6 +154,7 @@ final class V2RolePermissionUiToHttpAuthorizationTest extends TestCase
             'description' => $role->description,
             'scope' => (string) $role->scope,
             'is_active' => 1,
+            'change_reason' => 'Regression fixture approved RBAC role edit',
             'permission_ids' => $ids,
         ];
     }
