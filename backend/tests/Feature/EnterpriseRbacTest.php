@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
@@ -322,6 +323,7 @@ class EnterpriseRbacTest extends TestCase
         $this->actingAs($admin)
             ->put(route('admin.security.users.permissions', $target), [
                 'scope_type' => 'global',
+                'change_reason' => 'Reviewed access adjustment under P084',
                 'permission_ids' => $selected,
             ])
             ->assertRedirect()
@@ -357,6 +359,87 @@ class EnterpriseRbacTest extends TestCase
         ]);
     }
 
+    public function test_permission_change_without_a_review_reason_is_rejected_without_mutation(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN');
+        $target = $this->userWithGlobalRole('CUSTOMER_SERVICE_SUPERVISOR');
+        $dispatch = Permission::query()->where('code', 'orders.dispatch')->firstOrFail();
+
+        $selected = Permission::query()
+            ->whereIn('code', $target->inheritedPermissionCodes())
+            ->where('id', '!=', $dispatch->id)
+            ->pluck('id')
+            ->all();
+
+        $this->actingAs($admin)
+            ->from('/admin/security?section=users')
+            ->put(route('admin.security.users.permissions', $target), [
+                'scope_type' => 'global',
+                'permission_ids' => $selected,
+            ])
+            ->assertRedirect('/admin/security?section=users')
+            ->assertSessionHasErrors('change_reason');
+
+        $this->assertTrue($target->fresh()->hasPermission('orders.dispatch'));
+        $this->assertDatabaseMissing('user_permission_overrides', [
+            'user_id' => $target->id,
+            'permission_id' => $dispatch->id,
+            'effect' => 'deny',
+        ]);
+        $this->assertSame(0, AuditLog::query()
+            ->where('event', 'user.permissions_changed')
+            ->where('auditable_id', $target->id)->count());
+    }
+
+    public function test_reviewed_permission_change_records_reason_and_diff_and_revokes_effective_access(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN', 'en');
+        $target = $this->userWithGlobalRole('CUSTOMER_SERVICE_SUPERVISOR', 'en');
+        $dispatch = Permission::query()->where('code', 'orders.dispatch')->firstOrFail();
+
+        $selected = Permission::query()
+            ->whereIn('code', $target->inheritedPermissionCodes())
+            ->where('id', '!=', $dispatch->id)
+            ->pluck('id')
+            ->all();
+
+        $this->actingAs($admin)
+            ->get('/admin/security?section=users&q='.urlencode($target->email))
+            ->assertOk()
+            ->assertSee('Reason for the permission change')
+            ->assertSee('Separation of duties');
+
+        $reason = 'Remove dispatch authority following SoD access review';
+        $this->actingAs($admin)
+            ->put(route('admin.security.users.permissions', $target), [
+                'scope_type' => 'global',
+                'permission_ids' => $selected,
+                'change_reason' => $reason,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertFalse($target->fresh()->hasPermission('orders.dispatch'));
+        $audit = AuditLog::query()->where('event', 'user.permissions_changed')
+            ->where('auditable_id', $target->id)->latest('id')->firstOrFail();
+
+        $this->assertSame($reason, $audit->after['change_reason']);
+        $this->assertSame($target->id, $audit->before['id']);
+        $this->assertContains('CUSTOMER_SERVICE_SUPERVISOR', $audit->after['global_roles']);
+        $this->assertContains(
+            ['code' => 'orders.dispatch', 'scope' => 'global', 'effect' => 'deny'],
+            $audit->after['permission_overrides'],
+        );
+
+        $admin->forceFill(['locale' => 'ar'])->save();
+        $this->actingAs($admin->fresh())
+            ->get('/admin/security?section=users&q='.urlencode($target->email))
+            ->assertOk()
+            ->assertSee('سبب تغيير الصلاحيات')
+            ->assertSee('فصل المهام')
+            ->assertSee('dir="rtl"', false);
+    }
+
     public function test_super_admin_can_customize_final_user_permissions_without_mutating_role(): void
     {
         $admin = $this->userWithGlobalRole('SUPER_ADMIN');
@@ -378,6 +461,7 @@ class EnterpriseRbacTest extends TestCase
         $this->actingAs($admin)
             ->put(route('admin.security.users.permissions', $target), [
                 'scope_type' => 'global',
+                'change_reason' => 'Reviewed access adjustment under P084',
                 'permission_ids' => $selected,
             ])
             ->assertRedirect()
@@ -513,6 +597,7 @@ class EnterpriseRbacTest extends TestCase
         $this->actingAs($admin)
             ->put(route('admin.security.users.permissions', $target), [
                 'scope_type' => 'store',
+                'change_reason' => 'Reviewed access adjustment under P084',
                 'store_id' => $storeA,
                 'permission_ids' => $selected,
             ])
@@ -556,6 +641,7 @@ class EnterpriseRbacTest extends TestCase
             ->from('/admin/security?section=users')
             ->put(route('admin.security.users.permissions', $target), [
                 'scope_type' => 'store',
+                'change_reason' => 'Reviewed access adjustment under P084',
                 'store_id' => $storeId,
                 'permission_ids' => [$systemUpdate->id],
             ])
@@ -593,6 +679,7 @@ class EnterpriseRbacTest extends TestCase
             ->from('/admin/security?section=users')
             ->put(route('admin.security.users.permissions', $target), [
                 'scope_type' => 'global',
+                'change_reason' => 'Reviewed access adjustment under P084',
                 'permission_ids' => [$platformManage->id],
             ])
             ->assertRedirect('/admin/security?section=users')
