@@ -487,6 +487,13 @@ final class AdminSidebarManager
     /** @param list<string> $permissions */
     private function roleCanUseItem(Role $role, array $meta, array $permissions): bool
     {
+        // Historical permission rows are not effective authority for disabled
+        // or archived roles. The editor must project the same fail-closed state
+        // as the active-role runtime, not offer a cosmetic "visible" override.
+        if (! $role->is_active || $role->archived_at !== null) {
+            return false;
+        }
+
         if (in_array($role->code, array_values((array) ($meta['exclude_roles'] ?? [])), true)) {
             return false;
         }
