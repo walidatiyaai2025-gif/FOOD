@@ -252,6 +252,9 @@ class AdminNavigation
 
             $retailB2cKeys = [
                 'b2c_dashboard',
+                // Retail Store Admin's stores.view permits the existing Storefront
+                // workspace; module() and HTTP independently enforce store scope.
+                'b2c_storefront',
                 'b2c_products',
                 'b2c_inventory',
                 'b2c_orders',
