@@ -132,6 +132,7 @@ final class SecurityController extends Controller
             'store_roles' => ['present', 'array'],
             'store_roles.*.store_id' => ['required', 'integer', 'exists:stores,id'],
             'store_roles.*.role_id' => ['required', 'integer', 'exists:roles,id'],
+            'change_reason' => ['required', 'string', 'min:8', 'max:500'],
         ]);
 
         $updated = $rbac->replaceUserRoles(
@@ -178,6 +179,10 @@ final class SecurityController extends Controller
             'permission_ids' => ['present', 'array'],
             'permission_ids.*' => ['integer', 'distinct', 'exists:permissions,id'],
         ];
+
+        if (! $includeCode) {
+            $rules['change_reason'] = ['required', 'string', 'min:8', 'max:500'];
+        }
 
         if ($includeCode) {
             $rules['code'] = ['required', 'string', 'max:50', 'regex:/^[A-Z][A-Z0-9_]{2,49}$/', Rule::unique('roles', 'code')];
