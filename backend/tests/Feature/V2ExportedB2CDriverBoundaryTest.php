@@ -7,6 +7,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\OperationalTenantScope;
+use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -86,7 +87,7 @@ final class V2ExportedB2CDriverBoundaryTest extends TestCase
 
         Driver::query()->create([
             'user_id' => $actor->getKey(),
-            'store_id' => (int) app(\App\Services\WholesalePrincipal::class)->storeId(),
+            'store_id' => (int) app(WholesalePrincipal::class)->storeId(),
             'driver_type' => 'b2b',
             'is_available' => true,
             'is_active' => true,
