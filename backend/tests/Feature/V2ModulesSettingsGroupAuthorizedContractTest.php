@@ -76,7 +76,7 @@ final class V2ModulesSettingsGroupAuthorizedContractTest extends TestCase
         $moduleRows = DB::table('enterprise_modules')->count();
         $auditRows = DB::table('audit_logs')->count();
 
-        foreach ([['FINANCE'], ['B2B_ADMIN'], []] as $roles) {
+        foreach ([['FINANCE'], ['B2B_ADMIN']] as $roles) {
             $actor = $this->actor($roles);
 
             $this->actingAs($actor)
@@ -92,6 +92,18 @@ final class V2ModulesSettingsGroupAuthorizedContractTest extends TestCase
                     ->get(route($routeName))
                     ->assertForbidden();
             }
+        }
+
+        // A roleless actor has no Management Dashboard entry point at all.
+        $roleless = $this->actor([]);
+        $this->actingAs($roleless)
+            ->get(route('admin.settings.index'))
+            ->assertForbidden();
+
+        foreach ($this->platformDestinations() as $routeName) {
+            $this->actingAs($roleless)
+                ->get(route($routeName))
+                ->assertForbidden();
         }
 
         $this->assertSame($moduleRows, DB::table('enterprise_modules')->count());
