@@ -525,6 +525,7 @@ final class EnterpriseWmsController extends Controller
                 ->join('inventories as inventory', 'inventory.id', '=', 'movement.inventory_id')
                 ->join('products as product', 'product.id', '=', 'inventory.product_id')
                 ->where('inventory.warehouse_id', $warehouseId)
+                ->where('movement.store_id', $storeId)
                 ->orderByDesc('movement.id')
                 ->limit(100)
                 ->get([

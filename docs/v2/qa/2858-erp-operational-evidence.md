@@ -65,3 +65,11 @@ This is **not** new production evidence, live readiness, proof of workflow execu
 ## Post-reconciliation Laravel fixture regression (2026-11-11)
 
 After the P135 workflow-evidence gate, V2 Bank Reconciliation P297 and Receivables Aging P288 tests inherited pre-prerequisite positive fixtures which set only `certified_versions`. Their intended positive finance/treasury HTTP paths must opt into `SyntheticErpWorkflowEvidence::install()` in test setup, matching existing ERP suites. Disabled-module, missing entitlement, explicit user DENY, cross-store and maker/checker negative HTTP assertions stay unchanged; production module certifications and workflow attestations remain empty. This preserves fail-closed runtime enforcement without asserting genuine G0–G13 completion. These test changes are CI compatibility for merged P297/P288 coverage, not new Bank/Treasury product behavior.
+
+## Further isolated CI rescue — merged P033 / P247 test fixtures (2026-11-11)
+
+The WMS Transfer (P251) test suite now installs `SyntheticErpWorkflowEvidence` to model a reviewed-workflow prerequisite only in Laravel's in-memory configuration. Its four real stock-transfer authorization, idempotency, cross-store and disabled-entitlement regressions passed on P135 CI head `bf5003b5`.
+
+Later merged V2 test-only P033 Procurement/Treasury SoD (#2784 / #3164) and P247 WMS Movement Ledger suites were not present in the older P135 branch tree but ran via GitHub's synthesized PR-merge checkout. They supplied only `certified_versions` and were consequently rejected by the new fail-closed workflow gate before the intended SoD/store/warehouse checks. The two newly integrated fixture setups now opt into **the same synthetic test-only attestation helper**. This does not bypass direct HTTP guards, cross-store/tenant isolation, maker-checker, role-level DENY, or actual disabled module/entitlement behavior; all negative assertions and production ERP certification settings remain unchanged.
+
+The performance baseline comparison failure is tracked independently by #3160 / PR #3171 and requires independent source-anchor approval. None of these synthetic test attestations constitutes real G0–G13 operational acceptance, and no production release or ERP enablement is authorized.
