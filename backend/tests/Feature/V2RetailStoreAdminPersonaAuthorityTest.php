@@ -56,7 +56,9 @@ final class V2RetailStoreAdminPersonaAuthorityTest extends TestCase
         )));
 
         foreach ($items as $item) {
-            if (str_starts_with($item['key'], 'b2c_')) {
+            // Only canonical B2C module links carry a selected store_id.
+            // Other B2C routes (e.g. customer groups) resolve authorized scope on the server.
+            if (($item['route'] ?? null) === 'admin.b2c.module') {
                 $this->assertSame((string) $owned, (string) ($item['params']['store_id'] ?? ''),
                     $item['key'].' must use the assigned Retail store instead of a global context.');
             }
