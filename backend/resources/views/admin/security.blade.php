@@ -390,6 +390,7 @@ $roleLabel = static function ($role): string {
 @endif
 @else
 <div class="job-role-tags"><span class="badge">{{ __('job_roles.custom') }}</span></div>
+@include('admin._security-custom-role-details', ['role' => $role, 'roleApprovalLimits' => $roleApprovalLimits, 'permissionLabels' => $permissionLabels])
 @endif
 <div class="muted">{{ __('admin.security.assignments_count') }}: {{ (int)$role->users_count+(int)$role->store_assignments_count }}</div>
 </div>
