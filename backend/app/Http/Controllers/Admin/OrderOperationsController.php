@@ -29,6 +29,7 @@ use App\Services\FulfillmentActorPolicy;
 use App\Services\InvoiceService;
 use App\Services\OperationalLookupService;
 use App\Services\OperationalTenantScope;
+use App\Services\OrderCustomerServiceDiscountApprovalService;
 use App\Services\OrderCustomerServiceDiscountService;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderLifecycleNotificationService;
@@ -496,6 +497,7 @@ final class OrderOperationsController extends Controller
             : collect();
 
         $detail = null;
+        $discountRequests = collect();
         if (isset($data['order'])) {
             $detailOrder = Order::query()
                 ->whereKey((int) $data['order'])
@@ -510,6 +512,26 @@ final class OrderOperationsController extends Controller
                 $manageScopes,
                 $financeScopes,
             );
+            $canReviewDiscounts = $actor->is_active
+                && $actor->hasPermission('orders.customer_service_discount', (int) $detailOrder->store_id)
+                && $actor->hasPermission('orders.approve', (int) $detailOrder->store_id)
+                && in_array(
+                    (int) $detailOrder->store_id,
+                    $this->scope->allowedStoreIds(
+                        $actor, 'orders.approve', strtolower((string) $detailOrder->channel),
+                    ),
+                    true,
+                );
+            if ($canReviewDiscounts) {
+                $discountRequests = DB::table('order_customer_service_discount_requests as requests')
+                    ->join('users as requester', 'requester.id', '=', 'requests.requested_by_user_id')
+                    ->where('requests.order_id', $detailOrder->getKey())
+                    ->where('requests.status', 'pending')
+                    ->orderBy('requests.id')
+                    ->limit(20)
+                    ->get(['requests.id', 'requests.percentage', 'requests.reason',
+                        'requests.requested_by_user_id', 'requester.name as requested_by_name']);
+            }
         }
 
         return view('admin.order-operations', [
@@ -532,6 +554,7 @@ final class OrderOperationsController extends Controller
             'drivers' => $drivers,
             'vans' => $vans,
             'detail' => $detail,
+            'discountRequests' => $discountRequests,
             'statuses' => array_map(
                 static fn (array $option): string => (string) $option['code'],
                 $statusOptions,
@@ -1740,6 +1763,7 @@ final class OrderOperationsController extends Controller
         Request $request,
         int $order,
         OrderCustomerServiceDiscountService $discounts,
+        OrderCustomerServiceDiscountApprovalService $approvals,
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.view');
@@ -1768,6 +1792,26 @@ final class OrderOperationsController extends Controller
             'reason' => ['required', 'string', 'min:5', 'max:500'],
             'idempotency_key' => ['required', 'uuid'],
         ]);
+        // Agents submit for a distinct supervisor/manager approval; they never
+        // mutate the order price merely by pressing the Customer Service action.
+        $agentOnly = $actor->hasRole('CUSTOMER_SERVICE_AGENT')
+            && ! $actor->hasRole('CUSTOMER_SERVICE_MANAGER')
+            && ! $actor->hasRole('CUSTOMER_SERVICE_SUPERVISOR')
+            && ! $actor->hasRole('SUPER_ADMIN');
+
+        if ($agentOnly) {
+            $submitted = $approvals->request(
+                $model, $actor, (float) $validated['percentage'],
+                trim((string) $validated['reason']), (string) $validated['idempotency_key'], $request,
+            );
+
+            return back()->with('status', __($submitted
+                ? 'customer_service_discount.request_submitted'
+                : 'customer_service_discount.request_duplicate'));
+        }
+
+        // Existing authorized manager/supervisor flow is preserved until a
+        // numerical policy cap is explicitly approved (P129 / T087R04).
         $applied = $discounts->apply(
             $model, $actor, (float) $validated['percentage'],
             trim((string) $validated['reason']), (string) $validated['idempotency_key'], $request,
@@ -1776,6 +1820,42 @@ final class OrderOperationsController extends Controller
         return back()->with('status', $applied
             ? $this->msg('تم تطبيق الخصم وإرسال إشعار للعميل.', 'Discount applied and customer notified.')
             : $this->msg('تم تجاهل الطلب المكرر دون تغيير الإجمالي.', 'Duplicate discount request safely ignored.'));
+    }
+
+    public function reviewCustomerServiceDiscountRequest(
+        Request $request,
+        int $order,
+        int $discountRequest,
+        OrderCustomerServiceDiscountApprovalService $approvals,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $model = $this->managedOrder($actor, $order, 'orders.view');
+        $storeId = (int) $model->store_id;
+        $channel = strtolower((string) $model->channel);
+
+        abort_unless(
+            $actor->is_active
+            && $actor->hasPermission('orders.customer_service_discount', $storeId)
+            && $actor->hasPermission('orders.approve', $storeId),
+            403,
+        );
+        $this->scope->assertStore($actor, $storeId, 'orders.customer_service_discount', $channel);
+        $this->scope->assertStore($actor, $storeId, 'orders.approve', $channel);
+
+        $validated = $request->validate([
+            'decision' => ['required', Rule::in(['approve', 'reject'])],
+            'review_reason' => ['nullable', 'required_if:decision,reject', 'string', 'min:5', 'max:500'],
+        ]);
+        $approved = $validated['decision'] === 'approve';
+        $approvals->review(
+            $model, $actor, $discountRequest, $approved,
+            isset($validated['review_reason']) ? trim((string) $validated['review_reason']) : null,
+            $request,
+        );
+
+        return back()->with('status', __($approved
+            ? 'customer_service_discount.request_approved'
+            : 'customer_service_discount.request_rejected'));
     }
 
     public function reassign(
