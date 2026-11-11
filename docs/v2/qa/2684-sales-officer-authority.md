@@ -31,6 +31,13 @@ At preflight, open PR #3179 (V2 Treasury Officer) also owns `backend/config/admi
 
 If the final B2B authorization correction changes a shared API or any mobile-visible role/route/response, open and link the actual impacted Customer/Driver/Van issue separately before integration.
 
+## Reproduction and coordination checkpoint
+
+1. Seed `CoreReferenceSeeder`; attach only `SALES_OFFICER` to an active user.
+2. Observe `hasPermission('orders.view') === true` while `AdminNavigation::canAccess($actor, 'b2b') === false`; no independent Retail role must be added to mask the defect.
+3. After #3179 releases `backend/config/admin.php`, update the canonical B2B allowlist in **this existing PR**, verify `admin.operations.orders.index?channel=b2b` and that Retail `channel=b2c` is still forbidden.
+4. Check Customer / Driver / Van impact after any actual authorization-code change, then rerun the exact-head Required CI suite.
+
 ## Required evidence before merge/closure
 
 Run the focused Laravel test against seeded database, PHP syntax/Pint/PHPStan and all exact-head required GitHub checks (Repository Policy, V2 Isolation Gate, Required CI with Laravel and relevant MySQL acceptance). Keep the PR **draft** while the intentional admission test is RED; inspect precise failure before updating either test or code. Once ownership clears, fix the authoritative channel allowlist without changing unrelated financial roles, then verify positive wholesale navigation/HTTP, negative Retail authorization, store/tenant scope and role/deactivation cases.
