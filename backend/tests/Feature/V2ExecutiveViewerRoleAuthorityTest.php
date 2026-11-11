@@ -13,6 +13,7 @@ use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Tests\TestCase;
@@ -193,8 +194,8 @@ final class V2ExecutiveViewerRoleAuthorityTest extends TestCase
         ]);
     }
 
-    /** @return \Illuminate\Support\Collection<int,string> */
-    private function navigationKeys(User $actor): \Illuminate\Support\Collection
+    /** @return Collection<int,string> */
+    private function navigationKeys(User $actor): Collection
     {
         return collect(app(AdminNavigation::class)->groupsFor($actor))
             ->flatMap(static fn (array $group) => $group['children'])
