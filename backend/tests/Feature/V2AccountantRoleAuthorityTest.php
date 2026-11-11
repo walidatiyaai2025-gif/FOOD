@@ -7,6 +7,7 @@ use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\Store;
 use App\Models\User;
 use App\Services\BuiltInJobRoleCatalog;
 use Database\Seeders\CoreReferenceSeeder;
@@ -137,6 +138,59 @@ final class V2AccountantRoleAuthorityTest extends TestCase
             'user_id' => $actor->id,
             'role_id' => Role::query()->where('code', 'ACCOUNTANT')->firstOrFail()->id,
         ]);
+    }
+
+    public function test_inactive_accountant_role_revokes_finance_grants_but_keeps_auditable_assignment(): void
+    {
+        $this->enableFinance();
+        $actor = $this->accountant();
+        $role = Role::query()->where('code', 'ACCOUNTANT')->firstOrFail();
+
+        $this->assertTrue($actor->fresh()->hasPermission('finance.post'));
+
+        $role->forceFill(['is_active' => false])->save();
+
+        $this->assertFalse($actor->fresh()->hasPermission('finance.view'));
+        $this->assertFalse($actor->fresh()->hasPermission('finance.post'));
+        $this->assertDatabaseHas('role_user', [
+            'user_id' => $actor->id,
+            'role_id' => $role->id,
+        ]);
+
+        $role->forceFill(['is_active' => true])->save();
+
+        $this->assertTrue($actor->fresh()->hasPermission('finance.view'));
+        $this->assertTrue($actor->fresh()->hasPermission('finance.post'));
+        $this->assertFalse($actor->fresh()->hasPermission('finance.approve'));
+    }
+
+    public function test_global_accountant_grant_does_not_cross_into_retail_even_with_unrelated_store_role(): void
+    {
+        $this->enableFinance();
+        $actor = $this->accountant();
+        $store = Store::query()->create([
+            'store_type_id' => (int) DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'code' => 'V2-ACCOUNTANT-RETAIL',
+            'name' => 'Accountant retail scope boundary',
+            'is_active' => true,
+        ]);
+        $retailOperations = Role::query()->where('code', 'RETAIL_OPERATIONS')->firstOrFail();
+
+        DB::table('user_store_roles')->insert([
+            'user_id' => $actor->id,
+            'store_id' => $store->id,
+            'role_id' => $retailOperations->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->assertTrue($actor->fresh()->hasPermission('finance.view'));
+        $this->assertFalse($actor->fresh()->hasPermission('finance.view', $store->id));
+        $this->assertFalse($actor->fresh()->hasPermission('finance.post', $store->id));
+
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.erp.finance.index', ['store_id' => $store->id]))
+            ->assertForbidden();
     }
 
     private function accountant(): User
