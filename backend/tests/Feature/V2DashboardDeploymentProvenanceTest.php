@@ -102,9 +102,13 @@ final class V2DashboardDeploymentProvenanceTest extends TestCase
         $service = app(DashboardDeploymentProvenance::class);
         $this->assertSame('not_found', $service->inspect(true, $version, $build)['github_state']);
 
+        // HTTP fake callbacks accumulate on one Facade factory, so each
+        // independent remote outcome needs an isolated factory instance.
+        Http::swap(new \Illuminate\Http\Client\Factory);
         Http::fake(['api.github.com/*' => Http::response([], 503)]);
         $this->assertSame('unknown', $service->inspect(true, $version, $build)['github_state']);
 
+        Http::swap(new \Illuminate\Http\Client\Factory);
         Http::fake(['api.github.com/*' => Http::response(['sha' => str_repeat('d', 40)], 200)]);
         $this->assertSame('unknown', $service->inspect(true, $version, $build)['github_state']);
     }
