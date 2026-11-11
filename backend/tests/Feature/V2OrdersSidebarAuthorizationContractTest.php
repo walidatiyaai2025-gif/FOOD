@@ -150,6 +150,16 @@ final class V2OrdersSidebarAuthorizationContractTest extends TestCase
             ->assertOk()
             ->assertSee('dir="ltr"', false);
 
+        // Unlike the historical Orders alias, this unsupported module has
+        // no separate canonical route and must be rejected by the real
+        // StoreBusinessProfile gate.
+        $this->actingAs($restaurantAdmin)
+            ->get(route('admin.b2c.module', [
+                'module' => 'incoming_orders',
+                'store_id' => $restaurantId,
+            ]))
+            ->assertNotFound();
+
         $storeId = $this->retailStore('P194-INACTIVE');
         $actor = $this->retailAdmin($storeId, 'p194-inactive@example.test');
         DB::table('stores')->where('id', $storeId)->update(['is_active' => false]);
