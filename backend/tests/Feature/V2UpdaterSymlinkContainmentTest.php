@@ -160,7 +160,7 @@ class V2UpdaterSymlinkContainmentTest extends TestCase
 
         $this->temporaryArchives[] = $path;
         $archive = new ZipArchive;
-        if ($archive->open($path, ZipArchive::OVERWRITE) !== true) {
+        if ($archive->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             throw new RuntimeException('Cannot open updater test archive.');
         }
 
