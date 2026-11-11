@@ -240,6 +240,31 @@ $roleLabel = static function ($role): string {
 
 @if($securitySection==='roles')
 <section class="panel"><div class="head"><div><h2>{{ __('admin.security.roles_title') }}</h2><div class="muted">{{ __('admin.security.roles_description') }}</div></div><span class="badge">{{ $roles->count() }} {{ __('admin.security.roles') }}</span></div>
+@if($permissionRoleAudit !== null)
+<section class="card" data-v2-permission-role-inventory aria-labelledby="v2-permission-inventory-title">
+<h3 id="v2-permission-inventory-title">{{ __('admin.security.permission_audit.title') }}</h3>
+<p class="muted">{{ __('admin.security.permission_audit.historical', ['permissions' => 146, 'relations' => 773]) }}</p>
+<div class="role-grid">
+<div class="card" data-v2-permission-count><strong>{{ __('admin.security.permission_audit.permissions') }}</strong><p class="foodex-number">{{ $permissionRoleAudit['permission_count'] }} · {{ __('admin.security.permission_audit.delta') }} {{ $permissionRoleAudit['permission_count'] - 146 }}</p></div>
+<div class="card" data-v2-role-relation-count><strong>{{ __('admin.security.permission_audit.relations') }}</strong><p class="foodex-number">{{ $permissionRoleAudit['relation_count'] }} · {{ __('admin.security.permission_audit.delta') }} {{ $permissionRoleAudit['relation_count'] - 773 }}</p></div>
+<div class="card"><strong>{{ __('admin.security.permission_audit.active_relations') }}</strong><p class="foodex-number">{{ $permissionRoleAudit['active_role_relation_count'] }}</p></div>
+<div class="card"><strong>{{ __('admin.security.permission_audit.unused') }}</strong><p class="foodex-number">{{ $permissionRoleAudit['unused_count'] }}</p></div>
+</div>
+<div class="security-user-table-wrap">
+<table class="security-user-table foodex-table" data-pagination-exempt="bounded-permission-namespace-inventory">
+<caption>{{ __('admin.security.permission_audit.namespace_caption') }}</caption>
+<thead><tr><th scope="col">{{ __('admin.security.permission_audit.namespace') }}</th><th scope="col">{{ __('admin.security.permission_audit.permissions') }}</th><th scope="col">{{ __('admin.security.permission_audit.relations') }}</th></tr></thead>
+<tbody>
+@foreach($permissionRoleAudit['namespaces'] as $namespace)
+<tr><th scope="row">{{ $permissionGroupLabels[$namespace['code']] ?? $namespace['code'] }}</th><td>{{ $namespace['permissions'] }}</td><td>{{ $namespace['relations'] }}</td></tr>
+@endforeach
+</tbody>
+</table>
+</div>
+<p class="muted">{{ __('admin.security.permission_audit.caveat') }}</p>
+</section>
+@endif
+
 @can('roles.manage')
 <details class="card" data-foodex-operational-modal><summary>{{ __('admin.security.create_role') }}</summary><form method="post" action="{{ route('admin.security.roles.store') }}">@csrf
 <div class="filters"><input class="grow" name="code" required maxlength="50" pattern="[A-Z][A-Z0-9_]{2,49}" placeholder="CUSTOM_ROLE"><input class="grow" name="name" required maxlength="120" placeholder="{{ __('admin.security.role_name') }}"><select name="scope"><option value="global">{{ __('admin.security.scope_global') }}</option><option value="store">{{ __('admin.security.scope_store') }}</option></select><label><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" checked> {{ __('admin.security.active') }}</label></div><textarea name="description" placeholder="{{ __('admin.security.role_description') }}"></textarea>
