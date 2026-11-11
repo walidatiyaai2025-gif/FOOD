@@ -132,7 +132,10 @@ class VanLocationTrackingController {
       stop();
       await onSessionExpired?.call();
     } on VanAccessDeniedException {
+      // A Van heartbeat is guarded by the live assignment and Van role.
+      // Losing either must invalidate the app session, not just stop GPS.
       stop();
+      await onSessionExpired?.call();
     } on VanOfflineException {
       // Keep the tracker alive; the next cadence will retry automatically.
     } on VanApiException {
