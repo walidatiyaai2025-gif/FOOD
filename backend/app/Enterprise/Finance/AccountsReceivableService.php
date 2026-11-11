@@ -15,6 +15,7 @@ use App\Support\EnterpriseScopeAuthorizer;
 use App\Support\ResolvedTenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -606,8 +607,68 @@ final class AccountsReceivableService
             self::VIEW_PERMISSION,
             self::READ_CAPABILITY,
         );
-        $limit = max(1, min(100, $limit));
 
+        return $this->agingQuery($scope, $customerId)
+            ->orderBy('document.due_date')
+            ->orderBy('document.id')
+            ->limit(max(1, min(100, $limit)))
+            ->get();
+    }
+
+    /** @return LengthAwarePaginator<int, \stdClass> */
+    public function paginateAging(
+        User $actor,
+        ResolvedTenantContext $context,
+        ?int $customerId = null,
+        int $perPage = 25,
+    ): LengthAwarePaginator {
+        $scope = $this->authorizedScope(
+            $actor,
+            $context,
+            self::VIEW_PERMISSION,
+            self::READ_CAPABILITY,
+        );
+
+        return $this->agingQuery($scope, $customerId)
+            ->orderBy('document.due_date')
+            ->orderBy('document.id')
+            ->paginate(max(10, min(100, $perPage)), ['*'], 'aging_page')
+            ->withQueryString();
+    }
+
+    /**
+     * Complete, currency-separated outstanding balances, calculated in SQL
+     * before row pagination; never sum a bounded page or mix currencies.
+     *
+     * @return Collection<int, \stdClass>
+     */
+    public function agingTotals(
+        User $actor,
+        ResolvedTenantContext $context,
+        ?int $customerId = null,
+    ): Collection {
+        $scope = $this->authorizedScope(
+            $actor,
+            $context,
+            self::VIEW_PERMISSION,
+            self::READ_CAPABILITY,
+        );
+
+        return DB::query()
+            ->fromSub($this->agingQuery($scope, $customerId), 'aging')
+            ->select(['aging.aging_bucket', 'aging.currency_code'])
+            ->selectRaw('COUNT(*) as document_count')
+            ->selectRaw('SUM(aging.outstanding_amount) as outstanding_amount')
+            ->groupBy('aging.aging_bucket', 'aging.currency_code')
+            ->orderBy('aging.aging_bucket')
+            ->orderBy('aging.currency_code')
+            ->get();
+    }
+
+    /** @return QueryBuilder */
+    private function agingQuery(EnterpriseDataScope $scope, ?int $customerId): QueryBuilder
+    {
+        $today = CarbonImmutable::today();
         $allocations = DB::table('enterprise_ar_allocations')
             ->selectRaw('ar_document_id, SUM(amount) as allocated_amount')
             ->where('status', 'posted')
@@ -621,7 +682,7 @@ final class AccountsReceivableService
             ->where('document.status', 'posted')
             ->when(
                 $customerId !== null,
-                fn ($query) => $query->where('document.customer_id', $customerId),
+                fn (QueryBuilder $query) => $query->where('document.customer_id', $customerId),
             )
             ->whereRaw('(document.amount - COALESCE(allocations.allocated_amount, 0)) > 0')
             ->select([
@@ -645,16 +706,12 @@ final class AccountsReceivableService
                     ELSE '91_plus'
                 END as aging_bucket",
                 [
-                    now()->toDateString(),
-                    now()->subDays(30)->toDateString(),
-                    now()->subDays(60)->toDateString(),
-                    now()->subDays(90)->toDateString(),
+                    $today->toDateString(),
+                    $today->subDays(30)->toDateString(),
+                    $today->subDays(60)->toDateString(),
+                    $today->subDays(90)->toDateString(),
                 ],
-            )
-            ->orderBy('document.due_date')
-            ->orderBy('document.id')
-            ->limit($limit)
-            ->get();
+            );
     }
 
     private function outstandingAmount(

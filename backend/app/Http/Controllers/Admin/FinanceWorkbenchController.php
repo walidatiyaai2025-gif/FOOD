@@ -786,14 +786,11 @@ final class FinanceWorkbenchController extends Controller
         $filters = $request->only(['customer_id', 'status', 'date_from', 'date_to']);
         $documents = $this->receivables->paginate($actor, $context, $filters, 25);
         $documents->getCollection()->load('customer');
-        $aging = $this->receivables->aging(
-            $actor,
-            $context,
-            $request->filled('customer_id') ? $request->integer('customer_id') : null,
-            100,
-        );
+        $customerId = $request->filled('customer_id') ? $request->integer('customer_id') : null;
+        $aging = $this->receivables->paginateAging($actor, $context, $customerId, 25);
+        $agingTotals = $this->receivables->agingTotals($actor, $context, $customerId);
 
-        return compact('documents', 'aging', 'filters');
+        return compact('documents', 'aging', 'agingTotals', 'filters');
     }
 
     /** @return array<string, mixed> */
