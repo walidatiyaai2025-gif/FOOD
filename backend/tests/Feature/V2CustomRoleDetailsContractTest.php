@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\EnterpriseApprovalLimit;
+use App\Models\EnterpriseRoleDataScope;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
@@ -55,6 +56,21 @@ final class V2CustomRoleDetailsContractTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        EnterpriseRoleDataScope::query()->create([
+            'role_id' => $role->id,
+            'scope_type' => 'store',
+            'scope_id' => $storeId,
+            'scope_key' => 'store:'.$storeId,
+            'is_active' => true,
+        ]);
+        EnterpriseRoleDataScope::query()->create([
+            'role_id' => $role->id,
+            'scope_type' => 'platform',
+            'scope_id' => null,
+            'scope_key' => 'platform:*',
+            'is_active' => false,
+        ]);
+
         EnterpriseApprovalLimit::query()->create([
             'role_id' => $role->id,
             'permission_code' => 'finance.approve',
@@ -78,6 +94,7 @@ final class V2CustomRoleDetailsContractTest extends TestCase
 
         $roleCount = Role::query()->count();
         $limitCount = EnterpriseApprovalLimit::query()->count();
+        $scopeCount = EnterpriseRoleDataScope::query()->count();
         foreach (['ar' => ['rtl', 'تفاصيل الدور المخصص'], 'en' => ['ltr', 'Custom role details']] as $locale => [$direction, $heading]) {
             $actor->forceFill(['locale' => $locale])->save();
             app()->setLocale($locale);
@@ -90,6 +107,7 @@ final class V2CustomRoleDetailsContractTest extends TestCase
                 ->assertSee('V2_P098_CUSTOM')
                 ->assertSee('Saved author-approved role description')
                 ->assertSee('data-v2-custom-role-assigned-stores', false)
+                ->assertSee('data-v2-custom-role-data-scopes', false)
                 ->assertSee('P098 Synthetic Store')
                 ->assertSee('catalog.view')
                 ->assertSee('12500.000')
@@ -99,6 +117,8 @@ final class V2CustomRoleDetailsContractTest extends TestCase
 
         $this->assertSame($roleCount, Role::query()->count());
         $this->assertSame($limitCount, EnterpriseApprovalLimit::query()->count());
+        $this->assertSame($scopeCount, EnterpriseRoleDataScope::query()->count());
+        $this->assertDatabaseHas('enterprise_role_data_scopes', ['role_id' => $role->id, 'scope_key' => 'store:'.$storeId, 'is_active' => true]);
         $this->assertDatabaseHas('user_store_roles', [
             'user_id' => $assignee->id,
             'role_id' => $role->id,
