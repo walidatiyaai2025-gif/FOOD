@@ -68,8 +68,8 @@ class HttpCustomerOrdersApi implements CustomerOrdersApi {
     final rawRows = decoded['data'];
     if ((context != null || normalizedChannel != null) &&
         (rawRows is! List ||
-            rawRows.any((row) =>
-                row is! Map || !_isKnownChannel(row['channel'])))) {
+            rawRows.any(
+                (row) => row is! Map || !_isKnownChannel(row['channel'])))) {
       throw const CustomerOrdersException('invalid_response');
     }
     final result = CustomerOrderPage.fromJson(decoded);
