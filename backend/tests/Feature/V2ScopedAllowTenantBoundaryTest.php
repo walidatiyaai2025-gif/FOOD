@@ -47,6 +47,7 @@ final class V2ScopedAllowTenantBoundaryTest extends TestCase
 
         $this->actingAs($admin)
             ->put(route('admin.security.users.permissions', $actor), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'scope_type' => 'store',
                 'store_id' => $storeA,
                 'permission_ids' => $selected,
