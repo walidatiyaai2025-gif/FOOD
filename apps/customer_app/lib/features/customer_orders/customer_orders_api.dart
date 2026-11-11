@@ -63,7 +63,16 @@ class HttpCustomerOrdersApi implements CustomerOrdersApi {
       context,
     );
     final decoded = _decodeMap(response);
-    return CustomerOrderPage.fromJson(decoded);
+    final result = CustomerOrderPage.fromJson(decoded);
+    for (final order in result.orders) {
+      if ((context != null &&
+              (order.storeId != context.storeId ||
+                  order.channel != context.normalizedChannel)) ||
+          (normalizedChannel != null && order.channel != normalizedChannel)) {
+        throw const CustomerOrdersException('forbidden');
+      }
+    }
+    return result;
   }
 
   @override
@@ -87,7 +96,16 @@ class HttpCustomerOrdersApi implements CustomerOrdersApi {
       ),
       context,
     );
-    return CustomerOrderDetails.fromJson(_decodeMap(response));
+    final result = CustomerOrderDetails.fromJson(_decodeMap(response));
+    if (result.summary.id != orderId) {
+      throw const CustomerOrdersException('invalid_response');
+    }
+    if (context != null &&
+        (result.summary.storeId != context.storeId ||
+            result.summary.channel != context.normalizedChannel)) {
+      throw const CustomerOrdersException('forbidden');
+    }
+    return result;
   }
 
   Future<http.Response> _send(
