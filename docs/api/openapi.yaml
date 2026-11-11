@@ -2205,7 +2205,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SecurityRoleWrite"
+              $ref: "#/components/schemas/SecurityRoleUpdateWrite"
       responses:
         "200":
           description: Role updated
@@ -5106,6 +5106,18 @@ components:
           items:
             type: integer
 
+    SecurityRoleUpdateWrite:
+      allOf:
+        - $ref: "#/components/schemas/SecurityRoleWrite"
+        - type: object
+          required: [change_reason]
+          properties:
+            change_reason:
+              type: string
+              minLength: 8
+              maxLength: 500
+              description: Required audited business reason for a role update.
+
     SecurityUser:
       type: object
       required: [id, name, email, is_active, global_roles, store_roles, effective_permissions]
@@ -5156,8 +5168,13 @@ components:
 
     SecurityUserRolesWrite:
       type: object
-      required: [global_role_ids, store_roles]
+      required: [global_role_ids, store_roles, change_reason]
       properties:
+        change_reason:
+          type: string
+          minLength: 8
+          maxLength: 500
+          description: Required audited justification for an assignment update.
         global_role_ids:
           type: array
           uniqueItems: true
