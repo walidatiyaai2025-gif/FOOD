@@ -31,7 +31,7 @@ class B2bPricingController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        Gate::authorize('b2b.pricing.manage');
+        Gate::authorize('b2b.pricing.view');
 
         $storeId = $this->principal->storeId();
         abort_unless(
