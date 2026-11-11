@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\B2bCustomer;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\VanVisit;
@@ -138,6 +139,118 @@ class VanVisitControllerTest extends TestCase
             'id' => $previous->id,
             'status' => 'planned',
         ]);
+    }
+
+    public function test_same_van_new_assignment_cannot_reopen_previous_assignment_visits(): void
+    {
+        $actor = $this->vanActor();
+        $assignment = DB::table('van_assignments')
+            ->where('representative_user_id', $actor->id)
+            ->first(['id', 'van_id']);
+        $this->assertNotNull($assignment);
+
+        $current = VanVisit::query()->create([
+            'actor_user_id' => $actor->id,
+            'customer_type' => 'b2b',
+            'customer_id' => 42,
+            'status' => 'planned',
+            'metadata' => [
+                'van_id' => (int) $assignment->van_id,
+                'van_assignment_id' => (int) $assignment->id,
+            ],
+        ]);
+        $prior = VanVisit::query()->create([
+            'actor_user_id' => $actor->id,
+            'customer_type' => 'b2b',
+            'customer_id' => 43,
+            'status' => 'planned',
+            'metadata' => [
+                'van_id' => (int) $assignment->van_id,
+                'van_assignment_id' => (int) $assignment->id + 100,
+            ],
+        ]);
+
+        $this->getJson('/api/v1/van/visits')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $current->id);
+
+        $this->postJson('/api/v1/van/visits/'.$prior->id.'/transition', [
+            'status' => 'started',
+        ])->assertNotFound();
+
+        $this->assertDatabaseHas('van_visits', [
+            'id' => $prior->id,
+            'status' => 'planned',
+        ]);
+    }
+
+    public function test_visit_create_idempotency_never_replays_an_unrelated_or_out_of_scope_visit(): void
+    {
+        $actor = $this->vanActor();
+        $buyer = B2bCustomer::query()->create(['name' => 'Wholesale buyer']);
+        $otherBuyer = B2bCustomer::query()->create(['name' => 'Other wholesale buyer']);
+        $assignment = DB::table('van_assignments')
+            ->where('representative_user_id', $actor->id)
+            ->first(['id', 'van_id']);
+        $this->assertNotNull($assignment);
+
+        $legacyRetail = VanVisit::query()->create([
+            'actor_user_id' => $actor->id,
+            'customer_type' => 'b2c',
+            'customer_id' => 123,
+            'status' => 'planned',
+            'idempotency_key' => 'old-retail-replay',
+        ]);
+        $this->postJson('/api/v1/van/visits', [
+            'customer_type' => 'b2b',
+            'customer_id' => $buyer->id,
+            'idempotency_key' => 'old-retail-replay',
+        ])->assertStatus(409);
+
+        $authorized = VanVisit::query()->create([
+            'actor_user_id' => $actor->id,
+            'customer_type' => 'b2b',
+            'customer_id' => $buyer->id,
+            'status' => 'planned',
+            'idempotency_key' => 'valid-wholesale-replay',
+            'metadata' => [
+                'van_id' => (int) $assignment->van_id,
+                'van_assignment_id' => (int) $assignment->id,
+            ],
+        ]);
+        $this->postJson('/api/v1/van/visits', [
+            'customer_type' => 'b2b',
+            'customer_id' => $buyer->id,
+            'idempotency_key' => 'valid-wholesale-replay',
+        ])->assertCreated()->assertJsonPath('id', $authorized->id);
+
+        $this->postJson('/api/v1/van/visits', [
+            'customer_type' => 'b2b',
+            'customer_id' => $otherBuyer->id,
+            'idempotency_key' => 'valid-wholesale-replay',
+        ])->assertStatus(409);
+
+        $priorAssignment = VanVisit::query()->create([
+            'actor_user_id' => $actor->id,
+            'customer_type' => 'b2b',
+            'customer_id' => $buyer->id,
+            'status' => 'planned',
+            'idempotency_key' => 'prior-assignment-replay',
+            'metadata' => [
+                'van_id' => (int) $assignment->van_id,
+                'van_assignment_id' => (int) $assignment->id + 100,
+            ],
+        ]);
+        $this->postJson('/api/v1/van/visits', [
+            'customer_type' => 'b2b',
+            'customer_id' => $buyer->id,
+            'idempotency_key' => 'prior-assignment-replay',
+        ])->assertStatus(409);
+
+        $this->assertDatabaseHas('van_visits', ['id' => $legacyRetail->id, 'status' => 'planned']);
+        $this->assertDatabaseHas('van_visits', ['id' => $priorAssignment->id, 'status' => 'planned']);
+        $this->assertSame(3, VanVisit::query()->count());
     }
 
     private function vanActor(): User
