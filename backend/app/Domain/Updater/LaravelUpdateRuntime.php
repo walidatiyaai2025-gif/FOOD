@@ -35,7 +35,10 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             throw new RuntimeException('Insufficient free disk space for safe update and rollback.');
         }
 
-        $this->archiveEntries($packagePath);
+        // Reject symlinks before creating any backup or changing live files.
+        foreach ($this->archiveEntries($packagePath) as $relativePath) {
+            $this->assertSafeReleaseTarget($relativePath);
+        }
 
         if ($manifest->containsMigrations) {
             $driver = DB::connection()->getDriverName();
@@ -67,6 +70,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         $existing = [];
 
         foreach ($this->archiveEntries($packagePath) as $relativePath) {
+            $this->assertSafeReleaseTarget($relativePath);
             $targets[] = $relativePath;
             $target = $this->releaseRoot().'/'.$relativePath;
 
@@ -212,8 +216,10 @@ final class LaravelUpdateRuntime implements UpdateRuntime
                     throw new RuntimeException('Update archive entry could not be read.');
                 }
 
+                $this->assertSafeReleaseTarget($relativePath);
                 $target = $this->releaseRoot().'/'.$relativePath;
                 $this->ensureDirectory(dirname($target));
+                $this->assertSafeReleaseTarget($relativePath);
                 $temporary = $target.'.foodex-update-'.bin2hex(random_bytes(6));
                 $destination = fopen($temporary, 'wb');
 
@@ -324,6 +330,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         $existing = $this->stringList($payload['existing'] ?? []);
 
         foreach ($targets as $relativePath) {
+            $this->assertSafeReleaseTarget($relativePath);
             $target = $this->releaseRoot().'/'.$this->safeRelativePath($relativePath);
             if (is_file($target) && ! @unlink($target)) {
                 throw new RuntimeException('Updated file could not be removed during rollback.');
@@ -332,9 +339,11 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
         foreach ($existing as $relativePath) {
             $safePath = $this->safeRelativePath($relativePath);
+            $this->assertSafeReleaseTarget($safePath);
             $source = $backupReference.'/existing/'.$safePath;
             $target = $this->releaseRoot().'/'.$safePath;
             $this->ensureDirectory(dirname($target));
+            $this->assertSafeReleaseTarget($safePath);
 
             if (! is_file($source) || ! copy($source, $target)) {
                 throw new RuntimeException('Original release file could not be restored.');
@@ -504,7 +513,19 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
         for ($index = 0; $index < $archive->numFiles; $index++) {
             $name = $archive->getNameIndex($index);
-            if ($name === false || str_ends_with($name, '/')) {
+            if ($name === false) {
+                throw new RuntimeException('Update archive contains an unreadable entry name.');
+            }
+
+            $operatingSystem = 0;
+            $attributes = 0;
+            if ($archive->getExternalAttributesIndex($index, $operatingSystem, $attributes)
+                && $operatingSystem === ZipArchive::OPSYS_UNIX
+                && (($attributes >> 16) & 0170000) === 0120000) {
+                throw new RuntimeException('Update archive contains a symbolic link.');
+            }
+
+            if (str_ends_with($name, '/')) {
                 continue;
             }
 
@@ -547,6 +568,28 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         }
 
         return $normalized;
+    }
+
+    /**
+     * Prevent following existing symlinks (including dangling links) from the
+     * canonical release root to any package file. Recheck immediately before
+     * activation and recovery, not only during the initial package preflight.
+     */
+    private function assertSafeReleaseTarget(string $relativePath): void
+    {
+        $parts = explode('/', $this->safeRelativePath($relativePath));
+        $target = $this->releaseRoot();
+
+        foreach ($parts as $part) {
+            if ($part === '' || $part === '.') {
+                throw new RuntimeException('Update archive contains a non-canonical path.');
+            }
+
+            $target .= '/'.$part;
+            if (is_link($target)) {
+                throw new RuntimeException('Update target traverses a symbolic link.');
+            }
+        }
     }
 
     private function releaseRoot(): string
