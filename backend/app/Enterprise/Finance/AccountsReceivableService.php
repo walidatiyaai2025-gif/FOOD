@@ -74,6 +74,10 @@ final class AccountsReceivableService
 
         return $this->documentQuery($scope)
             ->when(
+                $context->isRetail(),
+                fn (Builder $query): Builder => $query->where('store_id', $scope->storeId),
+            )
+            ->when(
                 $validated['customer_id'] ?? null,
                 fn (Builder $query, int $customerId): Builder => $query->where('customer_id', $customerId),
             )
@@ -665,7 +669,6 @@ final class AccountsReceivableService
             ->get();
     }
 
-    /** @return QueryBuilder */
     private function agingQuery(EnterpriseDataScope $scope, ResolvedTenantContext $context, ?int $customerId): QueryBuilder
     {
         $today = CarbonImmutable::today();
