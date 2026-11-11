@@ -89,6 +89,8 @@ final class V2CustomRoleDetailsContractTest extends TestCase
                 ->assertSee($heading)
                 ->assertSee('V2_P098_CUSTOM')
                 ->assertSee('Saved author-approved role description')
+                ->assertSee('data-v2-custom-role-assigned-stores', false)
+                ->assertSee('P098 Synthetic Store')
                 ->assertSee('catalog.view')
                 ->assertSee('12500.000')
                 ->assertSee('EGP')
