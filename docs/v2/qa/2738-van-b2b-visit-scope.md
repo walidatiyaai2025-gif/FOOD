@@ -9,7 +9,7 @@ The pre-change `VanVisitController::store` accepted `customer_type=b2c`, and `Va
 ## Bounded correction
 
 - `VanVisitController` now validates only `b2b` on new visit creation, and rejects `b2c` customer detail lookups with 404.
-- `VanRuntimeVisitScope` applies a B2B predicate before the existing actor/van-assignment ownership predicate. All consumers of its query (visit feed, customer list/detail, transition authorization) exclude legacy B2C visit rows, including rows with the same `metadata.van_id`. No existing visits, uploads, PII or financial ledgers are deleted or rewritten.
+- `VanRuntimeVisitScope` applies a B2B predicate before actor/van-assignment ownership. In a resolved live Van context, an actor's explicitly Van-tagged visits must match the current Van; legacy untagged visits from that actor remain supported. Current Van-tagged visits remain accessible by current Van scope. This prevents a reassigned operator reading or transitioning another Van's prior B2B visits in addition to excluding legacy B2C rows, including rows with the same `metadata.van_id`. All consumers of its query (visit feed, customer list/detail, transition authorization) inherit this isolation. No existing visits, uploads, PII or financial ledgers are deleted or rewritten.
 - `HttpVanVisitRepository` accepts only authoritative `customer_type=b2b` records in list or transition responses. Invalid channel causes a typed API failure of the complete response rather than returning a misleading partial successful route feed.
 - Existing Van login, token, app-scoped authorization, idempotency key, proof/visit status transitions, required evidence, collection and remittance implementations are left intact.
 
