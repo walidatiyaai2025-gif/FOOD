@@ -51,6 +51,7 @@ final class V2SidebarRolePermissionCodesTest extends TestCase
 
         $admin->forceFill(['locale' => 'en'])->save();
         $this->actingAs($admin)->patch(route('admin.security.roles.update', $role, false), [
+            'change_reason' => 'Regression fixture approved RBAC access change',
             'name' => $role->name,
             'description' => $role->description,
             'scope' => 'global',
@@ -99,6 +100,7 @@ final class V2SidebarRolePermissionCodesTest extends TestCase
         ], false))->assertForbidden();
 
         $this->actingAs($actor)->patch(route('admin.security.roles.update', $role, false), [
+            'change_reason' => 'Regression fixture approved RBAC access change',
             'name' => $role->name,
             'scope' => 'global',
             'is_active' => '1',
@@ -116,6 +118,7 @@ final class V2SidebarRolePermissionCodesTest extends TestCase
         $wholesale = Permission::query()->where('code', 'b2b.accounts.view')->firstOrFail();
 
         $this->actingAs($admin)->patch(route('admin.security.roles.update', $role, false), [
+            'change_reason' => 'Regression fixture approved RBAC access change',
             'name' => $role->name,
             'description' => null,
             'scope' => 'store',
