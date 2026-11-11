@@ -157,6 +157,31 @@ $roleRiskMessages = collect(array_keys($roleRiskPairs))
         <div><span class="muted">{{ __('job_roles.effective_permissions') }}:</span> <span data-role-effective-permissions></span></div>
     </div>
 
+    {{-- P077: provisional, read-only tree beside the existing role/scope picker.
+         HTTP authorization remains definitive; never use this projection as an allow. --}}
+    <section class="note v2-user-page-tree" data-v2-user-page-tree
+             data-preview-url="{{ route('admin.security.role-tree-preview') }}"
+             data-loading="{{ __('admin.security.page_tree_preview_loading') }}"
+             data-error="{{ __('admin.security.page_tree_preview_error') }}"
+             data-empty="{{ __('admin.security.page_tree_preview_empty') }}">
+        <strong>{{ __('admin.security.page_tree_preview_title') }}</strong>
+        <label class="v2-tree-scope-picker">
+            <span>{{ __('admin.security.page_tree_preview_scope') }}</span>
+            <select data-v2-user-tree-scope aria-label="{{ __('admin.security.page_tree_preview_scope') }}">
+                <option value="">{{ __('admin.security.global_roles') }}</option>
+                @foreach($stores as $previewStore)
+                    @if($grantableStoreRolesByStore->get((int)$previewStore->id, collect())->isNotEmpty())
+                        <option value="{{ $previewStore->id }}">{{ $previewStore->name }}</option>
+                    @endif
+                @endforeach
+            </select>
+        </label>
+        <button type="button" class="btn secondary" data-v2-user-tree-refresh>{{ __('admin.security.page_tree_preview_refresh') }}</button>
+        <p data-v2-user-tree-status role="status" aria-live="polite">{{ __('admin.security.page_tree_preview_initial') }}</p>
+        <div class="v2-tree-results" data-v2-user-tree-results></div>
+        <p class="muted">{{ __('admin.security.page_tree_preview_disclaimer') }}</p>
+    </section>
+
     <div class="note role-risk-warning" data-role-risk-warning role="alert" hidden>
         <strong>{{ __('job_roles.risk_warning_title') }}</strong>
         <span></span>
@@ -164,4 +189,88 @@ $roleRiskMessages = collect(array_keys($roleRiskPairs))
 
     <button class="btn primary">{{ __('admin.security.save_assignments') }}</button>
 </form>
+@once
+<style>
+.v2-user-page-tree{display:grid;gap:10px;min-width:0}
+.v2-tree-scope-picker{display:grid;gap:6px;min-width:0}
+.v2-tree-scope-picker select{width:100%;min-height:44px;font:inherit}
+.v2-tree-results{max-height:340px;overflow:auto;overflow-wrap:anywhere}
+.v2-tree-results details{border:1px solid var(--foodex-border);border-radius:9px;margin-block:7px;padding:8px}
+.v2-tree-results summary{cursor:pointer;font-weight:700}
+.v2-tree-results ul{margin-block:8px;padding-inline-start:22px}
+.v2-tree-results li{margin-block:4px}
+</style>
+<script>
+(() => {
+    'use strict';
+    const getForm = (node) => node.closest('form[data-impact-form]');
+    const isRoleChoice = (node) => node instanceof HTMLInputElement
+        && (node.name === 'global_role_ids[]' || node.name.startsWith('store_role_ids['));
+
+    const refresh = async (form) => {
+        if (!form) return;
+        const section = form.querySelector('[data-v2-user-page-tree]');
+        if (!section) return;
+        const status = section.querySelector('[data-v2-user-tree-status]');
+        const results = section.querySelector('[data-v2-user-tree-results]');
+        const selectedStore = section.querySelector('[data-v2-user-tree-scope]').value;
+        const generation = Number(section.dataset.generation || 0) + 1;
+        section.dataset.generation = String(generation);
+        results.replaceChildren();
+        status.textContent = section.dataset.loading;
+
+        const query = new URLSearchParams();
+        query.set('scope', selectedStore ? 'store' : 'global');
+        if (selectedStore) query.set('store_id', selectedStore);
+        const storeName = selectedStore ? 'store_role_ids[' + selectedStore + '][]' : '';
+        for (const input of form.querySelectorAll('input')) {
+            if (input.type !== 'hidden' && (input.type !== 'checkbox' || !input.checked || input.disabled)) continue;
+            if (input.name === 'global_role_ids[]') query.append('global_role_ids[]', input.value);
+            if (storeName && input.name === storeName) query.append('store_role_ids[]', input.value);
+        }
+
+        try {
+            const response = await fetch(section.dataset.previewUrl + '?' + query.toString(), {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+                cache: 'no-store'
+            });
+            if (!response.ok) throw new Error('Preview denied');
+            const payload = await response.json();
+            if (generation !== Number(section.dataset.generation)) return;
+            status.textContent = payload.count ? payload.disclaimer : section.dataset.empty;
+            for (const group of (payload.groups || [])) {
+                const container = document.createElement('details');
+                const heading = document.createElement('summary');
+                heading.textContent = group.label + ' (' + group.items.length + ')';
+                const list = document.createElement('ul');
+                for (const item of group.items) {
+                    const node = document.createElement('li');
+                    node.textContent = item;
+                    list.append(node);
+                }
+                container.append(heading, list);
+                results.append(container);
+            }
+        } catch (error) {
+            if (generation === Number(section.dataset.generation)) {
+                results.replaceChildren();
+                status.textContent = section.dataset.error;
+            }
+        }
+    };
+
+    document.addEventListener('change', (event) => {
+        const node = event.target;
+        const form = getForm(node);
+        if (form && (isRoleChoice(node) || node.matches('[data-v2-user-tree-scope]'))) refresh(form);
+    });
+    document.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-v2-user-tree-refresh]');
+        if (button) refresh(getForm(button));
+    });
+})();
+</script>
+@endonce
 @endif

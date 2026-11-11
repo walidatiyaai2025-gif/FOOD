@@ -65,6 +65,7 @@ use App\Http\Controllers\Admin\SystemLookupController;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\TreasuryMasterController;
+use App\Http\Controllers\Admin\UserRolePageTreePreviewController;
 use App\Http\Controllers\Admin\VanFinanceSupportController;
 use App\Http\Controllers\Admin\WhatsAppCallController;
 use App\Http\Controllers\Admin\WhatsAppCampaignController;
@@ -881,6 +882,8 @@ Route::prefix('admin')
         Route::patch('/inspector/restaurant/{store}/lifecycle', [SystemInspectorController::class, 'transitionRestaurantLifecycle'])
             ->whereNumber('store')->middleware('throttle:20,1')->name('inspector.restaurant-lifecycle.update');
         Route::get('/security', [SecurityController::class, 'index'])->name('security.index');
+        Route::get('/security/role-scope/page-tree-preview', UserRolePageTreePreviewController::class)
+            ->middleware('throttle:30,1')->name('security.role-tree-preview');
         Route::get('/sidebar-access', [SidebarManagementController::class, 'roleAccess'])->name('sidebar-access.roles');
         Route::put('/sidebar-access/roles/{role}', [SidebarManagementController::class, 'updateRoleAccess'])->name('sidebar-access.roles.update');
         Route::get('/sidebar-layout', [SidebarManagementController::class, 'layout'])->name('sidebar-layout.index');
