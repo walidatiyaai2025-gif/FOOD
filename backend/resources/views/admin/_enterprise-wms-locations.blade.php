@@ -7,6 +7,7 @@
     </div>
 
     @if($warehouseId)
+    @if($canManageLocations)
     <div class="wms-location-forms">
         <form class="wms-form" method="post" action="{{ route('admin.erp.wms.locations.zones.store') }}" data-wms-mutation>
             @csrf
@@ -40,6 +41,7 @@
         </form>
         @endif
     </div>
+    @endif
     @endif
 
     <div class="wms-split">
