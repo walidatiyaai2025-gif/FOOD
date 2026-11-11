@@ -32,6 +32,9 @@ return [
     'preview_server' => 'The live server alone decides final route, role, tenant and store authorization.',
     'preview_action_boundary' => 'This preview describes potential page-link visibility only. It does not authorize Approve, Post or Dispatch actions. Each action requires its own server-side permission, scope and segregation-of-duties checks.',
     'preview_summary' => ':eligible role-eligible items; :restricted restricted or hidden. Final user access not confirmed.',
+    'result_tree_title' => 'Resulting Sidebar tree (role preview)',
+    'result_tree_note' => 'Updates instantly with the permission checkboxes. This is a read-only projection, not proof of final user access or a new visibility grant.',
+    'result_tree_action_boundary' => 'Real routes and Approve, Post, Dispatch and other actions still require independent server authorization and segregation-of-duties checks.',
     'save' => 'Save role permissions',
     'confirm' => 'Changing this role affects every assigned user. Continue?',
 ];

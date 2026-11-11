@@ -18,7 +18,20 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
 .v2-role-business-group{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--foodex-border);border-radius:10px;background:var(--foodex-background)}
 .v2-role-business-group span{font-weight:700}
 .v2-role-business-group strong{font-variant-numeric:tabular-nums}
-@media(max-width:1200px){.v2-role-workbench{grid-template-columns:minmax(0,1fr)}}
+
+.v2-role-workbench{grid-template-columns:minmax(180px,.55fr) minmax(210px,.7fr) minmax(420px,1.55fr) minmax(240px,1fr)}
+.v2-resulting-sidebar{min-width:0;max-height:75vh;overflow-y:auto;position:sticky;top:12px;padding:14px;border:1px solid var(--foodex-border);border-radius:16px;background:var(--foodex-surface)}
+.v2-resulting-sidebar h2{font-size:1.05rem;margin:0 0 8px}
+.v2-resulting-sidebar p{margin:0 0 12px}
+.v2-result-group{padding:8px 0;border-top:1px solid var(--foodex-border)}
+.v2-result-group summary{cursor:pointer;font-weight:800;padding:5px 0}
+.v2-result-group ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:5px}
+.v2-result-item{display:grid;gap:4px;padding:8px;border:1px solid var(--foodex-border);border-radius:9px;overflow-wrap:anywhere}
+.v2-result-item-name{font-weight:700;font-size:.85rem}
+.v2-result-state{font-size:.76rem;color:var(--foodex-muted)}
+.v2-result-item[data-v2-result-state="restricted"]{opacity:.7;background:var(--foodex-background)}
+.v2-result-item[data-v2-result-state="hidden"]{border-style:dashed}
+@media(max-width:1200px){.v2-role-workbench{grid-template-columns:minmax(0,1fr)}.v2-resulting-sidebar{position:static;max-height:none}}
 </style>
 @include('admin._brand-components')
 </head>
@@ -179,6 +192,25 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
 <div class="actions"><button class="save foodex-action-primary" type="submit">{{ __('v2_role_permissions.save') }}</button></div>
 @endif
 </form>
+
+<aside class="v2-resulting-sidebar" data-v2-result-tree aria-labelledby="v2-result-tree-title" aria-describedby="v2-result-tree-note">
+<h2 id="v2-result-tree-title">{{ __('v2_role_permissions.result_tree_title') }}</h2>
+<p id="v2-result-tree-note" class="muted">{{ __('v2_role_permissions.result_tree_note') }}</p>
+@foreach($matrix['groups'] as $group)
+<details class="v2-result-group" open>
+<summary>{{ ($group['label_'.app()->getLocale()] ?? null) ?: __($group['label']) }}</summary>
+<ul>
+@foreach($group['items'] as $item)
+<li class="v2-result-item" data-v2-result-item="{{ $item['key'] }}" data-v2-result-state="pending">
+<span class="v2-result-item-name">{{ ($item['label_'.app()->getLocale()] ?? null) ?: __($item['label']) }}</span>
+<span class="v2-result-state" data-v2-result-status>{{ __('v2_role_permissions.preview_initial') }}</span>
+</li>
+@endforeach
+</ul>
+</details>
+@endforeach
+<p class="muted">{{ __('v2_role_permissions.result_tree_action_boundary') }}</p>
+</aside>
 </div>
 </main>
 </div>
@@ -205,6 +237,8 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
         summary: @json(__('v2_role_permissions.preview_summary'))
     };
     const nodes = Array.from(form.querySelectorAll('[data-v2-role-preview-node]'));
+    const resultTree = document.querySelector('[data-v2-result-tree]');
+    const resultItems = new Map(Array.from(resultTree?.querySelectorAll('[data-v2-result-item]') || [], element => [element.dataset.v2ResultItem, element]));
     const summary = form.querySelector('[data-v2-preview-summary]');
     const refresh = () => {
         const selected = new Set(Array.from(
@@ -232,6 +266,11 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
             if (node.dataset.previewModule === '1') reasons.push(copy.server);
             const status = node.querySelector('[data-v2-preview-status]');
             status.textContent = restricted ? copy.denied : (hidden ? copy.hiddenStatus : copy.eligible);
+            const result = resultItems.get(node.dataset.v2RoleNode);
+            if (result) {
+                result.dataset.v2ResultState = restricted ? 'restricted' : (hidden ? 'hidden' : 'eligible');
+                result.querySelector('[data-v2-result-status]').textContent = status.textContent;
+            }
             const reasonList = node.querySelector('[data-v2-preview-reasons]');
             reasonList.replaceChildren();
             for (const reason of reasons) {
