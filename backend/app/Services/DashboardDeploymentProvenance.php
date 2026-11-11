@@ -40,24 +40,26 @@ final class DashboardDeploymentProvenance
         }
 
         $versionPath = $versionFile ?? base_path('../VERSION');
-        $sourceVersion = is_file($versionPath) && is_readable($versionPath)
-            ? trim((string) file_get_contents($versionPath))
-            : null;
-        if ($sourceVersion === '') {
+        $sourceContents = $this->readBoundedFile($versionPath, 128);
+        $sourceVersion = is_string($sourceContents) ? trim($sourceContents) : null;
+        if ($sourceVersion === '' || ! is_string($sourceVersion)
+            || preg_match('/\A[0-9]+\.[0-9]+\.[0-9]+\z/D', $sourceVersion) !== 1) {
             $sourceVersion = null;
         }
 
         $buildPath = $buildInfoFile ?? base_path('../Release/BUILD_INFO.json');
         $build = [];
-        if (is_file($buildPath) && is_readable($buildPath)) {
-            $decoded = json_decode((string) file_get_contents($buildPath), true);
+        $buildContents = $this->readBoundedFile($buildPath, 131072);
+        if (is_string($buildContents)) {
+            $decoded = json_decode($buildContents, true);
             if (is_array($decoded)) {
                 $build = $decoded;
             }
         }
 
         $buildVersion = is_string($build['version'] ?? null)
-            ? trim($build['version']) : null;
+            && preg_match('/\A[0-9]+\.[0-9]+\.[0-9]+\z/D', trim($build['version'])) === 1
+                ? trim($build['version']) : null;
         $commit = is_string($build['source_commit'] ?? null)
             ? strtolower(trim($build['source_commit'])) : null;
         if ($commit === null || preg_match('/\A[a-f0-9]{40}\z/D', $commit) !== 1) {
@@ -86,6 +88,39 @@ final class DashboardDeploymentProvenance
             'metadata_state' => $metadataState,
             'github_state' => $githubState,
         ];
+    }
+
+    /**
+     * Treat packaged metadata as untrusted local data. An accidental
+     * symlink-to-.env or an oversized manifest must never become an
+     * Inspector response, even for privileged accounts.
+     */
+    private function readBoundedFile(string $path, int $maxBytes): ?string
+    {
+        try {
+            if (is_link($path) || ! is_file($path) || ! is_readable($path)) {
+                return null;
+            }
+
+            $root = realpath(base_path('..'));
+            $resolved = realpath($path);
+            if ($root === false || $resolved === false
+                || ! str_starts_with($resolved, rtrim($root, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR)) {
+                return null;
+            }
+
+            $size = filesize($resolved);
+            if ($size === false || $size < 1 || $size > $maxBytes) {
+                return null;
+            }
+
+            $contents = file_get_contents($resolved);
+
+            return is_string($contents) && strlen($contents) <= $maxBytes
+                ? $contents : null;
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     private function verifyCommit(string $commit): string
