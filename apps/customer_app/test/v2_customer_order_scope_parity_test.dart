@@ -89,8 +89,7 @@ void main() {
     }
   });
 
-  test('matching order scope still returns the authoritative result',
-      () async {
+  test('matching order scope still returns the authoritative result', () async {
     final api = returning(
       '{"id":91,"store_id":7,"channel":"b2c","status":"delivered",'
       '"invoice":{"outstanding_amount":0},"grand_total":12.5}',

@@ -122,8 +122,7 @@ class HttpCustomerOrdersApi implements CustomerOrdersApi {
         headers: <String, String>{
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
-          if (context != null)
-            'X-FOODEX-Store-ID': context.storeId.toString(),
+          if (context != null) 'X-FOODEX-Store-ID': context.storeId.toString(),
           if (context != null)
             'X-FOODEX-Customer-Domain': context.normalizedChannel,
         },
