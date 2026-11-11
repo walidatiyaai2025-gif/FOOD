@@ -37,8 +37,8 @@ $roleRiskMessages = collect(array_keys($roleRiskPairs))
       data-impact-removed="{{ __('security_permissions.impact_removed') }}"
       data-impact-none="{{ __('security_permissions.impact_none') }}"
       data-impact-empty="{{ __('security_permissions.impact_empty') }}"
-      data-role-risk-pairs="{{ e(json_encode($roleRiskPairs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) }}"
-      data-role-risk-messages="{{ e(json_encode($roleRiskMessages, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) }}">
+      data-role-risk-pairs="{{ json_encode($roleRiskPairs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}"
+      data-role-risk-messages="{{ json_encode($roleRiskMessages, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}">
     @csrf
     @method('put')
 
@@ -73,7 +73,7 @@ $roleRiskMessages = collect(array_keys($roleRiskPairs))
                                data-impact-label="{{ __('security_permissions.global_scope') }} · {{ $meta['name'] }}"
                                data-role-code="{{ $role->code }}"
                                data-role-name="{{ $meta['name'] }}"
-                               data-role-permission-summary="{{ e(json_encode($meta['permission_summary'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) }}">
+                               data-role-permission-summary="{{ json_encode($meta['permission_summary'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}">
                         <span class="job-role-meta">
                             <strong>{{ $meta['name'] }}</strong>
                             <span class="job-role-tags">
@@ -127,7 +127,7 @@ $roleRiskMessages = collect(array_keys($roleRiskPairs))
                                        data-impact-label="{{ __('security_permissions.store_scope') }} · {{ $store->name }} · {{ $meta['name'] }}"
                                        data-role-code="{{ $role->code }}"
                                        data-role-name="{{ $store->name }} · {{ $meta['name'] }}"
-                                       data-role-permission-summary="{{ e(json_encode($meta['permission_summary'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) }}">
+                                       data-role-permission-summary="{{ json_encode($meta['permission_summary'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}">
                                 <span class="job-role-meta">
                                     <strong>{{ $meta['name'] }}</strong>
                                     <span class="job-role-tags">
