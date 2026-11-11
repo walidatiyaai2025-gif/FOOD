@@ -20,7 +20,7 @@ on:
       baseline_head:
         description: Accepted immutable baseline source SHA
         required: false
-        default: d171df2961687455f08c14b9419df83027edcbf0
+        default: d37204b58cf6ee604420f87bdfaf5f7d20c8f4c6
         type: string
 
 permissions:
@@ -39,7 +39,8 @@ jobs:
       FOODEX_PERF_SOURCE_HEAD: ${{ inputs.source_head }}
       FOODEX_PERF_BASELINE_HEAD: ${{ inputs.baseline_head }}
       FOODEX_PERF_HARNESS_HEAD: ${{ inputs.source_head }}
-      BASELINE_FILE: ../benchmarks/enterprise/baselines/e4f5049831efabe3/smoke/d171df2961687455f08c14b9419df83027edcbf0.json
+      HISTORIC_BASELINE_FILE: ../benchmarks/enterprise/baselines/e4f5049831efabe3/smoke/d171df2961687455f08c14b9419df83027edcbf0.json
+      PAIRED_BASELINE_FILE: ../artifacts/enterprise-performance-paired-baseline.json
       CANDIDATE_FILE: storage/app/private/enterprise-performance/current-main-smoke-evidence.json
       COMPARISON_FILE: ../artifacts/enterprise-performance-comparison.json
       REPORT_FILE: ../artifacts/enterprise-performance-candidate.md
@@ -51,6 +52,13 @@ jobs:
           ref: ${{ inputs.source_head }}
           fetch-depth: 0
 
+      - name: Checkout immutable reviewed source baseline
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.baseline_head }}
+          path: benchmark-baseline
+          fetch-depth: 0
+
       - name: Prove checked-out candidate identity
         shell: bash
         run: |
@@ -59,6 +67,22 @@ jobs:
           expected="${{ inputs.source_head }}"
           if [[ "$actual" != "$expected" ]]; then
             echo "::error::Performance benchmark checkout mismatch: $actual != $expected"
+            exit 1
+          fi
+
+      - name: Prove baseline checkout lineage and ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git -C ../benchmark-baseline rev-parse HEAD)"
+          expected="${{ inputs.baseline_head }}"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error::Performance baseline checkout mismatch: $actual != $expected"
+            exit 1
+          fi
+          # Do not compare against an unrelated or future branch.
+          if ! git merge-base --is-ancestor "$expected" "${{ inputs.source_head }}"; then
+            echo "::error::Accepted source baseline is not an ancestor of candidate"
             exit 1
           fi
 
@@ -81,6 +105,9 @@ jobs:
       - name: Install backend dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Install reviewed baseline dependencies in isolated checkout
+        run: composer install --no-interaction --prefer-dist --no-progress --working-dir=../benchmark-baseline/backend
+
       - name: Prepare isolated benchmark environment
         run: |
           set -euo pipefail
@@ -88,6 +115,14 @@ jobs:
           php artisan key:generate
           touch database/database.sqlite
           mkdir -p ../artifacts
+          # Both workloads execute in the SAME job, PHP interpreter and SQLite
+          # library; each source gets its own DB, application key and vendor tree.
+          (
+            cd ../benchmark-baseline/backend
+            cp .env.example .env
+            php artisan key:generate
+            touch database/database.sqlite
+          )
 
       - name: Validate exact lineage inputs
         shell: bash
@@ -108,11 +143,45 @@ jobs:
               raise SystemExit("baseline_head is not an exact SHA")
           if source == baseline:
               raise SystemExit("candidate source_head must differ from baseline_head")
-          report = json.loads(Path(os.environ["BASELINE_FILE"]).read_text())
-          if report.get("source_head") != baseline:
+          # The original d171df2 baseline remains immutable historical evidence.
+          # Its PHP/SQLite fingerprint is not silently rewritten or relaxed.
+          historic = "d171df2961687455f08c14b9419df83027edcbf0"
+          report = json.loads(Path(os.environ["HISTORIC_BASELINE_FILE"]).read_text())
+          if report.get("source_head") != historic:
               raise SystemExit(
-                  f"immutable baseline lineage mismatch: {report.get('source_head')} != {baseline}"
+                  f"historic baseline lineage mismatch: {report.get('source_head')} != {historic}"
               )
+          PY
+
+      - name: Produce same-runner source-baseline evidence
+        working-directory: benchmark-baseline/backend
+        env:
+          FOODEX_PERF_MODE: baseline
+          FOODEX_PERF_SOURCE_HEAD: ${{ inputs.baseline_head }}
+          FOODEX_PERF_BASELINE_HEAD: ""
+          FOODEX_PERF_HARNESS_HEAD: ${{ inputs.baseline_head }}
+        run: vendor/bin/phpunit tests/Feature/Performance/CurrentMainPerformanceBaselineTest.php
+
+      - name: Capture source-baseline evidence without mutating its checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp ../benchmark-baseline/backend/storage/app/private/enterprise-performance/current-main-smoke-evidence.json "$PAIRED_BASELINE_FILE"
+          python3 ../scripts/enterprise-performance-report.py "$PAIRED_BASELINE_FILE" --validate-only
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          baseline = json.loads(Path(os.environ["PAIRED_BASELINE_FILE"]).read_text())
+          expected = os.environ["FOODEX_PERF_BASELINE_HEAD"].lower()
+          if (baseline.get("source_head") != expected
+              or baseline.get("harness_head") != expected
+              or baseline.get("baseline_head") is not None
+              or baseline.get("profile") != "smoke"):
+              raise SystemExit("paired baseline lineage/profile mismatch")
+          if baseline["environment"].get("runner") != "github-actions":
+              raise SystemExit("paired baseline must come from this GitHub Actions runner")
           PY
 
       - name: Produce exact-head candidate evidence
@@ -144,11 +213,32 @@ jobs:
                   raise SystemExit(f"{scenario.get('id')}: missing numeric peak memory")
           PY
 
-      - name: Enforce immutable baseline comparison
+      - name: Verify paired runtime, dataset and exact source lineage
         shell: bash
         run: |
           set -euo pipefail
-          python3 ../scripts/enterprise-performance-compare.py compare             "$BASELINE_FILE"             "$CANDIDATE_FILE"             --output "$COMPARISON_FILE"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          baseline = json.loads(Path(os.environ["PAIRED_BASELINE_FILE"]).read_text())
+          candidate = json.loads(Path(os.environ["CANDIDATE_FILE"]).read_text())
+          if baseline["environment"] != candidate["environment"]:
+              raise SystemExit("baseline and candidate must have identical runtime fingerprints")
+          if baseline["dataset"] != candidate["dataset"]:
+              raise SystemExit("baseline and candidate benchmark datasets differ")
+          if (baseline["source_head"] != os.environ["FOODEX_PERF_BASELINE_HEAD"].lower()
+              or candidate["baseline_head"] != baseline["source_head"]
+              or candidate["source_head"] != os.environ["FOODEX_PERF_SOURCE_HEAD"].lower()):
+              raise SystemExit("paired source lineage mismatch")
+          PY
+
+      - name: Enforce paired source-baseline comparison
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ../scripts/enterprise-performance-compare.py compare             "$PAIRED_BASELINE_FILE"             "$CANDIDATE_FILE"             --output "$COMPARISON_FILE"
 
       - name: Render candidate evidence
         if: always()
@@ -166,6 +256,7 @@ jobs:
           name: enterprise-performance-${{ inputs.source_head }}
           path: |
             backend/storage/app/private/enterprise-performance/current-main-smoke-evidence.json
+            artifacts/enterprise-performance-paired-baseline.json
             artifacts/enterprise-performance-comparison.json
             artifacts/enterprise-performance-candidate.md
           if-no-files-found: error

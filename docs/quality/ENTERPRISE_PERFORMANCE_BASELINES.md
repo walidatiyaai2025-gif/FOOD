@@ -59,3 +59,33 @@ python3 scripts/enterprise-performance-compare.py compare baseline.json candidat
 ```
 
 Exit code 1 means the promotion gate failed.
+
+## V2 same-runner smoke source pairing (#3160)
+
+The historical accepted smoke evidence at `d171df2961687455f08c14b9419df83027edcbf0`
+is **not edited, overwritten, or silently compared across incompatible environments**.
+Its fixed PHP 8.3.35 / SQLite 3.45.1 fingerprint must not be treated as
+comparable with a different SQLite version.
+
+For V2 smoke CI, the source anchor pinned by
+`.github/workflows/required-ci-gate.yml` is
+`d37204b58cf6ee604420f87bdfaf5f7d20c8f4c6` (reviewed V2 integration
+source before #3160). On each candidate CI job, check out this exact immutable
+Git SHA and the candidate SHA separately; require the anchor to be an ancestor,
+install both lockfiles, run the same benchmark on the same GitHub Actions worker,
+PHP interpreter and SQLite runtime with independent DB/keys, and preserve
+both JSON reports as artifacts. Never rewrite the old baseline JSON or fabricate
+its measured values. The pin is a proposed separately reviewed baseline-source
+change in #3160; future anchor changes require their own review and verification.
+
+The acceptance comparator continues to enforce p95 15%, p99 20%, query
+count 15%, peak memory 15%, and all applicable cPanel absolute ceilings,
+without allowing exceptions to p99 or cPanel. An exact runtime fingerprint
+(including database version) and equal fixture dataset are required for the
+paired job; mismatches **FAIL**. The separate comparator still rejects SQLite
+minor-version drift, even when GitHub PHP patch drift is tolerated for
+legacy comparison purposes. The paired evidence uses unchanged live
+measurement, not copied historical numbers.
+
+This is a smoke-only gate; heavy/cPanel benchmarks and independent ERP
+workflow attestation remain separate mandatory release checks.
