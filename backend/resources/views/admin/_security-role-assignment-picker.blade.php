@@ -261,13 +261,41 @@ $roleRiskMessages = collect(array_keys($roleRiskPairs))
         }
     };
 
+    // The selection belongs to the role being edited: a store checkbox must
+    // show THAT store rather than silently leaving the separate selector global.
     document.addEventListener('change', (event) => {
         const node = event.target;
+        if (!(node instanceof Element)) return;
         const form = getForm(node);
-        if (form && (isRoleChoice(node) || node.matches('[data-v2-user-tree-scope]'))) refresh(form);
+        if (!form) return;
+        if (isRoleChoice(node)) {
+            const selector = form.querySelector('[data-v2-user-tree-scope]');
+            const storeMatch = node.name.match(/^store_role_ids\\[([1-9]\\d*)\\]\\[\\]$/);
+            const nextScope = storeMatch ? storeMatch[1] : '';
+            if (selector && [...selector.options].some((option) => option.value === nextScope)) {
+                selector.value = nextScope;
+            }
+            refresh(form);
+        } else if (node.matches('[data-v2-user-tree-scope]')) {
+            refresh(form);
+        }
     });
+
+    // The existing Manage dialog renders collapsed in the user grid.
+    // Start a read-only projection when its native details dialog opens,
+    // without requiring the operator to change an assigned role first.
+    // The toggle event does not reliably bubble, so observe it in capture.
+    document.addEventListener('toggle', (event) => {
+        const dialog = event.target;
+        if (!(dialog instanceof HTMLDetailsElement)
+            || !dialog.open || !dialog.matches('[data-foodex-operational-modal]')) return;
+        const section = dialog.querySelector('[data-v2-user-page-tree]');
+        if (section) refresh(getForm(section));
+    }, true);
+
     document.addEventListener('click', (event) => {
-        const button = event.target.closest('[data-v2-user-tree-refresh]');
+        const button = event.target instanceof Element
+            ? event.target.closest('[data-v2-user-tree-refresh]') : null;
         if (button) refresh(getForm(button));
     });
 })();
