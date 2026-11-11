@@ -715,7 +715,7 @@ return [
             'namespace' => 'Permission group',
             'caveat' => 'These are stored catalog/pivot counts; inactive or archived roles retain historical links. Actual access still requires server-side ALLOW/DENY, tenant/store/channel, module readiness and finance maker/checker checks. No grants are changed by this audit.',
         ],
- 'roles_description' => 'System roles are protected; custom roles can be delegated only within the operator’s own authority.',
+        'roles_description' => 'System roles are protected; custom roles can be delegated only within the operator’s own authority.',
         'roles' => 'roles', 'create_role' => 'Create role', 'role_name' => 'Role name', 'role_description' => 'Role description',
         'scope_global' => 'Global scope', 'scope_store' => 'Store scope', 'scope_both' => 'Global or store scope',
         'system_role' => 'System role', 'no_description' => 'No description', 'assignments_count' => 'Assignments', 'scope' => 'Scope',
