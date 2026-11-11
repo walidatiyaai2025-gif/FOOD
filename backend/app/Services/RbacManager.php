@@ -45,8 +45,9 @@ final class RbacManager
         );
     }
 
-    /** @param array<string, mixed> $snapshot
-     *  @return array<string, mixed>
+    /**
+     * @param  array<string, mixed>  $snapshot
+     * @return array<string, mixed>
      */
     private function auditedChangeSnapshot(Request $request, array $snapshot): array
     {
