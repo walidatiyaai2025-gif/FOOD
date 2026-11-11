@@ -101,7 +101,7 @@ final class VanVisitController extends Controller
     {
         $actor = $this->actor($request);
         $validated = $request->validate([
-            'customer_type' => ['required', Rule::in(['b2b', 'b2c'])],
+            'customer_type' => ['required', Rule::in(['b2b'])],
             'customer_id' => ['required', 'integer', 'min:1'],
             'store_id' => ['nullable', 'integer', 'min:1'],
             'planned_at' => ['nullable', 'date'],
@@ -216,7 +216,7 @@ final class VanVisitController extends Controller
         string $type,
         int $customerId,
     ): void {
-        abort_unless(in_array($type, ['b2b', 'b2c'], true), 404);
+        abort_unless($type === 'b2b', 404);
 
         abort_unless(
             app(VanRuntimeVisitScope::class)
