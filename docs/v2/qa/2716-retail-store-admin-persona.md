@@ -17,29 +17,36 @@
 `backend/tests/Feature/V2RetailStoreAdminPersonaAuthorityTest.php` performs actual seeded Laravel/HTTP contract coverage:
 
 1. Retail-only channel and discoverable canonical `b2c_dashboard`, `b2c_storefront`, `b2c_products`, `b2c_inventory`, `b2c_orders`, `b2c_customers`, `b2c_promotions`, `b2c_reports` destinations. No B2B-only, ERP or wholesale Field Operations modules in this store-only persona.
-2. Named authentic `admin.b2c.module` GET destinations for Dashboard, Products, Inventory, Orders, Customers, Promotions, Reports in **English/LTR** and **Arabic/RTL**, each returning only its requested store's `storeId`/`storeIds` view data.
+2. Named authentic `admin.b2c.module` GET destinations for Dashboard, Storefront, Products, Inventory, Orders, Customers, Promotions, Reports in **English/LTR** and **Arabic/RTL**, each returning only its requested store's `storeId`/`storeIds` view data.
 3. Multi-store role allows explicit switch to a second assigned store; a third, foreign store returns **404**. Retail-only admin cannot enter B2B Wholesale Orders (**403**).
 4. A scoped user `inventory.view` **DENY** on one store cannot be bypassed by store assignment, while another allowed store retains access. The Sidebar's inventory link targets the allowed store, not the denied one; direct HTTP denied access is **403**.
+5. Independent scoped `stores.view` **DENY** for the Storefront route selects the alternate authorized Retail store for the Sidebar while the denied store's direct HTTP responds **403**, and the authorized storefront responds **200**.
 
-All samples are synthetic test data in an isolated CI database. This does not assume a specific production user count or modify real assignments. The canonical controller, routing, translations and Sidebar are already implemented and are intentionally **reused unchanged**; this PR adds previously missing persona-level regression and acceptance evidence without touching other workers' shared navigation files. No module, CRUD, finance or user-role mutation is introduced.
+All samples are synthetic test data in an isolated CI database. This does not assume a specific production user count or modify real assignments. The canonical controller, routing, translations and existing Sidebar destination are reused; the CI rescue exposes a real navigation omission: the Retail-only `AdminNavigation::groupsFor()` allowlist lacked `b2c_storefront` although `module()` and `B2cWorkspaceController` both already enforce `stores.view`, active Retail store assignment and permission checks. The one-key allowlist correction restores discoverability without adding routes, roles, grants, or weakening HTTP authority. The existing #2713 inventory Sidebar change is a different expression and must be preserved on reconciliation. No module, CRUD, finance or user-role mutation is introduced.
 
 ## Design, behavior and security audit
 
 - **UI:** existing FOODEX Dashboard shell, Tajawal tokens, responsive Sidebar and canonical workspaces at 320–1280px; no new CSS, components, menus or text. AR/EN and RTL/LTR are validated via route responses. Native focus/touch behavior and existing accessible labels remain unchanged.
 - **Data:** authoritative per-store Laravel database queries, no fabricated production data; empty states are the existing workspaces.
 - **Authorization:** store scoped role and explicit DENY, no wholesale fallback and no unsupported module activation. Platform Owner retail support remains explicit and separately audited by existing `B2cTenantWorkspaceIsolationTest`.
-- **Delivery:** no new API endpoint, database migration, seed or financial write. Existing user/account permissions are unchanged. Do not interpret navigation visibility as security authority.
+- **Delivery:** no new API endpoint, database migration, seed or financial write. Existing user/account permissions and controller authorization are unchanged. Do not interpret navigation visibility as security authority.
 
 ## Mobile impact classification
 
 | Surface | Impact | Boundary evidence |
 | --- | --- | --- |
-| Dashboard responsive web | **Affected: acceptance coverage only** | Real HTTP module, AR/EN, store-role allow/deny and Sidebar tests; existing UI unchanged |
+| Dashboard responsive web | **Affected: acceptance coverage only** | Real HTTP module, AR/EN, store-role allow/deny and Sidebar tests; one missing authorized Storefront Sidebar entry restored; shared UI components unchanged |
 | Flutter Customer | **Not affected** | No Customer auth, API, storefront, order, role payload or routing change |
 | Flutter Driver | **Not affected** | No B2C Driver dispatch, status, identity, proof or notification API change |
 | Flutter Van | **Not affected** | No B2B Van assignment, route, trip, settlement or offline API change |
 
 The B2B=VAN ONLY / B2C=DRIVER ONLY fulfillment contract is unchanged. Since there is no mobile-facing API/runtime change, no new mobile issue is required.
+
+## CI rescue / file fence
+
+- Exact-head predecessor `b9ef4c6ff9fd246f5738422830cf114431d8638f`, run [#42973774014](https://github.com/walidatiyaai2025-gif/FOOD/actions/runs/42973774014): **2,974 Laravel tests passed; 1 failed** due `b2c_storefront` being filtered from the real Retail Sidebar despite valid `stores.view`. Policy, V2 isolation, AR/EN, backend fast-fail and MySQL/Redis acceptance passed.
+- Repair only the current Retail `b2c_storefront` key in the existing `AdminNavigation` non-super-admin list; the separate #2713 / PR #3064 B2B inventory expression is NOT changed. Preserve existing `module()` and HTTP authorization logic. Never replace a real discoverability failure with a weakened assertion.
+- Full exact-head CI must be rerun on the repair commit before merge. Manual UI/UAT remains deferred to final #2503/#2750, not waived.
 
 ## Gate / handoff
 
