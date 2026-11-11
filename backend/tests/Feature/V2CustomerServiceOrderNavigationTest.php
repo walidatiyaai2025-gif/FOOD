@@ -47,6 +47,7 @@ final class V2CustomerServiceOrderNavigationTest extends TestCase
 
         $this->actingAs($admin)
             ->put(route('admin.security.users.permissions', $manager), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'scope_type' => 'global',
                 'permission_ids' => $selected,
             ])
@@ -95,6 +96,7 @@ final class V2CustomerServiceOrderNavigationTest extends TestCase
 
         $this->actingAs($admin)
             ->put(route('admin.security.users.permissions', $manager), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'scope_type' => 'global',
                 'permission_ids' => $restored,
             ])
@@ -122,6 +124,7 @@ final class V2CustomerServiceOrderNavigationTest extends TestCase
 
         $this->actingAs($agent)
             ->put(route('admin.security.users.permissions', $supervisor), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'scope_type' => 'global',
                 'permission_ids' => [],
             ])
