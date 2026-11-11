@@ -590,6 +590,7 @@
                         {{ __('smart_ordering_menu.public_menu.copy') }}
                     </button>
                     <a class="foodex-secondary" href="{{ route('admin.smart-ordering.qr.index', ['store_id'=>$site->store_id] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ __('smart_ordering_menu.public_menu.qr') }}</a>
+                    @if($canPublishSetup)
                     <form class="so-inline" method="post" action="{{ route('admin.smart-ordering.menu.unpublish') }}"
                           data-confirm-unpublish data-confirm-message="{{ __('smart_ordering_menu.unpublish.confirm') }}">
                         @csrf
@@ -597,18 +598,21 @@
                         @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                         <button class="so-danger" type="submit">{{ __('smart_ordering_menu.unpublish.action') }}</button>
                     </form>
+                    @endif
                 </div>
                 @else
                 <span class="foodex-status-badge" data-state="inactive">{{ __('smart_ordering_menu.public_menu.unpublished') }}</span>
                 @endif
                 @if($reviewMode)
                 <a class="foodex-secondary" href="{{ route('admin.smart-ordering.menu.index', ['store_id'=>$site->store_id, 'menu_id'=>$focusedMenuId] + ($supportAccess ? ['support_access'=>1] : [])) }}">{{ $isAr ? 'العودة للمحرر' : 'Back to editor' }}</a>
+                @if($canPublishSetup)
                 <form class="so-inline" method="post" action="{{ route('admin.smart-ordering.menu.publish',$draft) }}">
                     @csrf
                     <input type="hidden" name="store_id" value="{{ $site->store_id }}">
                     @if($supportAccess)<input type="hidden" name="support_access" value="1">@endif
                     <button class="primary" type="submit" @disabled(!empty($itemPriceErrors) || $scheduledRevision !== null) aria-describedby="@if(!empty($itemPriceErrors)) so-invalid-items-title @endif @if($scheduledRevision !== null) so-scheduled-publish-state @endif">{{ $isAr ? 'نشر المنيو الآن' : 'Publish menu now' }}</button>
                 </form>
+                @endif
                 @if($scheduledRevision !== null)
                 <div id="so-scheduled-publish-state" class="foodex-alert" role="status">
                     <strong>{{ __('smart_ordering_menu.schedule.pending', [
@@ -617,7 +621,7 @@
                     ]) }}</strong>
                     <div class="so-muted">{{ __('smart_ordering_menu.schedule.pending_hint') }}</div>
                 </div>
-                @else
+                @elseif($canPublishSetup)
                 <form class="so-inline" method="post" action="{{ route('admin.smart-ordering.menu.schedule',$draft) }}">
                     @csrf
                     <input type="hidden" name="store_id" value="{{ $site->store_id }}">
