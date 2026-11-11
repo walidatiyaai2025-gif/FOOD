@@ -34,6 +34,10 @@ The test is deliberately **not** a migration that changes live users or role ass
 
 No new mobile issue is required for this test-only change. AR/EN negative HTTP coverage is included; no rendered screen/layout change means UI visual evidence is not claimed.
 
+## Shared finance permission caveat
+
+The Treasury Officer and AP Officer both retain the legacy `finance.manage` permission in the canonical catalog. This is **not** evidence that their effective operational authority is interchangeable: Treasury and Finance require different module lifecycle, entitlement and transaction scopes. The tests deliberately verify the actual permission bundles **and** the disabled-module fail-closed result instead of falsely asserting that the same code cannot appear in multiple job definitions. Independent maker/checker and ledger limits remain enforced by their domain services.
+
 ## Acceptance still outstanding — do not close #2802
 
 P051 asks for **formal adoption** of a complete procurement/accounting/treasury role model. This bounded regression proves a subset of today's source-controlled baseline, not that the full operational permission matrix, legal-entity scopes, approval ceilings, maker/checker policies, delegated overrides, production-exported identities, UI responsiveness and end-to-end actions have been approved. Approval of target business responsibilities and a non-destructive role-transition/data-remediation policy must precede any broader migration. Coordinate with active P111 Procurement, Accountant and Treasury issue owners. No direct production user mutation is authorized.
