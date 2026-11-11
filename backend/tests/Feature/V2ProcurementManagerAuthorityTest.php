@@ -194,11 +194,12 @@ final class V2ProcurementManagerAuthorityTest extends TestCase
             'status' => 'submitted',
         ]);
 
-        $selfDecision = $this->actingAs($maker)->post(
+        // ValidationException is rendered as a 302 with flashed errors on the
+        // established Dashboard web POST; a JSON 422 is not the HTTP contract.
+        $this->actingAs($maker)->post(
             route('admin.erp.procurement.requests.decision', $requestId),
             ['store_id' => $wholesale->id, 'decision' => 'approve', 'note' => 'self-check attempt'],
-        );
-        $this->assertContains($selfDecision->status(), [403, 422], 'Manager may not approve own purchase request');
+        )->assertSessionHasErrors('decision');
         $this->assertDatabaseHas('enterprise_purchase_requests', [
             'id' => $requestId,
             'status' => 'submitted',
