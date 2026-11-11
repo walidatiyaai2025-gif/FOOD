@@ -275,8 +275,7 @@ final class V2FiscalPeriodsRouteAuthorityTest extends TestCase
         string $storeCode,
         string $locale,
         bool $separateLegalEntity = false,
-    ): array
-    {
+    ): array {
         $store = Store::query()->create([
             'store_type_id' => (int) DB::table('store_types')->where('code', 'B2C')->value('id'),
             'code' => $storeCode,
