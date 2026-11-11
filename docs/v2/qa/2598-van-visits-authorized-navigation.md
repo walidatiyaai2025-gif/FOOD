@@ -32,3 +32,17 @@ The existing `AdminNavigation::groupsFor` route item requires **both global** `d
 - Do not merge or close #2598 while required CI or source/record-scope acceptance is failing or unknown.
 - `MANUAL_ACCEPTANCE: DEFERRED_TO_V2_FINAL` per #2503, not a waiver of automated acceptance.
 - Forbidden: merge into `main`, production deployment, tag/release, or editing files leased to #3070/#2715/#2510 and other active V2 workers.
+
+## P268 record-level channel and store isolation hardening (2026-11-11)
+
+Prior P268 checks proved Sidebar/HTTP permission parity but did not exercise persisted mixed-channel visit rows. The actual Van Visits Dashboard route previously paginated all `van_visits`, exposed both B2B/B2C customer lookup options, all stores/order options and accepted B2C Van visit creation. Under locked V2 delivery, B2B is **VAN ONLY** and B2C is **DRIVER ONLY**; the Van visit management surface cannot expose or mutate Retail/Driver records.
+
+Scoped repair on the **same original PR #3087**:
+- `FieldOperationsController::visits` reads `customer_type=b2b` only and restricts non-platform operators to their existing authorized B2B store IDs. Wholesale platform operators retain platform-level B2B visibility. Customer selectors contain B2B values only for platform-wide operators; without an authoritative per-store B2B customer mapping, a scoped operator is not shown the platform-wide customer directory.
+- Visit-store selector uses active B2B store type and authorized store IDs, orders are B2B-only with authorized stores, visit-route metadata comes only from visible B2B visits; unscoped Van fleet route metadata is visible only to platform-wide operators.
+- `storeVisit` rejects `customer_type=b2c` at the server validation boundary and rejects unowned/retail explicit `store_id`. `transitionVisit` denies legacy B2C visit records, unauthorized B2B stores and B2C order references independently of menu visibility.
+- The Van Visits Blade no longer offers the B2C creation choice; server validation is authoritative.
+- Two new real Laravel HTTP fixtures in `V2VanVisitsAuthorizedSidebarTest`: persisted B2B own/foreign store visit records and B2C customer/visit rows; scoped AR/EN visible-vs-hidden output, B2C create rejection without mutation, B2C/foreign transition 404 without mutation, permitted own-store B2B transition.
+- Existing roleless/partial permission, explicit user DENY, inactive user, Retail-only and read-only mutation assertions remain intact. No migrations, seed defaults, permission grants, production state or Van/Driver/Customer Flutter/API response contracts changed. Customer, Driver, Van apps remain unchanged as this patch affects the Admin Dashboard only; the B2B=Van/B2C=Driver fulfillment contract is reinforced rather than modified.
+
+**Remaining acceptance gate:** run complete exact-final-head Repository Policy, FOODEX V2 Isolation, Laravel/security/AR-EN and real MySQL/Redis fresh-install/upgrade/recovery checks after the branch is reconciled to the latest `Foodex_V2`; inspect failures and original source expectations. Verify real wholesale customer ownership mapping and accessibility if the store-restricted create form needs B2B account selection. Do not claim complete P268 source or merge solely from static reasoning or partial CI. `MANUAL_ACCEPTANCE: DEFERRED_TO_V2_FINAL` under #2503 only for manual UAT, not actual security/functionality.

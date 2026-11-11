@@ -23,6 +23,7 @@
 @if(session('status'))<div class="foodex-card coupon-panel" role="status">{{ session('status') }}</div>@endif
 @if($errors->any())<div class="foodex-card coupon-panel" style="border-color:#fecaca;color:#991b1b"><strong>{{ $errors->first() }}</strong></div>@endif
 
+@if($canManageCoupons)
 <section class="foodex-card coupon-panel">
 <h2>{{ __('coupons.create') }}</h2>
 <form method="post" action="{{ route('admin.coupons.store') }}" class="coupon-grid">
@@ -50,6 +51,7 @@
 <div class="full"><button class="foodex-action-primary" type="submit">＋ {{ __('coupons.save') }}</button></div>
 </form>
 </section>
+@endif
 
 <section class="foodex-card coupon-panel">
 <form method="get" class="coupon-filter">
@@ -65,12 +67,16 @@
 <div class="coupon-card-head">
 <div><h3 style="margin:0 0 8px">{{ $coupon->code }} · {{ $ar?$coupon->name_ar:$coupon->name_en }}</h3><div class="coupon-meta"><span class="coupon-badge">{{ $coupon->channel==='b2b'?__('coupons.b2b'):__('coupons.b2c') }}</span>@if($coupon->store)<span class="coupon-badge">{{ $coupon->store->name }}</span>@endif<span class="coupon-badge {{ $coupon->is_active?'active':'' }}">{{ $coupon->is_active?__('coupons.active'):__('coupons.inactive') }}</span><span class="coupon-badge">{{ __('coupons.usage') }}: {{ $coupon->used_count }} / {{ $coupon->usage_limit_total ?? '∞' }}</span></div></div>
 <div class="coupon-actions">
+@if(in_array((int) $coupon->id, $manageableCouponIds, true))
 <form method="post" action="{{ route('admin.coupons.toggle',$coupon) }}">@csrf @method('patch')<button class="foodex-action-secondary" type="submit">{{ $coupon->is_active?__('coupons.deactivate'):__('coupons.activate') }}</button></form>
 @if((int)$coupon->used_count===0)<form method="post" action="{{ route('admin.coupons.destroy',$coupon) }}" onsubmit="return confirm('{{ $ar?'حذف الكوبون؟':'Delete coupon?' }}')">@csrf @method('delete')<button class="danger btn" type="submit">{{ __('coupons.delete') }}</button></form>@endif
+@endif
 </div></div>
+@if(in_array((int) $coupon->id, $manageableCouponIds, true))
 <details data-foodex-operational-modal style="margin-top:14px"><summary style="cursor:pointer;font-weight:800">{{ __('coupons.update') }}</summary>
 <form method="post" action="{{ route('admin.coupons.update',$coupon) }}" class="coupon-grid" style="margin-top:14px">@csrf @method('patch')
-<label>{{ __('coupons.channel') }}<select name="channel"><option value="b2b" @selected($coupon->channel==='b2b')>{{ __('coupons.b2b') }}</option>@if($retailStores!==[])<option value="b2c" @selected($coupon->channel==='b2c')>{{ __('coupons.b2c') }}</option>@endif</select></label>
+<label>{{ __('coupons.channel') }}<select name="channel">@if($canB2b)<option value="b2b" @selected($coupon->channel==='b2b')>{{ __('coupons.b2b') }}</option>@endif
+@if($retailStores!==[])<option value="b2c" @selected($coupon->channel==='b2c')>{{ __('coupons.b2c') }}</option>@endif</select></label>
 <label>{{ __('coupons.store') }}<select name="store_id"><option value="">—</option>@foreach($retailStores as $store)<option value="{{ $store['id'] }}" @selected((int)$coupon->store_id===(int)$store['id'])>{{ $store['name'] }}</option>@endforeach</select></label>
 <label>{{ __('coupons.code') }}<input name="code" value="{{ $coupon->code }}" required></label>
 <label>{{ __('coupons.discount_type') }}<select name="discount_type"><option value="percentage" @selected($coupon->discount_type==='percentage')>{{ __('coupons.percentage') }}</option><option value="fixed" @selected($coupon->discount_type==='fixed')>{{ __('coupons.fixed') }}</option><option value="free_shipping" @selected($coupon->discount_type==='free_shipping')>{{ __('coupons.free_shipping') }}</option></select></label>
@@ -87,6 +93,7 @@
 <label><span>{{ __('coupons.active') }}</span><span><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked($coupon->is_active)> {{ __('coupons.active') }}</span></label>
 <div class="full"><button class="foodex-action-primary" type="submit">{{ __('coupons.update') }}</button></div>
 </form></details>
+@endif
 </section>
 @empty
 <section class="foodex-card coupon-panel">{{ __('coupons.empty') }}</section>

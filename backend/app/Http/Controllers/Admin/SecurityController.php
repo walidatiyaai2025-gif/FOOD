@@ -393,6 +393,48 @@ final class SecurityController extends Controller
 
                 return [(int) $managedUser->id => $storeMap];
             });
+        // P081: describe the user's server-resolved RBAC state, never a UI-only grant.
+        // The existing authorization engine remains the only source of effective access.
+        $userPermissionStatesByUser = $users->getCollection()
+            ->mapWithKeys(function (User $managedUser) use ($userPermissions): array {
+                $statesForScope = static function (?int $storeId) use ($managedUser, $userPermissions): array {
+                    $effects = $managedUser->permissionOverrideEffects($storeId);
+                    $effective = array_fill_keys($managedUser->effectivePermissionCodes($storeId), true);
+                    $inherited = array_fill_keys($managedUser->inheritedPermissionCodes($storeId), true);
+
+                    return $userPermissions->mapWithKeys(static function (Permission $permission) use (
+                        $effects,
+                        $effective,
+                        $inherited,
+                    ): array {
+                        $code = (string) $permission->code;
+                        $effect = $effects[$code] ?? null;
+
+                        $state = match (true) {
+                            $effect === 'deny' => 'deny',
+                            ! isset($effective[$code]) => 'blocked',
+                            $effect === 'allow' => 'allow',
+                            isset($inherited[$code]) => 'inherited',
+                            default => 'blocked',
+                        };
+
+                        return [(int) $permission->id => $state];
+                    })->all();
+                };
+
+                $stores = $managedUser->storeRoleAssignments
+                    ->pluck('store_id')
+                    ->unique()
+                    ->mapWithKeys(static fn ($storeId): array => [
+                        (int) $storeId => $statesForScope((int) $storeId),
+                    ])
+                    ->all();
+
+                return [(int) $managedUser->id => [
+                    'global' => $statesForScope(null),
+                    'stores' => $stores,
+                ]];
+            });
         $permissionOverrideCountsByUser = DB::table('user_permission_overrides')
             ->whereIn('user_id', $users->getCollection()->pluck('id'))
             ->selectRaw('user_id, COUNT(*) as aggregate')
@@ -449,6 +491,7 @@ final class SecurityController extends Controller
             'effectivePermissionsByUser' => $effectivePermissionsByUser,
             'effectivePermissionIdsByUser' => $effectivePermissionIdsByUser,
             'effectiveStorePermissionIdsByUser' => $effectiveStorePermissionIdsByUser,
+            'userPermissionStatesByUser' => $userPermissionStatesByUser,
             'permissionOverrideCountsByUser' => $permissionOverrideCountsByUser,
             'securitySessions' => $securitySessions,
             'currentSecuritySessionHash' => hash('sha256', $request->session()->getId().'|'.$actor->id),

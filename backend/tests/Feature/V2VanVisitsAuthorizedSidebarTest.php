@@ -6,6 +6,7 @@ use App\Enums\StoreBusinessProfile;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\VanVisit;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -164,6 +165,118 @@ final class V2VanVisitsAuthorizedSidebarTest extends TestCase
                 ->get(route('admin.field-operations.visits', [], false))
                 ->assertForbidden();
         }
+    }
+
+    public function test_van_visits_only_disclose_wholesale_records_inside_assigned_store_scope(): void
+    {
+        $actor = $this->actor('P268_WHOLESALE_SCOPE', ['drivers.b2b.view', 'customers.view']);
+        $ownStore = $this->scopeStore('P268-WHOLESALE-OWN', 'B2B');
+        $otherStore = $this->scopeStore('P268-WHOLESALE-OTHER', 'B2B');
+        $retailStore = $this->scopeStore('P268-RETAIL-PRIVATE', 'B2C');
+        DB::table('user_store_roles')->insert([
+            'user_id' => $actor->id,
+            'store_id' => $ownStore,
+            'role_id' => $actor->roles()->firstOrFail()->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $wholesaleCustomer = (int) DB::table('b2b_customers')->insertGetId([
+            'name' => 'P268-OWN-WHOLESALE-CUSTOMER',
+            'phone' => '9000011111',
+            'email' => 'p268-own-wholesale@example.test',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $retailCustomer = (int) DB::table('b2c_customers')->insertGetId([
+            'store_id' => $retailStore,
+            'name' => 'P268-RETAIL-PRIVATE-CUSTOMER',
+            'email' => 'p268-private-retail@example.test',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->recordVisit($actor, 'b2b', $wholesaleCustomer, $ownStore);
+        $this->recordVisit($actor, 'b2b', $wholesaleCustomer, $otherStore);
+        $this->recordVisit($actor, 'b2c', $retailCustomer, $retailStore);
+
+        // The current user's B2B store is visible; B2C and other wholesale stores are not.
+        foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
+            app()->setLocale($locale);
+            $actor->forceFill(['locale' => $locale])->save();
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.field-operations.visits'))
+                ->assertOk()
+                ->assertSee('dir="'.$direction.'"', false)
+                ->assertSee('P268-OWN-WHOLESALE-CUSTOMER')
+                ->assertDontSee('P268-RETAIL-PRIVATE-CUSTOMER')
+                ->assertDontSee('P268-RETAIL-PRIVATE')
+                ->assertDontSee('P268-WHOLESALE-OTHER');
+        }
+    }
+
+    public function test_van_visit_creation_and_transition_reject_retail_channel_and_foreign_store(): void
+    {
+        $actor = $this->actor('P268_VAN_MANAGER', ['drivers.b2b.view', 'drivers.b2b.manage', 'customers.view']);
+        $ownStore = $this->scopeStore('P268-TRANSITION-OWN', 'B2B');
+        $otherStore = $this->scopeStore('P268-TRANSITION-FOREIGN', 'B2B');
+        $retailStore = $this->scopeStore('P268-TRANSITION-RETAIL', 'B2C');
+        DB::table('user_store_roles')->insert([
+            'user_id' => $actor->id,
+            'store_id' => $ownStore,
+            'role_id' => $actor->roles()->firstOrFail()->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $retailVisit = $this->recordVisit($actor, 'b2c', 98765, $retailStore);
+        $foreignVisit = $this->recordVisit($actor, 'b2b', 98765, $otherStore);
+        $ownVisit = $this->recordVisit($actor, 'b2b', 98765, $ownStore);
+        $initialCount = VanVisit::query()->count();
+
+        $this->actingAs($actor)->post(route('admin.field-operations.visits.store'), [
+            'customer_type' => 'b2c',
+            'customer_id' => 98765,
+        ])->assertSessionHasErrors('customer_type');
+        $this->assertSame($initialCount, VanVisit::query()->count());
+
+        $this->actingAs($actor)
+            ->post(route('admin.field-operations.visits.transition', $retailVisit), ['status' => 'started'])
+            ->assertNotFound();
+        $this->actingAs($actor)
+            ->post(route('admin.field-operations.visits.transition', $foreignVisit), ['status' => 'started'])
+            ->assertNotFound();
+        $this->assertDatabaseHas('van_visits', ['id' => $retailVisit->id, 'status' => 'planned']);
+        $this->assertDatabaseHas('van_visits', ['id' => $foreignVisit->id, 'status' => 'planned']);
+
+        $this->actingAs($actor)
+            ->post(route('admin.field-operations.visits.transition', $ownVisit), ['status' => 'started'])
+            ->assertRedirect();
+        $this->assertDatabaseHas('van_visits', ['id' => $ownVisit->id, 'status' => 'started']);
+    }
+
+    private function scopeStore(string $code, string $type): int
+    {
+        return (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', $type)->value('id'),
+            'business_profile' => $type === 'B2C' ? StoreBusinessProfile::RETAIL_STORE->value : null,
+            'code' => $code,
+            'name' => $code,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function recordVisit(User $actor, string $channel, int $customerId, int $storeId): VanVisit
+    {
+        return VanVisit::query()->create([
+            'actor_user_id' => $actor->id,
+            'customer_type' => $channel,
+            'customer_id' => $customerId,
+            'store_id' => $storeId,
+            'status' => 'planned',
+            'planned_at' => now(),
+        ]);
     }
 
     /** @param list<string> $permissionCodes */

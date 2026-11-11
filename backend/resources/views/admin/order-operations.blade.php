@@ -398,12 +398,12 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 @endif
 
 @php
-    $tabQuery=request()->except(['status','page','order','edit','action_required']);
+    $tabQuery=request()->except(['status','exception','page','order','edit','action_required']);
 @endphp
 @php
     $actionQuery=request()->except(['status','page','order','edit','action_required','dispatch_status','exception']);
 @endphp
-<nav class="status-tabs" aria-label="{{ __('order_operations.statuses') }}" data-order-status-tabs data-order-status-selected="{{ $selectedStatus ?? 'all' }}">
+<nav class="status-tabs" aria-label="{{ __('order_operations.statuses') }}" data-order-status-tabs data-order-status-selected="{{ $selectedStatus ?? 'all' }}" data-order-exception-selected="{{ $selectedException ?? 'none' }}">
 <a class="status-tab"
    data-order-action-tab
    href="{{ route('admin.operations.orders.index',array_merge($actionQuery,['action_required'=>1])) }}#order-tab-orders"
@@ -411,16 +411,22 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <span>{{ $isAr ? 'تحتاج إجراء' : 'Action required' }}</span><span class="status-tab-count">{{ $actionRequiredCount }}</span>
 </a>
 <a class="status-tab"
+   data-order-failure-returns-tab
+   href="{{ route('admin.operations.orders.index',array_merge($tabQuery,['exception'=>'failed_returns','action_required'=>0])) }}#order-tab-orders"
+   @if($selectedException==='failed_returns' && !$selectedActionRequired) aria-current="page" @endif>
+<span>{{ __('order_operations.dashboard.exceptions.failed_returns') }}</span>
+</a>
+<a class="status-tab"
    data-order-status-tab="all"
    href="{{ route('admin.operations.orders.index',array_merge($tabQuery,['action_required'=>0])) }}#order-tab-orders"
-   @if($selectedStatus===null && !$selectedActionRequired) aria-current="page" @endif>
+   @if($selectedStatus===null && $selectedException===null && !$selectedActionRequired) aria-current="page" @endif>
 <span>{{ __('order_operations.all') }}</span><span class="status-tab-count">{{ $statusTotal }}</span>
 </a>
 @foreach($statusTabs as $tab)
 <a class="status-tab"
    data-order-status-tab="{{ $tab['code'] }}"
    href="{{ route('admin.operations.orders.index',array_merge($tabQuery,['status'=>$tab['code'],'action_required'=>0])) }}#order-tab-orders"
-   @if($selectedStatus===$tab['code'] && !$selectedActionRequired) aria-current="page" @endif>
+   @if($selectedStatus===$tab['code'] && $selectedException===null && !$selectedActionRequired) aria-current="page" @endif>
 <span>{{ $tab['label'] }}</span><span class="status-tab-count">{{ $tab['count'] }}</span>
 </a>
 @endforeach
@@ -733,7 +739,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     $detailVanProofs = collect($detail['van_delivery_evidence'] ?? [])->flatMap(fn($assignment) => $assignment['timeline'] ?? [])->filter(fn($event) => !empty($event['proof']));
 @endphp
 @php
-    $detailVanExecutionProofs = collect($detail['van_events'] ?? [])->filter(fn($event) => !empty($event['proof_path']));
+    $detailVanExecutionProofs = collect($detail['van_events'] ?? [])->filter(fn($event) => !empty($event['proof_available']));
 @endphp
 @php
     $detailHasAnyAction = $detailHasMapAction || $detailHasInvoiceAction || $detailHasDispatchAction || $detailHasEditAction || $detailDriverProofs->isNotEmpty() || $detailVanProofs->isNotEmpty() || $detailVanExecutionProofs->isNotEmpty();
