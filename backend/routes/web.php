@@ -834,6 +834,7 @@ Route::prefix('admin')
         Route::post('/operations/orders/{order}/status', [OrderOperationsController::class, 'transition'])->whereNumber('order')->name('operations.orders.transition');
         Route::patch('/operations/orders/{order}/customer-service-owner', [OrderOperationsController::class, 'assignCustomerServiceOwner'])->whereNumber('order')->middleware('throttle:30,1')->name('operations.orders.customer-service-owner');
         Route::post('/operations/orders/{order}/customer-service-discount', [OrderOperationsController::class, 'applyCustomerServiceDiscount'])->whereNumber('order')->middleware('throttle:15,1')->name('operations.orders.customer-service-discount');
+        Route::post('/operations/orders/{order}/customer-service-discount-requests/{discountRequest}/review', [OrderOperationsController::class, 'reviewCustomerServiceDiscountRequest'])->whereNumber('order')->whereNumber('discountRequest')->middleware('throttle:15,1')->name('operations.orders.customer-service-discount.review');
         Route::patch('/operations/orders/{order}/dispatch', [OrderOperationsController::class, 'dispatch'])->whereNumber('order')->name('operations.orders.dispatch');
         Route::delete('/operations/orders/{order}/dispatch', [OrderOperationsController::class, 'clearDispatch'])->whereNumber('order')->name('operations.orders.dispatch.clear');
         Route::patch('/operations/orders/{order}/driver', [OrderOperationsController::class, 'reassign'])->whereNumber('order')->name('operations.orders.reassign');
