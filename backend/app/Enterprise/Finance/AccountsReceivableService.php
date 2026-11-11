@@ -608,7 +608,7 @@ final class AccountsReceivableService
             self::READ_CAPABILITY,
         );
 
-        return $this->agingQuery($scope, $customerId)
+        return $this->agingQuery($scope, $context, $customerId)
             ->orderBy('document.due_date')
             ->orderBy('document.id')
             ->limit(max(1, min(100, $limit)))
@@ -629,7 +629,7 @@ final class AccountsReceivableService
             self::READ_CAPABILITY,
         );
 
-        return $this->agingQuery($scope, $customerId)
+        return $this->agingQuery($scope, $context, $customerId)
             ->orderBy('document.due_date')
             ->orderBy('document.id')
             ->paginate(max(10, min(100, $perPage)), ['*'], 'aging_page')
@@ -655,7 +655,7 @@ final class AccountsReceivableService
         );
 
         return DB::query()
-            ->fromSub($this->agingQuery($scope, $customerId), 'aging')
+            ->fromSub($this->agingQuery($scope, $context, $customerId), 'aging')
             ->select(['aging.aging_bucket', 'aging.currency_code'])
             ->selectRaw('COUNT(*) as document_count')
             ->selectRaw('SUM(aging.outstanding_amount) as outstanding_amount')
@@ -666,7 +666,7 @@ final class AccountsReceivableService
     }
 
     /** @return QueryBuilder */
-    private function agingQuery(EnterpriseDataScope $scope, ?int $customerId): QueryBuilder
+    private function agingQuery(EnterpriseDataScope $scope, ResolvedTenantContext $context, ?int $customerId): QueryBuilder
     {
         $today = CarbonImmutable::today();
         $allocations = DB::table('enterprise_ar_allocations')
@@ -679,6 +679,11 @@ final class AccountsReceivableService
             ->where('document.organization_id', $scope->organizationId)
             ->where('document.company_id', $scope->companyId)
             ->where('document.legal_entity_id', $scope->legalEntityId)
+            // Retail context selects one store even when several stores share a legal entity.
+            ->when(
+                $context->isRetail(),
+                fn (QueryBuilder $query) => $query->where('document.store_id', $scope->storeId),
+            )
             ->where('document.status', 'posted')
             ->when(
                 $customerId !== null,

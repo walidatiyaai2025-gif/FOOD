@@ -15,6 +15,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
+use App\Support\EnterpriseDataScope;
 use App\Support\ResolvedTenantContext;
 use App\Support\TenantContextResolver;
 use Carbon\CarbonImmutable;
@@ -121,8 +122,10 @@ final class V2ArAgingFullLedgerPaginationTest extends TestCase
         // Separate legal-entity/store rows cannot enter the current actor's
         // paginated detail or currency/bucket aggregates.
         $foreign = $this->retailStore('AR-AGING-FOREIGN');
-        $foreignScope = app(TenantContextResolver::class)->retail($actor, $foreign->id)->enterpriseScope;
-        $this->assertNotNull($foreignScope);
+        $foreignHierarchy = app(OrganizationHierarchyService::class)->scopeForStore($foreign->id);
+        $this->assertNotNull($foreignHierarchy);
+        $foreignScope = EnterpriseDataScope::fromHierarchy($foreignHierarchy);
+        $this->assertSame($scope->legalEntityId, $foreignScope->legalEntityId);
         DB::table('enterprise_ar_documents')->insert([
             ...$common,
             'organization_id' => $foreignScope->organizationId,
