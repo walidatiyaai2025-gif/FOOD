@@ -83,6 +83,7 @@ class _Preferences implements VanAuthPreferenceStore {
   Future<void> write(VanAuthPreferences preferences) async {
     value = preferences;
   }
+
   @override
   Future<void> clear() async => value = null;
 }
@@ -110,7 +111,9 @@ void main() {
     const VanSessionExpiredException(),
     const VanAccessDeniedException(),
   ]) {
-    test('Van live heartbeat revokes entire app session for invalid token or permission', () async {
+    test(
+        'Van live heartbeat revokes entire app session for invalid token or permission',
+        () async {
       final heartbeat = _Heartbeat(error);
       var invalidations = 0;
       final controller = VanLocationTrackingController(
