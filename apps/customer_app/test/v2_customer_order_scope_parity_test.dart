@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodex_customer_app/features/customer_orders/customer_order_models.dart';
 import 'package:foodex_customer_app/features/customer_orders/customer_orders_api.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
