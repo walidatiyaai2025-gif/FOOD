@@ -130,10 +130,13 @@ final class V2BusinessAnalystReportingAuthorityTest extends TestCase
         foreach ([
             route('admin.operations.orders.index', ['channel' => 'b2b'], false),
             route('admin.security.index', ['section' => 'users'], false),
-            route('admin.erp.index', [], false),
         ] as $url) {
             $this->actingAs($actor)->get($url)->assertForbidden();
         }
+
+        // The existing ERP hub is a read-only landing surface for global roles;
+        // visiting it must not turn reporting into a write or security grant.
+        $this->actingAs($actor)->get(route('admin.erp.index', [], false))->assertOk();
 
         foreach (['reports.view', 'reports.export'] as $code) {
             DB::table('user_permission_overrides')->insert([
