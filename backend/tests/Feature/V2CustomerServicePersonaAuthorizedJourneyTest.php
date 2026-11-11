@@ -150,9 +150,16 @@ final class V2CustomerServicePersonaAuthorizedJourneyTest extends TestCase
         $this->actingAs($manager->fresh())
             ->get(route('admin.reports.index', [], false))
             ->assertForbidden();
-        $this->actingAs($manager->fresh())
-            ->get(route('admin.whatsapp-inbox.index', [], false))
-            ->assertForbidden();
+        // The existing capability middleware intentionally conceals the
+        // disabled WhatsApp Inbox with 404 before user authorization runs.
+        // When operational, an explicit user DENY must still yield HTTP 403.
+        $inboxResponse = $this->actingAs($manager->fresh())
+            ->get(route('admin.whatsapp-inbox.index', [], false));
+        if (app(RuntimePolicy::class)->allowsAgentInbox()) {
+            $inboxResponse->assertForbidden();
+        } else {
+            $inboxResponse->assertNotFound();
+        }
         $this->actingAs($manager->fresh())
             ->get(route('admin.erp.customer-service', [], false))
             ->assertOk();
