@@ -2048,6 +2048,7 @@
         "admin.notifications.live",
         "admin.production-launch.report",
         "admin.reports.lookups",
+        "admin.security.role-tree-preview",
         "admin.smart-ordering.merchandising.index",
         "admin.whatsapp-calls.permission",
         "admin.whatsapp-campaigns.customers"
