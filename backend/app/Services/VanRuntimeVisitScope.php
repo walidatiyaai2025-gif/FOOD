@@ -15,7 +15,9 @@ final class VanRuntimeVisitScope
         $context = $request->attributes->get('van_runtime_context');
         $vanId = is_array($context) ? (int) ($context['van_id'] ?? 0) : 0;
 
-        return VanVisit::query()->where(function (Builder $query) use ($actor, $vanId): void {
+        return VanVisit::query()
+            ->where('customer_type', 'b2b')
+            ->where(function (Builder $query) use ($actor, $vanId): void {
             $query->where('actor_user_id', $actor->getKey());
 
             if ($vanId > 0) {
