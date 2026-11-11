@@ -11,6 +11,11 @@ rather than rendering it. No new route, role or permission is created.
 ## Behavior and evidence
 - Scoped order lists must match the requested Store and Channel for **every** row.
 - Channel-filtered lists must not show cross-channel B2B/B2C records.
+- Scoped responses require an explicit B2B/B2C channel; a missing channel
+  must not fall back to the model's historical default B2C. This protects both
+  list and detail reads from malformed successful responses.
+- Status-filtered order lists must contain only the requested authoritative
+  status; wrong-status rows trigger invalid_response, not a misleading status.
 - Order details must match the requested order ID, and must not cross the
   Store/Channel boundary when an explicit context is supplied.
 - Existing positive-path status, invoice-outstanding fields and network errors

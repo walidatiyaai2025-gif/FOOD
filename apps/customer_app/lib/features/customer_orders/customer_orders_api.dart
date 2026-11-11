@@ -63,8 +63,23 @@ class HttpCustomerOrdersApi implements CustomerOrdersApi {
       context,
     );
     final decoded = _decodeMap(response);
+    // Scoped responses must not silently default a missing channel to B2C.
+    // The backend is authoritative; this validates its expected contract.
+    final rawRows = decoded['data'];
+    if ((context != null || normalizedChannel != null) &&
+        (rawRows is! List ||
+            rawRows.any((row) =>
+                row is! Map || !_isKnownChannel(row['channel'])))) {
+      throw const CustomerOrdersException('invalid_response');
+    }
     final result = CustomerOrderPage.fromJson(decoded);
+    final requestedStatus = status?.trim().toLowerCase();
     for (final order in result.orders) {
+      if (requestedStatus != null &&
+          requestedStatus.isNotEmpty &&
+          order.status != requestedStatus) {
+        throw const CustomerOrdersException('invalid_response');
+      }
       if ((context != null &&
               (order.storeId != context.storeId ||
                   order.channel != context.normalizedChannel)) ||
@@ -96,7 +111,11 @@ class HttpCustomerOrdersApi implements CustomerOrdersApi {
       ),
       context,
     );
-    final result = CustomerOrderDetails.fromJson(_decodeMap(response));
+    final decoded = _decodeMap(response);
+    if (context != null && !_isKnownChannel(decoded['channel'])) {
+      throw const CustomerOrdersException('invalid_response');
+    }
+    final result = CustomerOrderDetails.fromJson(decoded);
     if (result.summary.id != orderId) {
       throw const CustomerOrdersException('invalid_response');
     }
@@ -162,6 +181,11 @@ class HttpCustomerOrdersApi implements CustomerOrdersApi {
     }
 
     return Map<String, dynamic>.from(decoded);
+  }
+
+  bool _isKnownChannel(Object? value) {
+    final channel = value?.toString().trim().toLowerCase();
+    return channel == 'b2b' || channel == 'b2c';
   }
 
   void _validateContext(CustomerOrderContext? context) {

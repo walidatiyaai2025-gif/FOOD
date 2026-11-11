@@ -50,6 +50,57 @@ void main() {
     );
   });
 
+  test('scoped lists reject omitted channel instead of defaulting to retail',
+      () async {
+    final api = returning(
+      '{"data":[{"id":92,"store_id":7,"status":"pending"}],'
+      '"meta":{"current_page":1,"total":1}}',
+    );
+
+    await expectLater(
+      api.orders(
+        context: const CustomerOrderContext(storeId: 7, channel: 'b2c'),
+      ),
+      throwsA(isA<CustomerOrdersException>().having(
+        (error) => error.code,
+        'code',
+        'invalid_response',
+      )),
+    );
+  });
+
+  test('status-filtered lists reject mismatched authoritative rows', () async {
+    final api = returning(
+      '{"data":[{"id":92,"store_id":7,"channel":"b2c","status":"pending"}],'
+      '"meta":{"current_page":1,"total":1}}',
+    );
+
+    await expectLater(
+      api.orders(channel: 'b2c', status: 'delivered'),
+      throwsA(isA<CustomerOrdersException>().having(
+        (error) => error.code,
+        'code',
+        'invalid_response',
+      )),
+    );
+  });
+
+  test('scoped order detail rejects an omitted channel', () async {
+    final api = returning('{"id":91,"store_id":7,"status":"pending"}');
+
+    await expectLater(
+      api.order(
+        orderId: 91,
+        context: const CustomerOrderContext(storeId: 7, channel: 'b2c'),
+      ),
+      throwsA(isA<CustomerOrdersException>().having(
+        (error) => error.code,
+        'code',
+        'invalid_response',
+      )),
+    );
+  });
+
   test('order detail refuses another order ID in a successful response',
       () async {
     final api = returning(
