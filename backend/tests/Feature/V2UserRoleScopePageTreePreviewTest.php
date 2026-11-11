@@ -36,7 +36,7 @@ final class V2UserRoleScopePageTreePreviewTest extends TestCase
             ->assertOk()
             ->assertJsonPath('projection_only', true)
             ->assertJsonStructure(['projection_only', 'count', 'groups', 'disclaimer'])
-            ->assertHeader('Cache-Control', 'private, no-store');
+            ->assertHeader('Cache-Control', 'no-store, private');
 
         $this->assertSame($relationsBefore, DB::table('permission_role')->count());
         $this->assertSame($auditBefore, DB::table('audit_logs')->count());
