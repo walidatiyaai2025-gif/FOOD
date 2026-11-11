@@ -8,7 +8,7 @@ Reuse the canonical built-in role definition in backend/config/job_roles.php, re
 
 - Persona: CUSTOMER_SERVICE_AGENT, global role assignment, tenant business scope, operator level.
 - Navigation: existing ERP Customer Service, Customer 360 and wholesale Orders workspaces. Route permission and OperationalTenantScope must agree with Sidebar visibility.
-- Allowed customer/order actions: customers.view, orders.view/create/dispatch in authorized wholesale context. The previously approved dispatch grant does not imply order edit/manage/approve or Driver/Van registry and tracking access.
+- Allowed customer/order actions: customers.view, orders.view/create/dispatch and orders.customer_service_discount in authorized wholesale context. The discount permission originates from the canonical legacy roles matrix in backend/config/permissions.php, which BuiltInJobRoleCatalog::defaultPermissions preserves ahead of the fallback job_roles catalog. Discount execution is separately constrained by its audited pre-dispatch reason/approval controls; V2 #2824 owns full discount approval/SoD acceptance. The previously approved dispatch grant does not imply order edit/manage/approve or Driver/Van registry and tracking access.
 - Messaging: inbox/conversations/reply/assign/internal notes subject to the independent WhatsApp runtime capability and explicit effective permissions.
 - Explicitly NOT inherited: finance/treasury approval, SoD maker/checker, user/role administration, platform management, reports/export, team management, supervisory escalation, retail-store authority.
 - Customer Service Agent is not Super Admin; no global-role fallback can grant cross-channel B2C store access.
