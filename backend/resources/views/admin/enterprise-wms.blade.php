@@ -137,7 +137,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 
 @elseif($tab==='reservations')
 <h2>{{ __('enterprise_wms.reservations.title') }}</h2><p class="wms-sub">{{ __('enterprise_wms.reservations.subtitle') }}</p>
-@if($warehouseId && $inventoryLookup->isNotEmpty())
+@if($canManageReservations && $warehouseId && $inventoryLookup->isNotEmpty())
 <form class="wms-form" method="post" action="{{ route('admin.erp.wms.reservations.store') }}" data-wms-mutation>@csrf
 <input type="hidden" name="store_id" value="{{ $storeId }}"><input type="hidden" name="warehouse_id" value="{{ $warehouseId }}">
 <label class="wms-field">{{ __('enterprise_wms.common.product') }}<select name="product_id">@foreach($inventoryLookup as $item)<option value="{{ $item->product_id }}">{{ $item->product_name }} · {{ $item->sku }}</option>@endforeach</select></label>
