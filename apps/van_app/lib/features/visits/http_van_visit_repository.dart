@@ -53,9 +53,14 @@ class HttpVanVisitRepository implements VanVisitRepository {
   }
 
   VanVisitRecord _visit(Map<String, dynamic> data) {
+    final customerType = _string(data['customer_type']);
+    if (customerType != 'b2b') {
+      throw const VanApiException('Van visits must belong to B2B customers.');
+    }
+
     return VanVisitRecord(
       id: _requiredInt(data['id']),
-      customerType: _string(data['customer_type']),
+      customerType: customerType,
       customerId: _requiredInt(data['customer_id']),
       storeId: _int(data['store_id']),
       routeKey: _nullableString(data['route_key']),
