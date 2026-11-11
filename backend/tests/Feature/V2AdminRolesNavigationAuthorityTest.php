@@ -121,6 +121,49 @@ final class V2AdminRolesNavigationAuthorityTest extends TestCase
         $this->assertSame('B2B_ADMIN', $target->fresh()->code);
     }
 
+    public function test_retail_store_assignment_does_not_grant_cross_channel_security_roles_access(): void
+    {
+        $role = Role::query()->create([
+            'code' => 'V2_P335_RETAIL_VIEWER',
+            'name' => 'P335 store-only viewer',
+            'scope' => 'store',
+            'is_system' => false,
+            'is_active' => true,
+        ]);
+        $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $storeId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $typeId,
+            'business_profile' => 'RETAIL_STORE',
+            'code' => 'V2-P335-RETAIL',
+            'name' => 'P335 Retail Fixture',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('user_store_roles')->insert([
+            'user_id' => $actor->id,
+            'store_id' => $storeId,
+            'role_id' => $role->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($actor)
+            ->get(route('admin.security.index', ['section' => 'roles'], false))
+            ->assertForbidden();
+
+        $this->actingAs($actor)
+            ->post(route('admin.security.roles.store', [], false), [
+                'code' => 'V2_P335_FORBIDDEN_STORE',
+                'name' => 'Forbidden cross-channel role',
+                'scope' => 'global',
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseMissing('roles', ['code' => 'V2_P335_FORBIDDEN_STORE']);
+    }
+
     private function superAdmin(string $locale): User
     {
         $actor = User::factory()->create(['is_active' => true, 'locale' => $locale]);
