@@ -9,6 +9,10 @@ use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
+use App\Models\EnterpriseBusinessUnit;
+use App\Models\EnterpriseCompany;
+use App\Models\EnterpriseLegalEntity;
+use App\Models\EnterpriseOrganization;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
@@ -193,6 +197,7 @@ final class V2FiscalPeriodsRouteAuthorityTest extends TestCase
             ['finance.view', 'finance.manage'],
             'V2-2612-OUTSIDER',
             'en',
+            true,
         );
         $this->enableFinance($outsider, $contextB, true);
 
@@ -265,7 +270,12 @@ final class V2FiscalPeriodsRouteAuthorityTest extends TestCase
     /** @param list<string> $permissions
      * @return array{User, Store, ResolvedTenantContext}
      */
-    private function operator(array $permissions, string $storeCode, string $locale): array
+    private function operator(
+        array $permissions,
+        string $storeCode,
+        string $locale,
+        bool $separateLegalEntity = false,
+    ): array
     {
         $store = Store::query()->create([
             'store_type_id' => (int) DB::table('store_types')->where('code', 'B2C')->value('id'),
@@ -273,7 +283,36 @@ final class V2FiscalPeriodsRouteAuthorityTest extends TestCase
             'name' => $storeCode,
             'is_active' => true,
         ]);
-        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
+        if ($separateLegalEntity) {
+            // The default hierarchy puts every store in the SAME legal entity.
+            // Use a truly independent legal-entity scope for the denial fixture.
+            $organization = EnterpriseOrganization::query()->create([
+                'code' => 'v2_2612_org_'.$store->id,
+                'name' => 'V2 Fiscal Period Isolation Organization',
+                'is_active' => true,
+            ]);
+            $company = EnterpriseCompany::query()->create([
+                'organization_id' => $organization->id,
+                'code' => 'v2_2612_co_'.$store->id,
+                'name' => 'V2 Fiscal Period Isolation Company',
+                'is_active' => true,
+            ]);
+            $legalEntity = EnterpriseLegalEntity::query()->create([
+                'company_id' => $company->id,
+                'code' => 'v2_2612_legal_'.$store->id,
+                'name' => 'V2 Fiscal Period Isolation Legal Entity',
+                'is_active' => true,
+            ]);
+            $businessUnit = EnterpriseBusinessUnit::query()->create([
+                'legal_entity_id' => $legalEntity->id,
+                'code' => 'v2_2612_unit_'.$store->id,
+                'name' => 'V2 Fiscal Period Isolation Unit',
+                'is_active' => true,
+            ]);
+            app(OrganizationHierarchyService::class)->assignStore($store, $businessUnit);
+        } else {
+            app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
+        }
 
         $role = Role::query()->where('code', 'B2C_STORE_ADMIN')
             ->where('scope', 'store')
