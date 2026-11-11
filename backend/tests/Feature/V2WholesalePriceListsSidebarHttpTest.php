@@ -189,7 +189,7 @@ final class V2WholesalePriceListsSidebarHttpTest extends TestCase
                 'unit_price' => 1,
                 'minimum_quantity' => 1,
             ])
-            ->assertForbidden();
+            ->assertNotFound();
 
         $this->assertDatabaseMissing('b2b_price_rules', [
             'store_id' => $store,
