@@ -241,13 +241,16 @@ final class ReportController extends Controller
 
     /**
      * Authorize before filter validation so unentitled actors receive a real
-     * 403 rather than report-specific validation redirects. Preserve scoped
-     * Retail grants through the canonical operational tenant resolver.
+     * 403 rather than report-specific validation redirects. An effective
+     * global grant remains valid before the wholesale principal is first
+     * materialized; scoped Retail grants use the canonical tenant resolver.
+     * The deeper report service still enforces channel and store ownership.
      */
     private function assertReportScopeBeforeValidation(User $user, string $permission): void
     {
         abort_unless(
             $user->hasRole('SUPER_ADMIN')
+                || $user->hasPermission($permission)
                 || app(OperationalTenantScope::class)->allowedStoreIds($user, $permission) !== [],
             403,
         );
