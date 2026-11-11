@@ -167,9 +167,13 @@ final class V2ArAgingFullLedgerPaginationTest extends TestCase
                 ]))
                 ->assertOk()
                 ->assertSee('dir="'.$direction.'"', false)
-                ->assertViewHas('data', static fn (array $data): bool => $data['aging']->total() === 126
+                ->assertViewHas('data', fn (array $data): bool => $data['aging']->total() === 126
                     && $data['aging']->currentPage() === 6
                     && $data['aging']->count() === 1
+                    && $data['documents']->total() === 126
+                    && $data['documents']->getCollection()->every(
+                        fn ($document): bool => $document->store_id === $store->id,
+                    )
                     && $data['agingTotals']->count() === 2);
         }
 

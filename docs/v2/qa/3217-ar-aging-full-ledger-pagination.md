@@ -8,7 +8,7 @@ The existing Receivables tab called \`AccountsReceivableService::aging(..., 100)
 - Canonical route: \`admin.erp.finance.index?tab=receivables&store_id=<authorized-store>\`.
 - Placement: Finance domain / Accounts Receivable document / Finance analyst / daily outstanding review / read-only tab / **Extend** existing workbench / responsive table plus two independent pagers. No Sidebar/nav change. Other placements are larger and unnecessary.
 - Role: authorized \`finance.view\` reader with enabled Finance module and \`finance.ar.read\` capability at the exact enterprise legal entity. \`EnterpriseScopeAuthorizer\` enforces organization/company/legal entity, the selected Retail store within that entity, and explicit user DENY. This change adds no mutate/approve/post/export privileges.
-- Data: only posted AR documents with positive amount outstanding after **posted** allocations; draft/cancelled allocations and documents excluded. Customer filter maintained.
+- Data: only posted AR documents with positive amount outstanding after **posted** allocations; draft/cancelled allocations and documents excluded. Customer filter maintained. The companion AR document list is also restricted to the selected Retail store within a shared legal entity.
 - Read path: one shared authorized query; separate \`aging_page\` paginator for row details (25 per page) and full unbounded SQL aggregation by aging bucket and ISO currency code. KWD/USD are never totaled together; no 100-row server-side cap on aggregate and no unbounded PHP collection.
 - Amounts are database DECIMAL(18,3); no destructive migration, data rewrite, journal posting, maker/checker, retry or recovery path change.
 
