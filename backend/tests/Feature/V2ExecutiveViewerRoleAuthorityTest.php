@@ -74,6 +74,8 @@ final class V2ExecutiveViewerRoleAuthorityTest extends TestCase
         $this->assertNotContains('reports.export', $actor->fresh()->effectivePermissionCodes());
 
         $this->actingAs($actor)->get(route('admin.reports.index', ['channel' => 'b2b'], false))->assertForbidden();
+        $this->actingAs($actor)->get(route('admin.reports.lookups', ['entity' => 'products'], false))->assertForbidden();
+        $this->actingAs($actor)->get(route('admin.reports.export', [], false))->assertForbidden();
         $this->assertFalse($this->navigationKeys($actor->fresh())->contains('reports_center'));
         $this->assertDatabaseHas('role_user', [
             'user_id' => $actor->id,
