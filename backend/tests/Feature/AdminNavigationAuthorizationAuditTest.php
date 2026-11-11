@@ -130,8 +130,16 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
             'Retail store admin must find authorized store-scoped My Work in Overview.',
         );
 
+        // Scoped Retail Workspaces is a real authorized HTTP destination, not a platform grant.
+        $this->assertTrue(
+            $items->contains('key', 'enterprise_workspaces'),
+            'Retail store admin must discover its authorized scoped Workspaces entry in Overview.',
+        );
+        $this->actingAs($user)
+            ->get(route('admin.enterprise-workspaces.index'))
+            ->assertOk();
+
         foreach ([
-            'enterprise_workspaces',
             'whatsapp_inbox',
             'treasury_master',
             'whatsapp_supervisor',

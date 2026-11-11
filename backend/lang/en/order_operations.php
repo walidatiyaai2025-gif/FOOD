@@ -94,6 +94,7 @@ return [
             'payment' => 'Payment failed / voided',
             'invoice' => 'Delivered without valid invoice',
             'cancelled_refunded' => 'Cancelled / refunded',
+            'failed_returns' => 'Failures & refunds',
         ],
         'sla_help' => 'Open orders not older than 24 hours.',
         'fulfillment_buckets' => [

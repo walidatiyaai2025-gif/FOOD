@@ -820,7 +820,7 @@ class UnifiedOrderOperationsTest extends TestCase
         $this->assertStringContainsString('usesCustomerServiceDashboardProfile($actor)', $controller);
         $this->assertStringContainsString("'awaiting_dispatch'", $controller);
         $this->assertStringContainsString("'actionRequiredCount' => \$actionRequiredCount", $controller);
-        $this->assertStringContainsString("whereNotIn('status', ['delivered', 'completed', 'cancelled'])", $controller);
+        $this->assertStringContainsString("whereNotIn('status', ['delivered', 'completed', 'cancelled', 'refunded'])", $controller);
         $this->assertStringContainsString("'selectedActionRequired' => \$selectedActionRequired", $controller);
         $this->assertStringContainsString('orderOperationsDisplayStatus(', $controller);
         $this->assertStringContainsString("'status_visual_state' => \$displayStatus['state']", $controller);

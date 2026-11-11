@@ -206,7 +206,7 @@ final class OrderOperationsController extends Controller
         $statusBaseQuery = clone $orderQuery;
         $summaryLoader = function () use ($statusBaseQuery): array {
             $actionRequiredCount = (clone $statusBaseQuery)
-                ->whereNotIn('status', ['delivered', 'completed', 'cancelled'])
+                ->whereNotIn('status', ['delivered', 'completed', 'cancelled', 'refunded'])
                 ->whereExists(function ($dispatch): void {
                     $dispatch->selectRaw('1')
                         ->from('order_dispatch_states')
@@ -256,7 +256,7 @@ final class OrderOperationsController extends Controller
 
         if ($selectedActionRequired) {
             $orderQuery
-                ->whereNotIn('status', ['delivered', 'completed', 'cancelled'])
+                ->whereNotIn('status', ['delivered', 'completed', 'cancelled', 'refunded'])
                 ->whereExists(function ($dispatch): void {
                     $dispatch->selectRaw('1')
                         ->from('order_dispatch_states')
@@ -2340,7 +2340,7 @@ final class OrderOperationsController extends Controller
                 : ($context->deliveredAt[$orderId] ?? null))
             : null;
         $hasActiveDriver = $assignment instanceof DriverAssignment;
-        $availableStatuses = ! in_array($status, ['delivered', 'completed', 'cancelled'], true)
+        $availableStatuses = ! in_array($status, ['delivered', 'completed', 'cancelled', 'refunded'], true)
             && in_array('cancelled', $activeStatusCodes, true)
                 ? ['cancelled']
                 : [];
@@ -2574,6 +2574,9 @@ final class OrderOperationsController extends Controller
                     'to_status' => (string) $event->to_status,
                     'proof_type' => $event->proof_type,
                     'proof_path' => $event->proof_path,
+                    'proof_available' => is_string($event->proof_path)
+                        && trim((string) $event->proof_path) !== ''
+                        && Storage::disk('public')->exists((string) $event->proof_path),
                     'reason_code' => $event->reason_code,
                     'note' => $event->note,
                     'captured_at' => $event->captured_at,

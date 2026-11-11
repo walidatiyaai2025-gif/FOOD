@@ -7,7 +7,9 @@ $customerServiceRoles = [
 ];
 
 return [
-    'protected_items' => ['sidebar_role_access', 'sidebar_layout'],
+    // Essential authorized workspaces cannot be suppressed by legacy cosmetic toggles.
+    // Navigation still originates from AdminNavigation's real RBAC/tenant guards.
+    'protected_items' => ['sidebar_role_access', 'sidebar_layout', 'enterprise_action_center', 'enterprise_workspaces', 'treasury_master'],
     'protected_groups' => ['administration'],
 
     'groups' => [
@@ -73,7 +75,7 @@ return [
         'field_ops_overview' => ['group' => 'field_operations', 'label' => 'admin.field_operations.overview', 'order' => 10, 'scope' => 'global', 'permissions' => ['field_ops.manage', 'drivers.b2b.view', 'drivers.tracking.view', 'customers.view', 'territories.manage', 'finance.view'], 'mode' => 'any', 'exclude_roles' => $customerServiceRoles],
         'field_ops_fleet' => ['group' => 'field_operations', 'label' => 'admin.field_operations.fleet', 'order' => 20, 'scope' => 'global', 'permissions' => ['drivers.tracking.view'], 'exclude_roles' => $customerServiceRoles],
         'field_ops_vans' => ['group' => 'field_operations', 'label' => 'admin.field_operations.vans', 'order' => 30, 'scope' => 'global', 'permissions' => ['drivers.b2b.view'], 'exclude_roles' => $customerServiceRoles],
-        'field_ops_assignments' => ['group' => 'field_operations', 'label' => 'admin.field_operations.assignments', 'order' => 40, 'scope' => 'global', 'permissions' => ['drivers.b2b.view', 'field_ops.manage'], 'mode' => 'any', 'exclude_roles' => $customerServiceRoles],
+        'field_ops_assignments' => ['group' => 'field_operations', 'label' => 'admin.field_operations.assignments', 'order' => 40, 'scope' => 'global', 'permissions' => ['drivers.b2b.view'], 'exclude_roles' => $customerServiceRoles],
         'field_ops_customers' => ['group' => 'field_operations', 'label' => 'admin.field_operations.customers', 'order' => 50, 'scope' => 'global', 'permissions' => ['customers.view', 'drivers.b2b.view'], 'mode' => 'all', 'exclude_roles' => $customerServiceRoles],
         'field_ops_visits' => ['group' => 'field_operations', 'label' => 'admin.field_operations.visits', 'order' => 60, 'scope' => 'global', 'permissions' => ['drivers.b2b.view', 'customers.view'], 'mode' => 'all', 'exclude_roles' => $customerServiceRoles],
         'field_ops_territories' => ['group' => 'field_operations', 'label' => 'admin.field_operations.territories', 'order' => 70, 'scope' => 'global', 'permissions' => ['territories.manage', 'field_ops.manage'], 'mode' => 'any', 'exclude_roles' => $customerServiceRoles],
@@ -88,7 +90,7 @@ return [
 
         'notification_campaigns' => ['group' => 'advertising', 'label' => 'notifications.sidebar_campaigns', 'order' => 10, 'scope' => 'both', 'permissions' => ['notifications.view']],
         'live_ads' => ['group' => 'advertising', 'label' => 'live_ads.title', 'order' => 20, 'scope' => 'both', 'permissions' => ['live_ads.view']],
-        'coupons' => ['group' => 'advertising', 'label' => 'coupons.title', 'order' => 30, 'scope' => 'both', 'permissions' => ['coupons.view']],
+        'coupons' => ['group' => 'catalog', 'label' => 'coupons.title', 'order' => 85, 'scope' => 'both', 'permissions' => ['coupons.view']],
 
         'treasury_master' => ['group' => 'finance', 'label' => 'treasury.nav_title', 'order' => 10, 'scope' => 'global', 'permissions' => ['finance.view']],
 

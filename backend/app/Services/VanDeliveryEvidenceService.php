@@ -9,6 +9,7 @@ use App\Models\OrderVanExecutionState;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 final class VanDeliveryEvidenceService
 {
@@ -81,7 +82,8 @@ final class VanDeliveryEvidenceService
                 ->get() as $event
         ) {
             $hasProof = is_string($event->proof_path)
-                && trim((string) $event->proof_path) !== '';
+                && trim((string) $event->proof_path) !== ''
+                && Storage::disk('public')->exists((string) $event->proof_path);
 
             $timeline[] = [
                 'id' => (int) $event->getKey(),

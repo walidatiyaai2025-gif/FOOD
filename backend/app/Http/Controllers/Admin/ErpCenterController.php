@@ -67,6 +67,11 @@ final class ErpCenterController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
 
+        // The ERP Center is a platform workspace, not a Retail-store shortcut.
+        // Enforce the same global-role admission used by the canonical Sidebar
+        // at the HTTP boundary; a hidden menu alone must never grant access.
+        abort_unless($this->navigation->canAccessPlatformErp($actor), 403);
+
         $this->bootstrapLocalSuperAdminModules($actor);
 
         // Match the P118 Wholesale journey used by the Sidebar registry:

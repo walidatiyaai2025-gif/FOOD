@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 final class RbacManager
@@ -15,6 +16,7 @@ final class RbacManager
         private readonly AuditLogger $audit,
         private readonly BuiltInJobRoleCatalog $jobRoles,
         private readonly RbacDatabaseReconciler $databaseReconciler,
+        private readonly AdminSessionRegistry $securitySessions,
     ) {}
 
     private function preparePermissionMutation(): void
@@ -56,15 +58,18 @@ final class RbacManager
 
         $before = $this->userSnapshot($target);
 
-        DB::transaction(function () use ($target, $active, $reason): void {
+        DB::transaction(function () use ($target, $actor, $active, $reason): void {
             $target->forceFill([
                 'is_active' => $active,
                 'deactivated_at' => $active ? null : now(),
                 'deactivation_reason' => $active ? null : ($reason !== null && trim($reason) !== '' ? trim($reason) : null),
+                // A former remember-me cookie must not authenticate after reactivation.
+                'remember_token' => $active ? $target->getRememberToken() : Str::random(60),
             ])->save();
 
             if (! $active) {
                 $target->tokens()->delete();
+                $this->securitySessions->revokeForUser($target, $actor);
             }
         });
 
