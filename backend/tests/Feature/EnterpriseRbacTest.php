@@ -744,6 +744,131 @@ class EnterpriseRbacTest extends TestCase
         );
     }
 
+    public function test_user_role_assignment_requires_review_reason_and_audits_role_diff(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN');
+        $target = $this->userWithGlobalRole('CUSTOMER_SERVICE_AGENT');
+        $supervisor = Role::query()->where('code', 'CUSTOMER_SERVICE_SUPERVISOR')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->from('/admin/security?section=users')
+            ->put(route('admin.security.users.roles', $target), [
+                'global_role_ids' => [$supervisor->id],
+            ])
+            ->assertRedirect('/admin/security?section=users')
+            ->assertSessionHasErrors('change_reason');
+
+        $this->assertTrue($target->fresh()->hasRole('CUSTOMER_SERVICE_AGENT'));
+
+        $reason = 'Reassign staff role after supervisor approval';
+        $this->actingAs($admin)
+            ->put(route('admin.security.users.roles', $target), [
+                'global_role_ids' => [$supervisor->id],
+                'change_reason' => $reason,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertTrue($target->fresh()->hasRole('CUSTOMER_SERVICE_SUPERVISOR'));
+        $this->assertFalse($target->fresh()->hasRole('CUSTOMER_SERVICE_AGENT'));
+        $audit = AuditLog::query()->where('event', 'user.roles_changed')
+            ->where('auditable_id', $target->id)->latest('id')->firstOrFail();
+        $this->assertContains('CUSTOMER_SERVICE_AGENT', $audit->before['global_roles']);
+        $this->assertContains('CUSTOMER_SERVICE_SUPERVISOR', $audit->after['global_roles']);
+        $this->assertSame($reason, $audit->after['change_reason']);
+    }
+
+    public function test_custom_role_edit_requires_reason_and_audits_permission_diff(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN');
+        $role = Role::query()->create([
+            'code' => 'P084_CUSTOM_AUDIT_ROLE',
+            'name' => 'Audit role before',
+            'scope' => 'global',
+            'is_system' => false,
+            'is_active' => true,
+        ]);
+        $view = Permission::query()->where('code', 'reports.view')->firstOrFail();
+        $role->permissions()->attach($view->id);
+        $export = Permission::query()->where('code', 'reports.export')->firstOrFail();
+
+        $requestData = [
+            'name' => 'Audit role after',
+            'scope' => 'global',
+            'is_active' => true,
+            'permission_ids' => [$view->id, $export->id],
+        ];
+
+        $this->actingAs($admin)
+            ->from('/admin/security?section=roles')
+            ->patch(route('admin.security.roles.update', $role), $requestData)
+            ->assertRedirect('/admin/security?section=roles')
+            ->assertSessionHasErrors('change_reason');
+
+        $this->assertSame('Audit role before', $role->fresh()->name);
+        $this->assertFalse($role->fresh()->permissions->contains('code', 'reports.export'));
+
+        $reason = 'Reviewed reporting role access boundary';
+        $this->actingAs($admin)
+            ->patch(route('admin.security.roles.update', $role), [
+                ...$requestData,
+                'change_reason' => $reason,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('Audit role after', $role->fresh()->name);
+        $audit = AuditLog::query()->where('event', 'role.updated')
+            ->where('auditable_id', $role->id)->latest('id')->firstOrFail();
+        $this->assertContains('reports.view', $audit->before['permissions']);
+        $this->assertNotContains('reports.export', $audit->before['permissions']);
+        $this->assertContains('reports.export', $audit->after['permissions']);
+        $this->assertSame($reason, $audit->after['change_reason']);
+    }
+
+    public function test_security_api_role_mutations_reject_missing_reason_without_side_effects(): void
+    {
+        $admin = $this->userWithGlobalRole('SUPER_ADMIN');
+        $role = Role::query()->create([
+            'code' => 'P084_API_AUDIT_ROLE',
+            'name' => 'API role before',
+            'scope' => 'global',
+            'is_system' => false,
+            'is_active' => true,
+        ]);
+        $target = $this->userWithGlobalRole('CUSTOMER_SERVICE_AGENT');
+        $agent = Role::query()->where('code', 'CUSTOMER_SERVICE_AGENT')->firstOrFail();
+
+        Sanctum::actingAs($admin);
+        $this->patchJson("/api/v1/admin/security/roles/{$role->id}", [
+            'name' => 'API role after',
+            'scope' => 'global',
+            'is_active' => true,
+            'permission_ids' => [],
+        ])->assertUnprocessable()->assertJsonValidationErrors('change_reason');
+
+        $this->putJson("/api/v1/admin/security/users/{$target->id}/roles", [
+            'global_role_ids' => [(int) $agent->id],
+            'store_roles' => [],
+        ])->assertUnprocessable()->assertJsonValidationErrors('change_reason');
+
+        $this->assertSame('API role before', $role->fresh()->name);
+        $this->assertTrue($target->fresh()->hasRole('CUSTOMER_SERVICE_AGENT'));
+        $this->assertSame(0, AuditLog::query()->where('event', 'role.updated')
+            ->where('auditable_id', $role->id)->count());
+
+        $this->patchJson("/api/v1/admin/security/roles/{$role->id}", [
+            'name' => 'API role after',
+            'scope' => 'global',
+            'is_active' => true,
+            'permission_ids' => [],
+            'change_reason' => 'Approved edit to limited API role',
+        ])->assertOk()->assertJsonPath('data.name', 'API role after');
+        $this->assertSame('Approved edit to limited API role', AuditLog::query()
+            ->where('event', 'role.updated')
+            ->where('auditable_id', $role->id)->latest('id')->firstOrFail()->after['change_reason']);
+    }
+
     public function test_security_api_enforces_permission_and_exposes_effective_permissions(): void
     {
         $denied = $this->userWithGlobalRole('B2B_ADMIN');
