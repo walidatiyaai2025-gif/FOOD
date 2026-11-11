@@ -71,7 +71,7 @@ final class V2RetailStoreAdminPersonaAuthorityTest extends TestCase
         foreach (['en' => 'ltr', 'ar' => 'rtl'] as $locale => $direction) {
             $actor->forceFill(['locale' => $locale])->save();
 
-            foreach (['dashboard', 'products', 'inventory', 'orders', 'customers', 'promotions', 'reports'] as $module) {
+            foreach (['dashboard', 'storefront', 'products', 'inventory', 'orders', 'customers', 'promotions', 'reports'] as $module) {
                 $this->actingAs($actor)
                     ->get(route('admin.b2c.module', ['module' => $module, 'store_id' => $owned]))
                     ->assertOk()
@@ -134,6 +134,39 @@ final class V2RetailStoreAdminPersonaAuthorityTest extends TestCase
             ->assertForbidden();
         $this->actingAs($actor)
             ->get(route('admin.b2c.module', ['module' => 'inventory', 'store_id' => $allowed]))
+            ->assertOk()
+            ->assertViewHas('storeIds', [$allowed]);
+    }
+
+    public function test_t353r7_storefront_navigation_and_http_reject_explicit_foreign_store_permission_deny(): void
+    {
+        $denied = $this->retailStore('V2-PERSONA-STOREFRONT-DENIED');
+        $allowed = $this->retailStore('V2-PERSONA-STOREFRONT-ALLOWED');
+        $actor = $this->retailManager([$denied, $allowed]);
+
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $actor->id,
+            'permission_id' => (int) DB::table('permissions')
+                ->where('code', 'stores.view')->value('id'),
+            'scope_key' => 'store:'.$denied,
+            'store_id' => $denied,
+            'effect' => 'deny',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $actor->forceFill(['has_permission_overrides' => true])->save();
+
+        $item = collect($this->allVisibleItems(app(AdminNavigation::class)->groupsFor($actor)))
+            ->firstWhere('key', 'b2c_storefront');
+
+        $this->assertIsArray($item);
+        $this->assertSame((string) $allowed, (string) ($item['params']['store_id'] ?? ''));
+
+        $this->actingAs($actor)
+            ->get(route('admin.b2c.module', ['module' => 'storefront', 'store_id' => $denied]))
+            ->assertForbidden();
+        $this->actingAs($actor)
+            ->get(route('admin.b2c.module', ['module' => 'storefront', 'store_id' => $allowed]))
             ->assertOk()
             ->assertViewHas('storeIds', [$allowed]);
     }
