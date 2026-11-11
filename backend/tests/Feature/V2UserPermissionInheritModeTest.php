@@ -42,6 +42,7 @@ final class V2UserPermissionInheritModeTest extends TestCase
 
         $this->actingAs($admin)
             ->put(route('admin.security.users.permissions', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'scope_type' => 'global',
                 'permission_ids' => [$manage->id],
             ])
@@ -60,6 +61,7 @@ final class V2UserPermissionInheritModeTest extends TestCase
         // role baseline for the authorized scope determines the resulting state.
         $this->actingAs($admin)
             ->put(route('admin.security.users.permissions', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'scope_type' => 'global',
                 'inherit' => '1',
                 'permission_ids' => [],
@@ -127,6 +129,7 @@ final class V2UserPermissionInheritModeTest extends TestCase
 
         $this->actingAs($admin)
             ->put(route('admin.security.users.permissions', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'scope_type' => 'store',
                 'store_id' => $storeA,
                 'inherit' => '1',
@@ -186,6 +189,7 @@ final class V2UserPermissionInheritModeTest extends TestCase
 
         $this->actingAs($admin)
             ->put(route('admin.security.users.permissions', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'scope_type' => 'store',
                 'store_id' => $foreign,
                 'inherit' => '1',
@@ -194,6 +198,7 @@ final class V2UserPermissionInheritModeTest extends TestCase
 
         $this->actingAs($operator)
             ->put(route('admin.security.users.permissions', $target), [
+                'change_reason' => 'Regression fixture approved RBAC access change',
                 'scope_type' => 'store',
                 'store_id' => $assigned,
                 'inherit' => '1',
