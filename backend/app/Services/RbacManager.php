@@ -393,7 +393,12 @@ final class RbacManager
             $actor,
             $fresh,
             $before,
-            $this->userSnapshot($fresh),
+            array_merge(
+                $this->userSnapshot($fresh),
+                $request->filled('change_reason')
+                    ? ['change_reason' => trim((string) $request->input('change_reason'))]
+                    : [],
+            ),
             $request,
         );
 
