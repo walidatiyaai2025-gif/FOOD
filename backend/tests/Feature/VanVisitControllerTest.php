@@ -8,6 +8,7 @@ use App\Models\VanVisit;
 use App\Services\VanRegistryService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -98,6 +99,44 @@ class VanVisitControllerTest extends TestCase
         ]);
         $this->assertDatabaseMissing('van_visits', [
             'idempotency_key' => 'v2-denied-van-b2c',
+        ]);
+    }
+
+    public function test_reassigned_operator_cannot_read_or_transition_earlier_vans_attributed_b2b_visits(): void
+    {
+        $actor = $this->vanActor();
+        $currentVanId = (int) DB::table('van_assignments')
+            ->where('representative_user_id', $actor->id)
+            ->value('van_id');
+        $this->assertGreaterThan(0, $currentVanId);
+
+        $current = VanVisit::query()->create([
+            'actor_user_id' => $actor->id,
+            'customer_type' => 'b2b',
+            'customer_id' => 42,
+            'status' => 'planned',
+            'metadata' => ['van_id' => $currentVanId],
+        ]);
+        $previous = VanVisit::query()->create([
+            'actor_user_id' => $actor->id,
+            'customer_type' => 'b2b',
+            'customer_id' => 43,
+            'status' => 'planned',
+            'metadata' => ['van_id' => $currentVanId + 99],
+        ]);
+
+        $this->getJson('/api/v1/van/visits')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $current->id);
+
+        $this->postJson('/api/v1/van/visits/'.$previous->id.'/transition', [
+            'status' => 'started',
+        ])->assertNotFound();
+
+        $this->assertDatabaseHas('van_visits', [
+            'id' => $previous->id,
+            'status' => 'planned',
         ]);
     }
 
