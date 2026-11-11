@@ -107,7 +107,8 @@ final class SalesOrderOperationsDashboardService
             ->join('order_dispatch_states', function ($join): void {
                 $join->on('order_dispatch_states.order_id', '=', 'orders.id')
                     ->where('order_dispatch_states.status', 'awaiting_dispatch');
-            });
+            })
+            ->whereNotIn('orders.status', ['delivered', 'completed', 'cancelled', 'refunded']);
         $this->applyScope($awaitingDispatchQuery, $scopes, $storeId, $fromUtc, $toUtc);
         $awaitingDispatch = $awaitingDispatchQuery->count('orders.id');
 
@@ -341,7 +342,7 @@ final class SalesOrderOperationsDashboardService
                     ->from('order_dispatch_states')
                     ->whereColumn('order_dispatch_states.order_id', 'orders.id')
                     ->where('order_dispatch_states.status', 'awaiting_dispatch');
-            });
+            })->whereNotIn('orders.status', ['delivered', 'completed', 'cancelled', 'refunded']);
 
             return;
         }
