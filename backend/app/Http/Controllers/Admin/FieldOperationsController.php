@@ -547,7 +547,19 @@ final class FieldOperationsController extends Controller
         $user = $this->actor($request);
         $this->authorizeAll($user, ['drivers.b2b.view', 'customers.view']);
 
-        $visits = VanVisit::query()->with(['actor', 'noOrderReason'])->orderByDesc('created_at')->paginate(30);
+        // B2B Van visits are disjoint from Retail/Driver delivery and records.
+        $allowedB2bStores = $this->b2bStoreIds($user);
+        $canReadAllWholesale = $user->hasRole('SUPER_ADMIN') || $user->hasRole('B2B_ADMIN')
+            || $user->hasRole('OPERATIONS') || $user->hasRole('FINANCE');
+        $visibleVisits = VanVisit::query()->where('customer_type', 'b2b')
+            ->where(function ($query) use ($allowedB2bStores, $canReadAllWholesale): void {
+                $query->whereIn('store_id', $allowedB2bStores);
+                if ($canReadAllWholesale) {
+                    $query->orWhereNull('store_id');
+                }
+            });
+
+        $visits = (clone $visibleVisits)->with(['actor', 'noOrderReason'])->orderByDesc('created_at')->paginate(30);
         $visits->setCollection($visits->getCollection()->map(function (VanVisit $visit): VanVisit {
             $visit->setAttribute('customer_display', $this->customerDisplay((string) $visit->customer_type, (int) $visit->customer_id));
             $reason = $visit->noOrderReason;
@@ -563,7 +575,31 @@ final class FieldOperationsController extends Controller
 
             return $visit;
         }));
-        $assignments = $this->registry->effectiveAssignments();
+        // A per-store actor has no authorized B2B customer-to-store creation mapping.
+        // Do not even load the global Van assignment selector for a forbidden form.
+        $canCreateVisit = $canReadAllWholesale;
+        $assignments = $canCreateVisit ? $this->registry->effectiveAssignments()->load('van') : collect();
+        // Van visits are B2B-only. Even an existing active Van assignment
+        // must not select a Retail/B2C driver as its operator.
+        $eligibleDriverIds = DB::table('drivers')
+            ->where('driver_type', 'b2b')
+            ->where('is_active', true)
+            ->whereIn('id', $assignments->pluck('driver_id')->filter()->values())
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+        $assignments = $assignments
+            ->filter(static fn (VanAssignment $assignment): bool => $assignment->driver_id === null
+                || in_array((int) $assignment->driver_id, $eligibleDriverIds, true))
+            ->values();
+        // Lookup labels are names, not raw internal user/driver IDs.
+        $representativeLabels = DB::table('users')
+            ->whereIn('id', $assignments->pluck('representative_user_id')->filter()->values())
+            ->pluck('name', 'id');
+        $driverLabels = DB::table('drivers')
+            ->join('users', 'users.id', '=', 'drivers.user_id')
+            ->whereIn('drivers.id', $assignments->pluck('driver_id')->filter()->values())
+            ->pluck('users.name', 'drivers.id');
         $reasons = VanNoOrderReason::query()
             ->where('is_active', true)
             ->orderBy('sort_order')
@@ -575,36 +611,29 @@ final class FieldOperationsController extends Controller
                 );
             });
 
-        $visitCustomers = DB::table('b2b_customers')
-            ->orderBy('name')
-            ->limit(300)
-            ->get(['id', 'name', 'email'])
-            ->map(static fn (object $row): object => (object) [
-                'type' => 'b2b',
-                'id' => (int) $row->id,
-                'label' => (string) ($row->name ?: $row->email ?: 'B2B customer'),
-                'store_id' => null,
-            ])
-            ->concat(
-                DB::table('b2c_customers')
-                    ->orderBy('name')
-                    ->limit(300)
-                    ->get(['id', 'store_id', 'name', 'email'])
-                    ->map(static fn (object $row): object => (object) [
-                        'type' => 'b2c',
-                        'id' => (int) $row->id,
-                        'label' => (string) ($row->name ?: $row->email ?: 'B2C customer'),
-                        'store_id' => (int) $row->store_id,
-                    ]),
-            )
-            ->values();
+        // Per-store B2B customer ownership is not exposed by the global directory.
+        $visitCustomers = $canReadAllWholesale
+            ? DB::table('b2b_customers')
+                ->orderBy('name')
+                ->limit(300)
+                ->get(['id', 'name', 'email'])
+                ->map(static fn (object $row): object => (object) [
+                    'type' => 'b2b',
+                    'id' => (int) $row->id,
+                    'label' => (string) ($row->name ?: $row->email ?: 'B2B customer'),
+                    'store_id' => null,
+                ])
+            : collect();
 
         $visitStores = DB::table('stores')
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'code', 'name']);
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2B')
+            ->whereIn('stores.id', $allowedB2bStores)
+            ->orderBy('stores.name')
+            ->get(['stores.id', 'stores.code', 'stores.name']);
 
-        $visitRoutes = VanVisit::query()
+        $visitRoutes = (clone $visibleVisits)
             ->get(['metadata'])
             ->flatMap(static function (VanVisit $visit): array {
                 $rawMetadata = $visit->getAttribute('metadata');
@@ -617,10 +646,12 @@ final class FieldOperationsController extends Controller
                 ];
             })
             ->merge(
-                FleetCurrentLocation::query()
-                    ->where('actor_type', 'van')
-                    ->whereNotNull('route_key')
-                    ->pluck('route_key'),
+                $canReadAllWholesale
+                    ? FleetCurrentLocation::query()
+                        ->where('actor_type', 'van')
+                        ->whereNotNull('route_key')
+                        ->pluck('route_key')
+                    : collect(),
             )
             ->filter()
             ->unique()
@@ -628,6 +659,8 @@ final class FieldOperationsController extends Controller
             ->values();
 
         $visitOrders = DB::table('orders')
+            ->where('channel', 'b2b')
+            ->whereIn('store_id', $allowedB2bStores)
             ->orderByDesc('created_at')
             ->limit(300)
             ->get(['id', 'order_number', 'status', 'store_id']);
@@ -640,6 +673,9 @@ final class FieldOperationsController extends Controller
             'visitStores',
             'visitRoutes',
             'visitOrders',
+            'canCreateVisit',
+            'representativeLabels',
+            'driverLabels',
         ));
     }
 
@@ -648,17 +684,38 @@ final class FieldOperationsController extends Controller
         $user = $this->actor($request);
         $this->authorizeAll($user, ['drivers.b2b.manage', 'customers.view']);
 
+        // A store-scoped operator has no authoritative B2B customer-to-store
+        // ownership mapping. Do not allow arbitrary customer IDs in create.
+        $platformWide = $user->hasRole('SUPER_ADMIN') || $user->hasRole('B2B_ADMIN')
+            || $user->hasRole('OPERATIONS') || $user->hasRole('FINANCE');
+        abort_unless($platformWide, 403);
+
         $data = $request->validate([
             'assignment_id' => ['required', 'integer', 'exists:van_assignments,id'],
-            'customer_type' => ['required', Rule::in(['b2b', 'b2c'])],
+            'customer_type' => ['required', Rule::in(['b2b'])],
             'customer_id' => ['required', 'integer', 'min:1'],
             'planned_at' => ['nullable', 'date'],
             'store_id' => ['nullable', 'integer', 'exists:stores,id'],
             'route_key' => ['nullable', 'string', 'max:128'],
         ]);
 
+        if (isset($data['store_id'])) {
+            abort_unless(in_array((int) $data['store_id'], $this->b2bStoreIds($user), true), 404);
+        }
+
         $assignment = VanAssignment::query()->with('van')->findOrFail((int) $data['assignment_id']);
         abort_unless($assignment->status === 'active', 422, 'Only an active Van assignment can receive a planned visit.');
+        if ($assignment->driver_id !== null) {
+            // A crafted assignment_id cannot bring a B2C Driver into a B2B Van visit.
+            abort_unless(
+                DB::table('drivers')
+                    ->where('id', (int) $assignment->driver_id)
+                    ->where('driver_type', 'b2b')
+                    ->where('is_active', true)
+                    ->exists(),
+                404,
+            );
+        }
 
         $plannedAt = isset($data['planned_at']) ? Carbon::parse((string) $data['planned_at']) : now();
         abort_if($plannedAt->lt($assignment->effective_from), 422, 'Visit is before assignment start.');
@@ -704,11 +761,26 @@ final class FieldOperationsController extends Controller
         $user = $this->actor($request);
         $this->authorizeAll($user, ['drivers.b2b.manage', 'customers.view']);
 
+        abort_unless($visit->customer_type === 'b2b', 404);
+        if ($visit->store_id === null) {
+            abort_unless(
+                $user->hasRole('SUPER_ADMIN') || $user->hasRole('B2B_ADMIN')
+                    || $user->hasRole('OPERATIONS') || $user->hasRole('FINANCE'),
+                404,
+            );
+        } else {
+            abort_unless(in_array((int) $visit->store_id, $this->b2bStoreIds($user), true), 404);
+        }
+
         $data = $request->validate([
             'status' => ['required', 'string'],
             'order_id' => ['nullable', 'integer', 'exists:orders,id'],
             'no_order_reason_id' => ['nullable', 'integer', 'exists:van_no_order_reasons,id'],
         ]);
+
+        if (isset($data['order_id'])) {
+            abort_unless(DB::table('orders')->where('id', $data['order_id'])->where('channel', 'b2b')->exists(), 404);
+        }
 
         $this->visitLifecycle->transition(
             $visit,
