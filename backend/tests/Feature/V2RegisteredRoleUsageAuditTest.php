@@ -70,6 +70,7 @@ final class V2RegisteredRoleUsageAuditTest extends TestCase
     public function test_inactive_assigned_role_remains_in_historic_links_but_not_active_subset(): void
     {
         $admin = $this->userWithRole('SUPER_ADMIN', 'en');
+        $before = app(RoleAssignmentAudit::class)->snapshot();
         $inactiveRole = $this->role('V2_ARCHIVED_USED', 'global');
         $staff = User::factory()->create(['is_active' => true]);
         $staff->roles()->attach($inactiveRole->id);
@@ -89,7 +90,8 @@ final class V2RegisteredRoleUsageAuditTest extends TestCase
             ->merge(DB::table('user_store_roles')->pluck('role_id'))
             ->unique();
         $this->assertSame($usedIds->count(), $audit['role_registry_assigned']);
-        $this->assertLessThan($audit['role_registry_assigned'], $audit['role_registry_active_assigned'] + $audit['inactive_role_links'] + 1);
+        $this->assertSame($before['role_registry_assigned'] + 1, $audit['role_registry_assigned']);
+        $this->assertSame($before['role_registry_active_assigned'], $audit['role_registry_active_assigned']);
         $this->assertDatabaseHas('role_user', ['user_id' => $staff->id, 'role_id' => $inactiveRole->id]);
     }
 
