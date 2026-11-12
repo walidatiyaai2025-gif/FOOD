@@ -33,3 +33,8 @@ Pre-merge gate: full exact-head required Laravel tests, Pint, localization, Repo
 - No Flutter or backend runtime changes; no per-app issue generated for this test/documentation-only delta. B2B VAN ONLY / B2C DRIVER ONLY preserved.
 
 Manual staging/browser/device acceptance is deferred to final V2 gate per owner #2503; do not interpret deferred runtime UAT as automated CI success. Do not change `main`, tags, releases or production.
+
+
+## V2 isolation preflight note
+
+The exact V2 PR gate checks the PR description for an explicit **MOBILE IMPACT** section in addition to issue/branch/base isolation. The PR description contains that machine-readable section and independently classifies Customer, Driver and Van. A first-run V2 gate rejection caused by an earlier description heading is a metadata error, not authorization to bypass the gate or waive the other required checks. This documentation checkpoint updates the PR head to trigger an ordinary new exact-commit gate evaluation after the corrected description; the previous failed workflow is not passing evidence.
