@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\B2bAccount;
 use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
 use App\Models\Role;
@@ -170,6 +171,11 @@ class V2SalesQuotationWorkflowTest extends TestCase
         $operator->roles()->attach(Role::query()->where('code', 'B2B_ADMIN')->firstOrFail());
 
         $customer = B2bCustomer::query()->create(['name' => 'Wholesale Quotation Customer']);
+        B2bAccount::query()->create([
+            'b2b_customer_id' => $customer->id,
+            'company_name' => 'Wholesale Quotation Buyer',
+            'status' => 'active',
+        ]);
         $this->actingAs($operator)->post(route('admin.sales-quotations.store'), $this->payload(
             $this->wholesale, $customer->id, $this->wholesaleProduct,
         ))->assertRedirect();
