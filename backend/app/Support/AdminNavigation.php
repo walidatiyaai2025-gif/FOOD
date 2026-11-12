@@ -834,14 +834,28 @@ class AdminNavigation
      */
     private function orderOperationsItem(User $user): ?array
     {
-        if (! Route::has('admin.operations.orders.index')) {
+        if (! Route::has('admin.operations.orders.index') || ! $user->is_active) {
+            return null;
+        }
+
+        // The HTTP Orders workspace initializes the canonical Wholesale store
+        // before enumerating its operational scope. Repeat that order here;
+        // otherwise a fresh install can hide Orders until its first HTTP visit.
+        // Reuse the memoized Super Admin decision: asking tenant scope twice
+        // would otherwise repeat privileged role SQL on every Sidebar render.
+        if ($this->isSuperAdmin($user)) {
+            return $this->routeItemOpen('order_operations', 'admin.order_management', 'admin.operations.orders.index');
+        }
+
+        if (! $this->hasPermissionInScope($user, 'orders.view')) {
             return null;
         }
 
         $scope = app(OperationalTenantScope::class);
         if ($scope->allowedStoreIds($user, 'orders.view', 'b2c') === []) {
+            $principalStoreId = app(WholesalePrincipal::class)->storeId();
             $b2bStores = $scope->allowedStoreIds($user, 'orders.view', 'b2b');
-            if ($b2bStores === [] || ! in_array(app(WholesalePrincipal::class)->storeId(), $b2bStores, true)) {
+            if (! in_array($principalStoreId, $b2bStores, true)) {
                 return null;
             }
         }
