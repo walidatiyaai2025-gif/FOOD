@@ -91,36 +91,36 @@ final class SalesQuotationController extends Controller
 
         try {
             $id = DB::transaction(function () use ($actor, $storeId, $channel, $customer, $quote, $data, $request): int {
-            $reference = (string) Str::uuid();
-            $id = (int) DB::table('sales_quotations')->insertGetId([
-                'reference' => $reference,
-                'request_id' => $data['request_id'],
-                'store_id' => $storeId,
-                'channel' => $channel,
-                'customer_id' => (int) $customer->getKey(),
-                'created_by' => $actor->getKey(),
-                'status' => 'draft',
-                'currency' => (string) $quote['currency'],
-                'subtotal' => $quote['subtotal'],
-                'discount_total' => $quote['discount_total'],
-                'tax_total' => $quote['tax_total'],
-                'grand_total' => $quote['grand_total'],
-                'pricing_snapshot' => json_encode($quote, JSON_THROW_ON_ERROR),
-                'expires_at' => $data['expires_at'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            $this->audit->record('sales.quotation.created', $actor, null, null, [
-                'quotation_id' => $id,
-                'reference' => $reference,
-                'store_id' => $storeId,
-                'channel' => $channel,
-                'status' => 'draft',
-                'grand_total' => $quote['grand_total'],
-            ], $request);
-
-            return $id;
+                $reference = (string) Str::uuid();
+                $id = (int) DB::table('sales_quotations')->insertGetId([
+                    'reference' => $reference,
+                    'request_id' => $data['request_id'],
+                    'store_id' => $storeId,
+                    'channel' => $channel,
+                    'customer_id' => (int) $customer->getKey(),
+                    'created_by' => $actor->getKey(),
+                    'status' => 'draft',
+                    'currency' => (string) $quote['currency'],
+                    'subtotal' => $quote['subtotal'],
+                    'discount_total' => $quote['discount_total'],
+                    'tax_total' => $quote['tax_total'],
+                    'grand_total' => $quote['grand_total'],
+                    'pricing_snapshot' => json_encode($quote, JSON_THROW_ON_ERROR),
+                    'expires_at' => $data['expires_at'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+    
+                $this->audit->record('sales.quotation.created', $actor, null, null, [
+                    'quotation_id' => $id,
+                    'reference' => $reference,
+                    'store_id' => $storeId,
+                    'channel' => $channel,
+                    'status' => 'draft',
+                    'grand_total' => $quote['grand_total'],
+                ], $request);
+    
+                return $id;
             }, 3);
         } catch (QueryException $exception) {
             // The unique request ID serializes concurrent retries. Do not
