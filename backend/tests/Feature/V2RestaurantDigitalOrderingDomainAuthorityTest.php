@@ -168,7 +168,7 @@ final class V2RestaurantDigitalOrderingDomainAuthorityTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_explicit_global_permission_deny_hides_the_domain_and_fails_closed_on_http(): void
+    public function test_denied_settings_still_offers_independently_authorized_operations_route(): void
     {
         $restaurant = $this->store('V2-P324-DENIED', StoreBusinessProfile::RESTAURANT);
         $this->enableRestaurantSaasForTestStore($restaurant);
@@ -187,9 +187,78 @@ final class V2RestaurantDigitalOrderingDomainAuthorityTest extends TestCase
         ]);
         $actor->forceFill(['has_permission_overrides' => true])->save();
 
-        $this->assertFalse($this->hasRestaurantEntry($actor));
+        // The settings route is denied, but the independently authorized
+        // Restaurant Operations child remains a valid canonical fallback.
+        $item = $this->navigationGroups($actor)
+            ->flatMap(static fn (array $group): array => $group['children'])
+            ->firstWhere('key', 'smart_ordering');
+        $this->assertIsArray($item);
+        $this->assertSame('admin.smart-ordering.operations.index', $item['route']);
+
         $this->actingAs($actor->fresh())
             ->get(route('admin.smart-ordering.index', ['store_id' => $restaurant], false))
+            ->assertForbidden();
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.smart-ordering.operations.index', ['store_id' => $restaurant], false))
+            ->assertOk();
+    }
+
+    public function test_permission_on_another_retail_store_does_not_advertise_dead_restaurant_links(): void
+    {
+        $restaurant = $this->store('V2-P324-PERMISSION-RESTAURANT', StoreBusinessProfile::RESTAURANT);
+        $ordinaryRetail = $this->store('V2-P324-PERMISSION-RETAIL', StoreBusinessProfile::RETAIL_STORE);
+        $this->enableRestaurantSaasForTestStore($restaurant);
+
+        $actor = $this->retailAdmin($restaurant, 'v2-p324-separated-permissions@example.test');
+        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->where('scope', 'store')->firstOrFail();
+        DB::table('user_store_roles')->insert([
+            'user_id' => $actor->id,
+            'store_id' => $ordinaryRetail,
+            'role_id' => $role->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->assertTrue($this->hasRestaurantEntry($actor));
+
+        // All four potential Restaurant Sidebar destinations are denied on
+        // the entitled Restaurant store, but remain granted on a different
+        // ordinary Retail store. A global/in-scope ANY-store check is unsafe.
+        $permissions = [
+            'smart_ordering.view',
+            'orders.view',
+            'smart_ordering.qr.view',
+            'smart_ordering.analytics.view',
+        ];
+        $ids = Permission::query()->whereIn('code', $permissions)->pluck('id', 'code');
+        $this->assertCount(count($permissions), $ids);
+        foreach ($permissions as $permission) {
+            DB::table('user_permission_overrides')->insert([
+                'user_id' => $actor->id,
+                'permission_id' => $ids[$permission],
+                'scope_key' => 'store:'.$restaurant,
+                'store_id' => $restaurant,
+                'effect' => 'deny',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+        $actor->forceFill(['has_permission_overrides' => true])->save();
+
+        $this->assertTrue($actor->fresh()->hasPermission('smart_ordering.view', $ordinaryRetail));
+        $this->assertFalse($actor->fresh()->hasPermission('smart_ordering.view', $restaurant));
+        $this->assertFalse(
+            $this->hasRestaurantEntry($actor),
+            'The Sidebar may only project a destination authorized on the SAME entitled Restaurant store.',
+        );
+
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.smart-ordering.index', ['store_id' => $restaurant], false))
+            ->assertForbidden();
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.smart-ordering.operations.index', ['store_id' => $restaurant], false))
+            ->assertForbidden();
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.smart-ordering.index', ['store_id' => $ordinaryRetail], false))
             ->assertForbidden();
     }
 
