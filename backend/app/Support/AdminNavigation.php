@@ -5,6 +5,8 @@ namespace App\Support;
 use App\Domain\SmartOrdering\SmartOrderingEnterpriseEntitlementBridge;
 use App\Domain\WhatsApp\RuntimePolicy;
 use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Finance\FinanceFoundationService;
+use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
 use App\Enterprise\Modules\ModuleOperationalReadiness;
 use App\Enterprise\Modules\ModuleRegistry;
@@ -15,6 +17,7 @@ use App\Services\AdminSidebarManager;
 use App\Services\EnterpriseWorkspaceComposer;
 use App\Services\OperationalTenantScope;
 use App\Services\WholesalePrincipal;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Throwable;
 
@@ -218,6 +221,13 @@ class AdminNavigation
                     ? $this->routeItemEnterpriseModule($user, 'erp_treasury', 'admin.erp_center.modules.treasury.title', 'admin.erp.treasury.index', 'treasury', 'finance.view')
                     : null,
             ]),
+            // P285 reuses the already authorized Finance AR/AP tabs, never a
+            // duplicate ledger or a newly exposed unready financial workflow.
+            $this->group('receivables', 'admin.nav_groups.receivables', '¤',
+                $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
+                    ? $this->receivablesNavigationItems($user)
+                    : []
+            ),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
                 $this->routeItem($user, 'reports_center', 'reports.title', 'admin.reports.index', 'reports.view'),
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'reports', 'admin.b2c_workspace.modules.reports', 'reports.view'),
@@ -937,6 +947,105 @@ class AdminNavigation
         } catch (Throwable) {
             return false;
         }
+    }
+
+    /**
+     * P285: Project real Finance Workbench AR/AP HTTP authorization into the
+     * Sidebar. A store permission is not an enterprise capability entitlement;
+     * the legal-entity grant and current module readiness must also match.
+     *
+     * @return list<array{key:string,label:string,route:string,params:array<string,string>,permission:?string}>
+     */
+    private function receivablesNavigationItems(User $user): array
+    {
+        if (! $user->is_active
+            || ! Route::has('admin.erp.finance.index')
+            || ! $this->erpModuleReady(FinanceFoundationService::MODULE)
+            || ! $this->enterpriseModuleAccessible($user, FinanceFoundationService::MODULE)
+        ) {
+            return [];
+        }
+
+        $retailStoreIds = $this->tenantContext->retailStoreIds($user);
+        $canWholesale = $this->canAccess($user, 'b2b');
+        if (! $canWholesale && $retailStoreIds === []) {
+            return [];
+        }
+
+        // Mirror FinanceWorkbenchController::contextOptions: do not advertise
+        // a context outside its bounded, ordered server-side chooser.
+        $stores = DB::table('stores as store')
+            ->join('store_types as type', 'type.id', '=', 'store.store_type_id')
+            ->where('store.is_active', true)
+            ->where(function ($query) use ($canWholesale, $retailStoreIds): void {
+                if ($canWholesale) {
+                    $query->where('type.code', 'B2B');
+                }
+                if ($retailStoreIds !== []) {
+                    $method = $canWholesale ? 'orWhere' : 'where';
+                    $query->{$method}(function ($retail) use ($retailStoreIds): void {
+                        $retail->where('type.code', 'B2C')
+                            ->whereIn('store.id', $retailStoreIds);
+                    });
+                }
+            })
+            ->select(['store.id', 'type.code as channel'])
+            ->orderBy('type.code')
+            ->orderBy('store.code')
+            ->limit(100)
+            ->get();
+
+        $eligible = [];
+        foreach ($stores as $store) {
+            $storeId = (int) $store->id;
+            if (! $user->hasPermission('finance.view', $storeId)) {
+                continue;
+            }
+
+            try {
+                // Wholesale must pass the same global-role boundary as the
+                // Finance controller, not merely a claimed B2B menu flag.
+                if ($store->channel === 'B2B') {
+                    $this->tenantContext->wholesale($user, $storeId);
+                }
+
+                $organizationScope = app(OrganizationHierarchyService::class)->scopeForStore($storeId);
+                if ($organizationScope === null) {
+                    continue;
+                }
+
+                $scope = new EntitlementScope(
+                    EntitlementScope::LEGAL_ENTITY,
+                    $organizationScope['legal_entity_id'],
+                );
+                foreach (['receivables' => 'finance.ar.read', 'payables' => 'finance.ap.read'] as $tab => $capability) {
+                    if (! isset($eligible[$tab]) && $this->enterpriseEntitlements->allows(
+                        FinanceFoundationService::MODULE,
+                        $scope,
+                        $capability,
+                    )) {
+                        $eligible[$tab] = $this->routeItemScoped(
+                            $user,
+                            'erp_'.$tab,
+                            'finance_workbench.tabs.'.$tab,
+                            'admin.erp.finance.index',
+                            'finance.view',
+                            ['store_id' => (string) $storeId, 'tab' => $tab],
+                        );
+                    }
+                }
+            } catch (Throwable) {
+                // A broken hierarchy, scope, or entitlement lookup must never
+                // turn an inaccessible Finance tab into a visible destination.
+                continue;
+            }
+
+            if (count(array_filter($eligible)) === 2) {
+                break;
+            }
+        }
+
+        return array_values(array_filter($eligible));
     }
 
     private function enterpriseModuleAccessible(User $user, string $moduleCode): bool
