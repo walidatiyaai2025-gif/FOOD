@@ -169,11 +169,16 @@ final class InstallState
 
         @chmod($temporary, 0640);
 
-        $this->assertSafeStatePath($path);
+        try {
+            $this->assertSafeStatePath($path);
 
-        if (! @rename($temporary, $path)) {
-            @unlink($temporary);
-            throw new RuntimeException('Installer state could not be finalized.');
+            if (! @rename($temporary, $path)) {
+                throw new RuntimeException('Installer state could not be finalized.');
+            }
+        } finally {
+            if (is_file($temporary)) {
+                @unlink($temporary);
+            }
         }
     }
 }
