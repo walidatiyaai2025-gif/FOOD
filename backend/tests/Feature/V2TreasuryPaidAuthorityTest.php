@@ -117,9 +117,10 @@ final class V2TreasuryPaidAuthorityTest extends TestCase
             'reference' => 'V2-P301-001',
             'beneficiary' => 'Payment supplier',
         ];
+        // Match the canonical controller backTo() query parameter order.
         $redirect = route('admin.erp.treasury.index', [
-            'store_id' => $store->id,
             'tab' => 'payments',
+            'store_id' => $store->id,
         ]);
 
         $this->actingAs($maker)
