@@ -222,6 +222,28 @@ final class V2OperationalExceptionsSidebarAuthorityTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_exception_selector_remains_accessible_through_responsive_advanced_filters(): void
+    {
+        $actor = $this->globalAdmin();
+        $store = $this->retailStore('V2-P211-MOBILE');
+
+        $response = $this->actingAs($actor)
+            ->get(route('admin.operations.orders.index', ['channel' => 'b2c', 'store_id' => $store]));
+
+        $response->assertOk()
+            ->assertSee('class="order-grid-filter-more"', false)
+            ->assertSee('class="order-grid-filter-popover"', false)
+            ->assertSee('name="exception"', false);
+
+        $html = $response->getContent();
+        $this->assertSame(1, preg_match(
+            '/<details class="order-grid-filter-more">.*?<div class="order-grid-filter-popover">.*?<select name="exception"/s',
+            $html,
+        ));
+        $this->assertSame(1, substr_count($html, '<select name="exception"'));
+        $this->assertStringNotContainsString('select[name="exception"]{display:none}', $html);
+    }
+
     /** @return list<string> */
     private function navigationKeys(User $actor): array
     {
