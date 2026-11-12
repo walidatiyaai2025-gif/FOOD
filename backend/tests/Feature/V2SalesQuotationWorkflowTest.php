@@ -154,6 +154,46 @@ class V2SalesQuotationWorkflowTest extends TestCase
         $this->assertSame(0, DB::table('orders')->count());
     }
 
+    public function test_store_actor_without_orders_permissions_gets_403_and_no_sidebar_link(): void
+    {
+        $manager = $this->retailActor('quote-denied-manager@example.test', $this->retailA);
+        $this->actingAs($manager)->post(route('admin.sales-quotations.store'), $this->payload(
+            $this->retailA, $this->customerA->id, $this->productA,
+        ))->assertRedirect();
+        $quotation = DB::table('sales_quotations')->sole();
+
+        $denied = User::factory()->create([
+            'email' => 'quote-denied-inventory@example.test',
+            'is_active' => true,
+            'locale' => 'en',
+        ]);
+        DB::table('user_store_roles')->insert([
+            'user_id' => $denied->id,
+            'store_id' => $this->retailA,
+            'role_id' => Role::query()->where('code', 'RETAIL_INVENTORY')->firstOrFail()->id,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $keys = collect(app(AdminNavigation::class)->groupsFor($denied))
+            ->flatMap(fn (array $group) => $group['children'])
+            ->pluck('key');
+        $this->assertFalse($keys->contains('sales_quotations'));
+
+        $this->actingAs($denied)->get(route('admin.sales-quotations.index', [
+            'store_id' => $this->retailA,
+        ]))->assertForbidden();
+        $this->actingAs($denied)->post(route('admin.sales-quotations.store'), $this->payload(
+            $this->retailA, $this->customerA->id, $this->productA,
+        ))->assertForbidden();
+        $this->actingAs($denied)->get(route('admin.sales-quotations.show', [
+            'quotation' => $quotation->id,
+        ]))->assertForbidden();
+        $this->actingAs($denied)->post(route('admin.sales-quotations.transition', [
+            'quotation' => $quotation->id, 'action' => 'issue',
+        ]))->assertForbidden();
+        $this->assertDatabaseHas('sales_quotations', ['id' => $quotation->id, 'status' => 'draft']);
+    }
+
     public function test_inactive_user_cannot_view_or_create_and_public_access_requires_login(): void
     {
         $operator = $this->retailActor('sales-quote-inactive@example.test', $this->retailA);
