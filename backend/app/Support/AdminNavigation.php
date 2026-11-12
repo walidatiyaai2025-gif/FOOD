@@ -212,7 +212,7 @@ class AdminNavigation
             $this->group('finance', 'admin.nav_groups.finance', '¤', [
                 $canAccessPlatformNavigation ? $this->routeItemScoped($user, 'treasury_master', 'treasury.nav_title', 'admin.treasury.master.index', 'finance.view') : null,
                 // P358 financial modules retain their existing authorization.
-                ($canAccessPlatformErp || $this->financeWorkspacesAccessible($user)) && ! $useCustomerServiceDashboardProfile
+                $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemEnterpriseModule($user, 'erp_finance', 'admin.erp_center.modules.finance.title', 'admin.erp.finance.index', 'finance', 'finance.view')
                     : null,
                 $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
@@ -951,7 +951,14 @@ class AdminNavigation
         // overrides. An entitled Wholesale actor must not have a dead link,
         // and a Platform Owner cannot bypass the same finance constraints.
         if ($moduleCode === 'finance') {
-            return $this->enterpriseModuleAccessMemo[$memoKey] = $this->financeWorkspacesAccessible($user);
+            // Platform Super Admin can inspect a ready and entitled Finance
+            // workspace even before any store is provisioned. This grants
+            // only the empty setup context, never store or ledger access.
+            $setupAccess = $this->isSuperAdmin($user)
+                && $this->enterpriseEntitlements->allows($moduleCode, EntitlementScope::platform());
+
+            return $this->enterpriseModuleAccessMemo[$memoKey] =
+                $setupAccess || $this->financeWorkspacesAccessible($user);
         }
 
         if ($user->isPlatformOwner()) {
