@@ -29,7 +29,7 @@ final class EnterpriseWmsController extends Controller
     private const TABS = [
         'overview',
         'balances',
-        'warehouses', 
+        'warehouses',
         'movements',
         'transfers',
         'counts',
@@ -127,6 +127,7 @@ final class EnterpriseWmsController extends Controller
             isset($validated['count_id']) ? (int) $validated['count_id'] : null,
             isset($validated['after_inventory_id']) ? (int) $validated['after_inventory_id'] : null,
         );
+
         // A record drill-down must match the chosen context, not merely be
         // reachable through a second store role held by the same actor.
         if (isset($validated['inventory_id'])) {
