@@ -17,7 +17,9 @@ For each operational store, eligibility requires: active actor; effective Financ
 - Inactive, roleless and direct URL / forged store actors remain denied by existing auth and scope guards.
 - A store-level module disable excludes both navigation and GET/POST. A store capability restriction to read-only permits the authorized reading journey but denies Finance account changes, with no database change.
 - A store-only entitlement does not bypass absent/denied LEGAL_ENTITY Finance capability.
-- B2B FINANCE operator can discover legal-entity-entitled Wholesale Finance; B2C uses only authorized Retail stores.
+- B2B FINANCE operator can discover legal-entity-entitled Wholesale Finance; Retail B2C requires both its authorized store assignment **and existing global ERP admission**, rather than gaining access from a Sidebar-only permission.
+- A platform Super Admin with platform-level Finance entitlement and ready module may open the existing **empty/no-context setup view** before any eligible store is provisioned; no ledger tab or mutations become available from this path. An actual store-specific deny still denies that store and its records.
+- Cross-legal-entity Finance resource IDs return their canonical **404** before any later store-effective write capability check; no cross-scope journal or opening balance is disclosed.
 - No finance ledger capability is granted by presentation. No silent permission expansion.
 
 ## Source files and acceptance
