@@ -98,7 +98,16 @@ final class V2FinanceEntitlementParityTest extends TestCase
             $actor,
         );
 
-        $this->assertTrue($this->financeEntryVisible($actor));
+        // A scoped Retail role and a valid ledger entitlement do not
+        // independently grant platform ERP admission.
+        $this->assertFalse($this->financeEntryVisible($actor));
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.erp.finance.index', ['store_id' => $store->id], false))
+            ->assertForbidden();
+
+        $this->grantPlatformErpAccess($actor);
+        $this->assertTrue(app(AdminNavigation::class)->canAccessPlatformErp($actor->fresh()));
+        $this->assertTrue($this->financeEntryVisible($actor->fresh()));
         $this->actingAs($actor->fresh())
             ->get(route('admin.erp.finance.index', ['store_id' => $store->id], false))
             ->assertOk();
