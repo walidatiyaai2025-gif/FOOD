@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'invalid_geography_selection' => 'اختر عقدة جغرافية نشطة ضمن البلد والتسلسل الأبوي الصحيح.',
+    'invalid_territory_warehouse' => 'اختر مستودع جملة نشطاً ضمن المتاجر المصرح لك بها.',
     'register_van' => 'تسجيل فان جديد',
     'code' => 'الكود',
     'plate_number' => 'رقم اللوحة',
