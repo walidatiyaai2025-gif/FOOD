@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Permission;
 use App\Models\Role;
@@ -183,6 +184,11 @@ final class V2InvoiceReviewAuthorityTest extends TestCase
     private function invoice(?int $storeId, ?string $channel, string $number): Invoice
     {
         return Invoice::query()->create([
+            // Invoice.customer_id is mandatory even for legacy/orphan provenance fixtures.
+            'customer_id' => Customer::query()->create([
+                'name' => 'P284 Customer '.$number,
+                'type' => $channel === 'b2b' ? 'b2b' : 'b2c',
+            ])->getKey(),
             'store_id' => $storeId,
             'channel' => $channel,
             'invoice_number' => $number,
