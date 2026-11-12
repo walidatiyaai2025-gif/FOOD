@@ -334,7 +334,6 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
         $this->enableProcurement();
 
         [$actor, $store, $context] = $this->scopedUser($this->allPermissions(), 'P243-OWN');
-        $this->allowReturnsWorkbench($actor, $store);
         [, $warehouse] = $this->stockTarget($store, 'P243-OWN-SKU');
         $receipt = $this->postedReceipt($actor, $context, $warehouse, 'P243-OWN-SUP', 'P243-OWN-SKU', 2);
         $return = app(PurchaseReturnManager::class)->createFromPostedReceipt($actor, $context, $receipt->id, [
@@ -343,6 +342,10 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
                 'quantity' => 1,
             ]],
         ]);
+
+        // Preserve the maker/checker fixture's dedicated procurement role
+        // while generating the receipt, then admit the actor to the HTTP workbench.
+        $this->allowReturnsWorkbench($actor, $store);
 
         foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
             app()->setLocale($locale);
@@ -388,7 +391,6 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
         $this->enableProcurement();
 
         [$owner, $store, $context] = $this->scopedUser($this->allPermissions(), 'P243-SEC-OWNER');
-        $this->allowReturnsWorkbench($owner, $store);
         [, $warehouse] = $this->stockTarget($store, 'P243-SEC-SKU');
         $receipt = $this->postedReceipt($owner, $context, $warehouse, 'P243-SEC-SUP', 'P243-SEC-SKU', 2);
         $return = app(PurchaseReturnManager::class)->createFromPostedReceipt($owner, $context, $receipt->id, [
@@ -397,6 +399,8 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
                 'quantity' => 1,
             ]],
         ]);
+
+        $this->allowReturnsWorkbench($owner, $store);
 
         [$foreign, $otherStore] = $this->scopedUser($this->allPermissions(), 'P243-SEC-FOREIGN');
         $this->allowReturnsWorkbench($foreign, $otherStore);
@@ -445,7 +449,7 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
                 'tab' => 'returns',
                 'store_id' => $store->id,
             ]))
-            ->assertNotFound();
+            ->assertForbidden();
 
         config()->set(
             'enterprise_module_readiness.certified_versions.procurement',
