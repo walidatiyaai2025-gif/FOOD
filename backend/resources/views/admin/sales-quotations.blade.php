@@ -179,7 +179,9 @@
         const lines = document.getElementById('sq-lines');
         if (!add || !lines) return;
         @if($errors->any())
-        document.querySelector('.sq-create-workflow [data-foodex-dialog-open]')?.click();
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelector('.sq-create-workflow [data-foodex-dialog-open]')?.click();
+        }, { once: true });
         @endif
         add.addEventListener('click', () => {
             const next = lines.children.length;
