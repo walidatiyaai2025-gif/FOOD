@@ -111,6 +111,28 @@ final class V2RoutingPoliciesStoreScopeTest extends TestCase
         $this->assertDatabaseCount('routing_decision_traces', 0);
     }
 
+    public function test_legacy_coordinate_only_rule_remains_a_draft_but_cannot_be_published_globally_by_scoped_actor(): void
+    {
+        $store = $this->wholesaleStore('P270-COORD-STORE');
+        $actor = $this->operator('P270-COORD-ACTOR', $store->id);
+
+        $this->actingAs($actor)
+            ->post(route('admin.field-operations.routing.store'), $this->requestPayload('P270-COORD-DRAFT', 'latitude', '29.375900'))
+            ->assertSessionHasNoErrors();
+
+        $policy = RoutingPolicy::query()->where('code', 'P270-COORD-DRAFT')->firstOrFail();
+        $this->assertSame('draft', $policy->status);
+
+        $this->actingAs($actor)
+            ->post(route('admin.field-operations.routing.action', [
+                'routingPolicy' => $policy,
+                'action' => 'publish',
+            ]))
+            ->assertNotFound();
+
+        $this->assertSame('draft', $policy->fresh()->status);
+    }
+
     public function test_scoped_operator_can_publish_rollback_and_version_an_exact_owned_wholesale_policy(): void
     {
         $store = $this->wholesaleStore('P270-VALID-WHOLESALE');
