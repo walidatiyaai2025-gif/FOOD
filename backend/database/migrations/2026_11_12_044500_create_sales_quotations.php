@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('sales_quotations', function (Blueprint $table): void {
             $table->id();
             $table->uuid('reference')->unique();
+            $table->uuid('request_id');
             $table->foreignId('store_id')->constrained()->restrictOnDelete();
             $table->string('channel', 3);
             $table->unsignedBigInteger('customer_id');
@@ -28,6 +29,7 @@ return new class extends Migration
             $table->timestamp('cancelled_at')->nullable();
             $table->timestamps();
 
+            $table->unique(['store_id', 'created_by', 'request_id'], 'sales_quotes_idempotency');
             $table->index(['store_id', 'status', 'created_at'], 'sales_quotes_store_status_date');
             $table->index(['channel', 'customer_id'], 'sales_quotes_customer_channel');
         });
