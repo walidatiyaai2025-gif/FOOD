@@ -69,7 +69,6 @@ final class V2RestaurantDigitalOrderingDomainAuthorityTest extends TestCase
         }
     }
 
-
     public function test_disabled_enterprise_module_hides_the_restaurant_entry_even_with_store_grant(): void
     {
         $restaurant = $this->store('V2-P324-MODULE-OFF', StoreBusinessProfile::RESTAURANT);
