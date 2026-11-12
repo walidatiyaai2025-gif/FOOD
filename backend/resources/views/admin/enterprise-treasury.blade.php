@@ -323,7 +323,7 @@ elseif($column==='basis' && $cell==='posted_treasury_ledger'){$cell=__('enterpri
 @endif
 
 @if($activeTab==='receipts')
-@if($canManage)
+@if($canManageReceipt)
 <details class="foodex-card erp-create"><summary>+ {{ __('enterprise_treasury.receipts.new') }}</summary>
 <form method="post" action="{{ route('admin.erp.treasury.receipts.store') }}" class="erp-form">@csrf
 <input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><input type="hidden" name="_operation_key" value="{{ $receiptToken }}">
@@ -336,7 +336,7 @@ elseif($column==='basis' && $cell==='posted_treasury_ledger'){$cell=__('enterpri
 </form></details>
 @endif
 <section class="foodex-card erp-table-wrap"><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_treasury.receipts.number') }}</th><th>{{ __('enterprise_treasury.target') }}</th><th>{{ __('enterprise_treasury.amount') }}</th><th>{{ __('enterprise_treasury.value_date') }}</th><th>{{ __('enterprise_treasury.reference') }}</th><th>{{ __('enterprise_treasury.status') }}</th><th>{{ __('enterprise_treasury.actions') }}</th></tr></thead><tbody>
-@forelse($rows as $row)<tr><td class="erp-ref">{{ $row->receipt_number }}</td><td>{{ $targetLabel($row->target_type,$row->target_id) }}</td><td class="erp-numeric">{{ $row->amount }} {{ $row->currency_code }}</td><td>{{ $row->value_date?->toDateString() ?? $row->value_date }}</td><td>{{ $row->reference }}</td><td><span class="badge erp-badge">{{ $statusLabel($row->status) }}</span></td><td><div class="erp-actions">@if($canManage && $row->status==='draft')<form method="post" action="{{ route('admin.erp.treasury.receipts.post',$row) }}">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><button class="erp-link">{{ __('enterprise_treasury.post') }}</button></form><form method="post" action="{{ route('admin.erp.treasury.receipts.cancel',$row) }}">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><button class="erp-link erp-danger">{{ __('enterprise_treasury.cancel') }}</button></form>@endif</div></td></tr> {{-- localization-gate: allow non-visible receipt status control flow; visible labels are translated --}}
+@forelse($rows as $row)<tr><td class="erp-ref">{{ $row->receipt_number }}</td><td>{{ $targetLabel($row->target_type,$row->target_id) }}</td><td class="erp-numeric">{{ $row->amount }} {{ $row->currency_code }}</td><td>{{ $row->value_date?->toDateString() ?? $row->value_date }}</td><td>{{ $row->reference }}</td><td><span class="badge erp-badge">{{ $statusLabel($row->status) }}</span></td><td><div class="erp-actions">@if($row->status==='draft')@if($canApproveReceipt && (int)$row->requested_by !== (int)$user->id)<form method="post" action="{{ route('admin.erp.treasury.receipts.post',$row) }}">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><button class="erp-link">{{ __('enterprise_treasury.post') }}</button></form>@endif @if($canManageReceipt)<form method="post" action="{{ route('admin.erp.treasury.receipts.cancel',$row) }}">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><button class="erp-link erp-danger">{{ __('enterprise_treasury.cancel') }}</button></form>@endif @endif</div></td></tr> {{-- localization-gate: allow non-visible receipt status control flow; visible labels are translated --}}
 @empty<tr><td colspan="7"><div class="foodex-empty-state">{{ __('enterprise_treasury.empty') }}</div></td></tr>@endforelse
 </tbody></table></section>
 @endif

@@ -111,6 +111,12 @@ final class EnterpriseTreasuryController extends Controller
             'bankAccounts' => $bankAccounts,
             'targetLabels' => $targetLabels,
             'canManage' => $this->allowed($actor, $storeId, 'finance.manage'),
+            // P295: action visibility must project the receipt service's exact
+            // store-scoped capabilities, not only the broad Finance permission.
+            'canManageReceipt' => $this->allowed($actor, $storeId, 'finance.manage')
+                && $this->entitlements->allows('treasury', new EntitlementScope(EntitlementScope::STORE, $storeId), 'treasury.receipts.manage'),
+            'canApproveReceipt' => $this->allowed($actor, $storeId, 'finance.manage')
+                && $this->entitlements->allows('treasury', new EntitlementScope(EntitlementScope::STORE, $storeId), 'treasury.receipts.approve'),
             // P301: payment actions project the same store entitlement gates
             // as TreasuryPaymentService; finance.manage alone is insufficient.
             'canManagePayment' => $this->allowed($actor, $storeId, 'finance.manage')
