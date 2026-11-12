@@ -119,8 +119,10 @@ final class InvoiceController extends Controller
     {
         [$storeId, $channel] = $this->scope($invoice);
 
+        // An invoice without a verified store and channel is not a global
+        // invoice. Do not convert broken provenance into a broad finance grant.
         if ($storeId === null || $channel === null) {
-            return $user->hasRole('SUPER_ADMIN') || $user->hasPermission($permission);
+            return false;
         }
 
         return in_array(
@@ -133,18 +135,47 @@ final class InvoiceController extends Controller
     /** @return array{0:?int,1:?string} */
     private function scope(Invoice $invoice): array
     {
-        if ($invoice->store_id !== null && in_array(strtolower((string) $invoice->channel), ['b2b', 'b2c'], true)) {
-            return [(int) $invoice->store_id, strtolower((string) $invoice->channel)];
-        }
+        $storeId = $invoice->store_id === null ? null : (int) $invoice->store_id;
+        $channel = strtolower(trim((string) $invoice->channel));
 
-        if ($invoice->order_id === null) {
+        if ($channel !== '' && ! in_array($channel, ['b2b', 'b2c'], true)) {
             return [null, null];
         }
 
-        $order = DB::table('orders')->where('id', $invoice->order_id)->first(['store_id', 'channel']);
+        if ($invoice->order_id !== null) {
+            $order = DB::table('orders')
+                ->where('id', $invoice->order_id)
+                ->first(['store_id', 'channel']);
 
-        return $order === null
-            ? [null, null]
-            : [(int) $order->store_id, strtolower((string) $order->channel)];
+            // A broken or conflicting order reference must never be masked by
+            // the invoice's more permissive snapshot fields.
+            if ($order === null
+                || ($storeId !== null && $storeId !== (int) $order->store_id)
+                || ($channel !== '' && $channel !== strtolower((string) $order->channel))) {
+                return [null, null];
+            }
+
+            $storeId = (int) $order->store_id;
+            $channel = strtolower((string) $order->channel);
+        }
+
+        if ($storeId === null || $storeId <= 0) {
+            return [null, null];
+        }
+
+        // Older invoices may have a store but no channel. Infer the missing
+        // channel only from authoritative store master data, never from the
+        // actor's roles, invoice snapshots or a caller-supplied parameter.
+        $storeChannel = strtolower((string) DB::table('stores')
+            ->join('store_types', 'stores.store_type_id', '=', 'store_types.id')
+            ->where('stores.id', $storeId)
+            ->value('store_types.code'));
+
+        if (! in_array($storeChannel, ['b2b', 'b2c'], true)
+            || ($channel !== '' && $channel !== $storeChannel)) {
+            return [null, null];
+        }
+
+        return [$storeId, $storeChannel];
     }
 }

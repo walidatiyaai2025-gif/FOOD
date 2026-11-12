@@ -52,6 +52,8 @@ final class V2UserSoftArchiveRetentionTest extends TestCase
             ->patch(route('admin.security.users.status', $target), [
                 'is_active' => false,
                 'reason' => 'V2 managed archival with retention',
+                'impact_reviewed' => '1',
+                'confirm_email' => $target->email,
             ])->assertRedirect();
 
         $target->refresh();
@@ -80,6 +82,9 @@ final class V2UserSoftArchiveRetentionTest extends TestCase
         $this->actingAs($admin)
             ->patch(route('admin.security.users.status', $target), [
                 'is_active' => true,
+                'reason' => 'Restoring after approved account impact review',
+                'impact_reviewed' => '1',
+                'confirm_email' => $target->email,
             ])->assertRedirect();
 
         $target->refresh();

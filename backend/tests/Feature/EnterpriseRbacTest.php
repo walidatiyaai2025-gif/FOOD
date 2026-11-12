@@ -206,6 +206,8 @@ class EnterpriseRbacTest extends TestCase
             ->patch("/admin/security/users/{$target->id}/status", [
                 'is_active' => false,
                 'reason' => 'Contract ended',
+                'impact_reviewed' => true,
+                'confirm_email' => $target->email,
             ])
             ->assertRedirect();
 

@@ -182,9 +182,29 @@ $base=['store_id'=>$selectedStoreId,'tab'=>$activeTab];
 <div><button class="foodex-primary">{{ __('enterprise_procurement.create') }}</button></div></form></section>
 @endif
 <section class="foodex-card erp-table-wrap"><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_procurement.reference') }}</th><th>{{ __('enterprise_procurement.supplier') }}</th><th>{{ __('enterprise_procurement.status') }}</th><th>{{ __('enterprise_procurement.goods_receipt_short') }}</th><th>{{ __('enterprise_procurement.created') }}</th><th>{{ __('enterprise_procurement.actions') }}</th></tr></thead><tbody>
-@forelse($rows as $row)<tr><td class="erp-ref">{{ $row->return_number }}</td><td>{{ $row->supplier_code }}</td><td><span class="badge">{{ $statusLabel($row->status) }}</span></td><td>{{ $row->source_receipt_number }}</td><td>{{ $row->created_at }}</td><td><div class="erp-actions">@if($can['return_post'] && $row->status==='draft')<form method="post" action="{{ route('admin.erp.procurement.returns.post',$row) }}">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><button class="erp-link">{{ __('enterprise_procurement.post') }}</button></form>@endif @if($can['return_manage'] && $row->status==='draft')<form method="post" action="{{ route('admin.erp.procurement.returns.cancel',$row) }}">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><button class="erp-link erp-danger">{{ __('enterprise_procurement.cancel') }}</button></form>@endif</div></td></tr> {{-- localization-gate: allow localized return status rendering plus non-visible status control flow --}}
+@forelse($rows as $row)<tr><td class="erp-ref">{{ $row->return_number }}</td><td>{{ $row->supplier_code }}</td><td><span class="badge">{{ $statusLabel($row->status) }}</span></td><td>{{ $row->source_receipt_number }}</td><td>{{ $row->created_at }}</td><td><div class="erp-actions"><a class="erp-link" href="{{ route('admin.erp.procurement.index',array_merge($base,['return'=>$row->id])) }}#purchase-return-detail">{{ __('enterprise_procurement.view') }}</a>@if($can['return_post'] && $row->status==='draft')<form method="post" action="{{ route('admin.erp.procurement.returns.post',$row) }}">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><button class="erp-link">{{ __('enterprise_procurement.post') }}</button></form>@endif @if($can['return_manage'] && $row->status==='draft')<form method="post" action="{{ route('admin.erp.procurement.returns.cancel',$row) }}">@csrf<input type="hidden" name="store_id" value="{{ $selectedStoreId }}"><button class="erp-link erp-danger">{{ __('enterprise_procurement.cancel') }}</button></form>@endif</div></td></tr> {{-- localization-gate: allow localized return status rendering plus non-visible status control flow --}}
 @empty<tr><td colspan="6"><div class="foodex-empty-state">{{ __('enterprise_procurement.empty') }}</div></td></tr>@endforelse
 </tbody></table></section>
+@if($detail)
+<section class="foodex-card erp-detail" id="purchase-return-detail" data-return-detail="{{ $detail->id }}" aria-labelledby="purchase-return-detail-title">
+<h2 id="purchase-return-detail-title">{{ $detail->return_number }}</h2>
+<div class="erp-detail-grid">
+<div><small>{{ __('enterprise_procurement.status') }}</small><strong>{{ $statusLabel($detail->status) }}</strong></div>
+<div><small>{{ __('enterprise_procurement.supplier') }}</small><strong>{{ $detail->supplier_code }} · {{ app()->getLocale()==='ar' && $detail->supplier_name_ar ? $detail->supplier_name_ar : $detail->supplier_name_en }}</strong></div>
+<div><small>{{ __('enterprise_procurement.goods_receipt_short') }}</small><strong>{{ $detail->source_receipt_number }}</strong></div>
+</div>
+<div class="erp-lines">
+@foreach($detail->lines as $line)
+<div class="erp-line">
+<strong>{{ $line->description }}</strong>
+<span>{{ __('enterprise_procurement.quantity') }}: {{ $line->returned_quantity }} {{ $line->unit }}</span>
+<span>{{ $line->item_code ?: '—' }}</span>
+<span>{{ $line->unit_price ?? '—' }} {{ $detail->currency_code }}</span>
+</div>
+@endforeach
+</div>
+</section>
+@endif
 @endif
 
 @if($activeTab==='statements')
@@ -193,7 +213,11 @@ $base=['store_id'=>$selectedStoreId,'tab'=>$activeTab];
 <label>{{ __('enterprise_procurement.from') }}<input type="date" name="from" value="{{ request('from') }}"></label><label>{{ __('enterprise_procurement.to') }}<input type="date" name="to" value="{{ request('to') }}"></label><label>{{ __('enterprise_procurement.as_of') }}<input type="date" name="as_of" value="{{ request('as_of',now()->toDateString()) }}"></label><label>{{ __('enterprise_procurement.currency') }}<input name="currency_code" value="{{ request('currency_code','KWD') }}" maxlength="3"></label><div><button class="foodex-filter-action">{{ __('enterprise_procurement.apply') }}</button></div>
 </form></section>
 @if($aging)<section class="erp-aging">@foreach(['gross_exposure','invoice_count','not_due','due_0_30','due_31_60','due_61_90','due_over_90','no_due_date'] as $metric)<div class="foodex-card"><span>{{ __('enterprise_procurement.'.$metric) }}</span><strong>{{ in_array($metric,['gross_exposure','invoice_count'],true) ? $aging[$metric] : $aging['buckets'][$metric] }}</strong>@if($metric!=='invoice_count')<small>{{ $aging['currency_code'] }}</small>@endif</div>@endforeach</section>@endif
-@if($statement)<section class="foodex-card erp-table-wrap"><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_procurement.reference') }}</th><th>{{ __('enterprise_procurement.invoice_number') }}</th><th>{{ __('enterprise_procurement.invoice_date') }}</th><th>{{ __('enterprise_procurement.due_date') }}</th><th>{{ __('enterprise_procurement.total') }}</th><th>{{ __('enterprise_procurement.status') }}</th></tr></thead><tbody>@forelse($statement as $row)<tr><td class="erp-ref">{{ $row->invoice_number }}</td><td>{{ $row->supplier_invoice_number }}</td><td>{{ $row->invoice_date?->toDateString() }}</td><td>{{ $row->due_date?->toDateString() ?? '—' }}</td><td>{{ $row->total_amount }} {{ $row->currency_code }}</td><td>{{ $statusLabel($row->status) }}</td></tr>@empty<tr><td colspan="6"><div class="foodex-empty-state">{{ __('enterprise_procurement.empty') }}</div></td></tr>@endforelse</tbody></table></section>@endif
+@if($statement)<section class="foodex-card erp-table-wrap"><table class="foodex-table erp-table"><thead><tr><th>{{ __('enterprise_procurement.reference') }}</th><th>{{ __('enterprise_procurement.invoice_number') }}</th><th>{{ __('enterprise_procurement.invoice_date') }}</th><th>{{ __('enterprise_procurement.due_date') }}</th><th>{{ __('enterprise_procurement.total') }}</th><th>{{ __('enterprise_procurement.status') }}</th></tr></thead><tbody>@forelse($statement as $row)<tr><td class="erp-ref">{{ $row->invoice_number }}</td><td>{{ $row->supplier_invoice_number }}</td><td>{{ $row->invoice_date?->toDateString() }}</td><td>{{ $row->due_date?->toDateString() ?? '—' }}</td><td>{{ $row->total_amount }} {{ $row->currency_code }}</td><td>{{ $statusLabel($row->status) }}</td></tr>@empty<tr><td colspan="6"><div class="foodex-empty-state">{{ __('enterprise_procurement.empty') }}</div></td></tr>@endforelse</tbody></table></section>
+@if($statement->hasPages())
+<div class="foodex-pagination">{{ $statement->links() }}</div>
+@endif
+@endif
 @endif
 
 @if($rows && method_exists($rows,'links'))<div>{{ $rows->links() }}</div>@endif

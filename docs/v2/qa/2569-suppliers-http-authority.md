@@ -1,0 +1,16 @@
+# V2 P239 — Suppliers page, permissions and exact-record HTTP authority (#2569)
+
+- **Source:** FOODEX Unified RBAC/ERP/Sidebar document P239 under Procurement & Inventory, master #2503.
+- **Placement:** reuse `admin.erp.procurement.index?tab=suppliers` (existing Procurement Workbench) from the existing authorized `erp_procurement` item under Catalog business group. No duplicate Suppliers page, navigation or controller; the Users' ERP Workbench tab is the canonical real destination.
+- **Source actors:** `PROCUREMENT_MANAGER` has `procurement.suppliers.view/manage`; `PROCUREMENT_APPROVER` can read but not write; Retail Driver / roleless are denied. Server-side `EnterpriseProcurementController::authorizeTab`, `SupplierDirectory` and `EnterpriseScopeAuthorizer` remain authoritative.
+- **Module lifecycle:** Procurement module enabled + platform entitlement + exact-version operational readiness, in addition to user/store/channel permissions, before the Suppliers link appears. Disabled/unready module fails closed.
+- **Data & scope:** selected authorized Wholesale store and organization/company context; exact Supplier 360 read uses `supplier` key and `SupplierDirectory::supplier360`. Supplier creation is scoped and audited; unknown resource gives 404; direct unauthorized POST returns 403.
+- **Accessibility and locale:** reuses current Dashboard shared shell, tab selection and focus/responsive primitives; AR/EN locale and RTL/LTR asserted at HTTP rendered output. Final physical-device/manual browser UX acceptance deferred to #2503/#2750, not claimed here.
+- **Regression file:** `backend/tests/Feature/V2SuppliersSidebarHttpAuthorityTest.php` adds 4 tests for disabled module/no navigation, read-only vs create POST, real create+read+audit with AR/EN, direct unauthorized mobile/roleless denial. The tests do not replace existing `EnterpriseSupplierFoundationTest` (service/store/company), `EnterpriseProcurementWorkbenchTest` (full operational procurement path) or `V2ProcurementSidebarPersonaContractTest` (role/module/entitlement).
+- **Cross-app review:** Customer no API/Flutter change; Driver (Retail B2C only) access remains denied to Wholesale Suppliers; Van (Wholesale field operations) no Procurement API/Flutter change. B2B VAN ONLY and B2C DRIVER ONLY contracts unchanged.
+- **Changed surfaces:** test + QA trace only; no runtime Controller, route, Blade, schema, API, permission catalog, feature flag or mobile modifications.
+- **CI plan:** exact final head PHP/Pint/PHPStan, Laravel full, AR/EN, Repository Policy, V2 Isolation, Required CI including MySQL/Redis install/upgrade/recovery. No results are claimed until GitHub Actions completes. No main/release/production.
+
+## Mobile impact — Customer/Driver/Van
+
+This P239 acceptance covers the Dashboard's already-existing Suppliers tab only. **Customer:** unchanged commerce and order APIs; **Driver:** unchanged B2C delivery/dispatch API and explicitly denied access to B2B Procurement HTTP; **Van:** unchanged B2B route/visit/stock APIs. None requires a second mobile app issue because no shared API contract, model, routing or UI is modified. No mobile result or manual device test is claimed beyond the unaffected-source assessment.

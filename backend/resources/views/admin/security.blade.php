@@ -249,10 +249,28 @@ $roleLabel = static function ($role): string {
 @can('users.status.manage')
 @if($managedUser->is_active)
 <details data-foodex-operational-modal><summary class="btn danger">{{ __('admin.security.deactivate') }}</summary>
-<form method="post" action="{{ route('admin.security.users.status',$managedUser) }}" class="security-modal-stack" onsubmit="return confirm('{{ __('admin.security.confirm_deactivate') }}')">@csrf @method('patch')<input type="hidden" name="is_active" value="0"><input type="text" name="reason" maxlength="500" placeholder="{{ __('admin.security.optional_reason') }}"><button class="btn danger">{{ __('admin.security.deactivate') }}</button></form>
+<form method="post" action="{{ route('admin.security.users.status',$managedUser) }}" class="security-modal-stack" onsubmit="return confirm(@js(__('admin.security.confirm_deactivate')))">
+@csrf @method('patch')
+<input type="hidden" name="is_active" value="0">
+<p class="note" role="note">{{ __('admin.security.lifecycle_impact_archive', ['global' => $managedUser->roles->count(), 'store' => $managedUser->storeRoleAssignments->count()]) }}</p>
+<label>{{ __('admin.security.lifecycle_reason_label') }} <input type="text" name="reason" minlength="8" maxlength="500" required></label>
+<label><input type="checkbox" name="impact_reviewed" value="1" required> {{ __('admin.security.lifecycle_impact_acknowledge') }}</label>
+<label>{{ __('admin.security.lifecycle_confirm_email', ['email' => $managedUser->email]) }} <input type="email" name="confirm_email" required autocomplete="off"></label>
+<button class="btn danger" type="submit">{{ __('admin.security.deactivate') }}</button>
+</form>
 </details>
 @else
-<form method="post" action="{{ route('admin.security.users.status',$managedUser) }}" onsubmit="return confirm('{{ __('admin.security.confirm_activate') }}')">@csrf @method('patch')<input type="hidden" name="is_active" value="1"><button class="btn success">{{ __('admin.security.activate') }}</button></form>
+<details data-foodex-operational-modal><summary class="btn success">{{ __('admin.security.activate') }}</summary>
+<form method="post" action="{{ route('admin.security.users.status',$managedUser) }}" class="security-modal-stack" onsubmit="return confirm(@js(__('admin.security.confirm_activate')))">
+@csrf @method('patch')
+<input type="hidden" name="is_active" value="1">
+<p class="note" role="note">{{ __('admin.security.lifecycle_impact_restore', ['global' => $managedUser->roles->count(), 'store' => $managedUser->storeRoleAssignments->count()]) }}</p>
+<label>{{ __('admin.security.lifecycle_reason_label') }} <input type="text" name="reason" minlength="8" maxlength="500" required></label>
+<label><input type="checkbox" name="impact_reviewed" value="1" required> {{ __('admin.security.lifecycle_impact_acknowledge') }}</label>
+<label>{{ __('admin.security.lifecycle_confirm_email', ['email' => $managedUser->email]) }} <input type="email" name="confirm_email" required autocomplete="off"></label>
+<button class="btn success" type="submit">{{ __('admin.security.activate') }}</button>
+</form>
+</details>
 @endif
 @endcan
 </div></td>
