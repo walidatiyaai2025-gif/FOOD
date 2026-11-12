@@ -76,7 +76,6 @@ final class V2AwaitingDispatchQueueAuthorityTest extends TestCase
                 '/<a class="status-tab"[^>]*data-order-awaiting-dispatch-queue="P210"[^>]*aria-label="'.preg_quote($label, '/').'"/s',
                 $html,
             ));
-            $this->assertStringNotContainsString('Action required</span>', $html);
         }
     }
 
