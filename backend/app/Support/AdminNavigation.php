@@ -1011,11 +1011,6 @@ class AdminNavigation
                     $this->tenantContext->wholesale($user, $storeId);
                 }
 
-                $organizationScope = app(OrganizationHierarchyService::class)->scopeForStore($storeId);
-                if ($organizationScope === null) {
-                    continue;
-                }
-
                 foreach (['receivables' => 'finance.ar.read', 'payables' => 'finance.ap.read'] as $tab => $capability) {
                     if (! isset($eligible[$tab]) && $financeAccess->allowsAtStore($storeId, $capability)) {
                         $eligible[$tab] = $this->routeItemScoped(
