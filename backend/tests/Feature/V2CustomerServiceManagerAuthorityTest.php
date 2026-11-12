@@ -72,6 +72,9 @@ final class V2CustomerServiceManagerAuthorityTest extends TestCase
 
     public function test_wholesale_service_workspace_is_discoverable_in_ar_and_en_but_security_is_forbidden(): void
     {
+        // The protected Wholesale HTTP workspace requires the principal store
+        // fixture, as in the canonical CustomerServiceRoleClosureTest suite.
+        app(WholesalePrincipal::class)->storeId();
         $manager = $this->manager('v2-csm-http@example.test');
 
         foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
