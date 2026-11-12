@@ -997,6 +997,7 @@ class AdminNavigation
             ->get();
 
         $eligible = [];
+        $financeAccess = app(FinanceWorkbenchAccess::class);
         foreach ($stores as $store) {
             $storeId = (int) $store->id;
             if (! $user->hasPermission('finance.view', $storeId)) {
@@ -1015,16 +1016,8 @@ class AdminNavigation
                     continue;
                 }
 
-                $scope = new EntitlementScope(
-                    EntitlementScope::LEGAL_ENTITY,
-                    $organizationScope['legal_entity_id'],
-                );
                 foreach (['receivables' => 'finance.ar.read', 'payables' => 'finance.ap.read'] as $tab => $capability) {
-                    if (! isset($eligible[$tab]) && $this->enterpriseEntitlements->allows(
-                        FinanceFoundationService::MODULE,
-                        $scope,
-                        $capability,
-                    )) {
+                    if (! isset($eligible[$tab]) && $financeAccess->allowsAtStore($storeId, $capability)) {
                         $eligible[$tab] = $this->routeItemScoped(
                             $user,
                             'erp_'.$tab,
@@ -1104,22 +1097,36 @@ class AdminNavigation
             return false;
         }
 
-        $storeIds = $this->tenantContext->retailStoreIds($user);
-        if ($this->canAccess($user, 'b2b')) {
-            $wholesaleIds = Store::query()
-                ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
-                ->where('store_types.code', 'B2B')
-                ->where('stores.is_active', true)
-                ->orderBy('stores.code')
-                ->limit(100)
-                ->pluck('stores.id')
-                ->map(static fn ($id): int => (int) $id)
-                ->all();
-            $storeIds = [...$storeIds, ...$wholesaleIds];
+        $retailStoreIds = $this->tenantContext->retailStoreIds($user);
+        $canWholesale = $this->canAccess($user, 'b2b');
+        if (! $canWholesale && $retailStoreIds === []) {
+            return false;
         }
 
+        // Match the controller's bounded context chooser, including order
+        // and limit. A grant outside the chooser must not create a dead link.
+        $stores = DB::table('stores as store')
+            ->join('store_types as type', 'type.id', '=', 'store.store_type_id')
+            ->where('store.is_active', true)
+            ->where(function ($query) use ($canWholesale, $retailStoreIds): void {
+                if ($canWholesale) {
+                    $query->where('type.code', 'B2B');
+                }
+                if ($retailStoreIds !== []) {
+                    $method = $canWholesale ? 'orWhere' : 'where';
+                    $query->{$method}(function ($retail) use ($retailStoreIds): void {
+                        $retail->where('type.code', 'B2C')
+                            ->whereIn('store.id', $retailStoreIds);
+                    });
+                }
+            })
+            ->orderBy('type.code')
+            ->orderBy('store.code')
+            ->limit(100)
+            ->pluck('store.id');
+
         $finance = app(FinanceWorkbenchAccess::class);
-        foreach (array_unique($storeIds) as $storeId) {
+        foreach ($stores as $storeId) {
             if ($finance->canRead($user, (int) $storeId)) {
                 return true;
             }
