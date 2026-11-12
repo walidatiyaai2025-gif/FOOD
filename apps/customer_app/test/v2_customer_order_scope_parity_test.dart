@@ -141,6 +141,42 @@ void main() {
     }
   });
 
+  test('scoped lists reject rows without a store identifier', () async {
+    final api = returning(
+      '{"data":[{"id":92,"channel":"b2c","status":"pending"}],'
+      '"meta":{"current_page":1,"total":1}}',
+    );
+
+    await expectLater(
+      api.orders(
+        context: const CustomerOrderContext(storeId: 7, channel: 'b2c'),
+      ),
+      throwsA(isA<CustomerOrdersException>().having(
+        (error) => error.code,
+        'code',
+        'forbidden',
+      )),
+    );
+  });
+
+  test('scoped detail rejects a missing store identifier', () async {
+    final api = returning(
+      '{"id":91,"channel":"b2c","status":"pending"}',
+    );
+
+    await expectLater(
+      api.order(
+        orderId: 91,
+        context: const CustomerOrderContext(storeId: 7, channel: 'b2c'),
+      ),
+      throwsA(isA<CustomerOrdersException>().having(
+        (error) => error.code,
+        'code',
+        'forbidden',
+      )),
+    );
+  });
+
   test('matching order scope still returns the authoritative result', () async {
     final api = returning(
       '{"id":91,"store_id":7,"channel":"b2c","status":"delivered",'
