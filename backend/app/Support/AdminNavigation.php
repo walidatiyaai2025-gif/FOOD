@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\AdminSidebarManager;
 use App\Services\EnterpriseWorkspaceComposer;
 use App\Services\OperationalTenantScope;
+use App\Services\WholesalePrincipal;
 use Illuminate\Support\Facades\Route;
 use Throwable;
 
@@ -161,7 +162,7 @@ class AdminNavigation
                 $this->whatsAppInboxItem($user),
             ]),
             $this->group('operations', 'admin.nav_groups.operations', '↻', [
-                $this->routeItemScoped($user, 'order_operations', 'admin.order_management', 'admin.operations.orders.index', 'orders.view'),
+                $this->orderOperationsItem($user),
                 $useCustomerServiceDashboardProfile
                     ? null
                     : $this->routeItemScoped($user, 'driver_live_tracking', 'admin.driver_live_tracking.title', 'admin.driver-live-tracking.index', 'drivers.tracking.view'),
@@ -822,6 +823,44 @@ class AdminNavigation
         }
 
         return false;
+    }
+
+    /**
+     * The Orders workspace admits only the canonical Wholesale principal or
+     * an authorized Retail store. A global orders.view role alone does not
+     * imply an operational channel, as enforced by its HTTP controller.
+     *
+     * @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null
+     */
+    private function orderOperationsItem(User $user): ?array
+    {
+        if (! Route::has('admin.operations.orders.index') || ! $user->is_active) {
+            return null;
+        }
+
+        // The HTTP Orders workspace initializes the canonical Wholesale store
+        // before enumerating its operational scope. Repeat that order here;
+        // otherwise a fresh install can hide Orders until its first HTTP visit.
+        // Reuse the memoized Super Admin decision: asking tenant scope twice
+        // would otherwise repeat privileged role SQL on every Sidebar render.
+        if ($this->isSuperAdmin($user)) {
+            return $this->routeItemOpen('order_operations', 'admin.order_management', 'admin.operations.orders.index');
+        }
+
+        if (! $this->hasPermissionInScope($user, 'orders.view')) {
+            return null;
+        }
+
+        $scope = app(OperationalTenantScope::class);
+        if ($scope->allowedStoreIds($user, 'orders.view', 'b2c') === []) {
+            $principalStoreId = app(WholesalePrincipal::class)->storeId();
+            $b2bStores = $scope->allowedStoreIds($user, 'orders.view', 'b2b');
+            if (! in_array($principalStoreId, $b2bStores, true)) {
+                return null;
+            }
+        }
+
+        return $this->routeItemOpen('order_operations', 'admin.order_management', 'admin.operations.orders.index');
     }
 
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
