@@ -57,7 +57,7 @@ final class V2FinanceSidebarGroupAuthorityTest extends TestCase
             $actor->forceFill(['locale' => $locale])->save();
             app()->setLocale($locale);
 
-            $groups = $this->groups($actor);
+            $groups = $this->navigationGroups($actor);
             $matches = $groups->where('key', 'finance');
             $this->assertCount(1, $matches);
 
@@ -95,7 +95,7 @@ final class V2FinanceSidebarGroupAuthorityTest extends TestCase
     {
         [$actor, $store] = $this->reader('V2-P279-DISABLED', 'B2C');
 
-        $group = $this->groups($actor)->firstWhere('key', 'finance');
+        $group = $this->navigationGroups($actor)->firstWhere('key', 'finance');
         $this->assertIsArray($group);
         $this->assertSame(['treasury_master'], collect($group['children'])->pluck('key')->all());
 
@@ -116,7 +116,7 @@ final class V2FinanceSidebarGroupAuthorityTest extends TestCase
         $this->enableModule($actor, $context, FinanceFoundationService::MODULE);
 
         config()->set('enterprise_module_readiness.certified_versions.finance', null);
-        $group = $this->groups($actor)->firstWhere('key', 'finance');
+        $group = $this->navigationGroups($actor)->firstWhere('key', 'finance');
 
         $this->assertIsArray($group);
         $this->assertSame(['treasury_master'], collect($group['children'])->pluck('key')->all());
@@ -129,7 +129,7 @@ final class V2FinanceSidebarGroupAuthorityTest extends TestCase
         [$actor, $store, $context] = $this->reader('V2-P279-DENY', 'B2C');
         $this->enableModule($actor, $context, FinanceFoundationService::MODULE);
         $this->enableModule($actor, $context, TreasuryReceiptService::MODULE);
-        $this->assertNotNull($this->groups($actor)->firstWhere('key', 'finance'));
+        $this->assertNotNull($this->navigationGroups($actor)->firstWhere('key', 'finance'));
 
         $permission = Permission::query()->where('code', 'finance.view')->firstOrFail();
         DB::table('user_permission_overrides')->insert([
@@ -143,7 +143,7 @@ final class V2FinanceSidebarGroupAuthorityTest extends TestCase
         ]);
         $actor->forceFill(['has_permission_overrides' => true])->save();
 
-        $this->assertNull($this->groups($actor)->firstWhere('key', 'finance'));
+        $this->assertNull($this->navigationGroups($actor)->firstWhere('key', 'finance'));
 
         foreach ([
             'admin.treasury.master.index',
@@ -163,7 +163,7 @@ final class V2FinanceSidebarGroupAuthorityTest extends TestCase
         $foreignWholesale = $this->store('V2-P279-OTHER-WHOLESALE', 'B2B');
         $this->enableModule($actor, $context, FinanceFoundationService::MODULE);
         $this->enableModule($actor, $context, TreasuryReceiptService::MODULE);
-        $this->assertNotNull($this->groups($actor)->firstWhere('key', 'finance'));
+        $this->assertNotNull($this->navigationGroups($actor)->firstWhere('key', 'finance'));
 
         foreach ([$foreignRetail, $foreignWholesale] as $foreign) {
             $this->actingAs($actor)
@@ -189,7 +189,7 @@ final class V2FinanceSidebarGroupAuthorityTest extends TestCase
         $inactive->forceFill(['is_active' => false])->save();
 
         foreach ([$roleless, $inactive->fresh()] as $actor) {
-            $this->assertNull($this->groups($actor)->firstWhere('key', 'finance'));
+            $this->assertNull($this->navigationGroups($actor)->firstWhere('key', 'finance'));
             $this->actingAs($actor)
                 ->get(route('admin.treasury.master.index', ['store_id' => $store->id], false))
                 ->assertForbidden();
@@ -200,7 +200,7 @@ final class V2FinanceSidebarGroupAuthorityTest extends TestCase
     }
 
     /** @return Collection<int, array<string, mixed>> */
-    private function groups(User $actor): Collection
+    private function navigationGroups(User $actor): Collection
     {
         app()->forgetInstance(AdminNavigation::class);
 
