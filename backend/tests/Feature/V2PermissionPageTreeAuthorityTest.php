@@ -35,10 +35,10 @@ final class V2PermissionPageTreeAuthorityTest extends TestCase
             ->flatMap(static fn (array $group): array => $group['items'])
             ->keyBy('key');
 
-        $this->assertTrue($nodes->has('b2c_orders'));
-        $this->assertSame('store', $nodes['b2c_orders']['meta']['scope']);
-        $this->assertSame('b2c', $nodes['b2c_orders']['meta']['channel']);
-        $this->assertContains('orders.view', $nodes['b2c_orders']['permissions']);
+        $this->assertTrue($nodes->has('b2c_drivers'));
+        $this->assertSame('store', $nodes['b2c_drivers']['meta']['scope']);
+        $this->assertSame('b2c', $nodes['b2c_drivers']['meta']['channel']);
+        $this->assertContains('drivers.b2c.view', $nodes['b2c_drivers']['permissions']);
         $this->assertTrue($nodes->has('erp_finance'));
         $this->assertSame('finance', $nodes['erp_finance']['meta']['module']);
 
@@ -51,7 +51,7 @@ final class V2PermissionPageTreeAuthorityTest extends TestCase
                 ->assertOk()
                 ->assertViewHas('selectedRole', static fn (Role $role): bool => $role->id === $retailRole->id)
                 ->assertSee('<html lang="'.$locale.'" dir="'.$direction.'">', false)
-                ->assertSee('data-v2-role-node="b2c_orders"', false)
+                ->assertSee('data-v2-role-node="b2c_drivers"', false)
                 ->assertSee('data-v2-role-node="erp_finance"', false)
                 ->assertSee('data-preview-module="1"', false)
                 ->assertSee('data-v2-preview-no-action-grant', false)
