@@ -76,6 +76,14 @@ final class V2TerritoryGeographyAuthorityTest extends TestCase
             'updated_at' => now(),
         ]);
         $country = $this->geo('country', 'KW', 'KW');
+        $territory = ServiceTerritory::query()->create([
+            'code' => 'P269-RETAIL-DENIED',
+            'name_ar' => 'منطقة محمية',
+            'name_en' => 'Protected Territory',
+            'country_node_id' => $country->id,
+            'status' => 'active',
+            'priority' => 1,
+        ]);
 
         $this->actingAs($actor)->get(route('admin.field-operations.territories'))
             ->assertForbidden();
@@ -86,8 +94,16 @@ final class V2TerritoryGeographyAuthorityTest extends TestCase
         $this->actingAs($actor)->post(route('admin.field-operations.territories.store'), $this->territoryPayload($country->id))
             ->assertForbidden();
 
+        $this->actingAs($actor)->post(route('admin.field-operations.territories.geometry.store', $territory), [
+            'geojson' => json_encode([
+                'type' => 'Polygon',
+                'coordinates' => [[[47.0, 29.0], [48.0, 29.0], [48.0, 30.0], [47.0, 29.0]]],
+            ], JSON_THROW_ON_ERROR),
+        ])->assertForbidden();
+
         $this->assertDatabaseMissing('service_territories', ['code' => 'P269-REGION']);
         $this->assertDatabaseMissing('geography_nodes', ['code' => 'FORGED']);
+        $this->assertDatabaseCount('territory_geometries', 0);
     }
 
     public function test_territory_creation_rejects_incorrect_country_type_and_foreign_geography_lineage(): void
