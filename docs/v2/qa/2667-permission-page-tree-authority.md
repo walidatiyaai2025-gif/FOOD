@@ -23,7 +23,7 @@ Role permission updates already submit to audited `admin.security.roles.update`,
 
 `backend/tests/Feature/V2PermissionPageTreeAuthorityTest.php` verifies:
 
-1. An authorized Super Admin can inspect the existing B2C Store Admin page tree with role-scoped `b2c_orders` metadata (`orders.view`, scope `store`, channel `b2c`) and `erp_finance` tagged as module `finance`; both AR/RTL and EN/LTR return a real HTTP success with translated headings and five per-node field labels.
+1. An authorized Super Admin can inspect the existing B2C Store Admin page tree with role-scoped `b2c_drivers` metadata (`drivers.b2c.view`, scope `store`, channel `b2c`) and `erp_finance` tagged as module `finance`; both AR/RTL and EN/LTR return a real HTTP success with translated headings and five per-node field labels.
 2. A protected Super Admin role renders the same page as a read-only preview; explicit server-boundary and module-readiness flags are present but no editable reason/save operation is shown.
 3. B2C Driver and unassigned identities get direct HTTP 403 for the role tree, even with a guessed privileged role identifier.
 
