@@ -316,6 +316,66 @@ final class EnterpriseSupplierStatementAgingFoundationTest extends TestCase
         }
     }
 
+    public function test_supplier_statement_http_rejects_foreign_stores_suppliers_and_missing_permission(): void
+    {
+        config()->set('security.mfa.enforce_privileged', false);
+        config()->set(
+            'enterprise_module_readiness.certified_versions.procurement',
+            app(ModuleRegistry::class)->manifest('procurement')->version,
+        );
+        $this->enableProcurement();
+
+        [$owner, $store, $context] = $this->scopedUser(
+            [...$this->allPermissions(), 'reports.view'],
+            'P245-HTTP-OWNER',
+        );
+        $this->grantPlatformErpAccess($owner);
+        $supplier = app(SupplierDirectory::class)->create($owner, $context, [
+            'scope_type' => 'store',
+            'code' => 'P245-HTTP-SUP',
+            'name_en' => 'Private supplier',
+            'name_ar' => 'مورد خاص',
+        ]);
+        [$foreign, $otherStore] = $this->scopedUser(
+            [...$this->allPermissions(), 'reports.view'],
+            'P245-HTTP-FOREIGN',
+        );
+        $this->grantPlatformErpAccess($foreign);
+        [$noStatements, $limitedStore] = $this->scopedUser(
+            ['procurement.suppliers.view', 'reports.view'],
+            'P245-HTTP-NO-STATEMENTS',
+        );
+        $this->grantPlatformErpAccess($noStatements);
+
+        foreach (['ar', 'en'] as $locale) {
+            app()->setLocale($locale);
+            $foreign->forceFill(['locale' => $locale])->save();
+            $noStatements->forceFill(['locale' => $locale])->save();
+
+            $this->actingAs($foreign->fresh())
+                ->get(route('admin.erp.procurement.index', [
+                    'store_id' => $store->id,
+                    'tab' => 'statements',
+                ]))
+                ->assertForbidden();
+
+            $this->actingAs($foreign->fresh())
+                ->get(route('admin.erp.procurement.index', [
+                    'store_id' => $otherStore->id,
+                    'tab' => 'statements',
+                    'supplier_id' => $supplier->id,
+                ]))
+                ->assertNotFound();
+
+            $this->actingAs($noStatements->fresh())
+                ->get(route('admin.erp.procurement.index', [
+                    'store_id' => $limitedStore->id,
+                    'tab' => 'statements',
+                ]))
+                ->assertForbidden();
+        }
+    }
+
     private function enableProcurement(): void
     {
         $lifecycle = app(ModuleLifecycleManager::class);
