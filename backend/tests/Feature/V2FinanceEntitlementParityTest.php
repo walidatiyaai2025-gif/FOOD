@@ -15,6 +15,7 @@ use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
 use App\Support\AdminNavigation;
+use App\Support\TenantContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -81,7 +82,7 @@ final class V2FinanceEntitlementParityTest extends TestCase
         ]);
         $this->assertFalse(app(AdminNavigation::class)->canAccessPlatformErp($actor));
 
-        $context = app(\\App\\Support\\TenantContextResolver::class)->retail($actor, $store->id);
+        $context = app(TenantContextResolver::class)->retail($actor, $store->id);
         $this->assertNotNull($context->enterpriseScope);
         $registry = app(ModuleRegistry::class);
         if (! $registry->isEnabled(FinanceFoundationService::MODULE)) {
@@ -229,7 +230,7 @@ final class V2FinanceEntitlementParityTest extends TestCase
         );
         $actor->roles()->syncWithoutDetaching([$financeRole->id]);
 
-        $context = app(\App\Support\TenantContextResolver::class)->wholesale($actor, $store->id);
+        $context = app(TenantContextResolver::class)->wholesale($actor, $store->id);
         $this->assertNotNull($context->enterpriseScope);
 
         $registry = app(ModuleRegistry::class);
