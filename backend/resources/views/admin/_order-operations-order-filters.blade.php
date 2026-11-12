@@ -19,7 +19,6 @@
 .order-grid-filter-form input[name="order_number"]{width:132px}
 .order-grid-filter-form select[name="status"]{width:118px}
 .order-grid-filter-form select[name="driver_id"]{width:120px}
-.order-grid-filter-form select[name="exception"]{width:118px}
 .order-grid-filter-form .foodex-filter-action,.order-grid-filter-form .foodex-action-secondary,.order-grid-new-order{height:34px!important;min-height:34px!important;padding-inline:10px!important;border-radius:8px!important;font-size:.66rem!important;line-height:1!important}
 .order-grid-filter-label{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 .order-grid-filter-more{position:relative}
