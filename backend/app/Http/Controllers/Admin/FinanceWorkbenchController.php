@@ -90,7 +90,16 @@ final class FinanceWorkbenchController extends Controller
             $this->contextOptions($actor),
             fn (array $option): bool => $this->financeAccess->canRead($actor, (int) $option['id']),
         ));
-        abort_if($contexts === [], 403);
+        if ($contexts === []) {
+            // Only a privileged platform operator with an actual platform
+            // Finance entitlement can view the non-data setup context.
+            // Missing/denied store contexts never grant ledger access.
+            $setupAccess = $this->navigation->canAccessPlatformErp($actor)
+                && ($actor->isPlatformOwner() || $actor->hasRole('SUPER_ADMIN'))
+                && $actor->hasPermission('finance.view')
+                && $this->entitlements->allows(FinanceFoundationService::MODULE, EntitlementScope::platform());
+            abort_unless($setupAccess, 403);
+        }
 
         $selected = $this->selectedContextOption($request, $contexts);
         if ($selected === null && count($contexts) === 1) {
@@ -1119,18 +1128,26 @@ final class FinanceWorkbenchController extends Controller
             403,
         );
 
-        // Enforce the exact store-specific capability before any Finance
-        // mutation. Domain services still enforce legal-entity scope and
-        // independent maker/checker authority; the narrower store can revoke
-        // a grant inherited from that legal entity.
+        $context = $this->resolveContext($request, $actor, $selected);
+        abort_if($context->enterpriseScope === null, 409, 'Enterprise data scope is required.');
+
+        // Preserve the canonical 404 for an actual foreign Finance resource
+        // before applying an additional store-specific capability gate.
+        // Do not disclose whether the referenced journal/batch exists.
+        $action = $request->route()?->getActionMethod();
+        if (in_array($action, ['requestJournalApproval', 'postJournal'], true)) {
+            $this->scopedJournal($context, (int) $request->route('journal'));
+        } elseif (in_array($action, ['requestOpeningBalanceApproval', 'postOpeningBalance', 'cancelOpeningBalance'], true)) {
+            $this->scopedOpeningBalance($context, (int) $request->route('batch'));
+        }
+
+        // An approved legal-entity action can still be revoked at a narrower
+        // STORE scope. Domain services independently enforce finance SoD.
         [$permission, $capability] = $this->mutationEntitlement($request);
         abort_unless(
             $this->financeAccess->canPerform($actor, (int) $selected['id'], $permission, $capability),
             403,
         );
-
-        $context = $this->resolveContext($request, $actor, $selected);
-        abort_if($context->enterpriseScope === null, 409, 'Enterprise data scope is required.');
 
         return [$actor, $context];
     }
