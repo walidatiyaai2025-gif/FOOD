@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Domain\SmartOrdering\SmartOrderingEnterpriseEntitlementBridge;
+use App\Enterprise\Modules\ModuleRegistry;
+use App\Enterprise\Modules\ModuleState;
 use App\Enums\StoreBusinessProfile;
 use App\Models\Permission;
 use App\Models\Role;
@@ -64,6 +66,47 @@ final class V2RestaurantDigitalOrderingDomainAuthorityTest extends TestCase
                 ->assertOk()
                 ->assertSee('data-restaurant-saas-workspace-nav', false)
                 ->assertSee('dir="'.$direction.'"', false);
+        }
+    }
+
+
+    public function test_disabled_enterprise_module_hides_the_restaurant_entry_even_with_store_grant(): void
+    {
+        $restaurant = $this->store('V2-P324-MODULE-OFF', StoreBusinessProfile::RESTAURANT);
+        $this->enableRestaurantSaasForTestStore($restaurant);
+        $actor = $this->retailAdmin($restaurant, 'v2-p324-module-off@example.test');
+        $this->assertTrue($this->hasRestaurantEntry($actor));
+
+        app(ModuleRegistry::class)
+            ->syncManifest(SmartOrderingEnterpriseEntitlementBridge::ENTERPRISE_MODULE)
+            ->forceFill([
+                'state' => ModuleState::DISABLED->value,
+                'state_changed_at' => now(),
+            ])->save();
+
+        $this->assertFalse($this->hasRestaurantEntry($actor));
+        $this->actingAs($actor)
+            ->get(route('admin.smart-ordering.index', ['store_id' => $restaurant], false))
+            ->assertForbidden();
+    }
+
+    public function test_mixed_wholesale_and_retail_roles_do_not_expand_restaurant_store_ownership(): void
+    {
+        $restaurant = $this->store('V2-P324-MIXED-OWN', StoreBusinessProfile::RESTAURANT);
+        $foreignRestaurant = $this->store('V2-P324-MIXED-FOREIGN', StoreBusinessProfile::RESTAURANT);
+        $wholesale = $this->store('V2-P324-MIXED-B2B', StoreBusinessProfile::RETAIL_STORE, 'B2B');
+        $this->enableRestaurantSaasForTestStore($restaurant);
+        $this->enableRestaurantSaasForTestStore($foreignRestaurant);
+        $actor = $this->retailAdmin($restaurant, 'v2-p324-mixed@example.test');
+
+        $wholesaleRole = Role::query()->where('code', 'B2B_ADMIN')->where('scope', 'global')->firstOrFail();
+        $actor->roles()->syncWithoutDetaching([$wholesaleRole->id]);
+
+        $this->assertTrue($this->hasRestaurantEntry($actor));
+        foreach ([$foreignRestaurant, $wholesale] as $storeId) {
+            $this->actingAs($actor)
+                ->get(route('admin.smart-ordering.index', ['store_id' => $storeId], false))
+                ->assertNotFound();
         }
     }
 
