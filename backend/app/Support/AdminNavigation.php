@@ -212,7 +212,7 @@ class AdminNavigation
             $this->group('finance', 'admin.nav_groups.finance', '¤', [
                 $canAccessPlatformNavigation ? $this->routeItemScoped($user, 'treasury_master', 'treasury.nav_title', 'admin.treasury.master.index', 'finance.view') : null,
                 // P358 financial modules retain their existing authorization.
-                $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
+                ($canAccessPlatformErp || $this->financeWorkspacesAccessible($user)) && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemEnterpriseModule($user, 'erp_finance', 'admin.erp_center.modules.finance.title', 'admin.erp.finance.index', 'finance', 'finance.view')
                     : null,
                 $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
@@ -994,7 +994,7 @@ class AdminNavigation
                 ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
                 ->where('store_types.code', 'B2B')
                 ->where('stores.is_active', true)
-                ->orderBy('stores.id')
+                ->orderBy('stores.code')
                 ->limit(100)
                 ->pluck('stores.id')
                 ->map(static fn ($id): int => (int) $id)
