@@ -35,7 +35,7 @@
         .sq-line{display:flex;gap:10px;align-items:end;flex-wrap:wrap;padding:10px;background:var(--foodex-background);border-radius:10px}
         .sq-line label:first-child{flex:1 1 220px}
         .sq-actions-group{display:flex;gap:8px;flex-wrap:wrap}
-        @media(max-width:900px){.sq-layout,.sq-layout[dir]{display:block}.sq-layout>.sidebar{position:relative}.sq-layout>main{padding:12px}}
+        @media(max-width:900px){.sq-layout>main{padding:12px}}
         @media(max-width:620px){.sq-table,.sq-table tbody,.sq-table tr,.sq-table td{display:block;width:100%;box-sizing:border-box}.sq-table thead{display:none}.sq-table tr{border:1px solid var(--foodex-border);border-radius:12px;margin:9px 0;padding:6px}.sq-table td{border:0;display:flex;gap:8px;justify-content:space-between;align-items:center}.sq-table td::before{content:attr(data-label);font-weight:700}.sq-card{padding:12px}.sq-row>*{flex:1 1 100%}}
     </style>
 </head>
@@ -48,6 +48,55 @@
             <h1>{{ __('sales_quotations.title') }}</h1>
             <p class="sq-muted">{{ __('sales_quotations.description') }}</p>
             <a href="{{ route('admin.operations.orders.index') }}" class="sq-secondary">{{ __('sales_quotations.back_to_orders') }}</a>
+            <div class="foodex-header-actions">
+        @if($canCreate)
+        <details data-foodex-operational-modal data-modal-button-class="sq-primary" class="sq-create-workflow">
+            <summary>{{ __('sales_quotations.create') }}</summary>
+            <div class="sq-card">
+            <p class="sq-muted">{{ __('sales_quotations.pricing_help') }}</p>
+            <form method="post" action="{{ route('admin.sales-quotations.store') }}">
+                @csrf
+                <input type="hidden" name="store_id" value="{{ $storeId }}">
+                <input type="hidden" name="request_id" value="{{ old('request_id', (string) \Illuminate\Support\Str::uuid()) }}">
+                <div class="sq-row">
+                    <label>{{ __('sales_quotations.customer') }}
+                        <select class="sq-lookup" name="customer_id" required>
+                            <option value="">{{ __('sales_quotations.choose_customer') }}</option>
+                            @foreach($customers as $customer)
+                            <option value="{{ $customer->id }}" @selected((int)old('customer_id') === (int)$customer->id)>{{ $customer->name }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label>{{ __('sales_quotations.expires_at') }}
+                        <input type="date" name="expires_at" required min="{{ today()->addDay()->toDateString() }}" max="{{ today()->addDays(90)->toDateString() }}" value="{{ old('expires_at', today()->addDays(7)->toDateString()) }}">
+                    </label>
+                </div>
+                <div class="sq-lines" id="sq-lines">
+                    @foreach(old('items', [['product_id' => null, 'quantity' => 1]]) as $itemIndex => $item)
+                    <div class="sq-line">
+                        <label>{{ __('sales_quotations.product') }}
+                            <select name="items[{{ $itemIndex }}][product_id]" class="sq-lookup" required>
+                                <option value="">{{ __('sales_quotations.choose_product') }}</option>
+                                @foreach($products as $product)
+                                <option value="{{ $product->id }}" @selected((int)($item['product_id'] ?? 0) === (int)$product->id)>{{ $product->name }} · {{ $product->sku }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label>{{ __('sales_quotations.quantity') }}
+                            <input class="sq-quantity" name="items[{{ $itemIndex }}][quantity]" type="number" min=".001" step=".001" value="{{ $item['quantity'] ?? 1 }}" required>
+                        </label>
+                    </div>
+                    @endforeach
+                </div>
+                <div class="sq-actions-group">
+                    <button type="button" id="sq-add-line" class="sq-secondary">{{ __('sales_quotations.add_line') }}</button>
+                    <button type="submit" class="sq-primary">{{ __('sales_quotations.create') }}</button>
+                </div>
+            </form>
+            </div>
+        </details>
+        @endif
+            </div>
         </div>
         @if(session('status'))<div class="sq-card" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="sq-card sq-error" role="alert">{{ $errors->first() }}</div>@endif
@@ -98,49 +147,6 @@
             <p><a href="{{ route('admin.sales-quotations.index', ['store_id'=>$storeId]) }}">{{ __('sales_quotations.back_to_list') }}</a></p>
         </section>
         @endif
-        @if($canCreate)
-        <section class="sq-card" aria-labelledby="sq-create-title">
-            <h2 id="sq-create-title">{{ __('sales_quotations.create') }}</h2>
-            <p class="sq-muted">{{ __('sales_quotations.pricing_help') }}</p>
-            <form method="post" action="{{ route('admin.sales-quotations.store') }}">
-                @csrf
-                <input type="hidden" name="store_id" value="{{ $storeId }}">
-                <input type="hidden" name="request_id" value="{{ old('request_id', (string) \Illuminate\Support\Str::uuid()) }}">
-                <div class="sq-row">
-                    <label>{{ __('sales_quotations.customer') }}
-                        <select class="sq-lookup" name="customer_id" required>
-                            <option value="">{{ __('sales_quotations.choose_customer') }}</option>
-                            @foreach($customers as $customer)
-                            <option value="{{ $customer->id }}" @selected((int)old('customer_id') === (int)$customer->id)>{{ $customer->name }}</option>
-                            @endforeach
-                        </select>
-                    </label>
-                    <label>{{ __('sales_quotations.expires_at') }}
-                        <input type="date" name="expires_at" required min="{{ today()->addDay()->toDateString() }}" max="{{ today()->addDays(90)->toDateString() }}" value="{{ old('expires_at', today()->addDays(7)->toDateString()) }}">
-                    </label>
-                </div>
-                <div class="sq-lines" id="sq-lines">
-                    <div class="sq-line">
-                        <label>{{ __('sales_quotations.product') }}
-                            <select name="items[0][product_id]" class="sq-lookup" required>
-                                <option value="">{{ __('sales_quotations.choose_product') }}</option>
-                                @foreach($products as $product)
-                                <option value="{{ $product->id }}">{{ $product->name }} · {{ $product->sku }}</option>
-                                @endforeach
-                            </select>
-                        </label>
-                        <label>{{ __('sales_quotations.quantity') }}
-                            <input class="sq-quantity" name="items[0][quantity]" type="number" min=".001" step=".001" value="1" required>
-                        </label>
-                    </div>
-                </div>
-                <div class="sq-actions-group">
-                    <button type="button" id="sq-add-line" class="sq-secondary">{{ __('sales_quotations.add_line') }}</button>
-                    <button type="submit" class="sq-primary">{{ __('sales_quotations.create') }}</button>
-                </div>
-            </form>
-        </section>
-        @endif
         <section class="sq-card" aria-labelledby="sq-history-title">
             <h2 id="sq-history-title">{{ __('sales_quotations.history') }}</h2>
             <table class="sq-table">
@@ -172,6 +178,9 @@
         const add = document.getElementById('sq-add-line');
         const lines = document.getElementById('sq-lines');
         if (!add || !lines) return;
+        @if($errors->any())
+        document.querySelector('.sq-create-workflow [data-foodex-dialog-open]')?.click();
+        @endif
         add.addEventListener('click', () => {
             const next = lines.children.length;
             if (next >= 20) { add.disabled = true; return; }
