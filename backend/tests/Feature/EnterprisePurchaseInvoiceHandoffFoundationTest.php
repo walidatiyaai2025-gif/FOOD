@@ -249,6 +249,81 @@ final class EnterprisePurchaseInvoiceHandoffFoundationTest extends TestCase
         }
     }
 
+    public function test_p244_invoice_rejections_remain_localized_and_do_not_change_financial_state(): void
+    {
+        $this->enableProcurement();
+        [$actor, $store, $context] = $this->scopedUser($this->allPermissions(), 'P244-I18N');
+        [, $warehouse] = $this->stockTarget($store, 'P244-I18N-SKU');
+        $receipt = $this->postedReceipt($actor, $context, $warehouse, 'P244-I18N-SUP', 'P244-I18N-SKU', 2);
+        $lineId = $receipt->lines()->firstOrFail()->id;
+        $manager = app(PurchaseInvoiceHandoffManager::class);
+        $payload = [
+            'supplier_invoice_number' => 'P244-SUP-INVOICE',
+            'invoice_date' => '2026-10-16',
+            'lines' => [[
+                'goods_receipt_line_id' => $lineId,
+                'quantity' => 1,
+            ]],
+        ];
+        $invoice = $manager->createFromPostedReceipt($actor, $context, $receipt->id, $payload);
+        $manager->handoff($actor, $context, $invoice->id);
+        $localizedFailures = [];
+
+        foreach (['ar', 'en'] as $locale) {
+            app()->setLocale($locale);
+
+            try {
+                $manager->createFromPostedReceipt($actor, $context, $receipt->id, $payload);
+                $this->fail('A duplicate supplier invoice reference must be rejected.');
+            } catch (ValidationException $exception) {
+                $message = $exception->errors()['supplier_invoice_number'][0] ?? null;
+                $this->assertSame(__('enterprise_procurement.errors.invoice_duplicate_supplier_number'), $message);
+                $localizedFailures[$locale]['duplicate'] = $message;
+            }
+
+            try {
+                $manager->createFromPostedReceipt($actor, $context, $receipt->id, [
+                    ...$payload,
+                    'supplier_invoice_number' => 'P244-TOO-MANY-'.$locale,
+                    'lines' => [[
+                        'goods_receipt_line_id' => $lineId,
+                        'quantity' => 3,
+                    ]],
+                ]);
+                $this->fail('Invoiced quantities must not exceed the net receipt balance.');
+            } catch (ValidationException $exception) {
+                $message = $exception->errors()['lines'][0] ?? null;
+                $this->assertSame(__('enterprise_procurement.errors.invoice_quantity_exceeds_available', [
+                    'line' => $receipt->lines()->firstOrFail()->line_no,
+                    'quantity' => '1.000',
+                ]), $message);
+                $localizedFailures[$locale]['quantity'] = $message;
+            }
+
+            try {
+                $manager->cancel($actor, $context, $invoice->id);
+                $this->fail('Finance handoff must make an invoice immutable.');
+            } catch (ValidationException $exception) {
+                $message = $exception->errors()['status'][0] ?? null;
+                $this->assertSame(__('enterprise_procurement.errors.invoice_handed_off_immutable'), $message);
+                $localizedFailures[$locale]['immutable'] = $message;
+            }
+        }
+
+        foreach (['duplicate', 'quantity', 'immutable'] as $failure) {
+            $this->assertNotSame($localizedFailures['ar'][$failure], $localizedFailures['en'][$failure]);
+        }
+
+        $this->assertSame(1, DB::table('enterprise_purchase_invoices')->count());
+        $this->assertSame('handed_off', $invoice->fresh()->status);
+        $this->assertSame(1, DB::table('enterprise_outbox_messages')
+            ->where('event_type', 'ProcurementPurchaseInvoiceHandedOff')
+            ->count());
+        $this->assertSame(0, DB::table('audit_logs')
+            ->where('event', 'enterprise.purchase_invoice.cancelled')
+            ->count());
+    }
+
     public function test_draft_cancel_is_retry_safe_and_handed_off_invoice_is_immutable(): void
     {
         $this->enableProcurement();
