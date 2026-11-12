@@ -24,6 +24,7 @@ final class ManagementReportService
     {
         return [
             'orders' => 'reports.families.orders',
+            'channels' => 'reports.families.channels',
             'products' => 'reports.families.products',
             'customers' => 'reports.families.customers',
             'operations' => 'reports.families.operations',
@@ -47,6 +48,7 @@ final class ManagementReportService
 
         return match ($report) {
             'orders' => $this->ordersReport($filters, $limit, $offset),
+            'channels' => $this->channelsReport($filters, $limit, $offset),
             'products' => $this->productsReport($filters, $limit, $offset),
             'customers' => $this->customersReport($filters, $limit, $offset),
             'operations' => $this->operationsReport($filters, $limit, $offset),
@@ -213,6 +215,73 @@ final class ManagementReportService
                 'status_breakdown' => $statusBreakdown,
                 'payment_breakdown' => $paymentBreakdown,
             ],
+        );
+    }
+
+    /** @param array<string, mixed> $filters */
+    private function channelsReport(array $filters, int $limit, int $offset): array
+    {
+        // Filter by authorized store, channel and identity before grouping.
+        // Neither summary KPIs nor group pagination may widen that scope.
+        $orders = DB::table('orders')
+            ->join('stores', 'stores.id', '=', 'orders.store_id');
+        $this->applyOrderFilters($orders, $filters);
+
+        $summary = (clone $orders)
+            ->selectRaw(
+                'COUNT(*) as orders_count, COUNT(DISTINCT orders.store_id) as reporting_stores, '.
+                'COALESCE(SUM(orders.grand_total), 0) as gross_value',
+            )
+            ->selectRaw(
+                'COALESCE(SUM(CASE WHEN orders.status NOT IN (?, ?) THEN orders.grand_total ELSE 0 END), 0) as recognized_revenue',
+                self::NON_REVENUE_STATUSES,
+            )
+            ->first();
+
+        $grouped = (clone $orders)
+            ->select(['orders.channel', 'orders.store_id', 'stores.name as store'])
+            ->selectRaw('COUNT(*) as orders_count, COALESCE(SUM(orders.grand_total), 0) as gross_value')
+            ->selectRaw(
+                'COALESCE(SUM(CASE WHEN orders.status NOT IN (?, ?) THEN orders.grand_total ELSE 0 END), 0) as recognized_revenue',
+                self::NON_REVENUE_STATUSES,
+            )
+            ->selectRaw(
+                'SUM(CASE WHEN orders.status IN (?, ?) THEN 1 ELSE 0 END) as excluded_orders',
+                self::NON_REVENUE_STATUSES,
+            )
+            ->groupBy('orders.channel', 'orders.store_id', 'stores.name');
+
+        $totalRows = DB::query()->fromSub(clone $grouped, 'channel_rows')->count();
+        $rows = $grouped
+            ->orderBy('orders.channel')
+            ->orderBy('stores.name')
+            ->orderBy('orders.store_id')
+            ->offset(max(0, $offset))
+            ->limit($limit)
+            ->get()
+            ->map(fn (object $row): array => [
+                'channel' => (string) __('reports.business_labels.'.strtolower((string) $row->channel)),
+                'store' => (string) $row->store,
+                'orders' => (int) $row->orders_count,
+                'value' => round((float) $row->gross_value, 3),
+                'revenue' => round((float) $row->recognized_revenue, 3),
+                'excluded_orders' => (int) $row->excluded_orders,
+            ])
+            ->all();
+
+        return $this->reportPayload(
+            'channels',
+            $filters,
+            [
+                'orders' => (int) ($summary->orders_count ?? 0),
+                'reporting_stores' => (int) ($summary->reporting_stores ?? 0),
+                'gross_value' => round((float) ($summary->gross_value ?? 0), 3),
+                'recognized_revenue' => round((float) ($summary->recognized_revenue ?? 0), 3),
+            ],
+            ['channel', 'store', 'orders', 'value', 'revenue', 'excluded_orders'],
+            $rows,
+            (int) $totalRows,
+            $limit,
         );
     }
 

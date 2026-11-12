@@ -5,6 +5,7 @@ return [
     'description' => 'تقارير تنفيذية للمبيعات والمنتجات والعملاء والجملة والعمليات مع تصدير محكوم.',
     'families' => [
         'orders' => 'الطلبات والمبيعات',
+        'channels' => 'تحليلات القنوات',
         'products' => 'المنتجات والكتالوج',
         'customers' => 'العملاء والجملة',
         'operations' => 'المتاجر والعمليات',
@@ -55,6 +56,7 @@ return [
         'segment' => 'الشريحة',
         'delivered' => 'تم التسليم',
         'cancelled' => 'ملغي',
+        'excluded_orders' => 'ملغي / مسترد',
         'invoice' => 'الفاتورة',
         'client' => 'العميل',
         'currency' => 'العملة',
@@ -76,6 +78,7 @@ return [
     ],
     'kpis' => [
         'orders' => 'عدد الطلبات',
+        'reporting_stores' => 'المتاجر ذات الطلبات',
         'gross_value' => 'إجمالي قيمة الطلبات',
         'recognized_revenue' => 'الإيراد المعترف به',
         'average_order_value' => 'متوسط قيمة الطلب',
