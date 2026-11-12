@@ -99,6 +99,29 @@ final class V2NavigationSnapshotTest extends TestCase
         });
     }
 
+    public function test_comparison_reports_additions_and_removals_without_exposing_baseline_labels(): void
+    {
+        [, $reference] = $this->snapshot();
+        $reference['canonical']['groups']['private_historical_group'] = [
+            'label_key' => 'SENSITIVE_BASELINE_LABEL_DO_NOT_ECHO',
+            'sort_order' => 10,
+        ];
+        unset($reference['canonical']['items']['sales_quotations']);
+
+        $this->withBaseline($reference, function (string $path): void {
+            [$exit, $report] = $this->snapshot($path);
+
+            $this->assertSame(1, $exit);
+            $this->assertSame('drift_detected', $report['comparison']['status']);
+            $this->assertSame(1, $report['comparison']['differences']['canonical_groups']['removed']);
+            $this->assertSame(1, $report['comparison']['differences']['canonical_items']['added']);
+            $this->assertStringNotContainsString(
+                'SENSITIVE_BASELINE_LABEL_DO_NOT_ECHO',
+                json_encode($report, JSON_THROW_ON_ERROR),
+            );
+        });
+    }
+
     public function test_comparison_fails_closed_for_missing_runtime_or_invalid_baseline(): void
     {
         [, $reference] = $this->snapshot();
