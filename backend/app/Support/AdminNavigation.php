@@ -728,7 +728,10 @@ class AdminNavigation
                 ->map(static fn ($id): int => (int) $id)
                 ->all();
 
-        if ($restaurantStoreIds === [] || $this->restaurantSaasAccess->enabledStoreIds($restaurantStoreIds) === []) {
+        // Restaurant SaaS is opt-in at the exact Retail store, not anywhere
+        // across a multi-store operator's other Retail role assignments.
+        $enabledRestaurantStoreIds = $this->restaurantSaasAccess->enabledStoreIds($restaurantStoreIds);
+        if ($enabledRestaurantStoreIds === []) {
             return null;
         }
 
@@ -740,7 +743,16 @@ class AdminNavigation
         ];
 
         foreach ($destinations as $destination) {
-            if (Route::has($destination['route']) && $this->hasPermissionInScope($user, $destination['permission'])) {
+            if (! Route::has($destination['route'])) {
+                continue;
+            }
+
+            // Project the SAME scope used by the direct Restaurant SaaS HTTP
+            // destination. A permission on an unrelated Retail store must
+            // never advertise an inaccessible Restaurant-only workspace.
+            $authorizedStoreIds = app(OperationalTenantScope::class)
+                ->allowedStoreIds($user, $destination['permission'], 'b2c');
+            if (array_intersect($enabledRestaurantStoreIds, $authorizedStoreIds) !== []) {
                 return [
                     'key' => 'smart_ordering',
                     'label' => 'smart_ordering.nav_title',
