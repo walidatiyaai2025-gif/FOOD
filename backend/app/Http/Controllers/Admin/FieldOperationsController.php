@@ -1346,6 +1346,40 @@ final class FieldOperationsController extends Controller
         return true;
     }
 
+    /**
+     * Numeric coordinate selectors are allowed in store-limited *drafts*
+     * for the existing route-builder workflow. They cannot be activated
+     * without an exact owned store selector (enforced on publish/rollback).
+     *
+     * @param  array<int, array<string, mixed>>  $rules
+     * @param  list<int>  $storeIds
+     */
+    private function routingRulesFitDraftScope(array $rules, array $storeIds): bool
+    {
+        if ($rules === [] || $storeIds === []) {
+            return false;
+        }
+
+        foreach ($rules as $rule) {
+            $conditions = (array) ($rule['conditions'] ?? []);
+            $storeId = $conditions['store_id'] ?? null;
+            if (is_int($storeId) && in_array($storeId, $storeIds, true)) {
+                continue;
+            }
+
+            if (array_key_exists('latitude', $conditions) && is_float($conditions['latitude'])) {
+                continue;
+            }
+            if (array_key_exists('longitude', $conditions) && is_float($conditions['longitude'])) {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
     /** @param array<int, array<string, mixed>> $rules */
     private function assertRoutingRulesInScope(User $user, array $rules, string $field): void
     {
@@ -1353,7 +1387,7 @@ final class FieldOperationsController extends Controller
             return;
         }
 
-        if (! $this->routingRulesFitStores($rules, $this->b2bStoreIds($user))) {
+        if (! $this->routingRulesFitDraftScope($rules, $this->b2bStoreIds($user))) {
             throw ValidationException::withMessages([
                 $field => [__('field_operations.routing_value_unavailable')],
             ]);
