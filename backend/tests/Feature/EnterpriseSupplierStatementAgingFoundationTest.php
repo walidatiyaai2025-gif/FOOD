@@ -312,7 +312,7 @@ final class EnterpriseSupplierStatementAgingFoundationTest extends TestCase
                     && $page->count() === 1
                     && $page->currentPage() === 2)
                 ->assertSee('P245-INV-01')
-                ->assertSee('P245-INV-26');
+                ->assertDontSee('P245-INV-26');
         }
     }
 
