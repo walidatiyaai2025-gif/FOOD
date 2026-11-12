@@ -54,6 +54,34 @@ class V2SalesQuotationWorkflowTest extends TestCase
         ]);
     }
 
+    public function test_quotation_form_uses_shared_modal_and_preserves_all_lines_after_validation_error(): void
+    {
+        $operator = $this->retailActor('sales-quote-modal@example.test', $this->retailA);
+
+        $this->actingAs($operator)->get(route('admin.sales-quotations.index', [
+            'store_id' => $this->retailA,
+        ]))->assertOk()
+            ->assertSee('data-foodex-operational-modal', false)
+            ->assertSee('data-modal-button-class="sq-primary"', false);
+
+        $payload = $this->payload($this->retailA, $this->customerA->id, $this->productA);
+        $payload['items'] = [
+            ['product_id' => $this->productA, 'quantity' => 0],
+            ['product_id' => $this->productA, 'quantity' => 2],
+        ];
+
+        $this->actingAs($operator)->post(route('admin.sales-quotations.store'), $payload)
+            ->assertSessionHasErrors('items.0.quantity');
+
+        $this->actingAs($operator)->get(route('admin.sales-quotations.index', [
+            'store_id' => $this->retailA,
+        ]))->assertOk()
+            ->assertSee('items[0][quantity]', false)
+            ->assertSee('items[1][product_id]', false)
+            ->assertSee('items[1][quantity]', false);
+        $this->assertSame(0, DB::table('sales_quotations')->count());
+    }
+
     public function test_store_scoped_retail_quotation_uses_authoritative_price_and_audited_issue(): void
     {
         $operator = $this->retailActor('sales-quote-a@example.test', $this->retailA);
