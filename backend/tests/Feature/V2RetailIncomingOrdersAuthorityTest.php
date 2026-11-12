@@ -84,6 +84,23 @@ final class V2RetailIncomingOrdersAuthorityTest extends TestCase
         }
     }
 
+    public function test_incoming_retail_queue_is_empty_when_only_completed_orders_exist(): void
+    {
+        $owned = $this->retailStore('P208-EMPTY');
+        $actor = $this->retailAdmin($owned);
+        $this->retailOrder($owned, 'P208-NOT-PENDING', 'delivered');
+
+        $this->actingAs($actor)
+            ->get(route('admin.b2c.orders.canonical', [
+                'store_id' => $owned,
+                'status' => 'pending',
+            ]))
+            ->assertOk()
+            ->assertViewHas('selectedChannel', 'b2c')
+            ->assertViewHas('selectedStatus', 'pending')
+            ->assertViewHas('rows', []);
+    }
+
     public function test_retail_incoming_alias_pins_channel_and_rejects_foreign_store_and_order_selection(): void
     {
         $owned = $this->retailStore('P208-CHANNEL-OWN');
@@ -161,8 +178,20 @@ final class V2RetailIncomingOrdersAuthorityTest extends TestCase
             ->get(route('admin.b2c.orders.canonical', ['status' => 'pending']))
             ->assertForbidden();
 
-        DB::table('stores')->where('id', $owned)->update(['is_active' => false]);
-        $this->assertArrayNotHasKey('b2c_orders', $this->operationsItems($actor->fresh()));
+        // Store deactivation is independently enforced for an actor whose
+        // orders permission has NOT been overridden by an explicit deny.
+        $inactiveStore = $this->retailStore('P208-INACTIVE');
+        $inactiveActor = $this->retailAdmin($inactiveStore);
+        $this->assertArrayHasKey('b2c_orders', $this->operationsItems($inactiveActor));
+
+        DB::table('stores')->where('id', $inactiveStore)->update(['is_active' => false]);
+        $this->assertArrayNotHasKey('b2c_orders', $this->operationsItems($inactiveActor->fresh()));
+        $this->actingAs($inactiveActor->fresh())
+            ->get(route('admin.b2c.orders.canonical', [
+                'store_id' => $inactiveStore,
+                'status' => 'pending',
+            ]))
+            ->assertForbidden();
     }
 
     /** @return array<string, array<string, mixed>> */
