@@ -425,9 +425,10 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 @foreach($statusTabs as $tab)
 <a class="status-tab"
    data-order-status-tab="{{ $tab['code'] }}"
+   @if($tab['code']==='pending') data-order-pending-queue="P209" aria-label="{{ __('order_operations.pending_orders_queue') }}" @endif
    href="{{ route('admin.operations.orders.index',array_merge($tabQuery,['status'=>$tab['code'],'action_required'=>0])) }}#order-tab-orders"
    @if($selectedStatus===$tab['code'] && $selectedException===null && !$selectedActionRequired) aria-current="page" @endif>
-<span>{{ $tab['label'] }}</span><span class="status-tab-count">{{ $tab['count'] }}</span>
+<span>{{ $tab['code']==='pending' ? __('order_operations.pending_orders_queue') : $tab['label'] }}</span><span class="status-tab-count">{{ $tab['count'] }}</span>
 </a>
 @endforeach
 </nav>
