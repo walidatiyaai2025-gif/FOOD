@@ -30,7 +30,7 @@
 .order-grid-filter-popover input,.order-grid-filter-popover select{width:100%}
 .order-grid-new-order{white-space:nowrap}
 @media(max-width:1350px){
-    .order-grid-filter-form select[name="driver_id"],.order-grid-filter-form select[name="exception"]{display:none}
+    .order-grid-filter-form select[name="driver_id"]{display:none}
 }
 @media(max-width:1100px){
     .order-grid-filter-form input[name="order_number"],.order-grid-filter-form select[name="status"]{display:none}
@@ -84,16 +84,7 @@
         </label>
 
         <label>
-            <span class="order-grid-filter-label">{{ __('order_operations.filters.exception') }}</span>
-            <select name="exception" aria-label="{{ __('order_operations.filters.exception') }}">
-                <option value="">{{ __('order_operations.all') }}</option>
-                @foreach($exceptionOptions as $exceptionOption)
-                    <option value="{{ $exceptionOption }}" @selected($selectedException===$exceptionOption)>{{ __('order_operations.dashboard.exceptions.'.$exceptionOption) }}</option>
-                @endforeach
-            </select>
-        </label>
-
-        <button class="foodex-filter-action" type="submit">{{ __('order_operations.filters.apply') }}</button>
+            <span class="order-gr="submit">{{ __('order_operations.filters.apply') }}</button>
         <a class="foodex-action-secondary button secondary"
            data-order-filter-reset-context href="{{ route('admin.operations.orders.index', $orderFilterReset) }}#order-tab-orders"
            aria-label="{{ __('order_operations.filters.reset') }}"
@@ -119,6 +110,14 @@
                         <option value="">{{ __('order_operations.all') }}</option>
                         <option value="awaiting_dispatch" @selected(request('dispatch_status')==='awaiting_dispatch')>{{ __('order_operations.dispatch.awaiting_queue') }}</option>
                         <option value="assigned" @selected(request('dispatch_status')==='assigned')>{{ $businessLabel('assigned') }}</option>
+                    </select>
+                </label>
+                <label>{{ __('order_operations.filters.exception') }}
+                    <select name="exception" aria-label="{{ __('order_operations.filters.exception') }}">
+                        <option value="">{{ __('order_operations.all') }}</option>
+                        @foreach($exceptionOptions as $exceptionOption)
+                            <option value="{{ $exceptionOption }}" @selected($selectedException===$exceptionOption)>{{ __('order_operations.dashboard.exceptions.'.$exceptionOption) }}</option>
+                        @endforeach
                     </select>
                 </label>
             </div>
