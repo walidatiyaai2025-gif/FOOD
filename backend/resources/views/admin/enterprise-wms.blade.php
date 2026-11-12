@@ -59,10 +59,27 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @include('admin._enterprise-wms-warehouses')
 
 @elseif($tab==='movements')
+<div data-wms-movements="true">
 <h2>{{ __('enterprise_wms.movements.title') }}</h2><p class="wms-sub">{{ __('enterprise_wms.movements.subtitle') }}</p>
-<div class="wms-table-wrap"><table class="wms-table foodex-table" data-pagination-required="server-bounded"><thead><tr><th>{{ __('enterprise_wms.common.product') }}</th><th>{{ __('enterprise_wms.movements.type') }}</th><th>{{ __('enterprise_wms.common.quantity') }}</th><th>{{ __('enterprise_wms.common.reason') }}</th><th>{{ __('enterprise_wms.common.created') }}</th></tr></thead><tbody>
-@forelse($movementRows as $row)<tr><td>{{ $row->product_name }}<br><small>{{ $row->sku }}</small></td><td><span class="wms-badge">{{ $movementLabel((string)$row->type) }}</span></td><td>{{ \App\Support\DisplayNumber::quantity((float)$row->quantity) }}</td><td>{{ $row->reason ?: '—' }}</td><td>{{ \Illuminate\Support\Carbon::parse($row->created_at)->format('Y-m-d H:i') }}</td></tr>@empty<tr><td colspan="5" class="wms-empty">{{ __('enterprise_wms.common.none') }}</td></tr>@endforelse
+<div class="wms-table-wrap"><table class="wms-table foodex-table" data-pagination-required="server-bounded" data-pagination-mode="keyset">
+<thead><tr><th scope="col">{{ __('enterprise_wms.common.product') }}</th><th scope="col">{{ __('enterprise_wms.movements.type') }}</th><th scope="col">{{ __('enterprise_wms.common.quantity') }}</th><th scope="col">{{ __('enterprise_wms.common.reason') }}</th><th scope="col">{{ __('enterprise_wms.common.created') }}</th><th scope="col">{{ __('enterprise_wms.common.actions') }}</th></tr></thead><tbody>
+@forelse($movementRows as $row)
+<tr data-wms-movement-id="{{ (int)$row->id }}">
+<td>{{ $row->product_name }}<br><small>{{ $row->sku }}</small></td>
+<td><span class="wms-badge">{{ $movementLabel((string)$row->type) }}</span></td>
+<td>{{ \App\Support\DisplayNumber::quantity((float)$row->quantity) }}</td>
+<td>{{ $row->reason ?: '—' }}</td>
+<td>{{ \Illuminate\Support\Carbon::parse($row->created_at)->format('Y-m-d H:i') }}</td>
+<td><a class="foodex-action-primary" href="{{ route('admin.erp.wms.index',['tab'=>'overview','store_id'=>$storeId,'warehouse_id'=>$warehouseId,'inventory_id'=>$row->inventory_id]) }}">{{ __('enterprise_wms.common.details') }}</a></td>
+</tr>
+@empty<tr><td colspan="6" class="wms-empty">{{ __('enterprise_wms.common.none') }}</td></tr>@endforelse
 </tbody></table></div>
+@if($movementsHasMore)
+<nav class="wms-actions" aria-label="{{ __('enterprise_wms.movements.pagination') }}">
+<a class="foodex-action-primary" rel="next" href="{{ route('admin.erp.wms.index',['tab'=>'movements','store_id'=>$storeId,'warehouse_id'=>$warehouseId,'after_movement_id'=>$movementsNextCursor]) }}">{{ __('enterprise_wms.movements.next_page') }}</a>
+</nav>
+@endif
+</div>
 
 @elseif($tab==='transfers')
 <h2>{{ __('enterprise_wms.transfers.title') }}</h2><p class="wms-sub">{{ __('enterprise_wms.transfers.subtitle') }}</p>

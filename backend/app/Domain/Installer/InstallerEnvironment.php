@@ -38,7 +38,9 @@ final class InstallerEnvironment
         }
 
         $path = $this->path();
+        $this->rejectSymbolicLink($path);
         $this->ensureEnvironmentFile($path);
+        $this->rejectSymbolicLink($path);
         $content = (string) file_get_contents($path);
 
         foreach ($values as $key => $value) {
@@ -73,6 +75,7 @@ final class InstallerEnvironment
     public function read(array $keys): array
     {
         $path = $this->path();
+        $this->rejectSymbolicLink($path);
 
         if (! is_file($path)) {
             return array_fill_keys($keys, null);
@@ -108,6 +111,8 @@ final class InstallerEnvironment
 
     private function ensureEnvironmentFile(string $path): void
     {
+        $this->rejectSymbolicLink($path);
+
         if (is_file($path)) {
             return;
         }
@@ -126,6 +131,15 @@ final class InstallerEnvironment
         }
 
         @chmod($path, 0600);
+    }
+
+    private function rejectSymbolicLink(string $path): void
+    {
+        clearstatcache(true, $path);
+
+        if (is_link($path)) {
+            throw new RuntimeException('Environment configuration path cannot be a symbolic link.');
+        }
     }
 
     private function encodeValue(mixed $value): string

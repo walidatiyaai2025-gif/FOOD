@@ -1966,7 +1966,7 @@
         "admin.sales-quotations.index"
       ],
       "route_path": [
-        "/admin/sales-quotations"
+        "/admin/sales/quotations"
       ],
       "controller_view": "SalesQuotationController / admin.sales-quotations",
       "role_persona": "Authorized Wholesale or Retail sales operator with an active assigned store",

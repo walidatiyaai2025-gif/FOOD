@@ -15,7 +15,7 @@ Issue: #2523. Branch integration target: `Foodex_V2` only. Status: code/CI accep
 | existing parent | Customers & Sales `accounts` sidebar group and existing `CommerceQuoteService` |
 | placement | Compose canonical pricing in a scoped sales-quotations operational workbench; no new top-level group |
 | screen pattern | Operational Workbench with detail view and inline create form |
-| navigation_impact | One `sales_quotations` child under existing Customers & Sales group, suppressed without authorized store |
+| navigation_impact | One `sales_quotations` child under existing Customers & Sales group, shown only with effective `orders.view` permission; the HTTP controller independently requires an active authorized store and exact channel |
 | desktop/tablet/mobile | Responsive workbench, in-row desktop grid, stacked mobile cards |
 | rtl_ltr | Language-keyed `lang/ar` and `lang/en`, direction-aware layout and focus |
 | active_context | `sales_quotations` |
