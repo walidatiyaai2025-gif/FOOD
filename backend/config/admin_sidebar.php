@@ -61,6 +61,7 @@ return [
         'b2b_inventory' => ['group' => 'catalog', 'label' => 'admin.b2b_sidebar.inventory_management', 'order' => 70, 'scope' => 'global', 'channel' => 'b2b', 'permissions' => ['inventory.view']],
 
         'customer_360' => ['group' => 'accounts', 'label' => 'admin.customer_360', 'order' => 10, 'scope' => 'both', 'permissions' => ['customers.view', 'b2b.accounts.view'], 'mode' => 'any'],
+        'sales_quotations' => ['group' => 'accounts', 'label' => 'sales_quotations.title', 'order' => 15, 'scope' => 'both', 'permissions' => ['orders.view']],
         'b2c_customers' => ['group' => 'accounts', 'label' => 'admin.b2c_workspace.modules.customers', 'order' => 20, 'scope' => 'store', 'channel' => 'b2c', 'permissions' => ['customers.view']],
         'customer_groups' => ['group' => 'accounts', 'label' => 'customer_groups.wholesale_title', 'order' => 30, 'scope' => 'both', 'channel' => 'b2b', 'permissions' => ['customers.view']],
         'b2c_customer_groups' => ['group' => 'accounts', 'label' => 'customer_groups.retail_title', 'order' => 40, 'scope' => 'both', 'channel' => 'b2c', 'permissions' => ['customers.view']],

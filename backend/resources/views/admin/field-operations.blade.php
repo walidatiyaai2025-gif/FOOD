@@ -370,6 +370,7 @@
                 @endif
                 </tbody></table></div>
             </section>
+            @include('admin._van-operational-movement-log', ['movementRows' => $movementRows])
             <section class="fieldops-card" data-van-b2b-orders>
                 <h2>{{ __('order_operations.title') }} · {{ __('order_operations.filters.wholesale') }}</h2>
                 <div class="table-wrap"><table class="foodex-ops-grid"><thead><tr>
