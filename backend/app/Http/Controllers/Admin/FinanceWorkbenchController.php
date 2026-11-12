@@ -960,11 +960,13 @@ final class FinanceWorkbenchController extends Controller
         $scope = $context->enterpriseScope;
         abort_if($scope === null, 409);
 
+        // Require the ledger's legal-entity capability as well as its exact
+        // store-effective capability (including child store overrides).
         $entitled = fn (string $capability): bool => $this->entitlements->allows(
             FinanceFoundationService::MODULE,
-            new EntitlementScope(EntitlementScope::STORE, $context->storeId),
+            new EntitlementScope(EntitlementScope::LEGAL_ENTITY, $scope->legalEntityId),
             $capability,
-        );
+        ) && $this->financeAccess->allowsAtStore($context->storeId, $capability);
         $permitted = fn (string $permission): bool => $actor->hasPermission($permission, $context->storeId);
 
         return [
