@@ -51,6 +51,7 @@ return [
         'marketing' => 'التسويق والتواصل',
         'advertising' => 'الإعلانات',
         'finance' => 'المالية والخزينة',
+        'receivables' => 'الذمم',
         'analytics' => 'التقارير والتحليلات',
         'applications' => 'التطبيقات والقنوات الرقمية',
         'administration' => 'الإدارة',

@@ -51,6 +51,7 @@ return [
         'marketing' => 'Marketing & Communications',
         'advertising' => 'Advertising',
         'finance' => 'Finance & Treasury',
+        'receivables' => 'Receivables & Payables',
         'analytics' => 'Analytics',
         'applications' => 'Applications & Digital Channels',
         'administration' => 'Administration',
