@@ -74,10 +74,9 @@ class B2bPricingController extends Controller
             'retail_reference_price' => ['nullable', 'numeric', 'gte:0'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
-        // The B2B price-rule API is restricted to the canonical Wholesale principal.
-        // A global permission alone must not allow mutations to another B2B store.
-        $storeId = $this->principal->storeId();
-        abort_unless((int) $data['store_id'] === $storeId, 404);
+        // Preserve the authorized multi-store B2B API contract while rejecting
+        // another channel, inactive stores and explicit per-user store DENYs.
+        $storeId = (int) $data['store_id'];
         $this->tenantScope->assertStore($user, $storeId, 'b2b.pricing.manage', 'b2b');
         abort_unless($this->pricingMode->tiersEnabled($storeId), 409, 'B2B pricing tiers are disabled.');
 
