@@ -6,6 +6,7 @@ use App\Domain\SmartOrdering\SmartOrderingEnterpriseEntitlementBridge;
 use App\Domain\WhatsApp\RuntimePolicy;
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
+use App\Enterprise\Finance\FinanceWorkbenchAccess;
 use App\Enterprise\Modules\ModuleOperationalReadiness;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enums\StoreBusinessProfile;
@@ -946,6 +947,13 @@ class AdminNavigation
             return $this->enterpriseModuleAccessMemo[$memoKey];
         }
 
+        // Finance has legal-entity ledger authority plus effective store
+        // overrides. An entitled Wholesale actor must not have a dead link,
+        // and a Platform Owner cannot bypass the same finance constraints.
+        if ($moduleCode === 'finance') {
+            return $this->enterpriseModuleAccessMemo[$memoKey] = $this->financeWorkspacesAccessible($user);
+        }
+
         if ($user->isPlatformOwner()) {
             return $this->enterpriseModuleAccessMemo[$memoKey] = true;
         }
@@ -968,6 +976,40 @@ class AdminNavigation
         }
 
         return $this->enterpriseModuleAccessMemo[$memoKey] = false;
+    }
+
+    /**
+     * Project the same authorized Finance store contexts as the actual HTTP
+     * workbench. No navigation-only entitlement or blanket global-role grant.
+     */
+    private function financeWorkspacesAccessible(User $user): bool
+    {
+        if (! $user->is_active) {
+            return false;
+        }
+
+        $storeIds = $this->tenantContext->retailStoreIds($user);
+        if ($this->canAccess($user, 'b2b')) {
+            $wholesaleIds = Store::query()
+                ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                ->where('store_types.code', 'B2B')
+                ->where('stores.is_active', true)
+                ->orderBy('stores.id')
+                ->limit(100)
+                ->pluck('stores.id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+            $storeIds = [...$storeIds, ...$wholesaleIds];
+        }
+
+        $finance = app(FinanceWorkbenchAccess::class);
+        foreach (array_unique($storeIds) as $storeId) {
+            if ($finance->canRead($user, (int) $storeId)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function isSuperAdmin(User $user): bool
