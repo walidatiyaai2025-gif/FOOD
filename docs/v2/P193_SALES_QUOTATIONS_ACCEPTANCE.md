@@ -51,7 +51,7 @@ A quote is recorded in `sales_quotations` with immutable monetary/line snapshot 
 - Other Retail store: read/write/show/transition denied, including foreign customer/product.
 - Disabled user/store: denied by server and navigation.
 - Wholesale B2B: own channel, active-account requirement, Retail cannot read.
-- State machine: only drafts can issue/cancel; stale pricing blocks issuance; no order created.
+- State machine: only drafts can issue/cancel; stale pricing blocks issuance; no order created. An identical HTTP retry has one quotation ID.
 - Localized AR/EN, RTL/LTR responsive and keyboard UX; empty/error states, pagination.
 - Existing `AuthoritativePricingQuoteTest` for shared mobile pricing contract.
 - Exact-head required CI, migration tests and real runtime/UI acceptance still need verification. Never treat draft PR as ready without green exact-head checks.
