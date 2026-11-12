@@ -52,7 +52,7 @@ return [
         'advertising' => 'الإعلانات',
         'finance' => 'المالية والخزينة',
         'analytics' => 'التقارير والتحليلات',
-        'applications' => 'التطبيقات',
+        'applications' => 'التطبيقات والقنوات الرقمية',
         'administration' => 'الإدارة',
     ],
     'erp_center' => [
