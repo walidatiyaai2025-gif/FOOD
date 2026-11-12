@@ -148,6 +148,18 @@ final class EnterpriseWmsController extends Controller
                 true,
             );
 
+        // Lot metadata is readable with inventory.view, but create/status
+        // actions require the identical store + warehouse inventory.manage
+        // authority enforced by the HTTP mutation endpoints.
+        $canManageLots = $tab === 'lots'
+            && $warehouseId !== null
+            && in_array($storeId, $this->tenantScope->allowedStoreIds($actor, 'inventory.manage'), true)
+            && in_array(
+                $warehouseId,
+                $this->warehouseScope->authorizedWarehouseIds($actor, $storeId, 'inventory.manage'),
+                true,
+            );
+
         // Locations are readable with inventory.view, but their forms must
         // project the very same store + warehouse inventory.manage authority
         // that saveZone/saveBin/assignInventory enforce server-side.
@@ -189,6 +201,7 @@ final class EnterpriseWmsController extends Controller
             'manageableCountWarehouseIds' => $manageableCountWarehouseIds,
             'canManageReservations' => $canManageReservations,
             'canManageAdjustments' => $canManageAdjustments,
+            'canManageLots' => $canManageLots,
             'canProcurementHandoff' => $this->navigation->hasPermissionInScope(
                 $actor,
                 'procurement.purchase_requests.view',
@@ -335,7 +348,7 @@ final class EnterpriseWmsController extends Controller
             'received_on' => ['nullable', 'date'],
             'expires_on' => ['nullable', 'date'],
         ]);
-        $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
+        $this->assertWarehouseMutationContext($actor, (int) $data['store_id'], (int) $data['warehouse_id']);
 
         $lot = $this->lots->upsert($actor, (int) $data['warehouse_id'], (int) $data['product_id'], [
             'identifier' => $data['identifier'],
@@ -356,7 +369,12 @@ final class EnterpriseWmsController extends Controller
             'warehouse_id' => ['required', 'integer', 'min:1'],
             'status' => ['required', Rule::in(['active', 'quarantined', 'closed'])],
         ]);
-        $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
+        $this->assertWarehouseMutationContext($actor, (int) $data['store_id'], (int) $data['warehouse_id']);
+        abort_unless(DB::table('enterprise_inventory_lots')
+            ->where('id', $lot)
+            ->where('store_id', (int) $data['store_id'])
+            ->where('warehouse_id', (int) $data['warehouse_id'])
+            ->exists(), 404);
         $this->lots->transitionStatus($actor, $lot, (string) $data['status']);
 
         return $this->backTo('lots', $data, __('enterprise_wms.messages.lot_updated'));
