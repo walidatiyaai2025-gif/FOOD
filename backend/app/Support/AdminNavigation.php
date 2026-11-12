@@ -10,7 +10,6 @@ use App\Enterprise\Finance\FinanceFoundationService;
 use App\Enterprise\Finance\FinanceWorkbenchAccess;
 use App\Enterprise\Modules\ModuleOperationalReadiness;
 use App\Enterprise\Modules\ModuleRegistry;
-use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Enums\StoreBusinessProfile;
 use App\Models\Store;
 use App\Models\User;
