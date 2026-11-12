@@ -1957,6 +1957,40 @@
       "remediation_owner": null,
       "remediation_scope": null,
       "notes": "Contextual popup route; intentionally not a standalone sidebar destination."
+    },
+    {
+      "id": "sales.quotations",
+      "domain": "Customers & Sales",
+      "capability": "Sales quotations: draft, issue and cancel",
+      "route": [
+        "admin.sales-quotations.index"
+      ],
+      "route_path": [
+        "/admin/sales-quotations"
+      ],
+      "controller_view": "SalesQuotationController / admin.sales-quotations",
+      "role_persona": "Authorized Wholesale or Retail sales operator with an active assigned store",
+      "permission_entitlement": "orders.view for read; orders.manage for create/issue/cancel; OperationalTenantScope exact store/channel",
+      "navigation_owner": "Customers & Sales",
+      "navigation_type": "SIDEBAR",
+      "visible_entry_point": "Sidebar → Customers & Sales → Sales quotations",
+      "parent_context": "Customers & Sales / Account context",
+      "ar_label": "عروض الأسعار",
+      "en_label": "Sales quotations",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "Customers & Sales and Sales quotations entry selected by canonical nav context",
+      "back_path": "Customers & Sales navigation; order operations workbench",
+      "status": "NAV_OK",
+      "evidence": [
+        "backend/app/Support/AdminNavigation.php",
+        "backend/app/Http/Controllers/Admin/SalesQuotationController.php",
+        "backend/resources/views/admin/sales-quotations.blade.php",
+        "backend/tests/Feature/V2SalesQuotationWorkflowTest.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "P193: store/channel-scoped admin quotes; quotations do not create orders or dispatch. HTTP authorizes every action independently, denying foreign stores."
     }
   ],
   "route_level_overrides": [

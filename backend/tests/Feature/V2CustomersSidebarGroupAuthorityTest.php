@@ -37,10 +37,11 @@ class V2CustomersSidebarGroupAuthorityTest extends TestCase
         $items = collect($group['children'])->keyBy('key');
 
         $this->assertSame(
-            ['customer_360', 'b2c_customers', 'b2c_customer_groups'],
+            ['customer_360', 'sales_quotations', 'b2c_customers', 'b2c_customer_groups'],
             array_keys($items->all()),
         );
         $this->assertSame('admin.customer-360.index', $items['customer_360']['route']);
+        $this->assertSame('admin.sales-quotations.index', $items['sales_quotations']['route']);
         $this->assertSame('admin.b2c.module', $items['b2c_customers']['route']);
         $this->assertSame(
             ['module' => 'customers', 'store_id' => (string) $storeA],
@@ -82,7 +83,8 @@ class V2CustomersSidebarGroupAuthorityTest extends TestCase
 
         $this->assertIsArray($group);
         $items = collect($group['children'])->keyBy('key');
-        $this->assertSame(['customer_360', 'customer_groups'], array_keys($items->all()));
+        $this->assertSame(['customer_360', 'sales_quotations', 'customer_groups'], array_keys($items->all()));
+        $this->assertSame('admin.sales-quotations.index', $items['sales_quotations']['route']);
         $this->assertSame('admin.b2b.customer-groups.index', $items['customer_groups']['route']);
         $this->assertFalse($items->has('b2c_customers'));
         $this->assertFalse($items->has('b2c_customer_groups'));

@@ -44,11 +44,11 @@
     <aside class="sidebar">@include('admin._sidebar', ['user'=>$user,'navGroups'=>$navGroups,'navContext'=>$navContext])</aside>
     <main class="foodex-admin-main foodex-admin-page">
         @include('admin._global-header')
-        <header class="foodex-page-toolbar sq-card">
+        <div class="foodex-page-toolbar sq-card">
             <h1>{{ __('sales_quotations.title') }}</h1>
             <p class="sq-muted">{{ __('sales_quotations.description') }}</p>
             <a href="{{ route('admin.operations.orders.index') }}" class="sq-secondary">{{ __('sales_quotations.back_to_orders') }}</a>
-        </header>
+        </div>
         @if(session('status'))<div class="sq-card" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="sq-card sq-error" role="alert">{{ $errors->first() }}</div>@endif
         <section class="sq-card" aria-label="{{ __('sales_quotations.store') }}">
