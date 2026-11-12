@@ -24,6 +24,7 @@ return [
         'marketing' => ['label' => 'admin.nav_groups.marketing', 'icon' => '✦', 'order' => 80],
         'advertising' => ['label' => 'admin.nav_groups.advertising', 'icon' => '◉', 'order' => 90],
         'finance' => ['label' => 'admin.nav_groups.finance', 'icon' => '¤', 'order' => 100],
+        'receivables' => ['label' => 'admin.nav_groups.receivables', 'icon' => '¤', 'order' => 105],
         'analytics' => ['label' => 'admin.nav_groups.analytics', 'icon' => '▥', 'order' => 110],
         'applications' => ['label' => 'admin.nav_groups.applications', 'icon' => '▣', 'order' => 120],
         'administration' => ['label' => 'admin.nav_groups.administration', 'icon' => '⚙', 'order' => 130],
@@ -94,6 +95,8 @@ return [
         'coupons' => ['group' => 'catalog', 'label' => 'coupons.title', 'order' => 85, 'scope' => 'both', 'permissions' => ['coupons.view']],
 
         'treasury_master' => ['group' => 'finance', 'label' => 'treasury.nav_title', 'order' => 10, 'scope' => 'global', 'permissions' => ['finance.view']],
+        'erp_receivables' => ['group' => 'receivables', 'label' => 'finance_workbench.tabs.receivables', 'order' => 10, 'scope' => 'both', 'module' => 'finance', 'permissions' => ['finance.view']],
+        'erp_payables' => ['group' => 'receivables', 'label' => 'finance_workbench.tabs.payables', 'order' => 20, 'scope' => 'both', 'module' => 'finance', 'permissions' => ['finance.view']],
 
         'whatsapp_supervisor' => ['group' => 'analytics', 'label' => 'whatsapp_supervisor.nav_title', 'order' => 10, 'scope' => 'global', 'permissions' => ['whatsapp.customer_service.supervise']],
         'reports_center' => ['group' => 'analytics', 'label' => 'reports.title', 'order' => 20, 'scope' => 'global', 'permissions' => ['reports.view']],
