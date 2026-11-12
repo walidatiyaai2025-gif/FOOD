@@ -20,6 +20,10 @@
 - Module/readiness/entitlement and Sidebar placement inherited from canonical ERP Procurement; no separate visibility policy was introduced.
 
 ## Automated evidence and impact
+
+### MOBILE IMPACT — Customer / Driver / Van
+
+Customer, Driver and Van are each reviewed below for API/runtime and Flutter consequences; no shared app contract is changed by this Dashboard-only, read-only navigation fix.
 - `backend/tests/Feature/EnterprisePurchaseReturnFoundationTest.php` gains real HTTP AR/RTL and EN/LTR assertions for the exact record link and rendered detail, plus foreign store 403, foreign return 404 and missing view permission 403. Existing feature tests already verify module-disabled fail-closed, bounded collection, return quantity limits, inventory reservation, idempotent post/cancel and reversal audit evidence.
 - **Backend:** only existing workbench Blade and its service-backed HTTP test; no API, migrations or schema changes.
 - **Dashboard:** exact-record navigation/detail for Returns with responsive native primitives and bilingual labels. No duplicate routes.
