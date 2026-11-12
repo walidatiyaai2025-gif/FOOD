@@ -48,7 +48,7 @@ final class InstallerEnvironment
             $pattern = '/^'.preg_quote($key, '/').'\s*=.*$/m';
 
             if (preg_match($pattern, $content) === 1) {
-                $content = (string) preg_replace($pattern, $line, $content, 1);
+                $content = (string) preg_replace_callback($pattern, static fn (): string => $line, $content, 1);
             } else {
                 $content = rtrim($content).PHP_EOL.$line.PHP_EOL;
             }
