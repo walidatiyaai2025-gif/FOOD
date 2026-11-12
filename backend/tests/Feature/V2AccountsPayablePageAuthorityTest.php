@@ -130,6 +130,24 @@ final class V2AccountsPayablePageAuthorityTest extends TestCase
             ->assertOk();
 
         $permission = Permission::query()->where('code', 'finance.view')->firstOrFail();
+
+        // The deny must win over the aggregate grants of multiple store roles.
+        $additionalRole = Role::query()->create([
+            'code' => 'P287_EXTRA_FINANCE_READER',
+            'name' => 'P287 additional Finance reader',
+            'scope' => 'store',
+            'is_active' => true,
+            'is_system' => false,
+        ]);
+        $additionalRole->permissions()->attach($permission->id);
+        DB::table('user_store_roles')->insert([
+            'user_id' => $actor->id,
+            'store_id' => $store->id,
+            'role_id' => $additionalRole->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         DB::table('user_permission_overrides')->insert([
             'user_id' => $actor->id,
             'permission_id' => $permission->id,
