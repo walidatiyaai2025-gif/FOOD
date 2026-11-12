@@ -47,8 +47,9 @@ final class SalesQuotationController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        [$actor, $storeId, $channel] = $this->authorizedStore($request, 'orders.create', false);
-        // Viewing a record and creating it are independent grants.
+        [$actor, $storeId, $channel] = $this->authorizedStore($request, 'orders.manage', false);
+        // Quotation creation requires the existing scoped operational manage grant;
+        // it is not an order creation and grants no checkout/dispatch authority.
         $this->scope->assertStore($actor, $storeId, 'orders.view', $channel);
 
         $data = $request->validate([
@@ -238,7 +239,7 @@ final class SalesQuotationController extends Controller
             ->orderByDesc('id')
             ->paginate(20);
 
-        $canCreate = in_array($storeId, $this->scope->allowedStoreIds($actor, 'orders.create', $channel), true);
+        $canCreate = in_array($storeId, $this->scope->allowedStoreIds($actor, 'orders.manage', $channel), true);
         $canManage = in_array($storeId, $this->scope->allowedStoreIds($actor, 'orders.manage', $channel), true);
 
         $customers = $channel === 'b2b'
@@ -263,6 +264,8 @@ final class SalesQuotationController extends Controller
                 ->orderBy('name')->get(['id', 'name']),
             'quotations' => $quotations,
             'selected' => $selected,
+            'selectedCustomerName' => $selected === null ? null
+                : $this->customer($channel, $storeId, (int) $selected->customer_id)->name,
             'selectedLines' => $selected === null ? [] : (json_decode((string) $selected->pricing_snapshot, true, 512, JSON_THROW_ON_ERROR)['items'] ?? []),
             'customers' => $customers,
             'products' => $products,
