@@ -52,6 +52,9 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @if($tab==='overview')
 @include('admin._enterprise-wms-overview')
 
+@elseif($tab==='balances')
+@include('admin._enterprise-wms-balances')
+
 @elseif($tab==='warehouses')
 @include('admin._enterprise-wms-warehouses')
 

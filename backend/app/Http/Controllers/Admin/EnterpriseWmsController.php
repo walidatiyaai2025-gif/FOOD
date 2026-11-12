@@ -28,6 +28,7 @@ final class EnterpriseWmsController extends Controller
 {
     private const TABS = [
         'overview',
+        'balances',
         'warehouses',
         'movements',
         'transfers',
@@ -69,6 +70,7 @@ final class EnterpriseWmsController extends Controller
             'warehouse_id' => ['nullable', 'integer', 'min:1'],
             'count_id' => ['nullable', 'integer', 'min:1'],
             'inventory_id' => ['nullable', 'integer', 'min:1'],
+            'after_inventory_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $storeIds = $this->tenantScope->allowedStoreIds($actor, 'inventory.view');
@@ -123,7 +125,19 @@ final class EnterpriseWmsController extends Controller
             $storeId,
             $warehouseId,
             isset($validated['count_id']) ? (int) $validated['count_id'] : null,
+            isset($validated['after_inventory_id']) ? (int) $validated['after_inventory_id'] : null,
         );
+
+        // A record drill-down must match the chosen context, not merely be
+        // reachable through a second store role held by the same actor.
+        if (isset($validated['inventory_id'])) {
+            abort_unless(DB::table('inventories as inventory')
+                ->join('warehouses as warehouse', 'warehouse.id', '=', 'inventory.warehouse_id')
+                ->where('inventory.id', (int) $validated['inventory_id'])
+                ->where('warehouse.store_id', $storeId)
+                ->when($warehouseId !== null, fn ($query) => $query->where('inventory.warehouse_id', $warehouseId))
+                ->exists(), 404);
+        }
         $data['record360'] = isset($validated['inventory_id'])
             ? $this->dashboard->inventory360($actor, (int) $validated['inventory_id'])
             : null;
@@ -558,11 +572,13 @@ final class EnterpriseWmsController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function tabData(User $actor, string $tab, int $storeId, ?int $warehouseId, ?int $countId): array
+    private function tabData(User $actor, string $tab, int $storeId, ?int $warehouseId, ?int $countId, ?int $afterInventoryId): array
     {
         $empty = collect();
         $data = [
             'inventoryRows' => $empty,
+            'balancesHasMore' => false,
+            'balancesNextCursor' => null,
             'movementRows' => $empty,
             'transferRows' => $empty,
             'countRows' => $empty,
@@ -593,6 +609,19 @@ final class EnterpriseWmsController extends Controller
             $data['dashboard'] = $this->dashboard->overview($actor, $storeId, $warehouseId);
             $data['inventoryRows'] = $this->reports->inventorySummary($actor, $storeId, $warehouseId, null, null, 50);
             $data['lowStockRows'] = $this->reorder->lowStock($actor, $storeId, $warehouseId, 10);
+
+            return $data;
+        }
+
+        if ($tab === 'balances' && $warehouseId !== null) {
+            // Keyset pagination reads the canonical stock ledger only. Request
+            // one lookahead row without exposing another store or warehouse.
+            $rows = $this->reports->inventorySummary($actor, $storeId, $warehouseId, null, $afterInventoryId, 51);
+            $data['balancesHasMore'] = $rows->count() > 50;
+            $data['inventoryRows'] = $rows->take(50)->values();
+            $data['balancesNextCursor'] = $data['balancesHasMore']
+                ? (int) $data['inventoryRows']->last()->inventory_id
+                : null;
 
             return $data;
         }
