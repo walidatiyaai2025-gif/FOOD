@@ -100,9 +100,12 @@ final class V2FleetFieldOperationsGroupAuthorityTest extends TestCase
     {
         $actor = $this->operatorWithRoles([
             'P259_FLEET_TRACKING' => ['drivers.tracking.view'],
-            'P259_ROUTING' => ['field_ops.manage'],
+            'P259_ROUTING' => ['field_ops.manage', 'reports.view'],
         ]);
 
+        // Dashboard login is independently authorized; field-operations grants
+        // must not be treated as a bypass of management entry requirements.
+        $this->assertTrue(app(AdminNavigation::class)->canUseDashboard($actor));
         $keys = $this->children($actor)->pluck('key')->all();
         $this->assertEqualsCanonicalizing([
             'field_ops_overview',
