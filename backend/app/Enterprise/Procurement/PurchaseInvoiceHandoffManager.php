@@ -122,10 +122,9 @@ final class PurchaseInvoiceHandoffManager
             if ($receipt->status !== 'posted') {
                 throw ValidationException::withMessages([
                     'goods_receipt_id' => [
-                        sprintf(
-                            'Goods receipt %s must be posted before it can source a purchase invoice.',
-                            $receipt->receipt_number,
-                        ),
+                        __('enterprise_procurement.errors.invoice_receipt_not_posted', [
+                            'receipt' => $receipt->receipt_number,
+                        ]),
                     ],
                 ]);
             }
@@ -138,7 +137,7 @@ final class PurchaseInvoiceHandoffManager
             if ($duplicate) {
                 throw ValidationException::withMessages([
                     'supplier_invoice_number' => [
-                        'This supplier invoice number is already registered in the authorized company.',
+                        __('enterprise_procurement.errors.invoice_duplicate_supplier_number'),
                     ],
                 ]);
             }
@@ -155,7 +154,7 @@ final class PurchaseInvoiceHandoffManager
 
             if ($receiptLines->count() !== count($data['lines'])) {
                 throw ValidationException::withMessages([
-                    'lines' => ['Every invoice line must reference a line on the selected posted goods receipt.'],
+                    'lines' => [__('enterprise_procurement.errors.invoice_lines_invalid_receipt')],
                 ]);
             }
 
@@ -169,10 +168,9 @@ final class PurchaseInvoiceHandoffManager
                 if ($receiptLine->unit_price === null) {
                     throw ValidationException::withMessages([
                         'lines' => [
-                            sprintf(
-                                'GRN line %d has no unit price and cannot source an invoice handoff.',
-                                $receiptLine->line_no,
-                            ),
+                            __('enterprise_procurement.errors.invoice_line_missing_price', [
+                                'line' => $receiptLine->line_no,
+                            ]),
                         ],
                     ]);
                 }
@@ -288,10 +286,9 @@ final class PurchaseInvoiceHandoffManager
             if ($receipt->status !== 'posted') {
                 throw ValidationException::withMessages([
                     'goods_receipt_id' => [
-                        sprintf(
-                            'Goods receipt %s is no longer eligible for invoice handoff.',
-                            $receipt->receipt_number,
-                        ),
+                        __('enterprise_procurement.errors.invoice_receipt_ineligible', [
+                            'receipt' => $receipt->receipt_number,
+                        ]),
                     ],
                 ]);
             }
@@ -299,7 +296,7 @@ final class PurchaseInvoiceHandoffManager
             $lines = $invoice->lines()->orderBy('line_no')->get();
             if ($lines->isEmpty()) {
                 throw ValidationException::withMessages([
-                    'lines' => ['A purchase invoice must contain at least one line.'],
+                    'lines' => [__('enterprise_procurement.errors.invoice_lines_required')],
                 ]);
             }
 
@@ -312,7 +309,7 @@ final class PurchaseInvoiceHandoffManager
                 $receiptLine = $receiptLines->get((int) $line->goods_receipt_line_id);
                 if ($receiptLine === null) {
                     throw ValidationException::withMessages([
-                        'lines' => ['An invoice line no longer belongs to its source goods receipt.'],
+                        'lines' => [__('enterprise_procurement.errors.invoice_line_source_changed')],
                     ]);
                 }
 
@@ -402,7 +399,7 @@ final class PurchaseInvoiceHandoffManager
 
             if ($invoice->status === 'handed_off') {
                 throw ValidationException::withMessages([
-                    'status' => ['A handed-off purchase invoice is immutable and cannot be cancelled silently.'],
+                    'status' => [__('enterprise_procurement.errors.invoice_handed_off_immutable')],
                 ]);
             }
 
@@ -503,12 +500,13 @@ final class PurchaseInvoiceHandoffManager
 
         throw ValidationException::withMessages([
             'status' => [
-                sprintf(
-                    'Purchase invoice %s cannot be %s from status %s.',
-                    $invoice->invoice_number,
-                    $action,
-                    $invoice->status,
-                ),
+                __('enterprise_procurement.errors.invoice_transition_forbidden', [
+                    'invoice' => $invoice->invoice_number,
+                    'action' => $action === 'handed off'
+                        ? __('enterprise_procurement.handoff')
+                        : __('enterprise_procurement.cancel'),
+                    'status' => __('enterprise_procurement.statuses.'.$invoice->status),
+                ]),
             ],
         ]);
     }
@@ -554,11 +552,10 @@ final class PurchaseInvoiceHandoffManager
         if ($requested > $available) {
             throw ValidationException::withMessages([
                 'lines' => [
-                    sprintf(
-                        'Invoice quantity for GRN line %d exceeds net invoiceable quantity %s.',
-                        $receiptLine->line_no,
-                        number_format($available / 1000, 3, '.', ''),
-                    ),
+                    __('enterprise_procurement.errors.invoice_quantity_exceeds_available', [
+                        'line' => $receiptLine->line_no,
+                        'quantity' => number_format($available / 1000, 3, '.', ''),
+                    ]),
                 ],
             ]);
         }
