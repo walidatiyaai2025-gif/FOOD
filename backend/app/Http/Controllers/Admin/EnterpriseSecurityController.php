@@ -91,6 +91,7 @@ final class EnterpriseSecurityController extends Controller
                 ->paginate(15, ['*'], 'limit_page')
                 ->withQueryString(),
             'delegations' => EnterpriseDelegation::query()
+                ->whereIn('scope_key', array_column($scopeOptions, 'key'))
                 ->with(['delegator:id,name,username,email', 'delegate:id,name,username,email'])
                 ->orderByDesc('created_at')
                 ->paginate(15, ['*'], 'delegation_page')
@@ -177,6 +178,7 @@ final class EnterpriseSecurityController extends Controller
             'ends_at' => ['required', 'date'],
         ]);
         [$scopeType, $scopeId] = $this->validatedScope($request);
+        $this->authorizeDelegationScope($actor, $scopeType, $scopeId);
         $delegate = User::query()->findOrFail((int) $validated['delegate_id']);
 
         $this->security->requestDelegation(
@@ -198,6 +200,12 @@ final class EnterpriseSecurityController extends Controller
         EnterpriseDelegation $delegation,
     ): RedirectResponse {
         $actor = $this->authorizedActor($request, 'security.delegations.manage');
+        $this->authorizeDelegationScope(
+            $actor,
+            (string) $delegation->scope_type,
+            $delegation->scope_id === null ? null : (int) $delegation->scope_id,
+        );
+        abort_unless($actor->hasRole('SUPER_ADMIN') || (int) $delegation->delegator_id === (int) $actor->getKey(), 403);
         $this->security->requestDelegationRevoke($actor, $delegation);
 
         return back()->with('status', __('enterprise_security.requested'));
@@ -228,6 +236,11 @@ final class EnterpriseSecurityController extends Controller
     private function authorizeApprovalLimitScope(User $actor, string $scopeType, ?int $scopeId): void
     {
         abort_unless($this->scopeAccess->allows($actor, 'security.approval_limits.manage', $scopeType, $scopeId), 403);
+    }
+
+    private function authorizeDelegationScope(User $actor, string $scopeType, ?int $scopeId): void
+    {
+        abort_unless($this->scopeAccess->allows($actor, 'security.delegations.manage', $scopeType, $scopeId), 403);
     }
 
     /** @return array{string, ?int} */
