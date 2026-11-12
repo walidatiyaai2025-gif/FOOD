@@ -111,7 +111,7 @@ final class SalesQuotationController extends Controller
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-    
+
                 $this->audit->record('sales.quotation.created', $actor, null, null, [
                     'quotation_id' => $id,
                     'reference' => $reference,
@@ -120,7 +120,7 @@ final class SalesQuotationController extends Controller
                     'status' => 'draft',
                     'grand_total' => $quote['grand_total'],
                 ], $request);
-    
+
                 return $id;
             }, 3);
         } catch (QueryException $exception) {
