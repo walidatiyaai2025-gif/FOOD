@@ -71,6 +71,7 @@ final class EnterpriseWmsController extends Controller
             'count_id' => ['nullable', 'integer', 'min:1'],
             'inventory_id' => ['nullable', 'integer', 'min:1'],
             'after_inventory_id' => ['nullable', 'integer', 'min:1'],
+            'after_movement_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $storeIds = $this->tenantScope->allowedStoreIds($actor, 'inventory.view');
@@ -126,6 +127,7 @@ final class EnterpriseWmsController extends Controller
             $warehouseId,
             isset($validated['count_id']) ? (int) $validated['count_id'] : null,
             isset($validated['after_inventory_id']) ? (int) $validated['after_inventory_id'] : null,
+            isset($validated['after_movement_id']) ? (int) $validated['after_movement_id'] : null,
         );
 
         // A record drill-down must match the chosen context, not merely be
@@ -572,7 +574,7 @@ final class EnterpriseWmsController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function tabData(User $actor, string $tab, int $storeId, ?int $warehouseId, ?int $countId, ?int $afterInventoryId): array
+    private function tabData(User $actor, string $tab, int $storeId, ?int $warehouseId, ?int $countId, ?int $afterInventoryId, ?int $afterMovementId): array
     {
         $empty = collect();
         $data = [
@@ -580,6 +582,8 @@ final class EnterpriseWmsController extends Controller
             'balancesHasMore' => false,
             'balancesNextCursor' => null,
             'movementRows' => $empty,
+            'movementsHasMore' => false,
+            'movementsNextCursor' => null,
             'transferRows' => $empty,
             'countRows' => $empty,
             'countLines' => $empty,
@@ -627,16 +631,22 @@ final class EnterpriseWmsController extends Controller
         }
 
         if ($tab === 'movements' && $warehouseId !== null) {
-            $this->warehouseScope->assertWarehouse($actor, $warehouseId, 'inventory.view');
-            $data['movementRows'] = DB::table('stock_movements as movement')
+            $warehouse = $this->warehouseScope->assertWarehouse($actor, $warehouseId, 'inventory.view');
+            abort_unless((int) $warehouse->store_id === $storeId, 404);
+
+            // Stock provenance is read-only. Filter by both the movement's
+            // store and the canonical inventory warehouse before paging.
+            $rows = DB::table('stock_movements as movement')
                 ->join('inventories as inventory', 'inventory.id', '=', 'movement.inventory_id')
                 ->join('products as product', 'product.id', '=', 'inventory.product_id')
                 ->where('inventory.warehouse_id', $warehouseId)
                 ->where('movement.store_id', $storeId)
+                ->when($afterMovementId !== null, fn ($query) => $query->where('movement.id', '<', $afterMovementId))
                 ->orderByDesc('movement.id')
-                ->limit(100)
+                ->limit(51)
                 ->get([
                     'movement.id',
+                    'movement.inventory_id',
                     'movement.type',
                     'movement.quantity',
                     'movement.reference_type',
@@ -646,6 +656,12 @@ final class EnterpriseWmsController extends Controller
                     'product.name as product_name',
                     'product.sku',
                 ]);
+
+            $data['movementsHasMore'] = $rows->count() > 50;
+            $data['movementRows'] = $rows->take(50)->values();
+            $data['movementsNextCursor'] = $data['movementsHasMore']
+                ? (int) $data['movementRows']->last()->id
+                : null;
 
             return $data;
         }
