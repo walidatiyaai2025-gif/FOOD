@@ -106,7 +106,7 @@ final class V2FinanceSidebarGroupAuthorityTest extends TestCase
             ->assertForbidden();
         $this->actingAs($actor)
             ->get(route('admin.erp.treasury.index', ['store_id' => $store->id], false))
-            ->assertNotFound();
+            ->assertForbidden();
     }
 
     public function test_uncertified_finance_module_is_not_advertised_as_an_operational_workbench(): void
