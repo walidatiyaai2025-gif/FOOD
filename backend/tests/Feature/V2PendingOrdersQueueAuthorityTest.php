@@ -150,6 +150,62 @@ final class V2PendingOrdersQueueAuthorityTest extends TestCase
         $this->assertDatabaseHas('orders', ['id' => $foreign, 'status' => 'pending']);
     }
 
+    public function test_wholesale_pending_queue_stays_in_its_principal_channel_and_never_mixes_retail_orders(): void
+    {
+        $actor = $this->superAdmin();
+        $wholesale = app(\App\Services\WholesalePrincipal::class)->storeId();
+        $retail = $this->retailStore('P209-RETAIL-ISOLATION');
+
+        $legacy = (int) DB::table('customers')->insertGetId([
+            'type' => 'b2b',
+            'name' => 'P209 Wholesale Buyer',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $b2bCustomer = (int) DB::table('b2b_customers')->insertGetId([
+            'legacy_customer_id' => $legacy,
+            'name' => 'P209 Wholesale Buyer',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $pending = (int) DB::table('orders')->insertGetId([
+            'store_id' => $wholesale,
+            'customer_id' => $legacy,
+            'b2b_customer_id' => $b2bCustomer,
+            'order_number' => 'P209-WHOLESALE-PENDING',
+            'channel' => 'b2b',
+            'status' => 'pending',
+            'currency' => 'KWD',
+            'subtotal' => 10,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 10,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $retailBuyer = app(B2cCustomerService::class)->create($retail, ['name' => 'P209 Retail Buyer']);
+        $this->order($retail, (int) $retailBuyer->legacy_customer_id, (int) $retailBuyer->id, 'P209-RETAIL-PENDING', 'pending');
+
+        $this->actingAs($actor)->get(route('admin.operations.orders.index', [
+            'channel' => 'b2b',
+            'store_id' => $wholesale,
+            'status' => 'pending',
+            'action_required' => 0,
+        ]))->assertOk()
+            ->assertViewHas('rows', static fn (array $rows): bool => count($rows) === 1
+                && (int) $rows[0]['id'] === $pending
+                && $rows[0]['channel'] === 'b2b');
+
+        $crossStore = $this->actingAs($actor)->get(route('admin.operations.orders.index', [
+            'channel' => 'b2b', 'store_id' => $retail, 'status' => 'pending',
+        ]));
+        $this->assertContains($crossStore->getStatusCode(), [403, 404]);
+
+        $this->actingAs($actor)->get(route('admin.operations.orders.index', [
+            'channel' => 'all', 'status' => 'pending',
+        ]))->assertForbidden();
+    }
+
     public function test_permissionless_and_explicitly_denied_actors_are_rejected_on_direct_pending_url(): void
     {
         $store = $this->retailStore('P209-DENY');
