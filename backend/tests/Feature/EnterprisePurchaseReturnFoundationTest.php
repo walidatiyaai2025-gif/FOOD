@@ -334,7 +334,7 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
         $this->enableProcurement();
 
         [$actor, $store, $context] = $this->scopedUser($this->allPermissions(), 'P243-OWN');
-        $this->grantPlatformErpAccess($actor);
+        $this->allowReturnsWorkbench($actor, $store);
         [, $warehouse] = $this->stockTarget($store, 'P243-OWN-SKU');
         $receipt = $this->postedReceipt($actor, $context, $warehouse, 'P243-OWN-SUP', 'P243-OWN-SKU', 2);
         $return = app(PurchaseReturnManager::class)->createFromPostedReceipt($actor, $context, $receipt->id, [
@@ -388,7 +388,7 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
         $this->enableProcurement();
 
         [$owner, $store, $context] = $this->scopedUser($this->allPermissions(), 'P243-SEC-OWNER');
-        $this->grantPlatformErpAccess($owner);
+        $this->allowReturnsWorkbench($owner, $store);
         [, $warehouse] = $this->stockTarget($store, 'P243-SEC-SKU');
         $receipt = $this->postedReceipt($owner, $context, $warehouse, 'P243-SEC-SUP', 'P243-SEC-SKU', 2);
         $return = app(PurchaseReturnManager::class)->createFromPostedReceipt($owner, $context, $receipt->id, [
@@ -399,7 +399,7 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
         ]);
 
         [$foreign, $otherStore] = $this->scopedUser($this->allPermissions(), 'P243-SEC-FOREIGN');
-        $this->grantPlatformErpAccess($foreign);
+        $this->allowReturnsWorkbench($foreign, $otherStore);
         [$limited, $limitedStore] = $this->scopedUser(['procurement.suppliers.view'], 'P243-SEC-LIMITED');
         $this->grantPlatformErpAccess($limited);
 
@@ -438,7 +438,7 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
     {
         config()->set('security.mfa.enforce_privileged', false);
         [$actor, $store] = $this->scopedUser($this->allPermissions(), 'P243-MODULE-OFF');
-        $this->grantPlatformErpAccess($actor);
+        $this->allowReturnsWorkbench($actor, $store);
 
         $this->actingAs($actor)
             ->get(route('admin.erp.procurement.index', [
@@ -460,6 +460,32 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
                 'store_id' => $store->id,
             ]))
             ->assertForbidden();
+    }
+
+    /**
+     * The public ERP HTTP route requires a canonical Retail dashboard persona,
+     * not merely a custom scope role that is valid for the domain service.
+     * Mirror EnterpriseProcurementWorkbenchTest's production-route actor.
+     */
+    private function allowReturnsWorkbench(User $actor, Store $store): void
+    {
+        $role = Role::query()->firstOrCreate(
+            ['code' => 'B2C_STORE_ADMIN'],
+            ['name' => 'Retail Store Admin', 'scope' => 'store', 'is_active' => true, 'is_system' => true],
+        );
+        foreach (['procurement.suppliers.view', 'procurement.purchase_returns.view'] as $code) {
+            $permission = Permission::query()->firstOrCreate(
+                ['code' => $code],
+                ['name' => $code],
+            );
+            $role->permissions()->syncWithoutDetaching([$permission->id]);
+        }
+
+        DB::table('user_store_roles')->updateOrInsert(
+            ['user_id' => $actor->id, 'store_id' => $store->id, 'role_id' => $role->id],
+            ['created_at' => now(), 'updated_at' => now()],
+        );
+        $this->grantPlatformErpAccess($actor);
     }
 
     private function enableProcurement(): void
