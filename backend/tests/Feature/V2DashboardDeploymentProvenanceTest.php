@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\DashboardDeploymentProvenance;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -59,8 +60,7 @@ final class V2DashboardDeploymentProvenanceTest extends TestCase
         $this->assertSame($sha, $verified['source_commit']);
 
         Http::assertSentCount(1);
-        Http::assertSent(static fn ($request): bool =>
-            $request->url() === 'https://api.github.com/repos/walidatiyaai2025-gif/FOOD/commits/'.$sha
+        Http::assertSent(static fn ($request): bool => $request->url() === 'https://api.github.com/repos/walidatiyaai2025-gif/FOOD/commits/'.$sha
         );
     }
 
@@ -151,11 +151,11 @@ final class V2DashboardDeploymentProvenanceTest extends TestCase
 
         // HTTP fake callbacks accumulate on one Facade factory, so each
         // independent remote outcome needs an isolated factory instance.
-        Http::swap(new \Illuminate\Http\Client\Factory);
+        Http::swap(new Factory);
         Http::fake(['api.github.com/*' => Http::response([], 503)]);
         $this->assertSame('unknown', $service->inspect(true, $version, $build)['github_state']);
 
-        Http::swap(new \Illuminate\Http\Client\Factory);
+        Http::swap(new Factory);
         Http::fake(['api.github.com/*' => Http::response(['sha' => str_repeat('d', 40)], 200)]);
         $this->assertSame('unknown', $service->inspect(true, $version, $build)['github_state']);
     }
