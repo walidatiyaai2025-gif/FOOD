@@ -45,7 +45,7 @@ return [
         'field_operations' => 'Fleet & Field Operations',
         'operations' => 'Orders & Operations',
         'customer_service' => 'Customer Service & WhatsApp',
-        'catalog' => 'Catalog & Pricing',
+        'catalog' => 'Catalog, Pricing & Offers',
         'accounts' => 'Customers & Accounts',
         'stores' => 'Stores & Channels',
         'marketing' => 'Marketing & Communications',
