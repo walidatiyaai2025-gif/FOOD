@@ -133,6 +133,22 @@ final class V2DeliveryExecutionSidebarAuthorityTest extends TestCase
         $this->assertNotSame((string) $foreignStoreId, $retail['params']['store_id']);
         $this->assertTrue(Route::has($retail['route']));
         $this->assertFalse($items->has('b2b_drivers'));
+
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.operations.orders.index', [
+                'channel' => 'b2c',
+                'store_id' => $ownStoreId,
+            ], false))
+            ->assertOk();
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.operations.orders.index', [
+                'channel' => 'b2c',
+                'store_id' => $foreignStoreId,
+            ], false))
+            ->assertNotFound();
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.operations.orders.index', ['channel' => 'b2b'], false))
+            ->assertForbidden();
     }
 
     /** @return array<string, mixed>|null */
