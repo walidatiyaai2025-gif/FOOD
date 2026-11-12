@@ -56,6 +56,53 @@ final class V2FinanceEntitlementParityTest extends TestCase
         }
     }
 
+    public function test_retail_finance_reader_without_global_erp_role_has_matching_sidebar_and_http_access(): void
+    {
+        $store = Store::query()->create([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'code' => 'V2-P280-3269-RETAIL',
+            'name' => 'Retail Finance Scope',
+            'business_profile' => 'RETAIL_STORE',
+            'is_active' => true,
+        ]);
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
+
+        $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->where('scope', 'store')->firstOrFail();
+        $role->permissions()->syncWithoutDetaching(
+            Permission::query()->where('code', 'finance.view')->pluck('id'),
+        );
+        DB::table('user_store_roles')->insert([
+            'user_id' => $actor->id,
+            'store_id' => $store->id,
+            'role_id' => $role->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->assertFalse(app(AdminNavigation::class)->canAccessPlatformErp($actor));
+
+        $context = app(\\App\\Support\\TenantContextResolver::class)->retail($actor, $store->id);
+        $this->assertNotNull($context->enterpriseScope);
+        $registry = app(ModuleRegistry::class);
+        if (! $registry->isEnabled(FinanceFoundationService::MODULE)) {
+            $lifecycle = app(ModuleLifecycleManager::class);
+            $lifecycle->transition(FinanceFoundationService::MODULE, ModuleState::ENABLING, $actor);
+            $lifecycle->transition(FinanceFoundationService::MODULE, ModuleState::ENABLED, $actor);
+        }
+        $this->entitlementManager()->set(
+            FinanceFoundationService::MODULE,
+            new EntitlementScope(EntitlementScope::LEGAL_ENTITY, $context->enterpriseScope->legalEntityId),
+            true,
+            ['finance.foundation.read'],
+            $actor,
+        );
+
+        $this->assertTrue($this->financeEntryVisible($actor));
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.erp.finance.index', ['store_id' => $store->id], false))
+            ->assertOk();
+    }
+
     public function test_store_specific_deny_hides_finance_and_blocks_both_read_and_write_without_changes(): void
     {
         [$actor, $store] = $this->financeActor('V2-P280-3269-DENIED');
