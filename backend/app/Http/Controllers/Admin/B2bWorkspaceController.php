@@ -101,6 +101,9 @@ class B2bWorkspaceController extends Controller
         App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
 
         $principalStoreId = $this->principal->storeId();
+        if ($module === 'pricing') {
+            $this->operationalScope->assertStore($user, $principalStoreId, 'b2b.pricing.view', 'b2b');
+        }
         $pricingTiersEnabled = $this->pricingMode->tiersEnabled($principalStoreId);
         abort_if($module === 'pricing' && ! $pricingTiersEnabled, 404);
 
