@@ -16,7 +16,7 @@ Source: `FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx` / P270; par
 ## Scoped policy hardening
 
 1. A limited routing actor's policy grid now lists only policies created by that actor. Platform managers (Super Admin, B2B Admin, Operations, Finance, where routing permission separately exists) retain current global visibility.
-2. Limited actors can create only policies whose **every** rule has a typed `store_id` condition referencing a currently authorized active B2B store; unscoped rules including just `channel=b2b` are rejected. An inactive/foreign/Retail store is rejected by the pre-existing typed store validator.
+2. Limited actors can create publishable policies only when **every** rule has a typed `store_id` referencing an authorized active B2B store. Legacy latitude/longitude-only geographic rules remain creatable as **drafts**, but publishing/rollback/simulation is denied without exact store ownership; unbounded `channel=b2b`/wildcard rules remain rejected. Inactive/foreign/Retail stores are rejected by the typed store validator.
 3. The globally versioned `code` cannot be reused by a limited actor when **any prior version** is owned by another actor or has non-owned/unscoped rules. Existing owners may version their own B2B-scoped policies.
 4. Before publish, rollback and simulate, route-model binding is not treated as authorization. A limited actor must own the requested policy, every rule must be scoped to an authorized B2B store, and **every version sharing the policy code** must pass the same check. Foreign/unguarded actions return HTTP 404, not policy details or a write.
 5. The guard is executed server-side before service mutation. No new grant, permission, database migration, runtime dispatch mode, rule schema, or mobile REST API is introduced.
@@ -26,7 +26,7 @@ Source: `FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx` / P270; par
 `backend/tests/Feature/V2RoutingPoliciesStoreScopeTest.php` verifies:
 
 - Two custom B2B operators with different stores: AR/EN, RTL/LTR, one canonical sidebar route, own policy visible, foreign policy concealed, global owner sees both.
-- Limited actor cannot submit global/unscoped routing conditions, create an unauthorized version of an existing global policy, or mutate a global policy.
+- Limited actor cannot submit unbounded global routing conditions, create an unauthorized version of an existing global policy, or mutate a global policy. A legacy coordinate-only route-builder draft is accepted but cannot be published to globally effective routing.
 - Guessing a foreign draft/published policy ID cannot publish, rollback, or simulate it; status, policy count and audit trace row count remain unchanged.
 - Valid limited operator can create an own-store policy, publish and rollback its versions on existing routes.
 - Additional existing `V2VanRoutingHttpAuthorityTest.php` (#2601 merged) covers roleless/retail/inactive direct GET/POST denial, forbidden B2C and foreign-store typed selector values, and route/Sidebar parity. P270 does not duplicate that delivery.
