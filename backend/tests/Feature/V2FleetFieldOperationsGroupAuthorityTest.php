@@ -11,6 +11,7 @@ use App\Services\AdminSidebarManager;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -164,7 +165,7 @@ final class V2FleetFieldOperationsGroupAuthorityTest extends TestCase
         $this->assertStringContainsString('@media(max-width:440px)', $shell);
     }
 
-    private function children(User $user): \Illuminate\Support\Collection
+    private function children(User $user): Collection
     {
         $group = collect(app(AdminNavigation::class)->groupsFor($user->fresh()))
             ->firstWhere('key', 'field_operations');
