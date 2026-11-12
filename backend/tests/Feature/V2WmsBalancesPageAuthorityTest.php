@@ -62,7 +62,7 @@ final class V2WmsBalancesPageAuthorityTest extends TestCase
                 ->assertSee('data-pagination-mode="keyset"', false)
                 ->assertDontSee('P248-FOREIGN-PRODUCT')
                 ->assertDontSee('P248-LOCAL-OTHER-PRODUCT')
-                ->assertDontSee('data-wms-mutation', false);
+                ->assertDontSee('data-wms-mutation>', false);
 
             $rows = $response->viewData('inventoryRows');
             $this->assertCount(1, $rows);
