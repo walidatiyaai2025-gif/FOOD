@@ -1,6 +1,6 @@
 # V2 P193 — Sales quotations (عروض الأسعار)
 
-Issue: #2523. Branch integration target: `Foodex_V2` only. Status: code/CI acceptance pending.
+Issue: #2523. Branch integration target: `Foodex_V2` only. Status: bounded implementation and UI/CI acceptance in progress; exact current head not yet certified.
 
 ## Placement, authority and discoverability
 
@@ -14,9 +14,9 @@ Issue: #2523. Branch integration target: `Foodex_V2` only. Status: code/CI accep
 | frequency / data density | Repeated business task, growing history (server pagination 20) |
 | existing parent | Customers & Sales `accounts` sidebar group and existing `CommerceQuoteService` |
 | placement | Compose canonical pricing in a scoped sales-quotations operational workbench; no new top-level group |
-| screen pattern | Operational Workbench with detail view and inline create form |
+| screen pattern | Operational Workbench with exact-record details and a shared accessible creation modal |
 | navigation_impact | One `sales_quotations` child under existing Customers & Sales group, shown only with effective `orders.view` permission; the HTTP controller independently requires an active authorized store and exact channel |
-| desktop/tablet/mobile | Responsive workbench, in-row desktop grid, stacked mobile cards |
+| desktop/tablet/mobile | Responsive workbench, shared modal on desktop and mobile, in-row desktop grid, stacked mobile cards |
 | rtl_ltr | Language-keyed `lang/ar` and `lang/en`, direction-aware layout and focus |
 | active_context | `sales_quotations` |
 | back/fallback | Orders workbench and quote list; 404 for inaccessible store or quote |
@@ -52,9 +52,18 @@ A quote is recorded in `sales_quotations` with immutable monetary/line snapshot 
 - Disabled user/store: denied by server and navigation.
 - Wholesale B2B: own channel, active-account requirement, Retail cannot read.
 - State machine: only drafts can issue/cancel; stale pricing blocks issuance; no order created. An identical HTTP retry has one quotation ID.
-- Localized AR/EN, RTL/LTR responsive and keyboard UX; empty/error states, pagination.
+- Localized AR/EN, RTL/LTR responsive and keyboard UX; shared FOODEX operational modal for create, prior submitted product rows retained after failed validation, empty/error states, pagination.
 - Existing `AuthoritativePricingQuoteTest` for shared mobile pricing contract.
 - Exact-head required CI, migration tests and real runtime/UI acceptance still need verification. Never treat draft PR as ready without green exact-head checks.
+
+
+## Review checkpoint — 2026-11-12 (same issue branch, no release)
+
+- Resumed existing PR #3246 after the verified 30-minute idle-lease release; reused the single branch and its original 12-path ownership fence.
+- The formerly permanently visible create form is now composed in the repository's shared `data-foodex-operational-modal` control, with a compact page-toolbar action. Server validation failures repopulate all submitted item rows, and the shared dialog is reopened after DOM ready. A focused Laravel test covers the modal hook and old-input row retention.
+- Removed an unnecessary page-level mobile layout override so the canonical shared mobile navigation/drawer rules remain authoritative.
+- Original exact-head PR checks for `cac9f14af7cf7b7ad363dcb92c22b463aa13beab` were successful, but they do **not** validate the subsequent UI/test commits. Branch reconciliation used a two-parent merge based on `Foodex_V2@785637d3ec0af8ae5c65f16469699281439a7cad`; newer exact-head CI must pass before considering readiness.
+- Manual/mobile browser accessibility and full source UI acceptance remain **unverified**; the PR must stay DRAFT until automated checks and applicable UI audit are reconciled. This does not authorize merge to `main`, staging, releases or production.
 
 ## Hosting / release
 
