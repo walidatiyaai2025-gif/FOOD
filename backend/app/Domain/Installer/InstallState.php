@@ -18,7 +18,10 @@ final class InstallState
 
     public function isInstalled(): bool
     {
-        return is_file($this->lockPath());
+        $path = $this->lockPath();
+        $this->assertSafeStatePath($path);
+
+        return is_file($path);
     }
 
     /**
@@ -27,6 +30,7 @@ final class InstallState
     public function progress(): array
     {
         $path = $this->progressPath();
+        $this->assertSafeStatePath($path);
 
         if (! is_file($path)) {
             return ['completed_step' => 0, 'admin' => null, 'token' => null];
@@ -108,9 +112,29 @@ final class InstallState
     public function clearProgress(): void
     {
         $path = $this->progressPath();
+        $this->assertSafeStatePath($path);
 
         if (is_file($path) && ! @unlink($path)) {
             throw new RuntimeException('Installer progress could not be cleared.');
+        }
+    }
+
+    /**
+     * Installer state must never be read, replaced or removed through a symbolic link.
+     * Check existing ancestors too: a normal leaf under a linked directory is unsafe.
+     */
+    private function assertSafeStatePath(string $path): void
+    {
+        for ($candidate = $path; ; $candidate = dirname($candidate)) {
+            clearstatcache(true, $candidate);
+
+            if (is_link($candidate)) {
+                throw new RuntimeException('Installer state path cannot be a symbolic link.');
+            }
+
+            if (dirname($candidate) === $candidate) {
+                break;
+            }
         }
     }
 
@@ -128,12 +152,14 @@ final class InstallState
      */
     private function writeJson(string $path, array $payload): void
     {
+        $this->assertSafeStatePath($path);
         $directory = dirname($path);
 
         if (! is_dir($directory) && ! @mkdir($directory, 0750, true) && ! is_dir($directory)) {
             throw new RuntimeException('Installer state directory is not writable.');
         }
 
+        $this->assertSafeStatePath($path);
         $encoded = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
         $temporary = $path.'.tmp-'.bin2hex(random_bytes(6));
 
@@ -142,6 +168,8 @@ final class InstallState
         }
 
         @chmod($temporary, 0640);
+
+        $this->assertSafeStatePath($path);
 
         if (! @rename($temporary, $path)) {
             @unlink($temporary);
