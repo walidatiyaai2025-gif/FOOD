@@ -137,6 +137,17 @@ final class EnterpriseWmsController extends Controller
         $canManageCounts = $warehouseId !== null
             && in_array($warehouseId, $manageableCountWarehouseIds, true);
 
+        // An inventory.viewer can inspect adjustment movements, but the
+        // mutation form must reflect the exact store + warehouse manage authority.
+        $canManageAdjustments = $tab === 'adjustments'
+            && $warehouseId !== null
+            && in_array($storeId, $this->tenantScope->allowedStoreIds($actor, 'inventory.manage'), true)
+            && in_array(
+                $warehouseId,
+                $this->warehouseScope->authorizedWarehouseIds($actor, $storeId, 'inventory.manage'),
+                true,
+            );
+
         // Locations are readable with inventory.view, but their forms must
         // project the very same store + warehouse inventory.manage authority
         // that saveZone/saveBin/assignInventory enforce server-side.
@@ -177,6 +188,7 @@ final class EnterpriseWmsController extends Controller
             'canManageCounts' => $canManageCounts,
             'manageableCountWarehouseIds' => $manageableCountWarehouseIds,
             'canManageReservations' => $canManageReservations,
+            'canManageAdjustments' => $canManageAdjustments,
             'canProcurementHandoff' => $this->navigation->hasPermissionInScope(
                 $actor,
                 'procurement.purchase_requests.view',
@@ -293,7 +305,7 @@ final class EnterpriseWmsController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
             'request_key' => ['required', 'string', 'max:120'],
         ]);
-        $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
+        $this->assertWarehouseMutationContext($actor, (int) $data['store_id'], (int) $data['warehouse_id']);
 
         $movement = $this->adjustments->post(
             $actor,
