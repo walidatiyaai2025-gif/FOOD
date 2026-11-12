@@ -37,6 +37,7 @@ final class SalesQuotationController extends Controller
     public function show(Request $request, int $quotation): View
     {
         $actor = $this->actor($request);
+        abort_if($this->scope->allowedStoreIds($actor, 'orders.view') === [], 403);
         $record = DB::table('sales_quotations')->where('id', $quotation)->first();
         abort_if($record === null, 404);
         $storeId = (int) $record->store_id;
@@ -141,6 +142,8 @@ final class SalesQuotationController extends Controller
     {
         abort_unless(in_array($action, ['issue', 'cancel'], true), 404);
         $actor = $this->actor($request);
+        abort_if($this->scope->allowedStoreIds($actor, 'orders.view') === [], 403);
+        abort_if($this->scope->allowedStoreIds($actor, 'orders.manage') === [], 403);
 
         DB::transaction(function () use ($request, $actor, $quotation, $action): void {
             $record = DB::table('sales_quotations')->where('id', $quotation)->lockForUpdate()->first();
