@@ -371,6 +371,12 @@ return [
         'audience_route_scope' => 'One or more selected routes are not available for this store audience.',
 
     ],
+    'quantity_tiers' => [
+        'heading' => 'Quantity tiers',
+        'description' => 'Set the minimum order quantity and permitted quantity increment for each Wholesale price rule.',
+        'minimum_quantity' => 'Minimum quantity',
+        'ordering_increment' => 'Quantity increment',
+    ],
     'common' => [
         'active' => 'Active',
         'inactive' => 'Inactive',
