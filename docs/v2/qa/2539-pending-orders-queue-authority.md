@@ -27,7 +27,7 @@
 5. Roleless and explicitly store-**DENY** users receive HTTP 403, and an unknown status returns JSON 422 before any sensitive data.
 6. CI acceptance: PHP syntax + Pint/Static Analysis/Composer audit/OpenAPI, full Laravel suite, AR/EN Localization, V2 Isolation, Repository Policy, real MySQL/Redis install-upgrade-recovery and terminal required-ci-gate on the **last PR SHA**.
 
-## Customer / Driver / Van impact matrix
+## MOBILE IMPACT — Customer / Driver / Van
 
 | Surface | Impact | Evidence |
 |---|---|---|
