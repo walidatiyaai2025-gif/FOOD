@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\B2bAccount;
-use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
+use App\Services\B2bCustomerService;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\AdminNavigation;
@@ -170,9 +170,10 @@ class V2SalesQuotationWorkflowTest extends TestCase
         $operator = User::factory()->create(['is_active' => true, 'locale' => 'ar']);
         $operator->roles()->attach(Role::query()->where('code', 'B2B_ADMIN')->firstOrFail());
 
-        $customer = B2bCustomer::query()->create(['name' => 'Wholesale Quotation Customer']);
+        $customer = app(B2bCustomerService::class)->create(['name' => 'Wholesale Quotation Customer']);
         B2bAccount::query()->create([
             'b2b_customer_id' => $customer->id,
+            'customer_id' => $customer->legacy_customer_id,
             'company_name' => 'Wholesale Quotation Buyer',
             'status' => 'active',
         ]);
