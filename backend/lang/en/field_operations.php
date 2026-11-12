@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'invalid_geography_selection' => 'Select an active geography node in the same country and parent hierarchy.',
+    'invalid_territory_warehouse' => 'Select an active wholesale warehouse within your permitted stores.',
     'register_van' => 'Register Van',
     'code' => 'Code',
     'plate_number' => 'Plate number',

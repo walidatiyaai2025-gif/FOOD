@@ -897,6 +897,19 @@ final class FieldOperationsController extends Controller
             'country_code' => ['required', 'string', 'min:2', 'max:3'],
         ]);
 
+        // A crafted request must not graft a geography node into another country.
+        if (isset($data['parent_id'])) {
+            $parent = GeographyNode::query()->find((int) $data['parent_id']);
+            if ($data['type'] === 'country'
+                || $parent === null
+                || ! $parent->is_active
+                || strtoupper((string) $parent->country_code) !== strtoupper((string) $data['country_code'])) {
+                throw ValidationException::withMessages([
+                    'parent_id' => [__('field_operations.invalid_geography_selection')],
+                ]);
+            }
+        }
+
         GeographyNode::query()->create([...$data, 'country_code' => strtoupper((string) $data['country_code']), 'is_active' => true]);
 
         return back()->with('status', __('admin.field_operations.saved'));
@@ -921,9 +934,80 @@ final class FieldOperationsController extends Controller
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
+        $country = GeographyNode::query()->whereKey((int) $data['country_node_id'])
+            ->where('type', 'country')
+            ->where('is_active', true)
+            ->whereNull('parent_id')
+            ->first();
+
+        if ($country === null) {
+            throw ValidationException::withMessages([
+                'country_node_id' => [__('field_operations.invalid_geography_selection')],
+            ]);
+        }
+
+        $previous = $country;
+        foreach ([
+            'governorate_node_id' => 'governorate',
+            'city_node_id' => 'city',
+            'district_node_id' => 'district',
+        ] as $field => $expectedType) {
+            if (! isset($data[$field])) {
+                continue;
+            }
+
+            $node = GeographyNode::query()->find((int) $data[$field]);
+            if ($node === null
+                || ! $node->is_active
+                || $node->type !== $expectedType
+                || strtoupper((string) $node->country_code) !== strtoupper((string) $country->country_code)
+                || ! $this->geographyDescendsFrom($node, $previous)) {
+                throw ValidationException::withMessages([
+                    $field => [__('field_operations.invalid_geography_selection')],
+                ]);
+            }
+
+            $previous = $node;
+        }
+
+        if (isset($data['default_warehouse_id'])) {
+            $warehouseStoreId = DB::table('warehouses')
+                ->where('id', (int) $data['default_warehouse_id'])
+                ->where('is_active', true)
+                ->value('store_id');
+
+            if ($warehouseStoreId === null
+                || ! in_array((int) $warehouseStoreId, $this->b2bStoreIds($user), true)) {
+                throw ValidationException::withMessages([
+                    'default_warehouse_id' => [__('field_operations.invalid_territory_warehouse')],
+                ]);
+            }
+        }
+
         ServiceTerritory::query()->create($data);
 
         return back()->with('status', __('admin.field_operations.saved'));
+    }
+
+    private function geographyDescendsFrom(GeographyNode $node, GeographyNode $ancestor): bool
+    {
+        $seen = [];
+
+        while ((int) $node->id !== (int) $ancestor->id) {
+            if ($node->parent_id === null || isset($seen[$node->id])) {
+                return false;
+            }
+
+            $seen[$node->id] = true;
+            $parent = GeographyNode::query()->find((int) $node->parent_id);
+            if ($parent === null || ! $parent->is_active) {
+                return false;
+            }
+
+            $node = $parent;
+        }
+
+        return true;
     }
 
     public function storeGeometry(Request $request, ServiceTerritory $territory): RedirectResponse
