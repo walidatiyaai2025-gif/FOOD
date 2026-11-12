@@ -110,6 +110,8 @@ return [
         'title' => 'Stock movement history',
         'subtitle' => 'Recent canonical movement provenance for the selected authorized warehouse.',
         'type' => 'Movement',
+        'pagination' => 'Stock movement pages',
+        'next_page' => 'Next 50 movements',
         'movement_types' => [
             'purchase_receipt' => 'Purchase receipt',
             'warehouse_transfer_out' => 'Transfer out',

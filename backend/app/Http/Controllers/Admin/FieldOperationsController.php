@@ -526,29 +526,51 @@ final class FieldOperationsController extends Controller
         $user = $this->actor($request);
         $this->authorizeAll($user, ['customers.view', 'drivers.b2b.view']);
 
-        $latestIds = DB::table('van_visits')
+        // P267: field customers are B2B Van relationships, never Retail Driver
+        // customers. Scope before selecting the latest visit: a newer visit
+        // from another store must not suppress this store's own relationship.
+        $allowedB2bStores = $this->b2bStoreIds($user);
+        $canReadAllWholesale = $user->hasRole('SUPER_ADMIN') || $user->hasRole('B2B_ADMIN')
+            || $user->hasRole('OPERATIONS') || $user->hasRole('FINANCE');
+        $visibleVisits = VanVisit::query()->where('customer_type', 'b2b')
+            ->where(function ($query) use ($allowedB2bStores, $canReadAllWholesale): void {
+                $query->whereIn('store_id', $allowedB2bStores);
+                if ($canReadAllWholesale) {
+                    $query->orWhereNull('store_id');
+                }
+            });
+
+        $latestIds = (clone $visibleVisits)
             ->selectRaw('MAX(id) AS id')
-            ->groupBy('customer_type', 'customer_id')
+            ->groupBy('customer_id', 'store_id')
             ->pluck('id');
 
-        $relationships = VanVisit::query()
+        $relationships = (clone $visibleVisits)
             ->with('actor')
             ->whereIn('id', $latestIds)
             ->orderByDesc('updated_at')
             ->paginate(30);
 
         $actorIds = $relationships->getCollection()->pluck('actor_user_id')->unique()->values();
+        // The assignment registry is global and carries no direct store_id.
+        // Resolve its store through the authoritative warehouse before showing
+        // van/territory data; never select an actor's foreign-store assignment.
         $assignmentsByActor = VanAssignment::query()
             ->with('van')
-            ->where('status', 'active')
-            ->whereIn('representative_user_id', $actorIds)
-            ->orderByDesc('effective_from')
+            ->join('warehouses', 'warehouses.id', '=', 'van_assignments.warehouse_id')
+            ->where('van_assignments.status', 'active')
+            ->whereIn('warehouses.store_id', $allowedB2bStores)
+            ->whereIn('van_assignments.representative_user_id', $actorIds)
+            ->select('van_assignments.*', 'warehouses.store_id as assignment_store_id')
+            ->orderByDesc('van_assignments.effective_from')
             ->get()
             ->groupBy('representative_user_id');
 
         $canFinance = $user->hasRole('SUPER_ADMIN') || $user->hasPermission('finance.view');
         $relationships->setCollection($relationships->getCollection()->map(function (VanVisit $visit) use ($assignmentsByActor, $canFinance): VanVisit {
-            $assignment = $assignmentsByActor->get($visit->actor_user_id)?->first();
+            $assignment = $assignmentsByActor->get($visit->actor_user_id)?->first(
+                fn (VanAssignment $candidate): bool => (int) $candidate->getAttribute('assignment_store_id') === (int) $visit->store_id,
+            );
             $visit->setAttribute('customer_display', $this->customerDisplay((string) $visit->customer_type, (int) $visit->customer_id));
             $visit->setRelation('servingAssignment', $assignment);
             $visit->setAttribute(
