@@ -20,7 +20,7 @@ Dedicated `backend/tests/Feature/V2FleetFieldOperationsGroupAuthorityTest.php` v
 
 1. The one P259 registry group contains precisely nine registered business child destinations and every route exists.
 2. A Super Admin sees the one group and all authorized children; AR/EN page HTML has correct direction, localized group title, canonical link and sidebar shell.
-3. A non-Super Admin with two separate least-privilege roles sees **only** the effective union of allowed children; denied direct Fleet/Vans/Finance/Visits HTTP endpoints return 403.
+3. A non-Super Admin with two global least-privilege roles, **independent Dashboard entry** via `reports.view`, and `field_ops.manage` + `drivers.tracking.view` sees only the union of permitted Fleet children; denied direct Vans/Finance/Visits HTTP endpoints return 403. Dashboard authentication is not implied by a Sidebar permission.
 4. Inactive, roleless and Retail-only actors cannot acquire Wholesale Territories/Routing/Van links through visibility alone or bypass direct HTTP 403. A Retail actor's legitimate other channel access, if any, remains outside this denial.
 5. Existing sidebar `summary` / focus / responsive / accessibility metadata is retained. No new UI primitive or route.
 6. The already merged child acceptance slices #2725 (navigation remap), #2601 (Routing HTTP), #2599 (Territories integrity) and #2600 (Routing policy store scope) are reused; this issue does not duplicate or override their implementations.
