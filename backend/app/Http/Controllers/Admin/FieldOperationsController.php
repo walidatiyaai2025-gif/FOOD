@@ -569,7 +569,7 @@ final class FieldOperationsController extends Controller
         $canFinance = $user->hasRole('SUPER_ADMIN') || $user->hasPermission('finance.view');
         $relationships->setCollection($relationships->getCollection()->map(function (VanVisit $visit) use ($assignmentsByActor, $canFinance): VanVisit {
             $assignment = $assignmentsByActor->get($visit->actor_user_id)?->first(
-                fn (VanAssignment $candidate): bool => (int) $candidate->assignment_store_id === (int) $visit->store_id,
+                fn (VanAssignment $candidate): bool => (int) $candidate->getAttribute('assignment_store_id') === (int) $visit->store_id,
             );
             $visit->setAttribute('customer_display', $this->customerDisplay((string) $visit->customer_type, (int) $visit->customer_id));
             $visit->setRelation('servingAssignment', $assignment);
