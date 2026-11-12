@@ -156,9 +156,19 @@ final class V2FinanceEntitlementParityTest extends TestCase
         );
 
         $this->assertTrue($this->financeEntryVisible($actor));
+
+        // Legal-entity AR/AP grants cannot advertise tabs denied by a
+        // narrower Finance STORE read-only capability subset.
+        app()->forgetInstance(AdminNavigation::class);
+        $groups = collect(app(AdminNavigation::class)->groupsFor($actor->fresh()));
+        $this->assertNull($groups->firstWhere('key', 'receivables'));
+
         $this->actingAs($actor->fresh())
             ->get(route('admin.erp.finance.index', ['store_id' => $store->id], false))
             ->assertOk();
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.erp.finance.index', ['store_id' => $store->id, 'tab' => 'receivables'], false))
+            ->assertForbidden();
 
         $before = DB::table('enterprise_finance_accounts')->count();
         $this->actingAs($actor->fresh())
