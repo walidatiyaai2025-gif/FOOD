@@ -4,9 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\B2bAccount;
 use App\Models\B2cCustomer;
-use App\Services\B2bCustomerService;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\B2bCustomerService;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
