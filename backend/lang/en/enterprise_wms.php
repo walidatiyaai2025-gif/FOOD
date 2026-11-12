@@ -13,6 +13,7 @@ return [
     ],
     'tabs' => [
         'overview' => 'Stock overview',
+        'balances' => 'Balances',
         'warehouses' => 'Warehouses',
         'movements' => 'Movements',
         'transfers' => 'Transfers',
@@ -98,6 +99,12 @@ return [
                 'days_61_90' => '61–90 days',
             ],
         ],
+    ],
+    'balances' => [
+        'title' => 'Stock balances',
+        'subtitle' => 'On-hand, reserved and available quantities from the canonical inventory ledger for the selected authorized warehouse.',
+        'pagination' => 'Stock balance pages',
+        'next_page' => 'Next 50 balances',
     ],
     'movements' => [
         'title' => 'Stock movement history',
