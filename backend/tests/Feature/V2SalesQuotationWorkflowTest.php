@@ -11,6 +11,7 @@ use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class V2SalesQuotationWorkflowTest extends TestCase
@@ -67,6 +68,7 @@ class V2SalesQuotationWorkflowTest extends TestCase
         // determines merchandise totals. This does not create a customer order.
         $this->actingAs($operator)->post(route('admin.sales-quotations.store'), [
             'store_id' => $this->retailA,
+            'request_id' => (string) Str::uuid(),
             'customer_id' => $this->customerA->id,
             'items' => [['product_id' => $this->productA, 'quantity' => 2, 'unit_price' => 0.001]],
             'expires_at' => today()->addDays(7)->toDateString(),
@@ -131,9 +133,10 @@ class V2SalesQuotationWorkflowTest extends TestCase
     public function test_issuing_rejects_stale_price_and_cancellation_does_not_create_an_order(): void
     {
         $operator = $this->retailActor('sales-quote-price@example.test', $this->retailA);
-        $this->actingAs($operator)->post(route('admin.sales-quotations.store'), $this->payload(
-            $this->retailA, $this->customerA->id, $this->productA,
-        ))->assertRedirect();
+        $payload = $this->payload($this->retailA, $this->customerA->id, $this->productA);
+        $this->actingAs($operator)->post(route('admin.sales-quotations.store'), $payload)->assertRedirect();
+        $this->actingAs($operator)->post(route('admin.sales-quotations.store'), $payload)->assertRedirect();
+        $this->assertSame(1, DB::table('sales_quotations')->count(), 'Repeated form submissions must be idempotent.');
 
         $record = DB::table('sales_quotations')->sole();
         DB::table('store_products')->where('store_id', $this->retailA)
@@ -196,6 +199,7 @@ class V2SalesQuotationWorkflowTest extends TestCase
     {
         return [
             'store_id' => $storeId,
+            'request_id' => (string) Str::uuid(),
             'customer_id' => $customerId,
             'items' => [['product_id' => $productId, 'quantity' => 1]],
             'expires_at' => today()->addDays(7)->toDateString(),
