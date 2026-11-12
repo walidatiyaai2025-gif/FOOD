@@ -133,7 +133,7 @@ final class V2SecurityAdministratorRoleMutationAuthorityTest extends TestCase
         $this->actingAs($actor)
             ->from('/admin/security?section=users')
             ->put(route('admin.security.users.roles', $target), [
-                'global_role_ids' => [Role::query()->where('code', 'CUSTOMER_SERVICE_AGENT')->firstOrFail()->id],
+                'global_role_ids' => [],
                 'store_role_ids' => [(string) $retail => [$role->id]],
                 'change_reason' => 'Unauthorized Retail store assignment boundary test',
             ])
