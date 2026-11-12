@@ -11,9 +11,9 @@ use App\Enterprise\Finance\FinanceApprovalService;
 use App\Enterprise\Finance\FinanceAssetService;
 use App\Enterprise\Finance\FinanceCreditTermsService;
 use App\Enterprise\Finance\FinanceFoundationService;
-use App\Enterprise\Finance\FinanceWorkbenchAccess;
 use App\Enterprise\Finance\FinancePeriodCloseService;
 use App\Enterprise\Finance\FinancePlanningService;
+use App\Enterprise\Finance\FinanceWorkbenchAccess;
 use App\Enterprise\Finance\FinancialStatementService;
 use App\Enterprise\Finance\GeneralLedgerService;
 use App\Enterprise\Finance\OpeningBalanceService;
@@ -1152,26 +1152,18 @@ final class FinanceWorkbenchController extends Controller
             'updateProfitCenterStatus', 'updateCashFlowClassification',
             'storeBudget', 'storeBudgetLine', 'reviseBudget', 'storeTaxCode',
             'storeAllocationRule', 'applyAllocationRule', 'storeAssetCategory',
-            'storeAsset', 'createAssetDepreciation', 'prepareAssetDisposal'
-                => ['finance.manage', 'finance.foundation.manage'],
+            'storeAsset', 'createAssetDepreciation', 'prepareAssetDisposal' => ['finance.manage', 'finance.foundation.manage'],
             'storeJournal' => ['finance.manage', 'finance.gl.manage'],
-            'requestJournalApproval', 'requestOpeningBalanceApproval'
-                => ['finance.manage', 'finance.approvals.manage'],
+            'requestJournalApproval', 'requestOpeningBalanceApproval' => ['finance.manage', 'finance.approvals.manage'],
             'postJournal' => ['finance.post', 'finance.gl.post'],
-            'storeOpeningBalance', 'cancelOpeningBalance'
-                => ['finance.manage', 'finance.opening_balances.manage'],
-            'postOpeningBalance'
-                => ['finance.post', 'finance.opening_balances.post'],
-            'storeCreditTerm', 'updateCreditTermStatus'
-                => ['finance.manage', 'finance.credit_terms.manage'],
-            'transitionBudget'
-                => $request->input('action') === 'submit'
+            'storeOpeningBalance', 'cancelOpeningBalance' => ['finance.manage', 'finance.opening_balances.manage'],
+            'postOpeningBalance' => ['finance.post', 'finance.opening_balances.post'],
+            'storeCreditTerm', 'updateCreditTermStatus' => ['finance.manage', 'finance.credit_terms.manage'],
+            'transitionBudget' => $request->input('action') === 'submit'
                     ? ['finance.manage', 'finance.foundation.manage']
                     : ['finance.approve', 'finance.approvals.approve'],
-            'storeConsolidationElimination'
-                => ['finance.approve', 'finance.approvals.approve'],
-            'evaluatePeriodClose'
-                => ['finance.view', 'finance.foundation.read'],
+            'storeConsolidationElimination' => ['finance.approve', 'finance.approvals.approve'],
+            'evaluatePeriodClose' => ['finance.view', 'finance.foundation.read'],
             default => abort(403),
         };
     }
