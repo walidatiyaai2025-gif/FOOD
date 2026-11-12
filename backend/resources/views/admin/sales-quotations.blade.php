@@ -66,6 +66,7 @@
         @if($selected)
         <section class="sq-card" id="quotation-details" aria-labelledby="sq-detail-title">
             <h2 id="sq-detail-title">{{ __('sales_quotations.details') }} · SQ-{{ strtoupper(substr($selected->reference, 0, 8)) }}</h2>
+            <p><strong>{{ __('sales_quotations.customer') }}:</strong> {{ $selectedCustomerName }}</p>
             <p class="sq-muted">{{ __('sales_quotations.status') }}: {{ __('sales_quotations.statuses.'.$selected->status) }}
                 · {{ __('sales_quotations.expires_at') }}: {{ $selected->expires_at }}</p>
             <table class="sq-table">
