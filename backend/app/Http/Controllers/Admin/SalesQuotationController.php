@@ -99,6 +99,7 @@ final class SalesQuotationController extends Controller
                     'store_id' => $storeId,
                     'channel' => $channel,
                     'customer_id' => (int) $customer->getKey(),
+                    'customer_name_snapshot' => (string) $customer->name,
                     'created_by' => $actor->getKey(),
                     'status' => 'draft',
                     'currency' => (string) $quote['currency'],
@@ -295,7 +296,7 @@ final class SalesQuotationController extends Controller
             'quotations' => $quotations,
             'selected' => $selected,
             'selectedCustomerName' => $selected === null ? null
-                : $this->customer($channel, $storeId, (int) $selected->customer_id)->name,
+                : (string) ($selected->customer_name_snapshot ?: __('sales_quotations.customer')),
             'selectedLines' => $selected === null ? [] : (json_decode((string) $selected->pricing_snapshot, true, 512, JSON_THROW_ON_ERROR)['items'] ?? []),
             'customers' => $customers,
             'products' => $products,
