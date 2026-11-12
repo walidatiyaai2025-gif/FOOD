@@ -158,6 +158,33 @@ class V2SalesQuotationWorkflowTest extends TestCase
         $this->assertDatabaseHas('sales_quotations', ['id' => $record->id, 'status' => 'draft']);
     }
 
+    public function test_issuing_rejects_stock_revocation_without_changing_quote_or_creating_order(): void
+    {
+        $operator = $this->retailActor('sales-quote-stock@example.test', $this->retailA);
+        $this->actingAs($operator)
+            ->post(route('admin.sales-quotations.store'), $this->payload(
+                $this->retailA, $this->customerA->id, $this->productA,
+            ))->assertRedirect();
+
+        $record = DB::table('sales_quotations')->sole();
+        $this->assertSame('draft', $record->status);
+
+        // A previously valid draft is not permission to issue an offer that
+        // cannot currently be fulfilled, even when unit prices are unchanged.
+        DB::table('inventories')
+            ->whereIn('warehouse_id', DB::table('warehouses')->where('store_id', $this->retailA)->select('id'))
+            ->where('product_id', $this->productA)
+            ->update(['quantity' => 0, 'reserved_quantity' => 0]);
+
+        $this->actingAs($operator)->post(route('admin.sales-quotations.transition', [
+            'quotation' => $record->id, 'action' => 'issue',
+        ]))->assertStatus(409);
+
+        $this->assertDatabaseHas('sales_quotations', ['id' => $record->id, 'status' => 'draft']);
+        $this->assertSame(0, DB::table('audit_logs')->where('event', 'sales.quotation.issued')->count());
+        $this->assertSame(0, DB::table('orders')->count());
+    }
+
     public function test_issuing_rejects_stale_price_and_cancellation_does_not_create_an_order(): void
     {
         $operator = $this->retailActor('sales-quote-price@example.test', $this->retailA);
