@@ -94,7 +94,10 @@ final class V2WmsMovementsPageAuthorityTest extends TestCase
             }
         }
         $this->assertCount(121, $seen->unique());
-        $this->actingAs($actor)->get($this->url($f, 999999999))
+        // A cursor at the oldest visible row has no strictly older records.
+        // An arbitrarily high cursor would correctly return the first page.
+        $oldestMovementId = (int) $seen->min();
+        $this->actingAs($actor)->get($this->url($f, $oldestMovementId))
             ->assertOk()->assertViewHas('movementsHasMore', false)
             ->assertSee(__('enterprise_wms.common.none'));
         $this->assertSame(122, DB::table('stock_movements')->count());
