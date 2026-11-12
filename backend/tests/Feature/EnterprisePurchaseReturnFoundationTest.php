@@ -434,6 +434,34 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
         }
     }
 
+    public function test_returns_workbench_fails_closed_when_module_disabled_or_actor_roleless(): void
+    {
+        config()->set('security.mfa.enforce_privileged', false);
+        [$actor, $store] = $this->scopedUser($this->allPermissions(), 'P243-MODULE-OFF');
+        $this->grantPlatformErpAccess($actor);
+
+        $this->actingAs($actor)
+            ->get(route('admin.erp.procurement.index', [
+                'tab' => 'returns',
+                'store_id' => $store->id,
+            ]))
+            ->assertNotFound();
+
+        config()->set(
+            'enterprise_module_readiness.certified_versions.procurement',
+            app(ModuleRegistry::class)->manifest('procurement')->version,
+        );
+        $this->enableProcurement();
+        $roleless = User::factory()->create(['is_active' => true]);
+
+        $this->actingAs($roleless)
+            ->get(route('admin.erp.procurement.index', [
+                'tab' => 'returns',
+                'store_id' => $store->id,
+            ]))
+            ->assertForbidden();
+    }
+
     private function enableProcurement(): void
     {
         $lifecycle = app(ModuleLifecycleManager::class);
