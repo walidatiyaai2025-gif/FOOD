@@ -10,3 +10,7 @@
 - **Cross-app review:** Customer no API/Flutter change; Driver (Retail B2C only) access remains denied to Wholesale Suppliers; Van (Wholesale field operations) no Procurement API/Flutter change. B2B VAN ONLY and B2C DRIVER ONLY contracts unchanged.
 - **Changed surfaces:** test + QA trace only; no runtime Controller, route, Blade, schema, API, permission catalog, feature flag or mobile modifications.
 - **CI plan:** exact final head PHP/Pint/PHPStan, Laravel full, AR/EN, Repository Policy, V2 Isolation, Required CI including MySQL/Redis install/upgrade/recovery. No results are claimed until GitHub Actions completes. No main/release/production.
+
+## Mobile impact — Customer/Driver/Van
+
+This P239 acceptance covers the Dashboard's already-existing Suppliers tab only. **Customer:** unchanged commerce and order APIs; **Driver:** unchanged B2C delivery/dispatch API and explicitly denied access to B2B Procurement HTTP; **Van:** unchanged B2B route/visit/stock APIs. None requires a second mobile app issue because no shared API contract, model, routing or UI is modified. No mobile result or manual device test is claimed beyond the unaffected-source assessment.
