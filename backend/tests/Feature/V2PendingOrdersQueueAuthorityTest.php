@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\UserStoreRole;
 use App\Services\B2cCustomerService;
+use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -153,7 +154,7 @@ final class V2PendingOrdersQueueAuthorityTest extends TestCase
     public function test_wholesale_pending_queue_stays_in_its_principal_channel_and_never_mixes_retail_orders(): void
     {
         $actor = $this->superAdmin();
-        $wholesale = app(\App\Services\WholesalePrincipal::class)->storeId();
+        $wholesale = app(WholesalePrincipal::class)->storeId();
         $retail = $this->retailStore('P209-RETAIL-ISOLATION');
 
         $legacy = (int) DB::table('customers')->insertGetId([
