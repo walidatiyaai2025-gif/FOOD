@@ -10,6 +10,7 @@ use App\Services\AuditLogger;
 use App\Services\CommerceQuoteService;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -53,12 +54,22 @@ final class SalesQuotationController extends Controller
         $this->scope->assertStore($actor, $storeId, 'orders.view', $channel);
 
         $data = $request->validate([
+            'request_id' => ['required', 'uuid'],
             'customer_id' => ['required', 'integer', 'min:1'],
             'items' => ['required', 'array', 'min:1', 'max:20'],
             'items.*.product_id' => ['required', 'integer', 'distinct', 'min:1'],
             'items.*.quantity' => ['required', 'numeric', 'gt:0', 'max:999999'],
             'expires_at' => ['required', 'date_format:Y-m-d', 'after:today', 'before_or_equal:'.today()->addDays(90)->toDateString()],
         ]);
+
+        // A retry of an already accepted form has one durable outcome, even
+        // if catalog/pricing changes between requests.
+        $existingId = DB::table('sales_quotations')
+            ->where('store_id', $storeId)->where('created_by', $actor->getKey())
+            ->where('request_id', $data['request_id'])->value('id');
+        if ($existingId !== null) {
+            return redirect()->route('admin.sales-quotations.show', ['quotation' => $existingId]);
+        }
 
         $customer = $this->customer($channel, $storeId, (int) $data['customer_id']);
         $items = array_map(static fn (array $line): array => [
@@ -78,10 +89,12 @@ final class SalesQuotationController extends Controller
         );
         abort_if((bool) ($quote['has_unavailable_items'] ?? true), 422);
 
-        $id = DB::transaction(function () use ($actor, $storeId, $channel, $customer, $quote, $data, $request): int {
+        try {
+            $id = DB::transaction(function () use ($actor, $storeId, $channel, $customer, $quote, $data, $request): int {
             $reference = (string) Str::uuid();
             $id = (int) DB::table('sales_quotations')->insertGetId([
                 'reference' => $reference,
+                'request_id' => $data['request_id'],
                 'store_id' => $storeId,
                 'channel' => $channel,
                 'customer_id' => (int) $customer->getKey(),
@@ -108,7 +121,17 @@ final class SalesQuotationController extends Controller
             ], $request);
 
             return $id;
-        }, 3);
+            }, 3);
+        } catch (QueryException $exception) {
+            // The unique request ID serializes concurrent retries. Do not
+            // swallow any unrelated SQL error or emit a second audit entry.
+            $id = DB::table('sales_quotations')
+                ->where('store_id', $storeId)->where('created_by', $actor->getKey())
+                ->where('request_id', $data['request_id'])->value('id');
+            if ($id === null) {
+                throw $exception;
+            }
+        }
 
         return redirect()->route('admin.sales-quotations.show', ['quotation' => $id])
             ->with('status', __('sales_quotations.created'));
@@ -226,6 +249,10 @@ final class SalesQuotationController extends Controller
         if ($storeId <= 0 && $allowDefault) {
             $storeId = (int) ($this->scope->allowedStoreIds($actor, $permission)[0] ?? 0);
         }
+        // Distinguish missing ability (403) from an unauthorized store ID
+        // (404), without disclosing a foreign record to store-scoped actors.
+        $authorizedStores = $this->scope->allowedStoreIds($actor, $permission);
+        abort_if($authorizedStores === [], 403);
         abort_unless($storeId > 0, 404);
         $channel = $this->scope->assertStore($actor, $storeId, $permission);
 
