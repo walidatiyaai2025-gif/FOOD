@@ -30,7 +30,20 @@ class V2QuantityTierAuthorityTest extends TestCase
         $this->setPricingMode($canonicalStore, true);
         $this->setPricingMode($foreignStore, true);
 
-        Sanctum::actingAs($this->user('B2B_ADMIN', 'v2-qt-foreign@example.test'));
+        $admin = $this->user('B2B_ADMIN', 'v2-qt-foreign@example.test');
+        $permissionId = (int) DB::table('permissions')->where('code', 'b2b.pricing.manage')->value('id');
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $admin->id,
+            'permission_id' => $permissionId,
+            'scope_key' => 'store:'.$foreignStore,
+            'store_id' => $foreignStore,
+            'effect' => 'deny',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $admin->forceFill(['has_permission_overrides' => true])->save();
+
+        Sanctum::actingAs($admin);
         $this->putJson('/api/v1/admin/b2b/prices', $this->payload($foreignStore, $foreignProduct, $tierId))
             ->assertNotFound();
 
