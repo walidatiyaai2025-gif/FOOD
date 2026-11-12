@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\AdminSidebarManager;
 use App\Services\EnterpriseWorkspaceComposer;
 use App\Services\OperationalTenantScope;
+use App\Services\WholesalePrincipal;
 use Illuminate\Support\Facades\Route;
 use Throwable;
 
@@ -143,6 +144,10 @@ class AdminNavigation
             $this->group('accounts', 'admin.nav_groups.accounts', '◎', [
                 $this->routeItemScoped($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'customers.view')
                     ?? $this->routeItem($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'b2b.accounts.view'),
+                // P193 follows the canonical orders.view navigation decision.
+                // The quotation controller enforces exact active store/channel scope
+                // again on each request; navigation does not grant that authority.
+                $this->routeItemScoped($user, 'sales_quotations', 'sales_quotations.title', 'admin.sales-quotations.index', 'orders.view'),
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'customers', 'admin.b2c_workspace.modules.customers', 'customers.view'),
                 isset($channels['b2b'])
                     ? $this->routeItemScoped($user, 'customer_groups', 'customer_groups.wholesale_title', 'admin.b2b.customer-groups.index', 'customers.view')
@@ -157,7 +162,7 @@ class AdminNavigation
                 $this->whatsAppInboxItem($user),
             ]),
             $this->group('operations', 'admin.nav_groups.operations', '↻', [
-                $this->routeItemScoped($user, 'order_operations', 'admin.order_management', 'admin.operations.orders.index', 'orders.view'),
+                $this->orderOperationsItem($user),
                 $useCustomerServiceDashboardProfile
                     ? null
                     : $this->routeItemScoped($user, 'driver_live_tracking', 'admin.driver_live_tracking.title', 'admin.driver-live-tracking.index', 'drivers.tracking.view'),
@@ -724,7 +729,10 @@ class AdminNavigation
                 ->map(static fn ($id): int => (int) $id)
                 ->all();
 
-        if ($restaurantStoreIds === [] || $this->restaurantSaasAccess->enabledStoreIds($restaurantStoreIds) === []) {
+        // Restaurant SaaS is opt-in at the exact Retail store, not anywhere
+        // across a multi-store operator's other Retail role assignments.
+        $enabledRestaurantStoreIds = $this->restaurantSaasAccess->enabledStoreIds($restaurantStoreIds);
+        if ($enabledRestaurantStoreIds === []) {
             return null;
         }
 
@@ -736,7 +744,16 @@ class AdminNavigation
         ];
 
         foreach ($destinations as $destination) {
-            if (Route::has($destination['route']) && $this->hasPermissionInScope($user, $destination['permission'])) {
+            if (! Route::has($destination['route'])) {
+                continue;
+            }
+
+            // Project the SAME scope used by the direct Restaurant SaaS HTTP
+            // destination. A permission on an unrelated Retail store must
+            // never advertise an inaccessible Restaurant-only workspace.
+            $authorizedStoreIds = app(OperationalTenantScope::class)
+                ->allowedStoreIds($user, $destination['permission'], 'b2c');
+            if (array_intersect($enabledRestaurantStoreIds, $authorizedStoreIds) !== []) {
                 return [
                     'key' => 'smart_ordering',
                     'label' => 'smart_ordering.nav_title',
@@ -806,6 +823,30 @@ class AdminNavigation
         }
 
         return false;
+    }
+
+    /**
+     * The Orders workspace admits only the canonical Wholesale principal or
+     * an authorized Retail store. A global orders.view role alone does not
+     * imply an operational channel, as enforced by its HTTP controller.
+     *
+     * @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null
+     */
+    private function orderOperationsItem(User $user): ?array
+    {
+        if (! Route::has('admin.operations.orders.index')) {
+            return null;
+        }
+
+        $scope = app(OperationalTenantScope::class);
+        if ($scope->allowedStoreIds($user, 'orders.view', 'b2c') === []) {
+            $b2bStores = $scope->allowedStoreIds($user, 'orders.view', 'b2b');
+            if ($b2bStores === [] || ! in_array(app(WholesalePrincipal::class)->storeId(), $b2bStores, true)) {
+                return null;
+            }
+        }
+
+        return $this->routeItemOpen('order_operations', 'admin.order_management', 'admin.operations.orders.index');
     }
 
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */

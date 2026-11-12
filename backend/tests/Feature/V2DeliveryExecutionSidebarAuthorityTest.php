@@ -110,6 +110,23 @@ final class V2DeliveryExecutionSidebarAuthorityTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_global_orders_permission_without_an_authorized_operational_channel_never_exposes_dead_link(): void
+    {
+        $this->store('B2B', 'P212-UNLISTED-B2B');
+        $this->store('B2C', 'P212-UNLISTED-B2C');
+        $actor = $this->operator([
+            'P212_UNLISTED_GLOBAL_ORDERS' => ['orders.view'],
+        ]);
+
+        $this->assertTrue($actor->fresh()->hasPermission('orders.view'));
+        $keys = collect($this->operations($actor)['children'] ?? [])->pluck('key')->all();
+        $this->assertNotContains('order_operations', $keys);
+
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.operations.orders.index', [], false))
+            ->assertForbidden();
+    }
+
     public function test_retail_delivery_link_carries_its_own_store_not_a_foreign_store(): void
     {
         $ownStoreId = $this->store('B2C', 'P212-OWN');
