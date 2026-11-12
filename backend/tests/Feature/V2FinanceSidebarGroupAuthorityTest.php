@@ -19,6 +19,7 @@ use App\Support\ResolvedTenantContext;
 use App\Support\TenantContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -198,8 +199,8 @@ final class V2FinanceSidebarGroupAuthorityTest extends TestCase
         }
     }
 
-    /** @return \Illuminate\Support\Collection<int, array<string, mixed>> */
-    private function groups(User $actor): \Illuminate\Support\Collection
+    /** @return Collection<int, array<string, mixed>> */
+    private function groups(User $actor): Collection
     {
         app()->forgetInstance(AdminNavigation::class);
 
