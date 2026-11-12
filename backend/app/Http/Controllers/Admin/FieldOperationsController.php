@@ -1115,7 +1115,16 @@ final class FieldOperationsController extends Controller
         $user = $this->actor($request);
         $this->authorizeAny($user, ['territories.manage', 'field_ops.manage']);
 
-        $policies = RoutingPolicy::query()->with('rules')->orderBy('code')->orderByDesc('version')->paginate(25);
+        // Store-limited routing operators may inspect only policies they created.
+        // Policies are globally versioned (they have no store_id column), so a
+        // global listing would disclose other operators' B2B routing decisions.
+        $policies = RoutingPolicy::query()
+            ->with('rules')
+            ->when(! $this->isGlobalRoutingActor($user), fn ($query) => $query->where('created_by', $user->id))
+            ->orderBy('code')
+            ->orderByDesc('version')
+            ->paginate(25)
+            ->withQueryString();
         $routingTerritories = ServiceTerritory::query()
             ->where('status', 'active')
             ->orderBy('name_en')
@@ -1166,6 +1175,8 @@ final class FieldOperationsController extends Controller
         ]);
 
         $rules = $this->structuredRoutingRules($user, $data);
+        $this->assertRoutingRulesInScope($user, $rules, 'rules');
+        $this->assertRoutingPolicyCodeInScope($user, (string) $data['code'], 'code');
 
         $this->routing->createDraft($user, (string) $data['code'], (string) $data['mode'], $rules, $data['reason'] ?? null, $data['effective_from'] ?? null, $data['effective_until'] ?? null);
 
@@ -1176,6 +1187,21 @@ final class FieldOperationsController extends Controller
     {
         $user = $this->actor($request);
         $this->authorizeAny($user, ['territories.manage', 'field_ops.manage']);
+        // Route-model binding is not an ownership grant. Protect all three
+        // actions, including simulation, against a guessed global policy ID.
+        if (! $this->isGlobalRoutingActor($user)) {
+            abort_unless(
+                (int) $routingPolicy->created_by === (int) $user->id
+                    && $this->routingRulesFitStores(
+                        $routingPolicy->loadMissing('rules')->rules->map(fn ($rule): array => [
+                            'conditions' => (array) $rule->conditions,
+                        ])->all(),
+                        $this->b2bStoreIds($user),
+                    ),
+                404,
+            );
+            $this->assertRoutingPolicyCodeInScope($user, (string) $routingPolicy->code, 'code', true);
+        }
 
         if ($action === 'publish') {
             $this->routing->publish($user, $routingPolicy);
@@ -1286,6 +1312,82 @@ final class FieldOperationsController extends Controller
             },
             'featureFlags' => $this->featureFlags->snapshot(),
         ]);
+    }
+
+    private function isGlobalRoutingActor(User $user): bool
+    {
+        return $user->hasRole('SUPER_ADMIN')
+            || $user->hasRole('B2B_ADMIN')
+            || $user->hasRole('OPERATIONS')
+            || $user->hasRole('FINANCE');
+    }
+
+    /**
+     * A store-limited actor cannot create a rule without an exact owned B2B
+     * store selector. Any unscoped condition would apply to all stores.
+     *
+     * @param  array<int, array<string, mixed>>  $rules
+     * @param  list<int>  $storeIds
+     */
+    private function routingRulesFitStores(array $rules, array $storeIds): bool
+    {
+        if ($rules === [] || $storeIds === []) {
+            return false;
+        }
+
+        foreach ($rules as $rule) {
+            $conditions = (array) ($rule['conditions'] ?? []);
+            $storeId = $conditions['store_id'] ?? null;
+            if (! is_int($storeId) || ! in_array($storeId, $storeIds, true)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /** @param array<int, array<string, mixed>> $rules */
+    private function assertRoutingRulesInScope(User $user, array $rules, string $field): void
+    {
+        if ($this->isGlobalRoutingActor($user)) {
+            return;
+        }
+
+        if (! $this->routingRulesFitStores($rules, $this->b2bStoreIds($user))) {
+            throw ValidationException::withMessages([
+                $field => [__('field_operations.routing_value_unavailable')],
+            ]);
+        }
+    }
+
+    private function assertRoutingPolicyCodeInScope(User $user, string $code, string $field, bool $conceal = false): void
+    {
+        if ($this->isGlobalRoutingActor($user)) {
+            return;
+        }
+
+        // Code/version is a global namespace: a scoped operator must not
+        // shadow or retire another user's published policy via a new version.
+        $policies = RoutingPolicy::query()->with('rules')->where('code', $code)->get();
+        foreach ($policies as $policy) {
+            $authorized = (int) $policy->created_by === (int) $user->id
+                && $this->routingRulesFitStores(
+                    $policy->rules->map(fn ($rule): array => [
+                        'conditions' => (array) $rule->conditions,
+                    ])->all(),
+                    $this->b2bStoreIds($user),
+                );
+
+            if (! $authorized) {
+                if ($conceal) {
+                    abort(404);
+                }
+
+                throw ValidationException::withMessages([
+                    $field => [__('field_operations.routing_value_unavailable')],
+                ]);
+            }
+        }
     }
 
     /** @param array<string, mixed> $data */
