@@ -15,6 +15,7 @@ return new class extends Migration
             $table->foreignId('store_id')->constrained()->restrictOnDelete();
             $table->string('channel', 3);
             $table->unsignedBigInteger('customer_id');
+            $table->string('customer_name_snapshot', 255);
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('issued_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('status', 12)->default('draft');
