@@ -53,6 +53,7 @@ use App\Http\Controllers\Admin\ProductionLaunchController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RestaurantWholesalePurchasesController;
 use App\Http\Controllers\Admin\RetailStoreProvisioningController;
+use App\Http\Controllers\Admin\SalesQuotationController;
 use App\Http\Controllers\Admin\SecurityController;
 use App\Http\Controllers\Admin\SettingsCenterController;
 use App\Http\Controllers\Admin\SidebarManagementController;
@@ -227,6 +228,12 @@ Route::prefix('admin')
         Route::get('/action-center', [EnterpriseActionCenterController::class, 'index'])->name('action-center.index');
         Route::get('/action-center/export', [EnterpriseActionCenterController::class, 'export'])->middleware('throttle:30,1')->name('action-center.export');
         Route::get('/erp', ErpCenterController::class)->name('erp.index');
+        // P193: Customer & Sales quotes reuse the authoritative Customer pricing engine.
+        Route::get('/sales/quotations', [SalesQuotationController::class, 'index'])->name('sales-quotations.index');
+        Route::post('/sales/quotations', [SalesQuotationController::class, 'store'])->middleware('throttle:30,1')->name('sales-quotations.store');
+        Route::get('/sales/quotations/{quotation}', [SalesQuotationController::class, 'show'])->whereNumber('quotation')->name('sales-quotations.show');
+        Route::post('/sales/quotations/{quotation}/{action}', [SalesQuotationController::class, 'transition'])
+            ->whereNumber('quotation')->whereIn('action', ['issue', 'cancel'])->middleware('throttle:30,1')->name('sales-quotations.transition');
         Route::prefix('erp/procurement')->name('erp.procurement.')->group(function (): void {
             Route::get('/', [EnterpriseProcurementController::class, 'index'])->name('index');
             Route::post('/suppliers', [EnterpriseProcurementController::class, 'storeSupplier'])->middleware('throttle:30,1')->name('suppliers.store');
