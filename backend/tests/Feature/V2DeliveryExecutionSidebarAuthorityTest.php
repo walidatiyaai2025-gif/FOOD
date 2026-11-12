@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AdminSidebarManager;
+use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -59,6 +60,26 @@ final class V2DeliveryExecutionSidebarAuthorityTest extends TestCase
                 ->assertSee('dir="'.$direction.'"', false)
                 ->assertSee('data-nav-group="operations"', false);
         }
+    }
+
+    public function test_wholesale_sidebar_initializes_the_same_principal_as_the_http_orders_workspace(): void
+    {
+        // The initial seed does not need to pre-create the canonical Wholesale
+        // store. The real HTTP route resolves it before evaluating scope.
+        $actor = $this->operator([
+            'OPERATIONS' => ['orders.view'],
+        ]);
+
+        $group = $this->operations($actor);
+        $this->assertIsArray($group);
+        $this->assertContains('order_operations', collect($group['children'])->pluck('key')->all());
+        $this->assertDatabaseHas('stores', [
+            'code' => WholesalePrincipal::STORE_CODE,
+            'is_active' => true,
+        ]);
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.operations.orders.index', [], false))
+            ->assertOk();
     }
 
     public function test_roleless_or_unrelated_roles_cannot_see_or_open_delivery_operations(): void
