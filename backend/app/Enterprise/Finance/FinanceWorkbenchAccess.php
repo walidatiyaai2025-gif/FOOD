@@ -3,6 +3,7 @@
 namespace App\Enterprise\Finance;
 
 use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Entitlements\EntitlementScopeResolver;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
 use App\Models\User;
 
@@ -25,6 +26,7 @@ final class FinanceWorkbenchAccess
 
     public function __construct(
         private readonly ModuleEntitlementResolver $entitlements,
+        private readonly EntitlementScopeResolver $scopes,
     ) {}
 
     public function canRead(User $actor, int $storeId): bool
@@ -51,9 +53,31 @@ final class FinanceWorkbenchAccess
 
     public function allowsAtStore(int $storeId, string $capability): bool
     {
-        return $storeId > 0 && $this->entitlements->allows(
+        if ($storeId < 1) {
+            return false;
+        }
+
+        $store = new EntitlementScope(EntitlementScope::STORE, $storeId);
+        $legalEntity = null;
+
+        foreach ($this->scopes->lineage($store) as $scope) {
+            if ($scope->type === EntitlementScope::LEGAL_ENTITY) {
+                $legalEntity = $scope;
+                break;
+            }
+        }
+
+        // Finance is a legal-entity ledger. A STORE-only entitlement must not
+        // create Finance authority if the entity itself was never entitled.
+        if ($legalEntity === null
+            || ! $this->entitlements->allows(FinanceFoundationService::MODULE, $legalEntity, $capability)) {
+            return false;
+        }
+
+        // A narrower STORE denial/restriction overrides parent entitlements.
+        return $this->entitlements->allows(
             FinanceFoundationService::MODULE,
-            new EntitlementScope(EntitlementScope::STORE, $storeId),
+            $store,
             $capability,
         );
     }
