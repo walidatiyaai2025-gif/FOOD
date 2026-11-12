@@ -15,6 +15,7 @@ return [
     'line_total' => 'Line total',
     'total' => 'Grand total',
     'issue' => 'Issue quotation',
+    'cancel_confirm' => 'Cancel this quotation draft? This action cannot be undone.',
     'cancel' => 'Cancel quotation',
     'back_to_list' => 'Back to quotations',
     'create' => 'Create quotation',
