@@ -65,6 +65,16 @@ A quote is recorded in `sales_quotations` with immutable monetary/line snapshot 
 - Original exact-head PR checks for `cac9f14af7cf7b7ad363dcb92c22b463aa13beab` were successful, but they do **not** validate the subsequent UI/test commits. Branch reconciliation used a two-parent merge based on `Foodex_V2@785637d3ec0af8ae5c65f16469699281439a7cad`; newer exact-head CI must pass before considering readiness.
 - Manual/mobile browser accessibility and full source UI acceptance remain **unverified**; the PR must stay DRAFT until automated checks and applicable UI audit are reconciled. This does not authorize merge to `main`, staging, releases or production.
 
+## Source correctness review — 2026-11-12 (stale lease takeover on existing #3246)
+
+- The prior worker's head `0d9f3de3fc6a406ee367e324170b76d760d048da` had all exact-head Policy, Isolation, and Required CI green; the stale implementation lease was claimed on the SAME #2523 branch/PR after no new execution commit/CI for 30+ minutes.
+- Independent contract review confirmed canonical `CommerceQuoteService` already enforces an active B2B account and blocks unavailable stock in `strict` mode. No second pricing policy or mobile API change was introduced.
+- Added a *real HTTP regression* proving that a once-valid draft cannot be issued after inventory falls to zero with unchanged unit prices; reject with 409, leave the quotation in draft, write no issue audit and create no order.
+- Hardened durable read history by storing an immutable `customer_name_snapshot` when an admin creates a quotation. The existing new `sales_quotations` create migration and controller both include the snapshot. Quotation details show this persisted name, without refetching a customer who might be renamed, archived or deleted. A new Laravel test verifies both rename and deletion keep the record readable with its original name.
+- The snapshot is business-facing data, not a login secret or customer credentials. It is scoped to an existing authorized quotation and does not add any new public API field or cross-tenant exposure.
+- Required quality proof: on the final new commit, verify Laravel full tests, Pint/PHPStan, localized AR/EN, V2 Isolation, real MySQL/Redis fresh-install and upgrade/recovery test, and the terminal `required-ci-gate`. Old-head success is not evidence for subsequent commits.
+- **Manual** device/browser viewport interaction audit and final V2 staging acceptance are held for parent #2503, not represented as performed.
+
 ## Hosting / release
 
 No production deployment, Release ZIP/APK, `main` changes or version tags are authorized by this issue.
