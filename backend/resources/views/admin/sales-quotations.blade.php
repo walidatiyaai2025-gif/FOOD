@@ -89,7 +89,7 @@
                     @csrf
                     <button type="submit" class="sq-primary">{{ __('sales_quotations.issue') }}</button>
                 </form>
-                <form method="post" action="{{ route('admin.sales-quotations.transition', ['quotation'=>$selected->id,'action'=>'cancel']) }}">
+                <form method="post" action="{{ route('admin.sales-quotations.transition', ['quotation'=>$selected->id,'action'=>'cancel']) }}" onsubmit="return window.confirm(@js(__('sales_quotations.cancel_confirm')));">
                     @csrf
                     <button type="submit" class="sq-secondary">{{ __('sales_quotations.cancel') }}</button>
                 </form>
@@ -105,6 +105,7 @@
             <form method="post" action="{{ route('admin.sales-quotations.store') }}">
                 @csrf
                 <input type="hidden" name="store_id" value="{{ $storeId }}">
+                <input type="hidden" name="request_id" value="{{ old('request_id', (string) \Illuminate\Support\Str::uuid()) }}">
                 <div class="sq-row">
                     <label>{{ __('sales_quotations.customer') }}
                         <select class="sq-lookup" name="customer_id" required>
