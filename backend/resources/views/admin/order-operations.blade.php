@@ -406,9 +406,11 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <nav class="status-tabs" aria-label="{{ __('order_operations.statuses') }}" data-order-status-tabs data-order-status-selected="{{ $selectedStatus ?? 'all' }}" data-order-exception-selected="{{ $selectedException ?? 'none' }}">
 <a class="status-tab"
    data-order-action-tab
+   data-order-awaiting-dispatch-queue="P210"
+   aria-label="{{ __('order_operations.dashboard.exceptions.awaiting_dispatch') }}"
    href="{{ route('admin.operations.orders.index',array_merge($actionQuery,['action_required'=>1])) }}#order-tab-orders"
    @if($selectedActionRequired) aria-current="page" @endif>
-<span>{{ $isAr ? 'تحتاج إجراء' : 'Action required' }}</span><span class="status-tab-count">{{ $actionRequiredCount }}</span>
+<span>{{ __('order_operations.dashboard.exceptions.awaiting_dispatch') }}</span><span class="status-tab-count">{{ $actionRequiredCount }}</span>
 </a>
 <a class="status-tab"
    data-order-failure-returns-tab
