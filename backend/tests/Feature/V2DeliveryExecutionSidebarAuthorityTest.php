@@ -33,7 +33,7 @@ final class V2DeliveryExecutionSidebarAuthorityTest extends TestCase
     {
         $this->store('B2B', 'P212-WHOLESALE');
         $actor = $this->operator([
-            'P212_ORDERS_READER' => ['orders.view'],
+            'OPERATIONS' => ['orders.view'],
         ]);
 
         $registry = app(AdminSidebarManager::class)->registry();
@@ -81,7 +81,7 @@ final class V2DeliveryExecutionSidebarAuthorityTest extends TestCase
     {
         $this->store('B2B', 'P212-DENY');
         $actor = $this->operator([
-            'P212_ORDER_ROLE' => ['orders.view'],
+            'OPERATIONS' => ['orders.view'],
             'P212_TRACKING_ROLE' => ['drivers.tracking.view'],
         ]);
 
@@ -148,14 +148,16 @@ final class V2DeliveryExecutionSidebarAuthorityTest extends TestCase
         $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
 
         foreach ($roles as $code => $permissions) {
-            $role = Role::query()->create([
-                'code' => $code,
-                'name' => $code,
-                'scope' => 'global',
-                'is_system' => false,
-                'is_active' => true,
-            ]);
-            $role->permissions()->attach(
+            $role = Role::query()->firstOrCreate(
+                ['code' => $code],
+                [
+                    'name' => $code,
+                    'scope' => 'global',
+                    'is_system' => false,
+                    'is_active' => true,
+                ],
+            );
+            $role->permissions()->syncWithoutDetaching(
                 Permission::query()->whereIn('code', $permissions)->pluck('id'),
             );
             $actor->roles()->attach($role);
