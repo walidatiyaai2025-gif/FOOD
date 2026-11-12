@@ -189,8 +189,7 @@ class HttpCustomerOrdersApi implements CustomerOrdersApi {
   }
 
   void _validateContext(CustomerOrderContext? context) {
-    if (context != null &&
-        (context.storeId <= 0 || !context.isValidChannel)) {
+    if (context != null && (context.storeId <= 0 || !context.isValidChannel)) {
       throw const CustomerOrdersException('invalid_order_context');
     }
   }
