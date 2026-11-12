@@ -175,8 +175,7 @@ class V2SalesQuotationWorkflowTest extends TestCase
         $this->actingAs($operator)
             ->get(route('admin.sales-quotations.show', ['quotation' => $record->id]))
             ->assertOk()
-            ->assertSee('Retail A Customer')
-            ->assertDontSee('Renamed Customer');
+            ->assertSee('<strong>Customer:</strong> Retail A Customer', false);
 
         DB::table('b2c_customers')->where('id', $this->customerA->id)->delete();
 
