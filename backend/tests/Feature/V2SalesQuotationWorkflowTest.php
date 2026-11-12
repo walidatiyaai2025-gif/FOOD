@@ -158,6 +158,41 @@ class V2SalesQuotationWorkflowTest extends TestCase
         $this->assertDatabaseHas('sales_quotations', ['id' => $record->id, 'status' => 'draft']);
     }
 
+    public function test_quotation_customer_name_remains_immutable_after_rename_and_deletion(): void
+    {
+        $operator = $this->retailActor('sales-quote-snapshot@example.test', $this->retailA);
+        $this->actingAs($operator)
+            ->post(route('admin.sales-quotations.store'), $this->payload(
+                $this->retailA, $this->customerA->id, $this->productA,
+            ))->assertRedirect();
+
+        $record = DB::table('sales_quotations')->sole();
+        $this->assertSame('Retail A Customer', $record->customer_name_snapshot);
+
+        DB::table('b2c_customers')->where('id', $this->customerA->id)
+            ->update(['name' => 'Renamed Customer']);
+
+        $this->actingAs($operator)
+            ->get(route('admin.sales-quotations.show', ['quotation' => $record->id]))
+            ->assertOk()
+            ->assertSee('Retail A Customer')
+            ->assertDontSee('Renamed Customer');
+
+        DB::table('b2c_customers')->where('id', $this->customerA->id)->delete();
+
+        $this->actingAs($operator)
+            ->get(route('admin.sales-quotations.show', ['quotation' => $record->id]))
+            ->assertOk()
+            ->assertSee('Retail A Customer')
+            ->assertSee('V2-QUOTE-A');
+
+        $this->assertDatabaseHas('sales_quotations', [
+            'id' => $record->id,
+            'customer_name_snapshot' => 'Retail A Customer',
+            'status' => 'draft',
+        ]);
+    }
+
     public function test_issuing_rejects_stock_revocation_without_changing_quote_or_creating_order(): void
     {
         $operator = $this->retailActor('sales-quote-stock@example.test', $this->retailA);
