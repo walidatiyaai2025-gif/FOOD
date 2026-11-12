@@ -127,11 +127,13 @@ final class V2DelegationScopeAuthorityTest extends TestCase
     public function test_valid_delegation_creation_requires_independent_checker_and_enforces_time_order(): void
     {
         $managerRole = $this->roleWithPermissions('P342_CREATE', [
+            'security.view',
             'security.delegations.manage',
             'orders.approve',
         ]);
         $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
         $actor->roles()->attach($managerRole->id);
+        $this->actingAs($actor)->get(route('admin.enterprise-security.index'))->assertOk();
         $delegate = User::factory()->create(['is_active' => true]);
 
         $invalid = [
