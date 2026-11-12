@@ -52,7 +52,7 @@ return [
         'advertising' => 'Advertising',
         'finance' => 'Finance & Treasury',
         'analytics' => 'Analytics',
-        'applications' => 'Applications',
+        'applications' => 'Applications & Digital Channels',
         'administration' => 'Administration',
     ],
     'erp_center' => [
