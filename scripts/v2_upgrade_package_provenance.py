@@ -91,8 +91,9 @@ def validate_package(
         "An update must advance the installed version.",
     )
     _require(
-        directory.is_dir() and not directory.is_symlink(),
-        "Update package directory must be a real directory, not a symbolic link.",
+        directory.is_dir()
+        and all(not component.is_symlink() for component in (directory, *directory.parents)),
+        "Update package directory or ancestor is missing or a symbolic link.",
     )
     zip_path = directory / "FOODEX-Update.zip"
     manifest_path = directory / "FOODEX-Update.json"
