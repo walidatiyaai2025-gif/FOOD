@@ -23,7 +23,7 @@ Additional guards unchanged: `auth:sanctum`, `active.user`, `tokenCan('app:drive
 
 ## Per-surface classification
 
-- **Backend/API — affected:** eligibility-only 403 security correction on Driver login, trial and runtime middleware; success response/schema/endpoint unchanged. No OpenAPI route or response-shape modification; pre-existing 403 guard is strengthened.
+- **Backend/API — affected:** eligibility-only security correction: explicit Driver password login and existing-token runtime checks reject invalid stores with **403**, whereas username trial preserves its existing **422** validation denial; success response/schema/endpoint unchanged. No OpenAPI route or response-shape modification; pre-existing 403 guard is strengthened.
 - **Driver App — affected by server authorization:** linked parent #2735; existing denied-session state applies. No Flutter files or client payloads changed; an explicit localized Driver UI E2E/AR-EN confirmation remains under #2735 and is not claimed by this atom.
 - **Customer App — not affected:** `app:customer` registration/login, customer routes and store contexts untouched. Distinct app audience and auth behavior unchanged.
 - **Van App — not affected:** `app:van` login, assignment/permission resolution and B2B routes unchanged. B2B=VAN ONLY remains the policy.
