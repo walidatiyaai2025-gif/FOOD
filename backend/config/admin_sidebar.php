@@ -21,6 +21,7 @@ return [
         'inventory' => ['label' => 'admin.nav_groups.inventory', 'icon' => '▣', 'order' => 44],
         'warehouses' => ['label' => 'admin.nav_groups.warehouses', 'icon' => '▣', 'order' => 45],
         'accounts' => ['label' => 'admin.nav_groups.accounts', 'icon' => '◎', 'order' => 50],
+        'sales' => ['label' => 'admin.nav_groups.sales', 'icon' => '▤', 'order' => 52],
         'customer_service' => ['label' => 'admin.nav_groups.customer_service', 'icon' => '◉', 'order' => 55],
         'operations' => ['label' => 'admin.nav_groups.operations', 'icon' => '↻', 'order' => 60],
         'field_operations' => ['label' => 'admin.nav_groups.field_operations', 'icon' => '⌖', 'order' => 70],
@@ -66,7 +67,7 @@ return [
         'b2b_inventory' => ['group' => 'inventory', 'label' => 'admin.b2b_sidebar.inventory_management', 'order' => 70, 'scope' => 'global', 'channel' => 'b2b', 'permissions' => ['inventory.view']],
 
         'customer_360' => ['group' => 'accounts', 'label' => 'admin.customer_360', 'order' => 10, 'scope' => 'both', 'permissions' => ['customers.view', 'b2b.accounts.view'], 'mode' => 'any'],
-        'sales_quotations' => ['group' => 'accounts', 'label' => 'sales_quotations.title', 'order' => 15, 'scope' => 'both', 'permissions' => ['orders.view']],
+        'sales_quotations' => ['group' => 'sales', 'label' => 'sales_quotations.title', 'order' => 10, 'scope' => 'both', 'permissions' => ['orders.view']],
         'b2c_customers' => ['group' => 'accounts', 'label' => 'admin.b2c_workspace.modules.customers', 'order' => 20, 'scope' => 'store', 'channel' => 'b2c', 'permissions' => ['customers.view']],
         'customer_groups' => ['group' => 'accounts', 'label' => 'customer_groups.wholesale_title', 'order' => 30, 'scope' => 'both', 'channel' => 'b2b', 'permissions' => ['customers.view']],
         'b2c_customer_groups' => ['group' => 'accounts', 'label' => 'customer_groups.retail_title', 'order' => 40, 'scope' => 'both', 'channel' => 'b2c', 'permissions' => ['customers.view']],

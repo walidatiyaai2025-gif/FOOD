@@ -50,6 +50,7 @@ return [
         'inventory' => 'Inventory',
         'warehouses' => 'Warehouses',
         'accounts' => 'Customers & Accounts',
+        'sales' => 'Sales',
         'stores' => 'Stores & Channels',
         'marketing' => 'Marketing & Communications',
         'advertising' => 'Advertising',

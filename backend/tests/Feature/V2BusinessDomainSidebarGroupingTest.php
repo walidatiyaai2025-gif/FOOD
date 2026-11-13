@@ -25,6 +25,7 @@ final class V2BusinessDomainSidebarGroupingTest extends TestCase
     private const DOMAIN_ITEMS = [
         'commercial_sales_control' => 'catalog',
         'catalog_management' => 'catalog',
+        'sales_quotations' => 'sales',
         'b2b_inventory' => 'inventory',
         'b2c_inventory' => 'inventory',
         'order_operations' => 'operations',
@@ -54,7 +55,7 @@ final class V2BusinessDomainSidebarGroupingTest extends TestCase
             $this->assertSame($group, $layout['items'][$item]['group_key'], $item.' default placement');
         }
 
-        foreach (['catalog', 'procurement', 'inventory', 'warehouses', 'operations', 'finance', 'treasury', 'administration'] as $group) {
+        foreach (['catalog', 'sales', 'procurement', 'inventory', 'warehouses', 'operations', 'finance', 'treasury', 'administration'] as $group) {
             $label = $registry['groups'][$group]['label'];
             $this->assertTrue(Lang::hasForLocale($label, 'ar'), $group.' Arabic group label');
             $this->assertTrue(Lang::hasForLocale($label, 'en'), $group.' English group label');
