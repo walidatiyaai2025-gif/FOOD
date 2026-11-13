@@ -84,7 +84,12 @@ final class InstallState
         // Keep the separate lock file across requests: removing it on unlock
         // could let a third request lock a different inode.
         $progressPath = $this->progressPath();
-        $tokenLockPath = $progressPath.'.token-lock';
+        // Keep the persistent inode outside a disposable progress directory.
+        // Testing and custom hosting layouts can override this safe local path.
+        $tokenLockPath = (string) config(
+            'foodex.installer_token_lock_path',
+            storage_path('framework/installer-token-locks/'.hash('sha256', $progressPath).'.lock'),
+        );
         $this->assertSafeStatePath($tokenLockPath);
 
         $directory = dirname($tokenLockPath);
