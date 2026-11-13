@@ -201,6 +201,11 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
         with self.assertRaisesRegex(PackageContractError, "migration-presence"):
             self.verify_first()
 
+    def test_malformed_dashboard_fields_are_rejected_not_interpreted(self) -> None:
+        self.change_manifest("dashboard_fields", ["not-a-mapping"])
+        with self.assertRaisesRegex(PackageContractError, "Dashboard fields"):
+            self.verify_first()
+
     def test_zip_payload_modification_cannot_reuse_manifest_digest(self) -> None:
         with (self.first / "FOODEX-Update.zip").open("ab") as fp:
             fp.write(b"tampered after hashing")
