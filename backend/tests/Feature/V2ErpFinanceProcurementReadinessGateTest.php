@@ -38,7 +38,7 @@ final class V2ErpFinanceProcurementReadinessGateTest extends TestCase
         ],
         'treasury' => [
             'key' => 'erp_treasury',
-            'group' => 'finance',
+            'group' => 'treasury',
             'route' => 'admin.erp.treasury.index',
         ],
     ];

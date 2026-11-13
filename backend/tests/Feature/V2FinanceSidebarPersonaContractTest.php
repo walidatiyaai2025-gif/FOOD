@@ -114,11 +114,15 @@ final class V2FinanceSidebarPersonaContractTest extends TestCase
 
         $this->assertFalse($keys->contains('erp_finance'));
         $this->assertFalse($keys->contains('erp_treasury'));
-        $this->assertFalse($keys->contains('treasury_master'));
+        $this->assertTrue($keys->contains('treasury_master'), 'Scoped Retail finance.view projects the existing master-data HTTP route.');
 
         $this->actingAs($actor)
             ->get(route('admin.erp.index', [], false))
             ->assertForbidden();
+
+        $this->actingAs($actor)
+            ->get(route('admin.treasury.master.index', ['store_id' => $ownedStore], false))
+            ->assertOk();
 
         $this->actingAs($actor)
             ->get(route('admin.treasury.master.index', ['store_id' => $foreignStore], false))
