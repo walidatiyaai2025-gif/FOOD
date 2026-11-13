@@ -179,6 +179,7 @@ class AdminNavigation
             // target children retain their canonical ready-only domain owners.
             $this->group('sales', 'admin.nav_groups.sales', '▤', [
                 $this->routeItemScoped($user, 'sales_quotations', 'sales_quotations.title', 'admin.sales-quotations.index', 'orders.view'),
+                $this->commercialExceptionApprovalsItem($user, isset($channels['b2b'])),
             ]),
             $this->group('customer_service', 'admin.nav_groups.customer_service', '◉', [
                 // The canonical Inbox route accepts authorized store-scoped Retail support
@@ -899,6 +900,75 @@ class AdminNavigation
         }
 
         return $this->routeItemOpen('order_operations', 'admin.order_management', 'admin.operations.orders.index');
+    }
+
+    /**
+     * P197: canonical pending customer-service concessions, not a new ledger.
+     * The Sales Sidebar projects the same three-permission intersection
+     * for one store/channel as the Orders controller's pending review mode.
+     *
+     * @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null
+     */
+    private function commercialExceptionApprovalsItem(User $user, bool $hasWholesaleChannel): ?array
+    {
+        if (! $user->is_active || ! Route::has('admin.operations.orders.index')) {
+            return null;
+        }
+
+        // Sidebar rendering is read-only: creating the Wholesale principal here
+        // would recreate a store after a full data reset. Reuse the already
+        // memoized Super Admin decision instead of running the tenant-scope
+        // role probe once for each of the three required permissions.
+        $scope = $this->isSuperAdmin($user) ? null : app(OperationalTenantScope::class);
+        $permissions = ['orders.view', 'orders.customer_service_discount', 'orders.approve'];
+        foreach (['b2b', 'b2c'] as $channel) {
+            if ($channel === 'b2b' && ! $hasWholesaleChannel) {
+                continue;
+            }
+
+            if ($scope === null) {
+                // OperationalTenantScope authorizes active Super Admins for
+                // existing active stores; selecting one must not create it.
+                $eligible = DB::table('stores')
+                    ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                    ->where('stores.is_active', true)
+                    ->where('store_types.code', strtoupper($channel))
+                    ->orderBy('stores.id')
+                    ->limit(1)
+                    ->pluck('stores.id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->all();
+            } else {
+                $eligible = null;
+                foreach ($permissions as $permission) {
+                    $stores = $scope->allowedStoreIds($user, $permission, $channel);
+                    $eligible = $eligible === null ? $stores : array_values(array_intersect($eligible, $stores));
+                    if ($eligible === []) {
+                        break;
+                    }
+                }
+            }
+            if ($eligible === []) {
+                continue;
+            }
+
+            sort($eligible, SORT_NUMERIC);
+
+            return [
+                'key' => 'commercial_exception_approvals',
+                'label' => 'admin.commercial_exception_approvals',
+                'route' => 'admin.operations.orders.index',
+                'params' => [
+                    'channel' => $channel,
+                    'store_id' => (string) $eligible[0],
+                    'discount_view' => 'pending',
+                    'action_required' => '0',
+                ],
+                'permission' => null,
+            ];
+        }
+
+        return null;
     }
 
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
