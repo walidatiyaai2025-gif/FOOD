@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\WhatsApp\AgentAssignmentEngine;
 use App\Domain\WhatsApp\DistributionRuleManager;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\WhatsAppModuleState;
@@ -149,6 +150,39 @@ final class V2ConversationDistributionRulesHttpTest extends TestCase
             ...$payload, 'agent_ids' => [$roleless->id],
         ])->assertSessionHasErrors('agent_ids');
         $this->assertDatabaseMissing('whats_app_assignment_rules', ['name' => 'Denied Rule']);
+    }
+
+    public function test_explicit_store_view_deny_blocks_distribution_rule_administration_without_side_effects(): void
+    {
+        $store = $this->store('B2B', 'P202-VIEW-DENY');
+        $supervisor = $this->globalActor('CUSTOMER_SERVICE_SUPERVISOR', 'P202 Denied Supervisor');
+        $this->assertTrue($supervisor->hasPermission('whatsapp.conversations.assign', $store));
+        $this->assertTrue($supervisor->hasPermission('whatsapp.customer_service.supervise', $store));
+
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $supervisor->id,
+            'permission_id' => Permission::query()->where('code', 'whatsapp.conversations.view')->firstOrFail()->id,
+            'scope_key' => 'store:'.$store,
+            'store_id' => $store,
+            'effect' => 'deny',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $supervisor->forceFill(['has_permission_overrides' => true])->save();
+
+        $this->assertFalse($supervisor->fresh()->hasPermission('whatsapp.conversations.view', $store));
+        $this->actingAs($supervisor->fresh())
+            ->get(route('admin.whatsapp-supervisor.rules.index', ['store_id' => $store]))
+            ->assertForbidden();
+        $this->actingAs($supervisor->fresh())
+            ->post(route('admin.whatsapp-supervisor.rules.store'), [
+                'store_id' => $store,
+                'name' => 'DENY attempted',
+                'priority' => 1,
+                'strategy' => 'round_robin',
+                'is_active' => 1,
+            ])->assertForbidden();
+        $this->assertDatabaseMissing('whats_app_assignment_rules', ['name' => 'DENY attempted']);
     }
 
     public function test_legacy_advanced_rules_remain_read_only_and_disabled_module_blocks_direct_http(): void
