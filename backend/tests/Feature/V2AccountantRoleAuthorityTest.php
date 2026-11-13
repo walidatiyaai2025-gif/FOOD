@@ -208,7 +208,6 @@ final class V2AccountantRoleAuthorityTest extends TestCase
             ->assertForbidden();
     }
 
-
     public function test_single_accountant_can_reach_b2b_finance_workbench_only_with_matching_read_entitlement(): void
     {
         $store = $this->wholesaleStore();
