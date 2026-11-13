@@ -207,6 +207,7 @@ return [
         'preview' => 'فتح معاينة التطبيق',
         'users_permissions' => 'المستخدمون والصلاحيات',
         'users_permissions_description' => 'إدارة المستخدمين والأدوار والإسنادات وحدود الصلاحيات.',
+        'inactive_users' => 'مراجعة المستخدمين غير النشطين',
         'system_settings' => 'إعدادات النظام',
         'system_settings_description' => 'إدارة تشغيل تطبيقات الهاتف والترجمات وإعدادات المساعد وتحديثات النظام.',
         'notifications' => 'الإشعارات',

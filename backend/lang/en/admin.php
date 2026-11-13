@@ -207,6 +207,7 @@ return [
         'preview' => 'Open application preview',
         'users_permissions' => 'Users & Permissions',
         'users_permissions_description' => 'Manage users, roles, assignments and authorization boundaries.',
+        'inactive_users' => 'Review inactive users',
         'system_settings' => 'System Settings',
         'system_settings_description' => 'Manage mobile runtime, translations, Assistant settings and system update controls.',
         'notifications' => 'Notifications',

@@ -6,6 +6,7 @@ import '../../core/auth/van_session.dart';
 import '../../core/theme/foodex_van_theme.dart';
 import '../../shared/van_action_button.dart';
 import '../wallet/van_wallet_contract.dart';
+import 'van_direct_sales_scope.dart';
 import 'van_order_contract.dart';
 
 class VanProductCatalogPage extends StatefulWidget {
@@ -64,11 +65,11 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
       _error = null;
     });
     try {
-      final customers = await widget.customerRepository.customers();
+      final assigned = await widget.customerRepository.customers();
       if (!mounted) return;
-      if (customers.isNotEmpty && widget.draft.customer == null) {
-        widget.draft.selectCustomer(customers.first);
-      }
+      // Direct Van sales are wholesale-only. Keep legacy retail visits
+      // available to other workflows without offering retail checkout.
+      final customers = syncWholesaleDirectSaleDraft(widget.draft, assigned);
       setState(() => _customers = customers);
       await _loadProducts();
     } on VanSessionExpiredException {
@@ -458,7 +459,10 @@ class _VanProductCatalogPageState extends State<VanProductCatalogPage> {
     }
     if (_customers.isEmpty) {
       return _State(
-        text: _text('No assigned customers', 'لا يوجد عملاء مسندون'),
+        text: _text(
+          'No assigned wholesale customers',
+          'لا يوجد عملاء جملة مسندون',
+        ),
         action: _loadCustomers,
         actionLabel: _text('Refresh', 'تحديث'),
       );
