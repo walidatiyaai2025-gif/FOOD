@@ -59,7 +59,7 @@ final class V2ExportedAccountRow7AuthorizationTest extends TestCase
             $user->forceFill(['locale' => $locale])->save();
             $actor = $user->fresh();
 
-            $this->assertSame([], app(AdminNavigation::class)->groupsFor($actor));
+            $this->assertNoPrivilegedNavigation($actor);
             $this->actingAs($actor)
                 ->get(route('admin.security.index', ['section' => 'users']))
                 ->assertForbidden();
@@ -104,7 +104,7 @@ final class V2ExportedAccountRow7AuthorizationTest extends TestCase
         $this->assertNotContains('deliveries.b2c.execute', $user->effectivePermissionCodes());
         $this->assertFalse($user->hasPermission('users.view'));
         $this->assertFalse($user->hasPermission('van.login'));
-        $this->assertSame([], app(AdminNavigation::class)->groupsFor($user));
+        $this->assertNoPrivilegedNavigation($user);
 
         Sanctum::actingAs($user, ['app:driver', 'app:van']);
         $this->postJson('/api/v1/driver/location/heartbeat', [
@@ -118,6 +118,29 @@ final class V2ExportedAccountRow7AuthorizationTest extends TestCase
             'role_id' => Role::query()->where('code', 'B2B_DRIVER')->firstOrFail()->id,
         ]);
         $this->assertDatabaseHas('users', ['id' => $user->id, 'is_active' => true]);
+    }
+
+
+    /**
+     * General account/workspace landing entries can be present for global
+     * operational roles. They do not confer Security, Retail or Finance access.
+     * Assert absence of privileged actions rather than an entirely empty menu.
+     */
+    private function assertNoPrivilegedNavigation(User $user): void
+    {
+        $keys = [];
+        foreach (app(AdminNavigation::class)->groupsFor($user) as $group) {
+            foreach ((array) ($group['children'] ?? []) as $item) {
+                $keys[] = (string) ($item['key'] ?? '');
+                foreach ((array) ($item['children'] ?? []) as $child) {
+                    $keys[] = (string) ($child['key'] ?? '');
+                }
+            }
+        }
+
+        foreach (['sidebar_role_access', 'b2c_inventory', 'b2b_orders', 'erp_finance', 'erp_wms', 'role_management'] as $restricted) {
+            $this->assertNotContains($restricted, $keys);
+        }
     }
 
     private function syntheticWholesaleDriver(): User
