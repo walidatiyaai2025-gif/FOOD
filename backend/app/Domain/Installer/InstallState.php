@@ -64,8 +64,17 @@ final class InstallState
             ? $token
             : null;
 
+        // Progress is a persisted trust boundary: coercing "12", 12.9 or
+        // true into a completed step would allow a corrupt JSON state to
+        // unlock later setup actions. Only the integer emitted by writeJson
+        // is authoritative; malformed or out-of-range data starts at step 0.
+        $completedStep = $decoded['completed_step'] ?? 0;
+        if (! is_int($completedStep) || $completedStep < 0 || $completedStep > 15) {
+            $completedStep = 0;
+        }
+
         return [
-            'completed_step' => max(0, min(15, (int) ($decoded['completed_step'] ?? 0))),
+            'completed_step' => $completedStep,
             'admin' => $admin,
             'token' => $token,
         ];
