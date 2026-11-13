@@ -6,6 +6,7 @@ use App\Models\B2cCustomer;
 use App\Models\Customer;
 use App\Models\User;
 use App\Services\OperationalTenantScope;
+use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -76,10 +77,10 @@ final class V2ExportedAccountRow9AuthorizationTest extends TestCase
             $user = $user->fresh();
 
             $this->assertSame([], app(AdminNavigation::class)->groupsFor($user));
-            $this->actingAs($user)->get(route('admin.security.index'))->assertForbidden();
-            $this->actingAs($user)->get(route('admin.sidebar-access.roles'))->assertForbidden();
-            $this->actingAs($user)->get(route('admin.b2b.orders.canonical'))->assertForbidden();
-            $this->actingAs($user)->get(route('admin.b2c.orders.canonical'))->assertForbidden();
+            $this->actingAs($user, 'web')->get(route('admin.security.index'))->assertForbidden();
+            $this->actingAs($user, 'web')->get(route('admin.sidebar-access.roles'))->assertForbidden();
+            $this->actingAs($user, 'web')->get(route('admin.b2b.orders.canonical', ['store_id' => app(WholesalePrincipal::class)->storeId()]))->assertForbidden();
+            $this->actingAs($user, 'web')->get(route('admin.b2c.orders.canonical', ['store_id' => $store]))->assertForbidden();
 
             // A real Customer profile is not a Dashboard role. Do not break it
             // merely because the confidential export had no admin role.
@@ -113,8 +114,8 @@ final class V2ExportedAccountRow9AuthorizationTest extends TestCase
             $user = $user->fresh();
 
             $this->assertSame([], app(AdminNavigation::class)->groupsFor($user));
-            $this->actingAs($user)->get(route('admin.security.index'))->assertForbidden();
-            $this->actingAs($user)->get(route('admin.sidebar-access.roles'))->assertForbidden();
+            $this->actingAs($user, 'web')->get(route('admin.security.index'))->assertForbidden();
+            $this->actingAs($user, 'web')->get(route('admin.sidebar-access.roles'))->assertForbidden();
 
             Sanctum::actingAs($user, ['app:customer']);
             $this->getJson('/api/v1/profile')
