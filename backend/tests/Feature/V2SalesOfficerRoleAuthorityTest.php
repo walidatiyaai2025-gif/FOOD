@@ -184,6 +184,31 @@ final class V2SalesOfficerRoleAuthorityTest extends TestCase
         }
     }
 
+    public function test_inactive_global_roles_cannot_obtain_effective_permissions_even_when_assignments_remain(): void
+    {
+        $adminRole = Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail();
+        $admin = User::factory()->create(['is_active' => true]);
+        $admin->roles()->attach($adminRole);
+
+        $this->assertTrue($admin->fresh()->hasPermission('roles.manage'));
+        $admin->forceFill(['is_active' => false])->save();
+
+        // Historical role assignment is retained for audit; effective
+        // authorization must not inherit even a SUPER_ADMIN bypass.
+        $this->assertDatabaseHas('role_user', [
+            'user_id' => $admin->id,
+            'role_id' => $adminRole->id,
+        ]);
+        $this->assertFalse($admin->fresh()->hasPermission('roles.manage'));
+
+        $officer = $this->salesOfficer();
+        $this->assertTrue($officer->fresh()->hasPermission('orders.edit'));
+        $officer->forceFill(['is_active' => false])->save();
+
+        $this->assertFalse($officer->fresh()->hasPermission('orders.edit'));
+        $this->assertFalse($officer->fresh()->hasPermission('customers.view'));
+    }
+
     private function salesOfficer(): User
     {
         $actor = User::factory()->create(['locale' => 'en', 'is_active' => true]);
