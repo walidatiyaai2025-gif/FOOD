@@ -20,7 +20,7 @@
         @foreach($reportLinks as $code => $report)
             <a class="foodex-viz-card wms-report-card" data-report-code="{{ $code }}" href="{{ route('admin.erp.wms.index',array_merge($reportBase,['tab'=>$report['tab']])) }}">
                 <strong>{{ $report['label'] }}</strong>
-                <small>{{ $reportCatalog[$code]['read_model'] ?? $code }}</small>
+                <small>{{ __('enterprise_wms.reports.open_report') }}</small>
             </a>
         @endforeach
     </div>

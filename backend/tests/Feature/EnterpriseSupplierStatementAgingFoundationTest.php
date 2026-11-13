@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enterprise\Modules\ModuleLifecycleManager;
+use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Enterprise\Procurement\GoodsReceiptManager;
@@ -235,6 +236,144 @@ final class EnterpriseSupplierStatementAgingFoundationTest extends TestCase
         $this->assertSame(1, $aging['invoice_count']);
         $this->assertSame('1.250', $aging['gross_exposure']);
         $this->assertSame('1.250', $aging['buckets']['due_0_30']);
+    }
+
+    public function test_supplier_statement_workbench_keeps_scoped_filters_when_paging_in_both_locales(): void
+    {
+        config()->set('security.mfa.enforce_privileged', false);
+        config()->set(
+            'enterprise_module_readiness.certified_versions.procurement',
+            app(ModuleRegistry::class)->manifest('procurement')->version,
+        );
+        $this->enableProcurement();
+
+        [$actor, $store, $context] = $this->scopedUser(
+            [...$this->allPermissions(), 'reports.view'],
+            'P245-STATEMENT-UI',
+        );
+        $this->grantPlatformErpAccess($actor);
+        [, $warehouse] = $this->stockTarget($store, 'P245-STATEMENT-SKU');
+        $receipt = $this->postedReceipt(
+            $actor,
+            $context,
+            $warehouse,
+            'P245-STATEMENT-SUP',
+            'P245-STATEMENT-SKU',
+            30,
+        );
+        $lineId = $receipt->lines()->firstOrFail()->id;
+        $manager = app(PurchaseInvoiceHandoffManager::class);
+        $invoiceDate = now()->subDays(10)->toDateString();
+        $dueDate = now()->addDays(10)->toDateString();
+
+        for ($n = 1; $n <= 26; $n++) {
+            $invoice = $manager->createFromPostedReceipt($actor, $context, $receipt->id, [
+                'supplier_invoice_number' => 'P245-INV-'.str_pad((string) $n, 2, '0', STR_PAD_LEFT),
+                'invoice_date' => $invoiceDate,
+                'due_date' => $dueDate,
+                'lines' => [[
+                    'goods_receipt_line_id' => $lineId,
+                    'quantity' => 1,
+                ]],
+            ]);
+            $manager->handoff($actor, $context, $invoice->id);
+        }
+
+        $filters = [
+            'store_id' => $store->id,
+            'tab' => 'statements',
+            'supplier_id' => $receipt->supplier_id,
+            'from' => now()->subDays(20)->toDateString(),
+            'to' => now()->toDateString(),
+            'as_of' => now()->toDateString(),
+            'currency_code' => 'KWD',
+        ];
+
+        foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
+            app()->setLocale($locale);
+            $actor->forceFill(['locale' => $locale])->save();
+
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.erp.procurement.index', $filters))
+                ->assertOk()
+                ->assertViewHas('activeTab', 'statements')
+                ->assertViewHas('statement', static fn ($page): bool => $page->total() === 26
+                    && $page->count() === 25
+                    && $page->currentPage() === 1)
+                ->assertSee('dir="'.$direction.'"', false)
+                ->assertSee('page=2', false)
+                ->assertSee('supplier_id='.$receipt->supplier_id, false)
+                ->assertSee('currency_code=KWD', false);
+
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.erp.procurement.index', [...$filters, 'page' => 2]))
+                ->assertOk()
+                ->assertViewHas('statement', static fn ($page): bool => $page->total() === 26
+                    && $page->count() === 1
+                    && $page->currentPage() === 2)
+                ->assertSee('P245-INV-01')
+                ->assertDontSee('P245-INV-26');
+        }
+    }
+
+    public function test_supplier_statement_http_rejects_foreign_stores_suppliers_and_missing_permission(): void
+    {
+        config()->set('security.mfa.enforce_privileged', false);
+        config()->set(
+            'enterprise_module_readiness.certified_versions.procurement',
+            app(ModuleRegistry::class)->manifest('procurement')->version,
+        );
+        $this->enableProcurement();
+
+        [$owner, $store, $context] = $this->scopedUser(
+            [...$this->allPermissions(), 'reports.view'],
+            'P245-HTTP-OWNER',
+        );
+        $this->grantPlatformErpAccess($owner);
+        $supplier = app(SupplierDirectory::class)->create($owner, $context, [
+            'scope_type' => 'store',
+            'code' => 'P245-HTTP-SUP',
+            'name_en' => 'Private supplier',
+            'name_ar' => 'مورد خاص',
+        ]);
+        [$foreign, $otherStore] = $this->scopedUser(
+            [...$this->allPermissions(), 'reports.view'],
+            'P245-HTTP-FOREIGN',
+        );
+        $this->grantPlatformErpAccess($foreign);
+        [$noStatements, $limitedStore] = $this->scopedUser(
+            ['procurement.suppliers.view', 'reports.view'],
+            'P245-HTTP-NO-STATEMENTS',
+        );
+        $this->grantPlatformErpAccess($noStatements);
+
+        foreach (['ar', 'en'] as $locale) {
+            app()->setLocale($locale);
+            $foreign->forceFill(['locale' => $locale])->save();
+            $noStatements->forceFill(['locale' => $locale])->save();
+
+            $this->actingAs($foreign->fresh())
+                ->get(route('admin.erp.procurement.index', [
+                    'store_id' => $store->id,
+                    'tab' => 'statements',
+                ]))
+                ->assertForbidden();
+
+            $this->actingAs($foreign->fresh())
+                ->get(route('admin.erp.procurement.index', [
+                    'store_id' => $otherStore->id,
+                    'tab' => 'statements',
+                    'supplier_id' => $supplier->id,
+                ]))
+                ->assertNotFound();
+
+            $this->actingAs($noStatements->fresh())
+                ->get(route('admin.erp.procurement.index', [
+                    'store_id' => $limitedStore->id,
+                    'tab' => 'statements',
+                ]))
+                ->assertForbidden();
+        }
     }
 
     private function enableProcurement(): void

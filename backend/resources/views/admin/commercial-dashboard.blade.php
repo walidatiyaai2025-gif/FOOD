@@ -147,6 +147,12 @@
         @if(!empty($pricingListsUrl))
         <a data-v2-pricing-lists-link aria-label="{{ __('commercial.tabs.price_lists') }}" href="{{ $pricingListsUrl }}">{{ __('commercial.tabs.price_lists') }}</a>
         @endif
+        @if($section === 'sales-control' && !empty($pendingDiscountRequestsUrl))
+        <a data-v2-exception-approvals-link href="{{ $pendingDiscountRequestsUrl }}">{{ __('customer_service_discount.pending_review') }}</a>
+        @endif
+        @if($section === 'sales-control' && !empty($approvedDiscountsUrl))
+        <a data-v2-approved-discounts-sales-link href="{{ $approvedDiscountsUrl }}">{{ __('customer_service_discount.approved_history') }}</a>
+        @endif
         <a href="{{ route($storeChannel === 'b2b' ? 'admin.b2b.module' : 'admin.b2c.module', ['module' => $section === 'sales-control' ? 'products' : 'promotions'] + $scope) }}">{{ __('commercial.tabs.back_store') }}</a>
     </div>
 

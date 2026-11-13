@@ -20,8 +20,14 @@ class InventoryController extends Controller
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        abort_unless($user->hasPermission('inventory.manage') || $user->storeRoleAssignments()->whereHas('role.permissions', fn ($query) => $query->where('permissions.code', 'inventory.manage'))->exists(), 403);
-        $rows = Inventory::query()->accessibleTo($user)->orderBy('id')->paginate(min(max($request->integer('per_page', 20), 1), 100));
+        // Read and adjustment are independent capabilities. Query through the
+        // same module-aware, override-aware tenant scope used by write actions.
+        $storeIds = app(OperationalTenantScope::class)->allowedStoreIds($user, 'inventory.view');
+        abort_unless($user->hasPermission('inventory.view') || $storeIds !== [], 403);
+        $rows = Inventory::query()
+            ->whereIn('warehouse_id', Warehouse::query()->whereIn('store_id', $storeIds)->select('id'))
+            ->orderBy('id')
+            ->paginate(min(max($request->integer('per_page', 20), 1), 100));
 
         return response()->json(['data' => $rows->items(), 'meta' => ['total' => $rows->total()]]);
     }
@@ -31,9 +37,10 @@ class InventoryController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401);
         $warehouse = Warehouse::query()->findOrFail($inventory->warehouse_id);
-        abort_unless(Inventory::query()->accessibleTo($user)->whereKey($inventory->getKey())->exists(), 404);
-        abort_unless($user->hasPermission('inventory.manage', (int) $warehouse->store_id), 403);
-        app(OperationalTenantScope::class)->assertStore($user, (int) $warehouse->store_id, 'inventory.manage');
+        // An inventory counter can adjust stock without broad warehouse or
+        // catalog management authority; foreign/disabled scopes stay hidden.
+        app(OperationalTenantScope::class)->assertStore($user, (int) $warehouse->store_id, 'inventory.adjust');
+        abort_unless($user->hasPermission('inventory.adjust', (int) $warehouse->store_id), 403);
         app(OperationalTenantScope::class)->assertProductOwnedByStore((int) $inventory->product_id, (int) $warehouse->store_id);
         $data = $request->validate([
             'quantity_delta' => ['required', 'numeric', 'not_in:0'],

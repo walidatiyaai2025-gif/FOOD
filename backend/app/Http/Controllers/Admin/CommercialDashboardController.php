@@ -92,11 +92,40 @@ final class CommercialDashboardController extends Controller
             $pricingListsUrl = route('admin.b2b.pricing-approvals');
         }
 
+        // P196 reuses the Orders approved-requests read model instead of
+        // creating a second Sales approval ledger or granting access by catalog.view.
+        $approvedDiscountsUrl = null;
+        $pendingDiscountRequestsUrl = null;
+        if ($storeId > 0
+            && $storeId === app(WholesalePrincipal::class)->storeId()
+            && collect(['orders.view', 'orders.customer_service_discount', 'orders.approve'])->every(
+                fn (string $permission): bool => in_array(
+                    $storeId,
+                    app(OperationalTenantScope::class)->allowedStoreIds($user, $permission, 'b2b'),
+                    true,
+                ),
+            )) {
+            $approvedDiscountsUrl = route('admin.operations.orders.index', [
+                'channel' => 'b2b',
+                'store_id' => $storeId,
+                'discount_view' => 'approved',
+                'action_required' => 0,
+            ]);
+            $pendingDiscountRequestsUrl = route('admin.operations.orders.index', [
+                'channel' => 'b2b',
+                'store_id' => $storeId,
+                'discount_view' => 'pending',
+                'action_required' => 0,
+            ]);
+        }
+
         return $this->render($request, $user, $storeId, 'sales-control', [
             'products' => $products,
             'selectedProduct' => $selectedProduct,
             'productCount' => $productCount,
             'pricingListsUrl' => $pricingListsUrl,
+            'approvedDiscountsUrl' => $approvedDiscountsUrl,
+            'pendingDiscountRequestsUrl' => $pendingDiscountRequestsUrl,
             'policies' => DB::table('product_commercial_policies')->whereIn('product_id', $selectedProductIds)->get()->keyBy('product_id'),
             'sellingUnits' => DB::table('product_selling_units')->whereIn('product_id', $selectedProductIds)->orderBy('id')->get()->groupBy('product_id'),
             'availabilityWindows' => DB::table('product_availability_windows')->whereIn('product_id', $selectedProductIds)->orderBy('id')->get()->groupBy('product_id'),

@@ -41,6 +41,10 @@ class V2CustomersSidebarGroupAuthorityTest extends TestCase
             array_keys($items->all()),
         );
         $this->assertSame('admin.customer-360.index', $items['customer_360']['route']);
+        $sales = collect(app(AdminNavigation::class)->groupsFor($retail))->firstWhere('key', 'sales');
+        $this->assertSame('admin.nav_groups.sales', $sales['label']);
+        $this->assertSame(['sales_quotations'], collect($sales['children'])->pluck('key')->all());
+        $this->assertSame('admin.sales-quotations.index', $sales['children'][0]['route']);
         $this->assertSame('admin.b2c.module', $items['b2c_customers']['route']);
         $this->assertSame(
             ['module' => 'customers', 'store_id' => (string) $storeA],
@@ -83,6 +87,10 @@ class V2CustomersSidebarGroupAuthorityTest extends TestCase
         $this->assertIsArray($group);
         $items = collect($group['children'])->keyBy('key');
         $this->assertSame(['customer_360', 'customer_groups'], array_keys($items->all()));
+        $sales = collect(app(AdminNavigation::class)->groupsFor($wholesale))->firstWhere('key', 'sales');
+        $this->assertSame('admin.nav_groups.sales', $sales['label']);
+        $this->assertSame(['sales_quotations'], collect($sales['children'])->pluck('key')->all());
+        $this->assertSame('admin.sales-quotations.index', $sales['children'][0]['route']);
         $this->assertSame('admin.b2b.customer-groups.index', $items['customer_groups']['route']);
         $this->assertFalse($items->has('b2c_customers'));
         $this->assertFalse($items->has('b2c_customer_groups'));

@@ -18,10 +18,10 @@ final class V2ErpBusinessDomainNavigationTest extends TestCase
     use RefreshDatabase;
 
     private const EXPECTED_GROUPS = [
-        'erp_procurement' => 'catalog',
-        'erp_wms' => 'catalog',
+        'erp_procurement' => 'procurement',
+        'erp_wms' => 'warehouses',
         'erp_finance' => 'finance',
-        'erp_treasury' => 'finance',
+        'erp_treasury' => 'treasury',
         'erp_bi' => 'analytics',
     ];
 

@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'invalid_geography_selection' => 'Select an active geography node in the same country and parent hierarchy.',
+    'invalid_territory_warehouse' => 'Select an active wholesale warehouse within your permitted stores.',
     'register_van' => 'Register Van',
     'code' => 'Code',
     'plate_number' => 'Plate number',
@@ -29,6 +31,16 @@ return [
     'last_heartbeat' => 'Last heartbeat',
     'route' => 'Route',
     'no_location' => 'No location heartbeat has been received for this Van yet.',
+    'movement_log' => [
+        'title' => 'Van operational movement log',
+        'description' => 'Latest 50 authorized Wholesale delivery transitions. This is a delivery execution record, not historical GPS tracking.',
+        'order' => 'Order',
+        'from' => 'From status',
+        'to' => 'To status',
+        'captured_at' => 'Recorded at',
+        'empty' => 'No authorized delivery movements are recorded for this Van.',
+        'unknown' => 'Unrecognized status',
+    ],
     'assignment_history' => 'Assignment history',
     'driver' => 'Driver',
     'operator' => 'Operator',

@@ -28,6 +28,16 @@ final class V2PageActionAuthorityMatrixTest extends TestCase
         config()->set('security.mfa.enforce_privileged', false);
         $this->seed(CoreReferenceSeeder::class);
 
+        // These synthetic action-matrix roles simulate explicit Wholesale
+        // channel authorization. A global permission alone is not a tenant
+        // grant: the operational scope must also recognize the B2B actor.
+        config()->set('admin.channels.B2B.global_roles', [
+            ...config('admin.channels.B2B.global_roles', []),
+            'V2_P082_PRICING_VIEW',
+            'V2_P082_PRICING_MANAGE',
+            'V2_P082_PRICING_DENY',
+        ]);
+
         $storeId = app(WholesalePrincipal::class)->storeId();
         DB::table('settings')->updateOrInsert(
             ['store_id' => $storeId, 'key' => B2bPricingMode::SETTING_KEY],
@@ -103,6 +113,15 @@ final class V2PageActionAuthorityMatrixTest extends TestCase
         $this->getJson('/api/v1/admin/b2b/prices')->assertForbidden();
         $this->putJson('/api/v1/admin/b2b/prices', [])->assertUnprocessable();
         $this->assertSame(0, DB::table('b2b_price_rules')->count());
+    }
+
+    public function test_unscoped_global_view_permission_is_not_wholesale_tenant_authority(): void
+    {
+        $actor = $this->actor('V2_P082_UNSCOPED_VIEW', 'global', ['b2b.pricing.view']);
+        Sanctum::actingAs($actor, ['*']);
+
+        // Permission-based route access cannot bypass store/channel scope.
+        $this->getJson('/api/v1/admin/b2b/prices')->assertNotFound();
     }
 
     public function test_retail_store_permission_cannot_read_wholesale_pricing_globally(): void

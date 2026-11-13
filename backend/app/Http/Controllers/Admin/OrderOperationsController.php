@@ -29,6 +29,7 @@ use App\Services\FulfillmentActorPolicy;
 use App\Services\InvoiceService;
 use App\Services\OperationalLookupService;
 use App\Services\OperationalTenantScope;
+use App\Services\OrderCustomerServiceDiscountApprovalService;
 use App\Services\OrderCustomerServiceDiscountService;
 use App\Services\OrderDeliveryAddressSnapshotService;
 use App\Services\OrderLifecycleNotificationService;
@@ -101,6 +102,7 @@ final class OrderOperationsController extends Controller
             'channel' => ['nullable', 'string', Rule::in(['all', 'b2b', 'b2c'])],
             'order' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'discount_view' => ['nullable', 'string', Rule::in(['approved', 'pending'])],
         ]);
 
         $customerServiceProfile = $this->navigation->usesCustomerServiceDashboardProfile($actor);
@@ -120,6 +122,25 @@ final class OrderOperationsController extends Controller
         $manageScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.manage');
         $dispatchScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.dispatch');
         $financeScopes = $this->operationalScopes($actor, $operationalChannel, 'finance.view');
+        $approvedDiscountsMode = ($data['discount_view'] ?? null) === 'approved';
+        $pendingDiscountsMode = ($data['discount_view'] ?? null) === 'pending';
+        $discountDecisionMode = $approvedDiscountsMode || $pendingDiscountsMode;
+        $discountRequestScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.customer_service_discount');
+        $discountApprovalScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.approve');
+        $discountReadScopes = [];
+        foreach (['b2b', 'b2c'] as $channel) {
+            $discountReadScopes[$channel] = array_values(array_intersect(
+                $scopes[$channel],
+                $discountRequestScopes[$channel],
+                $discountApprovalScopes[$channel],
+            ));
+        }
+        $canViewApprovedDiscounts = $actor->is_active
+            && ($discountReadScopes['b2b'] !== [] || $discountReadScopes['b2c'] !== []);
+        if ($discountDecisionMode) {
+            abort_unless($canViewApprovedDiscounts, 403);
+        }
+
         $storeIds = array_values(array_unique(array_merge(
             $scopes['b2b'],
             $scopes['b2c'],
@@ -128,6 +149,10 @@ final class OrderOperationsController extends Controller
 
         $selectedStoreId = isset($data['store_id']) ? (int) $data['store_id'] : null;
         if ($selectedStoreId !== null && collect($storeIds)->containsStrict($selectedStoreId) === false) {
+            abort(404);
+        }
+        if ($discountDecisionMode && $selectedStoreId !== null
+            && ! in_array($selectedStoreId, array_merge($discountReadScopes['b2b'], $discountReadScopes['b2c']), true)) {
             abort(404);
         }
 
@@ -189,6 +214,19 @@ final class OrderOperationsController extends Controller
             });
         }
 
+        if ($discountDecisionMode) {
+            // P230: Pending and approved concessions use the same independently
+            // authorized store/channel scopes; a Catalog grant is never enough.
+            $decisionStatus = $pendingDiscountsMode ? 'pending' : 'approved';
+            $orderQuery->where(fn ($query) => $this->applyOperationalScopes($query, $discountReadScopes))
+                ->whereExists(function ($query) use ($decisionStatus): void {
+                    $query->selectRaw('1')
+                        ->from('order_customer_service_discount_requests as scoped_requests')
+                        ->whereColumn('scoped_requests.order_id', 'orders.id')
+                        ->where('scoped_requests.status', $decisionStatus);
+                });
+        }
+
         $selectedException = isset($data['exception']) ? (string) $data['exception'] : null;
         if ($selectedException !== null) {
             $this->salesDashboard->applyExceptionFilter($orderQuery, $selectedException);
@@ -201,6 +239,7 @@ final class OrderOperationsController extends Controller
             || isset($data['dispatch_status'])
             || isset($data['exception'])
             || isset($data['order'])
+            || $discountDecisionMode
         );
 
         $statusBaseQuery = clone $orderQuery;
@@ -286,6 +325,27 @@ final class OrderOperationsController extends Controller
             ->latest('id')
             ->paginate($perPage)
             ->withQueryString();
+
+        $approvedDiscounts = null;
+        if ($approvedDiscountsMode) {
+            // Only independently approved requests are listed. A saved price
+            // rule or automatic promotion is not an approved concession.
+            $approvedDiscounts = DB::table('order_customer_service_discount_requests as decisions')
+                ->join('orders as related_orders', 'related_orders.id', '=', 'decisions.order_id')
+                ->join('users as requester', 'requester.id', '=', 'decisions.requested_by_user_id')
+                ->join('users as reviewer', 'reviewer.id', '=', 'decisions.reviewed_by_user_id')
+                ->where('decisions.status', 'approved')
+                ->whereIn('decisions.order_id', (clone $orderQuery)->select('orders.id')->toBase())
+                ->orderByDesc('decisions.reviewed_at')
+                ->orderByDesc('decisions.id')
+                ->paginate(20, [
+                    'decisions.id', 'decisions.percentage', 'decisions.reason', 'decisions.reviewed_at',
+                    'related_orders.id as order_id', 'related_orders.order_number',
+                    'related_orders.store_id', 'related_orders.channel',
+                    'requester.name as requested_by_name', 'reviewer.name as reviewed_by_name',
+                ], 'approved_discount_page')
+                ->withQueryString();
+        }
 
         $statusLabels = collect($statusOptions)
             ->mapWithKeys(static fn (array $option): array => [
@@ -496,6 +556,8 @@ final class OrderOperationsController extends Controller
             : collect();
 
         $detail = null;
+        $discountRequests = collect();
+        $approvedDiscountRequests = collect();
         if (isset($data['order'])) {
             $detailOrder = Order::query()
                 ->whereKey((int) $data['order'])
@@ -510,6 +572,37 @@ final class OrderOperationsController extends Controller
                 $manageScopes,
                 $financeScopes,
             );
+            $canReviewDiscounts = $canViewApprovedDiscounts
+                && in_array(
+                    (int) $detailOrder->store_id,
+                    $discountReadScopes[strtolower((string) $detailOrder->channel)] ?? [],
+                    true,
+                );
+            if ($canReviewDiscounts) {
+                $discountRequests = DB::table('order_customer_service_discount_requests as requests')
+                    ->join('users as requester', 'requester.id', '=', 'requests.requested_by_user_id')
+                    ->where('requests.order_id', $detailOrder->getKey())
+                    ->where('requests.status', 'pending')
+                    ->orderBy('requests.id')
+                    ->limit(20)
+                    ->get(['requests.id', 'requests.percentage', 'requests.reason',
+                        'requests.requested_by_user_id', 'requester.name as requested_by_name']);
+
+                // Read-only decisions remain within the exact scoped order;
+                // the existing independent approval authority is not bypassed.
+                $approvedDiscountRequests = DB::table('order_customer_service_discount_requests as requests')
+                    ->join('users as requester', 'requester.id', '=', 'requests.requested_by_user_id')
+                    ->join('users as reviewer', 'reviewer.id', '=', 'requests.reviewed_by_user_id')
+                    ->where('requests.order_id', $detailOrder->getKey())
+                    ->where('requests.status', 'approved')
+                    ->orderByDesc('requests.reviewed_at')
+                    ->orderByDesc('requests.id')
+                    ->paginate(20, [
+                        'requests.id', 'requests.percentage', 'requests.reason', 'requests.reviewed_at',
+                        'requester.name as requested_by_name', 'reviewer.name as reviewed_by_name',
+                    ], 'approved_discounts_page')
+                    ->withQueryString();
+            }
         }
 
         return view('admin.order-operations', [
@@ -532,6 +625,12 @@ final class OrderOperationsController extends Controller
             'drivers' => $drivers,
             'vans' => $vans,
             'detail' => $detail,
+            'discountRequests' => $discountRequests,
+            'approvedDiscountRequests' => $approvedDiscountRequests,
+            'approvedDiscounts' => $approvedDiscounts,
+            'approvedDiscountsMode' => $approvedDiscountsMode,
+            'pendingDiscountsMode' => $pendingDiscountsMode,
+            'canViewApprovedDiscounts' => $canViewApprovedDiscounts,
             'statuses' => array_map(
                 static fn (array $option): string => (string) $option['code'],
                 $statusOptions,
@@ -1740,6 +1839,7 @@ final class OrderOperationsController extends Controller
         Request $request,
         int $order,
         OrderCustomerServiceDiscountService $discounts,
+        OrderCustomerServiceDiscountApprovalService $approvals,
     ): RedirectResponse {
         $actor = $this->actor($request);
         $model = $this->managedOrder($actor, $order, 'orders.view');
@@ -1768,6 +1868,26 @@ final class OrderOperationsController extends Controller
             'reason' => ['required', 'string', 'min:5', 'max:500'],
             'idempotency_key' => ['required', 'uuid'],
         ]);
+        // Agents submit for a distinct supervisor/manager approval; they never
+        // mutate the order price merely by pressing the Customer Service action.
+        $agentOnly = $actor->hasRole('CUSTOMER_SERVICE_AGENT')
+            && ! $actor->hasRole('CUSTOMER_SERVICE_MANAGER')
+            && ! $actor->hasRole('CUSTOMER_SERVICE_SUPERVISOR')
+            && ! $actor->hasRole('SUPER_ADMIN');
+
+        if ($agentOnly) {
+            $submitted = $approvals->request(
+                $model, $actor, (float) $validated['percentage'],
+                trim((string) $validated['reason']), (string) $validated['idempotency_key'], $request,
+            );
+
+            return back()->with('status', __($submitted
+                ? 'customer_service_discount.request_submitted'
+                : 'customer_service_discount.request_duplicate'));
+        }
+
+        // Existing authorized manager/supervisor flow is preserved until a
+        // numerical policy cap is explicitly approved (P129 / T087R04).
         $applied = $discounts->apply(
             $model, $actor, (float) $validated['percentage'],
             trim((string) $validated['reason']), (string) $validated['idempotency_key'], $request,
@@ -1776,6 +1896,42 @@ final class OrderOperationsController extends Controller
         return back()->with('status', $applied
             ? $this->msg('تم تطبيق الخصم وإرسال إشعار للعميل.', 'Discount applied and customer notified.')
             : $this->msg('تم تجاهل الطلب المكرر دون تغيير الإجمالي.', 'Duplicate discount request safely ignored.'));
+    }
+
+    public function reviewCustomerServiceDiscountRequest(
+        Request $request,
+        int $order,
+        int $discountRequest,
+        OrderCustomerServiceDiscountApprovalService $approvals,
+    ): RedirectResponse {
+        $actor = $this->actor($request);
+        $model = $this->managedOrder($actor, $order, 'orders.view');
+        $storeId = (int) $model->store_id;
+        $channel = strtolower((string) $model->channel);
+
+        abort_unless(
+            $actor->is_active
+            && $actor->hasPermission('orders.customer_service_discount', $storeId)
+            && $actor->hasPermission('orders.approve', $storeId),
+            403,
+        );
+        $this->scope->assertStore($actor, $storeId, 'orders.customer_service_discount', $channel);
+        $this->scope->assertStore($actor, $storeId, 'orders.approve', $channel);
+
+        $validated = $request->validate([
+            'decision' => ['required', Rule::in(['approve', 'reject'])],
+            'review_reason' => ['nullable', 'required_if:decision,reject', 'string', 'min:5', 'max:500'],
+        ]);
+        $approved = $validated['decision'] === 'approve';
+        $approvals->review(
+            $model, $actor, $discountRequest, $approved,
+            isset($validated['review_reason']) ? trim((string) $validated['review_reason']) : null,
+            $request,
+        );
+
+        return back()->with('status', __($approved
+            ? 'customer_service_discount.request_approved'
+            : 'customer_service_discount.request_rejected'));
     }
 
     public function reassign(

@@ -6,7 +6,7 @@
 
 **Reuse** the seeded bilingual `WAREHOUSE_MANAGER` / مدير المستودع job role, existing Inventory/WMS navigation and `admin.erp.wms.index` Workbench. No new page, tabs, routes, API or authorization engine. `backend/config/job_roles.php` defines a global role scoped to the Wholesale business tenant requiring `inventory_wms` (optional `procurement`), with only `inventory.view`, `inventory.adjust`, `inventory.manage`, `catalog.view`, `reports.view`. It does not grant Finance, approvals, order dispatch, security administration or Retail store permissions.
 
-`backend/config/admin.php` currently omits WAREHOUSE_MANAGER from `admin.channels.b2b.global_roles`; admitting the existing role to B2B is the narrowly scoped source fix, not an added permission. **Do not grant B2C global access.** The `OperationalTenantScope`, `WarehouseScope`, module certification and STORE entitlement checks remain authoritative for actual HTTP operations, read versus manage controls and warehouse/store IDOR denial.
+`backend/config/admin.php` admits `WAREHOUSE_MANAGER` only to `admin.channels.b2b.global_roles` after predecessor #2684 integrated its B2B `SALES_OFFICER` change. No new effective permission is added; the STORE entitlement, WMS readiness and warehouse scope remain independent server gates. **Do not grant B2C global access.** The `OperationalTenantScope`, `WarehouseScope`, module certification and STORE entitlement checks remain authoritative for actual HTTP operations, read versus manage controls and warehouse/store IDOR denial.
 
 ## Executable tests
 
@@ -38,3 +38,7 @@ B2B **VAN ONLY** and B2C **DRIVER ONLY** remain unchanged. Manual browser/device
 ## Merge and closure gate
 
 Original branch `test/2691-v2-warehouse-manager-authority` → existing original PR #3214 → **Foodex_V2 ONLY**, one issue/branch/PR. All real source work must be included on the exact final PR SHA and all required GitHub checks must complete SUCCESS: Repository Policy, FOODEX V2 Isolation Gate, full Backend Laravel, PHP syntax/Pint/PHPStan/security, AR/EN localization, MySQL/Redis Fresh Install/Upgrade/Recovery and terminal `required-ci-gate`. Fix red CI in place; do not reuse older green results. Record exact commit/merge evidence, close only code-complete issue under owner 2026-11-10 policy with `MANUAL_ACCEPTANCE: DEFERRED_TO_V2_FINAL`. No `main`, tags, release, staging or production.
+
+## 2026-11-13 — Original lineage continuation after #2684
+
+Previous #2684 / PR #3222 is verified merged into isolated `Foodex_V2` at `8af414f610a396f69e20a6ebcad60b923f4eb774`; its ownership of `backend/config/admin.php` is released. The original #2691 branch is reconciled with that integration tree, preserving the new `SALES_OFFICER` entry and adding ONLY `WAREHOUSE_MANAGER` to the B2B allowed roles. Retail remains unchanged. The previously prepared authenticated Warehouse Manager test covers actual WMS route, module readiness, scoped entitlement, cross-store/cross-warehouse 404, explicit read-only warehouse scope and AR/EN. Original PR #3214 is reused, not replaced. Exact-head CI results remain pending until runs complete; manual final acceptance remains deferred to #2503.
