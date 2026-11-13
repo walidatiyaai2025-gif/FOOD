@@ -1,0 +1,192 @@
+name: FOODEX V2 Exact-Head Three-App Android CI Evidence
+
+on:
+  pull_request:
+    branches: [Foodex_V2]
+    paths:
+      - '.github/workflows/v2-mobile-trio-ci.yml'
+      - 'scripts/v2-mobile-trio-provenance.py'
+      - 'scripts/tests/test_v2_mobile_trio_provenance.py'
+      - 'scripts/package-mobile-artifact.py'
+      - 'scripts/configure-mobile-native.py'
+      - 'scripts/verify-mobile-runtime-endpoint.py'
+      - 'scripts/gradle-maven-mirror.init.gradle'
+      - 'apps/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: foodex-v2-trio-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  verifier-regressions:
+    name: V2 three-app evidence contract tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Reject provenance spoofing and unsafe artifact paths
+        run: python3 -m unittest discover -s scripts/tests -p 'test_v2_mobile_trio_provenance.py' -v
+
+  android-build:
+    name: V2 ${{ matrix.app }} exact-head Android validation APK
+    needs: verifier-regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: customer
+            project: foodex_customer_app
+          - app: driver
+            project: foodex_driver_app
+          - app: van
+            project: foodex_van_app
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}_app
+    steps:
+      - name: Checkout exact source head (never synthetic PR merge SHA)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Verify checked-out head
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+      - name: Set up Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.5'
+          cache: true
+      - name: Cache Gradle
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: v2-trio-gradle-${{ runner.os }}-${{ matrix.app }}-${{ hashFiles('apps/**/pubspec.yaml', 'packages/**/pubspec.yaml') }}
+          restore-keys: |
+            v2-trio-gradle-${{ runner.os }}-${{ matrix.app }}-
+            gradle-${{ runner.os }}-${{ matrix.app }}-
+      - name: Prepare approved Android native identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --platforms=android --project-name "${{ matrix.project }}" .
+          python3 ../../scripts/configure-mobile-native.py --app "${{ matrix.app }}" --app-dir . --platform android
+          rm -f test/widget_test.dart
+          flutter pub get
+      - name: Pin official Gradle distribution origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from urllib.parse import urlparse
+          import re
+          path = Path("android/gradle/wrapper/gradle-wrapper.properties")
+          source = path.read_text(encoding="utf-8")
+          match = re.search(r"(?m)^distributionUrl=(.+)$", source)
+          if match is None:
+              raise SystemExit("Generated Gradle wrapper distribution URL missing.")
+          decoded = match.group(1).replace(r"\:", ":")
+          parsed = urlparse(decoded)
+          if (parsed.scheme != "https"
+                  or parsed.hostname not in {"services.gradle.org", "downloads.gradle.org"}
+                  or not re.fullmatch(r"/distributions/gradle-[0-9]+(?:\.[0-9]+)+(?:-all|-bin)\.zip", parsed.path)
+                  or parsed.query or parsed.fragment):
+              raise SystemExit("Unapproved Gradle wrapper origin/version.")
+          pinned = decoded.replace("services.gradle.org", "downloads.gradle.org", 1)
+          path.write_text(source[:match.start(1)] + pinned.replace(":", r"\:") + source[match.end(1):], encoding="utf-8")
+          PY
+      - name: Route Maven Central through approved mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.gradle"
+          install -m 0600 "$GITHUB_WORKSPACE/scripts/gradle-maven-mirror.init.gradle" "$HOME/.gradle/init.gradle"
+      - name: Compile one release-mode APK for CI validation only
+        shell: bash
+        env:
+          V2_BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          flutter build apk --release --build-number="$V2_BUILD_NUMBER" \
+            --dart-define=FOODEX_API_BASE_URL=https://foodex.50sols.com
+      - name: Verify native application identity and runtime endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          python3 ../../scripts/verify-mobile-runtime-endpoint.py "$apk"
+          aapt_bin="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -x "$aapt_bin"
+          "$aapt_bin" dump badging "$apk" > build/v2-native-badging.txt
+          case "${{ matrix.app }}" in
+            customer) expected='com.fiftysolution.foodex.customer' ;;
+            driver) expected='com.fiftysolution.foodex.driver' ;;
+            van) expected='com.foodex.van' ;;
+            *) exit 2 ;;
+          esac
+          grep -F "package: name='$expected'" build/v2-native-badging.txt
+      - name: Package nonproduction APK and exact PR head manifest
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/package-mobile-artifact.py \
+            --app "${{ matrix.app }}" \
+            --platform android \
+            --input "apps/${{ matrix.app }}_app/build/app/outputs/flutter-apk/app-release.apk" \
+            --build-number "${{ github.run_number }}" \
+            --commit "${{ github.event.pull_request.head.sha }}" \
+            --output "out/v2-trio/${{ matrix.app }}"
+      - name: Upload private ephemeral CI artifact (NOT GitHub Release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2-trio-${{ matrix.app }}-${{ github.event.pull_request.head.sha }}
+          path: out/v2-trio/${{ matrix.app }}/
+          if-no-files-found: error
+          retention-days: 7
+
+  three-app-provenance:
+    name: V2 three-app exact-head provenance (CI-only; untrusted signing)
+    needs: android-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Download exactly three immutable CI inputs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: v2-trio-*-${{ github.event.pull_request.head.sha }}
+          path: artifacts/v2-trio
+          merge-multiple: false
+      - name: Verify all three same source, version, checksum and nonproduction signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '\r\n' < VERSION)"
+          python3 scripts/v2-mobile-trio-provenance.py \
+            --artifact-root artifacts/v2-trio \
+            --source-commit "${{ github.event.pull_request.head.sha }}" \
+            --build-number "${{ github.run_number }}" \
+            --platform-version "$version" \
+            --report artifacts/v2-trio-provenance.json
+      - name: Upload truthful three-app G008 CI-only evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2-trio-evidence-${{ github.event.pull_request.head.sha }}
+          path: artifacts/v2-trio-provenance.json
+          if-no-files-found: error
+          retention-days: 30
