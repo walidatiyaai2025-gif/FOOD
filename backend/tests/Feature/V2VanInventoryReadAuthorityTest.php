@@ -32,6 +32,10 @@ final class V2VanInventoryReadAuthorityTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+        config()->set(
+            'enterprise_module_readiness.certified_versions.inventory_wms',
+            app(ModuleRegistry::class)->manifest('inventory_wms')->version,
+        );
     }
 
     public function test_active_primary_wholesale_assignment_drives_paginated_stock_not_home_or_other_warehouse(): void
