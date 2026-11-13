@@ -104,6 +104,36 @@ final class V2UpdaterBackupRootContainmentTest extends TestCase
         $this->assertSame('still-live', file_get_contents($this->releaseDirectory.'/live.txt'));
     }
 
+    public function test_trailing_slash_backup_root_preserves_its_generated_rollback_reference(): void
+    {
+        $target = $this->relative('live.txt');
+        $this->writeLive('live.txt', 'updated-live');
+        $this->writeBackup($this->backupDirectory, $target, 'original-live');
+        $this->manifest($this->backupDirectory, [$target], [$target]);
+
+        // newBackupDirectory() appends '/' to the configured root. The saved
+        // reference can therefore contain exactly two separators here.
+        config()->set('foodex.update_backup_path', $this->backupRoot.'/');
+        app(LaravelUpdateRuntime::class)->rollbackFiles($this->backupRoot.'//files');
+
+        $this->assertSame('original-live', file_get_contents($this->releaseDirectory.'/live.txt'));
+    }
+
+    public function test_extra_separator_alias_is_still_denied_with_trailing_slash_root(): void
+    {
+        $target = $this->relative('live.txt');
+        $this->writeLive('live.txt', 'still-live');
+        $this->manifest($this->backupDirectory, [$target], []);
+
+        config()->set('foodex.update_backup_path', $this->backupRoot.'/');
+        $this->assertRejected(
+            $this->backupRoot.'///files',
+            'File rollback backup location is invalid.',
+        );
+
+        $this->assertSame('still-live', file_get_contents($this->releaseDirectory.'/live.txt'));
+    }
+
     public function test_object_shaped_targets_are_rejected_without_removing_live_file(): void
     {
         $target = $this->relative('live.txt');
