@@ -1,0 +1,15 @@
+# V2 P274 — Van Inventory Source/Scope and Handoff
+
+- Issue: #2604; parent: #2503; integration branch: `Foodex_V2` ONLY.
+- Source: FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx, P274 / Fleet & Van / "مخزون الفان".
+- Domain/entity: B2B Van assignment and WMS warehouse stock; operator: authorized Dashboard Van + Inventory reader.
+- User goal: inspect current assigned Van warehouse inventory, stock reservations, and availability without changing stock.
+- Navigation owner: existing Field Operations → Vans → Van details (CONTEXT_ACTION/PAGE_TAB); a separate Sidebar item is not justified until actual route and server authority are integrated.
+- Placement decision: **Extend** canonical Van details using the real WMS inventory ledger; do not create a parallel Van inventory table or invent stock from a vehicle's home warehouse.
+- Security: `drivers.b2b.view`, store-effective `inventory.view`, `inventory_wms` enabled and entitled, active **primary** assignment with effective dates and warehouse; active B2B store. Missing assignment, cross-store, B2C, disabled module or revoked entitlement fail closed. A Van's historical `home_warehouse_id` is not a stock balance.
+- Ledger integrity: current `inventories` plus `products` and same-store B2B `catalogs` only; quantity and reserved quantity come from WMS, no fake customer price/cost/valuation. Cursor-pagination, bounded 50 records; read-only, no write or audit mutation.
+- Cross-app impacts: Customer — no changed API/Flutter payload; Driver — no changed API/Flutter payload and B2C stays DRIVER ONLY; Van — **potentially affected** if stock API/Flutter inventory screen is required, coordinate with existing V2 mobile Van issue #2739 rather than changing mobile app independently. No new public Van endpoint in this initial read-model PR.
+- Tests: `V2VanInventoryReadAuthorityTest` covers 51-row pagination, primary assignment beats home warehouse, cross-store, B2C warehouse, WMS entitlement revoked, disabled module and expired primary assignment.
+- UI requirements before acceptance: authorized entry on canonical Van detail, AR/EN strings and RTL/LTR, responsive mobile-web stock cards/table, actual HTTP denial and disabled/unready module, no orphan direct URL. Navigation/route code changes are **NOT INCLUDED** until shared owners release their fences.
+- Active file fences at preflight: #2606/#3311 owns `FieldOperationsController.php`, Van UI and locales; #2527/#3321 owns `AdminNavigation.php`, `config/admin_sidebar.php` and Admin AR/EN; #2532/#3324 owns `backend/routes/web.php`; #2588/#3317 owns `EnterpriseWmsController.php`. Preserve those workers' changes; the service/tests/doc are issue-owned new files.
+- Status: **PARTIAL IMPLEMENTATION — NOT YET P274 COMPLETE**. Do not mark ready, merge or close until route/UI integration, role/direct HTTP regressions, required UI skills/audits, full Required CI exact-head GREEN, and Customer/Driver/Van impact evidence. Do not touch `main`, production, tags or release artifacts.
