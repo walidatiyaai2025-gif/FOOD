@@ -164,8 +164,10 @@ def validate_package(
     declared = manifest.get("migrations")
     _require(
         isinstance(declared, list)
-        and all(isinstance(item, str) and item in migration_paths for item in declared),
-        "Declared migrations are absent from ZIP.",
+        and all(isinstance(item, str) for item in declared)
+        and len(declared) == len(migration_paths)
+        and set(declared) == migration_paths,
+        "Declared migrations must exactly and uniquely match the ZIP inventory.",
     )
     dashboard_fields = manifest.get("dashboard_fields")
     _require(
