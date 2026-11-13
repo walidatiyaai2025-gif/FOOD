@@ -550,6 +550,68 @@
         @endif
 
         @if($fieldOperationsSection === 'visits')
+            <nav class="fieldops-section-nav" aria-label="{{ __('field_operations.trip_activity.navigation') }}" data-v2-van-activity-tabs>
+                <a href="{{ route('admin.field-operations.visits') }}" @if($tripView === 'visits') aria-current="page" @endif>{{ __('field_operations.trip_activity.visits_tab') }}</a>
+                <a href="{{ route('admin.field-operations.visits', ['trip_view' => 'trips']) }}" @if($tripView === 'trips') aria-current="page" @endif>{{ __('field_operations.trip_activity.tab') }}</a>
+            </nav>
+            @if($tripView === 'trips')
+                <section class="fieldops-card" data-v2-van-trip-activity>
+                    <p class="fieldops-muted" role="note">{{ __('field_operations.trip_activity.evidence_notice') }}</p>
+                    <form method="get" action="{{ route('admin.field-operations.visits') }}" class="fieldops-filterbar" data-v2-van-trip-filters>
+                        <input type="hidden" name="trip_view" value="trips">
+                        <label>{{ __('field_operations.trip_activity.route') }}
+                            <select name="trip_route">
+                                <option value="">{{ __('field_operations.trip_activity.all_routes') }}</option>
+                                @foreach($visitRoutes as $route)
+                                    <option value="{{ $route }}" @selected(($tripFilters['trip_route'] ?? '') === $route)>{{ $route }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label>{{ __('field_operations.trip_activity.status') }}
+                            <select name="trip_status">
+                                <option value="">{{ __('field_operations.trip_activity.all_statuses') }}</option>
+                                @foreach(['planned','started','completed_with_order','completed_no_order','customer_unavailable','closed'] as $state)
+                                    <option value="{{ $state }}" @selected(($tripFilters['trip_status'] ?? '') === $state)>{{ __('field_operations.visit_statuses.'.$state) }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <button class="foodex-primary" type="submit">{{ __('field_operations.trip_activity.filter') }}</button>
+                    </form>
+                    <div class="table-wrap">
+                        <table class="foodex-ops-grid" data-pagination-required>
+                            <thead><tr>
+                                <th>{{ __('field_operations.trip_activity.van') }}</th>
+                                <th>{{ __('field_operations.trip_activity.route') }}</th>
+                                <th>{{ __('field_operations.trip_activity.store') }}</th>
+                                <th>{{ __('field_operations.trip_activity.operator') }}</th>
+                                <th>{{ __('field_operations.trip_activity.status') }}</th>
+                                <th>{{ __('field_operations.trip_activity.planned') }}</th>
+                            </tr></thead>
+                            <tbody>
+                                @foreach($visits as $visit)
+                                    @php
+                                        $vanId = (int) ($visit->metadata['van_id'] ?? 0);
+                                        $routeKey = $visit->metadata['route_key'] ?? ($visit->metadata['route_code'] ?? ($visit->metadata['route'] ?? null));
+                                        $storeLabel = $visitStores->firstWhere('id', $visit->store_id)?->name;
+                                    @endphp
+                                    <tr>
+                                        <td>{{ $tripVanCodes->get($vanId) ?: '—' }}</td>
+                                        <td>{{ $routeKey ?: '—' }}</td>
+                                        <td>{{ $storeLabel ?: '—' }}</td>
+                                        <td>{{ $visit->actor?->name ?: '—' }}</td>
+                                        <td>{{ __('field_operations.visit_statuses.'.$visit->status) }}</td>
+                                        <td>{{ $visit->planned_at ?: $visit->created_at }}</td>
+                                    </tr>
+                                @endforeach
+                                @if(count($visits) === 0)
+                                    <tr><td colspan="6"><div class="foodex-ops-state">{{ __('field_operations.trip_activity.no_activity') }}</div></td></tr>
+                                @endif
+                            </tbody>
+                        </table>
+                    </div>
+                    {{ $visits->links() }}
+                </section>
+            @else
             @if($canManageVan && ($canCreateVisit ?? false))
             <details class="fieldops-card" data-foodex-operational-modal data-modal-button-class="foodex-action-primary">
                 <summary><strong>{{ __('field_operations.plan_customer_visit') }}</strong></summary>
@@ -589,6 +651,7 @@
             @endforeach
 @if(count($visits) === 0)<tr><td colspan="7"><div class="foodex-ops-state">{{ __('field_operations.no_visits') }}</div></td></tr>@endif
             </tbody></table></div>{{ $visits->links() }}
+            @endif
 
         @endif
 
