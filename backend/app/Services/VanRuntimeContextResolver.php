@@ -96,6 +96,18 @@ final class VanRuntimeContextResolver
      */
     public function canUseRuntime(User $user, ?array $context = null): bool
     {
+        // Retained legacy driver roles must never reactivate a disabled identity.
+        // Notification read models sometimes hydrate only users.id and locale.
+        // Missing is_active is not evidence of deactivation or authorization:
+        // resolve it from the authoritative users row before either access path.
+        $isActive = $user->getAttribute('is_active');
+        if ($isActive === null) {
+            $isActive = User::query()->whereKey($user->getKey())->value('is_active');
+        }
+        if (! (bool) $isActive) {
+            return false;
+        }
+
         if ($user->hasPermission('van.login')) {
             return true;
         }
