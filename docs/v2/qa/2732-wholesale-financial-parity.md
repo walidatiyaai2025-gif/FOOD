@@ -10,7 +10,7 @@ The existing account-hub UI trusted `balance_direction` as a label even if it co
 
 ## Reuse, authorization and application impacts
 
-- **Customer:** Reuse existing authenticated `/b2b/profile` account hub, same scoped `/api/v1/b2b/account-summary` request. No new screen, route, amount, pricing formula or financial client authority. Existing shared widgets and locale keys preserved, RTL/LTR covered.
+- **Customer:** Reuse existing authenticated `/b2b/profile` account hub, same scoped `/api/v1/b2b/account-summary` request. No new screen, route, amount, pricing formula or financial client authority. Active `_B2bMorePage` uses `_FinanceCard`, and the latent account-hub fallback uses the same validated data contract. Existing shared widgets and locale keys preserved, RTL/LTR covered.
 - **Backend/Dashboard:** Unchanged. The authoritative B2B ledger service, credit/discount/partial collection/approval and their RBAC/SoD enforcement remain server-side. No new privileged endpoint or client posting.
 - **Driver:** No Driver API, collection UI, assignment or runtime contract change. B2C=DRIVER only preserved.
 - **Van:** No Van API, custody, route/assignment/offline/settlement contract change. B2B=VAN only preserved.

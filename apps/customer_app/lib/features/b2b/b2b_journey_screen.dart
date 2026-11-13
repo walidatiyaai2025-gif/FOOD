@@ -4625,8 +4625,32 @@ class _FinanceCard extends StatelessWidget {
             final data = envelope['data'] is Map
                 ? Map<Object?, Object?>.from(envelope['data'] as Map)
                 : envelope;
-            final balance = _n(data['balance']);
-            final currency = data['currency']?.toString() ?? '';
+            // The active More-page finance card must validate the same
+            // authoritative signed credit snapshot as the legacy account hub.
+            // Never display a fabricated zero debt or a reversed balance.
+            final summary = WholesaleFinancialSummary.tryParse(data);
+            if (summary == null) {
+              return SizedBox(
+                key: const ValueKey('b2b-finance-summary-invalid'),
+                height: 136,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(context.tr('b2b.remote.error')),
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: retry,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: Text(context.tr('customer.action.retry')),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            final balance = summary.balance;
+            final currency = summary.currency;
             final totalPurchases = _n(
               data['total_purchases'] ?? data['total_debits'],
             );
