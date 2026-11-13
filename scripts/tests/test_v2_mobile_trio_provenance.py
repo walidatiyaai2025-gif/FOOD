@@ -98,7 +98,9 @@ class V2MobileTrioEvidenceTest(unittest.TestCase):
 
     def test_symlink_apk_is_rejected_before_hashing(self) -> None:
         apk = self.paths["van"][1]
-        outside = self.root / "outside.apk"
+        external = tempfile.TemporaryDirectory()
+        self.addCleanup(external.cleanup)
+        outside = Path(external.name) / "outside.apk"
         outside.write_bytes(apk.read_bytes())
         apk.unlink()
         try:
@@ -156,7 +158,9 @@ class V2MobileTrioEvidenceTest(unittest.TestCase):
 
     def test_linked_manifest_and_untrusted_source_sha_are_rejected(self) -> None:
         path = self.paths["customer"][0] / "manifest.json"
-        outside = self.root / "outside.json"
+        external = tempfile.TemporaryDirectory()
+        self.addCleanup(external.cleanup)
+        outside = Path(external.name) / "outside.json"
         outside.write_bytes(path.read_bytes())
         path.unlink()
         try:
