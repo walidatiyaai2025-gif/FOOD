@@ -136,6 +136,12 @@ class User extends Authenticatable
 
     public function hasPermission(string $permissionCode, ?int $storeId = null): bool
     {
+        // Deactivation revokes effective authorization even when historical
+        // role assignments or direct overrides remain for the audit trail.
+        if (! $this->is_active) {
+            return false;
+        }
+
         if ($this->hasRole('SUPER_ADMIN')) {
             return true;
         }

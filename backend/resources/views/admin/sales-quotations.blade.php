@@ -35,6 +35,8 @@
         .sq-line{display:flex;gap:10px;align-items:end;flex-wrap:wrap;padding:10px;background:var(--foodex-background);border-radius:10px}
         .sq-line label:first-child{flex:1 1 220px}
         .sq-actions-group{display:flex;gap:8px;flex-wrap:wrap}
+        .sq-domain-tabs{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+        .sq-domain-tabs p{flex-basis:100%;margin:4px 0 0}
         @media(max-width:900px){.sq-layout>main{padding:12px}}
         @media(max-width:620px){.sq-table,.sq-table tbody,.sq-table tr,.sq-table td{display:block;width:100%;box-sizing:border-box}.sq-table thead{display:none}.sq-table tr{border:1px solid var(--foodex-border);border-radius:12px;margin:9px 0;padding:6px}.sq-table td{border:0;display:flex;gap:8px;justify-content:space-between;align-items:center}.sq-table td::before{content:attr(data-label);font-weight:700}.sq-card{padding:12px}.sq-row>*{flex:1 1 100%}}
     </style>
@@ -98,6 +100,16 @@
         @endif
             </div>
         </div>
+        <nav class="sq-card sq-domain-tabs" data-sales-pricing-nav aria-label="{{ __('sales_quotations.contracts_prices_navigation') }}">
+            <a href="{{ route('admin.sales-quotations.index', ['store_id' => $storeId]) }}" class="sq-primary" aria-current="page">{{ __('sales_quotations.title') }}</a>
+            @if($pricingControlUrl)
+            <a href="{{ $pricingControlUrl }}" class="sq-secondary" data-pricing-control-link>{{ __('sales_quotations.pricing_controls') }}</a>
+            @endif
+            @if($priceListsUrl)
+            <a href="{{ $priceListsUrl }}" class="sq-secondary" data-pricing-lists-link>{{ __('sales_quotations.price_lists') }}</a>
+            @endif
+            <p class="sq-muted">{{ __('sales_quotations.contract_scope_note') }}</p>
+        </nav>
         @if(session('status'))<div class="sq-card" role="status">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="sq-card sq-error" role="alert">{{ $errors->first() }}</div>@endif
         <section class="sq-card" aria-label="{{ __('sales_quotations.store') }}">

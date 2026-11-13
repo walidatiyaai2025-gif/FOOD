@@ -45,6 +45,7 @@ class RolePermissionTest extends TestCase
             'name' => 'B2C Admin',
             'email' => 'b2c-admin@example.test',
             'password' => 'password',
+            'is_active' => true,
         ]);
 
         $this->assignStoreRole($b2cAdmin, $storeId, 'B2C_STORE_ADMIN');
@@ -67,6 +68,7 @@ class RolePermissionTest extends TestCase
             'name' => 'Retail Support',
             'email' => 'retail-support@example.test',
             'password' => 'password',
+            'is_active' => true,
         ]);
         $this->assignStoreRole($retailSupport, $storeId, 'RETAIL_CUSTOMER_SUPPORT');
 
@@ -114,6 +116,7 @@ class RolePermissionTest extends TestCase
             'name' => $roleCode,
             'email' => strtolower($roleCode).'@example.test',
             'password' => 'password',
+            'is_active' => true,
         ]);
 
         $role = Role::query()->where('code', $roleCode)->firstOrFail();

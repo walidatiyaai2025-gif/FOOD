@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "issue_number": 2748,
+  "parent_issue_number": 2503,
+  "source_document": "FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx",
+  "source_markers": [
+    "G007",
+    "P109",
+    "P144"
+  ],
+  "integration_branch": "Foodex_V2",
+  "main_integration_authorized": false,
+  "production_release_authorized": false,
+  "accepted": false,
+  "acceptance_head_sha": null,
+  "required_exact_head_checks": [
+    "Repository Policy",
+    "FOODEX V2 Isolation Gate",
+    "FOODEX Required CI Gate",
+    "Laravel authorization / security tests",
+    "Arabic / English localization",
+    "Customer Flutter contract acceptance",
+    "Driver Flutter contract acceptance",
+    "Van Flutter contract acceptance"
+  ],
+  "check_evidence": [],
+  "requirements": [
+    {
+      "key": "rbac_identity",
+      "source": "P109",
+      "owner_issue": 2758,
+      "evidence_status": "pending",
+      "validated_head_sha": null,
+      "artifact_urls": [],
+      "note": "Not yet independently certified on the final isolated G007 head."
+    },
+    {
+      "key": "role_action_denies",
+      "source": "P109",
+      "owner_issue": 2783,
+      "evidence_status": "pending",
+      "validated_head_sha": null,
+      "artifact_urls": [],
+      "note": "Not yet independently certified on the final isolated G007 head."
+    },
+    {
+      "key": "tenant_store_channel_isolation",
+      "source": "P109",
+      "owner_issue": 2782,
+      "evidence_status": "pending",
+      "validated_head_sha": null,
+      "artifact_urls": [],
+      "note": "Not yet independently certified on the final isolated G007 head."
+    },
+    {
+      "key": "erp_module_readiness",
+      "source": "P109",
+      "owner_issue": 2858,
+      "evidence_status": "pending",
+      "validated_head_sha": null,
+      "artifact_urls": [],
+      "note": "Not yet independently certified on the final isolated G007 head."
+    },
+    {
+      "key": "maker_checker_sod",
+      "source": "P109",
+      "owner_issue": 2851,
+      "evidence_status": "pending",
+      "validated_head_sha": null,
+      "artifact_urls": [],
+      "note": "Not yet independently certified on the final isolated G007 head."
+    },
+    {
+      "key": "pricing_credit_profit_guard",
+      "source": "P109",
+      "owner_issue": 2853,
+      "evidence_status": "pending",
+      "validated_head_sha": null,
+      "artifact_urls": [],
+      "note": "Not yet independently certified on the final isolated G007 head."
+    },
+    {
+      "key": "erp_e2e_operational_journey",
+      "source": "P109",
+      "owner_issue": 2843,
+      "evidence_status": "pending",
+      "validated_head_sha": null,
+      "artifact_urls": [],
+      "note": "Not yet independently certified on the final isolated G007 head."
+    },
+    {
+      "key": "sidebar_authority",
+      "source": "P144",
+      "owner_issue": 2751,
+      "evidence_status": "pending",
+      "validated_head_sha": null,
+      "artifact_urls": [],
+      "note": "Not yet independently certified on the final isolated G007 head."
+    },
+    {
+      "key": "sidebar_information_architecture",
+      "source": "P144",
+      "owner_issue": 2901,
+      "evidence_status": "pending",
+      "validated_head_sha": null,
+      "artifact_urls": [],
+      "note": "Not yet independently certified on the final isolated G007 head."
+    },
+    {
+      "key": "localization_accessibility",
+      "source": "P144",
+      "owner_issue": 2750,
+      "evidence_status": "pending",
+      "validated_head_sha": null,
+      "artifact_urls": [],
+      "note": "Not yet independently certified on the final isolated G007 head."
+    },
+    {
+      "key": "customer_runtime_compatibility",
+      "source": "G007",
+      "owner_issue": 2731,
+      "evidence_status": "pending",
+      "validated_head_sha": null,
+      "artifact_urls": [],
+      "note": "Not yet independently certified on the final isolated G007 head."
+    },
+    {
+      "key": "driver_runtime_compatibility",
+      "source": "G007",
+      "owner_issue": 2735,
+      "evidence_status": "pending",
+      "validated_head_sha": null,
+      "artifact_urls": [],
+      "note": "Not yet independently certified on the final isolated G007 head."
+    },
+    {
+      "key": "van_runtime_compatibility",
+      "source": "G007",
+      "owner_issue": 2738,
+      "evidence_status": "pending",
+      "validated_head_sha": null,
+      "artifact_urls": [],
+      "note": "Not yet independently certified on the final isolated G007 head."
+    }
+  ],
+  "mobile_impacts": {
+    "customer": {
+      "classification": "unverified",
+      "related_issue": 2731
+    },
+    "driver": {
+      "classification": "unverified",
+      "related_issue": 2735
+    },
+    "van": {
+      "classification": "unverified",
+      "related_issue": 2738
+    }
+  },
+  "manual_browser_staging_acceptance": "DEFERRED_TO_V2_FINAL",
+  "claim_scope": "Evidence inventory and fail-closed automated manifest contract; NOT full G007 feature completion."
+}
