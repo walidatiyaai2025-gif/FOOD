@@ -1798,9 +1798,9 @@ final class FieldOperationsController extends Controller
     /** @return list<int> */
     private function b2bStoreIds(User $user): array
     {
-        // A tenant-wide Fleet Manager must use canonical Wholesale scope,
-        // including per-store DENY overrides; never infer Retail access.
-        if ($user->hasRole('FLEET_MANAGER')) {
+        // Fleet Managers and Dispatch Supervisors use the canonical B2B
+        // operational scope, honoring per-store/global DENY without Retail access.
+        if ($user->hasRole('FLEET_MANAGER') || $user->hasRole('DISPATCH_SUPERVISOR')) {
             return app(OperationalTenantScope::class)->allowedStoreIds($user, 'drivers.b2b.view', 'B2B');
         }
 
