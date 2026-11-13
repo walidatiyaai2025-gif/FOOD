@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\OperationalTenantScope;
+use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -29,6 +30,9 @@ final class V2ExportedRolelessRow17BoundaryTest extends TestCase
     public function test_roleless_customer_cannot_read_or_mutate_wholesale_or_retail_orders(): void
     {
         $wholesale = $this->store('B2B', 'V2-2922-WHOLESALE');
+        // Provide a valid warehouse so a 403 proves authorization, not 422 validation.
+        $warehouse = app(WholesalePrincipal::class)->warehouseId();
+        $this->assertSame($wholesale, app(WholesalePrincipal::class)->storeId());
         $retail = $this->store('B2C', 'V2-2922-RETAIL');
         $customer = User::factory()->create([
             'name' => 'V2 Row17 Synthetic Customer',
@@ -50,7 +54,7 @@ final class V2ExportedRolelessRow17BoundaryTest extends TestCase
 
             // Spoofing a real store ID cannot create administrative order rights.
             $this->actingAs($customer->fresh())
-                ->post(route('admin.b2b.orders.store'), ['store_id' => $wholesale])
+                ->post(route('admin.b2b.orders.store'), ['store_id' => $wholesale, 'warehouse_id' => $warehouse])
                 ->assertForbidden();
             $this->actingAs($customer->fresh())
                 ->post(route('admin.b2c.orders.store'), ['store_id' => $retail])
