@@ -928,6 +928,17 @@ class AdminNavigation
             return null;
         }
 
+        // The Treasury HTTP controller selects its first store when no
+        // store_id is supplied. For a scoped Wholesale operator that first
+        // store may be denied; point to the same actually entitled context.
+        if ($moduleCode === 'treasury') {
+            $storeId = $this->firstEntitledWholesaleTreasuryStoreId($user);
+            if ($storeId !== null) {
+                $item['params']['store_id'] = (string) $storeId;
+                $item['params']['tab'] = 'receipts';
+            }
+        }
+
         return $item;
     }
 
@@ -1076,31 +1087,39 @@ class AdminNavigation
             }
         }
 
-        // P2698: the Treasury HTTP workbench accepts global Wholesale actors
-        // with effective store-scoped finance.view and a real Treasury read
-        // entitlement. A Retail-only or explicitly DENIED B2B store must
-        // never make the Treasury Sidebar entry appear.
-        if ($moduleCode === 'treasury' && $this->canAccess($user, 'b2b')) {
-            foreach (app(OperationalTenantScope::class)->allowedStoreIds($user, 'finance.view', 'b2b') as $storeId) {
-                try {
-                    $this->tenantContext->wholesale($user, $storeId);
-
-                    if ($this->enterpriseEntitlements->allows(
-                        $moduleCode,
-                        new EntitlementScope(EntitlementScope::STORE, $storeId),
-                        'treasury.receipts.read',
-                    )) {
-                        return $this->enterpriseModuleAccessMemo[$memoKey] = true;
-                    }
-                } catch (Throwable) {
-                    // Ignore a stale or unauthorised store rather than
-                    // broadening the visible role/module surface.
-                    continue;
-                }
-            }
+        // P2698: admit an actual B2B Treasury store that passes the same
+        // effective role, store, module and capability rules as the HTTP tab.
+        if ($moduleCode === 'treasury' && $this->firstEntitledWholesaleTreasuryStoreId($user) !== null) {
+            return $this->enterpriseModuleAccessMemo[$memoKey] = true;
         }
 
         return $this->enterpriseModuleAccessMemo[$memoKey] = false;
+    }
+
+    private function firstEntitledWholesaleTreasuryStoreId(User $user): ?int
+    {
+        if (! $this->canAccess($user, 'b2b')) {
+            return null;
+        }
+
+        foreach (app(OperationalTenantScope::class)->allowedStoreIds($user, 'finance.view', 'b2b') as $storeId) {
+            try {
+                $this->tenantContext->wholesale($user, $storeId);
+
+                if ($this->enterpriseEntitlements->allows(
+                    'treasury',
+                    new EntitlementScope(EntitlementScope::STORE, $storeId),
+                    'treasury.receipts.read',
+                )) {
+                    return $storeId;
+                }
+            } catch (Throwable) {
+                // Failed context/entitlement lookups cannot promote a store.
+                continue;
+            }
+        }
+
+        return null;
     }
 
     private function isSuperAdmin(User $user): bool
