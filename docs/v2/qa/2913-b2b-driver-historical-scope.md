@@ -8,6 +8,10 @@ The archived, not-live export classifies the row as `B2B_DRIVER` with one distin
 
 Current canonical `config/job_roles.php` and `config/permissions.php` define `B2B_DRIVER` as a global, legacy field-operations operator with only `deliveries.b2b.execute`. `VAN_OPERATOR` separately owns `van.login`, while `B2C_DRIVER` owns `deliveries.b2c.execute`. The historical B2B role is excluded from the Dashboard's authorized Wholesale and Retail global-role lists, and cannot gain store-scoped authority just from its global grant. B2B fulfillment remains **Van only**, B2C fulfillment **Driver only**.
 
+## Same-issue Sidebar projection correction
+
+The audit reproduced a distinct navigation-authority mismatch: `AdminNavigation::canAccessPlatformErp()` accepted **any** active global role, allowing the historical `B2B_DRIVER` (and other mobile-only roles) to project ERP Center/My Work links even without Dashboard/Wholesale/Retail authorization. The minimal production-code fix keeps all existing business global-role behavior and filters only `B2B_DRIVER`, `B2C_DRIVER`, `VAN_OPERATOR` from that ERP navigation shortcut. This does not change any HTTP authorization, role/pivot, mobile token, Van assignment or app runtime. The focused test asserts no Sidebar links for this synthetic mobile-only principal.
+
 ## Executable, synthetic test slice
 
 New `backend/tests/Feature/V2ExportedRow8B2bDriverScopeAuditTest.php` covers:
@@ -21,8 +25,8 @@ Run: `cd backend && php artisan test --filter=V2ExportedRow8B2bDriverScopeAuditT
 
 ## App / security impact matrix
 
-- **Backend:** read-only synthetic authorization regression. Existing permissions, role assignments, tenant rules, middleware and data remain untouched.
-- **Dashboard:** no new route or screen; confirms existing Sidebar and direct HTTP deny parity, with AR/EN unchanged.
+- **Backend:** minimal `AdminNavigation::canAccessPlatformErp` read-only authorization projection fix plus synthetic authorization regression. Existing permissions, role assignments, tenant rules, middleware and data remain untouched.
+- **Dashboard:** existing Sidebar hides ERP Center/My Work for mobile-only roles, matching direct HTTP denial. No new route/screen; AR/EN unchanged.
 - **Customer:** no API payload, login or Flutter change.
 - **Driver:** no Flutter/API change; legacy B2B role is **not** an authorized B2C Driver runtime principal.
 - **Van:** no Flutter/API change; Van token permission and active assignment remain independently required.
