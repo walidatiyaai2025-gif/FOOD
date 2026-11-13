@@ -314,8 +314,8 @@ final class LaravelUpdateRuntime implements UpdateRuntime
     public function rollbackFiles(string $backupReference): void
     {
         $manifestPath = $backupReference.'/files.json';
-        if (! is_file($manifestPath)) {
-            throw new RuntimeException('File rollback manifest is missing.');
+        if (is_link($backupReference) || is_link($manifestPath) || ! is_file($manifestPath)) {
+            throw new RuntimeException('File rollback manifest is missing or unsafe.');
         }
 
         try {
@@ -324,30 +324,82 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             throw new RuntimeException('File rollback manifest is invalid.');
         }
 
-        if (! is_array($payload)) {
+        if (! is_array($payload)
+            || ! is_array($payload['targets'] ?? null)
+            || ! is_array($payload['existing'] ?? null)) {
             throw new RuntimeException('File rollback manifest is invalid.');
         }
 
-        $targets = $this->stringList($payload['targets'] ?? []);
-        $existing = $this->stringList($payload['existing'] ?? []);
+        $targets = $this->stringList($payload['targets']);
+        $existing = $this->stringList($payload['existing']);
+
+        if ($targets === []
+            || count($targets) !== count($payload['targets'])
+            || count($existing) !== count($payload['existing'])) {
+            throw new RuntimeException('File rollback manifest is invalid.');
+        }
+
+        // Validate the ENTIRE rollback manifest and every required backup source
+        // before removing even one live file. A partial/corrupt backup must never
+        // turn a recoverable failed update into further destructive file loss.
+        $targetSet = [];
+        foreach ($targets as $relativePath) {
+            if ($relativePath !== $this->safeRelativePath($relativePath)
+                || isset($targetSet[$relativePath])) {
+                throw new RuntimeException('File rollback manifest is invalid.');
+            }
+
+            $this->assertSafeReleaseTarget($relativePath);
+            $targetSet[$relativePath] = true;
+        }
+
+        $existingSet = [];
+        $backedUpFiles = rtrim($backupReference, '/\\').'/existing';
+        if (is_link($backedUpFiles)) {
+            throw new RuntimeException('File rollback backup is incomplete or unsafe.');
+        }
+
+        foreach ($existing as $relativePath) {
+            if ($relativePath !== $this->safeRelativePath($relativePath)
+                || ! isset($targetSet[$relativePath])
+                || isset($existingSet[$relativePath])) {
+                throw new RuntimeException('File rollback manifest is invalid.');
+            }
+
+            $this->assertSafeReleaseTarget($relativePath);
+            $existingSet[$relativePath] = true;
+
+            $source = $backedUpFiles;
+            foreach (explode('/', $relativePath) as $part) {
+                $source .= '/'.$part;
+                if (is_link($source)) {
+                    throw new RuntimeException('File rollback backup is incomplete or unsafe.');
+                }
+            }
+
+            // Empty original files are valid; require readability, not a
+            // nonzero size. Do not follow links in the private backup tree.
+            if (! is_file($source) || ! is_readable($source)) {
+                throw new RuntimeException('File rollback backup is incomplete or unsafe.');
+            }
+        }
 
         foreach ($targets as $relativePath) {
             $this->assertSafeReleaseTarget($relativePath);
-            $target = $this->releaseRoot().'/'.$this->safeRelativePath($relativePath);
+            $target = $this->releaseRoot().'/'.$relativePath;
             if (is_file($target) && ! @unlink($target)) {
                 throw new RuntimeException('Updated file could not be removed during rollback.');
             }
         }
 
         foreach ($existing as $relativePath) {
-            $safePath = $this->safeRelativePath($relativePath);
-            $this->assertSafeReleaseTarget($safePath);
-            $source = $backupReference.'/existing/'.$safePath;
-            $target = $this->releaseRoot().'/'.$safePath;
+            $this->assertSafeReleaseTarget($relativePath);
+            $source = $backedUpFiles.'/'.$relativePath;
+            $target = $this->releaseRoot().'/'.$relativePath;
             $this->ensureDirectory(dirname($target));
-            $this->assertSafeReleaseTarget($safePath);
+            $this->assertSafeReleaseTarget($relativePath);
 
-            if (! is_file($source) || ! copy($source, $target)) {
+            if (! copy($source, $target)) {
                 throw new RuntimeException('Original release file could not be restored.');
             }
         }
