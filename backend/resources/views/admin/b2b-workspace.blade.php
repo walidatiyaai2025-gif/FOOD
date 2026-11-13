@@ -635,13 +635,20 @@
       @if($module==='drivers' && $user->hasPermission('drivers.b2b.manage'))
         @include('admin._driver-assignment-management',['channel'=>'b2b'])
       @endif
+      @if($module==='pricing')
+      <div data-v2-quantity-tier-workflow role="group" aria-labelledby="v2-quantity-tier-heading">
+        <h2 id="v2-quantity-tier-heading">{{ __('commercial.quantity_tiers.heading') }}</h2>
+        <p class="muted">{{ __('commercial.quantity_tiers.description') }}</p>
+      </div>
+      @endif
       @if($module==='pricing' && $user->hasPermission('b2b.pricing.manage'))
       <form method="post" action="{{ route('admin.b2b.pricing.save') }}" class="links workspace-inline-form">
         @csrf
         <select name="price_tier_id" required><option value="">{{ app()->getLocale()==='ar'?'شريحة السعر':'Price tier' }}</option>@foreach($moduleData['tiers'] as $tier)<option value="{{ $tier['id'] }}">{{ $tier['name'] }}</option>@endforeach</select>
         <select name="product_id" required><option value="">{{ app()->getLocale()==='ar'?'المنتج':'Product' }}</option>@foreach($moduleData['products'] as $product)<option value="{{ $product['id'] }}">{{ $product['sku'] }} · {{ $product['name'] }}</option>@endforeach</select>
         <input name="unit_price" type="number" min="0" step="0.001" placeholder="{{ app()->getLocale()==='ar'?'سعر الوحدة':'Unit price' }}" required>
-        <input name="minimum_quantity" type="number" min="0.001" step="0.001" placeholder="{{ app()->getLocale()==='ar'?'الحد الأدنى':'Minimum quantity' }}" required>
+        <label>{{ __('commercial.quantity_tiers.minimum_quantity') }} <input name="minimum_quantity" type="number" min="0.001" step="0.001" value="{{ old('minimum_quantity') }}" placeholder="{{ __('commercial.quantity_tiers.minimum_quantity') }}" required></label>
+        <label>{{ __('commercial.quantity_tiers.ordering_increment') }} <input name="ordering_increment" type="number" min="0.001" step="0.001" value="{{ old('ordering_increment', 1) }}" placeholder="{{ __('commercial.quantity_tiers.ordering_increment') }}" required></label>
         <input type="hidden" name="is_active" value="1">
         <button class="foodex-primary" type="submit">{{ app()->getLocale()==='ar'?'حفظ قاعدة السعر':'Save price rule' }}</button>
       </form>

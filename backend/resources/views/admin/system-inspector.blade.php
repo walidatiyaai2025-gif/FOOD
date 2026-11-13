@@ -74,6 +74,44 @@
             <div class="inspector-health-row"><strong>{{ $ar?'البيئة':'Environment' }}</strong><code>{{ $diagnostics['environment'] }}</code></div>
         </section>
 
+        <section class="foodex-card inspector-enterprise" data-dashboard-provenance aria-labelledby="dashboard-provenance-heading">
+            <div class="inspector-enterprise-heading">
+                <div>
+                    <h2 id="dashboard-provenance-heading">{{ __('system_admin.provenance.title') }}</h2>
+                    <p>{{ __('system_admin.provenance.description') }}</p>
+                </div>
+                <a class="foodex-action-secondary button secondary"
+                   href="{{ route('admin.inspector.index', ['verify_source' => 1]) }}">
+                    {{ __('system_admin.provenance.verify') }}
+                </a>
+            </div>
+            <div class="inspector-health" style="margin-top:var(--foodex-space-4)">
+                @foreach([
+                    'installed_version' => $deploymentProvenance['installed_version'],
+                    'source_version' => $deploymentProvenance['source_version'],
+                    'build_version' => $deploymentProvenance['build_version'],
+                    'source_commit' => $deploymentProvenance['source_commit'],
+                ] as $provenanceKey => $provenanceValue)
+                    <div class="inspector-health-row">
+                        <strong>{{ __('system_admin.provenance.'.$provenanceKey) }}</strong>
+                        <code>{{ $provenanceValue ?? '—' }}</code>
+                    </div>
+                @endforeach
+                <div class="inspector-health-row">
+                    <strong>{{ __('system_admin.provenance.metadata_state') }}</strong>
+                    <span class="foodex-status-badge" data-state="{{ $deploymentProvenance['metadata_state'] === 'consistent' ? 'success' : 'warning' }}">
+                        {{ __('system_admin.provenance.'.$deploymentProvenance['metadata_state']) }}
+                    </span>
+                </div>
+                <div class="inspector-health-row">
+                    <strong>{{ __('system_admin.provenance.github_state') }}</strong>
+                    <span class="foodex-status-badge" data-state="{{ $deploymentProvenance['github_state'] === 'found' ? 'success' : 'warning' }}">
+                        {{ __('system_admin.provenance.'.$deploymentProvenance['github_state']) }}
+                    </span>
+                </div>
+            </div>
+        </section>
+
         <section id="system-runtime" class="foodex-module-overview" data-foodex-module-overview data-system-runtime-health>
             <div class="inspector-enterprise-heading">
                 <div>

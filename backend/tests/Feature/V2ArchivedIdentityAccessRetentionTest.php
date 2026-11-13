@@ -34,6 +34,8 @@ final class V2ArchivedIdentityAccessRetentionTest extends TestCase
         $this->patchJson("/api/v1/admin/security/users/{$target->id}/status", [
             'is_active' => false,
             'reason' => 'V2 archive',
+            'impact_reviewed' => true,
+            'confirm_email' => $target->email,
         ])->assertOk()->assertJsonPath('data.is_active', false);
 
         // The API request used a separately hydrated route model. Rehydrate the
@@ -106,7 +108,10 @@ final class V2ArchivedIdentityAccessRetentionTest extends TestCase
             $user,
             false,
             'V2 account archive',
-            Request::create('/admin/security', 'PATCH'),
+            Request::create('/admin/security', 'PATCH', [
+                'impact_reviewed' => true,
+                'confirm_email' => $user->email,
+            ]),
         );
 
         $this->getJson('/api/v1/profile')->assertUnauthorized();
@@ -143,7 +148,10 @@ final class V2ArchivedIdentityAccessRetentionTest extends TestCase
                 $user,
                 false,
                 'V2 archive',
-                Request::create('/admin/security', 'PATCH'),
+                Request::create('/admin/security', 'PATCH', [
+                    'impact_reviewed' => true,
+                    'confirm_email' => $user->email,
+                ]),
             );
             Sanctum::actingAs($user);
             $this->getJson($endpoint)->assertUnauthorized();

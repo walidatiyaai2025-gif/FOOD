@@ -13,6 +13,8 @@ return [
     ],
     'tabs' => [
         'overview' => 'Stock overview',
+        'balances' => 'Balances',
+        'warehouses' => 'Warehouses',
         'movements' => 'Movements',
         'transfers' => 'Transfers',
         'counts' => 'Counts',
@@ -98,10 +100,18 @@ return [
             ],
         ],
     ],
+    'balances' => [
+        'title' => 'Stock balances',
+        'subtitle' => 'On-hand, reserved and available quantities from the canonical inventory ledger for the selected authorized warehouse.',
+        'pagination' => 'Stock balance pages',
+        'next_page' => 'Next 50 balances',
+    ],
     'movements' => [
         'title' => 'Stock movement history',
         'subtitle' => 'Recent canonical movement provenance for the selected authorized warehouse.',
         'type' => 'Movement',
+        'pagination' => 'Stock movement pages',
+        'next_page' => 'Next 50 movements',
         'movement_types' => [
             'purchase_receipt' => 'Purchase receipt',
             'warehouse_transfer_out' => 'Transfer out',
@@ -238,6 +248,7 @@ return [
         ],
     ],
     'reports' => [
+        'open_report' => 'Open report',
         'title' => 'WMS reports',
         'subtitle' => 'Bounded authorized reports over the same inventory and movement authorities, with large exports handed to shared reporting infrastructure.',
         'inventory_summary' => 'Inventory summary / value',

@@ -380,6 +380,35 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <?php endif; ?>
 
 <div class="order-tab-panel" role="tabpanel" data-order-panel="orders">
+@if($canViewApprovedDiscounts)
+<nav class="status-tabs" data-v2-approved-discounts-nav aria-label="{{ __('customer_service_discount.approved_history') }}">
+    <a class="status-tab" data-v2-approved-discounts-tab href="{{ route('admin.operations.orders.index', array_merge(request()->except(['order', 'page', 'approved_discount_page', 'status', 'exception', 'dispatch_status']), ['channel' => $selectedChannel, 'discount_view' => 'approved', 'action_required' => 0])) }}#order-tab-orders" @if($approvedDiscountsMode) aria-current="page" @endif>{{ __('customer_service_discount.approved_history') }}</a>
+    @if($approvedDiscountsMode)
+    <a class="status-tab" data-v2-approved-discounts-back href="{{ route('admin.operations.orders.index', ['channel' => $selectedChannel, 'action_required' => 0] + ($selectedStoreId !== null ? ['store_id' => $selectedStoreId] : [])) }}#order-tab-orders">{{ __('customer_service_discount.back_orders') }}</a>
+    @endif
+</nav>
+@endif
+@if($approvedDiscountsMode && $approvedDiscounts !== null)
+<section class="foodex-card" data-v2-approved-discounts-workbench aria-label="{{ __('customer_service_discount.approved_history') }}" style="display:grid;gap:12px;padding:16px;margin:12px 0">
+    <h2>{{ __('customer_service_discount.approved_history') }}</h2>
+    <p class="muted">{{ __('customer_service_discount.approved_description') }}</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:12px">
+    @forelse($approvedDiscounts as $decision)
+        <article class="foodex-card" data-v2-approved-discount-id="{{ $decision->id }}" style="display:grid;gap:8px;padding:12px;border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card)">
+            <strong>{{ __('customer_service_discount.percentage') }}: {{ $decision->percentage }}%</strong>
+            <div>{{ __('customer_service_discount.requester') }}: {{ $decision->requested_by_name }}</div>
+            <div>{{ __('customer_service_discount.approved_by') }}: {{ $decision->reviewed_by_name }}</div>
+            <div>{{ __('customer_service_discount.approved_at') }}: <time datetime="{{ $decision->reviewed_at }}">{{ $decision->reviewed_at }}</time></div>
+            <p style="overflow-wrap:anywhere">{{ $decision->reason }}</p>
+            <a class="foodex-primary" data-v2-approved-discount-order-link href="{{ route('admin.operations.orders.index', array_merge(request()->except(['order', 'page', 'approved_discount_page', 'status', 'exception', 'dispatch_status']), ['order' => $decision->order_id, 'channel' => $decision->channel, 'store_id' => $decision->store_id, 'discount_view' => 'approved', 'action_required' => 0])) }}">{{ __('customer_service_discount.view_order') }}: {{ $decision->order_number }}</a> {{-- localization-gate: allow — channel is a route query parameter, never a visible enum label --}}
+        </article>
+    @empty
+        <p class="foodex-empty-state" data-v2-approved-discounts-empty>{{ __('customer_service_discount.approved_empty') }}</p>
+    @endforelse
+    </div>
+    {{ $approvedDiscounts->links() }}
+</section>
+@endif
 @php
     $channelQuery=request()->except(['channel','store_id','driver_id','dispatch_status','exception','page','order']);
 @endphp
@@ -406,9 +435,11 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 <nav class="status-tabs" aria-label="{{ __('order_operations.statuses') }}" data-order-status-tabs data-order-status-selected="{{ $selectedStatus ?? 'all' }}" data-order-exception-selected="{{ $selectedException ?? 'none' }}">
 <a class="status-tab"
    data-order-action-tab
+   data-order-awaiting-dispatch-queue="P210"
+   aria-label="{{ __('order_operations.dashboard.exceptions.awaiting_dispatch') }}"
    href="{{ route('admin.operations.orders.index',array_merge($actionQuery,['action_required'=>1])) }}#order-tab-orders"
    @if($selectedActionRequired) aria-current="page" @endif>
-<span>{{ $isAr ? 'تحتاج إجراء' : 'Action required' }}</span><span class="status-tab-count">{{ $actionRequiredCount }}</span>
+<span>{{ __('order_operations.dashboard.exceptions.awaiting_dispatch') }}</span><span class="status-tab-count">{{ $actionRequiredCount }}</span>
 </a>
 <a class="status-tab"
    data-order-failure-returns-tab
@@ -425,9 +456,10 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 @foreach($statusTabs as $tab)
 <a class="status-tab"
    data-order-status-tab="{{ $tab['code'] }}"
+   @if($tab['code']==='pending') data-order-pending-queue="P209" aria-label="{{ __('order_operations.pending_orders_queue') }}" @endif
    href="{{ route('admin.operations.orders.index',array_merge($tabQuery,['status'=>$tab['code'],'action_required'=>0])) }}#order-tab-orders"
    @if($selectedStatus===$tab['code'] && $selectedException===null && !$selectedActionRequired) aria-current="page" @endif>
-<span>{{ $tab['label'] }}</span><span class="status-tab-count">{{ $tab['count'] }}</span>
+<span>{{ $tab['code']==='pending' ? __('order_operations.pending_orders_queue') : $tab['label'] }}</span><span class="status-tab-count">{{ $tab['count'] }}</span>
 </a>
 @endforeach
 </nav>
@@ -715,8 +747,54 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
         <label style="display:grid;gap:4px;flex:1;min-width:180px">{{ __('customer_service_discount.reason') }}
             <textarea name="reason" minlength="5" maxlength="500" required placeholder="{{ __('customer_service_discount.note_placeholder') }}" style="min-height:44px;width:100%">{{ old('reason') }}</textarea>
         </label>
-        <button class="foodex-primary" type="submit" style="min-height:44px">{{ __('customer_service_discount.apply') }}</button>
+        <button class="foodex-primary" type="submit" style="min-height:44px">{{ $actor->hasRole('CUSTOMER_SERVICE_AGENT') && ! $actor->hasRole('CUSTOMER_SERVICE_MANAGER') && ! $actor->hasRole('CUSTOMER_SERVICE_SUPERVISOR') && ! $actor->hasRole('SUPER_ADMIN') ? __('customer_service_discount.request') : __('customer_service_discount.apply') }}</button>
     </form>
+</section>
+@endif
+@if(isset($discountRequests) && $discountRequests->isNotEmpty())
+<section class="foodex-card foodex-form" data-order-customer-service-review style="grid-column:1/-1;padding:12px;border:1px solid var(--foodex-border);border-radius:12px">
+    <h3>{{ __('customer_service_discount.pending_review') }}</h3>
+    <div style="display:grid;gap:12px">
+        @foreach($discountRequests as $discountRequest)
+        <div data-discount-request-id="{{ $discountRequest->id }}" style="display:grid;gap:8px;border-bottom:1px solid var(--foodex-border);padding:8px 0">
+            <div><strong>{{ __('customer_service_discount.requester') }}:</strong> {{ $discountRequest->requested_by_name }}</div>
+            <div><strong>{{ __('customer_service_discount.percentage') }}:</strong> {{ $discountRequest->percentage }}%</div>
+            <p style="overflow-wrap:anywhere">{{ $discountRequest->reason }}</p>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:end">
+                <form method="post" action="{{ route('admin.operations.orders.customer-service-discount.review', ['order'=>$detail['id'], 'discountRequest'=>$discountRequest->id]) }}">
+                    @csrf
+                    <input type="hidden" name="decision" value="approve">
+                    <button class="foodex-primary" type="submit" style="min-height:44px">{{ __('customer_service_discount.approve') }}</button>
+                </form>
+                <form method="post" action="{{ route('admin.operations.orders.customer-service-discount.review', ['order'=>$detail['id'], 'discountRequest'=>$discountRequest->id]) }}" style="display:flex;flex-wrap:wrap;gap:8px;align-items:end">
+                    @csrf
+                    <input type="hidden" name="decision" value="reject">
+                    <label style="display:grid;gap:4px;min-width:180px">{{ __('customer_service_discount.review_reason') }}
+                        <input type="text" name="review_reason" minlength="5" maxlength="500" required style="min-height:44px;width:100%">
+                    </label>
+                    <button class="foodex-primary" type="submit" style="min-height:44px">{{ __('customer_service_discount.reject') }}</button>
+                </form>
+            </div>
+        </div>
+        @endforeach
+    </div>
+</section>
+@endif
+@if(isset($approvedDiscountRequests) && $approvedDiscountRequests->isNotEmpty())
+<section class="foodex-card foodex-form" data-order-approved-discount-history style="grid-column:1/-1;padding:12px;border:1px solid var(--foodex-border);border-radius:12px" aria-label="{{ __('customer_service_discount.approved_history') }}">
+    <h3>{{ __('customer_service_discount.approved_history') }}</h3>
+    <div style="display:grid;gap:12px">
+        @foreach($approvedDiscountRequests as $approvedDiscount)
+        <article data-approved-discount-request-id="{{ $approvedDiscount->id }}" style="display:grid;gap:6px;border-bottom:1px solid var(--foodex-border);padding:8px 0">
+            <strong>{{ __('customer_service_discount.percentage') }}: {{ $approvedDiscount->percentage }}%</strong>
+            <div>{{ __('customer_service_discount.requester') }}: {{ $approvedDiscount->requested_by_name }}</div>
+            <div>{{ __('customer_service_discount.approved_by') }}: {{ $approvedDiscount->reviewed_by_name }}</div>
+            <div>{{ __('customer_service_discount.approved_at') }}: <time datetime="{{ $approvedDiscount->reviewed_at }}">{{ $approvedDiscount->reviewed_at }}</time></div>
+            <p style="overflow-wrap:anywhere">{{ $approvedDiscount->reason }}</p>
+        </article>
+        @endforeach
+    </div>
+    {{ $approvedDiscountRequests->links() }}
 </section>
 @endif
 

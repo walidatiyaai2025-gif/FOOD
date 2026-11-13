@@ -139,9 +139,12 @@ class AdminNavigationAuthorizationAuditTest extends TestCase
             ->get(route('admin.enterprise-workspaces.index'))
             ->assertOk();
 
+        // A store admin with finance.view may discover scoped Treasury Master Data;
+        // this does not convey platform ERP Treasury privileges.
+        $this->assertTrue($items->contains('key', 'treasury_master'));
+
         foreach ([
             'whatsapp_inbox',
-            'treasury_master',
             'whatsapp_supervisor',
             'b2c_finance',
             'administration_hub',

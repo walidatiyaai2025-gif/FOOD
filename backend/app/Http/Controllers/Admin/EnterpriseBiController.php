@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Entitlements\ModuleEntitlementResolver;
 use App\Enterprise\Reporting\EnterpriseBiWorkspaceService;
 use App\Enterprise\Reporting\ReportAccessResolver;
 use App\Enterprise\Reporting\ReportBuilderExecutor;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
+use App\Support\TenantContextResolver;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -162,6 +164,8 @@ final class EnterpriseBiController extends Controller
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly OperationalTenantScope $tenantScope,
+        private readonly ModuleEntitlementResolver $entitlements,
+        private readonly TenantContextResolver $tenantContext,
     ) {}
 
     public function index(
@@ -174,6 +178,14 @@ final class EnterpriseBiController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User && $actor->is_active, 403);
         abort_unless($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('reports.view'), 403);
+        // Match the canonical Sidebar/ERP Center: a reporting permission is
+        // not a grant to enter an unentitled platform BI workspace.
+        abort_unless(
+            $this->navigation->canAccessPlatformErp($actor)
+                && ! $this->navigation->usesCustomerServiceDashboardProfile($actor),
+            403,
+        );
+        abort_unless($actor->isPlatformOwner() || $this->hasBiEntitlement($actor), 403);
 
         $catalog = collect($this->catalog($actor, $registry, $access));
         $selectedCode = trim((string) $request->query('report', ''));
@@ -235,6 +247,26 @@ final class EnterpriseBiController extends Controller
             'exceptions' => $this->exceptionSummary($actor),
             'legacyReportsUrl' => Route::has('admin.reports.index') ? route('admin.reports.index') : null,
         ]);
+    }
+
+    private function hasBiEntitlement(User $actor): bool
+    {
+        if ($this->entitlements->allows('enterprise_bi', EntitlementScope::platform())) {
+            return true;
+        }
+
+        // Store entitlements count only for currently authorized Retail stores;
+        // an unrelated store's module grant must never unlock this workspace.
+        foreach ($this->tenantContext->retailStoreIds($actor) as $storeId) {
+            if ($this->entitlements->allows(
+                'enterprise_bi',
+                new EntitlementScope(EntitlementScope::STORE, $storeId),
+            )) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @return list<array<string, mixed>> */

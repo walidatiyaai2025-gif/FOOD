@@ -30,13 +30,13 @@ final class V2ReportsCenterAuthorizedHttpContractTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
     }
 
-    public function test_all_six_report_families_have_real_localized_usable_routes(): void
+    public function test_all_seven_report_families_have_real_localized_usable_routes(): void
     {
         $actor = User::factory()->create(['locale' => 'en', 'is_active' => true]);
         $actor->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
 
         $expected = [
-            'orders', 'products', 'customers', 'operations',
+            'orders', 'channels', 'products', 'customers', 'operations',
             'sales_exceptions', 'field_operations',
         ];
         $this->assertSame($expected, array_keys(app(ManagementReportService::class)->catalog()));

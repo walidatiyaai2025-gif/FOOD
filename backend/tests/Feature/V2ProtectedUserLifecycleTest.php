@@ -172,6 +172,8 @@ final class V2ProtectedUserLifecycleTest extends TestCase
         $this->patchJson("/api/v1/admin/security/users/{$target->id}/status", [
             'is_active' => false,
             'reason' => 'V2 secure offboarding',
+            'impact_reviewed' => true,
+            'confirm_email' => $target->email,
         ])->assertOk()->assertJsonPath('data.is_active', false);
 
         $this->assertDatabaseHas('users', [
