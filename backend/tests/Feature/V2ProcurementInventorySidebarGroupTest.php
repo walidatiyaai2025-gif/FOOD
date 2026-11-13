@@ -4,10 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Models\UserStoreRole;
 use App\Services\AdminSidebarManager;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -88,6 +90,54 @@ final class V2ProcurementInventorySidebarGroupTest extends TestCase
         $this->actingAs($roleless)
             ->get(route('admin.erp.wms.index'))
             ->assertForbidden();
+    }
+
+    public function test_p237_real_retail_inventory_ui_has_one_authorized_domain_parent_in_both_locales(): void
+    {
+        $ownStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'business_profile' => 'RETAIL_STORE',
+            'code' => 'P237-RETAIL-OWN',
+            'name' => 'P237 Retail Own',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'business_profile' => 'RETAIL_STORE',
+            'code' => 'P237-RETAIL-FOREIGN',
+            'name' => 'P237 Retail Foreign',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        UserStoreRole::query()->create([
+            'user_id' => $actor->id,
+            'store_id' => $ownStoreId,
+            'role_id' => Role::query()->where('code', 'RETAIL_INVENTORY')->firstOrFail()->id,
+        ]);
+
+        foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
+            app()->setLocale($locale);
+            $actor->forceFill(['locale' => $locale])->save();
+
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.b2c.module', ['module' => 'inventory', 'store_id' => $ownStoreId]))
+                ->assertOk()
+                ->assertSee('dir="'.$direction.'"', false)
+                ->assertSee('data-nav-domain="procurement-inventory"', false)
+                ->assertSee(__('v2_sidebar_domains.procurement_inventory'))
+                ->assertSee('data-nav-group="inventory"', false)
+                ->assertDontSee('data-nav-group="procurement"', false)
+                ->assertDontSee('data-nav-group="warehouses"', false);
+        }
+
+        $foreign = $this->actingAs($actor->fresh())
+            ->get(route('admin.b2c.module', ['module' => 'inventory', 'store_id' => $foreignStoreId]));
+        $this->assertContains($foreign->getStatusCode(), [403, 404]);
     }
 
     public function test_p237_business_domain_projection_does_not_grant_wholesale_inventory_to_regular_admin(): void
