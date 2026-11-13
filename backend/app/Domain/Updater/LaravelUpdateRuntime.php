@@ -316,7 +316,8 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         // Rollback sources must be issued under the configured trusted backup
         // root. Never accept a readable but foreign files.json as authority to
         // delete or restore release files.
-        $configuredRoot = rtrim(str_replace('\\', '/', $this->backupRoot()), '/');
+        $rawConfiguredRoot = str_replace('\\', '/', $this->backupRoot());
+        $configuredRoot = rtrim($rawConfiguredRoot, '/');
         $candidate = rtrim(str_replace('\\', '/', $backupReference), '/');
         $canonicalRoot = realpath($configuredRoot);
         $canonicalCandidate = realpath($candidate);
@@ -335,8 +336,23 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         // Reject traversals and symlinks even when an alias happens to resolve
         // back inside the trusted root. Keep configured-root ancestors working
         // on hosts where the trusted storage root itself has a canonical alias.
+        // newBackupDirectory() historically appends '/' to the configured
+        // backup root. When that setting already ends with '/', the stored
+        // reference includes a double separator at this one trusted boundary.
+        // Accept only exactly those generated boundary separators, never
+        // arbitrary aliases or empty/dot segments inside the backup path.
+        $relativeBackupPath = substr($candidate, strlen($prefix));
+        $rootTrailingSeparators = strlen($rawConfiguredRoot) - strlen($configuredRoot);
+        if ($rootTrailingSeparators > 0) {
+            $generatedBoundary = str_repeat('/', $rootTrailingSeparators);
+            if (str_starts_with($relativeBackupPath, $generatedBoundary)
+                && ! str_starts_with(substr($relativeBackupPath, $rootTrailingSeparators), '/')) {
+                $relativeBackupPath = substr($relativeBackupPath, $rootTrailingSeparators);
+            }
+        }
+
         $component = $configuredRoot;
-        foreach (explode('/', substr($candidate, strlen($prefix))) as $part) {
+        foreach (explode('/', $relativeBackupPath) as $part) {
             if ($part === '' || $part === '.' || $part === '..') {
                 throw new RuntimeException('File rollback backup location is invalid.');
             }
