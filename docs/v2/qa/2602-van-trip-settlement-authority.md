@@ -87,6 +87,6 @@ At initial preflight:
 
 ## Release and acceptance state
 
-**SOURCE INCOMPLETE / NO SAFE MERGE AUTHORIZATION.** This work must remain draft/open unless an independently valid implementation and all source requirements are completed. No claim of fresh-install/upgrade success, full Laravel pass or live-account proof is inferred from source inspection; attach exact head CI evidence when available. Once full source and CI are green, manual owner/browser/device UAT may be recorded as `MANUAL_ACCEPTANCE: DEFERRED_TO_V2_FINAL` under #2503, not before.
+**FULL P272 SOURCE INCOMPLETE / NO SAFE FULL TRIP-SETTLEMENT MERGE OR CODE-COMPLETE CLAIM.** The independently reviewed, issue-scoped invoice allocation isolation regression and fail-closed service guard are a bounded security slice that may be integrated only into `Foodex_V2` after every required exact-final-head check is GREEN. This *partial integration* does not authorize trip closeout, per-trip cash posting or stock reconciliation, and Issue #2602 must remain OPEN until all remaining P272 source requirements are implemented and verified. No claim of fresh-install/upgrade success, full Laravel pass or live-account proof is inferred from source inspection; attach exact head CI evidence when available. Once full source and CI are green, manual owner/browser/device UAT may be recorded as `MANUAL_ACCEPTANCE: DEFERRED_TO_V2_FINAL` under #2503, not before.
 
 No `main` integration, tags, releases or production deployment.
