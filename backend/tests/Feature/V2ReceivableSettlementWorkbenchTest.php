@@ -191,6 +191,10 @@ final class V2ReceivableSettlementWorkbenchTest extends TestCase
         $current = $fixture['maker'];
         $currentStoreId = $fixture['store']->id;
         $this->actingAs($current)
+            ->get(route('admin.erp.finance.index', ['store_id' => $currentStoreId, 'tab' => 'receivables']))
+            ->assertOk()
+            ->assertDontSee($foreignDocument->document_number);
+        $this->actingAs($current)
             ->get(route('admin.erp.finance.index', [
                 'store_id' => $currentStoreId,
                 'tab' => 'receivables',
