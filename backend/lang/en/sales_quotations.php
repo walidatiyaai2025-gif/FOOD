@@ -3,6 +3,10 @@
 return [
     'title' => 'Sales quotations',
     'description' => 'Prepare store-scoped quotations using live authoritative pricing. A quotation does not place an order or reserve inventory.',
+    'contracts_prices_navigation' => 'Contracts and pricing',
+    'pricing_controls' => 'Pricing rules',
+    'price_lists' => 'Wholesale price tiers',
+    'contract_scope_note' => 'Quotations are not executed sales contracts and create no contractual obligation.',
     'store' => 'Store',
     'switch_store' => 'Switch store',
     'back_to_orders' => 'Back to orders',

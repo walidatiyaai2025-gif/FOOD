@@ -381,12 +381,19 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
 
 <div class="order-tab-panel" role="tabpanel" data-order-panel="orders">
 @if($canViewApprovedDiscounts)
-<nav class="status-tabs" data-v2-approved-discounts-nav aria-label="{{ __('customer_service_discount.approved_history') }}">
+<nav class="status-tabs" data-v2-approved-discounts-nav aria-label="{{ __('customer_service_discount.pending_review') }}">
+    <a class="status-tab" data-v2-pending-discounts-tab href="{{ route('admin.operations.orders.index', array_merge(request()->except(['order', 'page', 'approved_discount_page', 'status', 'exception', 'dispatch_status']), ['channel' => $selectedChannel, 'discount_view' => 'pending', 'action_required' => 0])) }}#order-tab-orders" @if($pendingDiscountsMode) aria-current="page" @endif>{{ __('customer_service_discount.pending_review') }}</a>
     <a class="status-tab" data-v2-approved-discounts-tab href="{{ route('admin.operations.orders.index', array_merge(request()->except(['order', 'page', 'approved_discount_page', 'status', 'exception', 'dispatch_status']), ['channel' => $selectedChannel, 'discount_view' => 'approved', 'action_required' => 0])) }}#order-tab-orders" @if($approvedDiscountsMode) aria-current="page" @endif>{{ __('customer_service_discount.approved_history') }}</a>
-    @if($approvedDiscountsMode)
+    @if($approvedDiscountsMode || $pendingDiscountsMode)
     <a class="status-tab" data-v2-approved-discounts-back href="{{ route('admin.operations.orders.index', ['channel' => $selectedChannel, 'action_required' => 0] + ($selectedStoreId !== null ? ['store_id' => $selectedStoreId] : [])) }}#order-tab-orders">{{ __('customer_service_discount.back_orders') }}</a>
     @endif
 </nav>
+@endif
+@if($pendingDiscountsMode)
+<section class="foodex-card" data-v2-pending-discounts-workbench aria-label="{{ __('customer_service_discount.pending_review') }}" style="display:grid;gap:8px;padding:16px;margin:12px 0">
+    <h2>{{ __('customer_service_discount.pending_review') }}</h2>
+    <p class="muted">{{ __('customer_service_discount.pending_description') }}</p>
+</section>
 @endif
 @if($approvedDiscountsMode && $approvedDiscounts !== null)
 <section class="foodex-card" data-v2-approved-discounts-workbench aria-label="{{ __('customer_service_discount.approved_history') }}" style="display:grid;gap:12px;padding:16px;margin:12px 0">

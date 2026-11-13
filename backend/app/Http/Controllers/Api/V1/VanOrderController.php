@@ -286,24 +286,27 @@ final class VanOrderController extends Controller
         int $customer,
         int $storeId,
     ): void {
-        abort_unless(in_array($type, ['b2b', 'b2c'], true), 404);
+        // Van-originated direct sales are Wholesale/B2B only, regardless of
+        // legacy B2C visits or customer IDs exposed by older mobile clients.
+        abort_unless($type === 'b2b', 404);
 
-        $query = VanVisit::query()
+        // A historical visit in another store must never authorize selling
+        // from the Van's currently assigned Wholesale store.
+        abort_unless(VanVisit::query()
             ->where('actor_user_id', $actor->getKey())
-            ->where('customer_type', $type)
-            ->where('customer_id', $customer);
-
-        if ($this->runtimeStoreId($request) === null) {
-            $query->where('store_id', $storeId);
-        }
-
-        abort_unless($query->exists(), 404);
+            ->where('customer_type', 'b2b')
+            ->where('customer_id', $customer)
+            ->where('store_id', $storeId)
+            ->exists(), 404);
     }
 
     private function sellerStoreId(Request $request, mixed $requestedStoreId): int
     {
         $runtimeStoreId = $this->runtimeStoreId($request);
         if ($runtimeStoreId !== null) {
+            // Do not silently reinterpret a stale or tampered store selection.
+            abort_if($requestedStoreId !== null && (int) $requestedStoreId !== $runtimeStoreId, 404);
+
             return $runtimeStoreId;
         }
 

@@ -100,7 +100,7 @@ class AuthController extends Controller
         $user = $this->platformCustomers->register($validated, 'customer_app');
 
         return response()->json([
-            'token' => $user->createToken('foodex-platform-customer')->plainTextToken,
+            'token' => $user->createToken('foodex-platform-customer', ['app:customer'])->plainTextToken,
             'token_type' => 'Bearer',
             'platform_customer' => true,
             'user' => $this->identity($user),
@@ -157,7 +157,7 @@ class AuthController extends Controller
         }
 
         return response()->json([
-            'token' => $user->createToken('foodex-'.$validated['app'].'-trial')->plainTextToken,
+            'token' => $user->createToken('foodex-'.$validated['app'].'-trial', ['app:'.$validated['app']])->plainTextToken,
             'token_type' => 'Bearer',
             'trial_username_login' => true,
             'user' => $this->identity($user),

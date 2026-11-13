@@ -7,8 +7,10 @@ use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\B2bPricingMode;
 use App\Services\CommerceQuoteService;
 use App\Services\OperationalTenantScope;
+use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
@@ -286,6 +288,29 @@ final class SalesQuotationController extends Controller
             ->limit(300)
             ->get(['products.id', 'products.name', 'products.sku']);
 
+        // P195 reuses established Sales quotations and canonical Wholesale pricing
+        // controls. Links must project the destination's OWN server-side ability
+        // and operational tenant scope, never a new navigation-only permission.
+        // Read-only canonical store lookup avoids mutating tenant records on GET.
+        $canonicalWholesaleStoreId = DB::table('stores')
+            ->where('code', WholesalePrincipal::STORE_CODE)
+            ->where('is_active', true)
+            ->value('id');
+        $isCanonicalWholesale = $channel === 'b2b'
+            && $canonicalWholesaleStoreId !== null
+            && $storeId === (int) $canonicalWholesaleStoreId;
+
+        $pricingControlUrl = $isCanonicalWholesale
+            && in_array($storeId, $this->scope->allowedStoreIds($actor, 'catalog.view', 'b2b'), true)
+            ? route('admin.commercial.sales-control', ['store_id' => $storeId])
+            : null;
+        $priceListsUrl = $isCanonicalWholesale
+            && $actor->hasPermission('b2b.pricing.view')
+            && in_array($storeId, $this->scope->allowedStoreIds($actor, 'b2b.pricing.view', 'b2b'), true)
+            && app(B2bPricingMode::class)->tiersEnabled($storeId)
+            ? route('admin.b2b.pricing-approvals')
+            : null;
+
         return view('admin.sales-quotations', [
             'user' => $actor,
             'storeId' => $storeId,
@@ -302,6 +327,8 @@ final class SalesQuotationController extends Controller
             'products' => $products,
             'canCreate' => $canCreate,
             'canManage' => $canManage,
+            'pricingControlUrl' => $pricingControlUrl,
+            'priceListsUrl' => $priceListsUrl,
             'navGroups' => $this->navigation->groupsFor($actor),
             'navContext' => 'sales_quotations',
         ]);
