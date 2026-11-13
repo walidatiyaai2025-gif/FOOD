@@ -52,3 +52,11 @@ B2B=VAN ONLY and B2C=DRIVER ONLY remain authoritative.
 ## Required acceptance and closure
 
 Merge **only** into `Foodex_V2` on the **exact latest** PR HEAD after Repository Policy, FOODEX V2 Isolation Gate, backend PHP syntax/Pint/PHPStan/security, AR/EN localization, full Laravel tests, MySQL/Redis fresh-install/upgrade/recovery and terminal `required-ci-gate` all report SUCCESS. Record tested SHA, workflow IDs, merge SHA, verify target integration and close source-complete code leaf. Do not claim success on older/partial CI. Manual browser/device/UAT is **DEFERRED_TO_V2_FINAL** under #2503/#2750, not certified now. No `main`, release, APK deployment, tags or production changes.
+
+
+## Deactivated-identity source repair (13 November, follow-up)
+
+- A fresh Required CI run on `82942d41f25ddc527e1fee830ab28947f4388ff5` passed all gates except **one** source regression: 3439 tests passed, `V2SalesOfficerRoleAuthorityTest.php:156` failed because a deactivated user still returned true from `User::hasPermission('orders.edit')`. The model checked assigned roles and direct overrides without checking `is_active`. Operational HTTP/tenant guards already independently filter disabled accounts, but that does **not** establish a fail-closed reusable domain permission method.
+- `backend/app/Models/User.php::hasPermission` now denies **all** effective permissions when `is_active` is false, before the SUPER_ADMIN shortcut, inherited role permissions and direct ALLOW overrides. It does **not** delete historical `role_user` or `user_permission_overrides` records; those remain auditable. This is an actual security correction required by the inactive Sales Officer acceptance path, not a weakened test.
+- Added focused assertions that disabled Sales Officer and disabled SUPER_ADMIN cannot retain effective permissions despite historic role assignment, while active roles continue to work. No admin route, B2C permissions, financial SoD or public/customer APIs were introduced.
+- The current branch needs full **new exact-head** Required CI including full Laravel, security, localization, MySQL/Redis and terminal `required-ci-gate` before the original PR #3222 can be merged. Previous failing/green-partial runs cannot count as approval.
