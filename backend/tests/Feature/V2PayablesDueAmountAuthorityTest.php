@@ -10,6 +10,7 @@ use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
+use App\Models\EnterpriseAccountsPayableDocument;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
@@ -242,7 +243,7 @@ final class V2PayablesDueAmountAuthorityTest extends TestCase
         string $suffix,
         string $supplier,
         string $amount,
-    ): \App\Models\EnterpriseAccountsPayableDocument {
+    ): EnterpriseAccountsPayableDocument {
         $ap = app(AccountsPayableService::class);
         $document = $ap->createDraft($maker, $context, [
             'idempotency_key' => 'P300-DOC-'.$suffix,
