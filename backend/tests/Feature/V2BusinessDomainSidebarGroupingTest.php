@@ -54,15 +54,15 @@ final class V2BusinessDomainSidebarGroupingTest extends TestCase
             $this->assertSame($group, $layout['items'][$item]['group_key'], $item.' default placement');
         }
 
-        foreach (['catalog', 'warehouses', 'operations', 'finance', 'administration'] as $group) {
+        foreach (['catalog', 'procurement', 'warehouses', 'operations', 'finance', 'administration'] as $group) {
             $label = $registry['groups'][$group]['label'];
             $this->assertTrue(Lang::hasForLocale($label, 'ar'), $group.' Arabic group label');
             $this->assertTrue(Lang::hasForLocale($label, 'en'), $group.' English group label');
         }
 
-        // Procurement remains under Catalog while P253 gives the existing WMS
-        // warehouses destination its own authorized business group.
-        $this->assertSame('catalog', $registry['items']['erp_procurement']['group']);
+        // P238 Procurement and P253 Warehouses each have a single authorized
+        // business owner; neither belongs to the Catalog grouping.
+        $this->assertSame('procurement', $registry['items']['erp_procurement']['group']);
         $this->assertSame('warehouses', $registry['items']['erp_wms']['group']);
         $this->assertSame('finance', $registry['items']['erp_treasury']['group']);
     }
