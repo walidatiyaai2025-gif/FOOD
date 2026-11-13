@@ -19,7 +19,7 @@ final class DistributionRuleManager
         private readonly AuditLogger $audit,
     ) {}
 
-    /** @return Collection<int, object> */
+    /** @return Collection<int, \stdClass> */
     public function permittedStores(User $actor): Collection
     {
         if (! $actor->is_active || ! $this->runtime->allowsAgentInbox()) {
@@ -67,7 +67,7 @@ final class DistributionRuleManager
             ->get(['id', 'name', 'is_active']);
     }
 
-    /** @return LengthAwarePaginator<object> */
+    /** @return LengthAwarePaginator<int, \stdClass> */
     public function paginate(User $actor, int $storeId): LengthAwarePaginator
     {
         $this->assertStore($actor, $storeId);
