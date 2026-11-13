@@ -210,9 +210,15 @@ final class FinanceWorkbenchController extends Controller
             );
         }
 
-        // Independent poster, approved journal and repeat-safe posting are
-        // enforced by AccountsReceivableService and GeneralLedgerService.
-        $posted = $this->receivables->postAllocation($actor, $context, $allocation);
+        // Never allow a typed free-text reference to attest a collected
+        // receipt. The canonical AR service checks posting authority first
+        // and fails closed until P303 supports a verified source link.
+        $posted = $this->receivables->postAllocation(
+            $actor,
+            $context,
+            $allocation,
+            requiresVerifiedCollectionSource: true,
+        );
 
         return $this->redirectTo($request, 'receivables', 'ar_settlement_posted', [
             'settlement_document_id' => (int) $posted->ar_document_id,
