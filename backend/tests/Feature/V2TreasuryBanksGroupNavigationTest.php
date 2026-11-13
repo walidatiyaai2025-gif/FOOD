@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enterprise\Modules\ModuleRegistry;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
@@ -73,6 +74,51 @@ final class V2TreasuryBanksGroupNavigationTest extends TestCase
         $groups = collect(app(AdminNavigation::class)->groupsFor($actor));
         $this->assertFalse($groups->contains('key', 'treasury'));
         $this->actingAs($actor)->get(route('admin.treasury.master.index'))->assertForbidden();
+    }
+
+    public function test_authorized_retail_finance_scope_can_find_master_but_never_access_sibling_store(): void
+    {
+        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        $permission = Permission::query()->firstOrCreate(
+            ['code' => 'finance.view'],
+            ['name' => 'Finance view'],
+        );
+        $role->permissions()->syncWithoutDetaching([$permission->id]);
+
+        $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $own = Store::query()->create([
+            'store_type_id' => $typeId,
+            'business_profile' => 'RETAIL_STORE',
+            'code' => 'P291-ALLOWED',
+            'name' => 'P291 Allowed',
+            'is_active' => true,
+        ]);
+        $foreign = Store::query()->create([
+            'store_type_id' => $typeId,
+            'business_profile' => 'RETAIL_STORE',
+            'code' => 'P291-FOREIGN',
+            'name' => 'P291 Foreign',
+            'is_active' => true,
+        ]);
+        $actor = User::factory()->create(['is_active' => true]);
+        DB::table('user_store_roles')->insert([
+            'user_id' => $actor->id,
+            'store_id' => $own->id,
+            'role_id' => $role->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $group = collect(app(AdminNavigation::class)->groupsFor($actor))->firstWhere('key', 'treasury');
+        $this->assertIsArray($group);
+        $this->assertTrue(collect($group['children'])->contains('key', 'treasury_master'));
+
+        $this->actingAs($actor)
+            ->get(route('admin.treasury.master.index', ['store_id' => $own->id]))
+            ->assertOk();
+        $this->actingAs($actor)
+            ->get(route('admin.treasury.master.index', ['store_id' => $foreign->id]))
+            ->assertNotFound();
     }
 
     public function test_arabic_and_english_use_the_same_group_and_preserve_route_identity(): void
