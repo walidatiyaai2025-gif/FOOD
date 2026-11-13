@@ -137,12 +137,26 @@ class AdminNavigation
                 $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.erp.procurement.index', 'procurement', 'procurement.suppliers.view')
                     : null,
-                $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
-                    ? $this->routeItemEnterpriseModule($user, 'erp_wms', 'admin.erp_center.modules.wms.title', 'admin.erp.wms.index', 'inventory_wms', 'inventory.view')
-                    : null,
+
                 // P233: Coupons belong to the canonical Catalog & Pricing domain.
                 // Their existing controller and scoped feature authorizer remain intact.
                 $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled'),
+            ]),
+            // P253 warehouses are a dedicated business group. The existing
+            // P254 WMS warehouse tab is the only canonical destination; the
+            // module's runtime permission, tenant and readiness gates stay authoritative.
+            $this->group('warehouses', 'admin.nav_groups.warehouses', '▣', [
+                ! $useCustomerServiceDashboardProfile
+                    ? $this->routeItemEnterpriseModule(
+                        $user,
+                        'erp_wms',
+                        'admin.erp_center.modules.wms.title',
+                        'admin.erp.wms.index',
+                        'inventory_wms',
+                        'inventory.view',
+                        ['tab' => 'warehouses'],
+                    )
+                    : null,
             ]),
             $this->group('accounts', 'admin.nav_groups.accounts', '◎', [
                 $this->routeItemScoped($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'customers.view')
