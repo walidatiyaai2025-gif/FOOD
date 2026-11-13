@@ -162,7 +162,7 @@ return [
     ],
     'receivables' => [
         'title' => 'Accounts Receivable',
-        'help' => 'Read-only operational view of canonical AR documents and outstanding aging. Business-document creation stays with the source Sales flow.',
+        'help' => 'Read canonical AR documents and outstanding aging; authorized users can draft or independently post AR settlements. Sales remains the source of receivable documents.',
         'document' => 'AR document',
         'settlements' => 'Receivable settlements',
         'settlement_help' => 'Review bounded allocations for the selected posted AR document. An independent authorized poster must verify the collection source before posting.',
