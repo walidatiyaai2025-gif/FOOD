@@ -21,6 +21,7 @@ class V2InstallerConcurrentTokenInitializationTest extends TestCase
         config([
             'foodex.install_progress' => $this->testDirectory.'/progress.json',
             'foodex.install_lock' => $this->testDirectory.'/installed.lock',
+            'foodex.installer_token_lock_path' => $this->testDirectory.'/progress.json.token-lock',
             'foodex.installer_env_path' => $this->testDirectory.'/.env',
         ]);
 
@@ -101,17 +102,19 @@ $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 config([
     'foodex.install_progress' => %PROGRESS%,
     'foodex.install_lock' => %LOCK%,
+    'foodex.installer_token_lock_path' => %TOKEN_LOCK%,
 ]);
 echo $app->make(\App\Domain\Installer\InstallState::class)->token();
 PHP;
 
         $worker = str_replace(
-            ['%AUTOLOAD%', '%BOOTSTRAP%', '%PROGRESS%', '%LOCK%'],
+            ['%AUTOLOAD%', '%BOOTSTRAP%', '%PROGRESS%', '%LOCK%', '%TOKEN_LOCK%'],
             [
                 var_export(base_path('vendor/autoload.php'), true),
                 var_export(base_path('bootstrap/app.php'), true),
                 var_export($this->testDirectory.'/progress.json', true),
                 var_export($this->testDirectory.'/installed.lock', true),
+                var_export($this->testDirectory.'/progress.json.token-lock', true),
             ],
             $worker,
         );
