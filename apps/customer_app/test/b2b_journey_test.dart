@@ -612,9 +612,7 @@ void main() {
         );
         expect(
           Directionality.of(tester.element(invalid)),
-          locale.languageCode == 'ar'
-              ? TextDirection.rtl
-              : TextDirection.ltr,
+          locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
         );
         expect(find.text('0.000 KWD'), findsNothing);
       },

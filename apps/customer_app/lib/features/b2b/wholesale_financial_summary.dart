@@ -44,10 +44,8 @@ class WholesaleFinancialSummary {
     }
 
     final direction = switch (data['balance_direction']) {
-      'customer_owes_company' =>
-        WholesaleBalanceDirection.customerOwesCompany,
-      'company_owes_customer' =>
-        WholesaleBalanceDirection.companyOwesCustomer,
+      'customer_owes_company' => WholesaleBalanceDirection.customerOwesCompany,
+      'company_owes_customer' => WholesaleBalanceDirection.companyOwesCustomer,
       'settled' => WholesaleBalanceDirection.settled,
       _ => null,
     };
