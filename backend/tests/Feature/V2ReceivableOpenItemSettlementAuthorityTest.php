@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\B2bAccount;
+use App\Models\B2bCustomer;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Role;
@@ -131,7 +132,7 @@ final class V2ReceivableOpenItemSettlementAuthorityTest extends TestCase
         ]);
     }
 
-    /** @return array{Invoice, \App\Models\B2bCustomer} */
+    /** @return array{Invoice, B2bCustomer} */
     private function invoice(string $code, float $amount): array
     {
         $buyer = User::factory()->create(['is_active' => true]);
