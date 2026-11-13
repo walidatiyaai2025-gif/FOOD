@@ -6,13 +6,17 @@ use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Models\Permission;
+use App\Models\Store;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\BuiltInJobRoleCatalog;
+use App\Services\WholesalePrincipal;
+use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
+use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
 use Tests\TestCase;
 
 /**
@@ -21,6 +25,7 @@ use Tests\TestCase;
  */
 final class V2WarehouseManagerRoleAuthorityTest extends TestCase
 {
+    use EnablesEnterpriseWms;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -29,6 +34,10 @@ final class V2WarehouseManagerRoleAuthorityTest extends TestCase
 
         config()->set('security.mfa.enforce_privileged', false);
         $this->seed(CoreReferenceSeeder::class);
+        config()->set(
+            'enterprise_module_readiness.certified_versions.inventory_wms',
+            app(ModuleRegistry::class)->manifest('inventory_wms')->version,
+        );
     }
 
     public function test_canonical_warehouse_manager_role_is_bilingual_and_does_not_include_finance_or_order_permissions(): void
@@ -115,6 +124,66 @@ final class V2WarehouseManagerRoleAuthorityTest extends TestCase
         $this->assertFalse($actor->fresh()->hasPermission('inventory.view'));
         $this->assertTrue($actor->fresh()->hasPermission('inventory.adjust'));
         $this->assertFalse($actor->fresh()->hasPermission('finance.manage'));
+    }
+
+    public function test_warehouse_manager_can_enter_wholesale_wms_but_never_retail_or_another_warehouse(): void
+    {
+        $actor = $this->manager();
+        $storeId = app(WholesalePrincipal::class)->storeId();
+
+        // This existing global role must be admitted only to Wholesale, with
+        // the WMS module and an actual store entitlement still authoritative.
+        $this->assertContains('WAREHOUSE_MANAGER', config('admin.channels.b2b.global_roles'));
+        $this->assertNotContains('WAREHOUSE_MANAGER', config('admin.channels.b2c.global_roles'));
+        $this->assertFalse(app(AdminNavigation::class)->canAccess($actor, 'b2c'));
+
+        $this->enableWms();
+        $this->actingAs($actor)->get(route('admin.erp.wms.index', [
+            'store_id' => $storeId,
+        ]))->assertNotFound();
+
+        $this->enableEnterpriseWmsForStore($storeId);
+        $this->assertTrue(app(AdminNavigation::class)->canAccess($actor->fresh(), 'b2b'));
+        $this->assertTrue($actor->fresh()->hasPermission('inventory.view', $storeId));
+        $this->assertTrue($actor->fresh()->hasPermission('inventory.manage', $storeId));
+        $this->assertFalse($actor->fresh()->hasPermission('finance.approve', $storeId));
+
+        $warehouseId = (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $storeId,
+            'code' => 'V2-2691-WHOLESALE',
+            'name' => 'Main wholesale warehouse',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
+            app()->setLocale($locale);
+            $actor->forceFill(['locale' => $locale])->save();
+
+            $this->actingAs($actor->fresh())->get(route('admin.erp.wms.index', [
+                'store_id' => $storeId,
+                'warehouse_id' => $warehouseId,
+                'tab' => 'warehouses',
+            ]))
+                ->assertOk()
+                ->assertSee('data-enterprise-wms="true"', false)
+                ->assertSee('dir="'.$direction.'"', false);
+        }
+
+        $retail = Store::query()->create([
+            'store_type_id' => (int) DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'code' => 'V2-2691-FOREIGN-RETAIL',
+            'name' => 'Retail warehouse boundary',
+            'is_active' => true,
+        ]);
+        $this->enableEnterpriseWmsForStore($retail->id);
+        $this->assertFalse($actor->fresh()->hasPermission('inventory.view', $retail->id));
+        $this->actingAs($actor->fresh())->get(route('admin.erp.wms.index', [
+            'store_id' => $retail->id,
+            'tab' => 'warehouses',
+        ]))->assertNotFound();
+        $this->assertFalse(app(AdminNavigation::class)->canAccess($actor->fresh(), 'b2c'));
     }
 
     private function manager(): User
