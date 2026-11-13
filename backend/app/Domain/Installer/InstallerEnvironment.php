@@ -47,7 +47,7 @@ final class InstallerEnvironment
             $line = $key.'='.$this->encodeValue($value);
             // Read() uses the last .env assignment: after any installer write,
             // ensure the managed key has only one effective definition.
-            $pattern = '/^'.preg_quote($key, '/').'[ \t]*=.*$/m';
+            $pattern = '/^[ \t]*'.preg_quote($key, '/').'[ \t]*=.*$/m';
             $found = false;
             $content = (string) preg_replace_callback(
                 $pattern,
