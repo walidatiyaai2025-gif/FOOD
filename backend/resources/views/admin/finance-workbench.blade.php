@@ -479,10 +479,76 @@ $trendMax=max(1,max(array_map(fn($r)=>max(abs((float)$r['revenue']),abs((float)$
 <div class="finance-field"><label>{{ __('finance_workbench.common.status') }}</label><select name="status"><option value=""></option>@foreach(['draft','posted','cancelled'] as $value)<option value="{{ $value }}" @selected(($data['filters']['status'] ?? '')===$value)>{{ $statusLabel($value) }}</option>@endforeach</select></div>
 <div class="finance-field"><label>{{ __('finance_workbench.common.from') }}</label><input type="date" name="date_from" value="{{ $data['filters']['date_from'] ?? '' }}"></div><div class="finance-field"><label>{{ __('finance_workbench.common.to') }}</label><input type="date" name="date_to" value="{{ $data['filters']['date_to'] ?? '' }}"></div>
 <button class="finance-button" type="submit">{{ __('finance_workbench.actions.filter') }}</button></form>
-<div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>{{ __('finance_workbench.receivables.document') }}</th><th>{{ __('finance_workbench.common.customer') }}</th><th>{{ __('finance_workbench.common.date') }}</th><th>{{ __('finance_workbench.common.due_date') }}</th><th>{{ __('finance_workbench.common.amount') }}</th><th>{{ __('finance_workbench.common.status') }}</th><th>{{ __('finance_workbench.actions.view_ledger') }}</th></tr></thead><tbody>
-@forelse($data['documents'] as $document)<tr><td><strong>{{ $document->document_number }}</strong></td><td>{{ $document->customer?->name ?? '—' }}</td><td>{{ optional($document->entry_date)->format('Y-m-d') }}</td><td>{{ optional($document->due_date)->format('Y-m-d') }}</td><td class="finance-money">{{ $money($document->amount) }} {{ $document->currency_code }}</td><td><span class="finance-status">{{ $statusLabel($document->status) }}</span></td><td>@if($document->journal_id)<a class="finance-button" href="{{ route('admin.erp.finance.index',[...$routeBase,'tab'=>'journals','journal'=>$document->journal_id]) }}">{{ __('finance_workbench.actions.view_ledger') }}</a>@else—@endif</td></tr>
+<div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>{{ __('finance_workbench.receivables.document') }}</th><th>{{ __('finance_workbench.common.customer') }}</th><th>{{ __('finance_workbench.common.date') }}</th><th>{{ __('finance_workbench.common.due_date') }}</th><th>{{ __('finance_workbench.common.amount') }}</th><th>{{ __('finance_workbench.common.status') }}</th><th>{{ __('finance_workbench.common.actions') }}</th></tr></thead><tbody>
+@forelse($data['documents'] as $document)<tr><td><strong>{{ $document->document_number }}</strong></td><td>{{ $document->customer?->name ?? '—' }}</td><td>{{ optional($document->entry_date)->format('Y-m-d') }}</td><td>{{ optional($document->due_date)->format('Y-m-d') }}</td><td class="finance-money">{{ $money($document->amount) }} {{ $document->currency_code }}</td><td><span class="finance-status">{{ $statusLabel($document->status) }}</span></td><td>
+<details class="foodex-ops-actions">
+<summary aria-label="{{ __('finance_workbench.common.actions') }}: {{ $document->document_number }}">⋮</summary>
+<div class="foodex-ops-menu">
+@if($document->journal_id)<a href="{{ route('admin.erp.finance.index',[...$routeBase,'tab'=>'journals','journal'=>$document->journal_id]) }}">{{ __('finance_workbench.actions.view_ledger') }}</a>@endif
+<a href="{{ route('admin.erp.finance.index',[...$routeBase,'tab'=>'receivables','settlement_document_id'=>$document->id]) }}">{{ __('finance_workbench.receivables.settlements') }}</a>
+</div>
+</details></td></tr>
 @empty<tr><td colspan="7" class="finance-empty">{{ __('finance_workbench.common.no_data') }}</td></tr>@endforelse
 </tbody></table></div><div class="finance-pagination">{{ $data['documents']->links() }}</div>
+@if($data['settlementDocument'] !== null)
+<section class="finance-panel" data-v2-ar-settlements>
+<div class="finance-panel-head">
+<div><h3>{{ __('finance_workbench.receivables.settlements') }} · {{ $data['settlementDocument']->document_number }}</h3>
+<p>{{ __('finance_workbench.receivables.settlement_help') }}</p></div>
+<a class="finance-button" href="{{ route('admin.erp.finance.index',[...$routeBase,'tab'=>'receivables']) }}">{{ __('finance_workbench.actions.reset') }}</a>
+</div>
+@if(($access['ar_manage'] ?? false) && $data['settlementDocument']->status==='posted' && $data['settlementAccounts']->isNotEmpty())
+<details data-foodex-operational-modal>
+<summary class="finance-button">{{ __('finance_workbench.receivables.new_settlement') }}</summary>
+<form method="post" action="{{ route('admin.erp.finance.receivables.settlements.store', $data['settlementDocument']->id) }}" class="finance-filter" data-v2-ar-settlement-create>
+@csrf
+<input type="hidden" name="store_id" value="{{ $storeId }}">
+<input type="hidden" name="idempotency_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
+<div class="finance-field"><label>{{ __('finance_workbench.common.date') }}</label><input type="date" name="allocation_date" value="{{ now()->format('Y-m-d') }}" required></div>
+<div class="finance-field"><label>{{ __('finance_workbench.common.amount') }}</label><input name="amount" type="number" step="0.001" min="0.001" required></div>
+<div class="finance-field"><label>{{ __('finance_workbench.receivables.settlement_account') }}</label>
+<select name="settlement_account_id" required>
+<option value="">{{ __('finance_workbench.common.search') }}</option>
+@foreach($data['settlementAccounts'] as $account)
+<option value="{{ $account->id }}">{{ $account->code }} · {{ $account->name }}</option>
+@endforeach
+</select></div>
+<div class="finance-field"><label>{{ __('finance_workbench.common.reference') }}</label><input name="reference" maxlength="180"></div>
+<p class="finance-notice">{{ __('finance_workbench.receivables.reference_notice') }}</p>
+<button class="finance-button" type="submit">{{ __('finance_workbench.receivables.new_settlement') }}</button>
+</form>
+</details>
+@endif
+<div class="finance-table-wrap"><table class="finance-table">
+<thead><tr><th>{{ __('finance_workbench.common.date') }}</th><th>{{ __('finance_workbench.common.amount') }}</th><th>{{ __('finance_workbench.common.reference') }}</th><th>{{ __('finance_workbench.common.status') }}</th><th>{{ __('finance_workbench.common.created_by') }}</th><th>{{ __('finance_workbench.actions.view_ledger') }}</th><th>{{ __('finance_workbench.common.actions') }}</th></tr></thead>
+<tbody>
+@forelse($data['settlements'] as $settlement)
+<tr>
+<td>{{ optional($settlement->allocation_date)->format('Y-m-d') }}</td>
+<td class="finance-money">{{ $money($settlement->amount) }}</td>
+<td>{{ $settlement->reference ?: '—' }}</td>
+<td><span class="finance-status">{{ $statusLabel($settlement->status) }}</span></td>
+<td>{{ $settlement->created_by }}</td>
+<td>@if($settlement->journal_id)<a class="finance-button" href="{{ route('admin.erp.finance.index',[...$routeBase,'tab'=>'journals','journal'=>$settlement->journal_id]) }}">{{ __('finance_workbench.actions.view_ledger') }}</a>@else—@endif</td>
+<td>
+@if(($access['ar_post'] ?? false) && $settlement->status==='draft' && (int)$settlement->created_by !== (int)$user->id)
+<details data-foodex-operational-modal>
+<summary class="finance-button">{{ __('finance_workbench.actions.post') }}</summary>
+<form method="post" action="{{ route('admin.erp.finance.receivables.settlements.post', $settlement->id) }}" class="finance-filter" data-v2-ar-settlement-post>
+@csrf
+<input type="hidden" name="store_id" value="{{ $storeId }}">
+<p class="finance-notice">{{ __('finance_workbench.receivables.post_warning') }}</p>
+<button type="submit" class="finance-button">{{ __('finance_workbench.actions.post') }}</button>
+</form>
+</details>
+@else —
+@endif
+</td></tr>
+@empty<tr><td colspan="7" class="finance-empty">{{ __('finance_workbench.common.no_data') }}</td></tr>@endforelse
+</tbody></table></div>
+<div class="finance-pagination">{{ $data['settlements']->links() }}</div>
+</section>
+@endif
 <h3>{{ __('finance_workbench.common.aging_bucket') }}</h3>
 <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>{{ __('finance_workbench.receivables.document') }}</th><th>{{ __('finance_workbench.common.due_date') }}</th><th>{{ __('finance_workbench.common.amount') }}</th><th>{{ __('finance_workbench.common.allocated') }}</th><th>{{ __('finance_workbench.common.outstanding') }}</th><th>{{ __('finance_workbench.common.aging_bucket') }}</th></tr></thead><tbody>
 @forelse($data['aging'] as $row)<tr><td>{{ $row->document_number }}</td><td>{{ $row->due_date }}</td><td class="finance-money">{{ $money($row->amount) }} {{ $row->currency_code }}</td><td class="finance-money">{{ $money($row->allocated_amount) }}</td><td class="finance-money">{{ $money($row->outstanding_amount) }}</td><td><span class="finance-status">{{ $statusLabel($row->aging_bucket) }}</span></td></tr>
