@@ -410,20 +410,20 @@ class HttpVanOrderRepository implements VanOrderRepository {
     }
 
     return VanOrderRecord(
-        id: _requiredInt(data['id']),
-        orderNumber:
-            _string(data['display_order_number'] ?? data['order_number']),
-        customerType: _string(data['customer_type']),
-        customerId: _requiredInt(data['customer_id']),
-        storeId: _requiredInt(data['store_id']),
-        status: _string(data['status']),
-        currency: _string(data['currency']),
-        grandTotal: _double(data['grand_total']),
-        createdAt: _nullableString(data['created_at']),
-        vanExecutionStatus: _nullableString(data['van_execution_status']),
-        vanFailureReasonCode: _nullableString(data['van_failure_reason_code']),
-        vanLastTransitionAt: _nullableString(data['van_last_transition_at']),
-      );
+      id: _requiredInt(data['id']),
+      orderNumber:
+          _string(data['display_order_number'] ?? data['order_number']),
+      customerType: _string(data['customer_type']),
+      customerId: _requiredInt(data['customer_id']),
+      storeId: _requiredInt(data['store_id']),
+      status: _string(data['status']),
+      currency: _string(data['currency']),
+      grandTotal: _double(data['grand_total']),
+      createdAt: _nullableString(data['created_at']),
+      vanExecutionStatus: _nullableString(data['van_execution_status']),
+      vanFailureReasonCode: _nullableString(data['van_failure_reason_code']),
+      vanLastTransitionAt: _nullableString(data['van_last_transition_at']),
+    );
   }
 
   VanOrderExecutionState _execution(Map<String, dynamic> data) {
