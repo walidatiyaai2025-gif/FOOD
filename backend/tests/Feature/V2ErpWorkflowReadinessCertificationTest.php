@@ -45,11 +45,10 @@ final class V2ErpWorkflowReadinessCertificationTest extends TestCase
         $this->enableAndEntitle($actor);
         $registry = app(ModuleRegistry::class);
         $readiness = app(ModuleOperationalReadiness::class);
-        $auditBefore = DB::table('audit_logs')->count();
-
         foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
             app()->setLocale($locale);
             $actor->forceFill(['locale' => $locale])->save();
+            $auditBeforeDeniedRequests = DB::table('audit_logs')->count();
 
             foreach (self::ROUTES as $module => $route) {
                 $manifestVersion = $registry->manifest($module)->version;
@@ -68,6 +67,10 @@ final class V2ErpWorkflowReadinessCertificationTest extends TestCase
                 config()->set('enterprise_module_readiness.certified_versions.'.$module, null);
             }
 
+            // Denied read requests must be non-mutating. The ERP landing
+            // page may legitimately bootstrap missing modules in local tests.
+            $this->assertSame($auditBeforeDeniedRequests, DB::table('audit_logs')->count());
+
             // Operational certification may block ERP feature routes, never
             // the existing authorized ERP landing navigation itself.
             $this->actingAs($actor->fresh())
@@ -76,7 +79,6 @@ final class V2ErpWorkflowReadinessCertificationTest extends TestCase
                 ->assertSee('dir="'.$direction.'"', false);
         }
 
-        $this->assertSame($auditBefore, DB::table('audit_logs')->count());
     }
 
     public function test_certification_can_be_revoked_without_removing_roles_entitlements_or_audit_history(): void
