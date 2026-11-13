@@ -9,7 +9,7 @@
 ## Minimal safety correction
 
 - Reuse the existing step-8 `FILESYSTEM_DISK` allowlist and Laravel `storage:link` mechanism; no new route, screen, translation, host shell command or storage backend.
-- If the path is a symbolic link, compare its resolved canonical destination with `realpath(storage_path('app/public'))`; reject foreign/dangling destinations with a generic, path-free installer error before the step can advance.
+- If the path is a symbolic link, compare its resolved canonical destination with `realpath(storage_path('app/public'))`; reject foreign/dangling destinations with a generic, **AR/EN localized**, path-free installer error before the step can advance.
 - A correct absolute or relative symbolic link is kept. A pre-existing **real directory** is still accepted for a restricted shared host where symlinks are disallowed. The existing path is never unlinked, moved, overwritten or followed to delete external data.
 - Check the path **after** the optional Laravel `storage:link` call, so newly created links also meet the same destination invariant. Existing runtime file paths, `.env` symlink guards and installer lock are unchanged.
 
@@ -24,7 +24,7 @@
 | Existing **relative** symlink to canonical `storage/app/public` | Succeeds; `FILESYSTEM_DISK=public`; link destination unchanged |
 | Existing real directory `public/storage` (shared-host compatibility) | Succeeds without attempting to replace it |
 
-There is no Dashboard source change beyond the existing Installer Step 8 validation response. No route, translation key, visual component or permission change. The existing 422 form-error mechanism renders the safe message in both selected locale shells; no new English-only label is added to production pages.
+There is no Dashboard template change beyond the existing Installer Step 8 validation response. One paired key `installer.public_storage_link_invalid` in `backend/lang/ar/installer.php` and `backend/lang/en/installer.php` keeps the path-free error in the selected Arabic or English locale. The existing 422 form-error mechanism renders it; no route, visual component, business permission or CSS change. Both foreign-target and dangling-link regressions assert the literal Arabic and English messages.
 
 **Mobile impact: Customer / Driver / Van:** each **not affected**; no public API shape or Flutter code touched. Customer orders and invoices unchanged; Driver B2C-only dispatch unchanged; Van B2B-only stock/route/dispatch unchanged. No mobile issue needed for this server-local setup validation.
 
