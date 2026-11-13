@@ -10,20 +10,32 @@ final class DriverTenantScope
     /**
      * Return the single effective Retail Driver profile only while its
      * authoritative store is active and classified as Retail (B2C).
+     * Existing unscoped sessions may be passed to the downstream 409 guard,
+     * but only when explicitly requested; never mint a new token for them.
      *
      * A B2C role/driver_type alone never grants a session for a disabled
      * store or a historical driver linked to a Wholesale store.
      */
-    public function eligibleRetailDriver(User $user): ?Driver
+    public function eligibleRetailDriver(User $user, bool $allowLegacyUnscoped = false): ?Driver
     {
         return Driver::query()
-            ->join('stores', 'stores.id', '=', 'drivers.store_id')
-            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->leftJoin('stores', 'stores.id', '=', 'drivers.store_id')
+            ->leftJoin('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->where('drivers.user_id', $user->getKey())
             ->where('drivers.driver_type', 'b2c')
             ->where('drivers.is_active', true)
-            ->where('stores.is_active', true)
-            ->where('store_types.code', 'B2C')
+            ->where(function ($scope) use ($allowLegacyUnscoped): void {
+                $scope->where(function ($store): void {
+                    $store->where('stores.is_active', true)
+                        ->where('store_types.code', 'B2C');
+                });
+
+                // Historical unscoped tokens retain the canonical downstream
+                // 409 recovery error; new token issuance never opts in here.
+                if ($allowLegacyUnscoped) {
+                    $scope->orWhereNull('drivers.store_id');
+                }
+            })
             ->select('drivers.*')
             ->first();
     }
