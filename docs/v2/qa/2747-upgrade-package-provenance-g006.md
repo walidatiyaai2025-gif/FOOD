@@ -21,6 +21,8 @@ python3 scripts/v2_upgrade_package_provenance.py \
   --source-127 <immutable-git-sha-for-127>
 ```
 
+The issue-specific [G006 unit-test workflow](../../../.github/workflows/v2-g006-package-provenance.yml) runs these synthetic ZIP regressions against the exact PR head under read-only GitHub permissions. It is an auxiliary check: the existing Required CI Gate still controls integration and the actual MySQL/package tests below still control source acceptance.
+
 Each path must contain all four genuine outputs from the same underlying build. The script prints `"status": "archive_integrity_only"`, not `upgrade_passed`. Tests synthesize private in-memory ZIPs; no real release assets, customer uploads, server credentials, MySQL contents or personal accounts are accessed.
 
 ## Full G006 acceptance still pending
