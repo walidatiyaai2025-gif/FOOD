@@ -45,6 +45,7 @@ final class V2ErpWorkflowReadinessCertificationTest extends TestCase
         $this->enableAndEntitle($actor);
         $registry = app(ModuleRegistry::class);
         $readiness = app(ModuleOperationalReadiness::class);
+
         foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
             app()->setLocale($locale);
             $actor->forceFill(['locale' => $locale])->save();
@@ -78,7 +79,6 @@ final class V2ErpWorkflowReadinessCertificationTest extends TestCase
                 ->assertOk()
                 ->assertSee('dir="'.$direction.'"', false);
         }
-
     }
 
     public function test_certification_can_be_revoked_without_removing_roles_entitlements_or_audit_history(): void
