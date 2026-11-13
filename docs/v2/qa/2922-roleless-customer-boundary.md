@@ -39,3 +39,9 @@ An appropriately authorized reviewer must perform **read-only** current-data rec
 PR base **Foodex_V2 ONLY**, one issue/one branch/one PR. Required green evidence on the exact final head: Repository Policy, FOODEX V2 Isolation, FOODEX Required CI with Laravel, PHP syntax/Pint/PHPStan/security, AR/EN and applicable MySQL/Redis fresh-install/upgrade/recovery. Do not merge if any gate is pending, skipped without justification or failed. Manual real-browser/device UAT follows #2503/#2750 separately and never waives technical CI.
 
 No merges to main, tags, release, cPanel deployment or production changes.
+
+## Machine-readable PR safety matrix
+
+Mobile impact: Customer / Driver / Van — all three apps are evaluated separately, with no changed public API schema, state transitions, mobile source files or release artifacts. The regression belongs to Dashboard authorization and test-only synthetic roleless user fixtures.
+
+This acceptance matrix is included in the PR description so the V2 isolation check can enforce its mandatory presence; it is not an exception or bypass of that gate.
