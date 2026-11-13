@@ -32,6 +32,35 @@ final class UpdatePackageValidator
             throw new InvalidArgumentException('Update package integrity check failed.');
         }
 
+        // An incorrect caller-supplied flag must never suppress a database
+        // backup or migration step for a valid update archive. The HTTP upload
+        // detects migrations too, but this is the service-level safety boundary.
+        if (! $manifest->containsMigrations && class_exists(\ZipArchive::class)) {
+            $archive = new \ZipArchive;
+
+            if ($archive->open($packagePath) === true) {
+                try {
+                    for ($index = 0; $index < $archive->numFiles; $index++) {
+                        $name = $archive->getNameIndex($index);
+
+                        if (! is_string($name)) {
+                            continue;
+                        }
+
+                        $relativePath = str_replace('\\', '/', $name);
+                        if (str_starts_with($relativePath, 'backend/database/migrations/')
+                            && str_ends_with(strtolower($relativePath), '.php')) {
+                            throw new InvalidArgumentException(
+                                'Update package contains migrations but database backup was not declared.'
+                            );
+                        }
+                    }
+                } finally {
+                    $archive->close();
+                }
+            }
+        }
+
         if (version_compare($currentVersion, $manifest->minimumCurrentVersion, '<')) {
             throw new InvalidArgumentException('Current version is not supported by this update.');
         }
