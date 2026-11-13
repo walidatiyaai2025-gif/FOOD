@@ -202,8 +202,13 @@ class HttpVanOrderRepository implements VanOrderRepository {
         data['delivery_address'] is Map ? _map(data['delivery_address']) : null;
     final invoice = data['invoice'] is Map ? _map(data['invoice']) : null;
 
+    final summary = _order(data);
+    if (summary.id != orderId) {
+      throw const VanApiException('Van order detail identity mismatch.');
+    }
+
     return VanOrderDetail(
-      summary: _order(data),
+      summary: summary,
       paymentMethod: _nullableString(data['payment_method']),
       customer: customer == null
           ? null
@@ -275,7 +280,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
   @override
   Future<VanOrderExecutionState> execution(int orderId) async {
     final decoded = _map(await api.getJson('van/orders/$orderId/execution'));
-    return _execution(_map(decoded['data']));
+    return _executionForOrder(_map(decoded['data']), orderId);
   }
 
   @override
@@ -291,7 +296,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
         body: {'status': status},
       ),
     );
-    return _execution(_map(decoded['data']));
+    return _executionForOrder(_map(decoded['data']), orderId);
   }
 
   @override
@@ -334,7 +339,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
         fileName: proof.fileName,
       ),
     );
-    return _execution(_map(decoded['data']));
+    return _executionForOrder(_map(decoded['data']), orderId);
   }
 
   @override
@@ -358,7 +363,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
         fileName: proof?.fileName,
       ),
     );
-    return _execution(_map(decoded['data']));
+    return _executionForOrder(_map(decoded['data']), orderId);
   }
 
   @override
@@ -374,7 +379,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
         body: {if (note != null && note.trim().isNotEmpty) 'note': note.trim()},
       ),
     );
-    return _execution(_map(decoded['data']));
+    return _executionForOrder(_map(decoded['data']), orderId);
   }
 
   VanOrderQuote _quote(Map<String, dynamic> data) => VanOrderQuote(
@@ -424,6 +429,17 @@ class HttpVanOrderRepository implements VanOrderRepository {
       vanFailureReasonCode: _nullableString(data['van_failure_reason_code']),
       vanLastTransitionAt: _nullableString(data['van_last_transition_at']),
     );
+  }
+
+  VanOrderExecutionState _executionForOrder(
+    Map<String, dynamic> data,
+    int orderId,
+  ) {
+    final execution = _execution(data);
+    if (execution.orderId != orderId) {
+      throw const VanApiException('Van order execution identity mismatch.');
+    }
+    return execution;
   }
 
   VanOrderExecutionState _execution(Map<String, dynamic> data) {
