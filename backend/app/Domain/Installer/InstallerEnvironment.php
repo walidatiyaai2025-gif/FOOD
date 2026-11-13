@@ -135,10 +135,26 @@ final class InstallerEnvironment
 
     private function rejectSymbolicLink(string $path): void
     {
-        clearstatcache(true, $path);
+        // A regular .env beneath a symlinked directory still follows that link
+        // on read, initialization and replacement. Trust the configured
+        // application root, but reject links in every descendant path segment.
+        $trustedRoot = rtrim(base_path(), '/\\');
+        $candidate = $path;
 
-        if (is_link($path)) {
-            throw new RuntimeException('Environment configuration path cannot be a symbolic link.');
+        while ($candidate !== $trustedRoot) {
+            clearstatcache(true, $candidate);
+
+            if (is_link($candidate)) {
+                throw new RuntimeException('Environment configuration path cannot be a symbolic link.');
+            }
+
+            $parent = dirname($candidate);
+
+            if ($parent === $candidate) {
+                break;
+            }
+
+            $candidate = $parent;
         }
     }
 
