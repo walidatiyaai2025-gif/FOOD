@@ -751,6 +751,23 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
     </div>
 </section>
 @endif
+@if(isset($approvedDiscountRequests) && $approvedDiscountRequests->isNotEmpty())
+<section class="foodex-card foodex-form" data-order-approved-discount-history style="grid-column:1/-1;padding:12px;border:1px solid var(--foodex-border);border-radius:12px" aria-label="{{ __('customer_service_discount.approved_history') }}">
+    <h3>{{ __('customer_service_discount.approved_history') }}</h3>
+    <div style="display:grid;gap:12px">
+        @foreach($approvedDiscountRequests as $approvedDiscount)
+        <article data-approved-discount-request-id="{{ $approvedDiscount->id }}" style="display:grid;gap:6px;border-bottom:1px solid var(--foodex-border);padding:8px 0">
+            <strong>{{ __('customer_service_discount.percentage') }}: {{ $approvedDiscount->percentage }}%</strong>
+            <div>{{ __('customer_service_discount.requester') }}: {{ $approvedDiscount->requested_by_name }}</div>
+            <div>{{ __('customer_service_discount.approved_by') }}: {{ $approvedDiscount->reviewed_by_name }}</div>
+            <div>{{ __('customer_service_discount.approved_at') }}: <time datetime="{{ $approvedDiscount->reviewed_at }}">{{ $approvedDiscount->reviewed_at }}</time></div>
+            <p style="overflow-wrap:anywhere">{{ $approvedDiscount->reason }}</p>
+        </article>
+        @endforeach
+    </div>
+    {{ $approvedDiscountRequests->links() }}
+</section>
+@endif
 
 @php
     $detailHasMapAction = !empty($detail['delivery_address']['has_coordinates']);

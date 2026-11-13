@@ -498,6 +498,7 @@ final class OrderOperationsController extends Controller
 
         $detail = null;
         $discountRequests = collect();
+        $approvedDiscountRequests = collect();
         if (isset($data['order'])) {
             $detailOrder = Order::query()
                 ->whereKey((int) $data['order'])
@@ -531,6 +532,21 @@ final class OrderOperationsController extends Controller
                     ->limit(20)
                     ->get(['requests.id', 'requests.percentage', 'requests.reason',
                         'requests.requested_by_user_id', 'requester.name as requested_by_name']);
+
+                // Read-only decisions remain within the exact scoped order;
+                // the existing independent approval authority is not bypassed.
+                $approvedDiscountRequests = DB::table('order_customer_service_discount_requests as requests')
+                    ->join('users as requester', 'requester.id', '=', 'requests.requested_by_user_id')
+                    ->join('users as reviewer', 'reviewer.id', '=', 'requests.reviewed_by_user_id')
+                    ->where('requests.order_id', $detailOrder->getKey())
+                    ->where('requests.status', 'approved')
+                    ->orderByDesc('requests.reviewed_at')
+                    ->orderByDesc('requests.id')
+                    ->paginate(20, [
+                        'requests.id', 'requests.percentage', 'requests.reason', 'requests.reviewed_at',
+                        'requester.name as requested_by_name', 'reviewer.name as reviewed_by_name',
+                    ], 'approved_discounts_page')
+                    ->withQueryString();
             }
         }
 
@@ -555,6 +571,7 @@ final class OrderOperationsController extends Controller
             'vans' => $vans,
             'detail' => $detail,
             'discountRequests' => $discountRequests,
+            'approvedDiscountRequests' => $approvedDiscountRequests,
             'statuses' => array_map(
                 static fn (array $option): string => (string) $option['code'],
                 $statusOptions,
