@@ -120,7 +120,6 @@ final class V2ExportedAccountRow7AuthorizationTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $user->id, 'is_active' => true]);
     }
 
-
     /**
      * General account/workspace landing entries can be present for global
      * operational roles. They do not confer Security, Retail or Finance access.
