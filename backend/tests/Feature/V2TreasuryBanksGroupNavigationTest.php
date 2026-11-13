@@ -52,7 +52,7 @@ final class V2TreasuryBanksGroupNavigationTest extends TestCase
         $this->assertFalse($treasury->contains('erp_finance'));
     }
 
-    public function test_retail_without_platform_treasury_access_sees_no_treasury_group_or_route(): void
+    public function test_explicit_retail_finance_deny_hides_treasury_group_and_blocks_route(): void
     {
         $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
         $store = Store::query()->create([
@@ -71,7 +71,20 @@ final class V2TreasuryBanksGroupNavigationTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $groups = collect(app(AdminNavigation::class)->groupsFor($actor));
+        // B2C_STORE_ADMIN may have store-scoped finance.view by default. Deny it
+        // explicitly so this negative case tests effective RBAC, not role naming.
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $actor->id,
+            'permission_id' => Permission::query()->where('code', 'finance.view')->firstOrFail()->id,
+            'scope_key' => 'global',
+            'store_id' => null,
+            'effect' => 'deny',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $actor->forceFill(['has_permission_overrides' => true])->save();
+
+        $groups = collect(app(AdminNavigation::class)->groupsFor($actor->fresh()));
         $this->assertFalse($groups->contains('key', 'treasury'));
         $this->actingAs($actor)->get(route('admin.treasury.master.index'))->assertForbidden();
     }

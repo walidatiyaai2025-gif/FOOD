@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
- * T356R9: the existing Treasury master-data entry belongs in Finance & Treasury.
+ * T356R9/P291: the existing Treasury master-data entry belongs in Treasury & Banking.
  * A shorter navigation label must never weaken store or finance authority.
  */
 final class V2TreasurySidebarMigrationTest extends TestCase
@@ -44,16 +44,16 @@ final class V2TreasurySidebarMigrationTest extends TestCase
             app()->setLocale($locale);
 
             $groups = app(AdminNavigation::class)->groupsFor($admin->fresh());
-            $finance = collect($groups)->firstWhere('key', 'finance');
+            $treasury = collect($groups)->firstWhere('key', 'treasury');
 
-            $this->assertNotNull($finance);
+            $this->assertNotNull($treasury);
             $items = collect($groups)
                 ->flatMap(static fn (array $group): array => $group['children'])
                 ->where('key', 'treasury_master')
                 ->values();
 
             $this->assertCount(1, $items, 'Treasury master data must retain one canonical Sidebar route.');
-            $this->assertContains('treasury_master', array_column($finance['children'], 'key'));
+            $this->assertContains('treasury_master', array_column($treasury['children'], 'key'));
 
             $item = $items->first();
             $this->assertSame('treasury.nav_title', $item['label']);
@@ -62,7 +62,7 @@ final class V2TreasurySidebarMigrationTest extends TestCase
             $this->assertNull($item['permission'], 'Finance scope is checked before projection.');
             $this->assertSame($expected['label'], __($item['label']));
             $this->assertSame($expected['heading'], __('treasury.title'));
-            $this->assertSame(__('admin.nav_groups.finance'), __($finance['label']));
+            $this->assertSame(__('admin.nav_groups.treasury'), __($treasury['label']));
 
             $this->actingAs($admin)
                 ->get(route('admin.treasury.master.index'))
@@ -92,7 +92,7 @@ final class V2TreasurySidebarMigrationTest extends TestCase
                 ->flatMap(static fn (array $group): array => $group['children'])
                 ->pluck('key')
                 ->all();
-            $this->assertNotContains('treasury_master', $retailKeys);
+            $this->assertContains('treasury_master', $retailKeys, 'Retail finance.view projects the exact owned-store master-data route.');
 
             $this->actingAs($retail)
                 ->get(route('admin.treasury.master.index', ['store_id' => $storeA]))

@@ -136,7 +136,7 @@ final class V2PlatformNavigationPresentationBoundaryTest extends TestCase
             $keys = $this->visibleKeys($actor);
             $this->assertContains('enterprise_action_center', $keys);
             $this->assertContains('enterprise_workspaces', $keys);
-            $this->assertNotContains('treasury_master', $keys);
+            $this->assertContains('treasury_master', $keys, 'Own-store finance.view authorizes Treasury Master Data, not platform ERP Treasury.');
 
             $this->actingAs($actor)
                 ->get(route('admin.action-center.index', [], false))
@@ -147,6 +147,10 @@ final class V2PlatformNavigationPresentationBoundaryTest extends TestCase
                 ->viewData('workspace');
             $this->assertSame('sales', $workspace['key']);
             $this->assertNotContains('system_health', array_column($workspace['cards'], 'key'));
+
+            $this->actingAs($actor)->get(route('admin.treasury.master.index', [
+                'store_id' => $storeId,
+            ], false))->assertOk();
 
             $foreign = $this->actingAs($actor)->get(route('admin.treasury.master.index', [
                 'store_id' => $this->wholesaleStore,
