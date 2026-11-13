@@ -124,8 +124,7 @@ void main() {
     }
   });
 
-  test('create rejects forged B2B response identity without success',
-      () async {
+  test('create rejects forged B2B response identity without success', () async {
     for (final forged in [
       _order(type: 'b2c'),
       _order(customerId: 99),
@@ -160,8 +159,7 @@ void main() {
     );
   });
 
-  test('Retail customer request never reaches a Van order endpoint',
-      () async {
+  test('Retail customer request never reaches a Van order endpoint', () async {
     var sent = 0;
     final repository = _repository((request) async {
       sent += 1;
