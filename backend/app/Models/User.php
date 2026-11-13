@@ -136,6 +136,12 @@ class User extends Authenticatable
 
     public function hasPermission(string $permissionCode, ?int $storeId = null): bool
     {
+        // Deactivation revokes effective authorization even when historical
+        // role assignments or direct overrides remain for the audit trail.
+        if (! $this->is_active) {
+            return false;
+        }
+
         if ($this->hasRole('SUPER_ADMIN')) {
             return true;
         }
@@ -288,6 +294,13 @@ class User extends Authenticatable
     /** @return list<string> */
     public function effectivePermissionCodes(?int $storeId = null): array
     {
+        // Stored role and per-user override rows remain available for audit,
+        // but a deactivated identity has no effective authorization. Keep this
+        // projection aligned with hasPermission() and tenant-scope checks.
+        if (! $this->is_active) {
+            return [];
+        }
+
         if ($this->hasRole('SUPER_ADMIN')) {
             return array_keys((array) config('permissions.abilities', []));
         }

@@ -71,13 +71,17 @@ final class V2RetailInventoryLayoutHttpBoundaryTest extends TestCase
         }
     }
 
-    public function test_hidden_catalog_group_preserves_retail_inventory_http_in_both_locales(): void
+    public function test_catalog_hiding_does_not_hide_inventory_but_inventory_group_hiding_preserves_http(): void
     {
         $ownStore = $this->retailStore('V2-T028R02-GROUP');
         $user = $this->retailInventoryUser($ownStore, 'en');
 
         $this->assertContains('b2c_inventory', $this->visibleKeys($user));
-        $this->setCatalogGroupEnabled(false);
+        // P246 moved inventory into its independent business group. Hiding
+        // Catalog must not revoke or conceal the authorized Inventory route.
+        $this->setGroupEnabled('catalog', false);
+        $this->assertContains('b2c_inventory', $this->visibleKeys($user));
+        $this->setGroupEnabled('inventory', false);
         $this->assertNotContains('b2c_inventory', $this->visibleKeys($user));
 
         foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
@@ -96,7 +100,9 @@ final class V2RetailInventoryLayoutHttpBoundaryTest extends TestCase
             $this->assertNotContains('b2c_inventory', $this->visibleKeys($user));
         }
 
-        $this->setCatalogGroupEnabled(true);
+        $this->setGroupEnabled('inventory', true);
+        $this->assertContains('b2c_inventory', $this->visibleKeys($user));
+        $this->setGroupEnabled('catalog', true);
         $this->assertContains('b2c_inventory', $this->visibleKeys($user));
     }
 
@@ -134,7 +140,7 @@ final class V2RetailInventoryLayoutHttpBoundaryTest extends TestCase
         DB::table('admin_sidebar_items')->updateOrInsert(
             ['item_key' => 'b2c_inventory'],
             [
-                'group_key' => 'catalog',
+                'group_key' => 'inventory',
                 'parent_key' => null,
                 'label_ar' => null,
                 'label_en' => null,
@@ -146,15 +152,15 @@ final class V2RetailInventoryLayoutHttpBoundaryTest extends TestCase
         );
     }
 
-    private function setCatalogGroupEnabled(bool $enabled): void
+    private function setGroupEnabled(string $group, bool $enabled): void
     {
         DB::table('admin_sidebar_groups')->updateOrInsert(
-            ['group_key' => 'catalog'],
+            ['group_key' => $group],
             [
                 'label_ar' => null,
                 'label_en' => null,
-                'icon' => 'catalog',
-                'sort_order' => 40,
+                'icon' => $group,
+                'sort_order' => $group === 'inventory' ? 44 : 40,
                 'is_enabled' => $enabled,
                 'created_at' => now(),
                 'updated_at' => now(),

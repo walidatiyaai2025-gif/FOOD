@@ -87,6 +87,13 @@ class AdminNavigation
             || $this->enterpriseWorkspaces->availableWorkspaceKeys($user) !== [];
         $useCustomerServiceDashboardProfile = $this->usesCustomerServiceDashboardProfile($user);
 
+        // P298 is presentation-only: derive both financial child destinations once
+        // from the existing permission, store, entitlement and readiness decision.
+        // Do not advertise Payables through an independent Sidebar eligibility policy.
+        $financeDocumentItems = $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
+            ? $this->receivablesNavigationItems($user)
+            : [];
+
         // Business-first order: enter a channel, define stores/catalog/accounts, execute operations,
         // then marketing/reporting. Administration stays last and never invents cross-channel links.
         $groups = [
@@ -128,11 +135,7 @@ class AdminNavigation
                     : null,
                 $this->routeItemScoped($user, 'lookup_management', 'admin.lookup_management', 'admin.lookups.index', 'lookups.view'),
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'products', 'admin.b2c_workspace.modules.products', 'catalog.view'),
-                $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'inventory', 'admin.b2c_workspace.modules.inventory', 'inventory.view'),
                 $this->module($user, $channels, 'b2b', 'products', 'admin.b2b_sidebar.product_management', 'catalog.view'),
-                $useCustomerServiceDashboardProfile
-                    ? $this->module($user, $channels, 'b2b', 'inventory', 'admin.b2b_sidebar.inventory_management', 'inventory.view')
-                    : null,
                 // P233: Coupons belong to the canonical Catalog & Pricing domain.
                 // Their existing controller and scoped feature authorizer remain intact.
                 $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled'),
@@ -142,6 +145,14 @@ class AdminNavigation
             $this->group('procurement', 'admin.nav_groups.procurement', '▤', [
                 $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.erp.procurement.index', 'procurement', 'procurement.suppliers.view')
+                    : null,
+            ]),
+            // P246 Inventory reuses existing authorized Retail and legacy Customer Service
+            // Wholesale inventory modules; channel, store and permission gates are unchanged.
+            $this->group('inventory', 'admin.nav_groups.inventory', '▣', [
+                $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'inventory', 'admin.b2c_workspace.modules.inventory', 'inventory.view'),
+                $useCustomerServiceDashboardProfile
+                    ? $this->module($user, $channels, 'b2b', 'inventory', 'admin.b2b_sidebar.inventory_management', 'inventory.view')
                     : null,
             ]),
             // P253 warehouses are a dedicated business group. The existing
@@ -163,10 +174,6 @@ class AdminNavigation
             $this->group('accounts', 'admin.nav_groups.accounts', '◎', [
                 $this->routeItemScoped($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'customers.view')
                     ?? $this->routeItem($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'b2b.accounts.view'),
-                // P193 follows the canonical orders.view navigation decision.
-                // The quotation controller enforces exact active store/channel scope
-                // again on each request; navigation does not grant that authority.
-                $this->routeItemScoped($user, 'sales_quotations', 'sales_quotations.title', 'admin.sales-quotations.index', 'orders.view'),
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'customers', 'admin.b2c_workspace.modules.customers', 'customers.view'),
                 isset($channels['b2b'])
                     ? $this->routeItemScoped($user, 'customer_groups', 'customer_groups.wholesale_title', 'admin.b2b.customer-groups.index', 'customers.view')
@@ -174,6 +181,12 @@ class AdminNavigation
                 isset($channels['b2c']) && ! $hideRetailWorkspaces
                     ? $this->routeItemScoped($user, 'b2c_customer_groups', 'customer_groups.retail_title', 'admin.b2c.customer-groups.index', 'customers.view')
                     : null,
+            ]),
+            // P192: Sales owns the existing P193 quotation workflow. Other
+            // target children retain their canonical ready-only domain owners.
+            $this->group('sales', 'admin.nav_groups.sales', '▤', [
+                $this->routeItemScoped($user, 'sales_quotations', 'sales_quotations.title', 'admin.sales-quotations.index', 'orders.view'),
+                $this->commercialExceptionApprovalsItem($user, isset($channels['b2b'])),
             ]),
             $this->group('customer_service', 'admin.nav_groups.customer_service', '◉', [
                 // The canonical Inbox route accepts authorized store-scoped Retail support
@@ -246,11 +259,16 @@ class AdminNavigation
             ]),
             // P285 reuses the already authorized Finance AR/AP tabs, never a
             // duplicate ledger or a newly exposed unready financial workflow.
-            $this->group('receivables', 'admin.nav_groups.receivables', '¤',
-                $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
-                    ? $this->receivablesNavigationItems($user)
-                    : []
-            ),
+            $this->group('receivables', 'admin.nav_groups.receivables', '¤', array_values(array_filter(
+                $financeDocumentItems,
+                static fn (array $item): bool => $item['key'] === 'erp_receivables',
+            ))),
+            // P298 Supplier Settlements is a parent of the already-authorized
+            // Accounts Payable Finance Workbench tab. No invented payment route.
+            $this->group('supplier_settlements', 'admin.nav_groups.supplier_settlements', '¤', array_values(array_filter(
+                $financeDocumentItems,
+                static fn (array $item): bool => $item['key'] === 'erp_payables',
+            ))),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
                 $this->routeItem($user, 'reports_center', 'reports.title', 'admin.reports.index', 'reports.view'),
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'reports', 'admin.b2c_workspace.modules.reports', 'reports.view'),
@@ -894,6 +912,75 @@ class AdminNavigation
         }
 
         return $this->routeItemOpen('order_operations', 'admin.order_management', 'admin.operations.orders.index');
+    }
+
+    /**
+     * P197: canonical pending customer-service concessions, not a new ledger.
+     * The Sales Sidebar projects the same three-permission intersection
+     * for one store/channel as the Orders controller's pending review mode.
+     *
+     * @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null
+     */
+    private function commercialExceptionApprovalsItem(User $user, bool $hasWholesaleChannel): ?array
+    {
+        if (! $user->is_active || ! Route::has('admin.operations.orders.index')) {
+            return null;
+        }
+
+        // Sidebar rendering is read-only: creating the Wholesale principal here
+        // would recreate a store after a full data reset. Reuse the already
+        // memoized Super Admin decision instead of running the tenant-scope
+        // role probe once for each of the three required permissions.
+        $scope = $this->isSuperAdmin($user) ? null : app(OperationalTenantScope::class);
+        $permissions = ['orders.view', 'orders.customer_service_discount', 'orders.approve'];
+        foreach (['b2b', 'b2c'] as $channel) {
+            if ($channel === 'b2b' && ! $hasWholesaleChannel) {
+                continue;
+            }
+
+            if ($scope === null) {
+                // OperationalTenantScope authorizes active Super Admins for
+                // existing active stores; selecting one must not create it.
+                $eligible = DB::table('stores')
+                    ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                    ->where('stores.is_active', true)
+                    ->where('store_types.code', strtoupper($channel))
+                    ->orderBy('stores.id')
+                    ->limit(1)
+                    ->pluck('stores.id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->all();
+            } else {
+                $eligible = null;
+                foreach ($permissions as $permission) {
+                    $stores = $scope->allowedStoreIds($user, $permission, $channel);
+                    $eligible = $eligible === null ? $stores : array_values(array_intersect($eligible, $stores));
+                    if ($eligible === []) {
+                        break;
+                    }
+                }
+            }
+            if ($eligible === []) {
+                continue;
+            }
+
+            sort($eligible, SORT_NUMERIC);
+
+            return [
+                'key' => 'commercial_exception_approvals',
+                'label' => 'admin.commercial_exception_approvals',
+                'route' => 'admin.operations.orders.index',
+                'params' => [
+                    'channel' => $channel,
+                    'store_id' => (string) $eligible[0],
+                    'discount_view' => 'pending',
+                    'action_required' => '0',
+                ],
+                'permission' => null,
+            ];
+        }
+
+        return null;
     }
 
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
