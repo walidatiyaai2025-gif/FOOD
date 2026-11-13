@@ -79,10 +79,72 @@ final class InstallState
             return $progress['token'];
         }
 
-        $progress['token'] = bin2hex(random_bytes(32));
-        $this->writeJson($this->progressPath(), $progress);
+        // The first two installer pages may be loaded at the same time. The
+        // progress JSON rename is atomic, but read/generate/write is not.
+        // Keep the separate lock file across requests: removing it on unlock
+        // could let a third request lock a different inode.
+        $progressPath = $this->progressPath();
+        // Keep the persistent inode outside a disposable progress directory.
+        // Testing and custom hosting layouts can override this safe local path.
+        $tokenLockPath = (string) config(
+            'foodex.installer_token_lock_path',
+            storage_path('framework/installer-token-locks/'.hash('sha256', $progressPath).'.lock'),
+        );
+        $this->assertSafeStatePath($tokenLockPath);
 
-        return $progress['token'];
+        $directory = dirname($tokenLockPath);
+        if (! is_dir($directory) && ! @mkdir($directory, 0750, true) && ! is_dir($directory)) {
+            throw new RuntimeException('Installer token lock directory is not writable.');
+        }
+
+        $this->assertSafeStatePath($tokenLockPath);
+        $lock = @fopen($tokenLockPath, 'c');
+
+        if ($lock === false) {
+            throw new RuntimeException('Installer token lock could not be opened.');
+        }
+
+        try {
+            $this->assertTokenLockFile($tokenLockPath, $lock);
+            @chmod($tokenLockPath, 0640);
+
+            if (! flock($lock, LOCK_EX)) {
+                throw new RuntimeException('Installer token lock could not be acquired.');
+            }
+
+            $this->assertTokenLockFile($tokenLockPath, $lock);
+
+            // Always re-read while holding the exclusive lock. The caller's
+            // earlier snapshot might predate another request's successful init.
+            $progress = $this->progress();
+            if ($progress['token'] === null) {
+                $progress['token'] = bin2hex(random_bytes(32));
+                $this->writeJson($progressPath, $progress);
+            }
+
+            return $progress['token'];
+        } finally {
+            @flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    /**
+     * @param  resource  $lock
+     */
+    private function assertTokenLockFile(string $path, $lock): void
+    {
+        $this->assertSafeStatePath($path);
+        $opened = fstat($lock);
+        $linked = @lstat($path);
+
+        // Reject a replaced file or redirected symlink even when it was
+        // swapped between the initial filesystem check and fopen/flock.
+        if ($opened === false || $linked === false
+            || $opened['dev'] !== $linked['dev']
+            || $opened['ino'] !== $linked['ino']) {
+            throw new RuntimeException('Installer token lock path changed unexpectedly.');
+        }
     }
 
     /**
