@@ -9,6 +9,7 @@ use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Models\EnterpriseCashbox;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
@@ -95,6 +96,49 @@ final class V2TreasuryManagerRoleAuthorityTest extends TestCase
             ->pluck('key')
             ->all();
         $this->assertNotContains('erp_treasury', $keys);
+    }
+
+    public function test_wholesale_store_deny_blocks_only_the_denied_store(): void
+    {
+        $owned = $this->wholesaleStore();
+        $other = Store::query()->create([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2B')->value('id'),
+            'code' => 'V2-2698-B2B-OTHER',
+            'name' => 'Other authorized Wholesale store',
+            'is_active' => true,
+        ]);
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($other);
+
+        $manager = $this->manager();
+        $this->enableModule($manager);
+        $this->entitle($manager, $owned, ['treasury.receipts.read']);
+        $this->entitle($manager, $other, ['treasury.receipts.read']);
+
+        $ownedUrl = route('admin.erp.treasury.index', ['store_id' => $owned->id, 'tab' => 'receipts']);
+        $otherUrl = route('admin.erp.treasury.index', ['store_id' => $other->id, 'tab' => 'receipts']);
+
+        $this->actingAs($manager)->get($ownedUrl)->assertOk();
+        $this->actingAs($manager)->get($otherUrl)->assertOk();
+
+        $permission = Permission::query()->where('code', 'finance.view')->firstOrFail();
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $manager->id,
+            'permission_id' => $permission->id,
+            'scope_key' => 'store:'.$other->id,
+            'store_id' => $other->id,
+            'effect' => 'deny',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $manager->forceFill(['has_permission_overrides' => true])->save();
+
+        $this->assertFalse($manager->fresh()->hasPermission('finance.view', $other->id));
+        $this->assertTrue($manager->fresh()->hasPermission('finance.view', $owned->id));
+
+        // A valid Treasury entitlement is insufficient when the actor has a
+        // narrower explicit user DENY. The other Wholesale scope remains usable.
+        $this->actingAs($manager->fresh())->get($otherUrl)->assertForbidden();
+        $this->actingAs($manager->fresh())->get($ownedUrl)->assertOk();
     }
 
     public function test_entitled_manager_can_open_bilingual_wholesale_treasury_but_not_retail_or_unentitled_mutations(): void
