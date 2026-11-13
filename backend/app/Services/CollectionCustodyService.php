@@ -76,6 +76,16 @@ final class CollectionCustodyService
                     'allocations' => ['Van collections can allocate only Wholesale invoices.'],
                 ]);
             }
+            // The inverse fulfillment boundary is equally authoritative:
+            // a Driver cannot settle B2B invoices even if a malformed
+            // collection account points at a legitimate Wholesale store.
+            if ($allocations !== []
+                && strtolower((string) $account->actor_type) === 'driver'
+                && $accountChannel !== 'b2c') {
+                throw ValidationException::withMessages([
+                    'allocations' => ['Driver collections can allocate only Retail invoices.'],
+                ]);
+            }
 
             $allocatedTotal = 0.0;
             foreach ($allocations as $allocation) {
