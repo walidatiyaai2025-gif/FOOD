@@ -58,7 +58,10 @@ final class V2ReceivableSettlementWorkbenchTest extends TestCase
                 ->assertOk()
                 ->assertSee('data-v2-ar-settlements', false)
                 ->assertSee('data-v2-ar-settlement-create', false)
-                ->assertSee(__('finance_workbench.receivables.settlements', [], $locale));
+                ->assertSee(__('finance_workbench.receivables.settlements', [], $locale))
+                // P303 is not receipt-certified: both locales must disclose that
+                // a manually entered reference is NOT proof of collected funds.
+                ->assertSee(__('finance_workbench.receivables.reference_notice', [], $locale));
         }
 
         $payload = [
