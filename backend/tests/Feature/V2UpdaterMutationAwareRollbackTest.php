@@ -60,7 +60,7 @@ class V2UpdaterMutationAwareRollbackTest extends TestCase
         $this->assertSame('verify_database_backup', $history->failed_stage);
         $this->assertSame('not_required', $history->rollback_status);
         $this->assertSame('failed', $history->execution_evidence['backup_database'] ?? null);
-        $this->assertArrayNotHasKey('rollback_database', $history->execution_evidence);
+        $this->assertSame('not_required', $history->execution_evidence['rollback_database'] ?? null);
         $this->assertStringContainsString('No release or database rollback was required.', $history->failure_reason);
         $this->assertFalse((bool) $history->maintenance_mode_remained);
     }
@@ -83,7 +83,7 @@ class V2UpdaterMutationAwareRollbackTest extends TestCase
         $this->assertNotContains('rollback_database', $runtime->calls);
         $this->assertSame('succeeded', $history->rollback_status);
         $this->assertSame('passed', $history->execution_evidence['rollback_files'] ?? null);
-        $this->assertArrayNotHasKey('rollback_database', $history->execution_evidence);
+        $this->assertSame('not_required', $history->execution_evidence['rollback_database'] ?? null);
         $this->assertFalse((bool) $history->maintenance_mode_remained);
     }
 
