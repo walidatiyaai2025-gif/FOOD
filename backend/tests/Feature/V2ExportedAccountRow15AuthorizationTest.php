@@ -58,8 +58,9 @@ final class V2ExportedAccountRow15AuthorizationTest extends TestCase
             $this->assertNotNull($context);
             $this->assertFalse($contexts->canUseRuntime($inactive, $context));
 
+            // Authentication revokes disabled users before Van's 403 route guard.
             Sanctum::actingAs($inactive, ['app:van']);
-            $this->getJson('/api/v1/van/visits')->assertForbidden();
+            $this->getJson('/api/v1/van/visits')->assertUnauthorized();
 
             $token = 'v2-synthetic-inactive-van-device-'.$locale;
             $this->postJson('/api/v1/push/devices', [
@@ -68,7 +69,7 @@ final class V2ExportedAccountRow15AuthorizationTest extends TestCase
                 'environment' => 'production',
                 'token' => $token,
                 'install_id' => 'synthetic-row15-'.$locale,
-            ])->assertForbidden();
+            ])->assertUnauthorized();
 
             $this->assertDatabaseMissing('push_device_tokens', [
                 'token_hash' => hash('sha256', $token),
@@ -79,7 +80,7 @@ final class V2ExportedAccountRow15AuthorizationTest extends TestCase
             $this->postJson('/api/v1/driver/location/heartbeat', [
                 'latitude' => 29.3,
                 'longitude' => 47.9,
-            ])->assertForbidden();
+            ])->assertUnauthorized();
         }
 
         $this->assertDatabaseHas('role_user', [
@@ -95,6 +96,25 @@ final class V2ExportedAccountRow15AuthorizationTest extends TestCase
             'id' => $user->id,
             'is_active' => false,
         ]);
+    }
+
+    public function test_legacy_van_access_hydrates_authoritative_user_status_when_only_id_and_locale_were_selected(): void
+    {
+        [$user] = $this->legacyDriverWithEffectiveVanAssignment();
+        $contexts = app(VanRuntimeContextResolver::class);
+
+        // PushDeliveryService deliberately loads user:id,locale. A partial
+        // projection must not revoke valid Van notification eligibility.
+        $projection = User::query()->select(['id', 'locale'])->findOrFail($user->id);
+        $this->assertArrayNotHasKey('is_active', $projection->getAttributes());
+        $selected = $contexts->resolve($projection)['selected'];
+        $this->assertNotNull($selected);
+        $this->assertTrue($contexts->canUseRuntime($projection, $selected));
+
+        // The same partial projection must still reject a newly disabled
+        // account rather than assuming an absent status means active.
+        $user->forceFill(['is_active' => false])->save();
+        $this->assertFalse($contexts->canUseRuntime($projection, $selected));
     }
 
     public function test_expired_assignment_cannot_restore_van_access_to_active_legacy_driver(): void
