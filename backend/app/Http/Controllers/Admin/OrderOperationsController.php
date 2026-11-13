@@ -102,6 +102,7 @@ final class OrderOperationsController extends Controller
             'channel' => ['nullable', 'string', Rule::in(['all', 'b2b', 'b2c'])],
             'order' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'discount_view' => ['nullable', 'string', Rule::in(['approved'])],
         ]);
 
         $customerServiceProfile = $this->navigation->usesCustomerServiceDashboardProfile($actor);
@@ -121,6 +122,23 @@ final class OrderOperationsController extends Controller
         $manageScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.manage');
         $dispatchScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.dispatch');
         $financeScopes = $this->operationalScopes($actor, $operationalChannel, 'finance.view');
+        $approvedDiscountsMode = ($data['discount_view'] ?? null) === 'approved';
+        $discountRequestScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.customer_service_discount');
+        $discountApprovalScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.approve');
+        $discountReadScopes = [];
+        foreach (['b2b', 'b2c'] as $channel) {
+            $discountReadScopes[$channel] = array_values(array_intersect(
+                $scopes[$channel],
+                $discountRequestScopes[$channel],
+                $discountApprovalScopes[$channel],
+            ));
+        }
+        $canViewApprovedDiscounts = $actor->is_active
+            && ($discountReadScopes['b2b'] !== [] || $discountReadScopes['b2c'] !== []);
+        if ($approvedDiscountsMode) {
+            abort_unless($canViewApprovedDiscounts, 403);
+        }
+
         $storeIds = array_values(array_unique(array_merge(
             $scopes['b2b'],
             $scopes['b2c'],
@@ -129,6 +147,10 @@ final class OrderOperationsController extends Controller
 
         $selectedStoreId = isset($data['store_id']) ? (int) $data['store_id'] : null;
         if ($selectedStoreId !== null && collect($storeIds)->containsStrict($selectedStoreId) === false) {
+            abort(404);
+        }
+        if ($approvedDiscountsMode && $selectedStoreId !== null
+            && ! in_array($selectedStoreId, array_merge($discountReadScopes['b2b'], $discountReadScopes['b2c']), true)) {
             abort(404);
         }
 
@@ -190,6 +212,17 @@ final class OrderOperationsController extends Controller
             });
         }
 
+        if ($approvedDiscountsMode) {
+            // Approved Sales decisions reuse canonical Order store/channel authority.
+            $orderQuery->where(fn ($query) => $this->applyOperationalScopes($query, $discountReadScopes))
+                ->whereExists(function ($query): void {
+                    $query->selectRaw('1')
+                        ->from('order_customer_service_discount_requests as approved_requests')
+                        ->whereColumn('approved_requests.order_id', 'orders.id')
+                        ->where('approved_requests.status', 'approved');
+                });
+        }
+
         $selectedException = isset($data['exception']) ? (string) $data['exception'] : null;
         if ($selectedException !== null) {
             $this->salesDashboard->applyExceptionFilter($orderQuery, $selectedException);
@@ -202,6 +235,7 @@ final class OrderOperationsController extends Controller
             || isset($data['dispatch_status'])
             || isset($data['exception'])
             || isset($data['order'])
+            || $approvedDiscountsMode
         );
 
         $statusBaseQuery = clone $orderQuery;
@@ -287,6 +321,27 @@ final class OrderOperationsController extends Controller
             ->latest('id')
             ->paginate($perPage)
             ->withQueryString();
+
+        $approvedDiscounts = null;
+        if ($approvedDiscountsMode) {
+            // Only independently approved requests are listed. A saved price
+            // rule or automatic promotion is not an approved concession.
+            $approvedDiscounts = DB::table('order_customer_service_discount_requests as decisions')
+                ->join('orders as related_orders', 'related_orders.id', '=', 'decisions.order_id')
+                ->join('users as requester', 'requester.id', '=', 'decisions.requested_by_user_id')
+                ->join('users as reviewer', 'reviewer.id', '=', 'decisions.reviewed_by_user_id')
+                ->where('decisions.status', 'approved')
+                ->whereIn('decisions.order_id', (clone $orderQuery)->select('orders.id')->toBase())
+                ->orderByDesc('decisions.reviewed_at')
+                ->orderByDesc('decisions.id')
+                ->paginate(20, [
+                    'decisions.id', 'decisions.percentage', 'decisions.reason', 'decisions.reviewed_at',
+                    'related_orders.id as order_id', 'related_orders.order_number',
+                    'related_orders.store_id', 'related_orders.channel',
+                    'requester.name as requested_by_name', 'reviewer.name as reviewed_by_name',
+                ], 'approved_discount_page')
+                ->withQueryString();
+        }
 
         $statusLabels = collect($statusOptions)
             ->mapWithKeys(static fn (array $option): array => [
@@ -513,14 +568,10 @@ final class OrderOperationsController extends Controller
                 $manageScopes,
                 $financeScopes,
             );
-            $canReviewDiscounts = $actor->is_active
-                && $actor->hasPermission('orders.customer_service_discount', (int) $detailOrder->store_id)
-                && $actor->hasPermission('orders.approve', (int) $detailOrder->store_id)
+            $canReviewDiscounts = $canViewApprovedDiscounts
                 && in_array(
                     (int) $detailOrder->store_id,
-                    $this->scope->allowedStoreIds(
-                        $actor, 'orders.approve', strtolower((string) $detailOrder->channel),
-                    ),
+                    $discountReadScopes[strtolower((string) $detailOrder->channel)] ?? [],
                     true,
                 );
             if ($canReviewDiscounts) {
@@ -572,6 +623,9 @@ final class OrderOperationsController extends Controller
             'detail' => $detail,
             'discountRequests' => $discountRequests,
             'approvedDiscountRequests' => $approvedDiscountRequests,
+            'approvedDiscounts' => $approvedDiscounts,
+            'approvedDiscountsMode' => $approvedDiscountsMode,
+            'canViewApprovedDiscounts' => $canViewApprovedDiscounts,
             'statuses' => array_map(
                 static fn (array $option): string => (string) $option['code'],
                 $statusOptions,
