@@ -474,6 +474,7 @@ final class AccountsReceivableService
         User $actor,
         ResolvedTenantContext $context,
         int $allocationId,
+        bool $requiresVerifiedCollectionSource = false,
     ): EnterpriseAccountsReceivableAllocation {
         $scope = $this->authorizedScope(
             $actor,
@@ -487,6 +488,7 @@ final class AccountsReceivableService
             $context,
             $scope,
             $allocationId,
+            $requiresVerifiedCollectionSource,
         ): EnterpriseAccountsReceivableAllocation {
             $allocation = EnterpriseAccountsReceivableAllocation::query()
                 ->whereHas(
@@ -520,6 +522,17 @@ final class AccountsReceivableService
                 ->whereKey($allocation->ar_document_id)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            // P303 requires a verifiable collected receipt, not an editable
+            // reference. The AR allocation schema does not yet persist a
+            // trustworthy source link. Refuse this UI posting path until the
+            // source can be verified and consumed atomically; preserve the
+            // existing canonical manual-AR API for its separate callers.
+            if ($requiresVerifiedCollectionSource) {
+                throw ValidationException::withMessages([
+                    'collection_source' => ['A verified, store-scoped collection receipt is required before posting.'],
+                ]);
+            }
 
             $postedAllocations = EnterpriseAccountsReceivableAllocation::query()
                 ->where('ar_document_id', $document->id)
