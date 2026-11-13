@@ -46,6 +46,7 @@ return [
         'operations' => 'Orders & Operations',
         'customer_service' => 'Customer Service & WhatsApp',
         'catalog' => 'Catalog, Pricing & Offers',
+        'warehouses' => 'Warehouses',
         'accounts' => 'Customers & Accounts',
         'stores' => 'Stores & Channels',
         'marketing' => 'Marketing & Communications',
