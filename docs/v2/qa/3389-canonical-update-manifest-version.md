@@ -1,23 +1,14 @@
 # V2 #3389 — Signed update manifest Semantic Version exactness
 
-Parent #2746 (Admin ZIP Update/Recovery), #2846 (P112 delivery), master #2503. Integration `Foodex_V2` only. No production, main, release or tag.
+Parents #2746 (Admin ZIP Update/Recovery), #2846 (P112 delivery), master #2503. Integration `Foodex_V2` only. No production, main, release or tag.
 
 ## Source / cause
 
-`UpdateVersion::isCanonical()` previously applied `trim($version)` before its strict `MAJOR.MINOR.PATCH` expression. A signed manifest declaring `targetVersion='1.0.85 '` or `minimumCurrentVersion=' 1.0.84'` was therefore accepted even though those strings are not canonical. `UpdatePackageValidator` then carried the raw target value forward in the result. Canonical signed manifest metadata must be accepted byte-for-byte, not silently normalized by the recipient.
+`UpdateVersion::isCanonical()` previously applied `trim($version)` before checking `MAJOR.MINOR.PATCH`. A signed manifest could declare `targetVersion='1.0.85 '` or `minimumCurrentVersion=' 1.0.84'`, which would pass canonical validation despite containing noncanonical whitespace. The validator carries the accepted target metadata onward.
 
-Further boundary: PHP's PCRE `# V2 #3389 — Signed update manifest Semantic Version exactness
+PCRE's `$` end anchor can also match just before a final newline. The fix checks the raw manifest string without trimming and uses absolute `\A` and `\z` anchors, rejecting spaces, tabs, CR and LF. Signed manifest values must match canonical SemVer exactly.
 
-Parent #2746 (Admin ZIP Update/Recovery), #2846 (P112 delivery), master #2503. Integration `Foodex_V2` only. No production, main, release or tag.
-
-## Source / cause
-
-`UpdateVersion::isCanonical()` previously applied `trim($version)` before its strict `MAJOR.MINOR.PATCH` expression. A signed manifest declaring `targetVersion='1.0.85 '` or `minimumCurrentVersion=' 1.0.84'` was therefore accepted even though those strings are not canonical. `UpdatePackageValidator` then carried the raw target value forward in the result. Canonical signed manifest metadata must be accepted byte-for-byte, not silently normalized by the recipient.
-
- anchor accepts a newline immediately before the end of the subject. Use absolute `\\A` and `\\z` anchors as well as removing trim, so the validator rejects a trailing LF/CR and does not silently accept padded signed metadata.
-
-Scope: remove manifest-version trimming and require absolute version-string matching in `isCanonical`; leave `normalizeInstalled()` untouched for historical stored `1.084` compatibility. Keep checksum comparison, minimum-version policy, upgrade/downgrade checks and all rollback code unchanged. No changes to sibling #3386's owned `UpdatePackageValidator.php`.
-
+`normalizeInstalled()` remains unchanged for legacy persisted `1.084` compatibility. Checksum, minimum-version, downgrade/upgrade and rollback policies are unchanged. No edits to active #3386's `UpdatePackageValidator.php`.
 ## Executable regression
 
 `backend/tests/Unit/V2UpdateCanonicalManifestVersionTest.php`:
