@@ -840,22 +840,4 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         }
     }
 
-    /**
-     * @return array<int, string>
-     */
-    private function stringList(mixed $value): array
-    {
-        if (! is_array($value)) {
-            return [];
-        }
-
-        $items = [];
-        foreach ($value as $item) {
-            if (is_string($item)) {
-                $items[] = $item;
-            }
-        }
-
-        return $items;
-    }
 }
