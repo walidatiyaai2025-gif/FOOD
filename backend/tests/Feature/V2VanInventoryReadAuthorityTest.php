@@ -186,6 +186,34 @@ final class V2VanInventoryReadAuthorityTest extends TestCase
         $this->assertSame(0, DB::table('stock_movements')->count());
     }
 
+    public function test_overlapping_primary_van_assignments_cannot_choose_an_arbitrary_warehouse(): void
+    {
+        $own = $this->store('B2B', 'P274-AMBIGUOUS-OWN');
+        $foreign = $this->store('B2B', 'P274-AMBIGUOUS-FOREIGN');
+        $ownWarehouse = $this->warehouse($own, 'P274-AMBIGUOUS-OWN-WH');
+        $foreignWarehouse = $this->warehouse($foreign, 'P274-AMBIGUOUS-FOREIGN-WH');
+        $this->enableEnterpriseWmsForStore($own);
+        $viewer = $this->viewer($own);
+        $van = $this->van($ownWarehouse);
+        $this->assign($van, $ownWarehouse, $viewer);
+        $this->stock($ownWarehouse, $own, 'P274-AMBIGUOUS-STOCK');
+
+        // A valid single primary assignment remains readable.
+        $this->assertCount(1, app(VanInventoryReadService::class)->page($viewer, (int) $van->id)['rows']);
+
+        // Bypass registry validation to model corrupt imported/legacy data:
+        // a second overlapping primary assignment points at another store.
+        $this->assign($van, $foreignWarehouse, $viewer);
+        try {
+            app(VanInventoryReadService::class)->page($viewer, (int) $van->id);
+            $this->fail('Conflicting effective primary Van assignments must fail closed.');
+        } catch (HttpException $exception) {
+            $this->assertSame(404, $exception->getStatusCode());
+        }
+
+        $this->assertSame(0, DB::table('stock_movements')->count());
+    }
+
     public function test_expired_assignment_cannot_fall_back_to_home_warehouse(): void
     {
         $storeId = $this->store('B2B', 'P274-EXPIRED');
