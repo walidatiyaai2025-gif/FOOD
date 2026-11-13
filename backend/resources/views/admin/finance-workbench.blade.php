@@ -508,7 +508,7 @@ $trendMax=max(1,max(array_map(fn($r)=>max(abs((float)$r['revenue']),abs((float)$
 <div class="finance-field"><label>{{ __('finance_workbench.common.amount') }}</label><input name="amount" type="number" step="0.001" min="0.001" required></div>
 <div class="finance-field"><label>{{ __('finance_workbench.receivables.settlement_account') }}</label>
 <select name="settlement_account_id" required>
-<option value="">{{ __('finance_workbench.common.search') }}</option>
+<option value="">{{ __('finance_workbench.common.select') }}</option>
 @foreach($data['settlementAccounts'] as $account)
 <option value="{{ $account->id }}">{{ $account->code }} · {{ $account->name }}</option>
 @endforeach
@@ -528,7 +528,7 @@ $trendMax=max(1,max(array_map(fn($r)=>max(abs((float)$r['revenue']),abs((float)$
 <td class="finance-money">{{ $money($settlement->amount) }}</td>
 <td>{{ $settlement->reference ?: '—' }}</td>
 <td><span class="finance-status">{{ $statusLabel($settlement->status) }}</span></td>
-<td>{{ $settlement->created_by }}</td>
+<td>{{ $data['settlementCreators']->get($settlement->created_by, '—') }}</td>
 <td>@if($settlement->journal_id)<a class="finance-button" href="{{ route('admin.erp.finance.index',[...$routeBase,'tab'=>'journals','journal'=>$settlement->journal_id]) }}">{{ __('finance_workbench.actions.view_ledger') }}</a>@else—@endif</td>
 <td>
 @if(($access['ar_post'] ?? false) && $settlement->status==='draft' && (int)$settlement->created_by !== (int)$user->id)
