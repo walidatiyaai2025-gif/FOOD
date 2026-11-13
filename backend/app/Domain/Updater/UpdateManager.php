@@ -77,6 +77,8 @@ final class UpdateManager
             $fileBackup = null;
             $databaseBackup = null;
             $maintenanceMode = false;
+            $releaseMutationStarted = false;
+            $databaseMutationStarted = false;
 
             try {
                 $this->validator->validate($manifest, $currentVersion, $packagePath);
@@ -117,16 +119,22 @@ final class UpdateManager
                 $this->checkpoint($history, ['maintenance_mode' => 'entered']);
 
                 $stage = 'extract_release';
+                // Extraction can partially replace files before throwing.
+                $releaseMutationStarted = true;
                 $this->runtime->extractRelease($packagePath);
                 $this->checkpoint($history, ['release_activation' => 'passed']);
 
                 if ($manifest->containsMigrations) {
                     $stage = 'run_migrations';
+                    // A failed migration can already have changed live tables.
+                    $databaseMutationStarted = true;
                     $this->runtime->runMigrations();
                     $this->checkpoint($history, ['migrations' => 'passed']);
                 }
 
                 $stage = 'clear_and_rebuild_cache';
+                // Cache rebuild also reconciles persisted job-role grants.
+                $databaseMutationStarted = true;
                 $this->runtime->rebuildCaches();
                 $this->checkpoint($history, ['cache_rebuild' => 'passed']);
 
@@ -170,12 +178,14 @@ final class UpdateManager
                 return $history->refresh();
             } catch (Throwable $exception) {
                 $exceptionSummary = $this->exceptionSummary($exception);
-                $reason = "Update failed during [{$stage}]. Cause: {$exceptionSummary}. Rollback was attempted.";
+                $reason = "Update failed during [{$stage}]. Cause: {$exceptionSummary}.";
                 $rollbackSucceeded = true;
                 $rollbackAttempted = false;
                 $rollbackEvidence = [];
 
-                if ($fileBackup !== null) {
+                // Never restore backups onto untouched live state after a
+                // failed preflight or failed backup integrity check.
+                if ($releaseMutationStarted && $fileBackup !== null) {
                     $rollbackAttempted = true;
                     try {
                         $this->runtime->rollbackFiles($fileBackup);
@@ -186,7 +196,7 @@ final class UpdateManager
                     }
                 }
 
-                if ($databaseBackup !== null) {
+                if ($databaseMutationStarted && $databaseBackup !== null) {
                     $rollbackAttempted = true;
                     try {
                         $this->runtime->rollbackDatabase($databaseBackup);
@@ -217,6 +227,10 @@ final class UpdateManager
                         $rollbackEvidence['maintenance_mode'] = 'exit_failed';
                     }
                 }
+
+                $reason .= $rollbackAttempted
+                    ? ' Rollback was attempted.'
+                    : ' No release or database rollback was required.';
 
                 if (! $rollbackSucceeded) {
                     $reason .= ' Rollback is incomplete; manual recovery is required.';
