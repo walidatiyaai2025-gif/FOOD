@@ -47,6 +47,7 @@ return [
         'customer_service' => 'خدمة العملاء وواتساب',
         'catalog' => 'الكتالوج والتسعير والعروض',
         'procurement' => 'المشتريات',
+        'inventory' => 'المخزون',
         'warehouses' => 'المستودعات',
         'accounts' => 'العملاء والحسابات',
         'stores' => 'المتاجر والقنوات',

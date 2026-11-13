@@ -47,6 +47,7 @@ return [
         'customer_service' => 'Customer Service & WhatsApp',
         'catalog' => 'Catalog, Pricing & Offers',
         'procurement' => 'Procurement',
+        'inventory' => 'Inventory',
         'warehouses' => 'Warehouses',
         'accounts' => 'Customers & Accounts',
         'stores' => 'Stores & Channels',

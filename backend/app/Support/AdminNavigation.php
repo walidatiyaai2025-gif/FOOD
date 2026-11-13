@@ -128,11 +128,7 @@ class AdminNavigation
                     : null,
                 $this->routeItemScoped($user, 'lookup_management', 'admin.lookup_management', 'admin.lookups.index', 'lookups.view'),
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'products', 'admin.b2c_workspace.modules.products', 'catalog.view'),
-                $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'inventory', 'admin.b2c_workspace.modules.inventory', 'inventory.view'),
                 $this->module($user, $channels, 'b2b', 'products', 'admin.b2b_sidebar.product_management', 'catalog.view'),
-                $useCustomerServiceDashboardProfile
-                    ? $this->module($user, $channels, 'b2b', 'inventory', 'admin.b2b_sidebar.inventory_management', 'inventory.view')
-                    : null,
                 // P233: Coupons belong to the canonical Catalog & Pricing domain.
                 // Their existing controller and scoped feature authorizer remain intact.
                 $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled'),
@@ -142,6 +138,14 @@ class AdminNavigation
             $this->group('procurement', 'admin.nav_groups.procurement', '▤', [
                 $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.erp.procurement.index', 'procurement', 'procurement.suppliers.view')
+                    : null,
+            ]),
+            // P246 Inventory reuses existing authorized Retail and legacy Customer Service
+            // Wholesale inventory modules; channel, store and permission gates are unchanged.
+            $this->group('inventory', 'admin.nav_groups.inventory', '▣', [
+                $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'inventory', 'admin.b2c_workspace.modules.inventory', 'inventory.view'),
+                $useCustomerServiceDashboardProfile
+                    ? $this->module($user, $channels, 'b2b', 'inventory', 'admin.b2b_sidebar.inventory_management', 'inventory.view')
                     : null,
             ]),
             // P253 warehouses are a dedicated business group. The existing
