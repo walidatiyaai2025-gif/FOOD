@@ -30,6 +30,18 @@
 
 Run: `php artisan test --filter=V2ReceivableSettlementWorkbenchTest`, `php artisan test --filter=EnterpriseAccountsReceivableFoundationTest`, plus full exact-head Repository Policy, V2 Isolation, localization and required-ci-gate (including MySQL/Redis upgrade and recovery). Browser/device tests for desktop/320-430px mobile, keyboard, RTL/LTR remain independent final evidence; no screenshot workflow is claimed.
 
+## Source provenance checklist (P303, 2026-11-13)
+
+The following are **unimplemented acceptance prerequisites**, not evidence of a verified settlement:
+
+1. Identify an immutable authoritative receipt/collection transaction using a typed source key, **not** the operator's arbitrary `reference` text or an unchecked transaction ID.
+2. Independently match the receipt's originating store/channel, customer or order, currency, posted status, and valid collection account to the posted AR document. A shared legal entity must never authorize cross-store Retail matching.
+3. Enforce source amount availability across **all** allocations for that receipt (including concurrent requests), with database locking, idempotency and an auditable consumption/reversal strategy. Existing `enterprise_ar_allocations` has a nullable free-text `reference` but **no receipt foreign key or source uniqueness**.
+4. Permit maker/checker posting only after the server verifies the above source in the same financial transaction; derive evidence for journal/audit links and safe retry/recovery. Never represent the existing `finance.ar.post` permission as sufficient receipt provenance.
+5. Provide an authorized, scoped business-facing receipt lookup in Arabic/English (not raw IDs); verify cross-store, revoked/disabled-module, duplicate receipt, unposted receipt, overcollection, no-write-on-deny and app contract parity under MySQL CI.
+
+**Interim scope evidence:** `V2ReceivableSettlementWorkbenchTest` now asserts the existing unverified-reference warning in both AR and EN. That is a **disclosure regression only**, not a provenance validation. Keep PR #3309 DRAFT and Issue #2633 OPEN until the above transaction-level acceptance is implemented and exact-head Required CI is green; this work does not waive unrelated #3160 Enterprise Performance baseline verification.
+
 ## Source acceptance NOT completed by this PR
 
 This is an **AR allocation workflow** against a posted receivable. An operator-typed `reference` does **not** cryptographically or referentially tie the allocation to an authoritative collected receipt, Van collection, Driver collection, bank statement or Treasury reconciliation. This PR does not wire independent `collection_transactions` / receipt IDs to Enterprise AR allocation and must not be advertised as complete P303 collection-linked settlement. Exact proof of collection source, allocation↔receipt uniqueness, over-collection controls across source ledgers, multi-store financial ownership and reconciliation/policy acceptance must be designed and tested before closing #2633, without duplicating P297 #2627 bank reconciliation or P288 aging #2618.
