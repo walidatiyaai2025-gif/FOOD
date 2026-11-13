@@ -41,8 +41,8 @@ final class V2VanTripActivityAuthorityTest extends TestCase
     {
         $admin = $this->superAdmin();
 
-        $this->visit($admin, 'b2b', 'V2-P276-WHOLESALE');
-        $this->visit($admin, 'b2c', 'V2-P276-RETAIL');
+        $this->recordVisit($admin, 'b2b', 'V2-P276-WHOLESALE');
+        $this->recordVisit($admin, 'b2c', 'V2-P276-RETAIL');
 
         $this->actingAs($admin)
             ->get(route('admin.field-operations.visits', ['trip_view' => 'trips']))
@@ -58,8 +58,8 @@ final class V2VanTripActivityAuthorityTest extends TestCase
     public function test_exact_route_and_status_filters_do_not_reveal_other_van_activity(): void
     {
         $admin = $this->superAdmin();
-        $this->visit($admin, 'b2b', 'V2-P276-SELECTED', 'started');
-        $this->visit($admin, 'b2b', 'V2-P276-OTHER', 'planned');
+        $this->recordVisit($admin, 'b2b', 'V2-P276-SELECTED', 'started');
+        $this->recordVisit($admin, 'b2b', 'V2-P276-OTHER', 'planned');
 
         $this->actingAs($admin)
             ->get(route('admin.field-operations.visits', [
@@ -90,7 +90,7 @@ final class V2VanTripActivityAuthorityTest extends TestCase
         return $admin;
     }
 
-    private function visit(User $actor, string $customerType, string $route, string $status = 'planned'): void
+    private function recordVisit(User $actor, string $customerType, string $route, string $status = 'planned'): void
     {
         VanVisit::query()->create([
             'actor_user_id' => $actor->id,
