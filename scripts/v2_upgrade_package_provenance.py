@@ -90,11 +90,16 @@ def validate_package(
         < tuple(map(int, target_version.split("."))),
         "An update must advance the installed version.",
     )
+    _require(
+        directory.is_dir() and not directory.is_symlink(),
+        "Update package directory must be a real directory, not a symbolic link.",
+    )
     zip_path = directory / "FOODEX-Update.zip"
     manifest_path = directory / "FOODEX-Update.json"
     checksum_path = directory / "FOODEX-Update.sha256.txt"
     list_path = directory / "FOODEX-Update.files.txt"
     for path in (zip_path, manifest_path, checksum_path, list_path):
+        _require(not path.is_symlink(), f"Symbolic link artifact is forbidden: {path.name}")
         _require(path.is_file(), f"Required artifact missing: {path.name}")
     manifest = _read_json(manifest_path)
     _require(manifest.get("schema_version") == 1, "Unexpected manifest schema.")
