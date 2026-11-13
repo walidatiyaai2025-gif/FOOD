@@ -236,7 +236,10 @@ class AdminNavigation
                     : null,
             ]),
             $this->group('treasury', 'admin.nav_groups.treasury', '¤', [
-                $canAccessPlatformNavigation ? $this->routeItemScoped($user, 'treasury_master', 'treasury.nav_title', 'admin.treasury.master.index', 'finance.view') : null,
+                // TreasuryMasterController admits authorized Retail store scopes too.
+                // Projection must mirror its finance.view tenant gate, not a
+                // separate platform-only Sidebar visibility decision.
+                $this->routeItemScoped($user, 'treasury_master', 'treasury.nav_title', 'admin.treasury.master.index', 'finance.view'),
                 $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemEnterpriseModule($user, 'erp_treasury', 'admin.erp_center.modules.treasury.title', 'admin.erp.treasury.index', 'treasury', 'finance.view')
                     : null,
