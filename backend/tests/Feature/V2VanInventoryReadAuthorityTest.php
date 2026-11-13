@@ -200,6 +200,30 @@ final class V2VanInventoryReadAuthorityTest extends TestCase
         app(VanInventoryReadService::class)->page($viewer, (int) $van->id);
     }
 
+    public function test_inactive_van_cannot_expose_stock_from_a_still_active_primary_assignment(): void
+    {
+        $storeId = $this->store('B2B', 'P274-INACTIVE-VAN');
+        $warehouse = $this->warehouse($storeId, 'P274-INACTIVE-VAN-WH');
+        $this->enableEnterpriseWmsForStore($storeId);
+        $viewer = $this->viewer($storeId);
+        $van = $this->van($warehouse);
+        $this->assign($van, $warehouse, $viewer);
+        $this->stock($warehouse, $storeId, 'P274-INACTIVE-SKU');
+
+        // Establish that the same active assignment was previously readable.
+        $this->assertCount(1, app(VanInventoryReadService::class)->page($viewer, (int) $van->id)['rows']);
+
+        $van->forceFill(['status' => 'inactive'])->save();
+        $this->assertDatabaseHas('van_assignments', [
+            'van_id' => $van->id,
+            'status' => 'active',
+        ]);
+
+        // The Van's own operational state is an independent authority guard.
+        $this->expectException(ModelNotFoundException::class);
+        app(VanInventoryReadService::class)->page($viewer, (int) $van->id);
+    }
+
     private function store(string $channel, string $code): int
     {
         return (int) DB::table('stores')->insertGetId([
