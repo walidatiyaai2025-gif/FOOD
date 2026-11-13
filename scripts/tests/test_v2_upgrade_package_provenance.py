@@ -119,6 +119,45 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
         self.assertEqual(["1.0.125", "1.0.127"],
                          [row["to"] for row in result["verified_edges"]])
 
+    def test_symlinked_package_directory_is_rejected_before_reading_assets(self) -> None:
+        alias = self.root / "linked-124-125"
+        try:
+            alias.symlink_to(self.first, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("Filesystem does not support symlinks")
+
+        with self.assertRaisesRegex(PackageContractError, "symbolic link"):
+            validate_package(
+                alias,
+                installed_version="1.0.124",
+                target_version="1.0.125",
+                expected_source_commit=SHA125,
+            )
+
+    def test_symlinked_zip_manifest_checksum_or_file_list_is_rejected(self) -> None:
+        for name in (
+            "FOODEX-Update.zip",
+            "FOODEX-Update.json",
+            "FOODEX-Update.sha256.txt",
+            "FOODEX-Update.files.txt",
+        ):
+            with self.subTest(artifact=name):
+                artifact = self.first / name
+                original = artifact.read_bytes()
+                foreign = self.root / ("foreign-" + name)
+                foreign.write_bytes(original)
+                artifact.unlink()
+                try:
+                    artifact.symlink_to(foreign)
+                except (OSError, NotImplementedError):
+                    artifact.write_bytes(original)
+                    self.skipTest("Filesystem does not support symlinks")
+
+                with self.assertRaisesRegex(PackageContractError, "Symbolic link artifact"):
+                    self.verify_first()
+                artifact.unlink()
+                artifact.write_bytes(original)
+
     def test_bad_upgrade_edge_and_redeploy_flag_fail_closed(self) -> None:
         self.change_manifest("minimum_current_version", "1.0.123")
         with self.assertRaisesRegex(PackageContractError, "upgrade edge"):
