@@ -9,7 +9,7 @@ The earlier merged `LaravelUpdateRuntime::rollbackFiles` preflights all referenc
 ## Bounded post-#3371 remediation
 
 1. Resolve configured backup root and requested rollback directory with `realpath`. Require the reference to be a strict descendant of the configured trusted backup root both as a normalized reference and as a canonical resolved path.
-2. Reject empty/dot/dotdot path segments or symlinks within the backup-root-relative reference even when they ultimately resolve inside the configured root. Configured storage ancestors are allowed to have a host-specific canonical path; descendants must still satisfy strict checks. Do not expose absolute paths or system secrets in errors.
+2. Reject empty/dot/dotdot path segments or symlinks within the backup-root-relative reference even when they ultimately resolve inside the configured root. Preserve compatibility with a configured root ending in `/`: the canonical backup creator historically appends `/` and can generate exactly one additional boundary separator. Only that generated boundary form is accepted; repeated separators elsewhere and surplus separators at the boundary still fail closed. Configured storage ancestors are allowed to have a host-specific canonical path; descendants must still satisfy strict checks. Do not expose absolute paths or system secrets in errors.
 3. Decode JSON without coercing source objects to associative PHP arrays: require a real JSON root object with genuine JSON array-valued `targets` and `existing`, plus `array_is_list` on those arrays before `stringList` and complete backup preflight. In particular, `{"0":"path"}` is an object and MUST be denied even though `json_decode(..., true)` would otherwise convert it into a numeric PHP list. Existing protected-path, linked manifest/source-file, duplicate target, backup completeness and optimistic recovery checks remain unchanged.
 4. Configure the original #3371 real-filesystem feature-test fixture's trusted root to its already-isolated testing parent. No code weakening or bypass to make the suite pass.
 5. Do not change public API, routes, permission scopes, storage uploads, Laravel migrations or the update version contract.
@@ -21,6 +21,7 @@ The earlier merged `LaravelUpdateRuntime::rollbackFiles` preflights all referenc
 - A valid-looking foreign backup manifest must **not** remove a live release file.
 - A `nested/../files` alias under a trusted root is rejected before unlink.
 - A linked intermediate directory is rejected even if the final target resolves back inside the trusted root (skip only if the test runner does not support symlinks).
+- A configured backup root with a trailing slash still accepts the originally generated double-separator backup reference; extra triple separators remain rejected before mutation.
 - JSON object-shaped `targets` and `existing` are rejected without changing a live file; this includes numeric-key (`{"0":"path"}`) JSON objects masquerading as PHP lists.
 - A trusted complete backup restores original content (including a zero-byte file) and removes new release targets.
 
