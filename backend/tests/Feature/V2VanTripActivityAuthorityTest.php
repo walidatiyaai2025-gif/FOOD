@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\VanVisit;
+use App\Services\VanRegistryService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -75,7 +76,7 @@ final class V2VanTripActivityAuthorityTest extends TestCase
     public function test_forged_metadata_van_id_without_authorized_warehouse_assignment_never_exposes_van_code(): void
     {
         $admin = $this->superAdmin();
-        $unassignedVan = app(\\App\\Services\\VanRegistryService::class)
+        $unassignedVan = app(VanRegistryService::class)
             ->createVan(['code' => 'V2-P276-UNASSIGNED-VAN-SECRET']);
 
         VanVisit::query()->create([
