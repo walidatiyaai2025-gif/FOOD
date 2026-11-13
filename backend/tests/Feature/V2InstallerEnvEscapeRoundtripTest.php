@@ -91,6 +91,10 @@ final class V2InstallerEnvEscapeRoundtripTest extends TestCase
 
     public function test_real_line_breaks_quotes_and_unknown_escapes_still_decode_correctly(): void
     {
+        // Start with an explicit, fixture-only .env. Otherwise the installer
+        // initializes from .env.example, whose existing DB_PASSWORD entry
+        // would make a count assertion depend on the host baseline template.
+        $this->assertNotFalse(file_put_contents($this->environmentPath, "APP_NAME=FOODEX\n"));
         $slash = chr(92);
         $password = "line\nbreak\rquote\"end".$slash.'n'.$slash.'q';
         $environment = app(InstallerEnvironment::class);
