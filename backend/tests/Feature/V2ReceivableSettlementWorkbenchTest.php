@@ -39,7 +39,7 @@ final class V2ReceivableSettlementWorkbenchTest extends TestCase
         );
     }
 
-    public function test_authorized_bilingual_ar_settlement_draft_requires_independent_poster_and_writes_one_journal(): void
+    public function test_bilingual_ar_draft_refuses_unverified_collection_posting_without_journal(): void
     {
         $fixture = $this->fixture('P303-SETTLEMENT');
         $maker = $fixture['maker'];
@@ -95,15 +95,31 @@ final class V2ReceivableSettlementWorkbenchTest extends TestCase
         )->assertSessionHasErrors('poster');
         $this->assertSame('draft', $allocation->fresh()->status);
 
+        foreach (['en', 'ar'] as $locale) {
+            $poster->forceFill(['locale' => $locale])->save();
+            $this->actingAs($poster->fresh())
+                ->get(route('admin.erp.finance.index', [
+                    'store_id' => $store->id,
+                    'tab' => 'receivables',
+                    'settlement_document_id' => $document->id,
+                ]))
+                ->assertOk()
+                ->assertSee('data-v2-ar-source-unverified', false)
+                ->assertSee(__('finance_workbench.receivables.verification_pending', [], $locale))
+                ->assertDontSee('data-v2-ar-settlement-post', false);
+        }
+
+        // A manually supplied receipt reference is NOT collection provenance.
+        // Direct HTTP must also reject attempts even by an authorized poster.
         $this->actingAs($poster)->post(
             route('admin.erp.finance.receivables.settlements.post', $allocation->id),
             ['store_id' => $store->id],
-        )->assertRedirect();
+        )->assertSessionHasErrors('collection_source');
 
-        $this->assertSame('posted', $allocation->fresh()->status);
-        $this->assertNotNull($allocation->fresh()->journal_id);
-        $this->assertDatabaseCount('enterprise_finance_journals', 2);
-        $this->assertDatabaseHas('audit_logs', [
+        $this->assertSame('draft', $allocation->fresh()->status);
+        $this->assertNull($allocation->fresh()->journal_id);
+        $this->assertDatabaseCount('enterprise_finance_journals', 1);
+        $this->assertDatabaseMissing('audit_logs', [
             'event' => 'enterprise.finance.ar_allocation_posted',
             'auditable_id' => $allocation->id,
         ]);
@@ -111,8 +127,8 @@ final class V2ReceivableSettlementWorkbenchTest extends TestCase
         $this->actingAs($poster)->post(
             route('admin.erp.finance.receivables.settlements.post', $allocation->id),
             ['store_id' => $store->id],
-        )->assertRedirect();
-        $this->assertDatabaseCount('enterprise_finance_journals', 2);
+        )->assertSessionHasErrors('collection_source');
+        $this->assertDatabaseCount('enterprise_finance_journals', 1);
     }
 
     public function test_direct_http_denies_cross_store_and_over_allocation_without_financial_mutation(): void
