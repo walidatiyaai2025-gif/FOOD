@@ -49,6 +49,7 @@ final class VanInventoryReadService
             ->where('van_id', $vanId)
             ->where('assignment_type', 'primary')
             ->where('status', 'active')
+            ->whereHas('van', fn ($query) => $query->where('status', 'active'))
             ->where('effective_from', '<=', now())
             ->where(function ($query): void {
                 $query->whereNull('effective_until')->orWhere('effective_until', '>', now());
