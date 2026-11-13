@@ -185,6 +185,40 @@ final class V2ConversationDistributionRulesHttpTest extends TestCase
         $this->assertDatabaseMissing('whats_app_assignment_rules', ['name' => 'DENY attempted']);
     }
 
+    public function test_dedicated_assignment_rule_manage_deny_overrides_a_supervisor_role(): void
+    {
+        $store = $this->store('B2B', 'P202-MANAGE-DENY');
+        $actor = $this->globalActor('CUSTOMER_SERVICE_SUPERVISOR', 'P202 Rules Denied');
+        $this->assertTrue($actor->hasPermission('whatsapp.conversations.view', $store));
+        $this->assertTrue($actor->hasPermission('whatsapp.conversations.assign', $store));
+        $this->assertTrue($actor->hasPermission('whatsapp.assignment_rules.manage', $store));
+
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $actor->id,
+            'permission_id' => Permission::query()->where('code', 'whatsapp.assignment_rules.manage')->firstOrFail()->id,
+            'scope_key' => 'store:'.$store,
+            'store_id' => $store,
+            'effect' => 'deny',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $actor->forceFill(['has_permission_overrides' => true])->save();
+        $this->assertFalse($actor->fresh()->hasPermission('whatsapp.assignment_rules.manage', $store));
+
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.whatsapp-supervisor.rules.index', ['store_id' => $store]))
+            ->assertForbidden();
+        $this->actingAs($actor->fresh())
+            ->post(route('admin.whatsapp-supervisor.rules.store'), [
+                'store_id' => $store,
+                'name' => 'No silent grant',
+                'priority' => 1,
+                'strategy' => 'round_robin',
+                'is_active' => 1,
+            ])->assertForbidden();
+        $this->assertDatabaseMissing('whats_app_assignment_rules', ['name' => 'No silent grant']);
+    }
+
     public function test_legacy_advanced_rules_remain_read_only_and_disabled_module_blocks_direct_http(): void
     {
         $store = $this->store('B2B', 'P202-LEGACY');
