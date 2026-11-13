@@ -18,6 +18,6 @@ final class UpdateVersion
     public static function isCanonical(string $version): bool
     {
         // Absolute anchors reject trailing newlines in signed manifest versions.
-        return preg_match('/\\A(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\z/', $version) === 1;
+        return preg_match('/\A(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)\z/', $version) === 1;
     }
 }
