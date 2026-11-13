@@ -7,6 +7,11 @@ repo_root="$(git rev-parse --show-toplevel)"
 test "$(tr -d '[:space:]' < "$repo_root/VERSION")" = "1.0.125"
 package="$repo_root/dist/update/FOODEX-Update.zip"
 test -s "$package"
+python3 "$repo_root/scripts/verify-recovery-update-manifest.py" \
+  --package "$package" \
+  --manifest "$repo_root/dist/update/FOODEX-Update.json" \
+  --target-version 1.0.125 \
+  --minimum-current-version 1.0.124
 workspace="$(mktemp -d)"
 cleanup() {
   git -C "$repo_root" worktree remove --force "$workspace/foodex-124" >/dev/null 2>&1 || true
