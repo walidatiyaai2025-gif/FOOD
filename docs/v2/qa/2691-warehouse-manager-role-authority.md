@@ -16,6 +16,7 @@ The resumed same-branch test adds an authenticated operational journey:
 - Without exact STORE WMS entitlement, an enabled WMS module does **not** permit direct WMS HTTP; route remains 404.
 - With certified module, valid Wholesale store entitlement and the seeded manager role, B2B entry/permission and real WMS Warehouses tab return 200 in both `ar`/RTL and `en`/LTR. Explicit warehouse context remains store-bound.
 - A Retail store remains unavailable (404) to the globally scoped Wholesale manager even when its WMS entitlement is enabled. No forced `SUPER_ADMIN` or substitute inventory role.
+- Even inside the authorized Wholesale store, an explicit per-user single-warehouse read-only assignment refuses manager mutations (empty manageable warehouse IDs) and returns 404 for an unassigned second warehouse. This exercises the real `WarehouseScope` authorization path, not only Sidebar visibility.
 - Effective `inventory.manage` is permitted only in the authorized Wholesale store; `finance.approve` and the Retail store's `inventory.view` remain false.
 
 ## Current source dependency and file ownership
