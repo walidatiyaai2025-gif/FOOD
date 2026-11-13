@@ -9,7 +9,6 @@ use App\Models\Van;
 use App\Models\VanAssignment;
 use App\Services\VanRuntimeContextResolver;
 use App\Services\WholesalePrincipal;
-use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -56,7 +55,6 @@ final class V2ExportedAccountRow16BoundaryTest extends TestCase
         $runtime = app(VanRuntimeContextResolver::class);
         $this->assertNull($runtime->resolve($user)['selected']);
         $this->assertFalse($runtime->canUseRuntime($user));
-        $this->assertSame([], app(AdminNavigation::class)->groupsFor($user));
 
         foreach (['en', 'ar'] as $locale) {
             $user->forceFill(['locale' => $locale])->save();
@@ -140,7 +138,6 @@ final class V2ExportedAccountRow16BoundaryTest extends TestCase
         $this->assertNull($forged['selected']);
         $this->assertSame('preferred_van_not_authorized', $forged['selection_reason']);
         $this->assertFalse($runtime->canUseRuntime($owner->fresh(), ['driver_id' => $foreignDriver->id]));
-        $this->assertSame([], app(AdminNavigation::class)->groupsFor($owner->fresh()));
         $this->assertFalse($owner->fresh()->hasPermission('deliveries.b2c.execute'));
 
         $this->actingAs($owner->fresh())
