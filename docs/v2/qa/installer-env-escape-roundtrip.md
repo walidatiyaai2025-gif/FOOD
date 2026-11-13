@@ -4,19 +4,19 @@ Source and acceptance lineage: P112/G004 #2745, #2846; V2 master #2503. Integrat
 
 ## Exact source defect
 
-The web installer's \`InstallerEnvironment::encodeValue()\` writes backslashes escaped inside double-quoted \`.env\` values. Its previous \`decodeValue()\` used ordered, sequential \`str_replace\`: the first replacement for \`\\n\` or \`\\r\` could consume the second slash of an encoded pair \`\\\\n\` or \`\\\\r\`, producing control characters where the original password contained literal backslash-plus-letter. The later \`\\\\\` replacement cannot reverse that mutation. A local PHP reproducer confirmed \`"secret\\\\nTXT"\` read as one slash + actual LF instead of literal slash + \`n\`. This is a value-roundtrip bug, not a claim that anyone can access the stored secrets or bypass installer authorization.
+The web installer's `InstallerEnvironment::encodeValue()` writes backslashes escaped inside double-quoted `.env` values. Its previous `decodeValue()` used ordered, sequential `str_replace`: the first replacement for `\\n` or `\\r` could consume the second slash of an encoded pair `\\\\n` or `\\\\r`, producing control characters where the original password contained literal backslash-plus-letter. The later `\\\\` replacement cannot reverse that mutation. A local PHP reproducer confirmed `"secret\\\\nTXT"` read as one slash + actual LF instead of literal slash + `n`. This is a value-roundtrip bug, not a claim that anyone can access the stored secrets or bypass installer authorization.
 
 ## Scope and behavior
 
-\`InstallerEnvironment::decodeValue()\` now scans a quoted value **once**: \`\\n\` and \`\\r\` produce their intended control characters, \`\\\"\` produces a quote, \`\\\\\` produces a single backslash, and any unknown escape remains literal. A newly decoded slash is never scanned again. Existing environment allowlist, credential quoting, duplicate managed-key canonicalization, atomic write, file mode 0600 and symlink rejection remain unchanged.
+`InstallerEnvironment::decodeValue()` now scans a quoted value **once**: `\\n` and `\\r` produce their intended control characters, `\\\"` produces a quote, `\\\\` produces a single backslash, and any unknown escape remains literal. A newly decoded slash is never scanned again. Existing environment allowlist, credential quoting, duplicate managed-key canonicalization, atomic write, file mode 0600 and symlink rejection remain unchanged.
 
-New isolated Laravel Feature test \`V2InstallerEnvEscapeRoundtripTest.php\` covers:
+New isolated Laravel Feature test `V2InstallerEnvEscapeRoundtripTest.php` covers:
 
-- Initial append of synthetic DB, Redis and SMTP credentials containing literal backslash followed by \`n\` / \`r\`, multiple slashes and embedded quotes.
-- Replacing existing credential assignments and replaying an update, without losing values or rewriting \`APP_NAME\`.
+- Initial append of synthetic DB, Redis and SMTP credentials containing literal backslash followed by `n` / `r`, multiple slashes and embedded quotes.
+- Replacing existing credential assignments and replaying an update, without losing values or rewriting `APP_NAME`.
 - Genuine newline and carriage-return characters, escaped quotes, unknown escape preservation, no physical newline injected into the serialized .env and 0600 permissions.
 
-No real password, customer data or production \`.env\` is read or written. Every test creates and deletes an isolated \`storage/framework/testing\` .env fixture.
+No real password, customer data or production `.env` is read or written. Every test creates and deletes an isolated `storage/framework/testing` .env fixture.
 
 ## User-facing placement and cross-app impact
 
