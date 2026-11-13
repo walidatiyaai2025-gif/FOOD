@@ -79,7 +79,6 @@ final class V2ApprovedDiscountHistoryAuthorityTest extends TestCase
             ->assertSee('data-approved-discount-request-id="'.$requestId.'"', false);
     }
 
-
     public function test_authorized_reviewer_can_browse_approved_discounts_in_both_locales_without_mutating_totals(): void
     {
         [$agent, $reviewer, $orderId, $requestId] = $this->approvedDiscount();
