@@ -63,7 +63,7 @@ final class VanInventoryReadService
             'inventory.view',
         );
         $storeId = (int) $warehouse->store_id;
-        abort_unless($this->tenantScope->storeChannel($storeId) === 'B2B', 404);
+        abort_unless($this->tenantScope->storeChannel($storeId) === 'b2b', 404);
 
         $stock = DB::table('inventories as inventory')
             ->join('products as product', 'product.id', '=', 'inventory.product_id')
