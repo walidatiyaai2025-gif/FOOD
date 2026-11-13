@@ -59,7 +59,13 @@ aside.foodex-sidebar-expanded{width:var(--foodex-sidebar-width)!important}
 .foodex-sidebar-search{position:relative}.foodex-sidebar-search input{width:100%;padding-inline-start:38px}
 .foodex-nav-link[hidden],.foodex-nav-subchildren[hidden],.foodex-nav-group[hidden],.foodex-sidebar-search-empty[hidden]{display:none!important}
 .foodex-sidebar-search-empty{margin:4px 8px;padding:10px 12px;border:1px dashed var(--foodex-border);border-radius:10px;color:var(--foodex-muted);font-size:.82rem}.foodex-sidebar-search .foodex-svg-icon{position:absolute;inset-inline-start:11px;top:12px;width:18px;height:18px;color:var(--foodex-muted)}
-.foodex-nav{display:grid;gap:6px}.foodex-nav-group{border:1px solid transparent;border-radius:12px}.foodex-nav-group summary{list-style:none;cursor:pointer;min-height:46px;display:grid;grid-template-columns:30px minmax(0,1fr) auto auto;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;font-weight:800;color:var(--foodex-ink)}.foodex-nav-group-icon{display:grid;place-items:center;width:28px;height:28px;font-size:1.35rem;line-height:1}.foodex-nav-group summary::-webkit-details-marker{display:none}.foodex-nav-group summary:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
+.foodex-nav{display:grid;gap:6px}
+.foodex-nav-domain{display:grid;gap:6px;min-width:0;padding-inline-start:6px;border-inline-start:2px solid var(--foodex-border)}
+.foodex-nav-domain-title{margin:0;padding:7px 8px 3px;font-size:.8rem;font-weight:800;line-height:1.4;color:var(--foodex-green-dark);overflow-wrap:anywhere}
+.foodex-nav-domain:not(:has(> .foodex-nav-group:not([hidden]))){display:none!important}
+aside.foodex-sidebar-collapsed .foodex-nav-domain{padding-inline-start:0;border-inline-start:0}
+aside.foodex-sidebar-collapsed .foodex-nav-domain-title{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.foodex-nav-group{border:1px solid transparent;border-radius:12px}.foodex-nav-group summary{list-style:none;cursor:pointer;min-height:46px;display:grid;grid-template-columns:30px minmax(0,1fr) auto auto;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;font-weight:800;color:var(--foodex-ink)}.foodex-nav-group-icon{display:grid;place-items:center;width:28px;height:28px;font-size:1.35rem;line-height:1}.foodex-nav-group summary::-webkit-details-marker{display:none}.foodex-nav-group summary:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
 .foodex-nav-group-title{display:flex;align-items:center;flex-wrap:wrap;gap:5px;min-width:0;line-height:1.35}
 .foodex-nav-group-status{display:inline-flex;align-items:center;max-width:100%;padding:2px 6px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font-size:.66rem;font-weight:700;line-height:1.2;white-space:normal;overflow-wrap:anywhere}
 .foodex-nav-group-status[data-group-status="approval_required"]{background:var(--foodex-orange-soft);color:var(--foodex-ink)}
@@ -181,7 +187,17 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
     @include('admin._sidebar-context-picker')
 
     <nav class="foodex-nav" aria-label="{{ __('admin.navigation') }}" data-foodex-nav>
-        @foreach($navGroups as $group)
+        {{-- P237's business-domain heading composes only the groups already authorized
+             by AdminNavigation. Saved group ordering is preserved, not replaced. --}}
+        @php($p237DomainKeys = ['procurement', 'inventory', 'warehouses'])
+        @foreach($navGroups as $navIndex => $group)
+            @php($p237Member = in_array($group['key'], $p237DomainKeys, true))
+            @php($p237Before = $navIndex > 0 && in_array($navGroups[$navIndex - 1]['key'], $p237DomainKeys, true))
+            @php($p237After = $navIndex + 1 < count($navGroups) && in_array($navGroups[$navIndex + 1]['key'], $p237DomainKeys, true))
+            @if($p237Member && ! $p237Before)
+                <section class="foodex-nav-domain" role="group" aria-labelledby="p237-domain-title-{{ $navIndex }}" data-nav-domain="procurement-inventory">
+                    <h2 id="p237-domain-title-{{ $navIndex }}" class="foodex-nav-domain-title">{{ __('v2_sidebar_domains.procurement_inventory') }}</h2>
+            @endif
             @php($groupActive = $containsContext($group, (string)($navContext??'')))
             @php($groupPrimary = $group['label_text'] ?? __($group['label']))
             @php($authorizedLinkCount = $countAuthorizedChildren((array) ($group['children'] ?? [])))
@@ -210,6 +226,9 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
                     @endforeach
                 </div>
             </details>
+            @if($p237Member && ! $p237After)
+                </section>
+            @endif
         @endforeach
     </nav>
     <p class="foodex-sidebar-search-empty" data-foodex-nav-search-empty role="status" aria-live="polite" hidden>{{ __('sidebar_admin.search_empty') }}</p>
