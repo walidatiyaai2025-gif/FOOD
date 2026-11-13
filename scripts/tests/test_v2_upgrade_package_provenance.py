@@ -134,6 +134,26 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
                 expected_source_commit=SHA125,
             )
 
+    def test_symlinked_parent_of_real_package_directory_is_rejected(self) -> None:
+        actual_parent = self.root / "actual-parent"
+        build_bundle(actual_parent / "real-bundle")
+        linked_parent = self.root / "linked-parent"
+        try:
+            linked_parent.symlink_to(actual_parent, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("Filesystem does not support symlinks")
+
+        candidate = linked_parent / "real-bundle"
+        self.assertTrue(candidate.is_dir())
+        self.assertFalse(candidate.is_symlink())
+        with self.assertRaisesRegex(PackageContractError, "symbolic link"):
+            validate_package(
+                candidate,
+                installed_version="1.0.124",
+                target_version="1.0.125",
+                expected_source_commit=SHA125,
+            )
+
     def test_symlinked_zip_manifest_checksum_or_file_list_is_rejected(self) -> None:
         for name in (
             "FOODEX-Update.zip",
