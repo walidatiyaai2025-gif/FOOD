@@ -79,8 +79,7 @@ final class V2GoodsReceiptsWorkbenchAuthorityTest extends TestCase
                     ], false))
                     ->assertOk()
                     ->assertViewHas('activeTab', 'receipts')
-                    ->assertViewHas('can', static fn (array $abilities): bool =>
-                        $abilities['receipt_manage'] === $actor->hasPermission('procurement.goods_receipts.manage', $store->id)
+                    ->assertViewHas('can', static fn (array $abilities): bool => $abilities['receipt_manage'] === $actor->hasPermission('procurement.goods_receipts.manage', $store->id)
                         && $abilities['receipt_post'] === $actor->hasPermission('procurement.goods_receipts.post', $store->id)
                     )
                     ->assertSee('dir="'.$direction.'"', false)
