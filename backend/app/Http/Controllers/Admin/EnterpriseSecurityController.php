@@ -15,6 +15,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\EnterpriseSecurityAccessResolver;
 use App\Services\EnterpriseSecurityManager;
 use App\Support\AdminNavigation;
 use Illuminate\Contracts\View\View;
@@ -30,6 +31,7 @@ final class EnterpriseSecurityController extends Controller
 {
     public function __construct(
         private readonly EnterpriseSecurityManager $security,
+        private readonly EnterpriseSecurityAccessResolver $scopeAccess,
         private readonly AdminNavigation $navigation,
     ) {}
 
@@ -51,7 +53,14 @@ final class EnterpriseSecurityController extends Controller
             ->limit(200)
             ->get(['id', 'name', 'username', 'email']);
 
-        $scopeOptions = $this->scopeOptions();
+        $scopeOptions = collect($this->scopeOptions())
+            ->filter(function (array $scope) use ($actor): bool {
+                [$type, $id] = explode(':', $scope['key'], 2);
+
+                return $this->scopeAccess->allows($actor, 'security.view', $type, $id === '*' ? null : (int) $id);
+            })
+            ->values()
+            ->all();
         $scopeLabels = collect($scopeOptions)->pluck('label', 'key')->all();
 
         $permissions = Permission::query()
@@ -75,12 +84,14 @@ final class EnterpriseSecurityController extends Controller
                 ->paginate(15, ['*'], 'scope_page')
                 ->withQueryString(),
             'approvalLimits' => EnterpriseApprovalLimit::query()
+                ->whereIn('scope_key', array_column($scopeOptions, 'key'))
                 ->with('role:id,name,code')
                 ->orderByDesc('is_active')
                 ->orderByDesc('updated_at')
                 ->paginate(15, ['*'], 'limit_page')
                 ->withQueryString(),
             'delegations' => EnterpriseDelegation::query()
+                ->whereIn('scope_key', array_column($scopeOptions, 'key'))
                 ->with(['delegator:id,name,username,email', 'delegate:id,name,username,email'])
                 ->orderByDesc('created_at')
                 ->paginate(15, ['*'], 'delegation_page')
@@ -126,6 +137,7 @@ final class EnterpriseSecurityController extends Controller
             'max_amount' => ['required', 'string', 'regex:/^\d{1,15}(?:\.\d{1,3})?$/'],
         ]);
         [$scopeType, $scopeId] = $this->validatedScope($request);
+        $this->authorizeApprovalLimitScope($actor, $scopeType, $scopeId);
         $role = Role::query()->findOrFail((int) $validated['role_id']);
 
         $this->security->requestApprovalLimit(
@@ -146,6 +158,11 @@ final class EnterpriseSecurityController extends Controller
         EnterpriseApprovalLimit $approvalLimit,
     ): RedirectResponse {
         $actor = $this->authorizedActor($request, 'security.approval_limits.manage');
+        $this->authorizeApprovalLimitScope(
+            $actor,
+            (string) $approvalLimit->scope_type,
+            $approvalLimit->scope_id === null ? null : (int) $approvalLimit->scope_id,
+        );
         $this->security->requestApprovalLimitDeactivate($actor, $approvalLimit);
 
         return back()->with('status', __('enterprise_security.requested'));
@@ -161,6 +178,7 @@ final class EnterpriseSecurityController extends Controller
             'ends_at' => ['required', 'date'],
         ]);
         [$scopeType, $scopeId] = $this->validatedScope($request);
+        $this->authorizeDelegationScope($actor, $scopeType, $scopeId);
         $delegate = User::query()->findOrFail((int) $validated['delegate_id']);
 
         $this->security->requestDelegation(
@@ -182,6 +200,12 @@ final class EnterpriseSecurityController extends Controller
         EnterpriseDelegation $delegation,
     ): RedirectResponse {
         $actor = $this->authorizedActor($request, 'security.delegations.manage');
+        $this->authorizeDelegationScope(
+            $actor,
+            (string) $delegation->scope_type,
+            $delegation->scope_id === null ? null : (int) $delegation->scope_id,
+        );
+        abort_unless($actor->hasRole('SUPER_ADMIN') || (int) $delegation->delegator_id === (int) $actor->getKey(), 403);
         $this->security->requestDelegationRevoke($actor, $delegation);
 
         return back()->with('status', __('enterprise_security.requested'));
@@ -207,6 +231,16 @@ final class EnterpriseSecurityController extends Controller
         );
 
         return back()->with('status', __('enterprise_security.decision_recorded'));
+    }
+
+    private function authorizeApprovalLimitScope(User $actor, string $scopeType, ?int $scopeId): void
+    {
+        abort_unless($this->scopeAccess->allows($actor, 'security.approval_limits.manage', $scopeType, $scopeId), 403);
+    }
+
+    private function authorizeDelegationScope(User $actor, string $scopeType, ?int $scopeId): void
+    {
+        abort_unless($this->scopeAccess->allows($actor, 'security.delegations.manage', $scopeType, $scopeId), 403);
     }
 
     /** @return array{string, ?int} */

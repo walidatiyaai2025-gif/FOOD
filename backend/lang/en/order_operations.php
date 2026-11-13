@@ -3,6 +3,7 @@
 return [
     'title' => 'Orders · Order Management',
     'description' => 'Monitor and operate every order allowed by the current platform/store scope.',
+    'pending_orders_queue' => 'Pending orders',
     'new_order' => 'Create new order',
     'lookup' => [
         'search_customer' => 'Search by customer name, phone, email or company',

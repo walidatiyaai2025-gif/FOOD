@@ -217,12 +217,12 @@ final class ErpCenterTest extends TestCase
             ->assertSee('data-erp-key="procurement" data-erp-status="available"', false)
             ->assertSee(route('admin.erp.procurement.index'), false);
 
-        // P358: ERP Center retains the full workbench journey, while its
-        // operational procurement shortcut lives in the Catalog business group.
-        $catalogGroup = collect(app(AdminNavigation::class)->groupsFor($actor))->firstWhere('key', 'catalog');
-        $this->assertNotNull($catalogGroup);
+        // P238: ERP Center retains the canonical workbench journey; its
+        // operational shortcut now lives in the Procurement business group.
+        $procurementGroup = collect(app(AdminNavigation::class)->groupsFor($actor))->firstWhere('key', 'procurement');
+        $this->assertNotNull($procurementGroup);
 
-        $procurement = collect($catalogGroup['children'])->firstWhere('key', 'erp_procurement');
+        $procurement = collect($procurementGroup['children'])->firstWhere('key', 'erp_procurement');
         $this->assertNotNull($procurement);
         $this->assertSame('admin.erp.procurement.index', $procurement['route']);
         $this->assertSame([], $procurement['params']);

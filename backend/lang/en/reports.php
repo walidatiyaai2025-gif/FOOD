@@ -5,6 +5,7 @@ return [
     'description' => 'Executive reporting across sales, products, customers, B2B and operations with governed exports.',
     'families' => [
         'orders' => 'Orders & Sales',
+        'channels' => 'Channel Analytics',
         'products' => 'Products & Catalog',
         'customers' => 'Customers & B2B',
         'operations' => 'Stores & Operations',
@@ -55,6 +56,7 @@ return [
         'segment' => 'Segment',
         'delivered' => 'Delivered',
         'cancelled' => 'Cancelled',
+        'excluded_orders' => 'Cancelled / refunded',
         'invoice' => 'Invoice',
         'client' => 'Client',
         'currency' => 'Currency',
@@ -76,6 +78,7 @@ return [
     ],
     'kpis' => [
         'orders' => 'Orders',
+        'reporting_stores' => 'Stores with orders',
         'gross_value' => 'Gross order value',
         'recognized_revenue' => 'Recognized revenue',
         'average_order_value' => 'Average order value',

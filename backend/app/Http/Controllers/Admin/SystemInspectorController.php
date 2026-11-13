@@ -8,6 +8,7 @@ use App\Models\Store;
 use App\Models\SystemInspectorEvent;
 use App\Models\UpdateHistory;
 use App\Models\User;
+use App\Services\DashboardDeploymentProvenance;
 use App\Services\EnterpriseSystemInspector;
 use App\Services\ProductionDatasetSnapshot;
 use App\Services\SystemAdministrationRuntime;
@@ -36,6 +37,7 @@ final class SystemInspectorController extends Controller
         EnterpriseSystemInspector $enterpriseInspector,
         RestaurantOperatorService $restaurantOperator,
         SystemAdministrationRuntime $systemRuntime,
+        DashboardDeploymentProvenance $deploymentProvenance,
     ): View {
         $actor = $this->platformAdmin($request);
         $source = trim((string) $request->query('source', ''));
@@ -181,6 +183,7 @@ final class SystemInspectorController extends Controller
                 'routes_24h' => SystemInspectorEvent::query()->where('occurred_at', '>=', $since)->where('source', 'route')->count(),
             ],
             'diagnostics' => $this->diagnostics(),
+            'deploymentProvenance' => $deploymentProvenance->inspect($request->boolean('verify_source')),
             'runtime' => $runtime,
             'runtimeStateLabel' => $runtimeStateLabel,
             'runtimeBadgeState' => $runtimeBadgeState,
@@ -305,6 +308,7 @@ final class SystemInspectorController extends Controller
         EnterpriseSystemInspector $enterpriseInspector,
         SystemAdministrationRuntime $systemRuntime,
         ProductionDatasetSnapshot $productionSnapshot,
+        DashboardDeploymentProvenance $deploymentProvenance,
     ): StreamedResponse {
         $actor = $this->platformAdmin($request);
         $events = SystemInspectorEvent::query()
@@ -317,6 +321,7 @@ final class SystemInspectorController extends Controller
             'generated_at' => now()->toIso8601String(),
             'generated_by' => ['id' => $actor->id, 'name' => $actor->name],
             'diagnostics' => $this->diagnostics(),
+            'deployment_provenance' => $deploymentProvenance->inspect(),
             'runtime' => $systemRuntime->healthSnapshot(),
             'recovery' => [
                 'backups' => $systemRuntime->backups(100),

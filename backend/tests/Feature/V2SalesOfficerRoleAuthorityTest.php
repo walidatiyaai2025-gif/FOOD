@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\BuiltInJobRoleCatalog;
+use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -152,6 +153,32 @@ final class V2SalesOfficerRoleAuthorityTest extends TestCase
         $this->assertFalse($actor->fresh()->hasPermission('orders.edit'));
         app()->forgetInstance(AdminNavigation::class);
         $this->assertSame([], app(AdminNavigation::class)->groupsFor($actor->fresh()));
+    }
+
+    public function test_sales_officer_real_wholesale_orders_are_bilingual_and_remain_store_scoped(): void
+    {
+        $actor = $this->salesOfficer();
+        $wholesaleStoreId = app(WholesalePrincipal::class)->storeId();
+
+        $this->assertContains('SALES_OFFICER', config('admin.channels.b2b.global_roles'));
+        $this->assertNotContains('SALES_OFFICER', config('admin.channels.b2c.global_roles'));
+        $this->assertTrue($actor->hasPermission('orders.view', $wholesaleStoreId));
+        $this->assertTrue($actor->hasPermission('orders.edit', $wholesaleStoreId));
+        $this->assertFalse($actor->hasPermission('orders.approve', $wholesaleStoreId));
+        $this->assertFalse($actor->hasPermission('orders.dispatch', $wholesaleStoreId));
+
+        foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
+            app()->setLocale($locale);
+            $actor->forceFill(['locale' => $locale])->save();
+
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.operations.orders.index', ['channel' => 'b2b'], false))
+                ->assertOk()
+                ->assertSee('dir="'.$direction.'"', false);
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.operations.orders.index', ['channel' => 'b2c'], false))
+                ->assertForbidden();
+        }
     }
 
     private function salesOfficer(): User

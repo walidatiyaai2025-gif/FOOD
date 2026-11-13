@@ -8,9 +8,9 @@ The existing `SALES_OFFICER` role is defined in `backend/config/job_roles.php`, 
 
 **Placement:** Reuse the existing `Accounts → Customer 360` and `Operations → Orders` routes. A Sales Officer must see a usable B2B context and only B2B records available to the actor. Existing operational controllers and `OperationalTenantScope` remain server authority; navigation is not a grant. AR/EN role presentation comes from the existing catalog, and normal Dashboard RTL/LTR and responsive components are reused rather than duplicated.
 
-## Verified source-level blocker, not yet fixed
+## Resolved source-level B2B channel admission
 
-`backend/config/admin.php` declares `admin.channels.b2b.global_roles` without `SALES_OFFICER`. This contradicts the B2B sales role's canonical permissions: `AdminNavigation::canAccess($actor, 'b2b')` returns false, so the normal B2B channel entry point is unavailable. The new executable test `V2SalesOfficerRoleAuthorityTest::test_sales_officer_has_wholesale_sales_entry_points_but_no_retail_or_privileged_access` exposes that omission and expects authorized B2B access with forbidden B2C access. Until this defect is repaired, the issue is **BLOCKED** and neither test suite success nor acceptance should be claimed.
+`backend/config/admin.php` declares `admin.channels.b2b.global_roles` without `SALES_OFFICER`. This contradicts the B2B sales role's canonical permissions: `AdminNavigation::canAccess($actor, 'b2b')` returns false, so the normal B2B channel entry point is unavailable. The new executable test `V2SalesOfficerRoleAuthorityTest::test_sales_officer_has_wholesale_sales_entry_points_but_no_retail_or_privileged_access` exposes that omission and expects authorized B2B access with forbidden B2C access. The same original PR #3222 now adds only `SALES_OFFICER` to the Wholesale/B2B global role allowlist, preserving all peer roles and the B2C boundary. This resolves the documented source omission without adding permissions or a secondary security policy. Source acceptance depends on exact-head Required CI of the full integration changes.
 
 At preflight, open PR #3179 (V2 Treasury Officer) also owns `backend/config/admin.php`; do not modify this file concurrently. Coordinate after its ownership is resolved and continue **this same branch/PR**; avoid duplicating the configuration change or creating another PR.
 
@@ -43,3 +43,12 @@ If the final B2B authorization correction changes a shared API or any mobile-vis
 Run the focused Laravel test against seeded database, PHP syntax/Pint/PHPStan and all exact-head required GitHub checks (Repository Policy, V2 Isolation Gate, Required CI with Laravel and relevant MySQL acceptance). Keep the PR **draft** while the intentional admission test is RED; inspect precise failure before updating either test or code. Once ownership clears, fix the authoritative channel allowlist without changing unrelated financial roles, then verify positive wholesale navigation/HTTP, negative Retail authorization, store/tenant scope and role/deactivation cases.
 
 Record exact PR head, CI runs and merge SHA. Close only after the full leaf source acceptance is met. Manual visual/staging/UAT is deferred to V2 final per master #2503; no production/release claim is authorized.
+
+
+## 2026-11-13 — same original PR resumed, real operational fix
+- Recovered exactly the historical issue branch and PR #3222 (no duplicate). Integration commit preserves old test/QA commits and current Foodex_V2 SHA efced7112b4c46d6c16bfbee690f3f5c1bc86830 with two commit parents.
+- Minimal runtime change: append canonical SALE`S_OFFICER` (correct code `SALES_OFFICER`) to existing Wholesale `admin.channels.b2b.global_roles`; other roles and all Retail role gates unchanged.
+- Existing tests cover seeded role bundle in AR/EN, B2B entry point, Orders + Customer 360 discoverability, denied cross-channel Orders, direct Security 403, explicit deny removes Sidebar and HTTP access, inactive user fail-close.
+- New focused real Orders HTTP checks verify AR/RTL and EN/LTR rendering, scoped permission read/edit but no approve/dispatch, and B2C 403.
+- No new route, view, API, schema or app data fields. **Customer:** no Flutter/API changes; **Driver:** no B2C dispatch or wallet changes; **Van:** no B2B route/visit/assignment changes. Source B2B=VAN ONLY / B2C=DRIVER ONLY preserved.
+- **MANDATORY:** Before merge, verify exact final SHA Repository Policy, FOODEX V2 Isolation, AR/EN, backend syntax/Pint/PHPStan/security, full Laravel and MySQL/Redis Fresh Install/Upgrade/Recovery, terminal required-ci-gate all SUCCESS; no acceptance claim before checks. Manual UAT final under #2503/#2750, not represented as passed. No main, releases, tags, production.

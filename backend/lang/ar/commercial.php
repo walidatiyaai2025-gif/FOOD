@@ -371,6 +371,12 @@ return [
         'audience_route_scope' => 'مسار واحد أو أكثر غير متاح لجمهور هذا المتجر.',
 
     ],
+    'quantity_tiers' => [
+        'heading' => 'شرائح الكميات',
+        'description' => 'حدد الحد الأدنى لكمية الطلب وزيادة الكمية المسموحة لكل قاعدة سعر جملة.',
+        'minimum_quantity' => 'الحد الأدنى للكمية',
+        'ordering_increment' => 'خطوة زيادة الكمية',
+    ],
     'common' => [
         'active' => 'نشط',
         'inactive' => 'غير نشط',

@@ -32,6 +32,9 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
 .v2-result-item[data-v2-result-state="restricted"]{opacity:.7;background:var(--foodex-background)}
 .v2-result-item[data-v2-result-state="hidden"]{border-style:dashed}
 @media(max-width:1200px){.v2-role-workbench{grid-template-columns:minmax(0,1fr)}.v2-resulting-sidebar{position:static;max-height:none}}
+.role-change-reason{display:grid;gap:8px;margin:14px 0 6px;font-weight:700}
+.role-change-reason textarea{width:100%;min-height:96px;padding:10px;resize:vertical;font:inherit;color:var(--foodex-ink);background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:10px}
+.role-change-reason textarea:focus-visible{outline:2px solid var(--foodex-green);outline-offset:2px}
 </style>
 @include('admin._brand-components')
 </head>
@@ -189,6 +192,12 @@ body{margin:0}.sidebar-access{padding:24px;max-width:1500px;margin:auto}.hero,.r
 @endforeach
 </div>
 @if($canEditRolePermissions)
+<label class="role-change-reason" for="v2-role-change-reason">
+    {{ __('security_permissions.change_reason') }}
+    <textarea id="v2-role-change-reason" name="change_reason" required minlength="8" maxlength="500" autocomplete="off"
+        aria-describedby="v2-role-change-reason-hint" placeholder="{{ __('security_permissions.change_reason_hint') }}">{{ old('change_reason') }}</textarea>
+</label>
+<p id="v2-role-change-reason-hint" class="muted">{{ __('security_permissions.change_reason_hint') }}</p>
 <div class="actions"><button class="save foodex-action-primary" type="submit">{{ __('v2_role_permissions.save') }}</button></div>
 @endif
 </form>

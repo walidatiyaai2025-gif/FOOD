@@ -1,0 +1,17 @@
+# FOODEX V2 P296 — Treasury Disbursements / Payments
+
+- **Source:** FOODEX unified RBAC/ERP/Sidebar document, legacy matrix **P296**, native paragraph **P285**; Issue **#2626** and master **#2503**.
+- **Only integration branch:** `Foodex_V2`; issue branch `test/2626-v2-treasury-payment-authority`. No main, release, tag, cPanel or production.
+- **Placement:** **Reuse** existing Finance → Treasury (`erp_treasury`) workbench, Payments horizontal tab. `GET admin.erp.treasury.index?tab=payments&store_id={scopedStore}`. There is deliberately no new Sidebar node, duplicate route, API or page. ERP Center/Sidebar provide the entry point and the tab provides the specific payments workflow.
+- **Actor:** active store-scoped `RETAIL_FINANCE` operator (or independently authorized wholesale role in existing B2B policy), never a privilege upgrade from Sidebar visibility. Existing action routes `admin.erp.treasury.payments.store/post/cancel` and server services remain authoritative.
+- **Read boundary:** the Treasury module must be enabled; an exact-version certified Sidebar route is gated by enterprise operational readiness; controller resolves a permitted store and requires `finance.view`, and `TreasuryPaymentService::paginatePayments` requires the store-specific `treasury.payments.read` entitlement and tenant data scope. Unauthorized URLs fail closed.
+- **Write boundary:** controller checks `finance.manage`; service independently requires store-specific `treasury.payments.manage` for draft creation/cancel or `treasury.payments.approve` for posting. UI `canManagePayment` and `canApprovePayment` project these exact capabilities; the backend is the security boundary.
+- **Lifecycle and SoD:** store/currency-scoped cashbox/bank-account validation, idempotent drafts, independent approver (maker cannot self-approve), workflow approval, one posted-payment audit/outbox event; no duplicate posting or cross-store action.
+- **AR/EN + responsiveness:** reuse the existing localized `enterprise_treasury.tabs.payments` label, RTL/LTR page, compact tabs, responsive table/form and business-readable cashbox selector. No new hardcoded UI strings.
+- **Customer app:** not affected; no public customer pricing, order, login, notifications, Flutter or REST contract altered.
+- **Driver app:** not affected; no Driver B2C assignment/wallet/settlement/API code changes, no B2B Driver fallback.
+- **Van app:** not affected; no wholesale Van routes, allocations, custody or API contract altered.
+- **Automated evidence:** `backend/tests/Feature/V2TreasuryPaymentsSidebarAuthorityTest.php` checks actual bilingual payment-tab HTTP entry and existing route, real create+retry idempotency, separate approval and audit-once, read-only entitlement UI/write denial, foreign store and roleless denial. The existing `EnterpriseTreasuryPaymentFoundationTest` covers the underlying service workflow and recovery paths.
+- **Checks required before merge:** exact PR-head Repository Policy, V2 Isolation, AR/EN, PHP syntax/Pint/PHPStan/security, full Laravel, real MySQL/Redis install/upgrade/recovery and terminal `required-ci-gate` successes. Failed tests must be fixed on this **same branch/PR**. Never report acceptance or deployment without evidence.
+
+After full source-scope automated acceptance and isolated merge, mark the code leaf completed with `MANUAL_ACCEPTANCE: DEFERRED_TO_V2_FINAL`; full browser/device/UX/UAT and staged install/update remain tracked on #2503/#2750/#2846.
