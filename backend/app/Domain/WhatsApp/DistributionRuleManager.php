@@ -75,7 +75,19 @@ final class DistributionRuleManager
             ->paginate(15)
             ->withQueryString();
 
-        $rules->getCollection()->transform(function (object $rule): object {
+        // Resolve agent labels once for the bounded page; avoid an N+1
+        // lookup for every distribution rule card.
+        $agentIds = $rules->getCollection()->flatMap(static function (object $rule): array {
+            $configuration = json_decode((string) ($rule->configuration ?? '{}'), true);
+
+            return is_array($configuration) && is_array($configuration['agent_ids'] ?? null)
+                ? $configuration['agent_ids']
+                : [];
+        })->filter(static fn (mixed $id): bool => is_numeric($id))
+            ->map(static fn (mixed $id): int => (int) $id)->unique()->values()->all();
+        $agentNames = User::query()->whereIn('id', $agentIds)->pluck('name', 'id');
+
+        $rules->getCollection()->transform(function (object $rule) use ($agentNames): object {
             $configuration = json_decode((string) ($rule->configuration ?? '{}'), true);
             $configuration = is_array($configuration) ? $configuration : [];
             $ids = collect($configuration['agent_ids'] ?? [])
@@ -84,7 +96,7 @@ final class DistributionRuleManager
                 ->unique()->values()->all();
 
             $rule->agent_ids = $ids;
-            $rule->agent_names = User::query()->whereIn('id', $ids)->orderBy('name')->pluck('name')->all();
+            $rule->agent_names = collect($ids)->map(static fn (int $id): ?string => $agentNames->get($id))->filter()->values()->all();
             $rule->revision = self::revision($rule);
             $rule->editable = self::isManagedConfiguration($rule);
 
@@ -221,6 +233,6 @@ final class DistributionRuleManager
 
         return is_array($configuration)
             && ($configuration['managed_by'] ?? null) === 'v2_p202'
-            && ($conditions === null || $conditions === [] || $conditions === (object) []);
+            && ($conditions === null || $conditions === []);
     }
 }
