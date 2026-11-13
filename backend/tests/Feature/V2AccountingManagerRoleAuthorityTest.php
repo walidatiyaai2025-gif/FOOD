@@ -11,7 +11,6 @@ use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
-use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
@@ -210,6 +209,7 @@ final class V2AccountingManagerRoleAuthorityTest extends TestCase
     {
         $user = User::factory()->create(['is_active' => true, 'locale' => 'en']);
         $user->roles()->attach(Role::query()->where('code', 'ACCOUNTING_MANAGER')->firstOrFail());
+
         return $user->fresh();
     }
 
@@ -217,6 +217,7 @@ final class V2AccountingManagerRoleAuthorityTest extends TestCase
     {
         $store = Store::query()->findOrFail(app(WholesalePrincipal::class)->storeId());
         app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
+
         return $store;
     }
 
@@ -227,6 +228,7 @@ final class V2AccountingManagerRoleAuthorityTest extends TestCase
             'code' => 'V2-2694-FOREIGN-RETAIL', 'name' => 'Foreign Retail', 'is_active' => true,
         ]);
         app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
+
         return $store;
     }
 
