@@ -139,6 +139,28 @@ final class V2SupplierSettlementsGroupNavigationTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_wholesale_finance_role_cannot_open_a_foreign_retail_store_payables_context(): void
+    {
+        [$actor, $storeId] = $this->authorizedWholesaleFinanceActor();
+
+        $foreign = Store::query()->create([
+            'store_type_id' => (int) DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'business_profile' => 'RETAIL_STORE',
+            'code' => 'V2-P298-FOREIGN',
+            'name' => 'Foreign Retail Store',
+            'is_active' => true,
+        ]);
+
+        $item = $this->groups($actor)->get('supplier_settlements')['children'][0];
+        $this->assertSame((string) $storeId, $item['params']['store_id']);
+        $response = $this->actingAs($actor)
+            ->get(route('admin.erp.finance.index', [
+                'store_id' => $foreign->id,
+                'tab' => 'payables',
+            ]));
+        $this->assertContains($response->getStatusCode(), [403, 404]);
+    }
+
     /** @return \Illuminate\Support\Collection<string, array<string, mixed>> */
     private function groups(User $user): \Illuminate\Support\Collection
     {
@@ -150,9 +172,15 @@ final class V2SupplierSettlementsGroupNavigationTest extends TestCase
     /** @return array{User,int} */
     private function authorizedWholesaleFinanceActor(): array
     {
+        // Separate privileged module bootstrap from the actual operator so that
+        // a permission DENY is tested without SUPER_ADMIN's unconditional grant.
+        $bootstrap = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $bootstrap->roles()->attach(
+            Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail()->id,
+        );
         $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
         $actor->roles()->attach(
-            Role::query()->whereIn('code', ['SUPER_ADMIN', 'B2B_ADMIN'])->pluck('id')->all(),
+            Role::query()->whereIn('code', ['B2B_ADMIN', 'FINANCE'])->pluck('id')->all(),
         );
 
         $storeId = app(WholesalePrincipal::class)->storeId();
@@ -162,16 +190,17 @@ final class V2SupplierSettlementsGroupNavigationTest extends TestCase
         $scope = $hierarchy->scopeForStore($storeId);
         $this->assertNotNull($scope);
 
-        app(EnterpriseModuleAdministration::class)->perform('finance', 'enable', $actor);
+        app(EnterpriseModuleAdministration::class)->perform('finance', 'enable', $bootstrap);
         $manager = app(ModuleEntitlementManager::class);
-        $manager->set(FinanceFoundationService::MODULE, EntitlementScope::platform(), true, null, $actor);
+        $manager->set(FinanceFoundationService::MODULE, EntitlementScope::platform(), true, null, $bootstrap);
         $manager->set(
             FinanceFoundationService::MODULE,
             new EntitlementScope(EntitlementScope::LEGAL_ENTITY, $scope['legal_entity_id']),
             true,
             ['finance.foundation.read', 'finance.ap.read', 'finance.ar.read'],
-            $actor,
+            $bootstrap,
         );
+        $this->assertTrue($actor->hasPermission('finance.view', $storeId));
 
         return [$actor, $storeId];
     }
