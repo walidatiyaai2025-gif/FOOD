@@ -21,6 +21,25 @@ void main() {
     expect(directionality.textDirection, TextDirection.ltr);
   });
 
+  testWidgets('driver bundled Arabic login renders RTL, not English', (tester) async {
+    await tester.pumpWidget(const FoodexDriverApp(locale: Locale('ar')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('تطبيق السائق'), findsOneWidget);
+    expect(find.text('Driver App'), findsNothing);
+
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.locale, const Locale('ar'));
+
+    final directionality = tester.widget<Directionality>(
+      find.ancestor(
+        of: find.byType(Scaffold),
+        matching: find.byType(Directionality),
+      ).first,
+    );
+    expect(directionality.textDirection, TextDirection.rtl);
+  });
+
   testWidgets('driver app accepts remote translation overrides with fallback', (tester) async {
     await tester.pumpWidget(
       FoodexDriverApp(
