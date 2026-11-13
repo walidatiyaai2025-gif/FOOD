@@ -140,6 +140,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
     int? warehouseId,
     String? customerNote,
   }) async {
+    _assertWholesaleCustomer(customer);
     final decoded = _map(
       await api.postJson(
         'van/customers/${customer.type}/${customer.id}/orders',
@@ -154,7 +155,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
         ),
       ),
     );
-    return _order(_map(decoded['data']));
+    return _orderForCustomer(_map(decoded['data']), customer);
   }
 
   @override
@@ -164,6 +165,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
     int page = 1,
     int perPage = 50,
   }) async {
+    if (customer != null) _assertWholesaleCustomer(customer);
     final requestedPage = page < 1 ? 1 : page;
     final requestedPerPage = perPage.clamp(1, 100);
     final params = <String>[
@@ -179,7 +181,12 @@ class HttpVanOrderRepository implements VanOrderRepository {
     return VanOrderPage(
       items: _list(
         decoded['data'],
-      ).map((row) => _order(_map(row))).toList(growable: false),
+      ).map((row) {
+        final data = _map(row);
+        return customer == null
+            ? _order(data)
+            : _orderForCustomer(data, customer);
+      }).toList(growable: false),
       currentPage: _requiredInt(meta['current_page']),
       perPage: _requiredInt(meta['per_page']),
       total: _requiredInt(meta['total']),
@@ -380,7 +387,29 @@ class HttpVanOrderRepository implements VanOrderRepository {
         hasUnavailableItems: data['has_unavailable_items'] == true,
       );
 
-  VanOrderRecord _order(Map<String, dynamic> data) => VanOrderRecord(
+  void _assertWholesaleCustomer(VanCustomerScope customer) {
+    if (customer.type.trim().toLowerCase() != 'b2b') {
+      throw const VanAccessDeniedException();
+    }
+  }
+
+  VanOrderRecord _orderForCustomer(
+    Map<String, dynamic> data,
+    VanCustomerScope customer,
+  ) {
+    final order = _order(data);
+    if (order.customerId != customer.id || order.storeId != customer.storeId) {
+      throw const VanApiException('Van order customer scope mismatch.');
+    }
+    return order;
+  }
+
+  VanOrderRecord _order(Map<String, dynamic> data) {
+    if (_string(data['customer_type']).trim().toLowerCase() != 'b2b') {
+      throw const VanApiException('Van order is outside B2B scope.');
+    }
+
+    return VanOrderRecord(
         id: _requiredInt(data['id']),
         orderNumber:
             _string(data['display_order_number'] ?? data['order_number']),
@@ -395,6 +424,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
         vanFailureReasonCode: _nullableString(data['van_failure_reason_code']),
         vanLastTransitionAt: _nullableString(data['van_last_transition_at']),
       );
+  }
 
   VanOrderExecutionState _execution(Map<String, dynamic> data) {
     final proof =
