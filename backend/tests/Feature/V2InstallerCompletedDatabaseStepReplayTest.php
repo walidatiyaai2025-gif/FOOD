@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Installer\InstallerEnvironment;
 use App\Domain\Installer\InstallState;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -114,7 +115,7 @@ final class V2InstallerCompletedDatabaseStepReplayTest extends TestCase
 
         Artisan::shouldReceive('call')
             ->once()
-            ->with('db:seed', ['--class' => \Database\Seeders\DatabaseSeeder::class, '--force' => true])
+            ->with('db:seed', ['--class' => DatabaseSeeder::class, '--force' => true])
             ->andReturn(0);
 
         $token = $state->token();
@@ -148,7 +149,7 @@ final class V2InstallerCompletedDatabaseStepReplayTest extends TestCase
 
         Artisan::shouldReceive('call')
             ->twice()
-            ->with('db:seed', ['--class' => \Database\Seeders\DatabaseSeeder::class, '--force' => true])
+            ->with('db:seed', ['--class' => DatabaseSeeder::class, '--force' => true])
             ->andReturn(1, 0);
 
         $token = $state->token();
