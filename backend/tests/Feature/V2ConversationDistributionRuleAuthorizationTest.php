@@ -3,12 +3,14 @@
 namespace Tests\Feature;
 
 use App\Domain\WhatsApp\AgentAssignmentEngine;
+use App\Domain\WhatsApp\ConversationService;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -72,7 +74,63 @@ final class V2ConversationDistributionRuleAuthorizationTest extends TestCase
         $this->assertSame([], $engine->eligibleAgentIds($store, 'whatsapp'));
         $this->assertNull($engine->choose($store, 'whatsapp', 'rule_based'));
         $this->assertNull($engine->choose($store, 'whatsapp', 'least_loaded'));
+
+        $conversation = (int) DB::table('whats_app_conversations')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'store_id' => $store,
+            'channel' => 'whatsapp',
+            'status' => 'WAITING_FOR_AGENT',
+            'primary_agent_id' => null,
+            'waiting_since' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->assertNull(app(ConversationService::class)->autoAssign($conversation));
+        $this->assertDatabaseHas('whats_app_conversations', [
+            'id' => $conversation,
+            'primary_agent_id' => null,
+            'status' => 'WAITING_FOR_AGENT',
+        ]);
         $this->assertDatabaseCount('whats_app_assignment_history', 0);
+    }
+
+    public function test_retail_agent_with_reply_deny_does_not_cross_into_another_store(): void
+    {
+        $retailA = $this->retailStore('P202-RETAIL-A');
+        $retailB = $this->retailStore('P202-RETAIL-B');
+        $agent = User::factory()->create(['name' => 'P202 Retail Agent', 'is_active' => true]);
+        DB::table('user_store_roles')->insert([
+            'user_id' => $agent->id,
+            'store_id' => $retailA,
+            'role_id' => Role::query()->where('code', 'RETAIL_CUSTOMER_SUPPORT')->firstOrFail()->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        app(AgentAssignmentEngine::class)->setStatus($agent, 'ONLINE', 3, true);
+
+        $engine = app(AgentAssignmentEngine::class);
+        $this->assertContains($agent->id, $engine->eligibleAgentIds($retailA, 'whatsapp'));
+        $this->assertNotContains($agent->id, $engine->eligibleAgentIds($retailB, 'whatsapp'));
+
+        $this->denyReplyForStore($agent, $retailA);
+        $this->assertTrue($agent->fresh()->hasPermission('whatsapp.conversations.view', $retailA));
+        $this->assertFalse($agent->fresh()->hasPermission('whatsapp.conversations.reply', $retailA));
+        $this->assertNotContains($agent->id, $engine->eligibleAgentIds($retailA, 'whatsapp'));
+        $this->assertNotContains($agent->id, $engine->eligibleAgentIds($retailB, 'whatsapp'));
+        $this->assertNull($engine->choose($retailA, 'whatsapp'));
+    }
+
+    private function retailStore(string $code): int
+    {
+        return (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'business_profile' => 'RETAIL_STORE',
+            'code' => $code,
+            'name' => $code,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     public function test_direct_agent_eligibility_fails_closed_with_existing_localized_error(): void
