@@ -31,6 +31,35 @@ Existing `FieldOperationsFinanceService` groups *actor account* custody and remi
 
 No new finance posting, settlement approval, module entitlement, migration, public API, Flutter screen or navigation route is added. The test validates an existing boundary and protects against falsely interpreting that actor-account view as a trip settlement. It **does not satisfy full issue acceptance**.
 
+## Bounded functional security fix: invoice allocation authority
+
+The P272 follow-up audit found that `CollectionCustodyService::collect()` previously
+locked a supplied `invoice_id` and checked currency, but did **not** establish
+the invoice belongs to the `collection_accounts.store_id` and matching
+B2B/B2C channel. A same-currency invoice from an unrelated store could
+therefore be posted as a paid receipt through a direct service caller.
+
+The issue branch adds an authoritative fail-closed guard **inside the transaction
+before creating any Payment / CollectionTransaction / CustodyLedgerEntry**:
+- Allocated invoice must have the account's non-null, valid store ID.
+- Store type is sourced from `stores → store_types`; invoice channel must
+  equal this store's actual `b2b`/`b2c` channel.
+- Van / Van representative actors cannot allocate a Retail/B2C invoice,
+  including the case of a Van collection account incorrectly tied to a B2C store.
+- Missing/unknown store provenance blocks allocations; unallocated legacy
+  custody operations remain unchanged because no invoice association is asserted.
+- Existing Driver B2C collection is preserved; this guard does **not** add a
+  B2B Driver fallback. APIs stay on their existing authenticated paths.
+
+`V2VanTripSettlementProvenanceTest` now covers same-currency cross-Wholesale-store,
+wrong-channel same-store, Retail-via-Van, Van-without-store rejection, positive
+same-store B2B Van collection, and positive legitimate B2C Driver collection,
+checking that rejected cases cause **zero** payment/collection/custody writes.
+
+This is real backend authorization hardening, not a trip-level identity,
+ledger/posting, maker-checker or financial closeout implementation. P272
+remains open for its full trip-session/provenance and UI/Van-app requirements.
+
 ## Required authoritative design and completion steps
 
 1. Define an immutable trip/session identity (Van, authorized store/tenant/channel, route, start/end and actor), link Van visits/orders to it, and handle legacy unknown provenance without inventing attribution. Lock and audit trip lifecycle/SoD; B2B uses VAN ONLY, B2C uses DRIVER ONLY.
