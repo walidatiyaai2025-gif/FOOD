@@ -98,6 +98,36 @@ final class V2TreasuryManagerRoleAuthorityTest extends TestCase
         $this->assertNotContains('erp_treasury', $keys);
     }
 
+    public function test_explicit_b2b_store_deny_hides_treasury_navigation_when_no_scope_remains(): void
+    {
+        $store = $this->wholesaleStore();
+        $manager = $this->manager();
+        $this->enableModule($manager);
+        $this->entitle($manager, $store, ['treasury.receipts.read']);
+
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $manager->id,
+            'permission_id' => Permission::query()->where('code', 'finance.view')->firstOrFail()->id,
+            'scope_key' => 'store:'.$store->id,
+            'store_id' => $store->id,
+            'effect' => 'deny',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $manager->forceFill(['has_permission_overrides' => true])->save();
+
+        // A valid module entitlement cannot defeat a narrower user DENY.
+        $this->assertFalse($manager->fresh()->hasPermission('finance.view', $store->id));
+        $keys = collect(app(AdminNavigation::class)->groupsFor($manager->fresh()))
+            ->flatMap(static fn (array $group): array => $group['children'])
+            ->pluck('key')
+            ->all();
+        $this->assertNotContains('erp_treasury', $keys);
+        $this->actingAs($manager->fresh())
+            ->get(route('admin.erp.treasury.index', ['store_id' => $store->id, 'tab' => 'receipts']))
+            ->assertForbidden();
+    }
+
     public function test_wholesale_store_deny_blocks_only_the_denied_store(): void
     {
         $owned = $this->wholesaleStore();
