@@ -10,6 +10,7 @@ use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
+use App\Models\EnterpriseAccountsPayableDocument;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
@@ -70,6 +71,110 @@ final class V2AccountsPayablePageAuthorityTest extends TestCase
             ->assertOk()
             ->assertSee('P287-SUPPLIER-B')
             ->assertDontSee('P287-SUPPLIER-A');
+    }
+
+    public function test_p299_posted_ap_accrual_only_enters_the_authorized_outstanding_read_model_after_separate_posting(): void
+    {
+        [$maker, $store, $context] = $this->operator('P299-ACCRUAL', 'en');
+        $this->enableFinance($maker, $context, [
+            'finance.foundation.read',
+            'finance.foundation.manage',
+            'finance.gl.read',
+            'finance.gl.manage',
+            'finance.gl.post',
+            'finance.ap.read',
+            'finance.ap.manage',
+            'finance.ap.post',
+        ]);
+
+        $finance = app(FinanceFoundationService::class);
+        $year = $finance->createFiscalYear($maker, $context, [
+            'code' => 'P299FY2027',
+            'name' => 'P299 Accrual Fiscal Year',
+            'starts_on' => '2027-01-01',
+            'ends_on' => '2027-12-31',
+        ]);
+        $finance->createFiscalPeriod($maker, $context, $year->id, [
+            'sequence' => 1,
+            'code' => 'P01',
+            'name' => 'P299 January',
+            'starts_on' => '2027-01-01',
+            'ends_on' => '2027-01-31',
+        ]);
+
+        $draft = $this->createApDocument($maker, $store, $context, 'DRAFT', 'P299-DRAFT-UNPOSTED');
+        $accrual = $this->createApDocument($maker, $store, $context, 'POST', 'P299-ACCRUED-POSTED');
+        $service = app(AccountsPayableService::class);
+        $this->assertFalse($maker->hasPermission('finance.post', $store->id));
+
+        $before = $this->actingAs($maker->fresh())
+            ->get(route('admin.erp.finance.index', [
+                'store_id' => $store->id, 'tab' => 'payables',
+            ]))
+            ->assertOk()
+            ->assertSee('P299-DRAFT-UNPOSTED')
+            ->assertSee('P299-ACCRUED-POSTED');
+        $before->assertViewHas('data', static fn (array $data): bool => $data['aging']->isEmpty());
+        $this->assertDatabaseCount('enterprise_finance_journals', 0);
+
+        // A dedicated same-store checker can post, but cannot substitute a
+        // roleless or foreign-tenant identity for the maker's legal entity.
+        $posterRole = Role::query()->create([
+            'code' => 'P299_POSTER',
+            'name' => 'P299 independent AP poster',
+            'scope' => 'store',
+            'is_active' => true,
+            'is_system' => false,
+        ]);
+        $posterRole->permissions()->sync(
+            Permission::query()->whereIn('code', ['finance.view', 'finance.post'])->pluck('id')->all(),
+        );
+        $poster = User::factory()->create(['locale' => 'en', 'is_active' => true]);
+        $this->grantPlatformErpAccess($poster);
+        DB::table('user_store_roles')->insert([
+            'user_id' => $poster->id,
+            'store_id' => $store->id,
+            'role_id' => $posterRole->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $posterContext = app(TenantContextResolver::class)->retail($poster, $store->id);
+
+        $posted = $service->post($poster, $posterContext, $accrual->id);
+        $retry = $service->post($poster, $posterContext, $accrual->id);
+        $this->assertSame($posted->id, $retry->id);
+        $this->assertSame('posted', $posted->status);
+        $this->assertNotNull($posted->journal_id);
+        $this->assertDatabaseHas('enterprise_ap_documents', [
+            'id' => $draft->id, 'status' => 'draft',
+        ]);
+        $this->assertDatabaseCount('enterprise_finance_journals', 1);
+        $this->assertDatabaseCount('enterprise_finance_ledger_entries', 2);
+        $this->assertDatabaseCount('enterprise_ap_allocations', 0);
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'enterprise.finance.ap_document_posted',
+            'auditable_id' => $posted->id,
+        ]);
+
+        foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
+            app()->setLocale($locale);
+            $maker->forceFill(['locale' => $locale])->save();
+            $response = $this->actingAs($maker->fresh())
+                ->get(route('admin.erp.finance.index', [
+                    'store_id' => $store->id, 'tab' => 'payables',
+                ]))
+                ->assertOk()
+                ->assertSee('dir="'.$direction.'"', false)
+                ->assertSee(__('finance_workbench.payables.title'));
+
+            $response->assertViewHas('data', static function (array $data) use ($posted): bool {
+                $accrued = $data['aging'];
+                return $accrued->count() === 1
+                    && (int) $accrued->first()->id === (int) $posted->id
+                    && (float) $accrued->first()->amount === 100.0
+                    && (float) $accrued->first()->outstanding_amount === 100.0;
+            });
+        }
     }
 
     public function test_ap_route_denies_foreign_store_and_restricted_role(): void
@@ -237,7 +342,7 @@ final class V2AccountsPayablePageAuthorityTest extends TestCase
         ResolvedTenantContext $context,
         string $suffix,
         string $supplierReference,
-    ): void {
+    ): EnterpriseAccountsPayableDocument {
         $finance = app(FinanceFoundationService::class);
         $payable = $finance->createAccount($actor, $context, [
             'code' => '2100'.$suffix,
@@ -254,7 +359,7 @@ final class V2AccountsPayablePageAuthorityTest extends TestCase
             'allow_posting' => true,
         ]);
 
-        app(AccountsPayableService::class)->createDraft($actor, $context, [
+        return app(AccountsPayableService::class)->createDraft($actor, $context, [
             'idempotency_key' => 'P287-AP-'.$suffix,
             'store_id' => $store->id,
             'supplier_reference' => $supplierReference,
