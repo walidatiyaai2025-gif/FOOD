@@ -179,6 +179,7 @@ class AdminNavigation
             // target children retain their canonical ready-only domain owners.
             $this->group('sales', 'admin.nav_groups.sales', '▤', [
                 $this->routeItemScoped($user, 'sales_quotations', 'sales_quotations.title', 'admin.sales-quotations.index', 'orders.view'),
+                $this->commercialExceptionApprovalsItem($user, isset($channels['b2b'])),
             ]),
             $this->group('customer_service', 'admin.nav_groups.customer_service', '◉', [
                 // The canonical Inbox route accepts authorized store-scoped Retail support
@@ -899,6 +900,63 @@ class AdminNavigation
         }
 
         return $this->routeItemOpen('order_operations', 'admin.order_management', 'admin.operations.orders.index');
+    }
+
+    /**
+     * P197: canonical pending customer-service concessions, not a new ledger.
+     * The Sales Sidebar projects the same three-permission intersection
+     * for one store/channel as the Orders controller's pending review mode.
+     *
+     * @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null
+     */
+    private function commercialExceptionApprovalsItem(User $user, bool $hasWholesaleChannel): ?array
+    {
+        if (! $user->is_active || ! Route::has('admin.operations.orders.index')) {
+            return null;
+        }
+
+        $scope = app(OperationalTenantScope::class);
+        if ($hasWholesaleChannel) {
+            // Initialize the existing B2B principal before resolving scopes,
+            // as the canonical Orders navigation already does.
+            app(WholesalePrincipal::class)->storeId();
+        }
+
+        $permissions = ['orders.view', 'orders.customer_service_discount', 'orders.approve'];
+        foreach (['b2b', 'b2c'] as $channel) {
+            if ($channel === 'b2b' && ! $hasWholesaleChannel) {
+                continue;
+            }
+
+            $eligible = null;
+            foreach ($permissions as $permission) {
+                $stores = $scope->allowedStoreIds($user, $permission, $channel);
+                $eligible = $eligible === null ? $stores : array_values(array_intersect($eligible, $stores));
+                if ($eligible === []) {
+                    break;
+                }
+            }
+            if ($eligible === null || $eligible === []) {
+                continue;
+            }
+
+            sort($eligible, SORT_NUMERIC);
+
+            return [
+                'key' => 'commercial_exception_approvals',
+                'label' => 'admin.commercial_exception_approvals',
+                'route' => 'admin.operations.orders.index',
+                'params' => [
+                    'channel' => $channel,
+                    'store_id' => (string) $eligible[0],
+                    'discount_view' => 'pending',
+                    'action_required' => '0',
+                ],
+                'permission' => null,
+            ];
+        }
+
+        return null;
     }
 
     /** @return array{key:string,label:string,route:string,params:array<string,string>,permission:?string}|null */
