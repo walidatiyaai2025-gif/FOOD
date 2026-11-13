@@ -192,6 +192,29 @@ final class V2VanTripSettlementProvenanceTest extends TestCase
         ]);
         $this->assertAllocationRejected($unknownScope, $actor, $retailInvoice, 'p272-unknown-van');
 
+        $wholesaleStore = $this->store('B2B', 'P272-DRIVER-FORBIDDEN-WHOLESALE');
+        $wholesaleInvoice = $this->invoice($wholesaleStore, 'b2b', 'P272-DRIVER-B2B-INVOICE');
+        $forgedDriverAccount = CollectionAccount::query()->create([
+            'actor_type' => 'driver',
+            'actor_id' => 405,
+            'store_id' => $wholesaleStore,
+            'currency' => 'KWD',
+            'status' => 'active',
+        ]);
+        $this->assertAllocationRejected(
+            $forgedDriverAccount,
+            $actor,
+            $wholesaleInvoice,
+            'p272-b2b-driver-forbidden',
+            'driver_app',
+        );
+        $this->assertDatabaseCount('collection_transactions', 0);
+        $this->assertDatabaseCount('collection_allocations', 0);
+        $this->assertDatabaseCount('custody_ledger_entries', 0);
+        $this->assertDatabaseMissing('payments', [
+            'provider_reference' => 'p272-b2b-driver-forbidden',
+        ]);
+
         $driverAccount = CollectionAccount::query()->create([
             'actor_type' => 'driver',
             'actor_id' => 404,
@@ -222,6 +245,7 @@ final class V2VanTripSettlementProvenanceTest extends TestCase
         User $actor,
         Invoice $invoice,
         string $idempotencyKey,
+        string $source = 'van_app',
     ): void {
         try {
             app(CollectionCustodyService::class)->collect(
@@ -230,7 +254,7 @@ final class V2VanTripSettlementProvenanceTest extends TestCase
                 $idempotencyKey,
                 10,
                 'KWD',
-                'van_app',
+                $source,
                 [['invoice_id' => (int) $invoice->getKey(), 'amount' => 10]],
             );
             $this->fail('An out-of-scope invoice allocation must never post.');
