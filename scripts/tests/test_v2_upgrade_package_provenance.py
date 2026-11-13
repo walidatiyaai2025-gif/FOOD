@@ -178,6 +178,35 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
                 artifact.unlink()
                 artifact.write_bytes(original)
 
+    def test_reject_non_ascii_and_leading_zero_manifest_version_edges(self) -> None:
+        # The offline verifier must agree with the Laravel updater's strict
+        # ASCII, no-leading-zero canonical SemVer trust boundary.
+        malformed = (
+            "01.0.125", "1.00.125", "1.0.0125",
+            "١.0.125", "1.٠.125", "1.0.１２５",
+            " 1.0.125", "1.0.125 ", "1.0.125\n",
+        )
+        for value in malformed:
+            with self.subTest(target=value):
+                with self.assertRaisesRegex(PackageContractError, "Invalid semantic-version edge"):
+                    validate_package(
+                        self.first, installed_version="1.0.124",
+                        target_version=value, expected_source_commit=SHA125,
+                    )
+
+        malformed_installed = (
+            "01.0.124", "1.00.124", "1.0.0124",
+            "١.0.124", "1.٠.124", "1.0.１２４",
+        )
+        for value in malformed_installed:
+            with self.subTest(installed=value):
+                with self.assertRaisesRegex(PackageContractError, "Invalid semantic-version edge"):
+                    validate_package(
+                        self.first, installed_version=value,
+                        target_version="1.0.125", expected_source_commit=SHA125,
+                    )
+        self.assertEqual("1.0.125", self.verify_first()["to"])
+
     def test_bad_upgrade_edge_and_redeploy_flag_fail_closed(self) -> None:
         self.change_manifest("minimum_current_version", "1.0.123")
         with self.assertRaisesRegex(PackageContractError, "upgrade edge"):
