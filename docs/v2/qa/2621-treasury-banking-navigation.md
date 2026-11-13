@@ -6,7 +6,7 @@
 - Domain Finance & Treasury, entity treasury master data and enterprise treasury operations; role B2B platform Finance/Treasury authorized staff; user goal discover Treasury/bank actions under an identifiable business domain.
 - Placement: **Reuse → Extend** the existing authoritative Sidebar group registry and `AdminNavigation::groupsFor`. Navigation type **SIDEBAR GROUP** of authorized existing children (not a new page or a new authorization authority).
 - Canonical entry points: `treasury_master` → `admin.treasury.master.index` for cashboxes/bank-account master data; `erp_treasury` → `admin.erp.treasury.index` for enabled and entitled enterprise Treasury workflows.
-- `erp_finance` remains a separate `finance` group child. No duplication in the new Treasury group, no new route, no capability granted and no forced enablement of Treasury.
+- `erp_finance` remains a separate `finance` group child, labeled `المالية والمحاسبة` / `Finance & Accounting`; the new Treasury group no longer repeats Treasury in the Finance header. No duplication in the new Treasury group, no new route, no capability granted and no forced enablement of Treasury.
 - `backend/config/admin_sidebar.php` now registers `treasury` between Finance and Receivables and moves Treasury registry items, keeping canonical protected `treasury_master` pinned and allowing existing authorized saved-layout behavior for non-protected entries.
 - Labels: `admin.nav_groups.treasury` translated as `الخزينة والبنوك` (AR) and `Treasury & Banking` (EN), with no raw English wording in AR. Responsive Sidebar uses existing desktop/mobile web, 44px touch controls, focus/keyboard, RTL/LTR and permission-projected rendering.
 
