@@ -121,7 +121,9 @@ final class V2SalesOfficerRoleAuthorityTest extends TestCase
     {
         $actor = $this->salesOfficer();
 
-        foreach (['orders.view', 'customers.view'] as $permission) {
+        // Customer 360 also permits an independent B2B accounts read grant.
+        // Deny both alternatives before asserting that its entry disappears.
+        foreach (['orders.view', 'customers.view', 'b2b.accounts.view'] as $permission) {
             DB::table('user_permission_overrides')->insert([
                 'user_id' => $actor->id,
                 'permission_id' => Permission::query()->where('code', $permission)->firstOrFail()->id,
@@ -136,6 +138,7 @@ final class V2SalesOfficerRoleAuthorityTest extends TestCase
         $actor->forceFill(['has_permission_overrides' => true])->save();
         $this->assertFalse($actor->fresh()->hasPermission('orders.view'));
         $this->assertFalse($actor->fresh()->hasPermission('customers.view'));
+        $this->assertFalse($actor->fresh()->hasPermission('b2b.accounts.view'));
 
         app()->forgetInstance(AdminNavigation::class);
         $keys = collect(app(AdminNavigation::class)->groupsFor($actor->fresh()))
