@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Domain\\Updater\\LaravelUpdateRuntime;
-use Illuminate\\Support\\Facades\\File;
+use App\Domain\Updater\LaravelUpdateRuntime;
+use Illuminate\Support\Facades\File;
 use RuntimeException;
-use Tests\\TestCase;
+use Tests\TestCase;
 
 final class V2UpdaterRollbackPreflightTest extends TestCase
 {
@@ -46,6 +46,7 @@ final class V2UpdaterRollbackPreflightTest extends TestCase
 
     public function test_missing_later_backup_is_rejected_before_any_live_target_is_removed(): void
     {
+        File::ensureDirectoryExists($this->backupDirectory.'/existing/'.$this->releaseName);
         file_put_contents($this->releaseDirectory.'/first.txt', 'updated-first');
         file_put_contents($this->releaseDirectory.'/second.txt', 'updated-second');
         file_put_contents($this->backupDirectory.'/existing/'.$this->releaseName.'/first.txt', 'original-first');
