@@ -8,14 +8,11 @@ repo_root="$(git rev-parse --show-toplevel)"
 test "$(tr -d '[:space:]' < "$repo_root/VERSION")" = "1.0.127"
 package="$repo_root/dist/update/FOODEX-Update.zip"
 test -s "$package"
-python3 - "$package" "$repo_root/dist/update/FOODEX-Update.json" <<'PY'
-import hashlib, json, pathlib, sys
-package = pathlib.Path(sys.argv[1])
-manifest = json.loads(pathlib.Path(sys.argv[2]).read_text())
-assert manifest["target_version"] == "1.0.127"
-assert manifest["minimum_current_version"] == "1.0.125"
-assert manifest["sha256"] == hashlib.sha256(package.read_bytes()).hexdigest()
-PY
+python3 "$repo_root/scripts/verify-recovery-update-manifest.py" \
+  --package "$package" \
+  --manifest "$repo_root/dist/update/FOODEX-Update.json" \
+  --target-version 1.0.127 \
+  --minimum-current-version 1.0.125
 # Critical recovery files must be present even if unchanged since v125.
 for required in   backend/app/Providers/AppServiceProvider.php   backend/app/Services/SystemInspectorRecorder.php   backend/app/Services/BuiltInJobRoleCatalog.php   backend/database/seeders/BuiltInJobRoleSeeder.php   backend/config/permissions.php   backend/database/migrations/2026_11_08_071000_create_platform_owner_registry.php   backend/database/migrations/2026_11_08_072000_restore_customer_service_discount_permission.php   backend/resources/views/admin/order-operations.blade.php
 do

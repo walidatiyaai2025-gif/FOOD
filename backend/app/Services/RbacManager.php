@@ -87,6 +87,14 @@ final class RbacManager
         // The audit and lifecycle mutation form one DB transaction. A failed
         // audit write must not leave an untraceable archive or revoked session.
         return DB::transaction(function () use ($target, $actor, $active, $reason, $request): User {
+            // The archival transition cannot strand active Driver or Van work.
+            // This is checked at the canonical mutation boundary, not only in UI.
+            if (! $active && (bool) $target->is_active && $this->hasOpenOperationalAssignments($target)) {
+                throw ValidationException::withMessages([
+                    'is_active' => [__('admin.security.errors.open_operational_assignments')],
+                ]);
+            }
+
             $before = $this->userSnapshot($target);
             $target->forceFill([
                 'is_active' => $active,
@@ -615,6 +623,50 @@ final class RbacManager
         });
 
         $this->finalizePermissionMutation($actor, null, 'role.archived', $request);
+    }
+
+    /**
+     * Open operational custody must be reassigned or finished before archiving
+     * an identity. Only live assignments count; historical completed work and
+     * closed visits remain retained for audit without blocking offboarding.
+     */
+    private function hasOpenOperationalAssignments(User $target): bool
+    {
+        $userId = (int) $target->getKey();
+
+        $activeDriverWork = DB::table('driver_assignments')
+            ->join('drivers', 'drivers.id', '=', 'driver_assignments.driver_id')
+            ->where('drivers.user_id', $userId)
+            ->whereNull('driver_assignments.completed_at')
+            ->whereNotIn('driver_assignments.status', ['unassigned', 'reassigned', 'cancelled', 'delivered', 'failed'])
+            ->exists();
+
+        if ($activeDriverWork) {
+            return true;
+        }
+
+        $activeVanCustody = DB::table('van_assignments')
+            ->leftJoin('drivers', 'drivers.id', '=', 'van_assignments.driver_id')
+            ->where('van_assignments.status', 'active')
+            ->where(function ($query): void {
+                $query->whereNull('van_assignments.effective_until')
+                    ->orWhere('van_assignments.effective_until', '>', now());
+            })
+            ->where(function ($query) use ($userId): void {
+                $query->where('van_assignments.representative_user_id', $userId)
+                    ->orWhere('drivers.user_id', $userId);
+            })
+            ->exists();
+
+        if ($activeVanCustody) {
+            return true;
+        }
+
+        return DB::table('van_visits')
+            ->where('actor_user_id', $userId)
+            ->whereIn('status', ['planned', 'started'])
+            ->whereNull('closed_at')
+            ->exists();
     }
 
     public function isLastActiveSuperAdmin(User $target): bool

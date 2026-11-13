@@ -19,6 +19,8 @@ final class UpdatePackageValidator
             throw new InvalidArgumentException('Update versions must use canonical major.minor.patch format.');
         }
 
+        $this->rejectSymbolicLinkPackagePath($packagePath);
+
         if (! is_file($packagePath) || ! is_readable($packagePath)) {
             throw new InvalidArgumentException('Update package is unavailable.');
         }
@@ -75,5 +77,24 @@ final class UpdatePackageValidator
             'package_hash' => strtolower($manifest->sha256),
             'contains_migrations' => $manifest->containsMigrations,
         ];
+    }
+
+    /**
+     * Do not follow a linked ZIP or a linked parent directory when hashing.
+     * A matching caller-supplied checksum does not make a filesystem alias safe.
+     */
+    private function rejectSymbolicLinkPackagePath(string $packagePath): void
+    {
+        for ($candidate = $packagePath; ; $candidate = dirname($candidate)) {
+            clearstatcache(true, $candidate);
+
+            if (is_link($candidate)) {
+                throw new InvalidArgumentException('Update package path cannot be a symbolic link.');
+            }
+
+            if (dirname($candidate) === $candidate) {
+                break;
+            }
+        }
     }
 }
