@@ -27,7 +27,7 @@ Historical issue branch SHA `d9ec9eae0ce47b9fbdf8725a0a462a5710dd72ba` and origi
 - Canonical seeded role bundle, exact least-privilege grants and localized role presentation in Arabic and English.
 - B2B navigation discoverability, real authenticated Orders HTTP 200 and Customer 360, B2C channel Orders HTTP 403, security HTTP 403, no Retail role/domain leakage.
 - Wholesale scoped `orders.view` and `orders.edit`, no approval or dispatch; real Orders AR/RTL and EN/LTR response `dir`.
-- User-specific explicit DENY removes Orders/Customer navigation and rejects direct HTTP, without authorization via hidden links.
+- User-specific explicit DENY removes Orders/Customer navigation and rejects direct Orders HTTP without authorization via hidden links. **Customer 360 has two alternative independent read guards**: `customers.view` and `b2b.accounts.view`; both must be explicitly denied before its navigation may correctly disappear. A DENY of only one does not revoke the other authorized grant.
 - Inactive identity fail-closed with no inherited permission/visible page.
 
 No UI field, lookup, enum, builder, route or state transition is introduced. For the existing Orders grid, canonical shared responsive controls and no-extra-action behavior remain unchanged.
@@ -43,6 +43,11 @@ No UI field, lookup, enum, builder, route or state transition is introduced. For
 | Van Flutter | **Not affected** | No B2B Van-only visit, routing, collection or assignment contract change |
 
 B2B=VAN ONLY and B2C=DRIVER ONLY remain authoritative.
+
+## CI recovery evidence (13 November 2026)
+
+- The first full Laravel run for PR #3222 on `353b09e3be4ca2b3bbfd007c69f2934ecb8e5f1b` finished **3439 passing, one failing**; Pint/PHPStan/security, AR/EN, V2 Isolation, Repository Policy, MySQL/Redis Fresh Install/Upgrade/Recovery all passed. The only failed assertion expected `customer_360` to disappear when `customers.view` was DENY even though `b2b.accounts.view` was still independently allowed. The existing canonical Sidebar correctly uses its explicit fallback read grant; this is **not a permission bypass**.
+- The follow-up test fixture explicitly denies both supported Customer 360 read capabilities and checks the post-DENY effective permission. No runtime authorization logic or production permission set was widened or weakened. Full exact-head Required CI must rerun on the final fix commit before any merge; old green child checks are not sufficient.
 
 ## Required acceptance and closure
 
