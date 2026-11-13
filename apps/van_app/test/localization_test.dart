@@ -45,15 +45,18 @@ void main() {
     expect(find.text('Van App'), findsNothing);
 
     final directionality = tester.widget<Directionality>(
-      find.ancestor(
-        of: find.byKey(const ValueKey('van-customer-parity-login')),
-        matching: find.byType(Directionality),
-      ).first,
+      find
+          .ancestor(
+            of: find.byKey(const ValueKey('van-customer-parity-login')),
+            matching: find.byType(Directionality),
+          )
+          .first,
     );
     expect(directionality.textDirection, TextDirection.rtl);
   });
 
-  testWidgets('Van login renders English identity and labels for English locale',
+  testWidgets(
+      'Van login renders English identity and labels for English locale',
       (tester) async {
     await tester.pumpWidget(_app(const Locale('en')));
     await tester.pumpAndSettle();
@@ -64,10 +67,12 @@ void main() {
     expect(find.text('تطبيق الفان'), findsNothing);
 
     final directionality = tester.widget<Directionality>(
-      find.ancestor(
-        of: find.byKey(const ValueKey('van-customer-parity-login')),
-        matching: find.byType(Directionality),
-      ).first,
+      find
+          .ancestor(
+            of: find.byKey(const ValueKey('van-customer-parity-login')),
+            matching: find.byType(Directionality),
+          )
+          .first,
     );
     expect(directionality.textDirection, TextDirection.ltr);
   });
