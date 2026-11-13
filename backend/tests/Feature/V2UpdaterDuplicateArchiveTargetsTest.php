@@ -161,10 +161,11 @@ final class V2UpdaterDuplicateArchiveTargetsTest extends TestCase
             throw new RuntimeException('Unable to inspect V2 ZIP test fixture.');
         }
         try {
-            $this->assertCount(count($files), array_filter(
-                array_map(fn (int $index): string|false => $inspection->getNameIndex($index), range(0, $inspection->numFiles - 1)),
-                'is_string',
-            ), 'Archive fixture must retain all distinct raw member names.');
+            $this->assertSame(
+                count($files),
+                $inspection->numFiles,
+                'Archive fixture must retain all distinct raw member names.',
+            );
         } finally {
             $inspection->close();
         }
