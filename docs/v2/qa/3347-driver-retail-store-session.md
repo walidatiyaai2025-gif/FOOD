@@ -6,7 +6,7 @@
 
 The pre-existing `AuthController::login` and `AuthController::mobileTrialLogin` required an active `drivers` row of type B2C and an actor with `B2C_DRIVER` / `deliveries.b2c.execute`. Neither checked that `drivers.store_id` belongs to an **active** Retail/B2C store before issuing `app:driver` tokens. `EnsureDriverRuntimeAccess` repeated this omission for already-issued tokens. Downstream `DriverTenantScope::resolve` checked the store in several operations, but that late check did not prevent issuing an invalid execution session or guarantee consistent runtime-boundary denial.
 
-The safe fix is `DriverTenantScope::eligibleRetailDriver(User)`: it joins the real `drivers`, `stores` and `store_types` rows to require active driver, B2C driver type, existing active store and B2C store type **in SQL**, before checking existing user role/permission at all three token issuance/usage boundaries. It returns the canonical Driver row (not a synthetic/forged store identifier). Neither user roles nor store assignment is changed.
+The safe fix is `DriverTenantScope::eligibleRetailDriver(User)`: it left-joins the real `drivers`, `stores` and `store_types` rows to require active driver, B2C driver type, existing active store and B2C store type **in SQL**, before checking existing user role/permission. The middleware alone opts into a null-store compatibility branch so an existing historic token reaches the established downstream **409** missing-store recovery response, while new logins never get this exception. It returns the canonical Driver row (not a synthetic/forged store identifier). Neither user roles nor store assignment is changed.
 
 `drivers.user_id` has an authoritative UNIQUE constraint in migration `2026_09_24_000500_create_delivery_platform_foundation.php`: a hypothetical two-driver-row collision was investigated and rejected as impossible in the current schema. This issue therefore **does not** change Driver row selection or implement unrelated dual-profile behavior.
 
@@ -15,11 +15,11 @@ The safe fix is `DriverTenantScope::eligibleRetailDriver(User)`: it joins the re
 | Route | Healthy Retail Driver | Retail store suspended | Driver points to Wholesale-typed store |
 | --- | --- | --- | --- |
 | `POST /api/v1/auth/login` with `app=driver` | 200 and `app:driver` bearer | 403, **no new token** | 403, **no new token** |
-| `POST /api/v1/auth/mobile-trial` with `app=driver` | 200 (when trial enabled) | 403, **no new token** | 403, **no new token** |
+| `POST /api/v1/auth/mobile-trial` with `app=driver` | 200 (when trial enabled) | **422** validation error, **no new token** | **422** validation error, **no new token** |
 | `GET /api/v1/driver/wallet` with previously issued `app:driver` token | 200 (if role/driver remain valid) | 403 at middleware | 403 at middleware |
 | `GET /api/v1/driver/assignments` and `POST /driver/location/heartbeat` | Existing downstream authorization unchanged | 403 before access/write | 403 before access/write |
 
-Additional guards unchanged: `auth:sanctum`, `active.user`, `tokenCan('app:driver')`, `hasRole('B2C_DRIVER')`, `hasPermission('deliveries.b2c.execute')`, the Driver assignment scope checks and the Driver Tenant authority. Disabled **user** accounts remain rejected by `active.user`. The new helper is read-only, and no schema, audit, queue or ledger mutation is introduced.
+Additional guards unchanged: `auth:sanctum`, `active.user`, `tokenCan('app:driver')`, `hasRole('B2C_DRIVER')`, `hasPermission('deliveries.b2c.execute')`, the Driver assignment scope checks and the Driver Tenant authority. For a historical driver with `store_id=NULL`, the existing token still receives a downstream **409** rather than a new 403, and the API does **not** mint fresh driver tokens for that account; this preserves the established `DriverTenantScope::resolve` recovery contract. Disabled **user** accounts remain rejected by `active.user`. The new helper is read-only, and no schema, audit, queue or ledger mutation is introduced.
 
 ## Per-surface classification
 
@@ -31,7 +31,7 @@ Additional guards unchanged: `auth:sanctum`, `active.user`, `tokenCan('app:drive
 
 ## Reproduction and acceptance
 
-New `backend/tests/Feature/V2DriverRetailStoreSessionBoundaryTest.php` uses seeded real B2C/B2B store types, Retail Driver role, persisted Driver row and Sanctum PersonalAccessToken. HTTP tests verify valid Driver login and wallet, loss of access for existing tokens immediately after store is disabled, denial of new login/trial tokens, forged historical Retail driver→Wholesale store type denied, no new location/remittance writes, and restoration when store is reactivated. Existing DriverB2BCutoverTest and AuthFoundationTest ensure legacy B2B and dual-app account boundaries survive.
+New `backend/tests/Feature/V2DriverRetailStoreSessionBoundaryTest.php` uses seeded real B2C/B2B store types, Retail Driver role, persisted Driver row and Sanctum PersonalAccessToken. HTTP tests verify valid Driver login and wallet, loss of access for existing tokens immediately after store is disabled, denial of new login/trial tokens, forged historical Retail driver→Wholesale store type denied, no new location/remittance writes, and restoration when store is reactivated. Existing `DriverAssignmentLifecycleTest` explicitly requires the historic unscoped-driver **409** and is retained unchanged. Existing DriverB2BCutoverTest and AuthFoundationTest ensure legacy B2B and dual-app account boundaries survive.
 
 Expected GitHub gates: Repository Policy, FOODEX V2 Isolation Gate, FOODEX Required CI Gate including backend PHP/Pint/PHPStan/security, full Laravel HTTP tests, AR/EN quality and MySQL/Redis install/upgrade/recovery. All must be terminal **SUCCESS on final PR head**; otherwise repair this same branch. No manual production account/store edits or deployment are authorized.
 
