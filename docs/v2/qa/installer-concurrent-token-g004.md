@@ -8,10 +8,12 @@
 
 ## Bounded implementation
 
-- Keep an installer-owned `<progress-path>.token-lock` regular file as a persistent lock inode. Hold `flock(LOCK_EX)` across a fresh progress read and first-token creation, so all competing initializers reuse one persisted token.
+- Keep an installer-owned persistent lock inode under `storage/framework/installer-token-locks/<SHA-256-of-progress-path>.lock` by default, separate from ephemeral progress directories. A trusted `foodex.installer_token_lock_path` application config override supports isolated fixtures and custom hosting layouts. Hold `flock(LOCK_EX)` across a fresh progress read and first-token creation, so all competing initializers reuse one persisted token.
 - Check the token-lock path and ancestor symlink boundary before and after opening and after acquiring the lock; compare the opened device/inode with the named filesystem entry. Do not delete the lock file at unlock (that would allow simultaneous locks on different inodes). Permissions are reduced to 0640. Do not log or disclose tokens.
 - Preserve existing progress fields, existing valid token, installer lock and installed-guard semantics. No database migration, business seed, public route, controller, update-package or production-data modifications.
 - Existing `InstallState` path-symlink hardening from #3280 is preserved. Files owned by active #3367, #3369 and #3372 workers are untouched.
+
+- **CI regression correction:** the initial persistent adjacent lock made a different installer test's disposable progress directory non-empty on teardown. Moving the default lock to dedicated Laravel framework storage preserves the stable inode while keeping unrelated temporary test directories clean. This does not relax symlink or inode verification.
 
 ## Test/verification matrix
 
