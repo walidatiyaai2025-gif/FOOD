@@ -30,6 +30,7 @@ return [
         'finance' => ['label' => 'admin.nav_groups.finance', 'icon' => '¤', 'order' => 100],
         'treasury' => ['label' => 'admin.nav_groups.treasury', 'icon' => '¤', 'order' => 103],
         'receivables' => ['label' => 'admin.nav_groups.receivables', 'icon' => '¤', 'order' => 105],
+        'supplier_settlements' => ['label' => 'admin.nav_groups.supplier_settlements', 'icon' => '¤', 'order' => 107],
         'analytics' => ['label' => 'admin.nav_groups.analytics', 'icon' => '▥', 'order' => 110],
         'applications' => ['label' => 'admin.nav_groups.applications', 'icon' => '▣', 'order' => 120],
         'administration' => ['label' => 'admin.nav_groups.administration', 'icon' => '⚙', 'order' => 130],
@@ -102,7 +103,7 @@ return [
 
         'treasury_master' => ['group' => 'treasury', 'label' => 'treasury.nav_title', 'order' => 10, 'scope' => 'global', 'permissions' => ['finance.view']],
         'erp_receivables' => ['group' => 'receivables', 'label' => 'finance_workbench.tabs.receivables', 'order' => 10, 'scope' => 'both', 'module' => 'finance', 'permissions' => ['finance.view']],
-        'erp_payables' => ['group' => 'receivables', 'label' => 'finance_workbench.tabs.payables', 'order' => 20, 'scope' => 'both', 'module' => 'finance', 'permissions' => ['finance.view']],
+        'erp_payables' => ['group' => 'supplier_settlements', 'label' => 'finance_workbench.tabs.payables', 'order' => 20, 'scope' => 'both', 'module' => 'finance', 'permissions' => ['finance.view']],
 
         'whatsapp_supervisor' => ['group' => 'analytics', 'label' => 'whatsapp_supervisor.nav_title', 'order' => 10, 'scope' => 'global', 'permissions' => ['whatsapp.customer_service.supervise']],
         'reports_center' => ['group' => 'analytics', 'label' => 'reports.title', 'order' => 20, 'scope' => 'global', 'permissions' => ['reports.view']],
