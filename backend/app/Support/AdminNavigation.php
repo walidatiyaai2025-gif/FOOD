@@ -227,12 +227,16 @@ class AdminNavigation
                 $this->routeItemAdvertising($user, 'notification_campaigns', 'notifications.sidebar_campaigns', 'admin.notification-campaigns.index', 'notifications.view', 'advertising_enabled'),
                 $this->routeItemAdvertising($user, 'live_ads', 'live_ads.title', 'admin.live-ads.index', 'live_ads.view', 'live_ads_enabled'),
             ]),
+            // P291 Treasury & Banking is a business group of existing real
+            // destinations, never an additional bypass route or entitlement.
+            // Each child retains its original HTTP and module-readiness guard.
             $this->group('finance', 'admin.nav_groups.finance', '¤', [
-                $canAccessPlatformNavigation ? $this->routeItemScoped($user, 'treasury_master', 'treasury.nav_title', 'admin.treasury.master.index', 'finance.view') : null,
-                // P358 financial modules retain their existing authorization.
                 $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemEnterpriseModule($user, 'erp_finance', 'admin.erp_center.modules.finance.title', 'admin.erp.finance.index', 'finance', 'finance.view')
                     : null,
+            ]),
+            $this->group('treasury', 'admin.nav_groups.treasury', '¤', [
+                $canAccessPlatformNavigation ? $this->routeItemScoped($user, 'treasury_master', 'treasury.nav_title', 'admin.treasury.master.index', 'finance.view') : null,
                 $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemEnterpriseModule($user, 'erp_treasury', 'admin.erp_center.modules.treasury.title', 'admin.erp.treasury.index', 'treasury', 'finance.view')
                     : null,
