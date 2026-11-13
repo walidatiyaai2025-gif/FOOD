@@ -137,12 +137,26 @@ class AdminNavigation
                 $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.erp.procurement.index', 'procurement', 'procurement.suppliers.view')
                     : null,
-                $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
-                    ? $this->routeItemEnterpriseModule($user, 'erp_wms', 'admin.erp_center.modules.wms.title', 'admin.erp.wms.index', 'inventory_wms', 'inventory.view')
-                    : null,
+
                 // P233: Coupons belong to the canonical Catalog & Pricing domain.
                 // Their existing controller and scoped feature authorizer remain intact.
                 $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled'),
+            ]),
+            // P253 warehouses are a dedicated business group. The existing
+            // P254 WMS warehouse tab is the only canonical destination; the
+            // module's runtime permission, tenant and readiness gates stay authoritative.
+            $this->group('warehouses', 'admin.nav_groups.warehouses', '▣', [
+                ! $useCustomerServiceDashboardProfile
+                    ? $this->routeItemEnterpriseModule(
+                        $user,
+                        'erp_wms',
+                        'admin.erp_center.modules.wms.title',
+                        'admin.erp.wms.index',
+                        'inventory_wms',
+                        'inventory.view',
+                        ['tab' => 'warehouses'],
+                    )
+                    : null,
             ]),
             $this->group('accounts', 'admin.nav_groups.accounts', '◎', [
                 $this->routeItemScoped($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'customers.view')
@@ -923,20 +937,20 @@ class AdminNavigation
             ];
         }
 
-        $item = $this->routeItemScoped($user, $key, $label, $route, $permission, $params);
-        if ($item === null || ! $this->enterpriseModuleAccessible($user, $moduleCode)) {
-            return null;
+        // The Treasury workbench resolves a concrete store on HTTP entry.
+        // Project an actually authorized and entitled Wholesale store into the
+        // existing Sidebar route instead of exposing a dead/default-store link.
+        $wholesaleTreasuryStoreId = null;
+        if ($moduleCode === 'treasury' && ! $user->isPlatformOwner()) {
+            $wholesaleTreasuryStoreId = $this->wholesaleTreasuryNavigationStoreId($user);
+            if ($wholesaleTreasuryStoreId !== null) {
+                $params['store_id'] = (string) $wholesaleTreasuryStoreId;
+            }
         }
 
-        // The Treasury HTTP controller selects its first store when no
-        // store_id is supplied. For a scoped Wholesale operator that first
-        // store may be denied; point to the same actually entitled context.
-        if ($moduleCode === 'treasury') {
-            $storeId = $this->firstEntitledWholesaleTreasuryStoreId($user);
-            if ($storeId !== null) {
-                $item['params']['store_id'] = (string) $storeId;
-                $item['params']['tab'] = 'receipts';
-            }
+        $item = $this->routeItemScoped($user, $key, $label, $route, $permission, $params);
+        if ($item === null || ($wholesaleTreasuryStoreId === null && ! $this->enterpriseModuleAccessible($user, $moduleCode))) {
+            return null;
         }
 
         return $item;
@@ -1059,6 +1073,44 @@ class AdminNavigation
         return array_values(array_filter($eligible));
     }
 
+    /**
+     * Mirror the Treasury HTTP store/permission boundary before offering a
+     * Wholesale destination. An enabled module or global role is insufficient:
+     * an effective per-store permission, hierarchy scope and usable read
+     * entitlement must all exist. In particular, explicit store DENYs win.
+     */
+    private function wholesaleTreasuryNavigationStoreId(User $user): ?int
+    {
+        if (! $user->is_active || ! $this->canAccess($user, 'b2b')) {
+            return null;
+        }
+
+        $storeIds = app(OperationalTenantScope::class)
+            ->allowedStoreIds($user, 'finance.view', 'b2b');
+
+        foreach ($storeIds as $storeId) {
+            if (! $user->hasPermission('finance.view', $storeId)
+                || app(OrganizationHierarchyService::class)->scopeForStore($storeId) === null) {
+                continue;
+            }
+
+            $scope = new EntitlementScope(EntitlementScope::STORE, $storeId);
+            foreach ([
+                'treasury.receipts.read',
+                'treasury.payments.read',
+                'treasury.reconciliation.read',
+                'treasury.cash_closing.read',
+                'treasury.cheques.read',
+            ] as $capability) {
+                if ($this->enterpriseEntitlements->allows('treasury', $scope, $capability)) {
+                    return $storeId;
+                }
+            }
+        }
+
+        return null;
+    }
+
     private function enterpriseModuleAccessible(User $user, string $moduleCode): bool
     {
         $memoKey = $user->getKey().'|'.$moduleCode;
@@ -1087,39 +1139,7 @@ class AdminNavigation
             }
         }
 
-        // P2698: admit an actual B2B Treasury store that passes the same
-        // effective role, store, module and capability rules as the HTTP tab.
-        if ($moduleCode === 'treasury' && $this->firstEntitledWholesaleTreasuryStoreId($user) !== null) {
-            return $this->enterpriseModuleAccessMemo[$memoKey] = true;
-        }
-
         return $this->enterpriseModuleAccessMemo[$memoKey] = false;
-    }
-
-    private function firstEntitledWholesaleTreasuryStoreId(User $user): ?int
-    {
-        if (! $this->canAccess($user, 'b2b')) {
-            return null;
-        }
-
-        foreach (app(OperationalTenantScope::class)->allowedStoreIds($user, 'finance.view', 'b2b') as $storeId) {
-            try {
-                $this->tenantContext->wholesale($user, $storeId);
-
-                if ($this->enterpriseEntitlements->allows(
-                    'treasury',
-                    new EntitlementScope(EntitlementScope::STORE, $storeId),
-                    'treasury.receipts.read',
-                )) {
-                    return $storeId;
-                }
-            } catch (Throwable) {
-                // Failed context/entitlement lookups cannot promote a store.
-                continue;
-            }
-        }
-
-        return null;
     }
 
     private function isSuperAdmin(User $user): bool
