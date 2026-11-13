@@ -24,7 +24,7 @@ final class V2ApprovedDiscountHistoryAuthorityTest extends TestCase
 
     public function test_approved_history_is_visible_on_exact_order_after_fulfillment_changes_in_arabic_and_english(): void
     {
-        [, $reviewer, $orderId, $requestId] = $this->approvedDiscount();
+        [$agent, $reviewer, $orderId, $requestId] = $this->approvedDiscount();
 
         $this->assertDatabaseHas('order_customer_service_discount_requests', [
             'id' => $requestId,
@@ -38,6 +38,12 @@ final class V2ApprovedDiscountHistoryAuthorityTest extends TestCase
 
         // Approval history remains visible after the pending-stage form closes.
         DB::table('orders')->where('id', $orderId)->update(['status' => 'confirmed']);
+
+        // A requester never inherits review authority or approved-history
+        // access from being assigned to this same order.
+        $this->actingAs($agent)
+            ->get(route('admin.operations.orders.index', ['order' => $orderId, 'channel' => 'b2b']))
+            ->assertDontSee('data-order-approved-discount-history', false);
 
         foreach (['en', 'ar'] as $locale) {
             app()->setLocale($locale);
