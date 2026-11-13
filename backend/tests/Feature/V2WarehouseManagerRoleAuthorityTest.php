@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
+use App\Enterprise\Wms\WarehouseScope;
 use App\Models\Permission;
 use App\Models\Store;
 use App\Models\Role;
@@ -170,6 +171,41 @@ final class V2WarehouseManagerRoleAuthorityTest extends TestCase
                 ->assertSee('data-enterprise-wms="true"', false)
                 ->assertSee('dir="'.$direction.'"', false);
         }
+
+        $otherWarehouseId = (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $storeId,
+            'code' => 'V2-2691-SCOPED-FOREIGN',
+            'name' => 'Unassigned wholesale warehouse',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('enterprise_warehouse_user_scopes')->insert([
+            'user_id' => $actor->id,
+            'warehouse_id' => $warehouseId,
+            'can_manage' => false,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // A global Warehouse Manager role cannot bypass an explicit
+        // warehouse-level read-only assignment to manage or enumerate peers.
+        $this->assertSame([], app(WarehouseScope::class)->authorizedWarehouseIds(
+            $actor->fresh(),
+            $storeId,
+            'inventory.manage',
+        ));
+        $this->actingAs($actor->fresh())->get(route('admin.erp.wms.index', [
+            'store_id' => $storeId,
+            'warehouse_id' => $warehouseId,
+            'tab' => 'warehouses',
+        ]))->assertOk();
+        $this->actingAs($actor->fresh())->get(route('admin.erp.wms.index', [
+            'store_id' => $storeId,
+            'warehouse_id' => $otherWarehouseId,
+            'tab' => 'warehouses',
+        ]))->assertNotFound();
 
         $retail = Store::query()->create([
             'store_type_id' => (int) DB::table('store_types')->where('code', 'B2C')->value('id'),
