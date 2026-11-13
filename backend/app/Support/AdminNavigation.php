@@ -915,25 +915,37 @@ class AdminNavigation
             return null;
         }
 
-        $scope = app(OperationalTenantScope::class);
-        if ($hasWholesaleChannel) {
-            // Initialize the existing B2B principal before resolving scopes,
-            // as the canonical Orders navigation already does.
-            app(WholesalePrincipal::class)->storeId();
-        }
-
+        // Sidebar rendering is read-only: creating the Wholesale principal here
+        // would recreate a store after a full data reset. Reuse the already
+        // memoized Super Admin decision instead of running the tenant-scope
+        // role probe once for each of the three required permissions.
+        $scope = $this->isSuperAdmin($user) ? null : app(OperationalTenantScope::class);
         $permissions = ['orders.view', 'orders.customer_service_discount', 'orders.approve'];
         foreach (['b2b', 'b2c'] as $channel) {
             if ($channel === 'b2b' && ! $hasWholesaleChannel) {
                 continue;
             }
 
-            $eligible = null;
-            foreach ($permissions as $permission) {
-                $stores = $scope->allowedStoreIds($user, $permission, $channel);
-                $eligible = $eligible === null ? $stores : array_values(array_intersect($eligible, $stores));
-                if ($eligible === []) {
-                    break;
+            if ($scope === null) {
+                // OperationalTenantScope authorizes active Super Admins for
+                // existing active stores; selecting one must not create it.
+                $eligible = DB::table('stores')
+                    ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                    ->where('stores.is_active', true)
+                    ->where('store_types.code', strtoupper($channel))
+                    ->orderBy('stores.id')
+                    ->limit(1)
+                    ->pluck('stores.id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->all();
+            } else {
+                $eligible = null;
+                foreach ($permissions as $permission) {
+                    $stores = $scope->allowedStoreIds($user, $permission, $channel);
+                    $eligible = $eligible === null ? $stores : array_values(array_intersect($eligible, $stores));
+                    if ($eligible === []) {
+                        break;
+                    }
                 }
             }
             if ($eligible === []) {
