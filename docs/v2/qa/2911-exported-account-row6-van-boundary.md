@@ -25,6 +25,7 @@ New `backend/tests/Feature/V2ExportedAccountRow6VanBoundaryTest.php`:
 - **Negative Retail, Arabic/English**: B2C driver with a deliberately accidental active Van assignment has a resolvable context but receives Van visits `403`, push registration `403`, no Van device token; legitimate B2C Driver push succeeds `201`.
 - **Negative mixed roles**: a synthetic actor with both B2B/B2C roles but only an active **b2c** Driver assignment is denied Van visits and push, without clearing its historical role assignments or deleting the driver/van record.
 - **Positive explicit operator**: assigned `VAN_OPERATOR` remains able to access Van runtime without requiring a Driver table row.
+- **Existing login contract corrected**: `AuthFoundationTest::test_retail_driver_login_cannot_grant_van_runtime_from_an_accidental_assignment` now proves the historic B2C-only driver fixture logs into Driver successfully but receives `403` when it attempts Van login with an assigned Van, and receives no extra Van session token. The previous test expected `200` for both apps, contradicting the owner-locked fulfillment model. The adjacent test for an explicitly dual-role `VAN_OPERATOR` stays unchanged; valid explicit operator grants are not revoked.
 
 | Surface | Runtime impact and proof |
 | --- | --- |
