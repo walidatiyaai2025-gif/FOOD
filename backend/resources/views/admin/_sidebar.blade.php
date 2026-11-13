@@ -65,6 +65,7 @@ aside.foodex-sidebar-expanded{width:var(--foodex-sidebar-width)!important}
 .foodex-nav-domain:not(:has(> .foodex-nav-group:not([hidden]))){display:none!important}
 aside.foodex-sidebar-collapsed .foodex-nav-domain{padding-inline-start:0;border-inline-start:0}
 aside.foodex-sidebar-collapsed .foodex-nav-domain-title{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:1023px){aside.foodex-sidebar-collapsed .foodex-nav-domain{padding-inline-start:6px;border-inline-start:2px solid var(--foodex-border)}aside.foodex-sidebar-collapsed .foodex-nav-domain-title{position:static;width:auto;height:auto;padding:7px 8px 3px;margin:0;overflow:visible;clip:auto;white-space:normal}}
 .foodex-nav-group{border:1px solid transparent;border-radius:12px}.foodex-nav-group summary{list-style:none;cursor:pointer;min-height:46px;display:grid;grid-template-columns:30px minmax(0,1fr) auto auto;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;font-weight:800;color:var(--foodex-ink)}.foodex-nav-group-icon{display:grid;place-items:center;width:28px;height:28px;font-size:1.35rem;line-height:1}.foodex-nav-group summary::-webkit-details-marker{display:none}.foodex-nav-group summary:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
 .foodex-nav-group-title{display:flex;align-items:center;flex-wrap:wrap;gap:5px;min-width:0;line-height:1.35}
 .foodex-nav-group-status{display:inline-flex;align-items:center;max-width:100%;padding:2px 6px;border:1px solid var(--foodex-border);border-radius:999px;background:var(--foodex-surface);color:var(--foodex-muted);font-size:.66rem;font-weight:700;line-height:1.2;white-space:normal;overflow-wrap:anywhere}
@@ -190,10 +191,11 @@ html[dir=ltr] .dashboard-layout:has(>.dashboard-sidebar.foodex-sidebar-collapsed
         {{-- P237's business-domain heading composes only the groups already authorized
              by AdminNavigation. Saved group ordering is preserved, not replaced. --}}
         @php($p237DomainKeys = ['procurement', 'inventory', 'warehouses'])
-        @foreach($navGroups as $navIndex => $group)
+        @php($p237OrderedGroups = array_values($navGroups))
+        @foreach($p237OrderedGroups as $navIndex => $group)
             @php($p237Member = in_array($group['key'], $p237DomainKeys, true))
-            @php($p237Before = $navIndex > 0 && in_array($navGroups[$navIndex - 1]['key'], $p237DomainKeys, true))
-            @php($p237After = $navIndex + 1 < count($navGroups) && in_array($navGroups[$navIndex + 1]['key'], $p237DomainKeys, true))
+            @php($p237Before = $navIndex > 0 && in_array($p237OrderedGroups[$navIndex - 1]['key'], $p237DomainKeys, true))
+            @php($p237After = $navIndex + 1 < count($p237OrderedGroups) && in_array($p237OrderedGroups[$navIndex + 1]['key'], $p237DomainKeys, true))
             @if($p237Member && ! $p237Before)
                 <section class="foodex-nav-domain" role="group" aria-labelledby="p237-domain-title-{{ $navIndex }}" data-nav-domain="procurement-inventory">
                     <h2 id="p237-domain-title-{{ $navIndex }}" class="foodex-nav-domain-title">{{ __('v2_sidebar_domains.procurement_inventory') }}</h2>
