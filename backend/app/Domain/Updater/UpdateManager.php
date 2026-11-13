@@ -17,6 +17,27 @@ final class UpdateManager
         private readonly AuditLogger $auditLogger,
     ) {}
 
+    /**
+     * Share ZIP update's process-safe lock with manual backup and recovery,
+     * preventing maintenance or database rollback from overlapping a deploy.
+     *
+     * @template TResult
+     *
+     * @param  callable(): TResult  $operation
+     * @return TResult
+     */
+    public function withExclusiveExecutionLock(callable $operation): mixed
+    {
+        $lock = $this->acquireExecutionLock();
+
+        try {
+            return $operation();
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
     public function execute(
         UpdatePackageManifest $manifest,
         string $currentVersion,

@@ -437,6 +437,7 @@ return [
     'app_versions' => 'App Versions',
     'app_preview' => 'Application Preview',
     'commercial_sales_control' => 'Commercial & Pricing Control',
+    'commercial_exception_approvals' => 'Commercial Exception Approvals',
     'flash_offers' => 'Flash Offers',
     'flash_offers_wholesale' => 'Flash Offers — Wholesale',
     'flash_offers_retail' => 'Flash Offers — Retail',
