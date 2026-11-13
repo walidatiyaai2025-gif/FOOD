@@ -4,8 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Models\VanAssignment;
 use App\Models\VanVisit;
 use App\Services\VanRegistryService;
+use App\Services\WholesalePrincipal;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -97,6 +101,60 @@ final class V2VanTripActivityAuthorityTest extends TestCase
             ->assertOk()
             ->assertSee('data-trip-route="V2-P276-VISIBLE-ROUTE"', false)
             ->assertDontSee('V2-P276-UNASSIGNED-VAN-SECRET');
+
+        $this->assertDatabaseCount('van_visits', 1);
+    }
+
+    public function test_van_label_requires_current_active_assignment_van_and_wholesale_warehouse(): void
+    {
+        $admin = $this->superAdmin();
+        $warehouseId = app(WholesalePrincipal::class)->warehouseId();
+        $van = app(VanRegistryService::class)->createVan([
+            'code' => 'V2-P276-AUTHORIZED-ONLY-VAN',
+        ]);
+        $assignment = VanAssignment::query()->create([
+            'public_id' => (string) Str::uuid(),
+            'van_id' => $van->id,
+            'warehouse_id' => $warehouseId,
+            'assignment_type' => 'primary',
+            'status' => 'active',
+            'effective_from' => now()->subHour(),
+            'effective_until' => now()->addHour(),
+            'created_by' => $admin->id,
+        ]);
+
+        VanVisit::query()->create([
+            'actor_user_id' => $admin->id,
+            'customer_type' => 'b2b',
+            'customer_id' => 10001,
+            'store_id' => null,
+            'status' => 'planned',
+            'planned_at' => now(),
+            'metadata' => [
+                'route_key' => 'V2-P276-AUTHORIZED-ROUTE',
+                'van_id' => $van->id,
+            ],
+        ]);
+
+        $url = route('admin.field-operations.visits', ['trip_view' => 'trips']);
+        $this->actingAs($admin)->get($url)
+            ->assertOk()
+            ->assertSee('data-trip-route="V2-P276-AUTHORIZED-ROUTE"', false)
+            ->assertSee('V2-P276-AUTHORIZED-ONLY-VAN');
+
+        $assignment->forceFill(['effective_until' => now()->subMinute()])->save();
+        $this->get($url)->assertOk()->assertDontSee('V2-P276-AUTHORIZED-ONLY-VAN');
+
+        $assignment->forceFill(['effective_until' => now()->addHour(), 'status' => 'inactive'])->save();
+        $this->get($url)->assertOk()->assertDontSee('V2-P276-AUTHORIZED-ONLY-VAN');
+
+        $assignment->forceFill(['status' => 'active'])->save();
+        $van->forceFill(['status' => 'inactive'])->save();
+        $this->get($url)->assertOk()->assertDontSee('V2-P276-AUTHORIZED-ONLY-VAN');
+
+        $van->forceFill(['status' => 'active'])->save();
+        DB::table('warehouses')->where('id', $warehouseId)->update(['is_active' => false]);
+        $this->get($url)->assertOk()->assertDontSee('V2-P276-AUTHORIZED-ONLY-VAN');
 
         $this->assertDatabaseCount('van_visits', 1);
     }
