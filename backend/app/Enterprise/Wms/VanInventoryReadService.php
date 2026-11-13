@@ -7,6 +7,7 @@ use App\Enterprise\Modules\ModuleRegistry;
 use App\Models\User;
 use App\Models\VanAssignment;
 use App\Services\OperationalTenantScope;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 final class VanInventoryReadService
@@ -24,7 +25,7 @@ final class VanInventoryReadService
      * Read the stock of the current primary Van assignment, never the Van's
      * historical home warehouse or a caller-provided warehouse identifier.
      *
-     * @return array{van_id:int,warehouse_id:int,store_id:int,rows:\Illuminate\Support\Collection,next_cursor:?int}
+     * @return array{van_id:int,warehouse_id:int,store_id:int,rows:Collection,next_cursor:?int}
      */
     public function page(User $actor, int $vanId, ?int $afterInventoryId = null): array
     {
