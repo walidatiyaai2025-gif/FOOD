@@ -182,7 +182,12 @@ class InstallerController extends Controller
                     break;
 
                 case 13:
-                    $workflow->generateApplicationKey();
+                    // Step 13 is repeatable as an HTTP request, but key rotation is
+                    // not. Keep ciphertext generated after the first completion
+                    // readable when the installer form is refreshed or resubmitted.
+                    if ($progress['completed_step'] < 13) {
+                        $workflow->generateApplicationKey();
+                    }
                     break;
 
                 case 14:
