@@ -1,0 +1,44 @@
+name: FOODEX V2 G006 ZIP provenance unit tests
+
+on:
+  pull_request:
+    branches: [Foodex_V2]
+    paths:
+      - 'scripts/v2_upgrade_package_provenance.py'
+      - 'scripts/tests/test_v2_upgrade_package_provenance.py'
+      - 'docs/v2/qa/2747-upgrade-package-provenance-g006.md'
+      - '.github/workflows/v2-g006-package-provenance.yml'
+  push:
+    branches:
+      - 'test/2747-v2-upgrade-package-provenance-g006'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v2-g006-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-zip-manifest-contract:
+    name: Synthetic ZIP security and historical edge contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact candidate commit
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify source checkout identity
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+      - name: Validate Python source syntax
+        run: python3 -m py_compile scripts/v2_upgrade_package_provenance.py scripts/tests/test_v2_upgrade_package_provenance.py
+      - name: Execute positive and adversarial ZIP unit tests
+        run: python3 -m unittest discover -s scripts/tests -p 'test_v2_upgrade_package_provenance.py' -v
