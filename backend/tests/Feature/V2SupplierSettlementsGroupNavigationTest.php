@@ -52,7 +52,7 @@ final class V2SupplierSettlementsGroupNavigationTest extends TestCase
         $this->assertTrue(Route::has('admin.erp.finance.index'));
 
         [$actor, $storeId] = $this->authorizedWholesaleFinanceActor();
-        $groups = $this->groups($actor);
+        $groups = $this->navigationGroupsFor($actor);
 
         $supplier = $groups->get('supplier_settlements');
         $this->assertIsArray($supplier, 'Authorized and certified supplier AP must be discoverable.');
@@ -85,7 +85,7 @@ final class V2SupplierSettlementsGroupNavigationTest extends TestCase
             app()->setLocale($locale);
             $actor->forceFill(['locale' => $locale])->save();
 
-            $group = $this->groups($actor->fresh())->get('supplier_settlements');
+            $group = $this->navigationGroupsFor($actor->fresh())->get('supplier_settlements');
             $this->assertIsArray($group);
             $this->assertSame($expectedTitle, __('admin.nav_groups.supplier_settlements'));
             $this->assertSame('admin.nav_groups.supplier_settlements', $group['label']);
@@ -106,7 +106,7 @@ final class V2SupplierSettlementsGroupNavigationTest extends TestCase
         [$actor, $storeId] = $this->authorizedWholesaleFinanceActor();
         $roleless = User::factory()->create(['is_active' => true]);
 
-        $this->assertFalse($this->groups($roleless)->has('supplier_settlements'));
+        $this->assertFalse($this->navigationGroupsFor($roleless)->has('supplier_settlements'));
         $this->actingAs($roleless)
             ->get(route('admin.erp.finance.index', ['store_id' => $storeId, 'tab' => 'payables']))
             ->assertForbidden();
@@ -122,7 +122,7 @@ final class V2SupplierSettlementsGroupNavigationTest extends TestCase
         ]);
         $actor->forceFill(['has_permission_overrides' => true])->save();
 
-        $this->assertFalse($this->groups($actor->fresh())->has('supplier_settlements'));
+        $this->assertFalse($this->navigationGroupsFor($actor->fresh())->has('supplier_settlements'));
         $this->actingAs($actor->fresh())
             ->get(route('admin.erp.finance.index', ['store_id' => $storeId, 'tab' => 'payables']))
             ->assertForbidden();
@@ -131,10 +131,10 @@ final class V2SupplierSettlementsGroupNavigationTest extends TestCase
     public function test_uncertified_finance_module_hides_group_and_denies_direct_http(): void
     {
         [$actor, $storeId] = $this->authorizedWholesaleFinanceActor();
-        $this->assertTrue($this->groups($actor)->has('supplier_settlements'));
+        $this->assertTrue($this->navigationGroupsFor($actor)->has('supplier_settlements'));
 
         config()->set('enterprise_module_readiness.certified_versions.finance', null);
-        $this->assertFalse($this->groups($actor->fresh())->has('supplier_settlements'));
+        $this->assertFalse($this->navigationGroupsFor($actor->fresh())->has('supplier_settlements'));
         $this->actingAs($actor->fresh())
             ->get(route('admin.erp.finance.index', ['store_id' => $storeId, 'tab' => 'payables']))
             ->assertForbidden();
@@ -152,7 +152,7 @@ final class V2SupplierSettlementsGroupNavigationTest extends TestCase
             'is_active' => true,
         ]);
 
-        $item = $this->groups($actor)->get('supplier_settlements')['children'][0];
+        $item = $this->navigationGroupsFor($actor)->get('supplier_settlements')['children'][0];
         $this->assertSame((string) $storeId, $item['params']['store_id']);
         $response = $this->actingAs($actor)
             ->get(route('admin.erp.finance.index', [
@@ -163,7 +163,7 @@ final class V2SupplierSettlementsGroupNavigationTest extends TestCase
     }
 
     /** @return Collection<string, array<string, mixed>> */
-    private function groups(User $user): Collection
+    private function navigationGroupsFor(User $user): Collection
     {
         app()->forgetInstance(AdminNavigation::class);
 
