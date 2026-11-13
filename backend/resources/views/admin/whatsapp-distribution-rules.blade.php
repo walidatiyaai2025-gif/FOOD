@@ -36,14 +36,14 @@
     <main class="foodex-admin-main foodex-admin-page">
         @include('admin._global-header')
         <div class="p202-shell" data-v2-distribution-rules>
-            <header class="foodex-page-toolbar p202-head">
+            <div class="foodex-page-toolbar p202-head">
                 <div>
                     <span class="foodex-subtitle">{{ __('whatsapp_supervisor.subtitle') }}</span>
                     <h1>{{ __('whatsapp_supervisor.distribution.title') }}</h1>
                     <p class="p202-muted">{{ __('whatsapp_supervisor.distribution.help') }}</p>
                 </div>
                 <a class="foodex-action-secondary" href="{{ route('admin.whatsapp-supervisor.index') }}">{{ __('whatsapp_supervisor.distribution.back') }}</a>
-            </header>
+            </div>
             @if(session('status'))<p role="status" class="p202-msg">{{ session('status') }}</p>@endif
             @if($errors->any())
                 <div role="alert" class="p202-error"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
