@@ -145,6 +145,59 @@ void main() {
     }
   });
 
+  test('Van order detail response cannot swap the requested order', () async {
+    final repository = _repository((request) async {
+      return http.Response(
+        jsonEncode({'data': _order(id: 502)}),
+        200,
+      );
+    });
+
+    await expectLater(
+      repository.order(501),
+      throwsA(isA<VanApiException>()),
+    );
+  });
+
+  test('execution reads and transitions reject another B2B order ID', () async {
+    var sent = 0;
+    final repository = _repository((request) async {
+      sent += 1;
+      return http.Response(
+        jsonEncode({
+          'data': {
+            'order_id': 502,
+            'order_status': 'pending',
+            'status': 'pending',
+            'allowed_actions': <Object>[],
+          },
+        }),
+        200,
+      );
+    });
+
+    await expectLater(
+      repository.execution(501),
+      throwsA(isA<VanApiException>()),
+    );
+    await expectLater(
+      repository.transitionOrder(
+        orderId: 501,
+        status: 'in_progress',
+        idempotencyKey: 'van-order-identity-501',
+      ),
+      throwsA(isA<VanApiException>()),
+    );
+    await expectLater(
+      repository.retryOrder(
+        orderId: 501,
+        idempotencyKey: 'van-order-retry-identity-501',
+      ),
+      throwsA(isA<VanApiException>()),
+    );
+    expect(sent, 3);
+  });
+
   test('Van order detail never accepts a Retail customer type', () async {
     final repository = _repository((request) async {
       return http.Response(
