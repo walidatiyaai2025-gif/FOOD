@@ -9,6 +9,7 @@ use App\Enterprise\Modules\ModuleLifecycleManager;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
+use App\Models\Customer;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
@@ -109,7 +110,6 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
         ]);
     }
 
-
     public function test_retail_finance_overview_does_not_aggregate_ar_of_sibling_store_in_same_legal_entity(): void
     {
         [$actor, $store, $context] = $this->operator('P309-OVERVIEW');
@@ -142,7 +142,7 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
             'code' => '4000', 'name' => 'Revenue', 'type' => 'revenue',
             'normal_balance' => 'credit', 'allow_posting' => true,
         ]);
-        $customer = \App\Models\Customer::query()->create([
+        $customer = Customer::query()->create([
             'type' => 'b2b',
             'name' => 'P309 fixture customer',
             'email' => 'p309-finance@example.test',
