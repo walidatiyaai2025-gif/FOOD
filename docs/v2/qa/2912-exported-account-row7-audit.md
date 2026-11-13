@@ -16,6 +16,8 @@ The dedicated backend/tests/Feature/V2ExportedAccountRow7AuthorizationTest.php p
 2. An active historical B2B Driver profile alone cannot use current Retail-only Driver runtime, nor Van runtime without its own effective Van assignment. Tests exercise both Arabic and English locales.
 3. Forging an explicit global Retail deliveries.b2c.execute ALLOW does not cross the B2B/B2C domain boundary. Direct Driver/Van HTTP still denies and the original role/identity is retained.
 
+The synthetic legacy global operational role may still receive generic `overview`, `erp`, or `administration` landing links in `AdminNavigation::groupsFor()`. They are **not equivalent to privileges**: regressions assert the *absence of restricted Security/role management, Retail inventory/orders and Finance/WMS actions*, and direct protected Security Center/Sidebar/Driver/Van HTTP must deny. The original zero-length Sidebar assertion was incorrect (exact-head Laravel CI: two assertion failures only, 3467 passed). This test does not certify every generic landing route; broader Sidebar-to-HTTP projection is separately tracked by V2 authorization governance.
+
 The current Van compatibility path permits an eligible legacy driver only when an *effective assigned Van context* satisfies server-side authority; this test does not weaken or claim to disable that path. B2B=VAN ONLY and B2C=DRIVER ONLY remain unchanged.
 
 ## Impact matrix
