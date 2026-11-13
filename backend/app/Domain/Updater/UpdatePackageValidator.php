@@ -49,7 +49,10 @@ final class UpdatePackageValidator
                             continue;
                         }
 
-                        $relativePath = str_replace('\\', '/', $name);
+                        // Match LaravelUpdateRuntime::safeRelativePath: a ZIP name
+                        // padded with whitespace must not hide a migration
+                        // from the mandatory database-backup declaration.
+                        $relativePath = str_replace('\\', '/', trim($name));
                         if (str_starts_with($relativePath, 'backend/database/migrations/')
                             && str_ends_with(strtolower($relativePath), '.php')) {
                             throw new InvalidArgumentException(
