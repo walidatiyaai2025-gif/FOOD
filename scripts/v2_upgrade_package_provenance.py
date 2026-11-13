@@ -23,7 +23,7 @@ class PackageContractError(ValueError):
 
 SHA_PATTERN = re.compile(r"^[a-f0-9]{40}$")
 DIGEST_PATTERN = re.compile(r"^[a-f0-9]{64}$")
-VERSION_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
+VERSION_PATTERN = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
 
 
 def _require(condition: bool, message: str) -> None:
