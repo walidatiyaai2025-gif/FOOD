@@ -843,6 +843,7 @@ final class FinanceWorkbenchController extends Controller
         $settlementDocument = null;
         $settlements = null;
         $settlementAccounts = collect();
+        $settlementCreators = collect();
         if ($request->filled('settlement_document_id')) {
             $validated = $request->validate([
                 'settlement_document_id' => ['required', 'integer', 'min:1'],
@@ -863,6 +864,10 @@ final class FinanceWorkbenchController extends Controller
                 ->paginate(25, ['*'], 'settlement_page')
                 ->withQueryString();
 
+            $settlementCreators = User::query()
+                ->whereIn('id', $settlements->getCollection()->pluck('created_by')->filter()->all())
+                ->pluck('name', 'id');
+
             if ($access['ar_manage'] ?? false) {
                 $settlementAccounts = EnterpriseFinanceAccount::query()
                     ->where('organization_id', $scope->organizationId)
@@ -877,7 +882,7 @@ final class FinanceWorkbenchController extends Controller
             }
         }
 
-        return compact('documents', 'aging', 'filters', 'settlementDocument', 'settlements', 'settlementAccounts');
+        return compact('documents', 'aging', 'filters', 'settlementDocument', 'settlements', 'settlementAccounts', 'settlementCreators');
     }
 
     /** @return array<string, mixed> */
