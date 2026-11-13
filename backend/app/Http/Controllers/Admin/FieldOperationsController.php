@@ -736,9 +736,9 @@ final class FieldOperationsController extends Controller
             ->limit(300)
             ->get(['id', 'order_number', 'status', 'store_id']);
 
-        // Visit metadata is not authorization to read arbitrary Van codes.
-        // A referenced Van must also have an assignment through a warehouse
-        // belonging to a B2B store authorized for the current operator.
+        // Visit metadata is not authority to read arbitrary Van codes. An
+        // expired/revoked assignment, inactive warehouse or retired Van must
+        // never revive the historical label through a forged metadata.van_id.
         $tripVanCodes = $tripView === 'trips'
             ? Van::query()
                 ->whereIn('id', $visits->getCollection()
@@ -746,8 +746,16 @@ final class FieldOperationsController extends Controller
                     ->map(static fn ($metadata): int => (int) ($metadata['van_id'] ?? 0))
                     ->filter()
                     ->unique())
+                ->where('status', 'active')
                 ->whereHas('assignments', static function ($query) use ($allowedB2bStores): void {
                     $query->join('warehouses', 'warehouses.id', '=', 'van_assignments.warehouse_id')
+                        ->where('van_assignments.status', 'active')
+                        ->where('van_assignments.effective_from', '<=', now())
+                        ->where(function ($query): void {
+                            $query->whereNull('van_assignments.effective_until')
+                                ->orWhere('van_assignments.effective_until', '>', now());
+                        })
+                        ->where('warehouses.is_active', true)
                         ->whereIn('warehouses.store_id', $allowedB2bStores);
                 })
                 ->pluck('code', 'id')
