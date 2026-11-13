@@ -23,7 +23,6 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 /**
@@ -327,8 +326,8 @@ final class V2AccountantRoleAuthorityTest extends TestCase
         try {
             $approvals->approve($maker, $makerContext, $approval->id);
             $this->fail('An Accountant must not approve their own journal.');
-        } catch (HttpException $exception) {
-            $this->assertSame(403, $exception->getStatusCode());
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('approval_limit', $exception->errors());
         }
 
         $approved = $approvals->approve($checker, $checkerContext, $approval->id);
