@@ -71,7 +71,7 @@ final class AccountsReceivableService
 
         $perPage = max(10, min(100, $perPage));
 
-        return $this->documentQuery($scope)
+        return $this->documentQuery($scope, $context)
             ->when(
                 $validated['customer_id'] ?? null,
                 fn (Builder $query, int $customerId): Builder => $query->where('customer_id', $customerId),
@@ -125,6 +125,11 @@ final class AccountsReceivableService
         ])->validate();
 
         $this->assertStoreInScope($scope, (int) $data['store_id']);
+        // A Retail operator cannot create an AR document in a sibling store,
+        // even when both stores map to the same enterprise legal entity.
+        if ($context->isRetail()) {
+            abort_unless($context->ownsStore((int) $data['store_id']), 404);
+        }
         Customer::query()->findOrFail((int) $data['customer_id']);
         $this->assertPostingAccount($scope, (int) $data['receivable_account_id']);
         $this->assertPostingAccount($scope, (int) $data['offset_account_id']);
@@ -153,7 +158,7 @@ final class AccountsReceivableService
             'description' => $description,
         ], JSON_THROW_ON_ERROR));
 
-        $existing = $this->documentQuery($scope)
+        $existing = $this->documentQuery($scope, $context)
             ->where('idempotency_key', $idempotencyKey)
             ->first();
 
@@ -165,6 +170,7 @@ final class AccountsReceivableService
 
         return DB::transaction(function () use (
             $actor,
+            $context,
             $scope,
             $data,
             $entryDate,
@@ -175,7 +181,7 @@ final class AccountsReceivableService
             $idempotencyKey,
             $requestHash,
         ): EnterpriseAccountsReceivableDocument {
-            $existing = $this->documentQuery($scope)
+            $existing = $this->documentQuery($scope, $context)
                 ->where('idempotency_key', $idempotencyKey)
                 ->lockForUpdate()
                 ->first();
@@ -237,7 +243,7 @@ final class AccountsReceivableService
             $scope,
             $documentId,
         ): EnterpriseAccountsReceivableDocument {
-            $document = $this->documentQuery($scope)
+            $document = $this->documentQuery($scope, $context)
                 ->whereKey($documentId)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -338,8 +344,8 @@ final class AccountsReceivableService
             self::MANAGE_CAPABILITY,
         );
 
-        return DB::transaction(function () use ($actor, $scope, $documentId): EnterpriseAccountsReceivableDocument {
-            $document = $this->documentQuery($scope)
+        return DB::transaction(function () use ($actor, $context, $scope, $documentId): EnterpriseAccountsReceivableDocument {
+            $document = $this->documentQuery($scope, $context)
                 ->whereKey($documentId)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -399,7 +405,7 @@ final class AccountsReceivableService
             'reference' => ['nullable', 'string', 'max:180'],
         ])->validate();
 
-        $document = $this->documentQuery($scope)->whereKey($documentId)->firstOrFail();
+        $document = $this->documentQuery($scope, $context)->whereKey($documentId)->firstOrFail();
         if ($document->status !== 'posted') {
             throw ValidationException::withMessages([
                 'status' => ['Only posted AR documents can receive allocations.'],
@@ -510,7 +516,7 @@ final class AccountsReceivableService
                 ]);
             }
 
-            $document = $this->documentQuery($scope)
+            $document = $this->documentQuery($scope, $context)
                 ->whereKey($allocation->ar_document_id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -618,6 +624,7 @@ final class AccountsReceivableService
             ->where('document.organization_id', $scope->organizationId)
             ->where('document.company_id', $scope->companyId)
             ->where('document.legal_entity_id', $scope->legalEntityId)
+            ->when($context->isRetail(), fn ($query) => $query->where('document.store_id', $context->requiresStore()))
             ->where('document.status', 'posted')
             ->when(
                 $customerId !== null,
@@ -708,11 +715,13 @@ final class AccountsReceivableService
     /** @return Builder<EnterpriseAccountsReceivableDocument> */
     private function documentQuery(
         EnterpriseDataScope $scope,
+        ResolvedTenantContext $context,
     ): Builder {
         return EnterpriseAccountsReceivableDocument::query()
             ->where('organization_id', $scope->organizationId)
             ->where('company_id', $scope->companyId)
-            ->where('legal_entity_id', $scope->legalEntityId);
+            ->where('legal_entity_id', $scope->legalEntityId)
+            ->when($context->isRetail(), fn (Builder $query): Builder => $query->where('store_id', $context->requiresStore()));
     }
 
     private function assertStoreInScope(
