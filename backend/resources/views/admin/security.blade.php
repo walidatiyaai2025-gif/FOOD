@@ -5,6 +5,12 @@
 <title>{{ __('admin.security.title') }} · FOODEX</title>
 <style>
 :root{color:#17202a;background:#f5f7fa}*{box-sizing:border-box}body{margin:0}.page{max-width:1500px;margin:auto;padding:28px}.top,.head,.row{display:flex;gap:14px;justify-content:space-between;align-items:flex-start}.top{margin-bottom:22px}.muted{color:var(--foodex-muted);line-height:1.55}.back,.card,.panel{background:#fff;border:1px solid #e2e8f0;border-radius:16px}.back{padding:10px 14px;text-decoration:none;color:#0f172a}.panel{padding:22px;margin-bottom:22px;box-shadow:0 14px 35px rgba(15,23,42,.05)}.card{padding:16px;margin-top:12px}.filters,.checks,.actions{display:flex;flex-wrap:wrap;gap:9px}.filters{margin:16px 0}.checks{margin:10px 0}.actions{align-items:center}input,select,textarea,button{font:inherit}input[type=text],input[type=search],select,textarea{border:1px solid var(--foodex-border);border-radius:10px;padding:9px 11px;background:#fff}textarea{width:100%;min-height:65px}.grow{flex:1;min-width:240px}.btn{border:0;border-radius:10px;padding:9px 13px;font-weight:750;cursor:pointer}.primary{background:#0f172a;color:#fff}.danger{background:#fff1f2;color:#9f1239}.success{background:#ecfdf5;color:#065f46}.secondary{background:#eef2ff;color:#3730a3}.badge{display:inline-block;border-radius:999px;padding:4px 8px;font-size:.75rem;background:#e2e8f0;margin:3px}.active{background:#dcfce7;color:#166534}.inactive{background:#fee2e2;color:#991b1b}.system{background:#e0e7ff;color:#3730a3}details{margin-top:12px}summary{cursor:pointer;font-weight:800}.store{border:1px dashed var(--foodex-border);border-radius:12px;padding:10px;margin:8px 0}.permissions{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}.permission-group{border:0;border-top:1px solid #e2e8f0;padding:10px 0 0;min-width:0}.permission-group legend{font-weight:800;padding:0}.permission-group-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0}.permission-group-tools .btn{padding:6px 9px}.permission-search{display:grid;gap:5px;margin:12px 0}.permission-search input{width:100%}.permission-option{display:flex;gap:8px;align-items:flex-start;padding:7px 4px;border-radius:8px}.permission-option input{margin-top:4px}.permission-code{display:block;color:#64748b;margin-top:2px;overflow-wrap:anywhere}.permission-impact{display:grid;gap:4px;margin:12px 0}.assignment-store>summary{padding:4px 0}.job-role-meta{display:grid;gap:5px;margin-top:6px}.job-role-tags{display:flex;flex-wrap:wrap;gap:5px}.job-role-responsibilities{margin:8px 0 0;padding-inline-start:20px}.role-unavailable{opacity:.72}.role-unavailable .badge{background:var(--foodex-orange-soft);color:var(--foodex-ink)}.security-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}.security-tab{display:inline-flex;align-items:center;min-height:42px;padding:9px 14px;border:1px solid var(--foodex-border);border-radius:12px;background:#fff;color:var(--foodex-ink);font-weight:800;text-decoration:none}.security-tab[aria-current="page"]{background:var(--foodex-green);border-color:var(--foodex-green);color:#fff}.security-users-head-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.security-users-head-actions .primary,.security-create-form .primary{background:var(--foodex-green);color:#fff}.security-create-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-width:min(720px,90vw);padding-top:12px}.security-create-form label{display:grid;gap:6px;font-weight:700}.security-create-form input,.security-create-form select{width:100%;border:1px solid var(--foodex-border);border-radius:10px;padding:9px 11px;background:#fff}.security-create-form .span-2{grid-column:1/-1}.security-user-table-wrap{overflow-x:auto}.security-user-table{width:100%;border-collapse:collapse;min-width:920px}.security-user-table th,.security-user-table td{padding:12px 10px;border-bottom:1px solid var(--foodex-border);text-align:start;vertical-align:middle}.security-user-table th{font-size:.82rem;color:var(--foodex-muted);background:var(--foodex-background)}.security-user-identity{display:grid;gap:3px;min-width:220px}.security-user-role-list{display:flex;flex-wrap:wrap;gap:4px;max-width:420px}.security-user-actions{display:flex;flex-wrap:wrap;gap:7px;align-items:center}.security-user-actions details{margin:0}.security-user-actions summary{list-style:none}.security-user-actions summary::-webkit-details-marker{display:none}.security-modal-stack{display:grid;gap:12px;min-width:min(760px,90vw);padding-top:12px}.notice,.errors{padding:12px 14px;border-radius:12px;margin-bottom:14px}.notice{background:#f0fdf4}.errors{background:#fff1f2}.role-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px}.role-search-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0}.role-search-controls label{font-weight:750}.role-search-controls input{flex:1;min-width:210px;max-width:470px}.role-grid [hidden],.role-search-empty[hidden]{display:none!important}.note{background:#f8fafc;padding:12px;border-radius:12px;color:#475569}.pager{margin-top:14px}@media(max-width:760px){.page{padding:12px}.top,.head,.row{flex-direction:column}.role-grid{grid-template-columns:1fr}.panel{padding:14px}.card{padding:12px}.filters{display:grid;grid-template-columns:minmax(0,1fr);width:100%}.grow{min-width:0;width:100%}.checks{display:grid;grid-template-columns:minmax(0,1fr)}.actions{align-items:stretch}.actions form{max-width:100%}.permissions{grid-template-columns:1fr}.security-create-form{grid-template-columns:1fr;min-width:0}.security-create-form .span-2{grid-column:auto}.security-tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}.security-tab{white-space:nowrap}}
+/* #2806 — reuse shared portal-based row actions; keep native dialogs as no-JS fallback. */
+.security-user-actions [data-v2-user-action-menu][hidden]{display:none!important}
+.security-user-actions[data-v2-actions-ready="1"]>.foodex-operational-dialog-host>button[data-foodex-dialog-open]{display:none!important}
+.security-user-actions [data-v2-user-action-menu]>summary{min-width:44px;min-height:44px;background:var(--foodex-action-green);border-color:var(--foodex-action-green);color:#fff}
+.security-user-actions [data-v2-user-action-menu]>summary:hover{background:var(--foodex-action-green-hover);color:#fff}
+.security-user-actions .foodex-ops-menu button{min-height:44px;white-space:normal;text-align:start}
 </style>
     @include('admin._brand-components')
 </head>
@@ -128,9 +134,22 @@ $roleLabel = static function ($role): string {
 <span class="badge {{ $managedUser->is_active?'active':'inactive' }}">{{ $managedUser->is_active?__('admin.security.active'):__('admin.security.inactive') }}</span>
 <span class="badge {{ $mfaByUser->has($managedUser->id)?'active':'inactive' }}">{{ $mfaByUser->has($managedUser->id)?__('security_governance.mfa_admin.enabled'):__('security_governance.mfa_admin.missing') }}</span>
 </td>
-<td><div class="security-user-actions">
+<td><div class="security-user-actions" data-v2-user-action-row>
+@canany(['users.roles.manage', 'users.status.manage'])
+<details class="foodex-ops-actions" data-v2-user-action-menu hidden>
+<summary aria-label="{{ __('admin.security.actions') }}: {{ $managedUser->name }}" title="{{ __('admin.security.actions') }}">⋮</summary>
+<div class="foodex-ops-menu">
 @can('users.roles.manage')
-<details data-foodex-operational-modal><summary class="btn secondary">{{ __('admin.security.manage') }}</summary>
+<button type="button" data-v2-open-user-dialog="manage">{{ __('admin.security.manage') }}</button>
+@endcan
+@can('users.status.manage')
+<button type="button" data-v2-open-user-dialog="status" class="{{ $managedUser->is_active ? 'danger' : '' }}">{{ $managedUser->is_active ? __('admin.security.deactivate') : __('admin.security.activate') }}</button>
+@endcan
+</div>
+</details>
+@endcanany
+@can('users.roles.manage')
+<details data-foodex-operational-modal data-v2-user-dialog="manage"><summary class="btn secondary">{{ __('admin.security.manage') }}</summary>
 <div class="security-modal-stack">
 
 @if(auth()->user()->hasRole('SUPER_ADMIN') && ! $managedUser->isPlatformOwner() && ! $managedUser->hasRole('SUPER_ADMIN') && ! $managedUser->is_platform_customer)
@@ -248,7 +267,7 @@ $roleLabel = static function ($role): string {
 @endcan
 @can('users.status.manage')
 @if($managedUser->is_active)
-<details data-foodex-operational-modal><summary class="btn danger">{{ __('admin.security.deactivate') }}</summary>
+<details data-foodex-operational-modal data-v2-user-dialog="status"><summary class="btn danger">{{ __('admin.security.deactivate') }}</summary>
 <form method="post" action="{{ route('admin.security.users.status',$managedUser) }}" class="security-modal-stack" onsubmit="return confirm(@js(__('admin.security.confirm_deactivate')))">
 @csrf @method('patch')
 <input type="hidden" name="is_active" value="0">
@@ -260,7 +279,7 @@ $roleLabel = static function ($role): string {
 </form>
 </details>
 @else
-<details data-foodex-operational-modal><summary class="btn success">{{ __('admin.security.activate') }}</summary>
+<details data-foodex-operational-modal data-v2-user-dialog="status"><summary class="btn success">{{ __('admin.security.activate') }}</summary>
 <form method="post" action="{{ route('admin.security.users.status',$managedUser) }}" class="security-modal-stack" onsubmit="return confirm(@js(__('admin.security.confirm_activate')))">
 @csrf @method('patch')
 <input type="hidden" name="is_active" value="1">
@@ -502,6 +521,33 @@ $roleLabel = static function ($role): string {
 <div class="note">{{ __('admin.security.server_authoritative') }}</div>
 @endif
 @include('admin._security-interaction-runtime')
+<script id="v2-user-action-menu-runtime">
+document.addEventListener('DOMContentLoaded', () => {
+    // The shared modal enhancer has already converted each existing details
+    // dialog into a button + accessible dialog host by this point.
+    document.querySelectorAll('[data-v2-user-action-row]').forEach((row) => {
+        const menu = row.querySelector('[data-v2-user-action-menu]');
+        if (!(menu instanceof HTMLDetailsElement)) return;
+        const actions = [...menu.querySelectorAll('button[data-v2-open-user-dialog]')];
+        if (!actions.length) return;
+        const dialogs = [...row.querySelectorAll('[data-v2-user-dialog]')];
+        const bindings = actions.map((action) => {
+            const host = dialogs.find((dialog) => dialog.dataset.v2UserDialog === action.dataset.v2OpenUserDialog);
+            const trigger = host?.querySelector('button[data-foodex-dialog-open]');
+            return { action, trigger };
+        });
+        if (bindings.some(({ trigger }) => !(trigger instanceof HTMLButtonElement))) return;
+        bindings.forEach(({ action, trigger }) => {
+            action.addEventListener('click', () => {
+                menu.open = false;
+                trigger.click();
+            });
+        });
+        row.dataset.v2ActionsReady = '1';
+        menu.hidden = false;
+    });
+});
+</script>
 </main>
 </div>
 </body></html>
