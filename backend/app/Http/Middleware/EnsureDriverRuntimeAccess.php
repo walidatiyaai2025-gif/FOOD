@@ -3,13 +3,15 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Services\DriverTenantScope;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 final class EnsureDriverRuntimeAccess
 {
+    public function __construct(private readonly DriverTenantScope $driverTenants) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
@@ -17,11 +19,7 @@ final class EnsureDriverRuntimeAccess
         abort_unless($user instanceof User, 401);
         abort_unless($user->tokenCan('app:driver'), 403, 'This token is not authorized for the Driver App.');
 
-        $driver = DB::table('drivers')
-            ->where('user_id', $user->id)
-            ->where('driver_type', 'b2c')
-            ->where('is_active', true)
-            ->first(['id', 'driver_type', 'store_id']);
+        $driver = $this->driverTenants->eligibleRetailDriver($user, allowLegacyUnscoped: true);
 
         abort_unless(
             $driver !== null
@@ -32,7 +30,7 @@ final class EnsureDriverRuntimeAccess
         );
 
         $request->attributes->set('driver_runtime_context', [
-            'driver_id' => (int) $driver->id,
+            'driver_id' => (int) $driver->getKey(),
             'channel' => strtolower((string) $driver->driver_type),
             'store_id' => $driver->store_id === null ? null : (int) $driver->store_id,
         ]);
