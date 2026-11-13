@@ -52,6 +52,19 @@ class V2SourceCoverageTests(unittest.TestCase):
             self.assertFalse(result["ok"])
             self.assertTrue(any("unreviewed" in x for x in result["errors"]))
 
+    def test_original_word_shape_parser_reads_only_structure(self):
+        import hashlib
+        from zipfile import ZipFile
+
+        xml = ('<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+               '<w:body><w:p/><w:tbl><w:tr/><w:tr/></w:tbl></w:body></w:document>')
+        with tempfile.TemporaryDirectory() as tmp:
+            file = Path(tmp) / "synthetic.docx"
+            with ZipFile(file, "w") as archive:
+                archive.writestr("word/document.xml", xml)
+            expected = hashlib.sha256(file.read_bytes()).hexdigest()
+            self.assertEqual(source_audit.docx_shape(file), (1, [2], expected))
+
     def test_wrong_source_is_not_claimed_verified(self):
         with tempfile.TemporaryDirectory() as tmp:
             invalid = Path(tmp) / "wrong.docx"
