@@ -26,10 +26,12 @@ void main() {
     expect(app.locale, const Locale('en'));
 
     final directionality = tester.widget<Directionality>(
-      find.ancestor(
-        of: find.byType(Scaffold),
-        matching: find.byType(Directionality),
-      ).first,
+      find
+          .ancestor(
+            of: find.byType(Scaffold),
+            matching: find.byType(Directionality),
+          )
+          .first,
     );
     expect(directionality.textDirection, TextDirection.ltr);
   });
@@ -51,10 +53,12 @@ void main() {
     expect(app.locale, const Locale('ar'));
 
     final directionality = tester.widget<Directionality>(
-      find.ancestor(
-        of: find.byType(Scaffold),
-        matching: find.byType(Directionality),
-      ).first,
+      find
+          .ancestor(
+            of: find.byType(Scaffold),
+            matching: find.byType(Directionality),
+          )
+          .first,
     );
     expect(directionality.textDirection, TextDirection.rtl);
   });
