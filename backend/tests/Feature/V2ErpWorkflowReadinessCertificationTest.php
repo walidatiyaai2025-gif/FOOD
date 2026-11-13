@@ -101,7 +101,7 @@ final class V2ErpWorkflowReadinessCertificationTest extends TestCase
             $this->assertTrue($actor->fresh()->hasRole('SUPER_ADMIN'));
             $this->assertDatabaseHas('enterprise_module_entitlements', [
                 'module_code' => $module,
-                'scope_type' => 'PLATFORM',
+                'scope_type' => EntitlementScope::PLATFORM,
                 'is_enabled' => true,
             ]);
         }
