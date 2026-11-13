@@ -14,6 +14,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -185,7 +186,7 @@ final class V2UserOpenAssignmentOffboardingTest extends TestCase
         return $user;
     }
 
-    private function archive(User $target): \Illuminate\Testing\TestResponse
+    private function archive(User $target): TestResponse
     {
         return $this->patchJson("/api/v1/admin/security/users/{$target->id}/status", [
             'is_active' => false,
