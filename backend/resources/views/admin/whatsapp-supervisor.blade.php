@@ -54,6 +54,9 @@
         </div>
         <div class="foodex-header-actions">
             <span class="badge bg-warning">{{ __('whatsapp_supervisor.dark_launch') }}</span>
+            @if(app(\App\Domain\WhatsApp\DistributionRuleManager::class)->permittedStores($user)->isNotEmpty())
+                <a class="foodex-action-primary" href="{{ route('admin.whatsapp-supervisor.rules.index') }}">{{ __('whatsapp_supervisor.distribution.title') }}</a>
+            @endif
             
         </div>
     </div>
