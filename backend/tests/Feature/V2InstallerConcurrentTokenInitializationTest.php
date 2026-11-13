@@ -137,6 +137,26 @@ PHP;
         $this->assertSame(0, app(InstallState::class)->progress()['completed_step']);
     }
 
+    public function test_dangling_symbolic_link_token_lock_is_rejected_without_creating_target(): void
+    {
+        if (! function_exists('symlink') || DIRECTORY_SEPARATOR === '\\') {
+            $this->markTestSkipped('Symbolic links are not available on this filesystem.');
+        }
+
+        $nonexistentTarget = $this->testDirectory.'/missing-target';
+        $this->assertTrue(symlink($nonexistentTarget, $this->testDirectory.'/progress.json.token-lock'));
+
+        try {
+            app(InstallState::class)->token();
+            $this->fail('A dangling installer token lock must be rejected.');
+        } catch (RuntimeException $exception) {
+            $this->assertStringContainsString('symbolic link', $exception->getMessage());
+        }
+
+        $this->assertFileDoesNotExist($nonexistentTarget);
+        $this->assertFileDoesNotExist($this->testDirectory.'/progress.json');
+    }
+
     public function test_symbolic_link_token_lock_is_rejected_without_touching_external_file(): void
     {
         if (! function_exists('symlink') || DIRECTORY_SEPARATOR === '\\') {
