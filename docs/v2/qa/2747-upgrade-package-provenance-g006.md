@@ -45,3 +45,20 @@ Each path must contain all four genuine outputs from the same underlying build. 
 | AR/EN/RTL | No new user-facing strings; CLI uses machine output and existing Admin updater UI remains intact |
 
 **Status:** bounded archive-integrity verification is delivered only when its exact-head CI proves the tests executed. Full historical and V2 ZIP fresh-install/upgrade/recovery **not accepted yet**. Keep #2747 open until all above real-package acceptance is confirmed; no main, release, tag or production actions.
+
+
+## Actual historical GitHub Release archive inspection — 2026-11-13
+
+This is **real public release-archive integrity evidence**, not a fabricated synthetic ZIP nor a production/V2 release. The issue-owned workflow now downloads the original **unmodified** published assets from the immutable-looking tag references and independently pins their Git SHA and archive SHA-256. If any fixed tag or asset is changed later, the verification fails instead of accepting a silently replaced archive.
+
+| Historical update edge | Immutable release tag → Git commit | Actual archive SHA-256 | ZIP members | Listed / declared migrations |
+| --- | --- | --- | ---: | ---: |
+| 1.0.124 → 1.0.125 | `v1.0.125` → `1a4d2ba341424c816040a7185a9ab1df59c3d574` | `b4fd85f983469c754c50cbb2b3d3f6d6474545863d4ea41a7b3728cce36cfb52` | 1998 | 220 |
+| 1.0.125 → 1.0.127 | `v1.0.127` → `a75d3780a8cf1eeb702781adbb17a5dcfd7d8130` | `fd7c801c333c902d5d6704283eba75de24c7aeae46bcbbe6ebaac6e5dc6fdf46` | 1999 | 221 |
+
+Source ancestry was verified with GitHub compare: `v1.0.124` → `v1.0.125` (4 commits, no behind) and `v1.0.125` → `v1.0.127` (7 commits, no behind). The release-tag SHAs agree with each corresponding manifest `source_base` and `source_commit`. The actual ~79 MB archives were downloaded with authenticated GitHub CLI read-only to an inspection workspace, and SHA-256 values matched both the published JSON and the standalone checksum text. Native ZIP inspection checked internal `VERSION`, exact ordered `FOODEX-Update.files.txt`, manifest file counts, migration counts, duplicate paths, symlink and traversal indicators. No mismatches found. The new CI job independently runs the canonical Python verifier on these **same real pinned assets**.
+
+- Source: [GitHub release v1.0.125](https://github.com/walidatiyaai2025-gif/FOOD/releases/tag/v1.0.125) and [GitHub release v1.0.127](https://github.com/walidatiyaai2025-gif/FOOD/releases/tag/v1.0.127).
+- **Strict limitation:** Release ZIP and checksum bytes alone **do not authenticate the publisher**, prove a signature trusted by the updater, prove compatible PHP/Composer runtime, run MySQL migrations, preserve `.env`/uploads/financial rows, or demonstrate interrupted-update recovery. Neither historical release advertised a separately verified trusted package signature in this inspection. The test only yields `archive_integrity_only`.
+- Do not call G006 complete or merge solely on this evidence. Actual source-approved signed packages, clean installation, supported upgrade, database-preservation/backup and recovery acceptance from G004/G005/P112 must be evidenced on the exact tested packages before marking full G006 done.
+
