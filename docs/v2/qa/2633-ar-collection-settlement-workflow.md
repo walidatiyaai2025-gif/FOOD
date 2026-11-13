@@ -25,9 +25,9 @@
 
 ## Reproducible tests and release gates
 
-`backend/tests/Feature/V2CollectionLinkedArSettlementWorkbenchTest.php`: seeded, legal-entity entitled Finance fixture; authorized AR/EN exact-record route and modal; draft create and retry idempotency; maker cannot post; independently authorized poster produces one additional journal and audit; poster retry safe; cross-store direct GET/POST denied; over-allocation rejected with unchanged financial rows. Reuse broader `EnterpriseAccountsReceivableFoundationTest` for GL approval, account and entitlement behavior and `FinanceWorkbenchTest` for general tab/projection/AR-EN/module-disabled cases.
+`backend/tests/Feature/V2ReceivableSettlementWorkbenchTest.php`: seeded, legal-entity entitled Finance fixture; authorized AR/EN exact-record route and modal; draft create and retry idempotency; maker cannot post; independently authorized poster produces one additional journal and audit; poster retry safe; cross-store direct GET/POST denied; over-allocation rejected with unchanged financial rows. Reuse broader `EnterpriseAccountsReceivableFoundationTest` for GL approval, account and entitlement behavior and `FinanceWorkbenchTest` for general tab/projection/AR-EN/module-disabled cases.
 
-Run: `php artisan test --filter=V2CollectionLinkedArSettlementWorkbenchTest`, `php artisan test --filter=EnterpriseAccountsReceivableFoundationTest`, plus full exact-head Repository Policy, V2 Isolation, localization and required-ci-gate (including MySQL/Redis upgrade and recovery). Browser/device tests for desktop/320-430px mobile, keyboard, RTL/LTR remain independent final evidence; no screenshot workflow is claimed.
+Run: `php artisan test --filter=V2ReceivableSettlementWorkbenchTest`, `php artisan test --filter=EnterpriseAccountsReceivableFoundationTest`, plus full exact-head Repository Policy, V2 Isolation, localization and required-ci-gate (including MySQL/Redis upgrade and recovery). Browser/device tests for desktop/320-430px mobile, keyboard, RTL/LTR remain independent final evidence; no screenshot workflow is claimed.
 
 ## Source acceptance NOT completed by this PR
 
