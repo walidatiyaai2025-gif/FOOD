@@ -155,11 +155,12 @@ final class V2ConversationDistributionRulesHttpTest extends TestCase
     {
         $store = $this->store('B2B', 'P202-LEGACY');
         $supervisor = $this->globalActor('CUSTOMER_SERVICE_SUPERVISOR', 'P202 Supervisor');
+        $unrelated = User::factory()->create(['name' => 'Private unrelated account', 'is_active' => true]);
         $legacyId = DB::table('whats_app_assignment_rules')->insertGetId([
             'name' => 'Legacy Conditional Queue', 'priority' => 1, 'is_active' => 1,
             'store_id' => $store, 'channel' => 'whatsapp', 'strategy' => 'round_robin',
             'conditions' => json_encode(['unsupported_legacy_predicate' => true]),
-            'configuration' => json_encode(['agent_ids' => []]),
+            'configuration' => json_encode(['agent_ids' => [$unrelated->id]]),
             'created_at' => now(), 'updated_at' => now(),
         ]);
         $rule = DB::table('whats_app_assignment_rules')->where('id', $legacyId)->first();
@@ -167,6 +168,7 @@ final class V2ConversationDistributionRulesHttpTest extends TestCase
 
         $this->actingAs($supervisor)->get($url)->assertOk()
             ->assertSee('Legacy Conditional Queue')
+            ->assertDontSee('Private unrelated account')
             ->assertSee(__('whatsapp_supervisor.distribution.legacy_readonly'));
         $this->actingAs($supervisor)->from($url)
             ->patch(route('admin.whatsapp-supervisor.rules.status', ['rule' => $legacyId]), [

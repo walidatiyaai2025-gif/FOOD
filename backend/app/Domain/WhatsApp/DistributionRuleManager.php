@@ -75,6 +75,10 @@ final class DistributionRuleManager
             ->paginate(15)
             ->withQueryString();
 
+        // Restrict display names to agents currently authorized for this
+        // exact store; legacy rule IDs must not reveal foreign user identities.
+        $allowedAgentIds = $this->assignments->manuallyAssignableAgentIds($storeId);
+
         // Resolve agent labels once for the bounded page; avoid an N+1
         // lookup for every distribution rule card.
         $agentIds = $rules->getCollection()->flatMap(static function (object $rule): array {
@@ -83,15 +87,15 @@ final class DistributionRuleManager
             return is_array($configuration) && is_array($configuration['agent_ids'] ?? null)
                 ? $configuration['agent_ids']
                 : [];
-        })->filter(static fn (mixed $id): bool => is_numeric($id))
+        })->filter(static fn (mixed $id): bool => is_numeric($id) && in_array((int) $id, $allowedAgentIds, true))
             ->map(static fn (mixed $id): int => (int) $id)->unique()->values()->all();
         $agentNames = User::query()->whereIn('id', $agentIds)->pluck('name', 'id');
 
-        $rules->getCollection()->transform(function (object $rule) use ($agentNames): object {
+        $rules->getCollection()->transform(function (object $rule) use ($agentNames, $allowedAgentIds): object {
             $configuration = json_decode((string) ($rule->configuration ?? '{}'), true);
             $configuration = is_array($configuration) ? $configuration : [];
             $ids = collect($configuration['agent_ids'] ?? [])
-                ->filter(static fn (mixed $id): bool => is_numeric($id))
+                ->filter(static fn (mixed $id): bool => is_numeric($id) && in_array((int) $id, $allowedAgentIds, true))
                 ->map(static fn (mixed $id): int => (int) $id)
                 ->unique()->values()->all();
 
