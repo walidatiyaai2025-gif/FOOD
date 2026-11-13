@@ -1050,6 +1050,13 @@ final class SecurityController extends Controller
     ): StreamedResponse {
         Gate::authorize('security.view');
         $actor = $this->actor($request);
+
+        // Effective access contains every user's identity, role and permission inventory.
+        // A delegated security.view grant cannot authorize a platform-wide export.
+        if ($report === 'effective-access') {
+            abort_unless($actor->hasRole('SUPER_ADMIN'), 403);
+        }
+
         $rows = $this->governanceReportRows($report, $policy);
 
         DB::table('audit_logs')->insert([

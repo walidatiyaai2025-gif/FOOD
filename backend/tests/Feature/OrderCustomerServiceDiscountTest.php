@@ -122,9 +122,13 @@ class OrderCustomerServiceDiscountTest extends TestCase
             'percentage' => 5, 'reason' => 'Authorized customer care gesture',
             'idempotency_key' => (string) Str::uuid(),
         ])->assertRedirect();
-        $this->assertDatabaseHas('order_customer_service_discounts', [
+        $this->assertDatabaseHas('order_customer_service_discount_requests', [
+            'order_id' => $id, 'requested_by_user_id' => $agent->id, 'status' => 'pending',
+        ]);
+        $this->assertDatabaseMissing('order_customer_service_discounts', [
             'order_id' => $id, 'applied_by_user_id' => $agent->id,
         ]);
+        $this->assertDatabaseHas('orders', ['id' => $id, 'grand_total' => 9]);
     }
 
     public function test_retail_support_discount_is_restricted_to_its_own_store(): void

@@ -45,6 +45,8 @@ class V2UserDeactivationRevocationTest extends TestCase
             ->patch(route('admin.security.users.status', $target), [
                 'is_active' => false,
                 'reason' => 'Access terminated',
+                'impact_reviewed' => true,
+                'confirm_email' => $target->email,
             ])->assertRedirect();
 
         $target->refresh();
@@ -68,6 +70,9 @@ class V2UserDeactivationRevocationTest extends TestCase
         $this->actingAs($admin)
             ->patch(route('admin.security.users.status', $target), [
                 'is_active' => true,
+                'reason' => 'Approved identity reactivation',
+                'impact_reviewed' => true,
+                'confirm_email' => $target->email,
             ])->assertRedirect();
 
         $this->assertTrue((bool) $target->fresh()->is_active);

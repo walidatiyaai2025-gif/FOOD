@@ -17,6 +17,8 @@ return [
         'erp' => ['label' => 'admin.nav_groups.erp', 'icon' => '▤', 'order' => 20],
         'stores' => ['label' => 'admin.nav_groups.stores', 'icon' => '⌂', 'order' => 30],
         'catalog' => ['label' => 'admin.nav_groups.catalog', 'icon' => '▦', 'order' => 40],
+        'procurement' => ['label' => 'admin.nav_groups.procurement', 'icon' => '▤', 'order' => 43],
+        'warehouses' => ['label' => 'admin.nav_groups.warehouses', 'icon' => '▣', 'order' => 45],
         'accounts' => ['label' => 'admin.nav_groups.accounts', 'icon' => '◎', 'order' => 50],
         'customer_service' => ['label' => 'admin.nav_groups.customer_service', 'icon' => '◉', 'order' => 55],
         'operations' => ['label' => 'admin.nav_groups.operations', 'icon' => '↻', 'order' => 60],
@@ -24,6 +26,7 @@ return [
         'marketing' => ['label' => 'admin.nav_groups.marketing', 'icon' => '✦', 'order' => 80],
         'advertising' => ['label' => 'admin.nav_groups.advertising', 'icon' => '◉', 'order' => 90],
         'finance' => ['label' => 'admin.nav_groups.finance', 'icon' => '¤', 'order' => 100],
+        'receivables' => ['label' => 'admin.nav_groups.receivables', 'icon' => '¤', 'order' => 105],
         'analytics' => ['label' => 'admin.nav_groups.analytics', 'icon' => '▥', 'order' => 110],
         'applications' => ['label' => 'admin.nav_groups.applications', 'icon' => '▣', 'order' => 120],
         'administration' => ['label' => 'admin.nav_groups.administration', 'icon' => '⚙', 'order' => 130],
@@ -39,8 +42,8 @@ return [
         // in existing business groups. Saved administrator layouts still win.
         'erp_center' => ['group' => 'erp', 'label' => 'admin.erp_center.nav_title', 'order' => 10, 'scope' => 'global', 'permissions' => [], 'exclude_roles' => $customerServiceRoles],
         'erp_customer_service' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.customer_service.title', 'order' => 20, 'scope' => 'both', 'permissions' => ['customers.view', 'b2b.accounts.view'], 'mode' => 'any'],
-        'erp_procurement' => ['group' => 'catalog', 'label' => 'admin.erp_center.modules.procurement.title', 'order' => 80, 'scope' => 'global', 'module' => 'procurement', 'permissions' => ['procurement.suppliers.view']],
-        'erp_wms' => ['group' => 'catalog', 'label' => 'admin.erp_center.modules.wms.title', 'order' => 90, 'scope' => 'global', 'module' => 'inventory_wms', 'permissions' => ['inventory.view']],
+        'erp_procurement' => ['group' => 'procurement', 'label' => 'admin.erp_center.modules.procurement.title', 'order' => 10, 'scope' => 'global', 'module' => 'procurement', 'permissions' => ['procurement.suppliers.view']],
+        'erp_wms' => ['group' => 'warehouses', 'label' => 'admin.erp_center.modules.wms.title', 'order' => 10, 'scope' => 'both', 'module' => 'inventory_wms', 'permissions' => ['inventory.view']],
         'erp_finance' => ['group' => 'finance', 'label' => 'admin.erp_center.modules.finance.title', 'order' => 20, 'scope' => 'global', 'module' => 'finance', 'permissions' => ['finance.view']],
         'erp_treasury' => ['group' => 'finance', 'label' => 'admin.erp_center.modules.treasury.title', 'order' => 30, 'scope' => 'global', 'module' => 'treasury', 'permissions' => ['finance.view']],
         'erp_bi' => ['group' => 'analytics', 'label' => 'admin.erp_center.modules.bi.title', 'order' => 60, 'scope' => 'global', 'module' => 'enterprise_bi', 'permissions' => ['reports.view']],
@@ -61,6 +64,7 @@ return [
         'b2b_inventory' => ['group' => 'catalog', 'label' => 'admin.b2b_sidebar.inventory_management', 'order' => 70, 'scope' => 'global', 'channel' => 'b2b', 'permissions' => ['inventory.view']],
 
         'customer_360' => ['group' => 'accounts', 'label' => 'admin.customer_360', 'order' => 10, 'scope' => 'both', 'permissions' => ['customers.view', 'b2b.accounts.view'], 'mode' => 'any'],
+        'sales_quotations' => ['group' => 'accounts', 'label' => 'sales_quotations.title', 'order' => 15, 'scope' => 'both', 'permissions' => ['orders.view']],
         'b2c_customers' => ['group' => 'accounts', 'label' => 'admin.b2c_workspace.modules.customers', 'order' => 20, 'scope' => 'store', 'channel' => 'b2c', 'permissions' => ['customers.view']],
         'customer_groups' => ['group' => 'accounts', 'label' => 'customer_groups.wholesale_title', 'order' => 30, 'scope' => 'both', 'channel' => 'b2b', 'permissions' => ['customers.view']],
         'b2c_customer_groups' => ['group' => 'accounts', 'label' => 'customer_groups.retail_title', 'order' => 40, 'scope' => 'both', 'channel' => 'b2c', 'permissions' => ['customers.view']],
@@ -93,6 +97,8 @@ return [
         'coupons' => ['group' => 'catalog', 'label' => 'coupons.title', 'order' => 85, 'scope' => 'both', 'permissions' => ['coupons.view']],
 
         'treasury_master' => ['group' => 'finance', 'label' => 'treasury.nav_title', 'order' => 10, 'scope' => 'global', 'permissions' => ['finance.view']],
+        'erp_receivables' => ['group' => 'receivables', 'label' => 'finance_workbench.tabs.receivables', 'order' => 10, 'scope' => 'both', 'module' => 'finance', 'permissions' => ['finance.view']],
+        'erp_payables' => ['group' => 'receivables', 'label' => 'finance_workbench.tabs.payables', 'order' => 20, 'scope' => 'both', 'module' => 'finance', 'permissions' => ['finance.view']],
 
         'whatsapp_supervisor' => ['group' => 'analytics', 'label' => 'whatsapp_supervisor.nav_title', 'order' => 10, 'scope' => 'global', 'permissions' => ['whatsapp.customer_service.supervise']],
         'reports_center' => ['group' => 'analytics', 'label' => 'reports.title', 'order' => 20, 'scope' => 'global', 'permissions' => ['reports.view']],

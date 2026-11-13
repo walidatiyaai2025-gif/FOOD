@@ -15,12 +15,13 @@ Future<void> main() async {
       pushService: pushService,
       locationTrackingFactory: kDebugMode
           ? null
-          : (session) {
+          : (session, onSessionInvalidated) {
               final api =
                   VanApiClient(FoodexEnvironment.apiBaseUrl, session.token);
               return VanLocationTrackingController(
                 source: const GeolocatorVanLocationSource(),
                 heartbeatClient: HttpVanLocationHeartbeatClient(api),
+                onSessionExpired: onSessionInvalidated,
               );
             },
     ),

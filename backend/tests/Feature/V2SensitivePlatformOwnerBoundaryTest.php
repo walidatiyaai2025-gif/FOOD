@@ -186,6 +186,8 @@ final class V2SensitivePlatformOwnerBoundaryTest extends TestCase
             ->patch(route('admin.security.users.status', $ordinaryUser), [
                 'is_active' => false,
                 'reason' => 'V2 role boundary acceptance',
+                'impact_reviewed' => true,
+                'confirm_email' => $ordinaryUser->email,
             ])->assertRedirect();
 
         $this->assertFalse($ordinaryUser->fresh()->is_active);

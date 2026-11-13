@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enterprise\Modules\ModuleLifecycleManager;
+use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Enterprise\Procurement\GoodsReceiptManager;
@@ -321,6 +322,174 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
             'inventory_id',
             'stock_movement_id',
         ]));
+    }
+
+    public function test_returns_workbench_links_to_actual_authorized_return_and_renders_detail_in_both_locales(): void
+    {
+        config()->set('security.mfa.enforce_privileged', false);
+        config()->set(
+            'enterprise_module_readiness.certified_versions.procurement',
+            app(ModuleRegistry::class)->manifest('procurement')->version,
+        );
+        $this->enableProcurement();
+
+        [$actor, $store, $context] = $this->scopedUser($this->allPermissions(), 'P243-OWN');
+        [, $warehouse] = $this->stockTarget($store, 'P243-OWN-SKU');
+        $receipt = $this->postedReceipt($actor, $context, $warehouse, 'P243-OWN-SUP', 'P243-OWN-SKU', 2);
+        $return = app(PurchaseReturnManager::class)->createFromPostedReceipt($actor, $context, $receipt->id, [
+            'lines' => [[
+                'goods_receipt_line_id' => $receipt->lines()->firstOrFail()->id,
+                'quantity' => 1,
+            ]],
+        ]);
+
+        // Preserve the maker/checker fixture's dedicated procurement role
+        // while generating the receipt, then admit the actor to the HTTP workbench.
+        $this->allowReturnsWorkbench($actor, $store);
+
+        foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
+            app()->setLocale($locale);
+            $actor->forceFill(['locale' => $locale])->save();
+
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.erp.procurement.index', [
+                    'tab' => 'returns',
+                    'store_id' => $store->id,
+                ]))
+                ->assertOk()
+                ->assertViewHas('activeTab', 'returns')
+                ->assertSee('return='.$return->id, false)
+                ->assertSee(__('enterprise_procurement.view'))
+                ->assertSee('dir="'.$direction.'"', false);
+
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.erp.procurement.index', [
+                    'tab' => 'returns',
+                    'store_id' => $store->id,
+                    'return' => $return->id,
+                ]))
+                ->assertOk()
+                ->assertViewHas('detail', static fn ($detail): bool => (int) $detail->id === (int) $return->id
+                    && $detail->lines->count() === 1
+                    && $detail->supplier !== null)
+                ->assertSee('data-return-detail="'.$return->id.'"', false)
+                ->assertSee($return->return_number)
+                ->assertSee($receipt->receipt_number)
+                ->assertSee('1.000')
+                ->assertSee(__('enterprise_procurement.quantity'))
+                ->assertSee('dir="'.$direction.'"', false);
+        }
+    }
+
+    public function test_returns_workbench_denies_foreign_store_record_and_missing_permission(): void
+    {
+        config()->set('security.mfa.enforce_privileged', false);
+        config()->set(
+            'enterprise_module_readiness.certified_versions.procurement',
+            app(ModuleRegistry::class)->manifest('procurement')->version,
+        );
+        $this->enableProcurement();
+
+        [$owner, $store, $context] = $this->scopedUser($this->allPermissions(), 'P243-SEC-OWNER');
+        [, $warehouse] = $this->stockTarget($store, 'P243-SEC-SKU');
+        $receipt = $this->postedReceipt($owner, $context, $warehouse, 'P243-SEC-SUP', 'P243-SEC-SKU', 2);
+        $return = app(PurchaseReturnManager::class)->createFromPostedReceipt($owner, $context, $receipt->id, [
+            'lines' => [[
+                'goods_receipt_line_id' => $receipt->lines()->firstOrFail()->id,
+                'quantity' => 1,
+            ]],
+        ]);
+
+        $this->allowReturnsWorkbench($owner, $store);
+
+        [$foreign, $otherStore] = $this->scopedUser($this->allPermissions(), 'P243-SEC-FOREIGN');
+        $this->allowReturnsWorkbench($foreign, $otherStore);
+        [$limited, $limitedStore] = $this->scopedUser(['procurement.suppliers.view'], 'P243-SEC-LIMITED');
+        $this->grantPlatformErpAccess($limited);
+
+        foreach (['ar', 'en'] as $locale) {
+            app()->setLocale($locale);
+            $foreign->forceFill(['locale' => $locale])->save();
+            $limited->forceFill(['locale' => $locale])->save();
+
+            $this->actingAs($foreign->fresh())
+                ->get(route('admin.erp.procurement.index', [
+                    'tab' => 'returns',
+                    'store_id' => $store->id,
+                    'return' => $return->id,
+                ]))
+                ->assertForbidden();
+
+            $this->actingAs($foreign->fresh())
+                ->get(route('admin.erp.procurement.index', [
+                    'tab' => 'returns',
+                    'store_id' => $otherStore->id,
+                    'return' => $return->id,
+                ]))
+                ->assertNotFound();
+
+            $this->actingAs($limited->fresh())
+                ->get(route('admin.erp.procurement.index', [
+                    'tab' => 'returns',
+                    'store_id' => $limitedStore->id,
+                    'return' => $return->id,
+                ]))
+                ->assertForbidden();
+        }
+    }
+
+    public function test_returns_workbench_fails_closed_when_module_disabled_or_actor_roleless(): void
+    {
+        config()->set('security.mfa.enforce_privileged', false);
+        [$actor, $store] = $this->scopedUser($this->allPermissions(), 'P243-MODULE-OFF');
+        $this->allowReturnsWorkbench($actor, $store);
+
+        $this->actingAs($actor)
+            ->get(route('admin.erp.procurement.index', [
+                'tab' => 'returns',
+                'store_id' => $store->id,
+            ]))
+            ->assertForbidden();
+
+        config()->set(
+            'enterprise_module_readiness.certified_versions.procurement',
+            app(ModuleRegistry::class)->manifest('procurement')->version,
+        );
+        $this->enableProcurement();
+        $roleless = User::factory()->create(['is_active' => true]);
+
+        $this->actingAs($roleless)
+            ->get(route('admin.erp.procurement.index', [
+                'tab' => 'returns',
+                'store_id' => $store->id,
+            ]))
+            ->assertForbidden();
+    }
+
+    /**
+     * The public ERP HTTP route requires a canonical Retail dashboard persona,
+     * not merely a custom scope role that is valid for the domain service.
+     * Mirror EnterpriseProcurementWorkbenchTest's production-route actor.
+     */
+    private function allowReturnsWorkbench(User $actor, Store $store): void
+    {
+        $role = Role::query()->firstOrCreate(
+            ['code' => 'B2C_STORE_ADMIN'],
+            ['name' => 'Retail Store Admin', 'scope' => 'store', 'is_active' => true, 'is_system' => true],
+        );
+        foreach (['procurement.suppliers.view', 'procurement.purchase_returns.view'] as $code) {
+            $permission = Permission::query()->firstOrCreate(
+                ['code' => $code],
+                ['name' => $code],
+            );
+            $role->permissions()->syncWithoutDetaching([$permission->id]);
+        }
+
+        DB::table('user_store_roles')->updateOrInsert(
+            ['user_id' => $actor->id, 'store_id' => $store->id, 'role_id' => $role->id],
+            ['created_at' => now(), 'updated_at' => now()],
+        );
+        $this->grantPlatformErpAccess($actor);
     }
 
     private function enableProcurement(): void
