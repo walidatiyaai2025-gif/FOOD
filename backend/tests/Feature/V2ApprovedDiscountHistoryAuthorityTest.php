@@ -79,6 +79,78 @@ final class V2ApprovedDiscountHistoryAuthorityTest extends TestCase
             ->assertSee('data-approved-discount-request-id="'.$requestId.'"', false);
     }
 
+
+    public function test_authorized_reviewer_can_browse_approved_discounts_in_both_locales_without_mutating_totals(): void
+    {
+        [$agent, $reviewer, $orderId, $requestId] = $this->approvedDiscount();
+        $url = route('admin.operations.orders.index', [
+            'channel' => 'b2b',
+            'discount_view' => 'approved',
+            'action_required' => 0,
+        ]);
+
+        foreach (['en', 'ar'] as $locale) {
+            app()->setLocale($locale);
+            $reviewer->forceFill(['locale' => $locale])->save();
+            $this->actingAs($reviewer)->get($url)
+                ->assertOk()
+                ->assertSee('data-v2-approved-discounts-workbench', false)
+                ->assertSee('data-v2-approved-discount-id="'.$requestId.'"', false)
+                ->assertSee('data-v2-approved-discount-order-link', false)
+                ->assertSee(__('customer_service_discount.approved_history'));
+        }
+
+        $this->actingAs($agent)->get($url)->assertForbidden();
+        $this->actingAs($reviewer)->get(route('admin.operations.orders.index', [
+            'channel' => 'b2b',
+            'discount_view' => 'approved',
+            'store_id' => 999999,
+        ]))->assertNotFound();
+
+        $this->assertDatabaseHas('orders', ['id' => $orderId, 'grand_total' => 7.875]);
+        $this->assertSame(1, DB::table('order_customer_service_discounts')->where('order_id', $orderId)->count());
+    }
+
+    public function test_approved_discounts_workbench_excludes_unapproved_and_foreign_channel_orders(): void
+    {
+        [, $reviewer, $orderId, $requestId] = $this->approvedDiscount();
+        $unapprovedOrderId = $this->makeOrder();
+        $url = route('admin.operations.orders.index', [
+            'channel' => 'b2b',
+            'discount_view' => 'approved',
+            'action_required' => 0,
+        ]);
+
+        $this->actingAs($reviewer)->get($url)
+            ->assertOk()
+            ->assertSee('data-v2-approved-discount-id="'.$requestId.'"', false)
+            ->assertDontSee('data-v2-approved-discount-id="'.$unapprovedOrderId.'"', false);
+
+        $this->actingAs($reviewer)->get(route('admin.operations.orders.index', [
+            'channel' => 'b2c',
+            'discount_view' => 'approved',
+        ]))->assertForbidden();
+
+        $this->assertDatabaseHas('orders', ['id' => $orderId, 'grand_total' => 7.875]);
+    }
+
+    public function test_sales_control_exposes_authorized_approved_discount_navigation(): void
+    {
+        $superAdmin = $this->roleUser('SUPER_ADMIN');
+        $storeId = app(WholesalePrincipal::class)->storeId();
+        $this->actingAs($superAdmin)->get(route('admin.commercial.sales-control', [
+            'store_id' => $storeId,
+        ]))->assertOk()
+            ->assertSee('data-v2-approved-discounts-sales-link', false)
+            ->assertSee('discount_view=approved', false);
+
+        $agent = $this->roleUser('CUSTOMER_SERVICE_AGENT');
+        $this->actingAs($agent)->get(route('admin.operations.orders.index', [
+            'channel' => 'b2b',
+            'discount_view' => 'approved',
+        ]))->assertForbidden();
+    }
+
     private function approvedDiscount(): array
     {
         $agent = $this->roleUser('CUSTOMER_SERVICE_AGENT');
