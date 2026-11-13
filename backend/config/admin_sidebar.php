@@ -27,6 +27,7 @@ return [
         'marketing' => ['label' => 'admin.nav_groups.marketing', 'icon' => '✦', 'order' => 80],
         'advertising' => ['label' => 'admin.nav_groups.advertising', 'icon' => '◉', 'order' => 90],
         'finance' => ['label' => 'admin.nav_groups.finance', 'icon' => '¤', 'order' => 100],
+        'treasury' => ['label' => 'admin.nav_groups.treasury', 'icon' => '¤', 'order' => 103],
         'receivables' => ['label' => 'admin.nav_groups.receivables', 'icon' => '¤', 'order' => 105],
         'analytics' => ['label' => 'admin.nav_groups.analytics', 'icon' => '▥', 'order' => 110],
         'applications' => ['label' => 'admin.nav_groups.applications', 'icon' => '▣', 'order' => 120],
@@ -46,7 +47,7 @@ return [
         'erp_procurement' => ['group' => 'procurement', 'label' => 'admin.erp_center.modules.procurement.title', 'order' => 10, 'scope' => 'global', 'module' => 'procurement', 'permissions' => ['procurement.suppliers.view']],
         'erp_wms' => ['group' => 'warehouses', 'label' => 'admin.erp_center.modules.wms.title', 'order' => 10, 'scope' => 'both', 'module' => 'inventory_wms', 'permissions' => ['inventory.view']],
         'erp_finance' => ['group' => 'finance', 'label' => 'admin.erp_center.modules.finance.title', 'order' => 20, 'scope' => 'global', 'module' => 'finance', 'permissions' => ['finance.view']],
-        'erp_treasury' => ['group' => 'finance', 'label' => 'admin.erp_center.modules.treasury.title', 'order' => 30, 'scope' => 'global', 'module' => 'treasury', 'permissions' => ['finance.view']],
+        'erp_treasury' => ['group' => 'treasury', 'label' => 'admin.erp_center.modules.treasury.title', 'order' => 30, 'scope' => 'global', 'module' => 'treasury', 'permissions' => ['finance.view']],
         'erp_bi' => ['group' => 'analytics', 'label' => 'admin.erp_center.modules.bi.title', 'order' => 60, 'scope' => 'global', 'module' => 'enterprise_bi', 'permissions' => ['reports.view']],
         'erp_my_work' => ['group' => 'erp', 'label' => 'admin.erp_center.modules.my_work.title', 'order' => 80, 'scope' => 'global', 'permissions' => [], 'exclude_roles' => $customerServiceRoles],
 
@@ -97,7 +98,7 @@ return [
         'live_ads' => ['group' => 'advertising', 'label' => 'live_ads.title', 'order' => 20, 'scope' => 'both', 'permissions' => ['live_ads.view']],
         'coupons' => ['group' => 'catalog', 'label' => 'coupons.title', 'order' => 85, 'scope' => 'both', 'permissions' => ['coupons.view']],
 
-        'treasury_master' => ['group' => 'finance', 'label' => 'treasury.nav_title', 'order' => 10, 'scope' => 'global', 'permissions' => ['finance.view']],
+        'treasury_master' => ['group' => 'treasury', 'label' => 'treasury.nav_title', 'order' => 10, 'scope' => 'global', 'permissions' => ['finance.view']],
         'erp_receivables' => ['group' => 'receivables', 'label' => 'finance_workbench.tabs.receivables', 'order' => 10, 'scope' => 'both', 'module' => 'finance', 'permissions' => ['finance.view']],
         'erp_payables' => ['group' => 'receivables', 'label' => 'finance_workbench.tabs.payables', 'order' => 20, 'scope' => 'both', 'module' => 'finance', 'permissions' => ['finance.view']],
 

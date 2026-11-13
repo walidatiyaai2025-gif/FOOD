@@ -107,9 +107,13 @@ final class V2SidebarAppearanceNonAuthorityTest extends TestCase
             $actor->forceFill(['locale' => $locale])->save();
             $keys = $this->visibleKeys($actor->fresh());
 
-            foreach (['erp_center', 'sidebar_role_access', 'treasury_master', 'b2b_dashboard'] as $forbiddenKey) {
+            foreach (['erp_center', 'sidebar_role_access', 'b2b_dashboard'] as $forbiddenKey) {
                 $this->assertNotContains($forbiddenKey, $keys);
             }
+
+            $this->assertContains('treasury_master', $keys, 'Real store finance permission, not the visual toggle, authorizes this entry.');
+            $this->actingAs($actor->fresh())->get(route('admin.treasury.master.index', ['store_id' => $owned], false))->assertOk();
+            $this->actingAs($actor->fresh())->get(route('admin.treasury.master.index', ['store_id' => $foreign], false))->assertNotFound();
 
             $this->actingAs($actor->fresh())->get(route('admin.erp.index', [], false))->assertForbidden();
             $this->actingAs($actor->fresh())->get(route('admin.sidebar-access.roles', [], false))->assertForbidden();

@@ -29,7 +29,7 @@ final class V2BusinessDomainSidebarGroupingTest extends TestCase
         'b2c_inventory' => 'catalog',
         'order_operations' => 'operations',
         'b2c_incoming_orders' => 'operations',
-        'treasury_master' => 'finance',
+        'treasury_master' => 'treasury',
         'erp_finance' => 'finance',
         'administration_hub' => 'administration',
         'sidebar_role_access' => 'administration',
@@ -54,7 +54,7 @@ final class V2BusinessDomainSidebarGroupingTest extends TestCase
             $this->assertSame($group, $layout['items'][$item]['group_key'], $item.' default placement');
         }
 
-        foreach (['catalog', 'procurement', 'warehouses', 'operations', 'finance', 'administration'] as $group) {
+        foreach (['catalog', 'procurement', 'warehouses', 'operations', 'finance', 'treasury', 'administration'] as $group) {
             $label = $registry['groups'][$group]['label'];
             $this->assertTrue(Lang::hasForLocale($label, 'ar'), $group.' Arabic group label');
             $this->assertTrue(Lang::hasForLocale($label, 'en'), $group.' English group label');
@@ -64,7 +64,7 @@ final class V2BusinessDomainSidebarGroupingTest extends TestCase
         // business owner; neither belongs to the Catalog grouping.
         $this->assertSame('procurement', $registry['items']['erp_procurement']['group']);
         $this->assertSame('warehouses', $registry['items']['erp_wms']['group']);
-        $this->assertSame('finance', $registry['items']['erp_treasury']['group']);
+        $this->assertSame('treasury', $registry['items']['erp_treasury']['group']);
     }
 
     public function test_wholesale_sidebar_renders_only_authorized_business_groups_and_real_order_routes(): void

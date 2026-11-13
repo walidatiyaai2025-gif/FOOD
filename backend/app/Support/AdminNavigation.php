@@ -140,10 +140,8 @@ class AdminNavigation
                     ? $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.erp.procurement.index', 'procurement', 'procurement.suppliers.view')
                     : null,
             ]),
-            // P246 inventory is a dedicated business group. Reuse the same
-            // authorized Retail and Wholesale inventory module destinations;
-            // module() retains channel/store/permission boundaries and the
-            // existing Customer Service-only legacy B2B inventory visibility.
+            // P246 Inventory reuses existing authorized Retail and legacy Customer Service
+            // Wholesale inventory modules; channel, store and permission gates are unchanged.
             $this->group('inventory', 'admin.nav_groups.inventory', '▣', [
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'inventory', 'admin.b2c_workspace.modules.inventory', 'inventory.view'),
                 $useCustomerServiceDashboardProfile
@@ -233,12 +231,19 @@ class AdminNavigation
                 $this->routeItemAdvertising($user, 'notification_campaigns', 'notifications.sidebar_campaigns', 'admin.notification-campaigns.index', 'notifications.view', 'advertising_enabled'),
                 $this->routeItemAdvertising($user, 'live_ads', 'live_ads.title', 'admin.live-ads.index', 'live_ads.view', 'live_ads_enabled'),
             ]),
+            // P291 Treasury & Banking is a business group of existing real
+            // destinations, never an additional bypass route or entitlement.
+            // Each child retains its original HTTP and module-readiness guard.
             $this->group('finance', 'admin.nav_groups.finance', '¤', [
-                $canAccessPlatformNavigation ? $this->routeItemScoped($user, 'treasury_master', 'treasury.nav_title', 'admin.treasury.master.index', 'finance.view') : null,
-                // P358 financial modules retain their existing authorization.
                 $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemEnterpriseModule($user, 'erp_finance', 'admin.erp_center.modules.finance.title', 'admin.erp.finance.index', 'finance', 'finance.view')
                     : null,
+            ]),
+            $this->group('treasury', 'admin.nav_groups.treasury', '¤', [
+                // TreasuryMasterController admits authorized Retail store scopes too.
+                // Projection must mirror its finance.view tenant gate, not a
+                // separate platform-only Sidebar visibility decision.
+                $this->routeItemScoped($user, 'treasury_master', 'treasury.nav_title', 'admin.treasury.master.index', 'finance.view'),
                 $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
                     ? $this->routeItemEnterpriseModule($user, 'erp_treasury', 'admin.erp_center.modules.treasury.title', 'admin.erp.treasury.index', 'treasury', 'finance.view')
                     : null,

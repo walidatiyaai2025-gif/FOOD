@@ -40,7 +40,7 @@ final class V2WholesaleErpNavigationSequenceTest extends TestCase
         'erp_procurement' => 'procurement',
         'erp_wms' => 'warehouses',
         'erp_finance' => 'finance',
-        'erp_treasury' => 'finance',
+        'erp_treasury' => 'treasury',
         'erp_bi' => 'analytics',
         'erp_my_work' => 'erp',
     ];
