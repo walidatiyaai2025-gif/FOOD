@@ -594,7 +594,7 @@
                                         $routeKey = $visit->metadata['route_key'] ?? ($visit->metadata['route_code'] ?? ($visit->metadata['route'] ?? null));
                                         $storeLabel = $visitStores->firstWhere('id', $visit->store_id)?->name;
                                     @endphp
-                                    <tr>
+                                    <tr data-trip-route="{{ $routeKey }}">
                                         <td>{{ $tripVanCodes->get($vanId) ?: '—' }}</td>
                                         <td>{{ $routeKey ?: '—' }}</td>
                                         <td>{{ $storeLabel ?: '—' }}</td>
