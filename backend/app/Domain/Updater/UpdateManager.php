@@ -228,9 +228,9 @@ final class UpdateManager
                     }
                 }
 
-                $reason .= $rollbackAttempted
-                    ? ' Rollback was attempted.'
-                    : ' No release or database rollback was required.';
+                if ($rollbackAttempted) {
+                    $reason .= ' Rollback was attempted.';
+                }
 
                 if (! $rollbackSucceeded) {
                     $reason .= ' Rollback is incomplete; manual recovery is required.';
