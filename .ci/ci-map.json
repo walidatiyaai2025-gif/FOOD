@@ -64,6 +64,18 @@
   ],
   "branch_rules": [
     {
+      "id": "v2-g003-full-matrix",
+      "branch_regex": "^test/2744-v2-final-required-ci-matrix$",
+      "enable": [
+        "backend",
+        "customer",
+        "driver",
+        "van",
+        "dashboard_ui",
+        "mobile_ui"
+      ]
+    },
+    {
       "id": "mobile-prod-ux",
       "branch_regex": "^test/[0-9]+-mobile-prod-ux-final-acceptance$",
       "enable": [
