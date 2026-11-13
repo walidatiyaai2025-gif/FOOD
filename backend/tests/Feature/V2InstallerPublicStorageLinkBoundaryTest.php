@@ -66,7 +66,7 @@ final class V2InstallerPublicStorageLinkBoundaryTest extends TestCase
 
         $link = public_path('storage');
         $this->assertTrue(@symlink($foreign, $link));
-        $this->assertLinkRejected();
+        $this->assertLocalizedLinkRejection();
 
         $this->assertTrue(is_link($link));
         $this->assertSame($foreign, realpath($link));
@@ -79,7 +79,7 @@ final class V2InstallerPublicStorageLinkBoundaryTest extends TestCase
 
         $link = public_path('storage');
         $this->assertTrue(@symlink($this->fixtureRoot.'/missing', $link));
-        $this->assertLinkRejected();
+        $this->assertLocalizedLinkRejection();
 
         $this->assertTrue(is_link($link));
         $this->assertFalse(realpath($link));
@@ -117,16 +117,21 @@ final class V2InstallerPublicStorageLinkBoundaryTest extends TestCase
         $this->assertSame('public', app(InstallerEnvironment::class)->read(['FILESYSTEM_DISK'])['FILESYSTEM_DISK']);
     }
 
-    private function assertLinkRejected(): void
+    private function assertLocalizedLinkRejection(): void
     {
-        try {
-            app(InstallerWorkflow::class)->saveStorageConfiguration('public');
-            $this->fail('An untrusted public/storage symlink must not be accepted.');
-        } catch (RuntimeException $exception) {
-            $this->assertSame(
-                'Public storage link does not point to the configured storage directory.',
-                $exception->getMessage(),
-            );
+        foreach ([
+            'ar' => 'رابط التخزين العام غير صالح أو لا يشير إلى مجلد التخزين المخصص.',
+            'en' => 'Public storage link does not point to the configured storage directory.',
+        ] as $locale => $expected) {
+            app()->setLocale($locale);
+            $this->assertSame($expected, __('installer.public_storage_link_invalid'));
+
+            try {
+                app(InstallerWorkflow::class)->saveStorageConfiguration('public');
+                $this->fail('An untrusted public/storage symlink must not be accepted.');
+            } catch (RuntimeException $exception) {
+                $this->assertSame($expected, $exception->getMessage());
+            }
         }
     }
 
