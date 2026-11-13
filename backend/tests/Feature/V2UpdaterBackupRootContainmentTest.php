@@ -115,6 +115,20 @@ final class V2UpdaterBackupRootContainmentTest extends TestCase
         $this->assertSame('still-live', file_get_contents($this->releaseDirectory.'/live.txt'));
     }
 
+    public function test_numeric_key_json_object_cannot_masquerade_as_targets_array(): void
+    {
+        $target = $this->relative('live.txt');
+        $this->writeLive('live.txt', 'still-live');
+        file_put_contents($this->backupDirectory.'/files.json', json_encode([
+            'targets' => (object) ['0' => $target],
+            'existing' => [],
+        ], JSON_THROW_ON_ERROR));
+
+        $this->assertRejected($this->backupDirectory, 'File rollback manifest is invalid.');
+
+        $this->assertSame('still-live', file_get_contents($this->releaseDirectory.'/live.txt'));
+    }
+
     public function test_object_shaped_existing_backups_are_rejected_before_overwrite(): void
     {
         $target = $this->relative('live.txt');
