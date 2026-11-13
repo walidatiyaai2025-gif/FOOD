@@ -81,6 +81,8 @@ final class V2SalesManagerRoleAuthorityTest extends TestCase
         $storeId = app(WholesalePrincipal::class)->storeId();
         $this->setPricingMode($storeId, true);
         $actor = $this->manager();
+        $this->assertTrue(app(AdminNavigation::class)->canAccess($actor, 'b2b'));
+        $this->assertFalse(app(AdminNavigation::class)->canAccess($actor, 'b2c'));
 
         foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
             app()->setLocale($locale);

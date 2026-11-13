@@ -4,7 +4,7 @@
 
 ## Reuse and placement decision
 
-This issue validates the existing canonical, seeded `SALES_MANAGER` role rather than adding a second Sales Manager role, Sales screen, permission set, Sidebar group or pricing engine. The role's configuration is owned by `backend/config/job_roles.php`, reconciled by `BuiltInJobRoleCatalog`, and rendered through the real `AdminNavigation` projection. #2710 already tests the Wholesale & Sales *persona* using `B2B_ADMIN`; it does not establish this separate `SALES_MANAGER` job role's security.
+This issue reuses the existing canonical, seeded `SALES_MANAGER` role without adding a second Sales Manager role, Sales screen, permission set, Sidebar group or pricing engine. It also fixes an actual channel-discovery defect: `backend/config/admin.php` did not include SALES_MANAGER in the **B2B global-role allowlist**, even though the role holds legitimate B2B Sales permissions. The minimal addition enables the existing Wholesale dashboard and domain-hub entry without introducing Retail entitlement. The role's configuration is owned by `backend/config/job_roles.php`, reconciled by `BuiltInJobRoleCatalog`, and rendered through the real `AdminNavigation` projection. #2710 already tests the Wholesale & Sales *persona* using `B2B_ADMIN`; it does not establish this separate `SALES_MANAGER` job role's security.
 
 | Required business metadata | Reused canonical decision |
 | --- | --- |
@@ -40,8 +40,8 @@ Existing #2556 Price Lists, #2523 Quotations, #2524 Orders, #2710 Wholesale pers
 
 ## Impact by surface
 
-- **Backend / API:** Five new HTTP/RBAC/real-pricing regression tests only; **no changed API, migration, pricing algorithm, auth route, scheduled job or permission implementation**. The canonical seeded role and runtime are retained.
-- **Dashboard web:** Existing authorized Sales/Accounts/Orders/Reports/Price Lists routes and responsive Dashboard shared components are exercised in tests. No new page, JS, markup, navigation schema or localization key is introduced; no UI screenshot claim.
+- **Backend / API:** Add SALES_MANAGER to the existing **B2B channel navigation/access allowlist** in `backend/config/admin.php`, plus five HTTP/RBAC/real-pricing regression tests. No new API contract, migration, pricing algorithm, route, queue or permission grant. This correction restores the existing channel workspace to an already-authorized Wholesale role; Retail remains excluded.
+- **Dashboard web:** The existing B2B dashboard/domain-hub becomes discoverable to SALES_MANAGER through the canonical channel role list; Sales/Accounts/Orders/Reports/Price Lists HTTP routes and responsive shared components are exercised in tests. No new page, JS, markup, navigation group or localization key is introduced; no UI screenshot claim.
 - **Customer Flutter:** **Not affected.** Customer token/auth, checkout/price calculation, order state, notifications and API payloads are unchanged by the test/docs-only patch.
 - **Driver Flutter:** **Not affected.** B2C-only delivery, wallet, collection, route and proof APIs are untouched; DRIVER ONLY remains B2C.
 - **Van Flutter:** **Not affected.** B2B-only fulfillment, inventory, offline/dispatch, visits and settlements untouched; VAN ONLY remains B2B.
@@ -50,6 +50,6 @@ No new mobile Issue is justified by this test/documentation change. This is a co
 
 ## Delivery evidence and gates
 
-One branch `test/2683-v2-sales-manager-role-authority`, one PR into `Foodex_V2`. Exclusive paths are this document and the test above. Deliberately avoided concurrent #3297 ownership of `AdminNavigation.php`, #3300 Accounting Manager files, #3301 Commercial Pricing files. No shared role, config, source, Flutter, release, or deployment file altered.
+One branch `test/2683-v2-sales-manager-role-authority`, one PR into `Foodex_V2`. Exclusive paths are this document, the test above, and the **single B2B global-role whitelist line** in `backend/config/admin.php`. Former owner #3297 has independently **merged** into Foodex_V2; this branch incorporates its full final base (including Treasury role) before touching the released config. No edits to `AdminNavigation.php`, #3300 Accounting Manager files or #3301 Commercial Pricing files. No seed/grants/Flutter/release/deployment file altered.
 
 Focused local test: `cd backend && php artisan test tests/Feature/V2SalesManagerRoleAuthorityTest.php`. For merge: exact latest PR head **Repository Policy, V2 Isolation, Backend tests, Backend fast-fail/Pint/security, Localization AR/EN, MySQL/Redis deployment acceptance, applicable Release Validation, terminal `required-ci-gate`** all green. CI success must be evidenced, never inferred. Do not merge if any required check is red/pending. No code from this V2 task can go to `main` or a production release without a separate explicit owner approval.
