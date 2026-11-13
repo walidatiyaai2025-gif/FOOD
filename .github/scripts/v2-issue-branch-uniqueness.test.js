@@ -40,6 +40,15 @@ test('two distinct implementation branches for the same issue fail closed', () =
   ]), /multiple issue-scoped branches/);
 });
 
+test('same issue collision is detected regardless of branch type or case-independent slug identity', () => {
+  assert.throws(() => detectIssueBranches(HEAD, [
+    HEAD, 'test/3377-separate-implementation', 'fix/33770-valid-other-issue',
+  ]), /multiple issue-scoped branches/);
+  assert.deepEqual(detectIssueBranches(HEAD, [
+    HEAD, 'feat/33770-unrelated-task', 'fix/337-other-task',
+  ]).branchCount, 1);
+});
+
 test('reject a missing current remote branch', () => {
   assert.throws(() => detectIssueBranches(HEAD, [
     'fix/3377-other-branch',
