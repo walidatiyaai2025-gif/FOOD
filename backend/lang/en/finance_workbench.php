@@ -169,6 +169,7 @@ return [
         'new_settlement' => 'Record settlement draft',
         'settlement_account' => 'Settlement account',
         'reference_notice' => 'A typed reference does not verify receipt or bank reconciliation. Check the original collection evidence before requesting posting.',
+        'verification_pending' => 'Posting is unavailable until a verified collection receipt is linked and its source, store, currency and available amount are checked.',
         'post_warning' => 'Posting creates an auditable Finance journal. The allocation maker cannot post the same entry.',
     ],
     'payables' => [
