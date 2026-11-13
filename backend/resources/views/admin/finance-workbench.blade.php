@@ -532,15 +532,7 @@ $trendMax=max(1,max(array_map(fn($r)=>max(abs((float)$r['revenue']),abs((float)$
 <td>@if($settlement->journal_id)<a class="finance-button" href="{{ route('admin.erp.finance.index',[...$routeBase,'tab'=>'journals','journal'=>$settlement->journal_id]) }}">{{ __('finance_workbench.actions.view_ledger') }}</a>@else—@endif</td>
 <td>
 @if(($access['ar_post'] ?? false) && $settlement->status==='draft' && (int)$settlement->created_by !== (int)$user->id)
-<details data-foodex-operational-modal>
-<summary class="finance-button">{{ __('finance_workbench.actions.post') }}</summary>
-<form method="post" action="{{ route('admin.erp.finance.receivables.settlements.post', $settlement->id) }}" class="finance-filter" data-v2-ar-settlement-post>
-@csrf
-<input type="hidden" name="store_id" value="{{ $storeId }}">
-<p class="finance-notice">{{ __('finance_workbench.receivables.post_warning') }}</p>
-<button type="submit" class="finance-button">{{ __('finance_workbench.actions.post') }}</button>
-</form>
-</details>
+<span class="finance-notice" data-v2-ar-source-unverified>{{ __('finance_workbench.receivables.verification_pending') }}</span>
 @else —
 @endif
 </td></tr>
