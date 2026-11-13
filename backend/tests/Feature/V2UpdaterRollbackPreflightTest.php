@@ -27,6 +27,10 @@ final class V2UpdaterRollbackPreflightTest extends TestCase
 
         File::ensureDirectoryExists($this->releaseDirectory);
         File::ensureDirectoryExists($this->backupDirectory);
+
+        // Production restores only accept backups inside the configured root.
+        // Keep these real-filesystem rollback fixtures inside that same guard.
+        config()->set('foodex.update_backup_path', dirname($this->backupDirectory));
     }
 
     protected function tearDown(): void

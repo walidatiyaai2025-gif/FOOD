@@ -313,29 +313,81 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
     public function rollbackFiles(string $backupReference): void
     {
-        $manifestPath = $backupReference.'/files.json';
+        // Rollback sources must be issued under the configured trusted backup
+        // root. Never accept a readable but foreign files.json as authority to
+        // delete or restore release files.
+        $rawConfiguredRoot = str_replace('\\', '/', $this->backupRoot());
+        $configuredRoot = rtrim($rawConfiguredRoot, '/');
+        $candidate = rtrim(str_replace('\\', '/', $backupReference), '/');
+        $canonicalRoot = realpath($configuredRoot);
+        $canonicalCandidate = realpath($candidate);
+        $prefix = $configuredRoot.'/';
+
+        if ($canonicalRoot === false
+            || $canonicalCandidate === false
+            || ! str_starts_with($candidate, $prefix)
+            || ! str_starts_with(
+                str_replace('\\', '/', $canonicalCandidate),
+                rtrim(str_replace('\\', '/', $canonicalRoot), '/').'/'
+            )) {
+            throw new RuntimeException('File rollback backup location is invalid.');
+        }
+
+        // Reject traversals and symlinks even when an alias happens to resolve
+        // back inside the trusted root. Keep configured-root ancestors working
+        // on hosts where the trusted storage root itself has a canonical alias.
+        // newBackupDirectory() historically appends '/' to the configured
+        // backup root. When that setting already ends with '/', the stored
+        // reference includes a double separator at this one trusted boundary.
+        // Accept only exactly those generated boundary separators, never
+        // arbitrary aliases or empty/dot segments inside the backup path.
+        $relativeBackupPath = substr($candidate, strlen($prefix));
+        $rootTrailingSeparators = strlen($rawConfiguredRoot) - strlen($configuredRoot);
+        if ($rootTrailingSeparators > 0) {
+            $generatedBoundary = str_repeat('/', $rootTrailingSeparators);
+            if (str_starts_with($relativeBackupPath, $generatedBoundary)
+                && ! str_starts_with(substr($relativeBackupPath, $rootTrailingSeparators), '/')) {
+                $relativeBackupPath = substr($relativeBackupPath, $rootTrailingSeparators);
+            }
+        }
+
+        $component = $configuredRoot;
+        foreach (explode('/', $relativeBackupPath) as $part) {
+            if ($part === '' || $part === '.' || $part === '..') {
+                throw new RuntimeException('File rollback backup location is invalid.');
+            }
+
+            $component .= '/'.$part;
+            if (is_link($component)) {
+                throw new RuntimeException('File rollback backup location is invalid.');
+            }
+        }
+
+        $manifestPath = $candidate.'/files.json';
         if (is_link($backupReference) || is_link($manifestPath) || ! is_file($manifestPath)) {
             throw new RuntimeException('File rollback manifest is missing or unsafe.');
         }
 
         try {
-            $payload = json_decode((string) file_get_contents($manifestPath), true, flags: JSON_THROW_ON_ERROR);
+            $payload = json_decode((string) file_get_contents($manifestPath), flags: JSON_THROW_ON_ERROR);
         } catch (JsonException) {
             throw new RuntimeException('File rollback manifest is invalid.');
         }
 
-        if (! is_array($payload)
-            || ! is_array($payload['targets'] ?? null)
-            || ! is_array($payload['existing'] ?? null)) {
+        if (! ($payload instanceof \stdClass)
+            || ! is_array($payload->targets ?? null)
+            || ! array_is_list($payload->targets)
+            || ! is_array($payload->existing ?? null)
+            || ! array_is_list($payload->existing)) {
             throw new RuntimeException('File rollback manifest is invalid.');
         }
 
-        $targets = $this->stringList($payload['targets']);
-        $existing = $this->stringList($payload['existing']);
+        $targets = $this->stringList($payload->targets);
+        $existing = $this->stringList($payload->existing);
 
         if ($targets === []
-            || count($targets) !== count($payload['targets'])
-            || count($existing) !== count($payload['existing'])) {
+            || count($targets) !== count($payload->targets)
+            || count($existing) !== count($payload->existing)) {
             throw new RuntimeException('File rollback manifest is invalid.');
         }
 
