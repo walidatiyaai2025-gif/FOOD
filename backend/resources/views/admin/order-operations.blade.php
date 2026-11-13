@@ -400,7 +400,7 @@ $dashboardVisible = (bool) ($dashboardVisible ?? false);
             <div>{{ __('customer_service_discount.approved_by') }}: {{ $decision->reviewed_by_name }}</div>
             <div>{{ __('customer_service_discount.approved_at') }}: <time datetime="{{ $decision->reviewed_at }}">{{ $decision->reviewed_at }}</time></div>
             <p style="overflow-wrap:anywhere">{{ $decision->reason }}</p>
-            <a class="foodex-primary" data-v2-approved-discount-order-link href="{{ route('admin.operations.orders.index', array_merge(request()->except(['order', 'page', 'approved_discount_page', 'status', 'exception', 'dispatch_status']), ['order' => $decision->order_id, 'channel' => $decision->channel, 'store_id' => $decision->store_id, 'discount_view' => 'approved', 'action_required' => 0])) }}">{{ __('customer_service_discount.view_order') }}: {{ $decision->order_number }}</a>
+            <a class="foodex-primary" data-v2-approved-discount-order-link href="{{ route('admin.operations.orders.index', array_merge(request()->except(['order', 'page', 'approved_discount_page', 'status', 'exception', 'dispatch_status']), ['order' => $decision->order_id, 'channel' => $decision->channel, 'store_id' => $decision->store_id, 'discount_view' => 'approved', 'action_required' => 0])) }}">{{ __('customer_service_discount.view_order') }}: {{ $decision->order_number }}</a> {{-- localization-gate: allow — channel is a route query parameter, never a visible enum label --}}
         </article>
     @empty
         <p class="foodex-empty-state" data-v2-approved-discounts-empty>{{ __('customer_service_discount.approved_empty') }}</p>
