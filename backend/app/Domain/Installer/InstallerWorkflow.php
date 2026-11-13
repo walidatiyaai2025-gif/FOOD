@@ -132,7 +132,17 @@ final class InstallerWorkflow
             Artisan::call('storage:link');
         }
 
-        if (! is_link($publicLink) && ! is_dir($publicLink)) {
+        // An existing symlink must not silently expose a foreign directory
+        // (or a dangling target) as public uploads during the web installer.
+        // A real directory remains valid for shared hosts without symlinks.
+        if (is_link($publicLink)) {
+            $expected = realpath(storage_path('app/public'));
+            $actual = realpath($publicLink);
+
+            if ($expected === false || $actual === false || $actual !== $expected) {
+                throw new RuntimeException((string) __('installer.public_storage_link_invalid'));
+            }
+        } elseif (! is_dir($publicLink)) {
             throw new RuntimeException('The public/storage link could not be created. Image uploads would not be publicly accessible.');
         }
     }

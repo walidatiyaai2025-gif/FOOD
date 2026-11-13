@@ -111,7 +111,7 @@ class AuthFoundationTest extends TestCase
         $this->assertContains('van.login', $login->json('user.permissions'));
     }
 
-    public function test_same_driver_account_can_login_to_driver_and_van_with_effective_assignment(): void
+    public function test_retail_driver_login_cannot_grant_van_runtime_from_an_accidental_assignment(): void
     {
         $this->seed(CoreReferenceSeeder::class);
 
@@ -157,22 +157,29 @@ class AuthFoundationTest extends TestCase
             'password' => 'correct-password',
             'app' => 'driver',
         ])->assertOk()
-            ->assertJsonPath('user.driver_scope.driver_id', $driver->id);
+            ->assertJsonPath('user.driver_scope.driver_id', $driver->id)
+            ->assertJsonPath('user.driver_scope.channel', 'b2c');
 
-        $vanLogin = $this->postJson('/api/v1/auth/login', [
+        // Retail/B2C is Driver-only. An existing Van assignment must not
+        // promote a B2C-only user to Van or issue a second app token.
+        $this->postJson('/api/v1/auth/login', [
             'email' => $user->email,
             'password' => 'correct-password',
             'app' => 'van',
-        ])->assertOk()
-            ->assertJsonPath('user.van_scope.van_id', $van->id)
-            ->assertJsonPath('user.van_scope.assignment_id', $assignment->id)
-            ->assertJsonPath('user.van_context_selection_reason', 'deterministic_primary');
+        ])->assertForbidden();
 
-        $this->assertContains('van.login', $vanLogin->json('user.permissions'));
-
-        $this->withToken($vanLogin->json('token'))
-            ->getJson('/api/v1/van/no-order-reasons')
-            ->assertOk();
+        $this->assertSame(1, $user->tokens()->count());
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'is_active' => true]);
+        $this->assertDatabaseHas('drivers', [
+            'id' => $driver->id,
+            'driver_type' => 'b2c',
+            'is_active' => true,
+        ]);
+        $this->assertDatabaseHas('van_assignments', [
+            'id' => $assignment->id,
+            'driver_id' => $driver->id,
+            'status' => 'active',
+        ]);
     }
 
     public function test_driver_and_van_tokens_cannot_cross_app_runtime_boundaries(): void
