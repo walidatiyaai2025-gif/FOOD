@@ -6,7 +6,7 @@
 
 `scripts/v2_upgrade_package_provenance.py` verifies the *actual bytes supplied* for both historical edges: v1.0.124 → v1.0.125 and v1.0.125 → v1.0.127. It requires one `FOODEX-Update.zip`, its `FOODEX-Update.json`, `FOODEX-Update.sha256.txt` and exact `FOODEX-Update.files.txt` per edge. The two edge sources have separate immutable SHA identities.
 
-The verifier rejects a missing archive, symlinked package directories or any symlinked ZIP/JSON/checksum/file-list artifacts, mismatched SHA-256, invalid or non-exact version edge, wrong `VERSION` inside ZIP, inconsistent file manifest, omitted/duplicate/foreign migration declaration, missing migration member, duplicate/aliased normalized path, archive traversal, symlink, `.env`/storage or non-runtime content, full-redeploy-required delta, inconsistent source SHA and corrupt ZIP data. It does **not** extract, apply or execute untrusted archives.
+The verifier rejects a missing archive, a symlinked package directory or symlinked ancestor directory (even if the bundle leaf itself is real), or any symlinked ZIP/JSON/checksum/file-list artifact, mismatched SHA-256, invalid or non-exact version edge, wrong `VERSION` inside ZIP, inconsistent file manifest, omitted/duplicate/foreign migration declaration, missing migration member, duplicate/aliased normalized path, archive traversal, symlink, `.env`/storage or non-runtime content, full-redeploy-required delta, inconsistent source SHA and corrupt ZIP data. It does **not** extract, apply or execute untrusted archives.
 
 **Important:** SHA-256 establishes consistency, **not publisher authenticity**. A trusted digital signature/approved signing key and version trust must still be verified by the actual installer/updater release authority. An archive integrity PASS is **not** evidence that migrations ran successfully, that existing records or secrets were preserved, or that recovery worked. Never mark this Issue complete on this test alone.
 
@@ -16,7 +16,7 @@ The ZIP's `backend/database/migrations/` members and manifest `migrations` list 
 
 ## Symlinked artifact rejection
 
-A ZIP, JSON manifest, checksum text, file-list text or bundle directory must be a direct regular file/directory, not a symbolic link into an unrelated directory. The offline verifier rejects these references before reading any artifact bytes; regression tests cover the directory and all four asset types. This prevents the read-only integrity check from silently following aliases to unexpected local files. It is **not** a substitute for digital signature authentication or for the updater's separate filesystem trust and race protections.
+A ZIP, JSON manifest, checksum text, file-list text or bundle directory must be a direct regular file/directory, not a symbolic link into an unrelated directory. Directory ancestors are also checked; an ordinary bundle directory reached through a linked parent must not bypass the direct-link guard. The offline verifier rejects these references before reading any artifact bytes; regression tests cover the directory and all four asset types. This prevents the read-only integrity check from silently following aliases to unexpected local files. It is **not** a substitute for digital signature authentication or for the updater's separate filesystem trust and race protections.
 
 ## Reproduction
 
