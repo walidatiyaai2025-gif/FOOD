@@ -23,6 +23,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 /**
@@ -149,15 +150,15 @@ final class V2AccountingManagerRoleAuthorityTest extends TestCase
 
         $finance = app(FinanceFoundationService::class);
         $cash = $finance->createAccount($maker, $makerContext, [
-            'code' => 'V2-2694-CASH', 'name' => 'Cash', 'type' => 'asset',
+            'code' => '11002694', 'name' => 'Cash', 'type' => 'asset',
             'normal_balance' => 'debit', 'allow_posting' => true,
         ]);
         $revenue = $finance->createAccount($maker, $makerContext, [
-            'code' => 'V2-2694-REV', 'name' => 'Revenue', 'type' => 'revenue',
+            'code' => '40002694', 'name' => 'Revenue', 'type' => 'revenue',
             'normal_balance' => 'credit', 'allow_posting' => true,
         ]);
         $year = $finance->createFiscalYear($maker, $makerContext, [
-            'code' => 'FY-2694', 'name' => 'FY 2694',
+            'code' => 'FY2694', 'name' => 'FY 2694',
             'starts_on' => '2027-01-01', 'ends_on' => '2027-12-31',
         ]);
         $finance->createFiscalPeriod($maker, $makerContext, $year->id, [
@@ -191,9 +192,9 @@ final class V2AccountingManagerRoleAuthorityTest extends TestCase
             'enterprise_finance_journal', $journal->id, '100.000',
         );
 
-        $this->assertValidationError('approval_limit', fn () => $approvals->approve($maker, $makerContext, $approval->id));
+        $this->assertForbidden(fn () => $approvals->approve($maker, $makerContext, $approval->id));
         $approved = $approvals->approve($checker, $checkerContext, $approval->id);
-        $this->assertSame('approved', $approved->status->value);
+        $this->assertSame('APPROVED', $approved->status->value);
 
         $this->assertValidationError('poster', fn () => $ledger->post($maker, $makerContext, $journal->id));
         $this->assertValidationError('poster', fn () => $ledger->post($checker, $checkerContext, $journal->id));
@@ -248,6 +249,16 @@ final class V2AccountingManagerRoleAuthorityTest extends TestCase
             $capabilities,
             $actor,
         );
+    }
+
+    private function assertForbidden(callable $callback): void
+    {
+        try {
+            $callback();
+            $this->fail('A workflow requester cannot approve their own Finance transaction.');
+        } catch (HttpException $e) {
+            $this->assertSame(403, $e->getStatusCode());
+        }
     }
 
     private function assertValidationError(string $field, callable $callback): void
