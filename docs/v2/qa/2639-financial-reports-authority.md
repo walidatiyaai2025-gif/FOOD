@@ -22,14 +22,15 @@ backend/tests/Feature/V2FinancialReportsSidebarAuthorityTest.php adds real authe
 2. Authorized Retail actor opens actual Finance reports and statements tabs in AR/RTL and EN/LTR; a distinct Retail store is 404.
 3. GL read capability alone does not grant the Finance financial-reports tab; granting foundation read enables it.
 4. Store-scoped explicit finance.view DENY revokes report access without deleting the role assignment.
+5. A real posted Retail AR document in the actor's store (12 KWD) and an outstanding document belonging to a sibling Retail store in the SAME legal entity (900 KWD) must yield only 12 KWD in the Finance overview and exactly one aging document. HTTP GET must not mutate the AR document ledger.
 
-Reuses current production routes and shared UI. No changes to shared navigation, Finance controllers, module/service source or authorization policies. #2858 / PR #3065 owns workflow-readiness changes and existing common tests; do not overwrite their code.
+Reuses current production routes and shared UI. **Production correction:** `FinanceAnalyticsService::overview` now scopes both AR outstanding/overdue and AR aging to the selected Retail store even when another Retail store shares its legal entity. Wholesale retains the existing legal-entity-wide view. This does not change shared navigation, Finance controllers, posting APIs, tables, allocations, authorization grants or the Customer/Driver/Van apps. Previously, overview AR metrics and aging aggregated sibling Retail AR due to a `storeScoped=false` argument. This is a report-data-scope correction, not a new Finance entitlement. #2858 / PR #3065 owns workflow-readiness changes and existing common tests; do not overwrite their code.
 
 ## Individual application impact
 
 | Surface | Classification | Evidence |
 | --- | --- | --- |
-| Backend/API | Laravel regression added; no production API route or response change | Four authenticated negative/positive tests |
+| Backend/API | Existing admin HTTP overview response now omits unauthorized sibling Retail AR totals; no public API/Flutter contract change | Five authenticated positive/negative tests, including same-entity cross-store ledger fixture |
 | Dashboard | Existing Finance workbench, tabs, localization and responsive behavior reused | New real HTTP assertions; browser/a11y runtime still requires final V2 UX gate #2750 |
 | Customer | No Customer API, pricing, identity or Flutter changes | No contract delta; existing B2B ordering still VAN only |
 | Driver | No Driver app, dispatch, collection or API change | B2C DRIVER-only fulfillment preserved |
@@ -37,6 +38,13 @@ Reuses current production routes and shared UI. No changes to shared navigation,
 
 ## Remaining P309 source acceptance — keep issue OPEN
 
-This PR is scoped, automated authorization evidence, **not full financial-report implementation acceptance**. Still verify posted-period calculations, multi-period and multi-company reconciliation, totals/exclusions, report/export boundaries, user role combinations and readiness after #2858, legal-entity/channel isolation, UI discoverability and WCAG/mobile at 320/360/390/412/430/768/1024 widths, keyboard navigation and actual AR/EN rendering. If those checks expose an implementation defect, resolve it through the canonical issue scope and coordination rather than claiming compliance from test-only evidence.
+This PR is scoped, automated authorization evidence, **not full financial-report implementation acceptance**. Still verify posted-period calculations beyond the AR overview store-scope negative case, multi-period and multi-company reconciliation, totals/exclusions, report/export boundaries, user role combinations and readiness after #2858, legal-entity/channel isolation, UI discoverability and WCAG/mobile at 320/360/390/412/430/768/1024 widths, keyboard navigation and actual AR/EN rendering. If those checks expose an implementation defect, resolve it through the canonical issue scope and coordination rather than claiming compliance from test-only evidence.
 
 After source-complete exact-head CI validation and Foodex_V2 integration, manual owner/device/staging acceptance may be recorded as MANUAL_ACCEPTANCE: DEFERRED_TO_V2_FINAL under #2503. Do not close until missing source requirements are evidenced. No local toolchain/Composer/Pint test execution claimed from this connector session; GitHub Required CI must provide independent evidence.
+
+## CI and peer-owner boundary
+
+- Original issue branch and PR are preserved; the 2026-11-13 continuation restored the prior two commits without discarding their history and layered them on the isolated `Foodex_V2` tree.
+- Modified only the original issue test, this issue QA note and `FinanceAnalyticsService.php`; no touch to the active #2633 AR service/Finance Workbench/routes or #2621 navigation files.
+- Required CI **must rerun on the final exact head**; do not treat prior historical green run #43059220482 as approval of this new report-scope code. The independent immutable Enterprise Performance baseline source #3160 must be reviewed and repaired by its owning lane, never bypassed here.
+- PR #3212 must remain open and unmerged until all required child jobs, report correctness/reconciliation, and source acceptance are validated. No main/deploy/release.
