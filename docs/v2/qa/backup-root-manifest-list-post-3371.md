@@ -24,7 +24,7 @@ The earlier merged `LaravelUpdateRuntime::rollbackFiles` preflights all referenc
 - JSON object-shaped `targets` and `existing` are rejected without changing a live file.
 - A trusted complete backup restores original content (including a zero-byte file) and removes new release targets.
 
-The previously integrated `V2UpdaterRollbackPreflightTest.php` must remain green: missing second backup, foreign existing key, symlink source, duplicate targets, malformed list and complete restoration.
+The previously integrated `V2UpdaterRollbackPreflightTest.php` must remain green: missing second backup, foreign existing key, symlink source, duplicate targets, malformed list and complete restoration. Existing `V2UpdaterSymlinkContainmentTest.php` also keeps its original release-target symbolic-link rejection assertion; its independent rollback fixture now uses a dedicated configured trusted test backup root so it reaches the intended symlink guard rather than failing earlier as a foreign backup. Neither test suite weakens production validation.
 
 ## Impact classification
 
