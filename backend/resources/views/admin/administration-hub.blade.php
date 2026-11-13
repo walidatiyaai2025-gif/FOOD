@@ -151,6 +151,9 @@ html[dir=ltr] .main{grid-column:2}
 <div class="actions" data-security-navigation>
 <a class="action" href="{{ route('admin.security.index') }}">{{ __('admin.administration_hub.open') }}</a>
 <a class="action secondary" data-security-audit-entry href="{{ route('admin.security.index', ['section' => 'audit']) }}">{{ __('admin.security.tabs.audit') }}</a>
+@if($canUserLifecycle)
+<a class="action secondary" data-v2-user-lifecycle-entry="inactive" href="{{ route('admin.security.index', ['section' => 'users', 'status' => 'inactive']) }}">{{ __('admin.administration_hub.inactive_users') }}</a>
+@endif
 </div>
 @else<span class="restricted">{{ __('admin.administration_hub.restricted') }}</span>@endif
 </article>
