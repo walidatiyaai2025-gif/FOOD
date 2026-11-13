@@ -164,6 +164,18 @@ final class FinanceWorkbenchController extends Controller
     {
         [$actor, $context] = $this->mutationContext($request);
 
+        // The same legal entity may serve several Retail stores. Store-scoped
+        // operators may only settle a document belonging to the selected store.
+        if ($context->isRetail()) {
+            abort_unless(
+                EnterpriseAccountsReceivableDocument::query()
+                    ->whereKey($document)
+                    ->where('store_id', $context->requiresStore())
+                    ->exists(),
+                404,
+            );
+        }
+
         // The canonical AR service owns permission, legal-entity scope,
         // entitlement, idempotency and over-allocation validation.
         $this->receivables->createAllocation(
@@ -187,6 +199,16 @@ final class FinanceWorkbenchController extends Controller
     public function postReceivableSettlement(Request $request, int $allocation): RedirectResponse
     {
         [$actor, $context] = $this->mutationContext($request);
+
+        if ($context->isRetail()) {
+            abort_unless(
+                EnterpriseAccountsReceivableAllocation::query()
+                    ->whereKey($allocation)
+                    ->whereHas('document', fn ($query) => $query->where('store_id', $context->requiresStore()))
+                    ->exists(),
+                404,
+            );
+        }
 
         // Independent poster, approved journal and repeat-safe posting are
         // enforced by AccountsReceivableService and GeneralLedgerService.
@@ -855,6 +877,7 @@ final class FinanceWorkbenchController extends Controller
                 ->where('organization_id', $scope->organizationId)
                 ->where('company_id', $scope->companyId)
                 ->where('legal_entity_id', $scope->legalEntityId)
+                ->when($context->isRetail(), fn ($query) => $query->where('store_id', $context->requiresStore()))
                 ->whereKey((int) $validated['settlement_document_id'])
                 ->firstOrFail();
 
