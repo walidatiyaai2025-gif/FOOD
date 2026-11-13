@@ -62,9 +62,18 @@ final class InstallerEnvironment
 
         @chmod($temporary, 0600);
 
-        if (! @rename($temporary, $path)) {
-            @unlink($temporary);
-            throw new RuntimeException('Environment configuration could not be finalized.');
+        try {
+            // Recheck just before the final rename: a containing directory
+            // might have changed since the initial read and backup write.
+            $this->rejectSymbolicLink($path);
+
+            if (! @rename($temporary, $path)) {
+                throw new RuntimeException('Environment configuration could not be finalized.');
+            }
+        } finally {
+            if (is_file($temporary) || is_link($temporary)) {
+                @unlink($temporary);
+            }
         }
     }
 
