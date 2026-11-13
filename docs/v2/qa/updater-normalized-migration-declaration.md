@@ -36,4 +36,4 @@ B2B VAN ONLY and B2C DRIVER ONLY invariants unchanged. The full signed Setup ZIP
 
 ## Required evidence
 
-Before integrating PR #3402, verify exact-final-head `Repository Policy`, `FOODEX V2 Isolation Gate`, `FOODEX Required CI Gate` including PHP syntax/Pint/PHPStan/security/OpenAPI, localization, Laravel full tests and MySQL/Redis install/upgrade/recovery all terminal **SUCCESS**. Then verify only issue-owned paths changed, PR targets `Foodex_V2` and no active worker collision. Close the atomic leaf only after GitHub confirms merge and source presence on `Foodex_V2`; never merge `main` or deploy.
+Before integrating the issue-scoped PR, verify exact-final-head `Repository Policy`, `FOODEX V2 Isolation Gate`, `FOODEX Required CI Gate` including PHP syntax/Pint/PHPStan/security/OpenAPI, localization, Laravel full tests and MySQL/Redis install/upgrade/recovery all terminal **SUCCESS**. Then verify only issue-owned paths changed, PR targets `Foodex_V2` and no active worker collision. Close the atomic leaf only after GitHub confirms merge and source presence on `Foodex_V2`; never merge `main` or deploy.
