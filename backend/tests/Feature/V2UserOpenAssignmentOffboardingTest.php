@@ -59,10 +59,10 @@ final class V2UserOpenAssignmentOffboardingTest extends TestCase
     {
         $admin = $this->withRole('SUPER_ADMIN');
         $representative = $this->withRole('VAN_OPERATOR');
-        $driverUser = $this->withRole('B2C_DRIVER');
+        $driverUser = $this->withRole('B2B_DRIVER');
         $driver = Driver::query()->create([
             'user_id' => $driverUser->id,
-            'driver_type' => 'b2c',
+            'driver_type' => 'b2b',
             'is_active' => true,
             'is_available' => true,
         ]);
@@ -136,6 +136,24 @@ final class V2UserOpenAssignmentOffboardingTest extends TestCase
             'event' => 'user.status_changed',
             'auditable_id' => $target->id,
             'user_id' => $admin->id,
+        ]);
+    }
+
+    public function test_completed_driver_assignment_is_retained_without_blocking_authorized_archive(): void
+    {
+        $admin = $this->withRole('SUPER_ADMIN');
+        $target = $this->withRole('B2C_DRIVER');
+        $assignment = $this->driverAssignment($target, 'delivered');
+        $assignment->forceFill(['completed_at' => now()])->save();
+
+        Sanctum::actingAs($admin);
+
+        $this->archive($target)->assertOk()->assertJsonPath('data.is_active', false);
+
+        $this->assertFalse((bool) $target->fresh()->is_active);
+        $this->assertDatabaseHas('driver_assignments', [
+            'id' => $assignment->id,
+            'status' => 'delivered',
         ]);
     }
 
