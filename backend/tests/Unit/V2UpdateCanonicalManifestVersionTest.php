@@ -73,11 +73,11 @@ final class V2UpdateCanonicalManifestVersionTest extends TestCase
 
     public function test_valid_manifest_retains_legacy_installed_normalization(): void
     {
-        $this->assertSame('1.0.84', UpdateVersion::normalizeInstalled(" 1.084 "));
+        $this->assertSame('1.0.84', UpdateVersion::normalizeInstalled(' 1.084 '));
 
         $result = (new UpdatePackageValidator)->validate(
             $this->manifest('1.0.85', '1.0.84'),
-            " 1.084 ",
+            ' 1.084 ',
             $this->packagePath,
         );
 
