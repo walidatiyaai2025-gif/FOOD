@@ -109,6 +109,88 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
         ]);
     }
 
+
+    public function test_retail_finance_overview_does_not_aggregate_ar_of_sibling_store_in_same_legal_entity(): void
+    {
+        [$actor, $store, $context] = $this->operator('P309-OVERVIEW');
+        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->where('scope', 'store')->firstOrFail();
+        $role->permissions()->syncWithoutDetaching([
+            Permission::query()->where('code', 'finance.manage')->firstOrFail()->id,
+        ]);
+        $actor = $actor->fresh();
+        $this->enableFinance($actor, $context, ['finance.foundation.read', 'finance.foundation.manage']);
+
+        $finance = app(FinanceFoundationService::class);
+        $year = $finance->createFiscalYear($actor, $context, [
+            'code' => 'P309-YEAR',
+            'name' => 'P309 fiscal year',
+            'starts_on' => now()->startOfYear()->toDateString(),
+            'ends_on' => now()->endOfYear()->toDateString(),
+        ]);
+        $period = $finance->createFiscalPeriod($actor, $context, $year->id, [
+            'code' => 'P309-PERIOD',
+            'name' => 'P309 fiscal period',
+            'sequence' => 1,
+            'starts_on' => now()->startOfMonth()->toDateString(),
+            'ends_on' => now()->endOfMonth()->toDateString(),
+        ]);
+        $arAccount = $finance->createAccount($actor, $context, [
+            'code' => '1200', 'name' => 'Receivables', 'type' => 'asset',
+            'normal_balance' => 'debit', 'allow_posting' => true,
+        ]);
+        $revenue = $finance->createAccount($actor, $context, [
+            'code' => '4000', 'name' => 'Revenue', 'type' => 'revenue',
+            'normal_balance' => 'credit', 'allow_posting' => true,
+        ]);
+        $customer = \App\Models\Customer::query()->create([
+            'type' => 'b2b',
+            'name' => 'P309 fixture customer',
+            'email' => 'p309-finance@example.test',
+        ]);
+        $foreign = $this->store('P309-SIBLING');
+        $scope = $context->enterpriseScope;
+        $this->assertNotNull($scope);
+        $foreignHierarchy = app(OrganizationHierarchyService::class)->scopeForStore($foreign->id);
+        $this->assertNotNull($foreignHierarchy);
+        $this->assertSame($scope->legalEntityId, (int) $foreignHierarchy['legal_entity_id']);
+
+        $common = [
+            'organization_id' => $scope->organizationId,
+            'company_id' => $scope->companyId,
+            'legal_entity_id' => $scope->legalEntityId,
+            'customer_id' => $customer->id,
+            'request_hash' => str_repeat('a', 64),
+            'document_type' => 'invoice',
+            'entry_date' => now()->toDateString(),
+            'due_date' => now()->addDay()->toDateString(),
+            'currency_code' => 'KWD',
+            'receivable_account_id' => $arAccount->id,
+            'offset_account_id' => $revenue->id,
+            'status' => 'posted',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+        DB::table('enterprise_ar_documents')->insert([
+            [...$common, 'store_id' => $store->id, 'document_number' => 'P309-OWN',
+                'idempotency_key' => 'p309-own', 'amount' => '12.000'],
+            [...$common, 'store_id' => $foreign->id, 'document_number' => 'P309-FOREIGN',
+                'idempotency_key' => 'p309-foreign', 'amount' => '900.000'],
+        ]);
+
+        $documentCount = DB::table('enterprise_ar_documents')->count();
+        $response = $this->actingAs($actor->fresh())->get(route('admin.erp.finance.index', [
+            'store_id' => $store->id,
+            'tab' => 'overview',
+            'period_id' => $period->id,
+        ]))->assertOk();
+
+        $data = $response->viewData('data');
+        $this->assertEqualsWithDelta(12.0, (float) $data['metrics']['ar_outstanding'], 0.001);
+        $this->assertSame(1, array_sum(array_column($data['aging']['ar'], 'documents')));
+        $this->assertEqualsWithDelta(12.0, array_sum(array_column($data['aging']['ar'], 'amount')), 0.001);
+        $this->assertSame($documentCount, DB::table('enterprise_ar_documents')->count());
+    }
+
     /** @return array{User, Store, ResolvedTenantContext} */
     private function operator(string $code): array
     {
