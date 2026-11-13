@@ -33,3 +33,9 @@ The synthetic fixture uses `CUSTOMER_SERVICE_SUPERVISOR` (global Wholesale) and 
 This synthetic code contract **does not close T019R01**. A privacy-preserving, authorized, read-only attestation must compare the historical source with the current account classification, active role pivots and user overrides, effective global/store/tenant/channel permissions, actual Sidebar and direct HTTP authorization, and any Finance SoD exposure. A discrepancy should be isolated in a separately reviewed implementation with its own regression and a supported account remediation plan. Do not put account identifiers, emails, secrets or live permission exports into GitHub.
 
 Verify the issue-scoped test using `php artisan test --filter=V2OverlappingAccountRoleAuthorizationAuditTest` under `backend/`, and record exact-head Repository Policy, V2 Isolation, and Required CI results for the PR. Do not merge on a failed or pending required check. No `main`, release tag or deployment is authorized.
+
+## Current account proof checklist (privacy-preserving, read-only)
+
+An authorized reviewer must supply a dated, de-identified evidence record that maps the source row to the *current* account classification, account-active state, effective role grants, scoped store assignments, direct ALLOW/DENY precedence, active module and entitlement readiness, Finance maker/checker conflicts, and the real Dashboard-route/Sidebar authorization matrix. Distinguish historical source assertions from observed present state; record each mismatch and its proposed remediation owner. Never infer that an archived overlapping role is still assigned, or perform role/user writes from a historical export alone.
+
+This proof is outside the synthetic fixture. The present PR may integrate its tests after green required gates, but it does not satisfy this live-source checklist and therefore cannot by itself close #2767.
