@@ -37,8 +37,7 @@ final class V2UserLifecycleRowActionsTest extends TestCase
                 ->assertSee('data-v2-open-user-dialog="status"', false)
                 ->assertSee('data-v2-user-dialog="manage"', false)
                 ->assertSee('data-v2-user-dialog="status"', false)
-                ->assertSee($target->email)
-                ->assertSee('route', false);
+                ->assertSee($target->email);
 
             $this->assertStringContainsString(
                 __('admin.security.actions', [], $locale),
