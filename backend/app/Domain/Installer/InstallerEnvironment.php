@@ -62,9 +62,18 @@ final class InstallerEnvironment
 
         @chmod($temporary, 0600);
 
-        if (! @rename($temporary, $path)) {
-            @unlink($temporary);
-            throw new RuntimeException('Environment configuration could not be finalized.');
+        try {
+            // Recheck just before the final rename: a containing directory
+            // might have changed since the initial read and backup write.
+            $this->rejectSymbolicLink($path);
+
+            if (! @rename($temporary, $path)) {
+                throw new RuntimeException('Environment configuration could not be finalized.');
+            }
+        } finally {
+            if (is_file($temporary) || is_link($temporary)) {
+                @unlink($temporary);
+            }
         }
     }
 
@@ -135,10 +144,26 @@ final class InstallerEnvironment
 
     private function rejectSymbolicLink(string $path): void
     {
-        clearstatcache(true, $path);
+        // A regular .env beneath a symlinked directory still follows that link
+        // on read, initialization and replacement. Trust the configured
+        // application root, but reject links in every descendant path segment.
+        $trustedRoot = rtrim(base_path(), '/\\');
+        $candidate = $path;
 
-        if (is_link($path)) {
-            throw new RuntimeException('Environment configuration path cannot be a symbolic link.');
+        while ($candidate !== $trustedRoot) {
+            clearstatcache(true, $candidate);
+
+            if (is_link($candidate)) {
+                throw new RuntimeException('Environment configuration path cannot be a symbolic link.');
+            }
+
+            $parent = dirname($candidate);
+
+            if ($parent === $candidate) {
+                break;
+            }
+
+            $candidate = $parent;
         }
     }
 
