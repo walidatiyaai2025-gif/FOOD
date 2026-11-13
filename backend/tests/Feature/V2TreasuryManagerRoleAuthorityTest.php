@@ -134,7 +134,7 @@ final class V2TreasuryManagerRoleAuthorityTest extends TestCase
         $other = Store::query()->create([
             'store_type_id' => DB::table('store_types')->where('code', 'B2B')->value('id'),
             'code' => 'V2-2698-B2B-OTHER',
-            'name' => 'Other authorized Wholesale store',
+            'name' => 'AAA Denied Wholesale store',
             'is_active' => true,
         ]);
         app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($other);
@@ -169,6 +169,18 @@ final class V2TreasuryManagerRoleAuthorityTest extends TestCase
         // narrower explicit user DENY. The other Wholesale scope remains usable.
         $this->actingAs($manager->fresh())->get($otherUrl)->assertForbidden();
         $this->actingAs($manager->fresh())->get($ownedUrl)->assertOk();
+
+        // The Sidebar must link to an eligible store rather than the first
+        // store alphabetically (which is now explicitly denied).
+        $entry = collect(app(AdminNavigation::class)->groupsFor($manager->fresh()))
+            ->flatMap(static fn (array $group): array => $group['children'])
+            ->firstWhere('key', 'erp_treasury');
+        $this->assertIsArray($entry);
+        $this->assertSame((string) $owned->id, $entry['params']['store_id'] ?? null);
+        $this->assertSame('receipts', $entry['params']['tab'] ?? null);
+        $this->actingAs($manager->fresh())
+            ->get(route($entry['route'], $entry['params']))
+            ->assertOk();
     }
 
     public function test_entitled_manager_can_open_bilingual_wholesale_treasury_but_not_retail_or_unentitled_mutations(): void
