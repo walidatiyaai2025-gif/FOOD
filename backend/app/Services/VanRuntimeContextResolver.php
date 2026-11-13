@@ -96,6 +96,13 @@ final class VanRuntimeContextResolver
      */
     public function canUseRuntime(User $user, ?array $context = null): bool
     {
+        // Retained legacy driver roles must never reactivate a disabled identity.
+        // hasPermission() already fails closed, but the driver-role bridge below
+        // also needs this account-state gate.
+        if (! (bool) $user->is_active) {
+            return false;
+        }
+
         if ($user->hasPermission('van.login')) {
             return true;
         }
