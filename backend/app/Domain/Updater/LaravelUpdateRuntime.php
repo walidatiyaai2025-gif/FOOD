@@ -62,6 +62,8 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
     public function backupFiles(string $packagePath): string
     {
+        // Reject ambiguous/unsafe ZIP entries before creating any backup state.
+        $entries = $this->archiveEntries($packagePath);
         $backupDirectory = $this->newBackupDirectory('files');
         $filesDirectory = $backupDirectory.'/existing';
         $this->ensureDirectory($filesDirectory);
@@ -69,7 +71,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         $targets = [];
         $existing = [];
 
-        foreach ($this->archiveEntries($packagePath) as $relativePath) {
+        foreach ($entries as $relativePath) {
             $this->assertSafeReleaseTarget($relativePath);
             $targets[] = $relativePath;
             $target = $this->releaseRoot().'/'.$relativePath;
@@ -510,6 +512,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
     private function archiveEntriesFrom(ZipArchive $archive): array
     {
         $entries = [];
+        $seen = [];
 
         for ($index = 0; $index < $archive->numFiles; $index++) {
             $name = $archive->getNameIndex($index);
@@ -529,14 +532,23 @@ final class LaravelUpdateRuntime implements UpdateRuntime
                 continue;
             }
 
-            $entries[] = $this->safeRelativePath($name);
+            // Two different ZIP member names can normalize to the same live
+            // target (e.g. forward/backslash aliases). Never silently choose
+            // one member while backup and extraction may read another.
+            $relativePath = $this->safeRelativePath($name);
+            if (isset($seen[$relativePath])) {
+                throw new RuntimeException('Update archive contains duplicate release target paths.');
+            }
+
+            $seen[$relativePath] = true;
+            $entries[] = $relativePath;
         }
 
         if ($entries === []) {
             throw new RuntimeException('Update archive contains no release files.');
         }
 
-        return array_values(array_unique($entries));
+        return $entries;
     }
 
     private function openArchive(string $packagePath): ZipArchive
