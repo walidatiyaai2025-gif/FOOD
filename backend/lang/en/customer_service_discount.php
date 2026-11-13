@@ -14,6 +14,7 @@ return [
     'request_submitted' => 'Discount request submitted for review. Order totals remain unchanged.',
     'request_duplicate' => 'This request was already submitted; totals remain unchanged.',
     'pending_review' => 'Customer Service discounts awaiting review',
+    'pending_description' => 'Open an order from the filtered list to approve or reject its pending discount request. Only independently authorized reviewers may act.',
     'approved_history' => 'Approved Customer Service discounts',
     'approved_description' => 'Independently approved discounts for orders in your authorized store and channel. Automatic promotions are excluded.',
     'approved_empty' => 'No approved discounts were found for the selected order filters.',
