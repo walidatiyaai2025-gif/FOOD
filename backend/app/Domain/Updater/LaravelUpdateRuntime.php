@@ -459,21 +459,10 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
     public function verifyDatabaseBackup(string $backupReference): void
     {
-        $metadataPath = rtrim($backupReference, '/\\\\').'/database.json';
-        try {
-            $metadata = json_decode((string) file_get_contents($metadataPath), true, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            throw new RuntimeException('Database backup verification metadata is invalid.');
-        }
-
-        if (! is_array($metadata) || ! is_string($metadata['driver'] ?? null) || ! is_string($metadata['snapshot'] ?? null)) {
-            throw new RuntimeException('Database backup verification metadata is invalid.');
-        }
-
+        // Reject tampered references and snapshot metadata before opening a
+        // database dump or invoking any database client.
+        $metadata = $this->trustedDatabaseBackupMetadata($backupReference);
         $snapshot = $metadata['snapshot'];
-        if (! is_file($snapshot) || filesize($snapshot) === 0) {
-            throw new RuntimeException('Database backup snapshot is missing or empty.');
-        }
 
         if ($metadata['driver'] === 'sqlite') {
             try {
@@ -515,20 +504,11 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
     public function rollbackDatabase(string $backupReference): void
     {
-        $metadataPath = $backupReference.'/database.json';
-
-        try {
-            $metadata = json_decode((string) file_get_contents($metadataPath), true, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            throw new RuntimeException('Database rollback metadata is invalid.');
-        }
-
-        if (! is_array($metadata)
-            || ! is_string($metadata['driver'] ?? null)
-            || ! is_string($metadata['snapshot'] ?? null)) {
-            throw new RuntimeException('Database rollback metadata is invalid.');
-        }
-
+        // Revalidate the actual backup immediately before recovery, even when
+        // it was previously checked at backup time. No DB purge, sidecar unlink
+        // or restore process may run until all provenance/integrity checks pass.
+        $this->verifyDatabaseBackup($backupReference);
+        $metadata = $this->trustedDatabaseBackupMetadata($backupReference);
         $snapshot = $metadata['snapshot'];
 
         if ($metadata['driver'] === 'sqlite') {
@@ -587,6 +567,97 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         }
 
         throw new RuntimeException('Database rollback driver is unsupported.');
+    }
+
+    /**
+     * Validate database backup provenance without modifying the database.
+     *
+     * @return array{driver: string, snapshot: string}
+     */
+    private function trustedDatabaseBackupMetadata(string $backupReference): array
+    {
+        $rawRoot = str_replace('\\', '/', $this->backupRoot());
+        $configuredRoot = rtrim($rawRoot, '/');
+        $candidate = rtrim(str_replace('\\', '/', $backupReference), '/');
+        $canonicalRoot = realpath($configuredRoot);
+        $canonicalCandidate = realpath($candidate);
+        $prefix = $configuredRoot.'/';
+
+        if ($canonicalRoot === false
+            || $canonicalCandidate === false
+            || ! str_starts_with($candidate, $prefix)
+            || ! str_starts_with(
+                str_replace('\\', '/', $canonicalCandidate),
+                rtrim(str_replace('\\', '/', $canonicalRoot), '/').'/'
+            )) {
+            throw new RuntimeException('Database backup location is invalid or unsafe.');
+        }
+
+        // The backup creator appends "/" to a configured root. Preserve its
+        // generated reference if the configuration already has a trailing
+        // slash, but reject every other empty/dot/alias or symlink component.
+        $relative = substr($candidate, strlen($prefix));
+        $trailingSeparators = strlen($rawRoot) - strlen($configuredRoot);
+        if ($trailingSeparators > 0
+            && str_starts_with($relative, str_repeat('/', $trailingSeparators))
+            && ! str_starts_with(substr($relative, $trailingSeparators), '/')) {
+            $relative = substr($relative, $trailingSeparators);
+        }
+
+        $component = $configuredRoot;
+        foreach (explode('/', $relative) as $part) {
+            if ($part === '' || $part === '.' || $part === '..') {
+                throw new RuntimeException('Database backup location is invalid or unsafe.');
+            }
+
+            $component .= '/'.$part;
+            if (is_link($component)) {
+                throw new RuntimeException('Database backup location is invalid or unsafe.');
+            }
+        }
+
+        $metadataPath = $candidate.'/database.json';
+        if (is_link($metadataPath) || ! is_file($metadataPath) || ! is_readable($metadataPath)) {
+            throw new RuntimeException('Database backup metadata is invalid or unsafe.');
+        }
+
+        try {
+            $json = @file_get_contents($metadataPath);
+            if (! is_string($json)) {
+                throw new RuntimeException('Database backup metadata is invalid or unsafe.');
+            }
+
+            $metadata = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw new RuntimeException('Database backup metadata is invalid or unsafe.');
+        }
+
+        $names = [
+            'sqlite' => 'database.sqlite',
+            'mysql' => 'database.sql',
+            'pgsql' => 'database.dump',
+        ];
+        $driver = is_array($metadata) ? ($metadata['driver'] ?? null) : null;
+        $snapshot = is_array($metadata) ? ($metadata['snapshot'] ?? null) : null;
+
+        if (! is_string($driver)
+            || ! isset($names[$driver])
+            || $driver !== DB::connection()->getDriverName()
+            || ! is_string($snapshot)) {
+            throw new RuntimeException('Database backup metadata is invalid or unsafe.');
+        }
+
+        $expected = $candidate.'/'.$names[$driver];
+        if (str_replace('\\', '/', $snapshot) !== $expected
+            || is_link($expected)
+            || ! is_file($expected)
+            || ! is_readable($expected)
+            || filesize($expected) === 0
+            || realpath($expected) !== rtrim(str_replace('\\', '/', $canonicalCandidate), '/').'/'.$names[$driver]) {
+            throw new RuntimeException('Database backup snapshot is missing or unsafe.');
+        }
+
+        return ['driver' => $driver, 'snapshot' => $expected];
     }
 
     public function exitMaintenanceMode(): void
