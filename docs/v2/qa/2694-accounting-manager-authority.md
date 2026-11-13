@@ -7,11 +7,11 @@
 
 Role is a global tenant-facing Finance manager with **required** `finance` module and optional `treasury` module; persisted `finance.view/manage/post/approve`, `reports.view/export`. No security administration, user deletion, procurement issue or Platform Owner privilege.
 
-## Discovered integration dependency (fail closed)
-- The current `admin.channels.b2b.global_roles` in `backend/config/admin.php` **does not contain `ACCOUNTING_MANAGER`**. Therefore, a lone Accounting Manager cannot select the canonical Wholesale B2B context via `TenantContextResolver::wholesale()` even after Finance enablement and entitlement. Assigning an extra `FINANCE` or `SUPER_ADMIN` role would be an unacceptable workaround.
-- `backend/config/admin.php` is owned by active #2698 Treasury Manager. #2694 does **not** edit that file or circumvent its ownership; explicit handoff or completed #2698 merge is required before the narrow additive `ACCOUNTING_MANAGER` B2B membership fix. A cross-worker dependency comment is recorded on #2698.
-- `backend/app/Support/AdminNavigation.php` remains owned by active #2583; it requires proper read-projection parity but must not be modified by #2694 until that lease is released/merged.
-- The new test intentionally asserts the intended **single-role operational B2B** contract. It may be red while the above shared-file dependencies are unresolved; **no merge may happen on red tests**. Do not weaken assertions, fake another role, alter store tenancy, or infer application acceptance.
+## Resolved integration dependency (fail closed)
+- The canonical B2B `admin.channels.b2b.global_roles` in `backend/config/admin.php` now admits `ACCOUNTING_MANAGER` by itself. The permission is added to **B2B only**; the B2C allowlist remains unchanged. This resolves the independently proven denial from `TenantContextResolver::wholesale()` without requiring an extra `FINANCE` or `SUPER_ADMIN` role.
+- #2698 / PR #3297 (Treasury Manager) and #2583 / PR #3298 (Warehouses navigation) were integrated before #2694's shared-file change. The merge reconciliation on original PR #3300 preserves both `TREASURY_MANAGER` and the subsequently integrated `SALES_MANAGER` (#2683 / PR #3302), instead of overwriting either peer's config.
+- The original role-only regression intentionally failed before the B2B admission fix; after the fix, the issue's tests remain authoritative. No assertion was weakened, no second role was injected, and no `AdminNavigation` or B2C store scope was altered.
+- Review the final exact-head Laravel, Repository Policy, V2 Isolation, localization, MySQL/Redis deployment and Required CI results before merge. Passing CI for an earlier head cannot authorize a newer commit.
 
 ## Role, route and workflow acceptance
 - Existing Finance Workbench `admin.erp.finance.index?store_id=...` / Accounts tab is authorized only when actor has exact scoped role, Finance module is enabled/certified/healthy, and legal-entity `finance.foundation.read` capability is entitled; AR/RTL and EN/LTR existing view verified.
@@ -23,8 +23,8 @@ Role is a global tenant-facing Finance manager with **required** `finance` modul
 ## Explicit application impact
 | Surface | Classification | Details |
 | --- | --- | --- |
-| Backend Laravel | **Affected: test-only contract currently** | Added role-specific HTTP + real ledger SoD regression; no production API/service code edited pending shared-file handoff |
-| Management Dashboard | **Existing route affected by discovered gap** | Finance Workbench reuse; B2B actor admission and AR/EN responsive/a11y must be certified by existing and new tests |
+| Backend Laravel | **Affected: B2B role admission + regression** | Add `ACCOUNTING_MANAGER` to the B2B operational allowlist only; verify real HTTP Finance access, scoped denial and ledger SoD |
+| Management Dashboard | **Existing route authorized for Accounting Manager** | Reuse Finance Workbench with existing RBAC, module/entitlement, AR/EN, responsive/a11y; no new screen or Sidebar route |
 | Customer Flutter | **Not affected** | No customer account, credit, order, catalogue, API, routing, token or notification change |
 | Driver Flutter | **Not affected** | No B2C Driver-only dispatch, collection, settlement, proof or client API change |
 | Van Flutter | **Not affected** | No B2B Van-only visits, routes, collections, consignment or API change |
