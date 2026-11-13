@@ -53,7 +53,7 @@ final class V2FinanceSidebarGroupAuthorityTest extends TestCase
         $this->enableModule($actor, $context, FinanceFoundationService::MODULE);
         $this->enableModule($actor, $context, TreasuryReceiptService::MODULE);
 
-        foreach (['ar' => ['rtl', 'المالية والخزينة'], 'en' => ['ltr', 'Finance & Treasury']] as $locale => [$direction, $heading]) {
+        foreach (['ar' => ['rtl', 'المالية والخزينة والمحاسبة'], 'en' => ['ltr', 'Finance, Treasury & Accounting']] as $locale => [$direction, $heading]) {
             $actor->forceFill(['locale' => $locale])->save();
             app()->setLocale($locale);
 
