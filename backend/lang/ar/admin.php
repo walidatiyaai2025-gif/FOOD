@@ -50,6 +50,7 @@ return [
         'inventory' => 'المخزون',
         'warehouses' => 'المستودعات',
         'accounts' => 'العملاء والحسابات',
+        'sales' => 'المبيعات',
         'stores' => 'المتاجر والقنوات',
         'marketing' => 'التسويق والتواصل',
         'advertising' => 'الإعلانات',

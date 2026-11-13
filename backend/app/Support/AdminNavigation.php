@@ -167,10 +167,6 @@ class AdminNavigation
             $this->group('accounts', 'admin.nav_groups.accounts', '◎', [
                 $this->routeItemScoped($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'customers.view')
                     ?? $this->routeItem($user, 'customer_360', 'admin.customer_360', 'admin.customer-360.index', 'b2b.accounts.view'),
-                // P193 follows the canonical orders.view navigation decision.
-                // The quotation controller enforces exact active store/channel scope
-                // again on each request; navigation does not grant that authority.
-                $this->routeItemScoped($user, 'sales_quotations', 'sales_quotations.title', 'admin.sales-quotations.index', 'orders.view'),
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'customers', 'admin.b2c_workspace.modules.customers', 'customers.view'),
                 isset($channels['b2b'])
                     ? $this->routeItemScoped($user, 'customer_groups', 'customer_groups.wholesale_title', 'admin.b2b.customer-groups.index', 'customers.view')
@@ -178,6 +174,11 @@ class AdminNavigation
                 isset($channels['b2c']) && ! $hideRetailWorkspaces
                     ? $this->routeItemScoped($user, 'b2c_customer_groups', 'customer_groups.retail_title', 'admin.b2c.customer-groups.index', 'customers.view')
                     : null,
+            ]),
+            // P192: Sales owns the existing P193 quotation workflow. Other
+            // target children retain their canonical ready-only domain owners.
+            $this->group('sales', 'admin.nav_groups.sales', '▤', [
+                $this->routeItemScoped($user, 'sales_quotations', 'sales_quotations.title', 'admin.sales-quotations.index', 'orders.view'),
             ]),
             $this->group('customer_service', 'admin.nav_groups.customer_service', '◉', [
                 // The canonical Inbox route accepts authorized store-scoped Retail support
