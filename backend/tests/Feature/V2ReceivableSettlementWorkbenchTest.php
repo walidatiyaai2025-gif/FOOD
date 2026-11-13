@@ -150,6 +150,77 @@ final class V2ReceivableSettlementWorkbenchTest extends TestCase
         $this->assertDatabaseCount('enterprise_finance_journals', 1);
     }
 
+    public function test_retail_store_cannot_settle_sibling_store_document_in_the_same_legal_entity(): void
+    {
+        $fixture = $this->fixture('P303-ONE-STORE');
+        $sibling = $this->retailStore('P303-SIBLING');
+        $siblingMaker = $this->userForStore($sibling, 'P303-SIBLING-MAKER');
+        $siblingPoster = $this->userForStore($sibling, 'P303-SIBLING-POSTER');
+        $tenants = app(TenantContextResolver::class);
+        $currentContext = $tenants->retail($fixture['maker'], $fixture['store']->id);
+        $siblingContext = $tenants->retail($siblingMaker, $sibling->id);
+        $siblingPosterContext = $tenants->retail($siblingPoster, $sibling->id);
+
+        // Two stores intentionally share the default enterprise legal entity.
+        $this->assertSame(
+            $currentContext->enterpriseScope->legalEntityId,
+            $siblingContext->enterpriseScope->legalEntityId,
+        );
+
+        $ar = app(AccountsReceivableService::class);
+        $foreignDocument = $ar->createDraft($siblingMaker, $siblingContext, [
+            'idempotency_key' => 'p303-sibling-doc',
+            'store_id' => $sibling->id,
+            'customer_id' => $fixture['document']->customer_id,
+            'entry_date' => '2027-01-05',
+            'due_date' => '2027-02-05',
+            'amount' => '30.000',
+            'currency_code' => 'KWD',
+            'receivable_account_id' => $fixture['document']->receivable_account_id,
+            'offset_account_id' => $fixture['document']->offset_account_id,
+        ]);
+        $ar->post($siblingPoster, $siblingPosterContext, $foreignDocument->id);
+        $foreignAllocation = $ar->createAllocation($siblingMaker, $siblingContext, $foreignDocument->id, [
+            'idempotency_key' => 'p303-sibling-allocation',
+            'allocation_date' => '2027-01-12',
+            'amount' => '10.000',
+            'settlement_account_id' => $fixture['cash_account_id'],
+            'reference' => 'P303-SIBLING',
+        ]);
+
+        $current = $fixture['maker'];
+        $currentStoreId = $fixture['store']->id;
+        $this->actingAs($current)
+            ->get(route('admin.erp.finance.index', [
+                'store_id' => $currentStoreId,
+                'tab' => 'receivables',
+                'settlement_document_id' => $foreignDocument->id,
+            ]))
+            ->assertNotFound();
+
+        $this->actingAs($current)->post(
+            route('admin.erp.finance.receivables.settlements.store', $foreignDocument->id),
+            [
+                'store_id' => $currentStoreId,
+                'idempotency_key' => 'p303-cross-store-allocation',
+                'allocation_date' => '2027-01-12',
+                'amount' => '1.000',
+                'settlement_account_id' => $fixture['cash_account_id'],
+            ],
+        )->assertNotFound();
+
+        $this->actingAs($current)->post(
+            route('admin.erp.finance.receivables.settlements.post', $foreignAllocation->id),
+            ['store_id' => $currentStoreId],
+        )->assertNotFound();
+
+        $this->assertSame('draft', $foreignAllocation->fresh()->status);
+        $this->assertDatabaseMissing('enterprise_ar_allocations', [
+            'ar_document_id' => $foreignDocument->id,
+            'idempotency_key' => 'p303-cross-store-allocation',
+        ]);
+    }
+
     /** @return array{store:Store,maker:User,poster:User,document:\App\Models\EnterpriseAccountsReceivableDocument,cash_account_id:int} */
     private function fixture(string $prefix): array
     {
