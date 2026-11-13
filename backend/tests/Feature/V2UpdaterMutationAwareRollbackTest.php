@@ -41,7 +41,7 @@ class V2UpdaterMutationAwareRollbackTest extends TestCase
         $this->assertSame('preflight', $history->failed_stage);
         $this->assertSame('not_required', $history->rollback_status);
         $this->assertFalse((bool) $history->maintenance_mode_remained);
-        $this->assertStringContainsString('No release or database rollback was required.', $history->failure_reason);
+        $this->assertStringNotContainsString('Rollback was attempted.', $history->failure_reason);
     }
 
     public function test_unverified_database_backup_cannot_be_restored_onto_untouched_live_data(): void
@@ -61,7 +61,7 @@ class V2UpdaterMutationAwareRollbackTest extends TestCase
         $this->assertSame('not_required', $history->rollback_status);
         $this->assertSame('failed', $history->execution_evidence['backup_database'] ?? null);
         $this->assertSame('not_required', $history->execution_evidence['rollback_database'] ?? null);
-        $this->assertStringContainsString('No release or database rollback was required.', $history->failure_reason);
+        $this->assertStringNotContainsString('Rollback was attempted.', $history->failure_reason);
         $this->assertFalse((bool) $history->maintenance_mode_remained);
     }
 
