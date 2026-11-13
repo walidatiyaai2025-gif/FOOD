@@ -12,14 +12,14 @@
 
 ## Access and security
 
-- Existing `routeItemScoped` for `treasury_master` preserves `finance.view`, dashboard authentication, wholesale/retail tenant scope, store read authority and HTTP checks. Retail store staff have no platform Treasury group and direct Treasury Master route is denied.
+- Existing `routeItemScoped` for `treasury_master` preserves `finance.view`, dashboard authentication, wholesale/retail tenant scope, store read authority and HTTP checks. Retail without effective `finance.view` sees no Treasury group and receives HTTP 403; a Retail store actor granted `finance.view` sees Treasury Master in the group and can open **only** their authorized store. A forged sibling-store query receives 404. This removes preexisting direct-URL-only discoverability for a genuinely authorized Retail Finance actor without broadening server permissions.
 - Existing `routeItemEnterpriseModule` for `erp_treasury` preserves Treasury module enabled/readiness and Finance permission; its HTTP controller/service continue to perform context, entitlement, permission and maker/checker enforcement.
 - Sidebar group contains only currently authorized children; an empty group is removed by the existing `groupsFor` filter. Changing or hiding a display group never adds a permission or relaxes a 403.
 - This PR makes no treasury payment, bank statement, collection, GL journal, financial account, or tenant row mutations. Existing saved role/sidebar overrides and audit semantics are retained.
 
 ## Verification
 
-`V2TreasuryBanksGroupNavigationTest` checks registry and authorization source of truth, exact authorized child route, no duplicate Finance group entries, disabled Treasury hiding, Retail denied direct-route and no group, and AR/EN translation parity. Existing `AdminNavigationAuthorizationAuditTest`, `AdminSidebarManagementTest` and Treasury module HTTP tests remain unchanged.
+`V2TreasuryBanksGroupNavigationTest` checks registry and authorization source of truth, exact authorized child route, no duplicate Finance group entries, disabled Treasury hiding, Retail no-permission denial, authorized same-store entry and sibling-store direct-route denial, and AR/EN translation parity. Existing `AdminNavigationAuthorizationAuditTest`, `AdminSidebarManagementTest` and Treasury module HTTP tests remain unchanged.
 
 CI required on exact issue PR head: Repository Policy; V2 Isolation Gate; Arabic/English localization; Laravel syntax/Pint/PHPStan/security/OpenAPI; full Backend tests; MySQL/Redis installation-upgrade-recovery as applicable; terminal `required-ci-gate`. A passing build alone is insufficient.
 
