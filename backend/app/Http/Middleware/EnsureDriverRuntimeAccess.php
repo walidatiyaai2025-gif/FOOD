@@ -19,7 +19,7 @@ final class EnsureDriverRuntimeAccess
         abort_unless($user instanceof User, 401);
         abort_unless($user->tokenCan('app:driver'), 403, 'This token is not authorized for the Driver App.');
 
-        $driver = $this->driverTenants->eligibleRetailDriver($user);
+        $driver = $this->driverTenants->eligibleRetailDriver($user, allowLegacyUnscoped: true);
 
         abort_unless(
             $driver !== null
