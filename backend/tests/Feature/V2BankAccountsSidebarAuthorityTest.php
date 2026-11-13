@@ -46,14 +46,14 @@ final class V2BankAccountsSidebarAuthorityTest extends TestCase
             $actor->forceFill(['locale' => $locale])->save();
             app()->setLocale($locale);
             $groups = app(AdminNavigation::class)->groupsFor($actor->fresh());
-            $finance = collect($groups)->firstWhere('key', 'finance');
+            $treasury = collect($groups)->firstWhere('key', 'treasury');
 
-            $this->assertNotNull($finance);
+            $this->assertNotNull($treasury);
             $links = collect($groups)->flatMap(static fn (array $group): array => $group['children']);
             $item = $links->firstWhere('key', 'treasury_master');
             $this->assertNotNull($item);
             $this->assertSame('admin.treasury.master.index', $item['route']);
-            $this->assertContains('treasury_master', array_column($finance['children'], 'key'));
+            $this->assertContains('treasury_master', array_column($treasury['children'], 'key'));
 
             $this->actingAs($actor->fresh())
                 ->get(route('admin.treasury.master.index', ['tab' => 'bank_accounts']))

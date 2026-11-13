@@ -46,14 +46,14 @@ final class V2CashboxSidebarAuthorizationContractTest extends TestCase
             app()->setLocale($locale);
 
             $groups = app(AdminNavigation::class)->groupsFor($actor->fresh());
-            $finance = collect($groups)->firstWhere('key', 'finance');
-            $this->assertNotNull($finance);
+            $treasury = collect($groups)->firstWhere('key', 'treasury');
+            $this->assertNotNull($treasury);
             $items = collect($groups)
                 ->flatMap(static fn (array $group): array => $group['children'])
                 ->where('key', 'treasury_master')
                 ->values();
             $this->assertCount(1, $items);
-            $this->assertContains('treasury_master', array_column($finance['children'], 'key'));
+            $this->assertContains('treasury_master', array_column($treasury['children'], 'key'));
             $this->assertSame('admin.treasury.master.index', $items->first()['route']);
             $this->assertSame($expected['label'], __($items->first()['label']));
 

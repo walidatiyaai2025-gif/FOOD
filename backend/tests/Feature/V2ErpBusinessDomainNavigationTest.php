@@ -21,7 +21,7 @@ final class V2ErpBusinessDomainNavigationTest extends TestCase
         'erp_procurement' => 'procurement',
         'erp_wms' => 'warehouses',
         'erp_finance' => 'finance',
-        'erp_treasury' => 'finance',
+        'erp_treasury' => 'treasury',
         'erp_bi' => 'analytics',
     ];
 

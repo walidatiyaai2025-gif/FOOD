@@ -116,7 +116,9 @@ final class AppPreviewTargetService
         $users = User::query()
             ->whereIn('id', $drivers->pluck('user_id')->filter()->all())
             ->where('is_active', true)
-            ->get(['id', 'name', 'locale'])
+            // Authorization below requires the actual account status, not a
+            // partially hydrated User with an implicitly false is_active.
+            ->get(['id', 'name', 'locale', 'is_active'])
             ->keyBy('id');
         $permission = "deliveries.{$channel}.execute";
 

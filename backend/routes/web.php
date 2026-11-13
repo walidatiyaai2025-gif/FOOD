@@ -72,6 +72,7 @@ use App\Http\Controllers\Admin\WhatsAppCallController;
 use App\Http\Controllers\Admin\WhatsAppCampaignController;
 use App\Http\Controllers\Admin\WhatsAppChatbotController;
 use App\Http\Controllers\Admin\WhatsAppConnectionController;
+use App\Http\Controllers\Admin\WhatsAppDistributionRulesController;
 use App\Http\Controllers\Admin\WhatsAppFoundationController;
 use App\Http\Controllers\Admin\WhatsAppInboundAlertController;
 use App\Http\Controllers\Admin\WhatsAppInboxController;
@@ -436,6 +437,10 @@ Route::prefix('admin')
             ->middleware('whatsapp.capability:agent_inbox')
             ->group(function (): void {
                 Route::get('/', [WhatsAppSupervisorController::class, 'index'])->name('index');
+                Route::get('/distribution-rules', [WhatsAppDistributionRulesController::class, 'index'])->name('rules.index');
+                Route::post('/distribution-rules', [WhatsAppDistributionRulesController::class, 'store'])->middleware('throttle:30,1')->name('rules.store');
+                Route::patch('/distribution-rules/{rule}', [WhatsAppDistributionRulesController::class, 'update'])->whereNumber('rule')->middleware('throttle:30,1')->name('rules.update');
+                Route::patch('/distribution-rules/{rule}/status', [WhatsAppDistributionRulesController::class, 'status'])->whereNumber('rule')->middleware('throttle:30,1')->name('rules.status');
                 Route::post('/leads', [WhatsAppSupervisorController::class, 'saveLead'])->name('leads.store');
                 Route::post('/follow-ups', [WhatsAppSupervisorController::class, 'createFollowUp'])->name('follow-ups.store');
                 Route::patch('/follow-ups/{followUp}', [WhatsAppSupervisorController::class, 'transitionFollowUp'])->whereNumber('followUp')->name('follow-ups.transition');

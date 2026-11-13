@@ -47,46 +47,57 @@ final class V2FinanceSidebarGroupAuthorityTest extends TestCase
         }
     }
 
-    public function test_finance_group_exposes_only_three_real_scoped_destinations_in_both_locales(): void
+    public function test_finance_and_treasury_groups_expose_real_scoped_destinations_in_both_locales(): void
     {
         [$actor, $store, $context] = $this->reader('V2-P279-OWN', 'B2C');
         $this->enableModule($actor, $context, FinanceFoundationService::MODULE);
         $this->enableModule($actor, $context, TreasuryReceiptService::MODULE);
 
-        foreach (['ar' => ['rtl', 'المالية والخزينة والمحاسبة'], 'en' => ['ltr', 'Finance, Treasury & Accounting']] as $locale => [$direction, $heading]) {
+        foreach ([
+            'ar' => ['rtl', 'المالية والمحاسبة', 'الخزينة والبنوك'],
+            'en' => ['ltr', 'Finance & Accounting', 'Treasury & Banking'],
+        ] as $locale => [$direction, $financeHeading, $treasuryHeading]) {
             $actor->forceFill(['locale' => $locale])->save();
             app()->setLocale($locale);
 
             $groups = $this->navigationGroups($actor);
-            $matches = $groups->where('key', 'finance');
-            $this->assertCount(1, $matches);
+            $finance = $groups->firstWhere('key', 'finance');
+            $treasury = $groups->firstWhere('key', 'treasury');
+            $this->assertIsArray($finance);
+            $this->assertIsArray($treasury);
+            $this->assertSame('admin.nav_groups.finance', $finance['label']);
+            $this->assertSame($financeHeading, __($finance['label']));
+            $this->assertSame('admin.nav_groups.treasury', $treasury['label']);
+            $this->assertSame($treasuryHeading, __($treasury['label']));
 
-            $group = $matches->first();
-            $this->assertSame('admin.nav_groups.finance', $group['label']);
-            $this->assertSame($heading, __($group['label']));
-
-            $expected = [
-                'treasury_master' => 'admin.treasury.master.index',
-                'erp_finance' => 'admin.erp.finance.index',
-                'erp_treasury' => 'admin.erp.treasury.index',
+            // P291 separates the business groups, not their existing HTTP authorities.
+            $destinations = [
+                'finance' => ['erp_finance' => 'admin.erp.finance.index'],
+                'treasury' => [
+                    'treasury_master' => 'admin.treasury.master.index',
+                    'erp_treasury' => 'admin.erp.treasury.index',
+                ],
             ];
-            $items = collect($group['children'])->keyBy('key');
-            $this->assertSame(array_keys($expected), $items->keys()->all());
+            foreach ($destinations as $groupKey => $expected) {
+                $group = $groups->firstWhere('key', $groupKey);
+                $items = collect($group['children'])->keyBy('key');
+                $this->assertSame(array_keys($expected), $items->keys()->all());
 
-            foreach ($expected as $key => $routeName) {
-                $this->assertSame($routeName, $items[$key]['route']);
-                $this->assertTrue(Route::has($routeName));
-                $this->assertNotSame($items[$key]['label'], __($items[$key]['label']));
-                $this->assertSame(
-                    1,
-                    $groups->flatMap(static fn (array $entry): array => $entry['children'])
-                        ->where('key', $key)->count(),
-                );
+                foreach ($expected as $key => $routeName) {
+                    $this->assertSame($routeName, $items[$key]['route']);
+                    $this->assertTrue(Route::has($routeName));
+                    $this->assertNotSame($items[$key]['label'], __($items[$key]['label']));
+                    $this->assertSame(
+                        1,
+                        $groups->flatMap(static fn (array $entry): array => $entry['children'])
+                            ->where('key', $key)->count(),
+                    );
 
-                $this->actingAs($actor->fresh())
-                    ->get(route($routeName, ['store_id' => $store->id], false))
-                    ->assertOk()
-                    ->assertSee('dir="'.$direction.'"', false);
+                    $this->actingAs($actor->fresh())
+                        ->get(route($routeName, ['store_id' => $store->id], false))
+                        ->assertOk()
+                        ->assertSee('dir="'.$direction.'"', false);
+                }
             }
         }
     }
@@ -95,7 +106,8 @@ final class V2FinanceSidebarGroupAuthorityTest extends TestCase
     {
         [$actor, $store] = $this->reader('V2-P279-DISABLED', 'B2C');
 
-        $group = $this->navigationGroups($actor)->firstWhere('key', 'finance');
+        $this->assertNull($this->navigationGroups($actor)->firstWhere('key', 'finance'));
+        $group = $this->navigationGroups($actor)->firstWhere('key', 'treasury');
         $this->assertIsArray($group);
         $this->assertSame(['treasury_master'], collect($group['children'])->pluck('key')->all());
 
@@ -116,7 +128,8 @@ final class V2FinanceSidebarGroupAuthorityTest extends TestCase
         $this->enableModule($actor, $context, FinanceFoundationService::MODULE);
 
         config()->set('enterprise_module_readiness.certified_versions.finance', null);
-        $group = $this->navigationGroups($actor)->firstWhere('key', 'finance');
+        $this->assertNull($this->navigationGroups($actor)->firstWhere('key', 'finance'));
+        $group = $this->navigationGroups($actor)->firstWhere('key', 'treasury');
 
         $this->assertIsArray($group);
         $this->assertSame(['treasury_master'], collect($group['children'])->pluck('key')->all());
@@ -144,6 +157,7 @@ final class V2FinanceSidebarGroupAuthorityTest extends TestCase
         $actor->forceFill(['has_permission_overrides' => true])->save();
 
         $this->assertNull($this->navigationGroups($actor)->firstWhere('key', 'finance'));
+        $this->assertNull($this->navigationGroups($actor)->firstWhere('key', 'treasury'));
 
         foreach ([
             'admin.treasury.master.index',
@@ -190,6 +204,7 @@ final class V2FinanceSidebarGroupAuthorityTest extends TestCase
 
         foreach ([$roleless, $inactive->fresh()] as $actor) {
             $this->assertNull($this->navigationGroups($actor)->firstWhere('key', 'finance'));
+            $this->assertNull($this->navigationGroups($actor)->firstWhere('key', 'treasury'));
             $this->actingAs($actor)
                 ->get(route('admin.treasury.master.index', ['store_id' => $store->id], false))
                 ->assertForbidden();
