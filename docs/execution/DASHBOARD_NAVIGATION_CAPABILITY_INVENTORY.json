@@ -1991,6 +1991,41 @@
       "remediation_owner": null,
       "remediation_scope": null,
       "notes": "P193: store/channel-scoped admin quotes; quotations do not create orders or dispatch. HTTP authorizes every action independently, denying foreign stores."
+    },
+    {
+      "id": "whatsapp.conversation_distribution_rules",
+      "domain": "Communications / Customer Service",
+      "capability": "Store-scoped WhatsApp automatic conversation distribution rules",
+      "route": [
+        "admin.whatsapp-supervisor.rules.index"
+      ],
+      "route_path": [
+        "/admin/whatsapp/supervisor/distribution-rules"
+      ],
+      "controller_view": "WhatsAppDistributionRulesController / admin.whatsapp-distribution-rules",
+      "role_persona": "Authorized customer-service supervisor or Super Admin; active assigned store",
+      "permission_entitlement": "whatsapp.conversations.view + whatsapp.conversations.assign + whatsapp.customer_service.supervise + whatsapp.assignment_rules.manage in exact store; whatsapp.capability:agent_inbox runtime; effective DENY wins",
+      "navigation_owner": "WhatsApp Supervisor",
+      "navigation_type": "CONTEXT_ACTION",
+      "visible_entry_point": "WhatsApp Supervisor Analytics → Conversation Distribution Rules (visible authorized action)",
+      "parent_context": "WhatsApp Supervisor / Customer Service",
+      "ar_label": "قواعد توزيع المحادثات",
+      "en_label": "Conversation Distribution Rules",
+      "desktop_reachable": true,
+      "mobile_reachable": true,
+      "active_highlight_behavior": "WhatsApp Supervisor parent navigation remains highlighted; rules page owns selected store state",
+      "back_path": "admin.whatsapp-supervisor.index (Back to Supervisor Analytics)",
+      "status": "CONTEXT_ONLY_OK",
+      "evidence": [
+        "backend/routes/web.php",
+        "backend/resources/views/admin/whatsapp-supervisor.blade.php",
+        "backend/resources/views/admin/whatsapp-distribution-rules.blade.php",
+        "backend/app/Domain/WhatsApp/DistributionRuleManager.php",
+        "backend/tests/Feature/V2ConversationDistributionRulesHttpTest.php"
+      ],
+      "remediation_owner": null,
+      "remediation_scope": null,
+      "notes": "V2 P202: Reuse Supervisor workspace; same-store server authorization, no independent Sidebar destination. Customer/Driver/Van public API and dispatch contracts unchanged."
     }
   ],
   "route_level_overrides": [
