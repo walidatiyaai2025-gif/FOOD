@@ -40,11 +40,11 @@ final class V2InstallerEnvDuplicateKeyCanonicalizationTest extends TestCase
         file_put_contents($this->environmentPath, implode("\n", [
             'APP_KEY=base64:old-first',
             'UNMANAGED=value',
-            'APP_KEY=base64:old-last',
+            '  APP_KEY =base64:old-last',
             'DB_PASSWORD=older',
-            'DB_PASSWORD=stale',
+            ' DB_PASSWORD =stale',
             'APP_URL=https://old.example.test',
-            'APP_URL=https://stale.example.test',
+            '  APP_URL =https://stale.example.test',
             '',
         ]));
 
