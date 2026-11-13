@@ -4630,22 +4630,34 @@ class _FinanceCard extends StatelessWidget {
             // Never display a fabricated zero debt or a reversed balance.
             final summary = WholesaleFinancialSummary.tryParse(data);
             if (summary == null) {
-              return SizedBox(
+              // The narrow/large-text More page must keep its dashboard
+              // shortcut and let the localized failure copy wrap naturally.
+              return Padding(
                 key: const ValueKey('b2b-finance-summary-invalid'),
-                height: 136,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(context.tr('b2b.remote.error')),
-                      const SizedBox(height: 8),
-                      TextButton.icon(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: Text(context.tr('b2b.remote.error'))),
+                        IconButton(
+                          key: const ValueKey('b2b-more-business-dashboard'),
+                          tooltip: context.tr('b2b.dashboard.title'),
+                          onPressed: () => open(dashboardRoute),
+                          icon: const Icon(Icons.grid_view_rounded),
+                        ),
+                      ],
+                    ),
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: TextButton.icon(
                         onPressed: retry,
                         icon: const Icon(Icons.refresh_rounded),
                         label: Text(context.tr('customer.action.retry')),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               );
             }
