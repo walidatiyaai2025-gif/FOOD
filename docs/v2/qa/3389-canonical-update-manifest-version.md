@@ -6,7 +6,17 @@ Parent #2746 (Admin ZIP Update/Recovery), #2846 (P112 delivery), master #2503. I
 
 `UpdateVersion::isCanonical()` previously applied `trim($version)` before its strict `MAJOR.MINOR.PATCH` expression. A signed manifest declaring `targetVersion='1.0.85 '` or `minimumCurrentVersion=' 1.0.84'` was therefore accepted even though those strings are not canonical. `UpdatePackageValidator` then carried the raw target value forward in the result. Canonical signed manifest metadata must be accepted byte-for-byte, not silently normalized by the recipient.
 
-Scope: remove only that normalization from `isCanonical`; leave `normalizeInstalled()` untouched for historical stored `1.084` compatibility. Keep checksum comparison, minimum-version policy, upgrade/downgrade checks and all rollback code unchanged. No changes to sibling #3386's owned `UpdatePackageValidator.php`.
+Further boundary: PHP's PCRE `# V2 #3389 — Signed update manifest Semantic Version exactness
+
+Parent #2746 (Admin ZIP Update/Recovery), #2846 (P112 delivery), master #2503. Integration `Foodex_V2` only. No production, main, release or tag.
+
+## Source / cause
+
+`UpdateVersion::isCanonical()` previously applied `trim($version)` before its strict `MAJOR.MINOR.PATCH` expression. A signed manifest declaring `targetVersion='1.0.85 '` or `minimumCurrentVersion=' 1.0.84'` was therefore accepted even though those strings are not canonical. `UpdatePackageValidator` then carried the raw target value forward in the result. Canonical signed manifest metadata must be accepted byte-for-byte, not silently normalized by the recipient.
+
+ anchor accepts a newline immediately before the end of the subject. Use absolute `\\A` and `\\z` anchors as well as removing trim, so the validator rejects a trailing LF/CR and does not silently accept padded signed metadata.
+
+Scope: remove manifest-version trimming and require absolute version-string matching in `isCanonical`; leave `normalizeInstalled()` untouched for historical stored `1.084` compatibility. Keep checksum comparison, minimum-version policy, upgrade/downgrade checks and all rollback code unchanged. No changes to sibling #3386's owned `UpdatePackageValidator.php`.
 
 ## Executable regression
 
