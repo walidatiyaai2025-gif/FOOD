@@ -133,14 +133,16 @@ class AdminNavigation
                 $useCustomerServiceDashboardProfile
                     ? $this->module($user, $channels, 'b2b', 'inventory', 'admin.b2b_sidebar.inventory_management', 'inventory.view')
                     : null,
-                // P358 supply domain — existing route, module readiness and RBAC checks.
-                $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
-                    ? $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.erp.procurement.index', 'procurement', 'procurement.suppliers.view')
-                    : null,
-
                 // P233: Coupons belong to the canonical Catalog & Pricing domain.
                 // Their existing controller and scoped feature authorizer remain intact.
                 $this->routeItemAdvertising($user, 'coupons', 'coupons.title', 'admin.coupons.index', 'coupons.view', 'coupons_enabled'),
+            ]),
+            // P238: Procurement reuses its existing workbench and permission,
+            // entitlement, tenant and operational-readiness checks.
+            $this->group('procurement', 'admin.nav_groups.procurement', '▤', [
+                $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
+                    ? $this->routeItemEnterpriseModule($user, 'erp_procurement', 'admin.erp_center.modules.procurement.title', 'admin.erp.procurement.index', 'procurement', 'procurement.suppliers.view')
+                    : null,
             ]),
             // P253 warehouses are a dedicated business group. The existing
             // P254 WMS warehouse tab is the only canonical destination; the

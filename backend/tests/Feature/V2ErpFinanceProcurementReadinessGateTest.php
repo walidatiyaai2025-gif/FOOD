@@ -28,7 +28,7 @@ final class V2ErpFinanceProcurementReadinessGateTest extends TestCase
     private const MODULES = [
         'procurement' => [
             'key' => 'erp_procurement',
-            'group' => 'catalog',
+            'group' => 'procurement',
             'route' => 'admin.erp.procurement.index',
         ],
         'finance' => [
