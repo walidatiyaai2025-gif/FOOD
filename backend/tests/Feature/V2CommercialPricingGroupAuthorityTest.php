@@ -106,9 +106,11 @@ final class V2CommercialPricingGroupAuthorityTest extends TestCase
             ->flatMap(static fn (array $group): array => $group['children'])
             ->pluck('key')->all();
         $this->assertNotContains('commercial_sales_control', $keys);
+        // Read-only commercial store resolution masks a denied tenant with
+        // 404 when no B2B store is authorized (fail-closed route contract).
         $this->actingAs($denied)
             ->get(route('admin.commercial.sales-control', ['store_id' => $storeId], false))
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     public function test_disabled_price_list_mode_keeps_safe_commercial_entry_but_not_unready_child(): void
