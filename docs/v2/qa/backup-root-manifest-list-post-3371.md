@@ -10,7 +10,7 @@ The earlier merged `LaravelUpdateRuntime::rollbackFiles` preflights all referenc
 
 1. Resolve configured backup root and requested rollback directory with `realpath`. Require the reference to be a strict descendant of the configured trusted backup root both as a normalized reference and as a canonical resolved path.
 2. Reject empty/dot/dotdot path segments or symlinks within the backup-root-relative reference even when they ultimately resolve inside the configured root. Configured storage ancestors are allowed to have a host-specific canonical path; descendants must still satisfy strict checks. Do not expose absolute paths or system secrets in errors.
-3. Require `targets` and `existing` to be PHP `array_is_list` values decoded from true JSON arrays before the existing `stringList` and complete backup preflight. Existing protected-path, linked manifest/source-file, duplicate target, backup completeness and optimistic recovery checks remain unchanged.
+3. Decode JSON without coercing source objects to associative PHP arrays: require a real JSON root object with genuine JSON array-valued `targets` and `existing`, plus `array_is_list` on those arrays before `stringList` and complete backup preflight. In particular, `{"0":"path"}` is an object and MUST be denied even though `json_decode(..., true)` would otherwise convert it into a numeric PHP list. Existing protected-path, linked manifest/source-file, duplicate target, backup completeness and optimistic recovery checks remain unchanged.
 4. Configure the original #3371 real-filesystem feature-test fixture's trusted root to its already-isolated testing parent. No code weakening or bypass to make the suite pass.
 5. Do not change public API, routes, permission scopes, storage uploads, Laravel migrations or the update version contract.
 
@@ -21,7 +21,7 @@ The earlier merged `LaravelUpdateRuntime::rollbackFiles` preflights all referenc
 - A valid-looking foreign backup manifest must **not** remove a live release file.
 - A `nested/../files` alias under a trusted root is rejected before unlink.
 - A linked intermediate directory is rejected even if the final target resolves back inside the trusted root (skip only if the test runner does not support symlinks).
-- JSON object-shaped `targets` and `existing` are rejected without changing a live file.
+- JSON object-shaped `targets` and `existing` are rejected without changing a live file; this includes numeric-key (`{"0":"path"}`) JSON objects masquerading as PHP lists.
 - A trusted complete backup restores original content (including a zero-byte file) and removes new release targets.
 
 The previously integrated `V2UpdaterRollbackPreflightTest.php` must remain green: missing second backup, foreign existing key, symlink source, duplicate targets, malformed list and complete restoration. Existing `V2UpdaterSymlinkContainmentTest.php` also keeps its original release-target symbolic-link rejection assertion; its independent rollback fixture now uses a dedicated configured trusted test backup root so it reaches the intended symlink guard rather than failing earlier as a foreign backup. Neither test suite weakens production validation.
