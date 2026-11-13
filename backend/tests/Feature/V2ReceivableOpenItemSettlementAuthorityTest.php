@@ -118,14 +118,14 @@ final class V2ReceivableOpenItemSettlementAuthorityTest extends TestCase
 
         $this->actingAs($unprivileged)
             ->get(route('admin.invoices.show', $invoice))
-            ->assertNotFound();
+            ->assertForbidden();
 
         $this->actingAs($unprivileged)
             ->post(route('admin.invoices.settle', $invoice), [
                 'amount' => '10',
                 'reference' => 'P290-UNAUTHORIZED',
             ])
-            ->assertNotFound();
+            ->assertForbidden();
 
         $this->assertDatabaseMissing('customer_account_ledger_entries', [
             'reference' => 'P290-UNAUTHORIZED',
