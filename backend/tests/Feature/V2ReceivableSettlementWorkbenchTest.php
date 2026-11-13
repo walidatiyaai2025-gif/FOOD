@@ -12,6 +12,7 @@ use App\Enterprise\Modules\ModuleState;
 use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Models\Customer;
 use App\Models\EnterpriseAccountsReceivableAllocation;
+use App\Models\EnterpriseAccountsReceivableDocument;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Store;
@@ -225,7 +226,7 @@ final class V2ReceivableSettlementWorkbenchTest extends TestCase
         ]);
     }
 
-    /** @return array{store:Store,maker:User,poster:User,document:\App\Models\EnterpriseAccountsReceivableDocument,cash_account_id:int} */
+    /** @return array{store:Store,maker:User,poster:User,document:EnterpriseAccountsReceivableDocument,cash_account_id:int} */
     private function fixture(string $prefix): array
     {
         $store = $this->retailStore($prefix);
