@@ -185,6 +185,10 @@ final class V2ExportedServiceTripleRoleRow12AuditTest extends TestCase
 
         $this->assertSame(count(self::SERVICE_ROLES), $actor->fresh()->roles()->count());
         $this->assertTrue((bool) $actor->fresh()->is_active);
+        $this->assertDatabaseHas('users', [
+            'id' => $actor->getKey(),
+            'is_active' => true,
+        ]);
     }
 
     private function syntheticTripleRoleActor(): User
