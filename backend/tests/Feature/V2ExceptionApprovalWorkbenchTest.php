@@ -6,7 +6,6 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\B2bCustomerService;
 use App\Services\WholesalePrincipal;
-use App\Support\DisplayNumber;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -36,10 +35,6 @@ final class V2ExceptionApprovalWorkbenchTest extends TestCase
         $orderId = $this->makeOrder();
         $unrelatedOrderId = $this->makeOrder();
         $requestId = $this->submitRequest($agent, $orderId);
-        // The Orders grid displays its canonical public reference, not the
-        // internal order_number stored for imports and integrations.
-        $number = DisplayNumber::reference($orderId);
-        $unrelatedNumber = DisplayNumber::reference($unrelatedOrderId);
         $storeId = app(WholesalePrincipal::class)->storeId();
 
         $this->assertDatabaseHas('orders', ['id' => $orderId, 'grand_total' => 9]);
@@ -63,8 +58,8 @@ final class V2ExceptionApprovalWorkbenchTest extends TestCase
                 ->assertOk()
                 ->assertSee('data-v2-pending-discounts-workbench', false)
                 ->assertSee('data-v2-pending-discounts-tab', false)
-                ->assertSee($number)
-                ->assertDontSee($unrelatedNumber)
+                ->assertSee('data-order-row="'.$orderId.'"', false)
+                ->assertDontSee('data-order-row="'.$unrelatedOrderId.'"', false)
                 ->assertSee(__('customer_service_discount.pending_description'));
 
             $this->actingAs($reviewer->fresh())
@@ -96,7 +91,7 @@ final class V2ExceptionApprovalWorkbenchTest extends TestCase
 
         $this->actingAs($reviewer->fresh())->get($this->inboxUrl())
             ->assertOk()
-            ->assertDontSee($number);
+            ->assertDontSee('data-order-row="'.$orderId.'"', false);
         $this->actingAs($reviewer->fresh())->get(route('admin.operations.orders.index', [
             'channel' => 'b2b', 'discount_view' => 'approved', 'action_required' => 0,
         ]))->assertOk()->assertSee('data-v2-approved-discount-id="'.$requestId.'"', false);
@@ -145,16 +140,17 @@ final class V2ExceptionApprovalWorkbenchTest extends TestCase
         $reviewer = $this->roleUser('CUSTOMER_SERVICE_MANAGER');
         $orderId = $this->makeOrder();
         $requestId = $this->submitRequest($agent, $orderId);
-        $number = DisplayNumber::reference($orderId);
         $url = route('admin.operations.orders.customer-service-discount.review', [
             'order' => $orderId, 'discountRequest' => $requestId,
         ]);
 
-        $this->actingAs($reviewer)->get($this->inboxUrl())->assertOk()->assertSee($number);
+        $this->actingAs($reviewer)->get($this->inboxUrl())->assertOk()
+            ->assertSee('data-order-row="'.$orderId.'"', false);
         $this->actingAs($reviewer)->post($url, [
             'decision' => 'reject', 'review_reason' => 'Pricing exception is unsupported',
         ])->assertRedirect();
-        $this->actingAs($reviewer)->get($this->inboxUrl())->assertOk()->assertDontSee($number);
+        $this->actingAs($reviewer)->get($this->inboxUrl())->assertOk()
+            ->assertDontSee('data-order-row="'.$orderId.'"', false);
         $this->actingAs($reviewer)->post($url, ['decision' => 'approve'])->assertStatus(409);
 
         $this->assertDatabaseHas('order_customer_service_discount_requests', [
