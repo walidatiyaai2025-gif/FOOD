@@ -839,5 +839,3 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             throw new RuntimeException('Required database backup tool failed.');
         }
     }
-
-}
