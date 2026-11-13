@@ -90,7 +90,7 @@ class V2InstallerConcurrentTokenInitializationTest extends TestCase
 
     public function test_parallel_independent_initializers_return_same_authoritative_token(): void
     {
-        if (! Process::isSupported()) {
+        if (! function_exists('proc_open')) {
             $this->markTestSkipped('Parallel CLI processes are not supported by this PHP environment.');
         }
 
