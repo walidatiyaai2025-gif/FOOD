@@ -17,6 +17,7 @@ final class UpdateVersion
 
     public static function isCanonical(string $version): bool
     {
-        return preg_match('/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/', trim($version)) === 1;
+        // Signed manifest version strings must be canonical as supplied.
+        return preg_match('/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/', $version) === 1;
     }
 }
