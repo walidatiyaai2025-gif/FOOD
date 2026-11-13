@@ -27,10 +27,11 @@ final class DistributionRuleManager
         }
 
         $global = $actor->hasRole('SUPER_ADMIN');
+        $viewIds = $this->scope->allowedStoreIds($actor, 'whatsapp.conversations.view');
         $ids = array_values(array_filter(
             $this->scope->allowedStoreIds($actor, 'whatsapp.conversations.assign'),
-            static fn (int $id): bool => $global
-                || $actor->hasPermission('whatsapp.customer_service.supervise', $id),
+            static fn (int $id): bool => in_array($id, $viewIds, true)
+                && ($global || $actor->hasPermission('whatsapp.customer_service.supervise', $id)),
         ));
 
         return DB::table('stores')
