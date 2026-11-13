@@ -121,8 +121,8 @@ final class V2TreasuryReceiptsNavigationAuthorityTest extends TestCase
         foreach ([1, 2] as $attempt) {
             $this->actingAs($maker)->post(route('admin.erp.treasury.receipts.store'), $data)
                 ->assertRedirect(route('admin.erp.treasury.index', [
-                    'store_id' => $store->id,
                     'tab' => 'receipts',
+                    'store_id' => $store->id,
                 ]));
         }
         $this->assertDatabaseCount('enterprise_treasury_receipts', 1);
@@ -139,8 +139,8 @@ final class V2TreasuryReceiptsNavigationAuthorityTest extends TestCase
         $this->actingAs($checker)->post(route('admin.erp.treasury.receipts.post', $receiptId), [
             'store_id' => $store->id,
         ])->assertRedirect(route('admin.erp.treasury.index', [
-            'store_id' => $store->id,
             'tab' => 'receipts',
+            'store_id' => $store->id,
         ]));
         $this->assertDatabaseHas('enterprise_treasury_receipts', [
             'id' => $receiptId,
