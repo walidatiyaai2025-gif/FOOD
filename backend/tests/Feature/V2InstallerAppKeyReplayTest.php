@@ -29,6 +29,9 @@ final class V2InstallerAppKeyReplayTest extends TestCase
             'foodex.installer_env_path' => $this->directory.'/.env',
             'foodex.install_lock' => $this->directory.'/installed.lock',
             'foodex.install_progress' => $this->directory.'/install-progress.json',
+            // The persistent first-run token lock belongs to this fixture, not
+            // shared storage. Removing the lock is safe only after each test.
+            'foodex.installer_token_lock_path' => $this->directory.'/installer-token.lock',
             'foodex.scheduler_heartbeat' => false,
             'foodex.scheduler_auto_provision' => false,
         ]);
@@ -37,7 +40,7 @@ final class V2InstallerAppKeyReplayTest extends TestCase
     protected function tearDown(): void
     {
         if (isset($this->directory) && is_dir($this->directory)) {
-            foreach (['.env', 'installed.lock', 'install-progress.json'] as $filename) {
+            foreach (['.env', 'installed.lock', 'install-progress.json', 'installer-token.lock'] as $filename) {
                 $path = $this->directory.'/'.$filename;
                 if (is_file($path)) {
                     unlink($path);
