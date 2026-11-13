@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Driver;
 use App\Models\User;
 use App\Services\CredentialAuthenticator;
+use App\Services\DriverTenantScope;
 use App\Services\LoginAttemptThrottle;
 use App\Services\PlatformCustomerService;
 use App\Services\RetailMerchantIdentityService;
@@ -25,6 +26,7 @@ class AuthController extends Controller
         private readonly PlatformCustomerService $platformCustomers,
         private readonly RetailMerchantIdentityService $retailMerchants,
         private readonly VanRuntimeContextResolver $vanContexts,
+        private readonly DriverTenantScope $driverTenants,
     ) {}
 
     public function login(Request $request): JsonResponse
@@ -53,11 +55,7 @@ class AuthController extends Controller
 
         $app = $credentials['app'] ?? null;
         if ($app === 'driver') {
-            $driver = DB::table('drivers')
-                ->where('user_id', $user->id)
-                ->where('driver_type', 'b2c')
-                ->where('is_active', true)
-                ->first(['driver_type']);
+            $driver = $this->driverTenants->eligibleRetailDriver($user);
             abort_unless(
                 $driver !== null
                     && $user->hasRole('B2C_DRIVER')
@@ -129,11 +127,7 @@ class AuthController extends Controller
         }
 
         if ($validated['app'] === 'driver') {
-            $driver = DB::table('drivers')
-                ->where('user_id', $user->id)
-                ->where('driver_type', 'b2c')
-                ->where('is_active', true)
-                ->first(['driver_type']);
+            $driver = $this->driverTenants->eligibleRetailDriver($user);
             if (
                 $driver === null
                 || ! $user->hasRole('B2C_DRIVER')
