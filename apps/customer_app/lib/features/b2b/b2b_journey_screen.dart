@@ -24,6 +24,7 @@ import '../storefront/storefront_design_system.dart';
 import 'business_account_profile.dart';
 import 'business_dashboard_smart_analytics_launcher.dart';
 import 'dashboard_single_screen.dart';
+import 'wholesale_financial_summary.dart';
 import '../../shared/customer_action_widgets.dart';
 import '../../shared/customer_persistent_footer.dart';
 import '../../shared/customer_ui_v3/customer_ui_v3.dart';
@@ -4990,14 +4991,34 @@ class _B2bAccountHubState extends State<_B2bAccountHub> {
                 final data = envelope['data'] is Map
                     ? Map<Object?, Object?>.from(envelope['data'] as Map)
                     : envelope;
-                final balance = _number(data['balance']);
-                final currency = data['currency']?.toString() ?? '';
-                final direction = data['balance_direction']?.toString() ?? '';
-                final directionLabel = switch (direction) {
-                  'customer_owes_company' => isArabic ? 'عليك' : 'You owe',
-                  'company_owes_customer' =>
-                    isArabic ? 'لك' : 'Credit due to you',
-                  _ => isArabic ? 'متوازن' : 'Settled',
+                // Financial figures must agree with the authoritative signed
+                // ledger. Never turn a malformed or stale B2B response into
+                // a fictional zero balance or a reversed credit/debt label.
+                final summary = WholesaleFinancialSummary.tryParse(data);
+                if (summary == null) {
+                  return Column(
+                    key: const ValueKey('b2b-finance-summary-invalid'),
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(context.tr('b2b.remote.error')),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: _retryFinance,
+                        icon: const Icon(Icons.refresh),
+                        label: Text(context.tr('customer.action.retry')),
+                      ),
+                    ],
+                  );
+                }
+                final balance = summary.balance;
+                final currency = summary.currency;
+                final directionLabel = switch (summary.direction) {
+                  WholesaleBalanceDirection.customerOwesCompany =>
+                    context.tr('b2b.dashboard.balance.you_owe'),
+                  WholesaleBalanceDirection.companyOwesCustomer =>
+                    context.tr('b2b.dashboard.balance.credit'),
+                  WholesaleBalanceDirection.settled =>
+                    context.tr('b2b.dashboard.balance.settled'),
                 };
 
                 return Column(
@@ -5020,19 +5041,19 @@ class _B2bAccountHubState extends State<_B2bAccountHub> {
                     ),
                     _FinanceValue(
                       label: isArabic ? 'حد الائتمان' : 'Credit limit',
-                      value: _money(_number(data['credit_limit']), currency),
+                      value: _money(summary.creditLimit, currency),
                     ),
                     _FinanceValue(
                       label: isArabic ? 'الائتمان المتاح' : 'Available credit',
                       value: _money(
-                        _number(data['available_credit_line']),
+                        summary.availableCreditLine,
                         currency,
                       ),
                     ),
                     _FinanceValue(
                       label: isArabic ? 'القوة الشرائية' : 'Purchasing power',
                       value: _money(
-                        _number(data['purchasing_power']),
+                        summary.purchasingPower,
                         currency,
                       ),
                     ),
@@ -5163,9 +5184,6 @@ class _B2bAccountHubState extends State<_B2bAccountHub> {
       ],
     );
   }
-
-  double _number(Object? value) =>
-      value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
 
   String _money(double value, String currency) {
     return foodexMoneyText(value, currency);

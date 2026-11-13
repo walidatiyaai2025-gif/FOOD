@@ -556,6 +556,71 @@ void main() {
     expect(find.text('Active orders'), findsOneWidget);
   });
 
+  for (final locale in const <Locale>[Locale('ar'), Locale('en')]) {
+    testWidgets(
+      'B2B rejects a contradictory signed credit snapshot in ${locale.languageCode}',
+      (tester) async {
+        final api = _PathB2bApi({
+          '/api/v1/profile': {
+            'customer': {'id': 19, 'type': 'b2b', 'name': 'Buyer'},
+            'business_account': {
+              'id': 27,
+              'company_name': 'Buyer Co',
+              'status': 'active',
+            },
+          },
+          '/api/v1/b2b/account-summary?store_id=7': {
+            'data': {
+              'currency': 'KWD',
+              'balance': 125,
+              'balance_direction': 'customer_owes_company',
+              'credit_limit': 1000,
+              'available_credit_line': 875,
+              'purchasing_power': 875,
+            },
+          },
+        });
+
+        await tester.pumpWidget(
+          FoodexCustomerApp(
+            session: const CustomerSession.authenticated(
+              CustomerChannel.b2b,
+              accessToken: 'token',
+              platformWide: true,
+            ),
+            locale: locale,
+            initialRoute: '/b2b/profile?channel=wholesale&store_id=7',
+            b2bApi: api,
+          ),
+        );
+        await _pumpCustomerFrames(tester);
+
+        final invalid = find.byKey(
+          const ValueKey('b2b-finance-summary-invalid'),
+        );
+        expect(invalid, findsOneWidget);
+        expect(
+          find.descendant(
+            of: invalid,
+            matching: find.text(
+              locale.languageCode == 'ar'
+                  ? 'تعذر تحميل البيانات. حاول مرة أخرى.'
+                  : 'Unable to load data. Please try again.',
+            ),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          Directionality.of(tester.element(invalid)),
+          locale.languageCode == 'ar'
+              ? TextDirection.rtl
+              : TextDirection.ltr,
+        );
+        expect(find.text('0.000 KWD'), findsNothing);
+      },
+    );
+  }
+
   testWidgets('B2B More keeps the compact hub without inline account sections',
       (
     tester,
@@ -584,7 +649,7 @@ void main() {
       '/api/v1/b2b/account-summary?store_id=7': {
         'data': {
           'currency': 'KWD',
-          'balance': 125.0,
+          'balance': -125.0,
           'balance_direction': 'customer_owes_company',
           'total_debits': 420.0,
           'total_purchases': 400.0,
