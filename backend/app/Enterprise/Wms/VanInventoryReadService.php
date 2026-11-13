@@ -2,6 +2,7 @@
 
 namespace App\Enterprise\Wms;
 
+use App\Enterprise\Modules\ModuleOperationalReadiness;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Models\User;
 use App\Models\VanAssignment;
@@ -16,6 +17,7 @@ final class VanInventoryReadService
         private readonly WarehouseScope $warehouseScope,
         private readonly OperationalTenantScope $tenantScope,
         private readonly ModuleRegistry $modules,
+        private readonly ModuleOperationalReadiness $readiness,
     ) {}
 
     /**
@@ -27,7 +29,19 @@ final class VanInventoryReadService
     public function page(User $actor, int $vanId, ?int $afterInventoryId = null): array
     {
         abort_unless($actor->is_active && $actor->hasPermission('drivers.b2b.view'), 403);
-        abort_unless($this->modules->isEnabled('inventory_wms'), 403);
+        // Direct service consumers must not bypass the ERP route middleware's
+        // exact manifest/version health attestation.
+        $ready = false;
+        try {
+            $ready = $this->readiness->status(
+                'inventory_wms',
+                $this->modules->manifest('inventory_wms')->version,
+                $this->modules->state('inventory_wms'),
+            ) === 'ready';
+        } catch (\Throwable) {
+            $ready = false;
+        }
+        abort_unless($ready, 403);
         abort_if($afterInventoryId !== null && $afterInventoryId < 0, 422);
 
         $assignment = VanAssignment::query()
