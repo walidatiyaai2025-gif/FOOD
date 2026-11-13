@@ -292,6 +292,8 @@ Route::prefix('admin')
             ->whereIn('workspace', ['executive', 'finance', 'sales', 'warehouse'])
             ->name('enterprise-workspaces.index');
         Route::get('/erp/finance', [FinanceWorkbenchController::class, 'index'])->name('erp.finance.index');
+        Route::post('/erp/finance/receivables/{document}/settlements', [FinanceWorkbenchController::class, 'storeReceivableSettlement'])->whereNumber('document')->middleware('throttle:30,1')->name('erp.finance.receivables.settlements.store');
+        Route::post('/erp/finance/receivables/settlements/{allocation}/post', [FinanceWorkbenchController::class, 'postReceivableSettlement'])->whereNumber('allocation')->middleware('throttle:30,1')->name('erp.finance.receivables.settlements.post');
         Route::post('/erp/finance/accounts', [FinanceWorkbenchController::class, 'storeAccount'])->middleware('throttle:30,1')->name('erp.finance.accounts.store');
         Route::patch('/erp/finance/accounts/{account}/status', [FinanceWorkbenchController::class, 'updateAccountStatus'])->whereNumber('account')->middleware('throttle:30,1')->name('erp.finance.accounts.status');
         Route::post('/erp/finance/cost-centers', [FinanceWorkbenchController::class, 'storeCostCenter'])->middleware('throttle:30,1')->name('erp.finance.cost-centers.store');
