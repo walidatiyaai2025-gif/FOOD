@@ -936,7 +936,7 @@ class AdminNavigation
                     break;
                 }
             }
-            if ($eligible === null || $eligible === []) {
+            if ($eligible === []) {
                 continue;
             }
 
