@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\B2bCustomerService;
 use App\Services\WholesalePrincipal;
+use App\Support\DisplayNumber;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -35,8 +36,10 @@ final class V2ExceptionApprovalWorkbenchTest extends TestCase
         $orderId = $this->makeOrder();
         $unrelatedOrderId = $this->makeOrder();
         $requestId = $this->submitRequest($agent, $orderId);
-        $number = (string) DB::table('orders')->where('id', $orderId)->value('order_number');
-        $unrelatedNumber = (string) DB::table('orders')->where('id', $unrelatedOrderId)->value('order_number');
+        // The Orders grid displays its canonical public reference, not the
+        // internal order_number stored for imports and integrations.
+        $number = DisplayNumber::reference($orderId);
+        $unrelatedNumber = DisplayNumber::reference($unrelatedOrderId);
         $storeId = app(WholesalePrincipal::class)->storeId();
 
         $this->assertDatabaseHas('orders', ['id' => $orderId, 'grand_total' => 9]);
@@ -142,7 +145,7 @@ final class V2ExceptionApprovalWorkbenchTest extends TestCase
         $reviewer = $this->roleUser('CUSTOMER_SERVICE_MANAGER');
         $orderId = $this->makeOrder();
         $requestId = $this->submitRequest($agent, $orderId);
-        $number = (string) DB::table('orders')->where('id', $orderId)->value('order_number');
+        $number = DisplayNumber::reference($orderId);
         $url = route('admin.operations.orders.customer-service-discount.review', [
             'order' => $orderId, 'discountRequest' => $requestId,
         ]);
