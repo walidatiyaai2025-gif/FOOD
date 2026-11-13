@@ -124,7 +124,7 @@ class V2DriverRetailStoreSessionBoundaryTest extends TestCase
         $this->postJson('/api/v1/auth/mobile-trial', [
             'username' => 'v2.driver.retail',
             'app' => 'driver',
-        ])->assertForbidden();
+        ])->assertUnprocessable()->assertJsonValidationErrors(['username']);
 
         $this->app['auth']->forgetGuards();
         $this->withToken($token)->getJson('/api/v1/driver/wallet')->assertForbidden();
