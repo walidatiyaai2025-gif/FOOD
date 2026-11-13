@@ -90,9 +90,47 @@ final class V2VanInventoryReadAuthorityTest extends TestCase
         $foreignVan = $this->van($ownWarehouse);
         $this->assign($foreignVan, $otherWarehouse, $viewer);
 
+        // Wholesale roles are global by contract; a store-specific explicit
+        // DENY is what removes the otherwise accessible foreign B2B store.
+        $inventoryPermission = Permission::query()->where('code', 'inventory.view')->firstOrFail();
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $viewer->id,
+            'permission_id' => $inventoryPermission->id,
+            'scope_key' => 'store:'.$other,
+            'store_id' => $other,
+            'effect' => 'deny',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $viewer->forceFill(['has_permission_overrides' => true])->save();
+        $viewer = $viewer->fresh();
+
         try {
             app(VanInventoryReadService::class)->page($viewer, (int) $foreignVan->id);
             $this->fail('Cross-store Van stock read must fail closed.');
+        } catch (HttpException $exception) {
+            $this->assertSame(404, $exception->getStatusCode());
+        }
+
+        // Synthetic global + B2B STORE grants cannot manufacture Wholesale
+        // eligibility: only configured B2B global role codes may do so.
+        $unrecognized = User::factory()->create(['is_active' => true]);
+        $synthetic = Role::query()->create([
+            'code' => 'P274_UNRECOGNIZED_'.Str::random(10),
+            'name' => 'Unrecognized wholesale role',
+            'scope' => 'global',
+            'is_active' => true,
+            'is_system' => false,
+        ]);
+        $synthetic->permissions()->sync(
+            Permission::query()->whereIn('code', ['inventory.view', 'drivers.b2b.view'])->pluck('id')->all(),
+        );
+        $unrecognized->roles()->attach($synthetic->id);
+        $unrecognizedVan = $this->van($ownWarehouse);
+        $this->assign($unrecognizedVan, $ownWarehouse, $unrecognized);
+        try {
+            app(VanInventoryReadService::class)->page($unrecognized->fresh(), (int) $unrecognizedVan->id);
+            $this->fail('An unregistered Wholesale global role must not grant store access.');
         } catch (HttpException $exception) {
             $this->assertSame(404, $exception->getStatusCode());
         }
@@ -212,14 +250,12 @@ final class V2VanInventoryReadAuthorityTest extends TestCase
     private function viewer(int $storeId): User
     {
         $viewer = User::factory()->create(['is_active' => true, 'locale' => 'en']);
-        $global = Role::query()->create([
-            'code' => 'P274_VAN_READ_'.Str::random(10),
-            'name' => 'Scoped Van stock lookup',
-            'scope' => 'global',
-            'is_active' => true,
-            'is_system' => false,
-        ]);
-        $global->permissions()->attach(Permission::query()->where('code', 'drivers.b2b.view')->firstOrFail()->id);
+
+        // B2B stock authority is derived from a configured Wholesale global
+        // role, not an invented global role or a Retail STORE-only assignment.
+        $global = Role::query()->where('code', 'B2B_ADMIN')->firstOrFail();
+        $this->assertTrue($global->permissions()->where('code', 'drivers.b2b.view')->exists());
+        $this->assertTrue($global->permissions()->where('code', 'inventory.view')->exists());
         $viewer->roles()->attach($global->id);
 
         $storeRole = Role::query()->create([
