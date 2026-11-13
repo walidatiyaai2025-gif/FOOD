@@ -5,15 +5,15 @@ namespace Tests\Feature;
 use App\Models\CollectionAccount;
 use App\Models\Customer;
 use App\Models\Invoice;
-use App\Services\CollectionCustodyService;
-use Illuminate\Validation\ValidationException;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\CollectionCustodyService;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 /**
