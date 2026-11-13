@@ -136,25 +136,40 @@ final class V2VanTripActivityAuthorityTest extends TestCase
             ],
         ]);
 
+        $this->actingAs($admin);
         $url = route('admin.field-operations.visits', ['trip_view' => 'trips']);
-        $this->actingAs($admin)->get($url)
-            ->assertOk()
-            ->assertSee('data-trip-route="V2-P276-AUTHORIZED-ROUTE"', false)
-            ->assertSee('V2-P276-AUTHORIZED-ONLY-VAN');
+        // The page also has a separate admin assignment selector. Test the
+        // specific B2B trip row; unrelated selector labels are not trip grants.
+        $assertTripLabel = function (string $label) use ($url): void {
+            $response = $this->get($url)->assertOk();
+            $this->assertMatchesRegularExpression(
+                '/<tr data-trip-route="V2-P276-AUTHORIZED-ROUTE">\\s*<td>'.preg_quote($label, '/').'<\\/td>/u',
+                (string) $response->getContent(),
+            );
+        };
+
+        $assertTripLabel('V2-P276-AUTHORIZED-ONLY-VAN');
 
         $assignment->forceFill(['effective_until' => now()->subMinute()])->save();
-        $this->get($url)->assertOk()->assertDontSee('V2-P276-AUTHORIZED-ONLY-VAN');
+        $assertTripLabel('—');
 
-        $assignment->forceFill(['effective_until' => now()->addHour(), 'status' => 'inactive'])->save();
-        $this->get($url)->assertOk()->assertDontSee('V2-P276-AUTHORIZED-ONLY-VAN');
+        $assignment->forceFill(['effective_from' => now()->addDay(), 'effective_until' => now()->addDays(2)])->save();
+        $assertTripLabel('—');
+
+        $assignment->forceFill([
+            'effective_from' => now()->subHour(),
+            'effective_until' => now()->addHour(),
+            'status' => 'inactive',
+        ])->save();
+        $assertTripLabel('—');
 
         $assignment->forceFill(['status' => 'active'])->save();
         $van->forceFill(['status' => 'inactive'])->save();
-        $this->get($url)->assertOk()->assertDontSee('V2-P276-AUTHORIZED-ONLY-VAN');
+        $assertTripLabel('—');
 
         $van->forceFill(['status' => 'active'])->save();
         DB::table('warehouses')->where('id', $warehouseId)->update(['is_active' => false]);
-        $this->get($url)->assertOk()->assertDontSee('V2-P276-AUTHORIZED-ONLY-VAN');
+        $assertTripLabel('—');
 
         $this->assertDatabaseCount('van_visits', 1);
     }
