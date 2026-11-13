@@ -169,6 +169,7 @@ final class V2AccountsPayablePageAuthorityTest extends TestCase
 
             $response->assertViewHas('data', static function (array $data) use ($posted): bool {
                 $accrued = $data['aging'];
+
                 return $accrued->count() === 1
                     && (int) $accrued->first()->id === (int) $posted->id
                     && (float) $accrued->first()->amount === 100.0
