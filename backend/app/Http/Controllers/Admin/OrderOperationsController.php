@@ -102,7 +102,7 @@ final class OrderOperationsController extends Controller
             'channel' => ['nullable', 'string', Rule::in(['all', 'b2b', 'b2c'])],
             'order' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'discount_view' => ['nullable', 'string', Rule::in(['approved'])],
+            'discount_view' => ['nullable', 'string', Rule::in(['approved', 'pending'])],
         ]);
 
         $customerServiceProfile = $this->navigation->usesCustomerServiceDashboardProfile($actor);
@@ -123,6 +123,8 @@ final class OrderOperationsController extends Controller
         $dispatchScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.dispatch');
         $financeScopes = $this->operationalScopes($actor, $operationalChannel, 'finance.view');
         $approvedDiscountsMode = ($data['discount_view'] ?? null) === 'approved';
+        $pendingDiscountsMode = ($data['discount_view'] ?? null) === 'pending';
+        $discountDecisionMode = $approvedDiscountsMode || $pendingDiscountsMode;
         $discountRequestScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.customer_service_discount');
         $discountApprovalScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.approve');
         $discountReadScopes = [];
@@ -135,7 +137,7 @@ final class OrderOperationsController extends Controller
         }
         $canViewApprovedDiscounts = $actor->is_active
             && ($discountReadScopes['b2b'] !== [] || $discountReadScopes['b2c'] !== []);
-        if ($approvedDiscountsMode) {
+        if ($discountDecisionMode) {
             abort_unless($canViewApprovedDiscounts, 403);
         }
 
@@ -149,7 +151,7 @@ final class OrderOperationsController extends Controller
         if ($selectedStoreId !== null && collect($storeIds)->containsStrict($selectedStoreId) === false) {
             abort(404);
         }
-        if ($approvedDiscountsMode && $selectedStoreId !== null
+        if ($discountDecisionMode && $selectedStoreId !== null
             && ! in_array($selectedStoreId, array_merge($discountReadScopes['b2b'], $discountReadScopes['b2c']), true)) {
             abort(404);
         }
@@ -212,14 +214,16 @@ final class OrderOperationsController extends Controller
             });
         }
 
-        if ($approvedDiscountsMode) {
-            // Approved Sales decisions reuse canonical Order store/channel authority.
+        if ($discountDecisionMode) {
+            // P230: Pending and approved concessions use the same independently
+            // authorized store/channel scopes; a Catalog grant is never enough.
+            $decisionStatus = $pendingDiscountsMode ? 'pending' : 'approved';
             $orderQuery->where(fn ($query) => $this->applyOperationalScopes($query, $discountReadScopes))
-                ->whereExists(function ($query): void {
+                ->whereExists(function ($query) use ($decisionStatus): void {
                     $query->selectRaw('1')
-                        ->from('order_customer_service_discount_requests as approved_requests')
-                        ->whereColumn('approved_requests.order_id', 'orders.id')
-                        ->where('approved_requests.status', 'approved');
+                        ->from('order_customer_service_discount_requests as scoped_requests')
+                        ->whereColumn('scoped_requests.order_id', 'orders.id')
+                        ->where('scoped_requests.status', $decisionStatus);
                 });
         }
 
@@ -235,7 +239,7 @@ final class OrderOperationsController extends Controller
             || isset($data['dispatch_status'])
             || isset($data['exception'])
             || isset($data['order'])
-            || $approvedDiscountsMode
+            || $discountDecisionMode
         );
 
         $statusBaseQuery = clone $orderQuery;
@@ -625,6 +629,7 @@ final class OrderOperationsController extends Controller
             'approvedDiscountRequests' => $approvedDiscountRequests,
             'approvedDiscounts' => $approvedDiscounts,
             'approvedDiscountsMode' => $approvedDiscountsMode,
+            'pendingDiscountsMode' => $pendingDiscountsMode,
             'canViewApprovedDiscounts' => $canViewApprovedDiscounts,
             'statuses' => array_map(
                 static fn (array $option): string => (string) $option['code'],
