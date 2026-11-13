@@ -36,7 +36,7 @@ final class V2UserArchiveNavigationAuthorityTest extends TestCase
                 ->assertOk()
                 ->assertSee('dir="'.$direction.'"', false)
                 ->assertSee('data-v2-user-lifecycle-entry="inactive"', false)
-                ->assertSee(route('admin.security.index', ['section' => 'users', 'status' => 'inactive']), false)
+                ->assertSee(route('admin.security.index', ['section' => 'users', 'status' => 'inactive']))
                 ->assertSee(__('admin.administration_hub.inactive_users', [], $locale));
 
             $this->actingAs($admin->fresh())
