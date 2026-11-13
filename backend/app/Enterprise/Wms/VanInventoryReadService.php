@@ -45,7 +45,7 @@ final class VanInventoryReadService
         abort_unless($ready, 403);
         abort_if($afterInventoryId !== null && $afterInventoryId < 0, 422);
 
-        $assignment = VanAssignment::query()
+        $primaryAssignments = VanAssignment::query()
             ->where('van_id', $vanId)
             ->where('assignment_type', 'primary')
             ->where('status', 'active')
@@ -53,10 +53,20 @@ final class VanInventoryReadService
             ->where('effective_from', '<=', now())
             ->where(function ($query): void {
                 $query->whereNull('effective_until')->orWhere('effective_until', '>', now());
-            })
+            });
+
+        $assignment = (clone $primaryAssignments)
             ->whereNotNull('warehouse_id')
             ->orderByDesc('effective_from')
             ->firstOrFail();
+
+        // The source Van must have exactly one effective primary assignment.
+        // Choosing the newest overlapping row would silently invent stock
+        // custody authority if duplicate/malformed assignment records exist.
+        abort_if(
+            (clone $primaryAssignments)->where('id', '<>', $assignment->getKey())->exists(),
+            404,
+        );
 
         $warehouse = $this->warehouseScope->assertWarehouse(
             $actor,
