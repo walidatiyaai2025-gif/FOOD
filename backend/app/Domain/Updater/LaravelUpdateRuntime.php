@@ -353,25 +353,25 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         }
 
         try {
-            $payload = json_decode((string) file_get_contents($manifestPath), true, flags: JSON_THROW_ON_ERROR);
+            $payload = json_decode((string) file_get_contents($manifestPath), flags: JSON_THROW_ON_ERROR);
         } catch (JsonException) {
             throw new RuntimeException('File rollback manifest is invalid.');
         }
 
-        if (! is_array($payload)
-            || ! is_array($payload['targets'] ?? null)
-            || ! array_is_list($payload['targets'])
-            || ! is_array($payload['existing'] ?? null)
-            || ! array_is_list($payload['existing'])) {
+        if (! ($payload instanceof \stdClass)
+            || ! is_array($payload->targets ?? null)
+            || ! array_is_list($payload->targets)
+            || ! is_array($payload->existing ?? null)
+            || ! array_is_list($payload->existing)) {
             throw new RuntimeException('File rollback manifest is invalid.');
         }
 
-        $targets = $this->stringList($payload['targets']);
-        $existing = $this->stringList($payload['existing']);
+        $targets = $this->stringList($payload->targets);
+        $existing = $this->stringList($payload->existing);
 
         if ($targets === []
-            || count($targets) !== count($payload['targets'])
-            || count($existing) !== count($payload['existing'])) {
+            || count($targets) !== count($payload->targets)
+            || count($existing) !== count($payload->existing)) {
             throw new RuntimeException('File rollback manifest is invalid.');
         }
 
