@@ -48,11 +48,46 @@ final class CollectionCustodyService
                 return $existing;
             }
 
+            // An invoice allocation is a financial write. Never accept an invoice by
+            // numeric ID alone: the collector account, store and invoice channel must
+            // share the same authoritative B2B/B2C scope before any payment is posted.
+            $accountStoreId = (int) ($account->store_id ?? 0);
+            $storeType = $allocations !== [] && $accountStoreId > 0
+                ? DB::table('stores')
+                    ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                    ->where('stores.id', $accountStoreId)
+                    ->value('store_types.code')
+                : null;
+            $accountChannel = match (strtoupper(trim((string) $storeType))) {
+                'B2B' => 'b2b',
+                'B2C' => 'b2c',
+                default => null,
+            };
+
+            if ($allocations !== [] && $accountChannel === null) {
+                throw ValidationException::withMessages([
+                    'allocations' => ['Collection account has no authoritative store/channel for invoice allocation.'],
+                ]);
+            }
+            if ($allocations !== []
+                && in_array(strtolower((string) $account->actor_type), ['van', 'van_rep'], true)
+                && $accountChannel !== 'b2b') {
+                throw ValidationException::withMessages([
+                    'allocations' => ['Van collections can allocate only Wholesale invoices.'],
+                ]);
+            }
+
             $allocatedTotal = 0.0;
             foreach ($allocations as $allocation) {
                 $invoice = DB::table('invoices')->where('id', (int) $allocation['invoice_id'])->lockForUpdate()->first();
                 if ($invoice === null) {
                     throw ValidationException::withMessages(['allocations' => ['Invoice not found.']]);
+                }
+                if ((int) ($invoice->store_id ?? 0) !== $accountStoreId
+                    || strtolower(trim((string) ($invoice->channel ?? ''))) !== $accountChannel) {
+                    throw ValidationException::withMessages([
+                        'allocations' => ['Invoice does not belong to the collection account store and channel.'],
+                    ]);
                 }
                 if (strtoupper((string) $invoice->currency) !== $currency) {
                     throw ValidationException::withMessages(['currency' => ['Mixed-currency collection allocation is not allowed.']]);
