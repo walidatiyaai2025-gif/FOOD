@@ -3,9 +3,31 @@
 namespace App\Services;
 
 use App\Models\Driver;
+use App\Models\User;
 
 final class DriverTenantScope
 {
+    /**
+     * Return the single effective Retail Driver profile only while its
+     * authoritative store is active and classified as Retail (B2C).
+     *
+     * A B2C role/driver_type alone never grants a session for a disabled
+     * store or a historical driver linked to a Wholesale store.
+     */
+    public function eligibleRetailDriver(User $user): ?Driver
+    {
+        return Driver::query()
+            ->join('stores', 'stores.id', '=', 'drivers.store_id')
+            ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+            ->where('drivers.user_id', $user->getKey())
+            ->where('drivers.driver_type', 'b2c')
+            ->where('drivers.is_active', true)
+            ->where('stores.is_active', true)
+            ->where('store_types.code', 'B2C')
+            ->select('drivers.*')
+            ->first();
+    }
+
     /** @return array{0:string,1:int} */
     public function resolve(Driver $driver): array
     {
