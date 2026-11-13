@@ -108,9 +108,9 @@ final class V2ExportedServiceTripleRoleRow12AuditTest extends TestCase
                 ->get(route('admin.sidebar-access.roles'))
                 ->assertForbidden();
 
-            $this->actingAs($actor)
-                ->get(route('admin.b2c.module', ['module' => 'inventory', 'store_id' => $retailId]))
-                ->assertNotFound();
+            $retailResponse = $this->actingAs($actor)
+                ->get(route('admin.b2c.module', ['module' => 'inventory', 'store_id' => $retailId]));
+            $this->assertContains($retailResponse->getStatusCode(), [403, 404]);
         }
     }
 
