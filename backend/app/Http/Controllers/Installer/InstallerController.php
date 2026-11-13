@@ -174,11 +174,19 @@ class InstallerController extends Controller
                     break;
 
                 case 11:
-                    $workflow->runMigrations();
+                    // A completed step may be posted again after a refresh. Do not
+                    // execute migrations twice; failed first attempts remain retryable.
+                    if ($progress['completed_step'] < 11) {
+                        $workflow->runMigrations();
+                    }
                     break;
 
                 case 12:
-                    $workflow->seedRequiredCoreData();
+                    // Replaying a completed step must not reset seeded reference
+                    // or administrator-managed data. First attempts can still retry.
+                    if ($progress['completed_step'] < 12) {
+                        $workflow->seedRequiredCoreData();
+                    }
                     break;
 
                 case 13:
