@@ -209,11 +209,27 @@ final class InstallerEnvironment
         if (strlen($value) >= 2 && $value[0] === '"' && $value[strlen($value) - 1] === '"') {
             $value = substr($value, 1, -1);
 
-            return str_replace(
-                ['\\n', '\\r', '\\"', '\\\\'],
-                ["\n", "\r", '"', '\\'],
-                $value,
-            );
+            // Process escapes once: decoding an escaped backslash must not
+            // turn a following literal "n" or "r" into a control character.
+            $decoded = '';
+            for ($index = 0, $length = strlen($value); $index < $length; $index++) {
+                if ($value[$index] !== '\\' || $index + 1 >= $length) {
+                    $decoded .= $value[$index];
+
+                    continue;
+                }
+
+                $escaped = $value[++$index];
+                $decoded .= match ($escaped) {
+                    'n' => "\n",
+                    'r' => "\r",
+                    '"' => '"',
+                    '\\' => '\\',
+                    default => '\\'.$escaped,
+                };
+            }
+
+            return $decoded;
         }
 
         if (strlen($value) >= 2 && $value[0] === "'" && $value[strlen($value) - 1] === "'") {
