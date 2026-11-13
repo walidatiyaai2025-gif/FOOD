@@ -122,6 +122,18 @@ final class V2ExportedRow8B2bDriverScopeAuditTest extends TestCase
         $this->assertSame(1, $actor->roles()->count());
     }
 
+    public function test_mobile_only_global_roles_do_not_project_erp_or_admin_navigation(): void
+    {
+        foreach (['B2B_DRIVER', 'B2C_DRIVER', 'VAN_OPERATOR'] as $roleCode) {
+            $user = User::factory()->create(['is_active' => true]);
+            $user->roles()->attach(Role::query()->where('code', $roleCode)->firstOrFail());
+
+            $navigation = app(AdminNavigation::class);
+            $this->assertSame([], $navigation->for($user->fresh()), $roleCode);
+            $this->assertSame([], $navigation->groupsFor($user->fresh()), $roleCode);
+        }
+    }
+
     private function legacyDriver(): User
     {
         $role = Role::query()->where('code', 'B2B_DRIVER')->firstOrFail();
