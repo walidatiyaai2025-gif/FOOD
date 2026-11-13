@@ -54,16 +54,16 @@ final class V2BusinessDomainSidebarGroupingTest extends TestCase
             $this->assertSame($group, $layout['items'][$item]['group_key'], $item.' default placement');
         }
 
-        foreach (['catalog', 'operations', 'finance', 'administration'] as $group) {
+        foreach (['catalog', 'warehouses', 'operations', 'finance', 'administration'] as $group) {
             $label = $registry['groups'][$group]['label'];
             $this->assertTrue(Lang::hasForLocale($label, 'ar'), $group.' Arabic group label');
             $this->assertTrue(Lang::hasForLocale($label, 'en'), $group.' English group label');
         }
 
-        // Procurement and WMS belong with supply/inventory, not an invented
-        // free-standing technical ERP Sidebar permission.
+        // Procurement remains under Catalog while P253 gives the existing WMS
+        // warehouses destination its own authorized business group.
         $this->assertSame('catalog', $registry['items']['erp_procurement']['group']);
-        $this->assertSame('catalog', $registry['items']['erp_wms']['group']);
+        $this->assertSame('warehouses', $registry['items']['erp_wms']['group']);
         $this->assertSame('finance', $registry['items']['erp_treasury']['group']);
     }
 
