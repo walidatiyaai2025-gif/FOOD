@@ -437,6 +437,7 @@ return [
     'app_versions' => 'إصدارات التطبيقات',
     'app_preview' => 'معاينة التطبيق',
     'commercial_sales_control' => 'التحكم التجاري والتسعير',
+    'commercial_exception_approvals' => 'موافقات الاستثناء التجاري',
     'flash_offers' => 'العروض السريعة',
     'flash_offers_wholesale' => 'العروض السريعة — الجملة',
     'flash_offers_retail' => 'العروض السريعة — التجزئة',
