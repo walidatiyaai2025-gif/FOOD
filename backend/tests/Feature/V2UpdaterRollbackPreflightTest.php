@@ -108,6 +108,15 @@ final class V2UpdaterRollbackPreflightTest extends TestCase
         $this->assertRejects(fn () => $this->runtime()->rollbackFiles($this->backupDirectory));
 
         $this->assertSame('still-upgraded', file_get_contents($this->releaseDirectory.'/first.txt'));
+
+        // A malformed list must not be silently reduced to an empty set.
+        file_put_contents($this->backupDirectory.'/files.json', json_encode([
+            'targets' => [$target],
+            'existing' => 'invalid-list',
+        ], JSON_THROW_ON_ERROR));
+
+        $this->assertRejects(fn () => $this->runtime()->rollbackFiles($this->backupDirectory));
+        $this->assertSame('still-upgraded', file_get_contents($this->releaseDirectory.'/first.txt'));
     }
 
     public function test_complete_backup_restores_existing_and_removes_new_files(): void
