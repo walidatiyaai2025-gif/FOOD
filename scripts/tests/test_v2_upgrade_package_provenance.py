@@ -201,6 +201,28 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
         with self.assertRaisesRegex(PackageContractError, "migration-presence"):
             self.verify_first()
 
+    def test_manifest_migrations_cannot_omit_or_repeat_zip_members(self) -> None:
+        second_migration = "backend/database/migrations/2026_11_09_070000_second.php"
+        self.first = build_bundle(
+            self.first,
+            entries=[
+                ("VERSION", b"1.0.125", False),
+                (RUNTIME, b"<?php echo 'test';", False),
+                (MIGRATION, b"<?php // first", False),
+                (second_migration, b"<?php // second", False),
+            ],
+        )
+        self.change_manifest("migrations", [MIGRATION])
+        with self.assertRaisesRegex(PackageContractError, "Declared migrations"):
+            self.verify_first()
+
+        self.change_manifest("migrations", [MIGRATION, MIGRATION])
+        with self.assertRaisesRegex(PackageContractError, "Declared migrations"):
+            self.verify_first()
+
+        self.change_manifest("migrations", [MIGRATION, second_migration])
+        self.assertEqual(4, self.verify_first()["files"])
+
     def test_malformed_dashboard_fields_are_rejected_not_interpreted(self) -> None:
         self.change_manifest("dashboard_fields", ["not-a-mapping"])
         with self.assertRaisesRegex(PackageContractError, "Dashboard fields"):
