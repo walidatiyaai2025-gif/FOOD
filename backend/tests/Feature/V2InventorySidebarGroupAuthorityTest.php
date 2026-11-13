@@ -31,7 +31,7 @@ final class V2InventorySidebarGroupAuthorityTest extends TestCase
 
         $this->store('B2B', 'P246-WHOLESALE');
         $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
-        $actor->roles()->attach(Role::query()->where('code', 'B2B_ADMIN')->firstOrFail());
+        $actor->roles()->attach(Role::query()->where('code', 'CUSTOMER_SERVICE_MANAGER')->firstOrFail());
 
         $groups = collect(app(AdminNavigation::class)->groupsFor($actor));
         $inventory = $groups->firstWhere('key', 'inventory');
@@ -41,6 +41,12 @@ final class V2InventorySidebarGroupAuthorityTest extends TestCase
         $this->assertSame('admin.b2b.module', $items['b2b_inventory']['route']);
         $this->assertSame('inventory', $items['b2b_inventory']['params']['module']);
         $this->assertFalse($items->has('b2c_inventory'));
+
+        // P246 is a placement change, not a new B2B Admin privilege/visibility grant.
+        $ordinary = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $ordinary->roles()->attach(Role::query()->where('code', 'B2B_ADMIN')->firstOrFail());
+        $this->assertFalse(collect(app(AdminNavigation::class)->groupsFor($ordinary))
+            ->contains('key', 'inventory'));
         $this->assertFalse(collect($groups->firstWhere('key', 'catalog')['children'] ?? [])
             ->contains('key', 'b2b_inventory'));
 

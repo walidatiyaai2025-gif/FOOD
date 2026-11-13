@@ -5,7 +5,7 @@
 - One implementation branch: `feat/2576-v2-scoped-inventory-navigation`. No main integration, release, tag, production or account changes.
 
 ## Placement and route authority
-- Domain: Inventory; entity: scoped current inventory; actors: authorized Retail inventory/store operators and Wholesale inventory operators.
+- Domain: Inventory; entity: scoped current inventory; actors: authorized Retail inventory/store operators and the pre-existing Customer Service Wholesale inventory profiles.
 - User goal: enter existing inventory views; workflow: repeat read/adjust through the already protected original workspace, not a new page.
 - Decision: **Reuse** existing `admin.b2c.module?module=inventory` and `admin.b2b.module?module=inventory`. These routes/Blade controllers and exact-user authorization are authoritative.
 - Navigation: `SIDEBAR`, new business **group** `inventory` with existing child keys `b2c_inventory` and `b2b_inventory`; no duplicate routes/actions. The sibling `warehouses` group remains the WMS `tab=warehouses` owner from #2583, and Catalog retains products/pricing.
@@ -14,7 +14,7 @@
 
 ## Authorization and technical scope
 - No changes to underlying inventory, products, prices, fulfillment, Ledger, API, DB or permissions. Existing `module()` checks channel and `inventory.view` before emitting links; actual channel controllers independently enforce authentication, store/business profile/role and 403/404 failure.
-- Authorized B2B operators should not need a Customer Service persona just to discover their inventory. B2C roles remain constrained by active owned Retail stores, and Super Admin's ordinary Retail workspace hiding is preserved.
+- The existing B2B Admin sidebar deliberately hides its legacy Inventory Management link; P246 retains that behavior. Only Customer Service Wholesale profiles that already had this inventory link retain it under Inventory. B2C roles remain constrained by active owned Retail stores, and Super Admin's ordinary Retail workspace hiding is preserved.
 - Module readiness is still enforced by the existing destination runtime where applicable. This new group does not expose WMS operations or change entitlement lifecycles.
 - Existing `AdminNavigationAuthorizationAuditTest` opens all visible targets; new `V2InventorySidebarGroupAuthorityTest` verifies group registry, two real HTTP destinations, AR/EN direction, isolation, cross-store denial and roleless denial. `CustomerServiceManagerWorkspaceTest` is updated to assert Catalog/Inventory separation without loss of permissions.
 

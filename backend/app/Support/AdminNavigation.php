@@ -142,10 +142,13 @@ class AdminNavigation
             ]),
             // P246 inventory is a dedicated business group. Reuse the same
             // authorized Retail and Wholesale inventory module destinations;
-            // module() retains the channel, store and permission boundaries.
+            // module() retains channel/store/permission boundaries and the
+            // existing Customer Service-only legacy B2B inventory visibility.
             $this->group('inventory', 'admin.nav_groups.inventory', '▣', [
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'inventory', 'admin.b2c_workspace.modules.inventory', 'inventory.view'),
-                $this->module($user, $channels, 'b2b', 'inventory', 'admin.b2b_sidebar.inventory_management', 'inventory.view'),
+                $useCustomerServiceDashboardProfile
+                    ? $this->module($user, $channels, 'b2b', 'inventory', 'admin.b2b_sidebar.inventory_management', 'inventory.view')
+                    : null,
             ]),
             // P253 warehouses are a dedicated business group. The existing
             // P254 WMS warehouse tab is the only canonical destination; the
