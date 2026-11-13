@@ -34,6 +34,31 @@ void main() {
     expect(directionality.textDirection, TextDirection.ltr);
   });
 
+  testWidgets('customer bundled Arabic diagnostics render RTL, not English',
+      (tester) async {
+    await tester.pumpWidget(
+      const FoodexCustomerApp(
+        locale: Locale('ar'),
+        initialRoute: CustomerRoutePaths.diagnostics,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('تشخيص التطبيق'), findsOneWidget);
+    expect(find.text('App diagnostics'), findsNothing);
+
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.locale, const Locale('ar'));
+
+    final directionality = tester.widget<Directionality>(
+      find.ancestor(
+        of: find.byType(Scaffold),
+        matching: find.byType(Directionality),
+      ).first,
+    );
+    expect(directionality.textDirection, TextDirection.rtl);
+  });
+
   testWidgets(
       'customer app accepts remote translation overrides with bundled fallback',
       (tester) async {
