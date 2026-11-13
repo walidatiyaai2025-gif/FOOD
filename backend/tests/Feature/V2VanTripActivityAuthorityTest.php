@@ -8,10 +8,10 @@ use App\Models\VanAssignment;
 use App\Models\VanVisit;
 use App\Services\VanRegistryService;
 use App\Services\WholesalePrincipal;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 final class V2VanTripActivityAuthorityTest extends TestCase
