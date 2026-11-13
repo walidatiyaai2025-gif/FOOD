@@ -945,6 +945,23 @@ class AdminNavigation
             $wholesaleTreasuryStoreId = $this->wholesaleTreasuryNavigationStoreId($user);
             if ($wholesaleTreasuryStoreId !== null) {
                 $params['store_id'] = (string) $wholesaleTreasuryStoreId;
+
+                // The default Treasury overview has a separate analytics
+                // capability. Link to a tab this store can actually read.
+                $scope = new EntitlementScope(EntitlementScope::STORE, $wholesaleTreasuryStoreId);
+                foreach ([
+                    'receipts' => 'treasury.receipts.read',
+                    'payments' => 'treasury.payments.read',
+                    'reconciliation' => 'treasury.reconciliation.read',
+                    'cash_closing' => 'treasury.cash_closing.read',
+                    'cheques' => 'treasury.cheques.read',
+                ] as $tab => $capability) {
+                    if ($this->enterpriseEntitlements->allows('treasury', $scope, $capability)) {
+                        $params['tab'] = $tab;
+
+                        break;
+                    }
+                }
             }
         }
 
