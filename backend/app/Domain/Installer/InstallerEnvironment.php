@@ -45,11 +45,25 @@ final class InstallerEnvironment
 
         foreach ($values as $key => $value) {
             $line = $key.'='.$this->encodeValue($value);
-            $pattern = '/^'.preg_quote($key, '/').'\s*=.*$/m';
+            // Read() uses the last .env assignment: after any installer write,
+            // ensure the managed key has only one effective definition.
+            $pattern = '/^[ \t]*'.preg_quote($key, '/').'[ \t]*=.*$/m';
+            $found = false;
+            $content = (string) preg_replace_callback(
+                $pattern,
+                static function () use ($line, &$found): string {
+                    if ($found) {
+                        return '';
+                    }
 
-            if (preg_match($pattern, $content) === 1) {
-                $content = (string) preg_replace_callback($pattern, static fn (): string => $line, $content, 1);
-            } else {
+                    $found = true;
+
+                    return $line;
+                },
+                $content,
+            );
+
+            if (! $found) {
                 $content = rtrim($content).PHP_EOL.$line.PHP_EOL;
             }
         }
