@@ -135,7 +135,6 @@ class VanFinanceSupportTest extends TestCase
             ->assertSee('Van Finance Support');
     }
 
-
     public function test_closeout_review_is_read_only_and_restricts_accounts_to_wholesale_vans(): void
     {
         $admin = $this->superAdmin();
