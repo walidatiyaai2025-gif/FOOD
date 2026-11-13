@@ -37,7 +37,7 @@ final class V2WholesaleErpNavigationSequenceTest extends TestCase
     private const SIDEBAR_GROUPS = [
         'erp_center' => 'erp',
         'erp_customer_service' => 'erp',
-        'erp_procurement' => 'catalog',
+        'erp_procurement' => 'procurement',
         'erp_wms' => 'warehouses',
         'erp_finance' => 'finance',
         'erp_treasury' => 'finance',
