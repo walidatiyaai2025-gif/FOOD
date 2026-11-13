@@ -46,13 +46,15 @@ before creating any Payment / CollectionTransaction / CustodyLedgerEntry**:
   equal this store's actual `b2b`/`b2c` channel.
 - Van / Van representative actors cannot allocate a Retail/B2C invoice,
   including the case of a Van collection account incorrectly tied to a B2C store.
+- **Symmetric Driver boundary:** a Driver collection account linked to a B2B Wholesale store cannot allocate its otherwise matching B2B invoice. Reject before Payment, CollectionTransaction, allocations, or custody ledger writes; this prevents a direct service caller bypassing the B2B=VAN ONLY rule. Valid Driver Retail/B2C allocations remain supported.
 - Missing/unknown store provenance blocks allocations; unallocated legacy
   custody operations remain unchanged because no invoice association is asserted.
 - Existing Driver B2C collection is preserved; this guard does **not** add a
   B2B Driver fallback. APIs stay on their existing authenticated paths.
 
 `V2VanTripSettlementProvenanceTest` now covers same-currency cross-Wholesale-store,
-wrong-channel same-store, Retail-via-Van, Van-without-store rejection, positive
+wrong-channel same-store, Retail-via-Van, Van-without-store rejection,
+**B2B-via-Driver rejection with zero financial writes**, positive
 same-store B2B Van collection, and positive legitimate B2C Driver collection,
 checking that rejected cases cause **zero** payment/collection/custody writes.
 
