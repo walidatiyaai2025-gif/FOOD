@@ -208,6 +208,34 @@ final class V2ManualRecoveryExecutionLockTest extends TestCase
         $this->assertDatabaseCount('audit_logs', 0);
     }
 
+    public function test_symlinked_lock_parent_cannot_redirect_manual_backup(): void
+    {
+        $outside = $this->directory.'/outside-directory';
+        File::ensureDirectoryExists($outside);
+        $linked = $this->directory.'/linked-directory';
+
+        if (! function_exists('symlink') || ! @symlink($outside, $linked)) {
+            $this->markTestSkipped('Symbolic links cannot be created on this runner.');
+        }
+
+        config()->set('foodex.updater_execution_lock', $linked.'/execution.lock');
+
+        $actor = User::factory()->create();
+        $runtime = $this->createMock(UpdateRuntime::class);
+        $runtime->expects($this->never())->method('backupDatabase');
+        $service = new SystemAdministrationRuntime($runtime, app(AuditLogger::class));
+
+        try {
+            $service->createDatabaseBackup($actor, $this->request($actor), 'Linked parent test', '1.2.3');
+            $this->fail('A symlinked lock ancestor must be rejected.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('Updater execution lock path cannot be a symbolic link.', $exception->getMessage());
+        }
+
+        $this->assertFileDoesNotExist($outside.'/execution.lock');
+        $this->assertDatabaseCount('audit_logs', 0);
+    }
+
     private function request(User $actor): Request
     {
         $request = Request::create('/admin/settings/system-update/backups', 'POST');
