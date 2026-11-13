@@ -736,7 +736,9 @@ final class FieldOperationsController extends Controller
             ->limit(300)
             ->get(['id', 'order_number', 'status', 'store_id']);
 
-        // Load Van labels only for authorized visible B2B activity records.
+        // Visit metadata is not authorization to read arbitrary Van codes.
+        // A referenced Van must also have an assignment through a warehouse
+        // belonging to a B2B store authorized for the current operator.
         $tripVanCodes = $tripView === 'trips'
             ? Van::query()
                 ->whereIn('id', $visits->getCollection()
@@ -744,6 +746,10 @@ final class FieldOperationsController extends Controller
                     ->map(static fn ($metadata): int => (int) ($metadata['van_id'] ?? 0))
                     ->filter()
                     ->unique())
+                ->whereHas('assignments', static function ($query) use ($allowedB2bStores): void {
+                    $query->join('warehouses', 'warehouses.id', '=', 'van_assignments.warehouse_id')
+                        ->whereIn('warehouses.store_id', $allowedB2bStores);
+                })
                 ->pluck('code', 'id')
             : collect();
 
