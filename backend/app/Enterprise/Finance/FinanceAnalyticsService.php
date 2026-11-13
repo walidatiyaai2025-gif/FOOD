@@ -47,7 +47,10 @@ final class FinanceAnalyticsService
         }
 
         $profit = $this->profitAndLossSummary($scope, (int) $period->id);
-        $ar = $this->exposureSummary('enterprise_ar_documents', 'enterprise_ar_allocations', 'ar_document_id', $scope, false);
+        // A Retail actor is store-scoped even when sister stores share the same legal entity.
+        // Wholesale retains the enterprise-wide legal-entity Finance view.
+        $arStoreScoped = $context->isRetail();
+        $ar = $this->exposureSummary('enterprise_ar_documents', 'enterprise_ar_allocations', 'ar_document_id', $scope, $arStoreScoped);
         $ap = $this->exposureSummary('enterprise_ap_documents', 'enterprise_ap_allocations', 'ap_document_id', $scope, true);
         $budget = $this->budgetSummary($scope, (int) $period->id);
         $tax = $this->taxSummary($scope, (int) $period->id);
@@ -84,7 +87,7 @@ final class FinanceAnalyticsService
             ],
             'trend' => $this->profitAndLossTrend($scope),
             'aging' => [
-                'ar' => $this->agingBuckets('enterprise_ar_documents', 'enterprise_ar_allocations', 'ar_document_id', $scope, false),
+                'ar' => $this->agingBuckets('enterprise_ar_documents', 'enterprise_ar_allocations', 'ar_document_id', $scope, $arStoreScoped),
                 'ap' => $this->agingBuckets('enterprise_ap_documents', 'enterprise_ap_allocations', 'ap_document_id', $scope, true),
             ],
             'expenses' => $this->expenseByCostCenter($scope, (int) $period->id),
