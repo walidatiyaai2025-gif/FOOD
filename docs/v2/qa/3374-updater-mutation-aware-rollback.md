@@ -16,7 +16,7 @@ The manager records **two independent conservative mutation markers**:
 1. **Release file mutation starts immediately before `extractRelease`**; partial extraction may already change files before failure. Only then can file rollback run.
 2. **Database mutation starts immediately before `runMigrations` or `rebuildCaches`**; migrations may partially commit, and cache rebuild reconciles persisted role grants. Only then may database restore run **if** a verified backup reference exists.
 
-Failed package validation, preflight, file/database backup and backup verification do **not** trigger restoration of untouched live files or database. Failure still records the exact stage and retains any backup reference for diagnosis. A partial extraction performs file rollback only; a partial migration performs both file/database rollback, health validation and maintenance exit when safe. On incomplete rollback, the existing maintenance-mode safety remains enforced. Failed-before-mutation history states `rollback_status=not_required` and uses a truthful operator message.
+Failed package validation, preflight, file/database backup and backup verification do **not** trigger restoration of untouched live files or database. Failure still records the exact stage and retains any backup reference for diagnosis. A partial extraction performs file rollback only; a partial migration performs both file/database rollback, health validation and maintenance exit when safe. On incomplete rollback, the existing maintenance-mode safety remains enforced. Failed-before-mutation history states `rollback_status=not_required` and omits the false claim that rollback was attempted.
 
 ## Focused acceptance matrix
 
@@ -27,7 +27,7 @@ Failed package validation, preflight, file/database backup and backup verificati
 | Partial release extraction | Yes | No | Exit only after healthy rollback |
 | Partial migrations | Yes | Yes | Exit only after healthy rollback |
 
-The tests run against an isolated recording `UpdateRuntime`, real `UpdateManager`, Laravel `UpdateHistory` persistence and the standard signed-package validator inputs. Existing full updater success and failed rollback tests remain in `UpdateManagerTest.php` and must continue passing.
+The tests run against an isolated recording `UpdateRuntime`, real `UpdateManager`, Laravel `UpdateHistory` persistence and existing `UpdatePackageValidator` inputs. Existing full updater success and failed rollback tests remain in `UpdateManagerTest.php` and must continue passing.
 
 ## Data and product boundaries
 
