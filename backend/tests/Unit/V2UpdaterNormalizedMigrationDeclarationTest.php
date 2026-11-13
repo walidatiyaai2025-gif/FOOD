@@ -109,7 +109,7 @@ final class V2UpdaterNormalizedMigrationDeclarationTest extends TestCase
     }
 
     /**
-     * @param  array<int, string> $paths
+     * @param  array<int, string>  $paths
      */
     private function writeZip(array $paths): void
     {
