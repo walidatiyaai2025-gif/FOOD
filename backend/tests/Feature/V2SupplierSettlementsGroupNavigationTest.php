@@ -17,6 +17,7 @@ use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -161,8 +162,8 @@ final class V2SupplierSettlementsGroupNavigationTest extends TestCase
         $this->assertContains($response->getStatusCode(), [403, 404]);
     }
 
-    /** @return \Illuminate\Support\Collection<string, array<string, mixed>> */
-    private function groups(User $user): \Illuminate\Support\Collection
+    /** @return Collection<string, array<string, mixed>> */
+    private function groups(User $user): Collection
     {
         app()->forgetInstance(AdminNavigation::class);
 
