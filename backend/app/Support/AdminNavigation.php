@@ -1076,6 +1076,30 @@ class AdminNavigation
             }
         }
 
+        // P2698: the Treasury HTTP workbench accepts global Wholesale actors
+        // with effective store-scoped finance.view and a real Treasury read
+        // entitlement. A Retail-only or explicitly DENIED B2B store must
+        // never make the Treasury Sidebar entry appear.
+        if ($moduleCode === 'treasury' && $this->canAccess($user, 'b2b')) {
+            foreach (app(OperationalTenantScope::class)->allowedStoreIds($user, 'finance.view', 'b2b') as $storeId) {
+                try {
+                    $this->tenantContext->wholesale($user, $storeId);
+
+                    if ($this->enterpriseEntitlements->allows(
+                        $moduleCode,
+                        new EntitlementScope(EntitlementScope::STORE, $storeId),
+                        'treasury.receipts.read',
+                    )) {
+                        return $this->enterpriseModuleAccessMemo[$memoKey] = true;
+                    }
+                } catch (Throwable) {
+                    // Ignore a stale or unauthorised store rather than
+                    // broadening the visible role/module surface.
+                    continue;
+                }
+            }
+        }
+
         return $this->enterpriseModuleAccessMemo[$memoKey] = false;
     }
 
