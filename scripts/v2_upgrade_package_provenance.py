@@ -148,7 +148,7 @@ def validate_package(
     except (OSError, zipfile.BadZipFile, UnicodeError, KeyError) as exc:
         raise PackageContractError("Unreadable or corrupt update ZIP.") from exc
     listed = list_path.read_text(encoding="utf-8").splitlines()
-    _require(names == listed, "ZIP member order/list differs from signed manifest file list.")
+    _require(names == listed, "ZIP member order/list differs from package file list.")
     delta = manifest.get("delta")
     _require(
         isinstance(delta, dict)
@@ -167,9 +167,11 @@ def validate_package(
         and all(isinstance(item, str) and item in migration_paths for item in declared),
         "Declared migrations are absent from ZIP.",
     )
+    dashboard_fields = manifest.get("dashboard_fields")
     _require(
-        manifest.get("dashboard_fields", {}).get("source_commit") == source
-        and manifest.get("dashboard_fields", {}).get("sha256") == digest,
+        isinstance(dashboard_fields, dict)
+        and dashboard_fields.get("source_commit") == source
+        and dashboard_fields.get("sha256") == digest,
         "Dashboard fields disagree with source or checksum.",
     )
     return {
