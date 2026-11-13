@@ -87,6 +87,13 @@ class AdminNavigation
             || $this->enterpriseWorkspaces->availableWorkspaceKeys($user) !== [];
         $useCustomerServiceDashboardProfile = $this->usesCustomerServiceDashboardProfile($user);
 
+        // P298 is presentation-only: derive both financial child destinations once
+        // from the existing permission, store, entitlement and readiness decision.
+        // Do not advertise Payables through an independent Sidebar eligibility policy.
+        $financeDocumentItems = $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
+            ? $this->receivablesNavigationItems($user)
+            : [];
+
         // Business-first order: enter a channel, define stores/catalog/accounts, execute operations,
         // then marketing/reporting. Administration stays last and never invents cross-channel links.
         $groups = [
@@ -252,11 +259,16 @@ class AdminNavigation
             ]),
             // P285 reuses the already authorized Finance AR/AP tabs, never a
             // duplicate ledger or a newly exposed unready financial workflow.
-            $this->group('receivables', 'admin.nav_groups.receivables', '¤',
-                $canAccessPlatformErp && ! $useCustomerServiceDashboardProfile
-                    ? $this->receivablesNavigationItems($user)
-                    : []
-            ),
+            $this->group('receivables', 'admin.nav_groups.receivables', '¤', array_values(array_filter(
+                $financeDocumentItems,
+                static fn (array $item): bool => $item['key'] === 'erp_receivables',
+            ))),
+            // P298 Supplier Settlements is a parent of the already-authorized
+            // Accounts Payable Finance Workbench tab. No invented payment route.
+            $this->group('supplier_settlements', 'admin.nav_groups.supplier_settlements', '¤', array_values(array_filter(
+                $financeDocumentItems,
+                static fn (array $item): bool => $item['key'] === 'erp_payables',
+            ))),
             $this->group('analytics', 'admin.nav_groups.analytics', '▥', [
                 $this->routeItem($user, 'reports_center', 'reports.title', 'admin.reports.index', 'reports.view'),
                 $hideRetailWorkspaces ? null : $this->module($user, $channels, 'b2c', 'reports', 'admin.b2c_workspace.modules.reports', 'reports.view'),
