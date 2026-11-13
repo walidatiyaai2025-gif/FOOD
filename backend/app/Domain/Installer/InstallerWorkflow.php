@@ -140,7 +140,7 @@ final class InstallerWorkflow
             $actual = realpath($publicLink);
 
             if ($expected === false || $actual === false || $actual !== $expected) {
-                throw new RuntimeException('Public storage link does not point to the configured storage directory.');
+                throw new RuntimeException((string) __('installer.public_storage_link_invalid'));
             }
         } elseif (! is_dir($publicLink)) {
             throw new RuntimeException('The public/storage link could not be created. Image uploads would not be publicly accessible.');
