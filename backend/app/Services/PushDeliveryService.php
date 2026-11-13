@@ -133,7 +133,7 @@ final class PushDeliveryService
                 $notification->audience === 'user',
                 fn ($query) => $query->where('user_id', $notification->user_id),
             )
-            ->with('user:id,locale')
+            ->with('user:id,locale,is_active')
             ->limit(2000)
             ->get();
 
