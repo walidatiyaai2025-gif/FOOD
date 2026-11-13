@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Domain\Updater\UpdateManager;
 use App\Domain\Updater\UpdateRuntime;
 use App\Models\AuditLog;
 use App\Models\User;
@@ -20,6 +21,7 @@ final class SystemAdministrationRuntime
     public function __construct(
         private readonly UpdateRuntime $runtime,
         private readonly AuditLogger $audit,
+        private readonly ?UpdateManager $updateManager = null,
     ) {}
 
     /**
@@ -279,6 +281,20 @@ final class SystemAdministrationRuntime
         string $reason,
         string $sourceVersion,
     ): array {
+        return $this->recoveryUpdater()->withExclusiveExecutionLock(
+            fn (): array => $this->createDatabaseBackupLocked($actor, $request, $reason, $sourceVersion),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function createDatabaseBackupLocked(
+        User $actor,
+        Request $request,
+        string $reason,
+        string $sourceVersion,
+    ): array {
         $referencePath = $this->runtime->backupDatabase(true);
         if (! is_string($referencePath) || $referencePath === '') {
             throw new RuntimeException('Database backup did not produce a recovery reference.');
@@ -322,6 +338,28 @@ final class SystemAdministrationRuntime
     }
 
     public function restoreDatabaseBackup(
+        User $actor,
+        Request $request,
+        string $reference,
+        string $reason,
+        string $confirmation,
+        ?string $productionConfirmation,
+        string $targetVersion,
+    ): void {
+        $this->recoveryUpdater()->withExclusiveExecutionLock(
+            fn () => $this->restoreDatabaseBackupLocked(
+                $actor,
+                $request,
+                $reference,
+                $reason,
+                $confirmation,
+                $productionConfirmation,
+                $targetVersion,
+            ),
+        );
+    }
+
+    private function restoreDatabaseBackupLocked(
         User $actor,
         Request $request,
         string $reference,
@@ -473,6 +511,11 @@ final class SystemAdministrationRuntime
         }
 
         return $reference;
+    }
+
+    private function recoveryUpdater(): UpdateManager
+    {
+        return $this->updateManager ?? app(UpdateManager::class);
     }
 
     private function backupRoot(): string
