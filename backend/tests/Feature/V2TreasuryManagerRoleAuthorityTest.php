@@ -183,6 +183,25 @@ final class V2TreasuryManagerRoleAuthorityTest extends TestCase
             ->assertOk();
     }
 
+    public function test_payment_only_treasury_entitlement_links_to_an_authorized_payment_tab(): void
+    {
+        $store = $this->wholesaleStore();
+        $manager = $this->manager();
+        $this->enableModule($manager);
+        $this->entitle($manager, $store, ['treasury.payments.read']);
+
+        $entry = collect(app(AdminNavigation::class)->groupsFor($manager->fresh()))
+            ->flatMap(static fn (array $group): array => $group['children'])
+            ->firstWhere('key', 'erp_treasury');
+        $this->assertIsArray($entry);
+        $this->assertSame((string) $store->id, $entry['params']['store_id'] ?? null);
+        $this->assertSame('payments', $entry['params']['tab'] ?? null);
+
+        $this->actingAs($manager->fresh())
+            ->get(route($entry['route'], $entry['params']))
+            ->assertOk();
+    }
+
     public function test_entitled_manager_can_open_bilingual_wholesale_treasury_but_not_retail_or_unentitled_mutations(): void
     {
         $store = $this->wholesaleStore();
