@@ -25,6 +25,10 @@ New `backend/tests/Feature/V2UpdaterDuplicateArchiveTargetsTest.php` runs real Z
 
 Existing `V2UpdaterSymlinkContainmentTest` must stay green; all current `UpdateManager` and ZIP version tests, Laravel suite, PHP/Pint/PHPStan/security, AR/EN, and real MySQL/Redis install-upgrade-recovery plus terminal Required CI must pass on final PR SHA.
 
+## V2 CI policy / initial red-gate rescue
+
+The repository V2 Isolation Gate requires one explicit `MOBILE IMPACT` line that names Customer, Driver and Van together. A structured per-app impact table alone does not satisfy the current machine gate. PR #3356 includes the consolidated marker in its body and keeps the detailed distinct per-app review below. This is PR evidence formatting only, **not** permission to bypass the gate or app acceptance.
+
 ## App and deployment impact matrix
 
 | Surface | Impact | Evidence |
