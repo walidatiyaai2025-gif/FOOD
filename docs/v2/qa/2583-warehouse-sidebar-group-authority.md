@@ -21,6 +21,7 @@
 - `V2WarehouseSidebarGroupAuthorityTest`: scoped WMS group/child route and P254 tab, no catalog duplication, AR/EN and RTL/LTR actual HTTP, denied role/no empty group/direct 403, disabled module fail closed while warehouse rows persist, read-only no stock movements.
 - Child source `V2WmsWarehousesPageAuthorityTest` already verifies warehouse-specific scope, foreign stores, multi-role explicit DENY, disabled module and store entitlement.
 - Responsive: no new renderer; existing accessible WMS responsive cards, native links/tabs, field labels, focus and user-selectable keyboard navigation retained. Arabic and English group labels are catalog-based.
+- Mobile impact: Customer unchanged; Driver unchanged; Van unchanged (all three app contracts separately reviewed; no new Flutter/API/notification/offline behavior). B2B Van-only and B2C Driver-only fulfillment is unchanged.
 - Customer: no changed API/authorization/nav and no Flutter change. Driver: no changed B2C-only dispatch/auth/stock API. Van: no changed B2B-only VAN dispatch/consignment/offline API. No new app issue; the WMS group is Dashboard-only.
 - CI: verify latest PR head Laravel full suite, PHP/Pint/PHPStan, AR/EN, V2 Isolation, repository policy, MySQL/Redis install/upgrade/recovery and terminal required-ci-gate SUCCESS before merge. Final visual/UAT acceptance remains under parent #2503.
 
