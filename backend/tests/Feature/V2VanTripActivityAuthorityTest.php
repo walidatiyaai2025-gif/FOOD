@@ -72,6 +72,34 @@ final class V2VanTripActivityAuthorityTest extends TestCase
             ->assertDontSee('data-trip-route="V2-P276-OTHER"', false);
     }
 
+    public function test_forged_metadata_van_id_without_authorized_warehouse_assignment_never_exposes_van_code(): void
+    {
+        $admin = $this->superAdmin();
+        $unassignedVan = app(\\App\\Services\\VanRegistryService::class)
+            ->createVan(['code' => 'V2-P276-UNASSIGNED-VAN-SECRET']);
+
+        VanVisit::query()->create([
+            'actor_user_id' => $admin->id,
+            'customer_type' => 'b2b',
+            'customer_id' => 10001,
+            'store_id' => null,
+            'status' => 'planned',
+            'planned_at' => now(),
+            'metadata' => [
+                'route_key' => 'V2-P276-VISIBLE-ROUTE',
+                'van_id' => $unassignedVan->id,
+            ],
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.field-operations.visits', ['trip_view' => 'trips']))
+            ->assertOk()
+            ->assertSee('data-trip-route="V2-P276-VISIBLE-ROUTE"', false)
+            ->assertDontSee('V2-P276-UNASSIGNED-VAN-SECRET');
+
+        $this->assertDatabaseCount('van_visits', 1);
+    }
+
     public function test_user_without_b2b_fleet_authority_cannot_open_trip_activity(): void
     {
         $user = User::factory()->create(['is_active' => true]);
