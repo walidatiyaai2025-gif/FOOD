@@ -19,6 +19,9 @@ use App\Enterprise\Finance\OpeningBalanceService;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\EnterpriseAccountsReceivableAllocation;
+use App\Models\EnterpriseAccountsReceivableDocument;
+use App\Models\EnterpriseFinanceAccount;
 use App\Models\EnterpriseFinanceJournal;
 use App\Models\EnterpriseFinanceLedgerEntry;
 use App\Models\EnterpriseFinanceOpeningBalanceBatch;
@@ -132,7 +135,7 @@ final class FinanceWorkbenchController extends Controller
             'periods' => $this->periodData($request, $actor, $context),
             'journals' => $this->journalData($request, $actor, $context),
             'opening_balances' => $this->openingBalanceData($request, $actor, $context),
-            'receivables' => $this->receivableData($request, $actor, $context),
+            'receivables' => $this->receivableData($request, $actor, $context, $access),
             'payables' => $this->payableData($request, $actor, $context),
             'credit_terms' => $this->creditTermData($request, $actor, $context),
             'budgets' => $this->budgetData($request, $actor, $context),
@@ -154,6 +157,43 @@ final class FinanceWorkbenchController extends Controller
             'tab' => $tab,
             'data' => $data,
             'needsContext' => false,
+        ]);
+    }
+
+    public function storeReceivableSettlement(Request $request, int $document): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+
+        // The canonical AR service owns permission, legal-entity scope,
+        // entitlement, idempotency and over-allocation validation.
+        $this->receivables->createAllocation(
+            $actor,
+            $context,
+            $document,
+            $request->only([
+                'idempotency_key',
+                'allocation_date',
+                'amount',
+                'settlement_account_id',
+                'reference',
+            ]),
+        );
+
+        return $this->redirectTo($request, 'receivables', 'ar_settlement_created', [
+            'settlement_document_id' => $document,
+        ]);
+    }
+
+    public function postReceivableSettlement(Request $request, int $allocation): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+
+        // Independent poster, approved journal and repeat-safe posting are
+        // enforced by AccountsReceivableService and GeneralLedgerService.
+        $posted = $this->receivables->postAllocation($actor, $context, $allocation);
+
+        return $this->redirectTo($request, 'receivables', 'ar_settlement_posted', [
+            'settlement_document_id' => (int) $posted->ar_document_id,
         ]);
     }
 
@@ -781,8 +821,12 @@ final class FinanceWorkbenchController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function receivableData(Request $request, User $actor, ResolvedTenantContext $context): array
-    {
+    private function receivableData(
+        Request $request,
+        User $actor,
+        ResolvedTenantContext $context,
+        array $access,
+    ): array {
         $filters = $request->only(['customer_id', 'status', 'date_from', 'date_to']);
         $documents = $this->receivables->paginate($actor, $context, $filters, 25);
         $documents->getCollection()->load('customer');
@@ -793,7 +837,47 @@ final class FinanceWorkbenchController extends Controller
             100,
         );
 
-        return compact('documents', 'aging', 'filters');
+        // Show exactly one selected AR document and a bounded, separate
+        // settlement paginator; never eager-load an unlimited allocation list
+        // for every document on the main AR page.
+        $settlementDocument = null;
+        $settlements = null;
+        $settlementAccounts = collect();
+        if ($request->filled('settlement_document_id')) {
+            $validated = $request->validate([
+                'settlement_document_id' => ['required', 'integer', 'min:1'],
+            ]);
+            $scope = $context->enterpriseScope;
+            abort_if($scope === null, 409);
+
+            $settlementDocument = EnterpriseAccountsReceivableDocument::query()
+                ->where('organization_id', $scope->organizationId)
+                ->where('company_id', $scope->companyId)
+                ->where('legal_entity_id', $scope->legalEntityId)
+                ->whereKey((int) $validated['settlement_document_id'])
+                ->firstOrFail();
+
+            $settlements = EnterpriseAccountsReceivableAllocation::query()
+                ->where('ar_document_id', $settlementDocument->id)
+                ->orderByDesc('id')
+                ->paginate(25, ['*'], 'settlement_page')
+                ->withQueryString();
+
+            if ($access['ar_manage'] ?? false) {
+                $settlementAccounts = EnterpriseFinanceAccount::query()
+                    ->where('organization_id', $scope->organizationId)
+                    ->where('company_id', $scope->companyId)
+                    ->where('legal_entity_id', $scope->legalEntityId)
+                    ->where('status', 'active')
+                    ->where('allow_posting', true)
+                    ->where('is_control', false)
+                    ->orderBy('code')
+                    ->limit(100)
+                    ->get();
+            }
+        }
+
+        return compact('documents', 'aging', 'filters', 'settlementDocument', 'settlements', 'settlementAccounts');
     }
 
     /** @return array<string, mixed> */
@@ -975,6 +1059,8 @@ final class FinanceWorkbenchController extends Controller
             'opening_manage' => $permitted('finance.manage') && $entitled('finance.opening_balances.manage'),
             'opening_post' => $permitted('finance.post') && $entitled('finance.opening_balances.post'),
             'ar_read' => $permitted('finance.view') && $entitled('finance.ar.read'),
+            'ar_manage' => $permitted('finance.manage') && $entitled('finance.ar.manage'),
+            'ar_post' => $permitted('finance.post') && $entitled('finance.ar.post'),
             'ap_read' => $permitted('finance.view') && $entitled('finance.ap.read'),
             'credit_read' => $permitted('finance.view') && $entitled('finance.credit_terms.read'),
             'credit_manage' => $permitted('finance.manage') && $entitled('finance.credit_terms.manage'),
