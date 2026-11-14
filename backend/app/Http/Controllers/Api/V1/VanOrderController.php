@@ -297,6 +297,9 @@ final class VanOrderController extends Controller
             ->where('customer_type', 'b2b')
             ->where('customer_id', $customer)
             ->where('store_id', $storeId)
+            // A completed/closed historical visit is not an authorization
+            // grant for another sale. Collections retain their own scope.
+            ->whereIn('status', ['planned', 'started'])
             ->exists(), 404);
     }
 
