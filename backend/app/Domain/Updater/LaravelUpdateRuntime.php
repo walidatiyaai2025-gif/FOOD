@@ -705,6 +705,14 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         $seen = [];
         $expandedBytes = 0;
 
+        // Empty members and directories can exhaust memory/CPU without
+        // consuming any expanded-byte budget. Bound the central directory
+        // before preflight, backup or extraction inspects the first entry.
+        $maxMembers = max(1, (int) config('foodex.update_max_zip_members', 50000));
+        if ($archive->numFiles > $maxMembers) {
+            throw new RuntimeException('Update archive exceeds the allowed member count.');
+        }
+
         // Configurable for verified larger releases, but always positive and
         // finite: a tiny ZIP must not unpack an unlimited volume of files.
         $maxEntry = max(1, (int) config('foodex.update_max_entry_uncompressed_bytes', 268435456));
