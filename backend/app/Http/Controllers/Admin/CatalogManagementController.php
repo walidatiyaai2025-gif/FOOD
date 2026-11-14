@@ -183,10 +183,10 @@ final class CatalogManagementController extends Controller
             ->where('catalogs.is_migration_quarantine', false);
 
         if ($productSearch !== '') {
-            $needle = '%'.$productSearch.'%';
+            $needle = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $productSearch).'%';
             $productQuery->where(static function ($query) use ($needle): void {
-                $query->where('products.name', 'like', $needle)
-                    ->orWhere('products.sku', 'like', $needle);
+                $query->whereRaw("products.name LIKE ? ESCAPE '!'", [$needle])
+                    ->orWhereRaw("products.sku LIKE ? ESCAPE '!'", [$needle]);
             });
         }
         if ($productCategoryId > 0) {
@@ -378,7 +378,8 @@ final class CatalogManagementController extends Controller
 
         $categoryRowsQuery = clone $categoryQuery;
         if ($categorySearch !== '') {
-            $categoryRowsQuery->where('categories.name', 'like', '%'.$categorySearch.'%');
+            $categoryNeedle = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $categorySearch).'%';
+            $categoryRowsQuery->whereRaw("categories.name LIKE ? ESCAPE '!'", [$categoryNeedle]);
         }
         if ($categoryParent === 'root') {
             $categoryRowsQuery->whereNull('categories.parent_id');
