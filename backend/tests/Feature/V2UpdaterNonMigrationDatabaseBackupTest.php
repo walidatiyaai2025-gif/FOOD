@@ -10,6 +10,7 @@ use App\Models\UpdateHistory;
 use App\Services\AuditLogger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
+use Tests\Support\UpdateZipFixture;
 use Tests\TestCase;
 
 final class V2UpdaterNonMigrationDatabaseBackupTest extends TestCase
@@ -23,7 +24,7 @@ final class V2UpdaterNonMigrationDatabaseBackupTest extends TestCase
         parent::setUp();
 
         $this->packagePath = tempnam(sys_get_temp_dir(), 'foodex-v2-no-migration-');
-        file_put_contents($this->packagePath, 'non-migration update backup test');
+        UpdateZipFixture::write($this->packagePath);
     }
 
     protected function tearDown(): void
