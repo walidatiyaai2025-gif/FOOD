@@ -21,9 +21,10 @@ final class V2AdminReportStoreScopeLocaleTest extends TestCase
         $user = $this->storeAdmin($ownStore, 'ar');
         Sanctum::actingAs($user);
 
-        // Without an explicit Accept-Language header the authenticated
-        // user's Arabic preference wins over any framework language default.
-        $this->getJson('/api/v1/admin/reports/dashboard')
+        // An explicitly empty language preference must not pick an implicit
+        // framework/runner English fallback over the authenticated user's Arabic.
+        $this->withHeader('Accept-Language', '')
+            ->getJson('/api/v1/admin/reports/dashboard')
             ->assertUnprocessable()
             ->assertJsonPath('errors.store_id.0', __('reports.store_required', [], 'ar'));
 
