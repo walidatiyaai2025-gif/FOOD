@@ -107,6 +107,100 @@ final class V2CustomerConversationsInboxScopeTest extends TestCase
         $this->actingAs($roleless)->get(route('admin.whatsapp-inbox.index'))->assertForbidden();
     }
 
+    public function test_retail_inbox_search_treats_percent_and_underscore_as_literal_and_preserves_status_locale_and_store_scope(): void
+    {
+        $this->enableInbox();
+        $own = $this->retailStore('V2-WA-LITERAL-OWN');
+        $foreign = $this->retailStore('V2-WA-LITERAL-OTHER');
+        $this->conversation($this->customer($own, 'Offer% Match')->getKey(), $own);
+        $this->conversation($this->customer($own, 'OfferX Match')->getKey(), $own);
+        $this->conversation($this->customer($foreign, 'Offer% Foreign')->getKey(), $foreign);
+        $resolved = $this->conversation($this->customer($own, 'Offer% Resolved')->getKey(), $own);
+        DB::table('whats_app_conversations')->where('id', $resolved)->update(['status' => 'RESOLVED']);
+        $this->conversation($this->customer($own, 'Arabic_ Exact')->getKey(), $own);
+        $this->conversation($this->customer($own, 'ArabicX Exact')->getKey(), $own);
+        $actor = $this->retailSupport($own);
+
+        foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
+            $actor->forceFill(['locale' => $locale])->save();
+            app()->setLocale($locale);
+
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.whatsapp-inbox.index', [
+                    'q' => 'Offer%',
+                    'status' => 'WAITING_FOR_AGENT',
+                ]))
+                ->assertOk()
+                ->assertSee('dir="'.$direction.'"', false)
+                ->assertSee('Offer% Match')
+                ->assertDontSee('OfferX Match')
+                ->assertDontSee('Offer% Foreign')
+                ->assertDontSee('Offer% Resolved');
+
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.whatsapp-inbox.index', ['q' => 'Arabic_']))
+                ->assertOk()
+                ->assertSee('Arabic_ Exact')
+                ->assertDontSee('ArabicX Exact');
+
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.whatsapp-inbox.index', ['q' => 'Offer']))
+                ->assertOk()
+                ->assertSee('Offer% Match')
+                ->assertSee('OfferX Match');
+
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.whatsapp-inbox.index', ['q' => 'Offer%', 'store_id' => $foreign]))
+                ->assertNotFound();
+        }
+    }
+
+    public function test_inbox_customer_email_and_phone_search_escape_combined_symbols_without_writes(): void
+    {
+        $this->enableInbox();
+        $own = $this->retailStore('V2-WA-LITERAL-CONTACT');
+        $emailExact = $this->customer($own, 'Email underscore exact');
+        $emailFalse = $this->customer($own, 'Email underscore lookalike');
+        $phoneExact = $this->customer($own, 'Phone literal exact');
+        $phoneFalse = $this->customer($own, 'Phone literal lookalike');
+
+        DB::table('platform_customers')->where('id', $emailExact->getKey())->update(['email' => 'support_a%_!@example.test']);
+        DB::table('platform_customers')->where('id', $emailFalse->getKey())->update(['email' => 'supportXaZZ!@example.test']);
+        DB::table('platform_customers')->where('id', $phoneExact->getKey())->update(['phone' => '+9655!%_123']);
+        DB::table('platform_customers')->where('id', $phoneFalse->getKey())->update(['phone' => '+9655!XY123']);
+
+        foreach ([$emailExact, $emailFalse, $phoneExact, $phoneFalse] as $customer) {
+            $this->conversation($customer->getKey(), $own);
+        }
+
+        $actor = $this->retailSupport($own);
+        $conversationCount = DB::table('whats_app_conversations')->count();
+        $customerCount = DB::table('platform_customers')->count();
+        $auditCount = DB::table('audit_logs')->count();
+
+        $this->actingAs($actor)
+            ->get(route('admin.whatsapp-inbox.index', ['q' => 'support_a%']))
+            ->assertOk()
+            ->assertSee('Email underscore exact')
+            ->assertDontSee('Email underscore lookalike');
+
+        $this->actingAs($actor)
+            ->get(route('admin.whatsapp-inbox.index', ['q' => '5!%_']))
+            ->assertOk()
+            ->assertSee('Phone literal exact')
+            ->assertDontSee('Phone literal lookalike');
+
+        $this->actingAs($actor)
+            ->get(route('admin.whatsapp-inbox.index', ['q' => 'Phone']))
+            ->assertOk()
+            ->assertSee('Phone literal exact')
+            ->assertSee('Phone literal lookalike');
+
+        $this->assertSame($conversationCount, DB::table('whats_app_conversations')->count());
+        $this->assertSame($customerCount, DB::table('platform_customers')->count());
+        $this->assertSame($auditCount, DB::table('audit_logs')->count());
+    }
+
     private function enableInbox(): void
     {
         WhatsAppModuleState::query()->findOrFail(1)->forceFill([
