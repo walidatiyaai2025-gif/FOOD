@@ -110,6 +110,51 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
         ]);
     }
 
+    public function test_retail_store_finance_approver_cannot_open_company_wide_consolidation(): void
+    {
+        [$actor, $store, $context] = $this->operator('P309-CONSOLIDATED');
+        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->where('scope', 'store')->firstOrFail();
+        $role->permissions()->syncWithoutDetaching([
+            Permission::query()->where('code', 'finance.manage')->firstOrFail()->id,
+            Permission::query()->where('code', 'finance.approve')->firstOrFail()->id,
+        ]);
+        $actor = $actor->fresh();
+        $this->assertTrue($actor->hasPermission('finance.approve', $store->id));
+        $this->enableFinance($actor, $context, ['finance.foundation.read', 'finance.foundation.manage']);
+
+        $finance = app(FinanceFoundationService::class);
+        $year = $finance->createFiscalYear($actor, $context, [
+            'code' => 'P309-CONS-YEAR',
+            'name' => 'Consolidation access fiscal year',
+            'starts_on' => now()->startOfYear()->toDateString(),
+            'ends_on' => now()->endOfYear()->toDateString(),
+        ]);
+        $period = $finance->createFiscalPeriod($actor, $context, $year->id, [
+            'code' => 'P309-CONS-PERIOD',
+            'name' => 'Consolidation access fiscal period',
+            'sequence' => 1,
+            'starts_on' => now()->startOfMonth()->toDateString(),
+            'ends_on' => now()->endOfMonth()->toDateString(),
+        ]);
+
+        // Legal-entity entitlements and a store-level approval role are not
+        // authority to view company-wide posted GL for sibling Retail stores.
+        $sibling = $this->store('P309-CONS-SIBLING');
+        $scope = $context->enterpriseScope;
+        $this->assertNotNull($scope);
+        $siblingHierarchy = app(OrganizationHierarchyService::class)->scopeForStore($sibling->id);
+        $this->assertSame($scope->legalEntityId, (int) $siblingHierarchy['legal_entity_id']);
+
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.erp.finance.index', [
+                'store_id' => $store->id,
+                'tab' => 'reports',
+                'report' => 'consolidated',
+                'period_id' => $period->id,
+            ]))
+            ->assertForbidden();
+    }
+
     public function test_retail_finance_overview_does_not_aggregate_ar_of_sibling_store_in_same_legal_entity(): void
     {
         [$actor, $store, $context] = $this->operator('P309-OVERVIEW');
