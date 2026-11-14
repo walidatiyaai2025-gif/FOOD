@@ -106,7 +106,9 @@ final class EnterpriseGlobalSearchTest extends TestCase
         $literal = $this->order($store, 'LIT-A%_CD');
         $escape = $this->order($store, 'LIT-A!_CD');
         $this->order($store, 'LIT-AB-CD');
-        $foreign = $this->order($foreignStore, 'LIT-A%_CD');
+        // Order numbers are globally unique; suffix the foreign store record
+        // while retaining the same literal search term to test scope isolation.
+        $foreign = $this->order($foreignStore, 'LIT-A%_CD-FOREIGN');
 
         $this->actingAs($actor)
             ->getJson(route('admin.global-search', ['q' => 'LIT-A%_']))
