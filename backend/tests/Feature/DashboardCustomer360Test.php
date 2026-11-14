@@ -809,6 +809,107 @@ class DashboardCustomer360Test extends TestCase
         ]);
     }
 
+    public function test_customer_360_list_search_treats_special_characters_as_literal_under_store_authority(): void
+    {
+        $storeA = $this->store('B2C', 'SEARCH-RETAIL-A', 'Search Retail A');
+        $storeB = $this->store('B2C', 'SEARCH-RETAIL-B', 'Search Retail B');
+
+        $fixtures = [
+            ['name' => 'عرض 100% خاص', 'email' => 'literal-percent@example.test', 'store' => $storeA],
+            ['name' => 'عرض 1000 خاص', 'email' => 'wildcard-percent@example.test', 'store' => $storeA],
+            ['name' => 'Client_A', 'email' => 'literal-underscore@example.test', 'store' => $storeA],
+            ['name' => 'ClientXA', 'email' => 'wildcard-underscore@example.test', 'store' => $storeA],
+            ['name' => 'Important! Buyer', 'email' => 'literal-exclamation@example.test', 'store' => $storeA],
+            ['name' => 'Flower Market', 'email' => 'flowers@example.test', 'store' => $storeA],
+            ['name' => 'سوق الزهور', 'email' => 'arabic@example.test', 'store' => $storeA],
+            ['name' => 'Email Special', 'email' => 'email-special@example.test', 'store' => $storeA],
+            ['name' => 'Email Lookalike', 'email' => 'email-lookalike@example.test', 'store' => $storeA],
+            ['name' => 'Phone Special', 'email' => 'phone-special@example.test', 'store' => $storeA],
+            ['name' => 'Phone Lookalike', 'email' => 'phone-lookalike@example.test', 'store' => $storeA],
+            ['name' => 'Foreign%Name', 'email' => 'foreign-percent@example.test', 'store' => $storeB],
+        ];
+
+        $ids = [];
+        foreach ($fixtures as $fixture) {
+            $user = $this->customer($fixture['name'], $fixture['email'], $fixture['store']);
+            $ids[] = (int) PlatformCustomer::query()->where('user_id', $user->id)->value('id');
+        }
+
+        // Existing domain-level validation should not be loosened merely to test literal
+        // SQL matching. Populate synthetic historic snapshot values at the read-model layer.
+        DB::table('platform_customers')->where('id', $ids[7])->update(['email' => 'vip_%@example.test']);
+        DB::table('platform_customers')->where('id', $ids[8])->update(['email' => 'vipX0@example.test']);
+        DB::table('platform_customers')->where('id', $ids[9])->update(['phone' => '+20100778_8']);
+        DB::table('platform_customers')->where('id', $ids[10])->update(['phone' => '+20100778X8']);
+
+        $admin = $this->globalAdmin('SUPER_ADMIN');
+        $retailAdmin = $this->retailAdmin($storeA);
+        $countBefore = PlatformCustomer::query()->count();
+        $auditBefore = DB::table('audit_logs')->count();
+
+        foreach ([
+            ['q' => '100%', 'locale' => 'ar', 'expected' => [$ids[0]]],
+            ['q' => 'Client_', 'locale' => 'en', 'expected' => [$ids[2]]],
+            ['q' => 'Important!', 'locale' => 'en', 'expected' => [$ids[4]]],
+            ['q' => 'Flower', 'locale' => 'en', 'expected' => [$ids[5]]],
+            ['q' => 'الزهور', 'locale' => 'ar', 'expected' => [$ids[6]]],
+            ['q' => 'vip_%', 'locale' => 'en', 'expected' => [$ids[7]]],
+            ['q' => '778_8', 'locale' => 'en', 'expected' => [$ids[9]]],
+            ['q' => 'Foreign%Name', 'locale' => 'ar', 'expected' => []],
+            ['q' => 'Missing%_!', 'locale' => 'en', 'expected' => []],
+        ] as $case) {
+            $retailAdmin->forceFill(['locale' => $case['locale']])->save();
+            $page = $this->actingAs($retailAdmin)
+                ->get(route('admin.customer-360.index', ['q' => $case['q']]))
+                ->assertOk()
+                ->viewData('customers');
+
+            $actual = $page->getCollection()->pluck('id')->map(static fn ($id): int => (int) $id)->all();
+            $this->assertSame($case['expected'], $actual, 'Customer 360 scoped literal q='.$case['q']);
+        }
+
+        $superPage = $this->actingAs($admin)
+            ->get(route('admin.customer-360.index', ['q' => 'Foreign%Name']))
+            ->assertOk()->viewData('customers');
+        $this->assertSame([$ids[11]], $superPage->getCollection()->pluck('id')->all());
+
+        $roleless = User::query()->create([
+            'name' => 'No Customer Permission',
+            'email' => 'customer-360-literal-denied@example.test',
+            'password' => 'password123',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $this->actingAs($roleless)->get(route('admin.customer-360.index', ['q' => '100%']))
+            ->assertForbidden();
+
+        $this->assertSame($countBefore, PlatformCustomer::query()->count());
+        $this->assertSame($auditBefore, DB::table('audit_logs')->count());
+    }
+
+    public function test_customer_360_literal_search_preserves_25_row_pagination_and_query(): void
+    {
+        $store = $this->store('B2C', 'SEARCH-PAGE', 'Search Pagination');
+        for ($index = 0; $index < 26; $index++) {
+            $this->customer('Batch! Customer '.$index, 'batch-literal-'.$index.'@example.test', $store);
+        }
+        $admin = $this->retailAdmin($store);
+
+        $first = $this->actingAs($admin)
+            ->get(route('admin.customer-360.index', ['q' => 'Batch!']))
+            ->assertOk()->viewData('customers');
+        $this->assertSame(26, $first->total());
+        $this->assertCount(25, $first->items());
+        parse_str((string) parse_url((string) $first->nextPageUrl(), PHP_URL_QUERY), $query);
+        $this->assertSame('Batch!', $query['q'] ?? null);
+
+        $second = $this->actingAs($admin)
+            ->get(route('admin.customer-360.index', ['q' => 'Batch!', 'page' => 2]))
+            ->assertOk()->viewData('customers');
+        $this->assertSame(26, $second->total());
+        $this->assertCount(1, $second->items());
+    }
+
     private function customer(string $name, string $email, int $storeId): User
     {
         return app(PlatformCustomerService::class)->register([

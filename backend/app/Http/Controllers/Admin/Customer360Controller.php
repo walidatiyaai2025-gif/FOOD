@@ -68,10 +68,13 @@ final class Customer360Controller extends Controller
 
         $search = trim((string) ($filters['q'] ?? ''));
         if ($search !== '') {
-            $query->where(function ($q) use ($search): void {
-                $q->where('platform_customers.name', 'like', "%{$search}%")
-                    ->orWhere('platform_customers.email', 'like', "%{$search}%")
-                    ->orWhere('platform_customers.phone', 'like', "%{$search}%");
+            // Treat search as literal text: escape SQL LIKE's !, % and _ operators
+            // before adding the intentional substring wildcards.
+            $literalSearch = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
+            $query->where(function ($q) use ($literalSearch): void {
+                $q->whereRaw("platform_customers.name LIKE ? ESCAPE '!'", [$literalSearch])
+                    ->orWhereRaw("platform_customers.email LIKE ? ESCAPE '!'", [$literalSearch])
+                    ->orWhereRaw("platform_customers.phone LIKE ? ESCAPE '!'", [$literalSearch]);
             });
         }
 
