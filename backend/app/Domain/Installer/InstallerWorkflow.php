@@ -165,7 +165,9 @@ final class InstallerWorkflow
             $values += [
                 'REDIS_HOST' => $data['redis_host'] ?? '127.0.0.1',
                 'REDIS_PORT' => (string) ($data['redis_port'] ?? 6379),
-                'REDIS_PASSWORD' => $data['redis_password'] ?? 'null',
+                // A missing Redis password is an intentional dotenv null, not
+                // the operator-entered literal string "null".
+                'REDIS_PASSWORD' => $data['redis_password'] ?? null,
             ];
         }
 
