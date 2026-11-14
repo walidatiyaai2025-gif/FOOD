@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\B2bCustomer;
 use App\Models\B2cCustomer;
 use App\Models\Customer;
 use App\Models\PlatformCustomer;
@@ -81,6 +82,32 @@ class V2CustomerInvoiceProvenanceGuardTest extends TestCase
             ->assertOk()->assertJsonPath('data.id', $owned);
         $this->getJson('/api/v1/invoices/'.$legacyOnly)
             ->assertOk()->assertJsonPath('data.id', $legacyOnly);
+    }
+
+    public function test_authorized_wholesale_invoice_remains_visible_without_a_retail_store_link(): void
+    {
+        $wholesale = B2bCustomer::query()->create([
+            'legacy_customer_id' => $this->legacyId,
+            'user_id' => $this->customerUser->getKey(),
+            'name' => $this->customerUser->name,
+            'email' => $this->customerUser->email,
+        ]);
+        $b2bTypeId = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $wholesaleStoreId = $this->store($b2bTypeId, 'V2-3503-WHOLESALE');
+        $invoice = $this->invoice([
+            'store_id' => $wholesaleStoreId,
+            'channel' => 'b2b',
+            'b2b_customer_id' => $wholesale->getKey(),
+            'b2c_customer_id' => null,
+        ]);
+
+        $this->getJson('/api/v1/invoices?channel=b2b')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $invoice);
+        $this->getJson('/api/v1/invoices/'.$invoice)
+            ->assertOk()
+            ->assertJsonPath('data.id', $invoice);
     }
 
     public function test_matching_legacy_or_platform_id_cannot_override_conflicting_foreign_customer_id(): void
