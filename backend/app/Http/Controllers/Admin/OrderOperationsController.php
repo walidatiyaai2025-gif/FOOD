@@ -185,16 +185,18 @@ final class OrderOperationsController extends Controller
                 function ($query) use ($data): void {
                     $search = trim((string) $data['order_number']);
                     $displayId = DisplayNumber::referenceId($search);
+                    // Treat typed symbols as literal order-number text, never SQL LIKE wildcards.
+                    $literalLike = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
 
-                    $query->where(function ($nested) use ($search, $displayId): void {
+                    $query->where(function ($nested) use ($literalLike, $displayId): void {
                         if ($displayId !== null) {
                             $nested->where('id', $displayId)
-                                ->orWhere('order_number', 'like', '%'.$search.'%');
+                                ->orWhereRaw("order_number LIKE ? ESCAPE '!'", [$literalLike]);
 
                             return;
                         }
 
-                        $nested->where('order_number', 'like', '%'.$search.'%');
+                        $nested->whereRaw("order_number LIKE ? ESCAPE '!'", [$literalLike]);
                     });
                 },
             )
