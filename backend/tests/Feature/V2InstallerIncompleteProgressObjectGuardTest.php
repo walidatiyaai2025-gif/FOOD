@@ -224,6 +224,9 @@ final class V2InstallerIncompleteProgressObjectGuardTest extends TestCase
             'not-a-token',
             str_repeat('a', 63),
             str_repeat('A', 64),
+            // PCRE $ accepts a position before a final newline; exact token
+            // identity must use an absolute end-of-string anchor instead.
+            str_repeat('a', 64)."\n",
             str_repeat('a', 63).'g',
             true,
             123,
