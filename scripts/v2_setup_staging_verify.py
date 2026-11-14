@@ -82,6 +82,29 @@ def _member_target(member: zipfile.ZipInfo) -> tuple[str, str, bool]:
         and len(folded_parts) >= 3 and folded_parts[:3] == ["backend", "storage", "logs"]
     ), f"Runtime logs in Setup ZIP: {name!r}")
 
+    # Info-ZIP Unicode Path (0x7075) is an alternate destination filename
+    # that different ZIP extractors can interpret differently. A CRC-invalid
+    # extra name may be silently ignored by Python while another installer
+    # trusts it. Attest exactly one extraction path per archive member.
+    offset = 0
+    while offset < len(member.extra):
+        _require(
+            offset + 4 <= len(member.extra),
+            f"Malformed Setup ZIP extra field: {name!r}",
+        )
+        field_id = int.from_bytes(member.extra[offset:offset + 2], "little")
+        field_length = int.from_bytes(member.extra[offset + 2:offset + 4], "little")
+        offset += 4
+        _require(
+            field_length <= len(member.extra) - offset,
+            f"Malformed Setup ZIP extra field: {name!r}",
+        )
+        _require(
+            field_id != 0x7075,
+            f"Ambiguous Unicode Path Setup ZIP extra field: {name!r}",
+        )
+        offset += field_length
+
     mode = (member.external_attr >> 16) & 0xFFFF
     _require(not stat.S_ISLNK(mode), f"Symlink in Setup ZIP: {name!r}")
     file_type = stat.S_IFMT(mode)
