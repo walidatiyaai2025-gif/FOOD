@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\User;
+use App\Support\DisplayNumber;
 use App\Services\InvoiceService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -122,8 +123,14 @@ final class CustomerInvoiceController extends Controller
     private function assertRequestedContext(Request $request, Invoice $invoice): void
     {
         $storeId = $request->input('store_id') ?? $request->query('store_id') ?? $request->header('X-FOODEX-Store-ID');
-        if (is_numeric($storeId) && (int) $storeId > 0) {
-            abort_unless((int) $invoice->store_id === (int) $storeId, 404);
+        if ($storeId !== null) {
+            // A supplied but malformed store context must never bypass the
+            // requested-store boundary, including when it shadows a valid header.
+            abort_unless(is_string($storeId) || is_int($storeId), 404);
+            $rawStoreId = trim((string) $storeId);
+            abort_unless($rawStoreId !== '' && ctype_digit($rawStoreId), 404);
+            $requestedStoreId = DisplayNumber::referenceId($rawStoreId);
+            abort_unless($requestedStoreId !== null && (int) $invoice->store_id === $requestedStoreId, 404);
         }
 
         $channel = strtolower(trim((string) (
