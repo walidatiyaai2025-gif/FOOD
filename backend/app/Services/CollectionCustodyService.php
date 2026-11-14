@@ -47,6 +47,12 @@ final class CollectionCustodyService
                     ]);
                 }
 
+                // A retry may return an earlier receipt only when every
+                // financial term, including its invoice allocations, agrees.
+                // Otherwise the caller would receive a false paid receipt for
+                // a different amount, source or invoice.
+                $this->assertCollectionReplayMatches($existing, $amount, $currency, $source, $allocations);
+
                 return $existing;
             }
 
@@ -204,6 +210,18 @@ final class CollectionCustodyService
                     ]);
                 }
 
+                // Reusing a key with different terms must never acknowledge
+                // someone else's previously submitted treasury remittance.
+                if (abs((float) $existing->amount - $amount) > 0.0005
+                    || strtoupper((string) $existing->currency) !== $currency
+                    || (string) $existing->method !== trim($method)
+                    || $existing->reference !== $reference
+                    || $existing->note !== $note) {
+                    throw ValidationException::withMessages([
+                        'idempotency_key' => ['Idempotency-Key already has different remittance terms.'],
+                    ]);
+                }
+
                 return $existing;
             }
 
@@ -341,6 +359,61 @@ final class CollectionCustodyService
             ->sum('amount');
 
         return max(0.0, $this->custodyBalance($account) - $pending);
+    }
+
+    /**
+     * @param  list<array{invoice_id: int, amount: float|int|string|null}>  $allocations
+     */
+    private function assertCollectionReplayMatches(
+        CollectionTransaction $existing,
+        float $amount,
+        string $currency,
+        string $source,
+        array $allocations,
+    ): void {
+        if (abs((float) $existing->amount - $amount) > 0.0005
+            || strtoupper((string) $existing->currency) !== $currency
+            || (string) $existing->source !== $source) {
+            throw ValidationException::withMessages([
+                'idempotency_key' => ['Idempotency-Key already has different collection terms.'],
+            ]);
+        }
+
+        $submitted = [];
+        foreach ($allocations as $allocation) {
+            $invoiceId = (int) ($allocation['invoice_id'] ?? 0);
+            $lineAmount = $allocation['amount'] ?? null;
+            if ($invoiceId <= 0
+                || ! is_numeric($lineAmount)
+                || ! is_finite((float) $lineAmount)
+                || (float) $lineAmount <= 0
+                || array_key_exists($invoiceId, $submitted)) {
+                throw ValidationException::withMessages([
+                    'idempotency_key' => ['Idempotency-Key replay has invalid invoice allocations.'],
+                ]);
+            }
+            $submitted[$invoiceId] = (float) $lineAmount;
+        }
+
+        $persisted = DB::table('collection_allocations')
+            ->where('collection_transaction_id', $existing->getKey())
+            ->get(['invoice_id', 'amount']);
+
+        if ($persisted->count() !== count($submitted)) {
+            throw ValidationException::withMessages([
+                'idempotency_key' => ['Idempotency-Key already has different invoice allocations.'],
+            ]);
+        }
+
+        foreach ($persisted as $line) {
+            $invoiceId = (int) $line->invoice_id;
+            if (! array_key_exists($invoiceId, $submitted)
+                || abs((float) $line->amount - $submitted[$invoiceId]) > 0.0005) {
+                throw ValidationException::withMessages([
+                    'idempotency_key' => ['Idempotency-Key already has different invoice allocations.'],
+                ]);
+            }
+        }
     }
 
     private function assertAccountCurrency(CollectionAccount $account, string $currency): void

@@ -85,6 +85,30 @@ The canonical CollectionCustodyService now requires `is_finite($amount)` and a s
 
 `test_non_finite_collection_and_remittance_totals_cannot_create_financial_entries` checks INF, -INF and NAN for both APIs, field-scoped validation and zero payment/collection/ledger/remittance rows, then verifies a valid B2B Van collection and a pending treasury remittance remain functional. No source, store, entitlement, maker/checker, offline replay or actual-trip attribution is widened; Customer and Driver runtime APIs are unchanged. This is not an implemented P272 trip settlement workflow.
 
+## Financial idempotency replay identity — bounded safety guard
+
+The canonical custody service already guarded against reusing a collection/remittance
+`Idempotency-Key` under a **different collection account**, but within the same account
+it returned the earlier receipt for **any** changed amount, source, invoice allocation,
+remittance method, reference or note. That falsely acknowledges a different financial
+request. New regression coverage enforces canonical immutable replay terms inside the
+locked transaction:
+
+- A collection replay checks the existing account, amount, currency, source and the
+  persisted **per-invoice allocation identities/amounts**, independent of input ordering.
+- A pending, approved or reconciled remittance replay checks the account, amount,
+  currency, method, reference and note; changed terms produce a field-specific
+  `idempotency_key` validation error rather than a misleading prior result.
+- Identical legitimate retries return the original transaction/remittance, and
+  negative cases create **no extra Payment, CollectionTransaction,
+  CollectionAllocation, Remittance or CustodyLedgerEntry**.
+- Comparisons allow only the existing three-decimal DB financial rounding tolerance
+  (0.0005); non-finite totals remain prohibited at source.
+
+No new posting, trip attribution, stock, UI or scope permission is created.
+This still does **not** satisfy P272 trip settlement/maker-checker, WMS and offline
+Van parity; source-gate and Issue stay OPEN until all are proven.
+
 ## Required authoritative design and completion steps
 
 1. Define an immutable trip/session identity (Van, authorized store/tenant/channel, route, start/end and actor), link Van visits/orders to it, and handle legacy unknown provenance without inventing attribution. Lock and audit trip lifecycle/SoD; B2B uses VAN ONLY, B2C uses DRIVER ONLY.

@@ -290,6 +290,105 @@ final class V2VanTripSettlementProvenanceTest extends TestCase
         ]);
     }
 
+    public function test_replaying_collection_key_with_changed_financial_terms_never_acknowledges_prior_receipt(): void
+    {
+        $actor = User::factory()->create(['is_active' => true]);
+        $store = $this->store('B2B', 'P272-IDEMPOTENT-STORE');
+        $invoice = $this->invoice($store, 'b2b', 'P272-IDEMPOTENT-INVOICE');
+        $otherInvoice = $this->invoice($store, 'b2b', 'P272-IDEMPOTENT-OTHER');
+        $account = CollectionAccount::query()->create([
+            'actor_type' => 'van',
+            'actor_id' => 408,
+            'store_id' => $store,
+            'currency' => 'KWD',
+            'status' => 'active',
+        ]);
+        $service = app(CollectionCustodyService::class);
+        $allocation = [['invoice_id' => (int) $invoice->id, 'amount' => 10]];
+
+        $first = $service->collect($account, $actor, 'p272-collection-replay', 10, 'KWD', 'van_app', $allocation);
+        $same = $service->collect($account, $actor, 'p272-collection-replay', 10, 'KWD', 'van_app', $allocation);
+        $this->assertSame($first->getKey(), $same->getKey());
+
+        $conflicts = [
+            'amount' => [11, 'van_app', $allocation],
+            'source' => [10, 'driver_app', $allocation],
+            'missing_invoice' => [10, 'van_app', []],
+            'other_invoice' => [10, 'van_app', [['invoice_id' => (int) $otherInvoice->id, 'amount' => 10]]],
+            'changed_allocation' => [10, 'van_app', [['invoice_id' => (int) $invoice->id, 'amount' => 9]]],
+        ];
+
+        foreach ($conflicts as $case => [$amount, $source, $lines]) {
+            try {
+                $service->collect($account, $actor, 'p272-collection-replay', $amount, 'KWD', $source, $lines);
+                $this->fail('Collection idempotency must reject changed '.$case);
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('idempotency_key', $exception->errors());
+            }
+        }
+
+        $this->assertDatabaseCount('payments', 1);
+        $this->assertDatabaseCount('collection_transactions', 1);
+        $this->assertDatabaseCount('collection_allocations', 1);
+        $this->assertDatabaseCount('custody_ledger_entries', 1);
+        $this->assertDatabaseHas('collection_allocations', [
+            'collection_transaction_id' => $first->getKey(),
+            'invoice_id' => $invoice->id,
+            'amount' => 10,
+        ]);
+    }
+
+    public function test_replaying_remittance_key_with_changed_terms_never_acknowledges_prior_submission(): void
+    {
+        $actor = User::factory()->create(['is_active' => true]);
+        $store = $this->store('B2B', 'P272-REMITTANCE-REPLAY');
+        $account = CollectionAccount::query()->create([
+            'actor_type' => 'van',
+            'actor_id' => 409,
+            'store_id' => $store,
+            'currency' => 'KWD',
+            'status' => 'active',
+        ]);
+        $service = app(CollectionCustodyService::class);
+        $service->collect($account, $actor, 'p272-remit-custody', 20, 'KWD', 'van_app');
+
+        $first = $service->submitRemittance(
+            $account, $actor, 'p272-remit-replay', 8, 'KWD', 'cash', 'office-1', 'sealed',
+        );
+        $same = $service->submitRemittance(
+            $account, $actor, 'p272-remit-replay', 8, 'KWD', 'cash', 'office-1', 'sealed',
+        );
+        $this->assertSame($first->getKey(), $same->getKey());
+
+        $conflicts = [
+            'amount' => [9, 'cash', 'office-1', 'sealed'],
+            'method' => [8, 'bank_transfer', 'office-1', 'sealed'],
+            'reference' => [8, 'cash', 'office-2', 'sealed'],
+            'note' => [8, 'cash', 'office-1', 'opened'],
+        ];
+        foreach ($conflicts as $case => [$amount, $method, $reference, $note]) {
+            try {
+                $service->submitRemittance(
+                    $account, $actor, 'p272-remit-replay', $amount, 'KWD', $method, $reference, $note,
+                );
+                $this->fail('Remittance idempotency must reject changed '.$case);
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('idempotency_key', $exception->errors());
+            }
+        }
+
+        $this->assertDatabaseCount('remittances', 1);
+        $this->assertDatabaseCount('collection_transactions', 1);
+        $this->assertDatabaseCount('custody_ledger_entries', 1);
+        $this->assertDatabaseHas('remittances', [
+            'id' => $first->id,
+            'amount' => 8,
+            'method' => 'cash',
+            'reference' => 'office-1',
+            'note' => 'sealed',
+        ]);
+    }
+
     public function test_van_cannot_allocate_to_retail_or_unknown_store_but_driver_retail_collection_remains_valid(): void
     {
         $actor = User::factory()->create(['is_active' => true]);
