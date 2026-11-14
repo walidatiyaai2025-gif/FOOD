@@ -762,6 +762,16 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             throw new RuntimeException('Update archive targets a protected runtime path.');
         }
 
+        // Shared-host public release-root mirrors are static assets only.
+        // Never stage server-executable scripts or handler configuration
+        // there, including Apache multi-extension names like foo.php.jpg.
+        // Laravel's own backend/public/index.php remains a valid release file.
+        if (preg_match('#^(assets|brand|demo|preview)/#i', $normalized) === 1
+            && (preg_match('#(?:^|/)[^/]*\.(?:php[0-9]*|phtml|phar|cgi|pl|py|sh|asp|aspx|jsp)(?:\.|$)#i', $normalized) === 1
+                || preg_match('#(?:^|/)(?:\.htaccess|\.user\.ini|web\.config)(?:\.|$)#i', $normalized) === 1)) {
+            throw new RuntimeException('Update archive targets an executable public asset path.');
+        }
+
         return $normalized;
     }
 
