@@ -37,3 +37,11 @@ Required exact-final-head validation: PHP syntax, Pint, PHPStan, Composer audit,
 | Van | Not affected; no Flutter or van assignment/route change, B2B → VAN ONLY maintained |
 
 No new Dashboard UI and thus no visual-pattern changes. Reuse → Extend the canonical existing update runtime, not a separate page. G005 trusted signed publishing and actual Setup/Update ZIP release artifacts remain unfinished/unproven until their independent gates. No `main`, release, tags, production, cPanel or deployment.
+
+## Cross-worker canonical source reconciliation (2026-11-14)
+
+At preflight, #3507 acquired the **earlier** exclusive source lease on `backend/app/Domain/Updater/LaravelUpdateRuntime.php` and its original [PR #3513](https://github.com/walidatiyaai2025-gif/FOOD/pull/3513) contains the canonical casefold and file-as-ancestor guard. The overlapping three commits on the original #3509 branch must **not** be separately merged, force-pushed or opened as a competing runtime PR. Preserve their history and wait for #3513 to merge after terminal exact-final-head required checks.
+
+The original isolated `V2UpdaterArchiveNamespaceCollisionTest` adds a distinct behavior-level acceptance matrix not exercised in #3513's preflight-only test: direct `backupFiles()` and `extractRelease()` must reject conflicting entries before writes, while canonical ZIP extraction and `rollbackFiles()` must preserve a pre-existing sentinel. Added a nested ancestor alias case in both ZIP orders. The expected failure text now matches #3513's canonical `Update archive contains a file/directory target conflict.` error. **These tests are not claimed passing on the unmerged #3509 branch** because its original overlapping runtime code still has a different error string. Their next integration step is a carefully reconciled test-only diff against the successfully merged #3513 runtime, followed by exact-head full Laravel/CI. No concurrent production runtime edits are authorized.
+
+Customer, Driver and Van Flutter/API boundaries unchanged; no AR/EN UI strings, permissions or database schema changes. Parent G005 signed package/recovery evidence is independent and still open. No `main`, tags, production, or deployment.
