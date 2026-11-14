@@ -170,16 +170,20 @@ final class V2InstallerIncompleteProgressObjectGuardTest extends TestCase
             $environment = (string) file_get_contents($this->directory.'/.env');
 
             foreach ([
-                static fn () => $state->progress(),
-                static fn () => $state->token(),
-                static fn () => $state->markStepComplete(13),
-            ] as $operation) {
+                'progress' => static fn () => $state->progress(),
+                'token' => static fn () => $state->token(),
+                'markStepComplete' => static fn () => $state->markStepComplete(13),
+            ] as $operationName => $operation) {
+                $actualError = null;
                 try {
                     $operation();
-                    $this->fail('Damaged persisted administrator must fail closed before rewriting setup.');
                 } catch (RuntimeException $exception) {
-                    $this->assertSame('Installer progress state is invalid.', $exception->getMessage());
+                    $actualError = $exception->getMessage();
                 }
+
+                // Assert outside catch: PHPUnit's fail() can itself be a
+                // RuntimeException, which would mask a non-throwing operation.
+                $this->assertSame('Installer progress state is invalid.', $actualError, $operationName);
             }
 
             $this->get('/install')->assertStatus(500);
