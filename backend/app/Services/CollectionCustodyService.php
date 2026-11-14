@@ -89,6 +89,18 @@ final class CollectionCustodyService
 
             $allocatedTotal = 0.0;
             foreach ($allocations as $allocation) {
+                // Never post zero, negative or non-finite invoice allocations:
+                // a negative line can otherwise offset a positive line and
+                // bypass the collected-amount cap before the payment is posted.
+                $allocationAmount = $allocation['amount'] ?? null;
+                if (! is_numeric($allocationAmount)
+                    || ! is_finite((float) $allocationAmount)
+                    || (float) $allocationAmount <= 0) {
+                    throw ValidationException::withMessages([
+                        'allocations' => ['Invoice allocation amount must be a finite value greater than zero.'],
+                    ]);
+                }
+
                 $invoice = DB::table('invoices')->where('id', (int) $allocation['invoice_id'])->lockForUpdate()->first();
                 if ($invoice === null) {
                     throw ValidationException::withMessages(['allocations' => ['Invoice not found.']]);
@@ -102,7 +114,7 @@ final class CollectionCustodyService
                 if (strtoupper((string) $invoice->currency) !== $currency) {
                     throw ValidationException::withMessages(['currency' => ['Mixed-currency collection allocation is not allowed.']]);
                 }
-                $allocatedTotal += (float) $allocation['amount'];
+                $allocatedTotal += (float) $allocationAmount;
             }
 
             if ($allocatedTotal > $amount + 0.0005) {
