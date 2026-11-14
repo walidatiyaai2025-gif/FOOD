@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Driver;
 use App\Models\Notification;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\B2cCustomerService;
 use App\Services\NotificationAudience;
+use App\Services\VanRegistryService;
 use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -108,6 +110,38 @@ class V2DriverNotificationEffectiveStoreScopeTest extends TestCase
             ->matchesTarget($user, 'driver', 'driver', 'b2c', $store));
     }
 
+    public function test_authorized_legacy_b2b_van_still_receives_its_selected_warehouse_notifications(): void
+    {
+        $representative = User::factory()->create(['is_active' => true]);
+        $representative->roles()->attach(Role::query()->where('code', 'VAN_OPERATOR')->firstOrFail());
+
+        $user = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $user->roles()->attach(Role::query()->where('code', 'B2B_DRIVER')->firstOrFail());
+
+        $store = app(WholesalePrincipal::class)->storeId();
+        $driver = $this->driver($user, $store, 'b2b', true);
+
+        $registry = app(VanRegistryService::class);
+        $van = $registry->createVan(['code' => 'V2-NOT-B2B-VAN-'.$user->getKey()]);
+        $registry->assign($representative, $van, [
+            'driver_id' => $driver->getKey(),
+            'representative_user_id' => $representative->getKey(),
+            'assignment_type' => 'primary',
+            'effective_from' => now()->subMinute(),
+        ]);
+
+        $notification = $this->notification($store, 'van', 'van', 'Warehouse Van alert', 'b2b');
+
+        $this->assertTrue(app(NotificationAudience::class)
+            ->matchesTarget($user, 'van', 'van', 'b2b', $store));
+
+        Sanctum::actingAs($user, ['app:van']);
+        $this->getJson('/api/v1/notifications?locale=en')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $notification->id);
+    }
+
     private function retailStore(string $code): int
     {
         return (int) DB::table('stores')->insertGetId([
@@ -131,7 +165,7 @@ class V2DriverNotificationEffectiveStoreScopeTest extends TestCase
         ]);
     }
 
-    private function notification(int $storeId, string $audience, string $app, string $name): Notification
+    private function notification(int $storeId, string $audience, string $app, string $name, string $channel = 'b2c'): Notification
     {
         return Notification::query()->create([
             'channel' => 'in_app',
@@ -144,7 +178,7 @@ class V2DriverNotificationEffectiveStoreScopeTest extends TestCase
             'body_en' => 'Delivery update',
             'audience' => $audience,
             'app' => $app,
-            'target_channel' => 'b2c',
+            'target_channel' => $channel,
             'store_id' => $storeId,
             'status' => 'published',
             'published_at' => now(),
