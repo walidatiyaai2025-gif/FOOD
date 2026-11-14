@@ -749,6 +749,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
     {
         $entries = [];
         $seen = [];
+        $seenCaseFolded = [];
         $expandedBytes = 0;
 
         // Empty members and directories can exhaust memory/CPU without
@@ -812,7 +813,11 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             // target (e.g. forward/backslash aliases). Never silently choose
             // one member while backup and extraction may read another.
             $relativePath = $this->safeRelativePath($name);
-            if (isset($seen[$relativePath])) {
+            // Case-distinct ZIP names can resolve to one live file on shared
+            // hosting and case-insensitive filesystems. Refuse ambiguous
+            // targets before backup, maintenance, or extraction.
+            $caseFoldedPath = mb_strtolower($relativePath, 'UTF-8');
+            if (isset($seen[$relativePath]) || isset($seenCaseFolded[$caseFoldedPath])) {
                 throw new RuntimeException('Update archive contains duplicate release target paths.');
             }
 
@@ -825,6 +830,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             }
 
             $seen[$relativePath] = true;
+            $seenCaseFolded[$caseFoldedPath] = true;
             $entries[] = $relativePath;
         }
 
