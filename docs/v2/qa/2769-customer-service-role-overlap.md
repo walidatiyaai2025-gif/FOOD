@@ -17,6 +17,7 @@ The expanded test backend/tests/Feature/V2CustomerServiceRoleOverlapAuditTest.ph
 1. An authorized Super Admin consolidates overlapping CUSTOMER_SERVICE_AGENT and CUSTOMER_SUPPORT assignments down to the reviewed agent role without modifying other accounts or built-in role grants. Excess support.manage permission disappears; agent permissions remain, and a persisted audit event identifies the operator and target.
 2. A customer-service agent cannot modify another user's role assignments in Arabic or English. Denied requests preserve the target's role links and do not emit a successful role-change audit.
 3. Security Center users view remains accessible to authorized Super Admin with Arabic/RTL and English/LTR direction; an agent receives HTTP 403.
+4. Explicit approved Retail store-role assignment is retained while removing stale direct global permission overrides on the same user during a role consolidation. The HTTP test submits the real controller payload `store_role_ids[store_id][]` and confirms exact store assignment preservation plus `user.roles_changed` audit. Omitting store roles from a whole-role replacement would revoke them; a live reviewer must supply the approved complete assignment matrix.
 
 No production identity, credential, exported personal record, or historical email is embedded in the test or release artifacts.
 
