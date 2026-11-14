@@ -94,7 +94,7 @@ def verify_setup_zip(zip_path: Path, version_path: Path, source_sha: str) -> dic
     _require(zip_path.is_file() and not zip_path.is_symlink(), "Missing or symlinked Setup ZIP.")
     _require(version_path.is_file() and not version_path.is_symlink(), "Missing source VERSION.")
     version = version_path.read_text(encoding="utf-8").strip()
-    _require(bool(re.fullmatch(r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)", version)),
+    _require(bool(re.fullmatch(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)", version)),
              "Invalid source Semantic Version.")
 
     files: set[str] = set()
