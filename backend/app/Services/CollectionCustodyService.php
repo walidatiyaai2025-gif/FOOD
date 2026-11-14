@@ -381,7 +381,7 @@ final class CollectionCustodyService
 
         $submitted = [];
         foreach ($allocations as $allocation) {
-            $invoiceId = (int) ($allocation['invoice_id'] ?? 0);
+            $invoiceId = (int) $allocation['invoice_id'];
             $lineAmount = $allocation['amount'] ?? null;
             if ($invoiceId <= 0
                 || ! is_numeric($lineAmount)
