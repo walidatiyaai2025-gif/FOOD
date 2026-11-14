@@ -156,7 +156,9 @@ final class V2InstallerIncompleteProgressObjectGuardTest extends TestCase
                 'password_hash' => false,
                 'locale' => 'ar',
             ],
-            ['name' => 'Admin', 'email' => 'admin@example.test', 'password_hash' => 'hash', 'locale' => 'ar'],
+            // A numeric PHP array serializes as a JSON list; an associative
+            // PHP array serializes as a valid object and is not an invalid case.
+            ['Admin', 'admin@example.test', 'hash', 'ar'],
             'unexpected-admin',
             true,
         ] as $invalidAdmin) {
