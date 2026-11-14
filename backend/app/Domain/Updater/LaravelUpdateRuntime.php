@@ -749,6 +749,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
     {
         $entries = [];
         $seen = [];
+        $requiredDirectories = [];
         $expandedBytes = 0;
 
         // Empty members and directories can exhaust memory/CPU without
@@ -812,7 +813,11 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             // target (e.g. forward/backslash aliases). Never silently choose
             // one member while backup and extraction may read another.
             $relativePath = $this->safeRelativePath($name);
-            if (isset($seen[$relativePath])) {
+            // A pair of distinct ZIP paths can resolve to one live file on
+            // case-insensitive cPanel/Windows/macOS filesystems. Backups and
+            // extraction must agree on one deterministic target per member.
+            $foldedPath = mb_strtolower($relativePath, 'UTF-8');
+            if (isset($seen[$foldedPath])) {
                 throw new RuntimeException('Update archive contains duplicate release target paths.');
             }
 
@@ -824,7 +829,25 @@ final class LaravelUpdateRuntime implements UpdateRuntime
                 throw new RuntimeException('Update archive contains a non-canonical path.');
             }
 
-            $seen[$relativePath] = true;
+            // A file cannot also be an ancestor directory of another archive
+            // member (including via a case alias). Refuse both ZIP entry orders
+            // before maintenance, file backup, or any release mutation.
+            if (isset($requiredDirectories[$foldedPath])) {
+                throw new RuntimeException('Update archive contains a file/directory target conflict.');
+            }
+
+            $parts = explode('/', $foldedPath);
+            $parent = '';
+            for ($partIndex = 0, $lastPart = count($parts) - 1; $partIndex < $lastPart; $partIndex++) {
+                $parent = $parent === '' ? $parts[$partIndex] : $parent.'/'.$parts[$partIndex];
+                if (isset($seen[$parent])) {
+                    throw new RuntimeException('Update archive contains a file/directory target conflict.');
+                }
+
+                $requiredDirectories[$parent] = true;
+            }
+
+            $seen[$foldedPath] = true;
             $entries[] = $relativePath;
         }
 
