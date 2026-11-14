@@ -68,17 +68,24 @@ final class InstallState
         }
 
         $admin = null;
-        $candidate = $decoded['admin'] ?? null;
-        if ($candidate instanceof stdClass) {
-            $candidate = (array) $candidate;
-        }
+        $candidate = $decoded['admin'];
+        if ($candidate !== null) {
+            // The writer persists either null or a fully typed admin object.
+            // Silently coercing a damaged saved object to null could erase the
+            // previously configured administrator on the next checkpoint.
+            if (! $candidate instanceof stdClass) {
+                throw new RuntimeException('Installer progress state is invalid.');
+            }
 
-        if (is_array($candidate)
-            && isset($candidate['name'], $candidate['email'], $candidate['password_hash'], $candidate['locale'])
-            && is_string($candidate['name'])
-            && is_string($candidate['email'])
-            && is_string($candidate['password_hash'])
-            && is_string($candidate['locale'])) {
+            $candidate = (array) $candidate;
+            if (! isset($candidate['name'], $candidate['email'], $candidate['password_hash'], $candidate['locale'])
+                || ! is_string($candidate['name'])
+                || ! is_string($candidate['email'])
+                || ! is_string($candidate['password_hash'])
+                || ! is_string($candidate['locale'])) {
+                throw new RuntimeException('Installer progress state is invalid.');
+            }
+
             $admin = [
                 'name' => $candidate['name'],
                 'email' => $candidate['email'],
