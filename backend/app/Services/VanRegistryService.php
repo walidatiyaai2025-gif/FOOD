@@ -427,7 +427,13 @@ final class VanRegistryService
             $lockedVans = [];
 
             foreach ($vanIds as $vanId) {
-                $lockedVans[$vanId] = Van::query()->lockForUpdate()->findOrFail($vanId);
+                // The source must exist. An optional target may have been
+                // deleted since its model was loaded: let the loaded-work
+                // validation below reject that stale destination with the
+                // same localized field error as any other invalid target.
+                $lockedVans[$vanId] = $vanId === (int) $van->getKey()
+                    ? Van::query()->lockForUpdate()->findOrFail($vanId)
+                    : Van::query()->lockForUpdate()->find($vanId);
             }
 
             $locked = $lockedVans[(int) $van->getKey()];
