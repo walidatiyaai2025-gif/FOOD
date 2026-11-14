@@ -4581,10 +4581,6 @@ class _FinanceCard extends StatelessWidget {
   final void Function(String) open;
   final VoidCallback retry;
 
-  double _n(Object? value) => value is num
-      ? value.toDouble()
-      : double.tryParse(value?.toString() ?? '') ?? 0;
-
   String _money(double value, String currency) =>
       foodexMoneyText(value, currency);
 
@@ -4629,7 +4625,19 @@ class _FinanceCard extends StatelessWidget {
             // authoritative signed credit snapshot as the legacy account hub.
             // Never display a fabricated zero debt or a reversed balance.
             final summary = WholesaleFinancialSummary.tryParse(data);
-            if (summary == null) {
+            final totalPurchases = WholesaleFinancialSummary.nonNegativeAmount(
+              data['total_purchases'] ?? data['total_debits'],
+            );
+            final totalDebt = WholesaleFinancialSummary.nonNegativeAmount(
+              data['outstanding_receivable'] ??
+                  data['open_amount'] ??
+                  (summary != null && summary.balance < 0
+                      ? -summary.balance
+                      : 0.0),
+            );
+            if (summary == null ||
+                totalPurchases == null ||
+                totalDebt == null) {
               // The narrow/large-text More page must keep its dashboard
               // shortcut and let the localized failure copy wrap naturally.
               return Padding(
@@ -4663,14 +4671,6 @@ class _FinanceCard extends StatelessWidget {
             }
             final balance = summary.balance;
             final currency = summary.currency;
-            final totalPurchases = _n(
-              data['total_purchases'] ?? data['total_debits'],
-            );
-            final totalDebt = _n(
-              data['outstanding_receivable'] ??
-                  data['open_amount'] ??
-                  (balance < 0 ? balance.abs() : 0),
-            );
             final values = <(String, String)>[
               (
                 ar ? 'إجمالي مشترياتك' : 'Total purchases',
