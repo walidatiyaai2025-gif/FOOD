@@ -91,7 +91,19 @@ jobs:
             --exclude='.phpunit.cache/' \
             --exclude='storage/logs/*' \
             --exclude='storage/app/private/*' \
-            --exclude='storage/app/system/*'
+            --exclude='storage/app/system/*' \
+            --exclude='storage/framework/sessions/*' \
+            --exclude='storage/framework/cache/*' \
+            --exclude='storage/framework/views/*' \
+            --exclude='storage/framework/testing/*' \
+            --exclude='bootstrap/cache/*'
+          # Preserve required empty Laravel directories without shipping
+          # runtime sessions, cached secrets or compiled config/views.
+          mkdir -p "$stage/backend/storage/framework/sessions" \
+            "$stage/backend/storage/framework/cache/data" \
+            "$stage/backend/storage/framework/views" \
+            "$stage/backend/storage/framework/testing" \
+            "$stage/backend/bootstrap/cache"
           rm -f "$stage/backend/bootstrap/cache/"*.php
           cp VERSION "$stage/VERSION"
           cp Release/INSTALL-FIRST.txt "$stage/INSTALL-FIRST.txt"
