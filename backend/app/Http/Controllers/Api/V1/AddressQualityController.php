@@ -30,12 +30,12 @@ class AddressQualityController extends Controller
             ->when(isset($data['quality_class']), fn ($query) => $query->where('quality_class', $data['quality_class']))
             ->when(isset($data['subject_type']), fn ($query) => $query->where('subject_type', $data['subject_type']))
             ->when(isset($data['search']), function ($query) use ($data): void {
-                $search = '%'.str_replace(['%', '_'], ['\\%', '\\_'], (string) $data['search']).'%';
+                $search = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], (string) $data['search']).'%';
                 $query->where(function ($scope) use ($search): void {
                     $scope
-                        ->where('public_id', 'like', $search)
-                        ->orWhere('territory_key', 'like', $search)
-                        ->orWhere('reason', 'like', $search);
+                        ->whereRaw("public_id LIKE ? ESCAPE '!'", [$search])
+                        ->orWhereRaw("territory_key LIKE ? ESCAPE '!'", [$search])
+                        ->orWhereRaw("reason LIKE ? ESCAPE '!'", [$search]);
                 });
             })
             ->orderByDesc('created_at')
