@@ -63,12 +63,14 @@ final class WhatsAppInboxController extends Controller
         $query = $this->conversationQuery($actor, $allowedStoreIds);
 
         if (($filters['q'] ?? '') !== '') {
+            // Customer search is literal text, not a caller-supplied SQL wildcard.
             $search = trim((string) $filters['q']);
-            $query->where(function (Builder $nested) use ($search): void {
+            $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
+            $query->where(function (Builder $nested) use ($pattern): void {
                 $nested
-                    ->where('customers.name', 'like', '%'.$search.'%')
-                    ->orWhere('customers.email', 'like', '%'.$search.'%')
-                    ->orWhere('customers.phone', 'like', '%'.$search.'%');
+                    ->whereRaw("customers.name LIKE ? ESCAPE '!'", [$pattern])
+                    ->orWhereRaw("customers.email LIKE ? ESCAPE '!'", [$pattern])
+                    ->orWhereRaw("customers.phone LIKE ? ESCAPE '!'", [$pattern]);
             });
         }
 
