@@ -81,6 +81,13 @@ class WholesaleFinancialSummary {
     );
   }
 
+  /// Parses a required, server-owned monetary total without inventing zero.
+  /// The balance and purchasing-power contract remains authoritative server-side.
+  static double? nonNegativeAmount(Object? value) {
+    final amount = _amount(value);
+    return amount != null && amount >= 0 ? amount : null;
+  }
+
   static double? _amount(Object? value) {
     if (value is bool) return null;
     final parsed = value is num
