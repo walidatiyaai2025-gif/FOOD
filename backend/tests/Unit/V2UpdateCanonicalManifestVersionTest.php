@@ -7,8 +7,8 @@ use App\Domain\Updater\UpdatePackageValidator;
 use App\Domain\Updater\UpdateVersion;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
-use Tests\Support\UpdateZipFixture;
 use RuntimeException;
+use Tests\Support\UpdateZipFixture;
 
 final class V2UpdateCanonicalManifestVersionTest extends TestCase
 {
