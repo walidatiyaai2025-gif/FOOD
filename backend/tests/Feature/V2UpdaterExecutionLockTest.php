@@ -10,6 +10,7 @@ use App\Models\UpdateHistory;
 use App\Services\AuditLogger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
+use Tests\Support\UpdateZipFixture;
 use Tests\TestCase;
 
 class V2UpdaterExecutionLockTest extends TestCase
@@ -30,7 +31,7 @@ class V2UpdaterExecutionLockTest extends TestCase
         mkdir($this->directory, 0750, true);
         $this->lockPath = $this->directory.'/execution.lock';
         $this->packagePath = $this->directory.'/update.zip';
-        file_put_contents($this->packagePath, 'synthetic update contents');
+        UpdateZipFixture::write($this->packagePath);
 
         config(['foodex.updater_execution_lock' => $this->lockPath]);
     }
