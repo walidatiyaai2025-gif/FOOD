@@ -111,7 +111,13 @@ final class InstallerEnvironment
         }
 
         foreach ($values as $key => $value) {
-            $line = $key.'='.$this->encodeValue($value);
+            // The explicit missing Redis password is the one intentional
+            // unquoted dotenv null sentinel. A user-typed string "null" must
+            // instead remain a literal credential (and be quoted below).
+            $encodedValue = $key === 'REDIS_PASSWORD' && $value === null
+                ? 'null'
+                : $this->encodeValue($value);
+            $line = $key.'='.$encodedValue;
             // Read() uses the last .env assignment: after any installer write,
             // ensure the managed key has only one effective definition.
             $pattern = '/^[ \t]*'.preg_quote($key, '/').'[ \t]*=.*$/m';
@@ -258,6 +264,12 @@ final class InstallerEnvironment
 
         if ($string === '') {
             return '""';
+        }
+
+        // Laravel env() coerces unquoted true/false/null/empty to non-string
+        // values. Credentials and operator-entered names are literals.
+        if (in_array(strtolower($string), ['true', 'false', 'null', 'empty'], true)) {
+            return '"'.$string.'"';
         }
 
         if (preg_match('/^[A-Za-z0-9_\.\-:\/@]+$/', $string) === 1) {
