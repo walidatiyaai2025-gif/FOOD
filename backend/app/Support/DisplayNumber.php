@@ -41,6 +41,10 @@ final class DisplayNumber
         bool $preserveFixedPrecision = false,
         bool $groupThousands = true,
     ): string {
+        if ($fractionDigits < 0) {
+            throw new \InvalidArgumentException('fractionDigits must be zero or greater.');
+        }
+
         $number = (float) $value;
 
         if ($preserveFixedPrecision) {
