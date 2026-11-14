@@ -180,6 +180,14 @@ final class EnterpriseProcurementWorkbenchTest extends TestCase
                 'tab' => 'suppliers',
                 'q' => 'Deal%_!',
             ]))->assertForbidden();
+
+        $unprivileged = User::factory()->create(['is_active' => true]);
+        $this->actingAs($unprivileged)
+            ->get(route('admin.erp.procurement.index', [
+                'store_id' => $store->id,
+                'tab' => 'suppliers',
+                'q' => 'Deal%_!',
+            ]))->assertForbidden();
     }
 
     public function test_completed_procurement_tabs_render_inside_one_canonical_workbench(): void
