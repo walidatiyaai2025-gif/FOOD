@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { LIMIT_MS, isV2, parseClaim, activityDecision, claimIdentity } = require('./v2-lease-watchdog');
+const { LIMIT_MS, isV2, parseClaim, activityDecision, claimIdentity, run } = require('./v2-lease-watchdog');
 const nowMs = Date.parse('2026-11-10T10:00:00Z');
 const claim = {
   owner: 'worker-a',
@@ -114,4 +114,53 @@ test('gated issue requires a fresh ACTIVE claim before automatic handoff may occ
   assert.equal(activityDecision({
     nowMs, claim: next, latestCommitMs: 0, latestPrCommitMs: 0, ciRunning: true
   }).release, false);
+});
+
+
+test('approval-gated V2 claims skip branch and CI API probes before any mutation', async () => {
+  for (const gateFromLabel of [true, false]) {
+    const issue = {
+      number: 3611, title: 'V2 | gated worker', state: 'open',
+      labels: gateFromLabel
+        ? [{ name: 'worker:active' }, { name: 'gate:approval' }]
+        : [{ name: 'worker:active' }],
+    };
+    const claimBody = '<!-- foodex-worker-state:v1 -->\n'
+      + 'STATE: ACTIVE\nOWNER: worker-a\n'
+      + 'BRANCH: fix/old-deleted-ref\n'
+      + (gateFromLabel ? '' : 'BLOCKER: approval\n')
+      + 'HEARTBEAT: 2026-11-10T09:50:00Z';
+    const comments = [{
+      id: 401, created_at: '2026-11-10T09:00:00Z', body: claimBody,
+      user: { login: 'worker-a' },
+    }];
+    const touched = [];
+    const unexpected = name => async () => {
+      touched.push(name);
+      throw Error('Approval gate must not call ' + name);
+    };
+    const github = { rest: {
+      search: { issuesAndPullRequests: async () => ({ data: { items: [issue] } }) },
+      pulls: {
+        list: async () => ({ data: [] }),
+        get: unexpected('pulls.get'),
+      },
+      issues: {
+        listComments: async () => ({ data: comments }),
+        get: unexpected('issues.get'),
+        removeLabel: unexpected('issues.removeLabel'),
+        addLabels: unexpected('issues.addLabels'),
+        createComment: unexpected('issues.createComment'),
+      },
+      repos: { getBranch: unexpected('repos.getBranch'), getCommit: unexpected('repos.getCommit') },
+      checks: { listForRef: unexpected('checks.listForRef') },
+      actions: { listWorkflowRunsForRepo: unexpected('actions.listWorkflowRunsForRepo') },
+    } };
+    const output = await run({
+      github, context: { repo: { owner: 'test-owner', repo: 'FOOD' } },
+      core: { info: () => {} }, nowMs,
+    });
+    assert.deepEqual(output, { scanned: 1, released: 0, active: 1 });
+    assert.deepEqual(touched, []);
+  }
 });
