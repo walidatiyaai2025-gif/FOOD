@@ -33,6 +33,7 @@ def build_bundle(
     source: str = SHA125,
     entries: list[tuple[str, bytes, bool]] | None = None,
     redeploy: bool = False,
+    special_mode: int | None = None,
 ) -> Path:
     parent.mkdir(parents=True, exist_ok=True)
     if entries is None:
@@ -47,8 +48,11 @@ def build_bundle(
             warnings.simplefilter("ignore", UserWarning)
             for name, content, symlink in entries:
                 info = zipfile.ZipInfo(name)
-                info.external_attr = ((stat.S_IFLNK | 0o777) if symlink else
-                                      (stat.S_IFREG | 0o644)) << 16
+                mode = ((stat.S_IFLNK | 0o777) if symlink else
+                        (stat.S_IFREG | 0o644))
+                if special_mode is not None and name == RUNTIME:
+                    mode = special_mode
+                info.external_attr = mode << 16
                 archive.writestr(info, content)
     from hashlib import sha256
     digest = sha256(archive_path.read_bytes()).hexdigest()
@@ -253,6 +257,22 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(PackageContractError, "Duplicate or aliased"):
             self.verify_first()
+
+    def test_non_regular_unix_member_modes_are_rejected(self) -> None:
+        # ZIP member names without trailing slashes can still declare FIFO,
+        # device, socket or directory types in Unix external attributes.
+        for file_type in (
+            stat.S_IFIFO, stat.S_IFCHR, stat.S_IFBLK,
+            stat.S_IFSOCK, stat.S_IFDIR,
+        ):
+            with self.subTest(file_type=file_type):
+                self.first = build_bundle(
+                    self.first, special_mode=file_type | 0o644,
+                )
+                with self.assertRaisesRegex(PackageContractError, "Non-regular"):
+                    self.verify_first()
+        self.first = build_bundle(self.first)
+        self.assertEqual("1.0.125", self.verify_first()["to"])
 
     def test_traversal_symlink_secret_and_non_runtime_paths_rejected(self) -> None:
         for forbidden in ("../outside.php", "backend/../outside.php", "backend/.env",
