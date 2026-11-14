@@ -26,9 +26,25 @@ test('a handoff marker resets the claim origin for a successor', () => {
   assert.equal(c.createdMs, Date.parse('2026-11-10T09:50:00Z'));
   assert.equal(c.claimId,3);
 });
-test('fully integrated issues are not considered active claims', () => {
-  assert.equal(parseClaim([state(1,'2026-11-10T09:00:00Z'),
-    state(2,'2026-11-10T09:30:00Z','unassigned','INTEGRATED_PENDING_ACCEPTANCE')]), null);
+test('fully integrated and composite handoff states are not live claims', () => {
+  for (const status of ['INTEGRATED_PENDING_ACCEPTANCE',
+    'INTEGRATED_BOUNDED_TEST / LEASE_RELEASED',
+    'HANDOFF_READY / CI_COMPLETED', 'HANDOFF / BLOCKED']) {
+    assert.equal(parseClaim([state(1,'2026-11-10T09:00:00Z'),
+      state(2,'2026-11-10T09:30:00Z','unassigned',status)]), null, status);
+  }
+});
+test('canonical issue PR number survives status checkpoints without a repeated PR field', () => {
+  for (const spelling of ['#4455', '4455', '#4455 (DRAFT)']) {
+    const first=state(1,'2026-11-10T09:20:00Z');
+    first.body+='\\nPR: '+spelling;
+    const parsed=parseClaim([first,state(2,'2026-11-10T09:25:00Z','worker-a','WAITING_CI')]);
+    assert.equal(parsed.pr,4455,spelling);
+    assert.equal(parsed.createdMs,Date.parse('2026-11-10T09:20:00Z'));
+  }
+  const untrusted=state(1,'2026-11-10T09:20:00Z');
+  untrusted.body+='\\nPR: https://github.com/example/FOOD/pull/4455';
+  assert.equal(parseClaim([untrusted]).pr,0);
 });
 test('GitHub Search item pagination and REST array pagination both work', async () => {
   assert.deepEqual(await listPages(async()=>({data:{items:[{number:2929}]}}),{},2),[{number:2929}]);
@@ -46,10 +62,15 @@ function harness(opts={}) {
     labels: [{name:'worker:active'}, ...(opts.humanGate ? [{name:'gate:human'}] : [])] };
   const mutations=[]; let branchReads=0, commentReads=0;
   const oldState = state(1,'2026-11-10T09:20:00Z');
+  if (opts.claimPr) oldState.body+='\\nPR: #4455 (DRAFT)';
   const freshState = state(2,'2026-11-10T09:59:00Z','worker-b');
+  const matchingPr = { number:4455, merged:Boolean(opts.mergedPr),
+    merged_at:opts.mergedPr?'2026-11-10T09:40:00Z':null,
+    base:{ref:opts.foreignPr?'main':'Foodex_V2'},
+    head:{ref:opts.foreignPr?'feat/unrelated':'feat/2929-lease-tests'} };
   const github = { rest: {
     search:{issuesAndPullRequests:async()=>({data:{items:[issue]}})},
-    pulls:{list:async()=>({data:[]})},
+    pulls:{list:async()=>({data:[]}),get:async()=>({data:matchingPr})},
     issues:{
       listComments:async()=>{commentReads++;return {data:commentReads>1&&opts.newClaim?[oldState,freshState]:[oldState]};},
       get:async()=>({data:issue}),
@@ -80,6 +101,27 @@ test('stale issue releases original labels, preserves branch/PR and records audi
   assert.deepEqual(out.result,{scanned:1,released:1,active:0});
   assert.deepEqual(out.mutations,['remove:worker:active','add:worker:handoff-ready','comment']);
   assert.equal(out.getBranchReads(),2);
+});
+test('merged original PR clears obsolete worker claim, never offers a duplicate PR', async () => {
+  const out=await sweep({claimPr:true,mergedPr:true});
+  assert.deepEqual(out.mutations,['remove:worker:active','comment']);
+  assert.equal(out.result.released,0);
+  assert.equal(out.getBranchReads(),2);
+});
+test('merged PR does not override active queued CI or a racing successor lease', async () => {
+  for(const opts of [{queuedCi:true},{runningWorkflow:true},{newClaim:true},{branchMoves:true}]) {
+    const out=await sweep({...opts,claimPr:true,mergedPr:true});
+    assert.equal(out.result.released,0);
+    assert.deepEqual(out.mutations,[],JSON.stringify(opts));
+  }
+});
+test('unmerged original PR keeps normal stale lease release behavior', async () => {
+  const out=await sweep({claimPr:true,mergedPr:false});
+  assert.deepEqual(out.mutations,['remove:worker:active','add:worker:handoff-ready','comment']);
+});
+test('unrelated merged PR cannot override issue lease or prevent normal expiry', async () => {
+  const out=await sweep({claimPr:true,mergedPr:true,foreignPr:true});
+  assert.deepEqual(out.mutations,['remove:worker:active','add:worker:handoff-ready','comment']);
 });
 test('29-minute boundary keeps worker reserved', async () => {
   const out=await sweep({nowMs:Date.parse('2026-11-10T09:49:59Z')});
