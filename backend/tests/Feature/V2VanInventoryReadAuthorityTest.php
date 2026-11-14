@@ -147,6 +147,44 @@ final class V2VanInventoryReadAuthorityTest extends TestCase
         }
     }
 
+    public function test_store_specific_van_view_deny_blocks_stock_even_with_inventory_view_granted(): void
+    {
+        $storeId = $this->store('B2B', 'P274-VAN-VIEW-DENY');
+        $warehouse = $this->warehouse($storeId, 'P274-VAN-VIEW-DENY-WH');
+        $this->enableEnterpriseWmsForStore($storeId);
+        $viewer = $this->viewer($storeId);
+        $van = $this->van($warehouse);
+        $this->assign($van, $warehouse, $viewer);
+        $this->stock($warehouse, $storeId, 'P274-VAN-VIEW-SKU');
+
+        $service = app(VanInventoryReadService::class);
+        $this->assertCount(1, $service->page($viewer, (int) $van->id)['rows']);
+
+        // Retain inventory.view for this store, but deny the independent Van
+        // read permission. A B2B global role must not override store DENY.
+        $vanView = Permission::query()->where('code', 'drivers.b2b.view')->firstOrFail();
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $viewer->id,
+            'permission_id' => $vanView->id,
+            'scope_key' => 'store:'.$storeId,
+            'store_id' => $storeId,
+            'effect' => 'deny',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $viewer->forceFill(['has_permission_overrides' => true])->save();
+        $viewer = $viewer->fresh();
+
+        $this->assertTrue($viewer->hasPermission('inventory.view', $storeId));
+        try {
+            $service->page($viewer, (int) $van->id);
+            $this->fail('Store-specific Van view DENY must reject stock reads.');
+        } catch (HttpException $exception) {
+            $this->assertSame(404, $exception->getStatusCode());
+        }
+        $this->assertSame(0, DB::table('stock_movements')->count());
+    }
+
     public function test_revoked_store_entitlement_and_disabled_wms_block_stock_reads(): void
     {
         $storeId = $this->store('B2B', 'P274-ENTITLEMENT');
