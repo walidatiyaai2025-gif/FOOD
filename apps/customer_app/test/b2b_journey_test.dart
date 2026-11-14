@@ -625,8 +625,7 @@ void main() {
       'outstanding_receivable',
     ]) {
       testWidgets(
-        'B2B More fails closed on malformed $invalidField in ' +
-            locale.languageCode,
+        'B2B More fails closed on malformed $invalidField in ${locale.languageCode}',
         (tester) async {
           final finance = <String, Object?>{
             'currency': 'KWD',
