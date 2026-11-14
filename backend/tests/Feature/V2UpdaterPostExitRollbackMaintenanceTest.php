@@ -14,6 +14,7 @@ use App\Services\AuditLogger;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
+use Tests\Support\UpdateZipFixture;
 use Tests\TestCase;
 
 class V2UpdaterPostExitRollbackMaintenanceTest extends TestCase
@@ -27,7 +28,7 @@ class V2UpdaterPostExitRollbackMaintenanceTest extends TestCase
         parent::setUp();
 
         $this->packagePath = tempnam(sys_get_temp_dir(), 'foodex-post-exit-');
-        file_put_contents($this->packagePath, 'late updater metadata failure');
+        UpdateZipFixture::write($this->packagePath);
     }
 
     protected function tearDown(): void
