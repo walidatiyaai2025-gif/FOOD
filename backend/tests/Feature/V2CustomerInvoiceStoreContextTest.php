@@ -196,7 +196,13 @@ class V2CustomerInvoiceStoreContextTest extends TestCase
         $this->get('/api/v1/invoices/'.$this->invoiceId.'/download'.$arrayQuery)
             ->assertNotFound();
 
+        $this->withHeader('X-FOODEX-Customer-Domain', 'van')
+            ->getJson('/api/v1/invoices/'.$this->invoiceId)
+            ->assertNotFound();
+
+        $this->get('/api/v1/invoices/'.$this->invoiceId.'/download')
+            ->assertNotFound();
+
         $this->assertDatabaseCount('invoices', 1);
     }
-
 }
