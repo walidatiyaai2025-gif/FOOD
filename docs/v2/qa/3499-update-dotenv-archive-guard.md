@@ -10,6 +10,7 @@
 
 - Reject non-template `.env` and `.env.*` anywhere in an Update ZIP path, including case aliases and directory targets.
 - Preserve safe source templates ending in exact `.example` (e.g. `backend/.env.example`, `backend/.env.production.example`, `backend/.env.testing.example`). Templates are NOT active credentials and must never include real secrets.
+- The `.env*.example` exemption applies **only to a terminal file member**, not a directory or its descendants; `backend/.env.production.example/private.php` is rejected.
 - Deny case aliases for protected runtime directories `storage`, `vendor`, `.git`, including on case-insensitive shared-host filesystems.
 - Fail closed at ZIP preflight before backup, maintenance, file replacement or migration. No database/schema/package protocol changes.
 
