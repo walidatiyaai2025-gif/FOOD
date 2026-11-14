@@ -30,7 +30,7 @@ flutter test test/localization_test.dart --reporter expanded
 flutter test test/v2_accessibility_e2e_test.dart --reporter expanded
 ```
 
-Local GCC Flutter focused accessibility tests were actually executed after correcting the semantics-handle test teardown: **Customer 2 PASS / Driver 2 PASS / Van 2 PASS (6 test cases total)**. The initial failing Customer header teardown and its fix were reproduced. The independently rerun original localization and official exact-head CI gates must still be checked before any merge claim.
+Local GCC Flutter focused accessibility tests were actually executed after correcting the semantics-handle test teardown: **Customer 2 PASS / Driver 2 PASS / Van 2 PASS (6 test cases total)**. The initial failing Customer header teardown and its fix were reproduced. The original localization suites were also run on GCC: **Customer 3 PASS, Driver 3 PASS, Van 2 PASS**; total **14 passing Flutter widget tests** across six suites. Focused `flutter analyze --no-pub` returned **No issues found** for the Customer source+new test and both Driver/Van new tests. These are verified local execution results; official exact-final-HEAD GitHub Policy, V2 Isolation, Required CI and three-app provenance outcomes still require independent checking before any merge claim.
 
 ## Security and application impact
 
