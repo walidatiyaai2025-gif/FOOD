@@ -65,7 +65,13 @@ final class DisplayNumber
             return '#'.$id;
         }
 
-        $raw = trim((string) $id);
+        // Only native integer and string references are valid identifiers.
+        // Prevent booleans and other PHP values from becoming numeric record IDs.
+        if (! is_string($id)) {
+            return '—';
+        }
+
+        $raw = trim($id);
         if ($raw !== '' && ctype_digit($raw)) {
             $referenceId = self::referenceId($raw);
 
@@ -77,6 +83,12 @@ final class DisplayNumber
 
     public static function referenceId(mixed $value): ?int
     {
+        // Casting true to a string yields "1", and arrays emit PHP warnings.
+        // Identifier lookups must never accept non-identifier input types.
+        if (! is_int($value) && ! is_string($value)) {
+            return null;
+        }
+
         $raw = trim((string) $value);
         if (str_starts_with($raw, '#')) {
             $raw = substr($raw, 1);
