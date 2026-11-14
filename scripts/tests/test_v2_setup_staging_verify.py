@@ -59,6 +59,8 @@ class V2SetupStagingVerifierTest(unittest.TestCase):
             "backend/.env.testing",
             "backend/vendor/pkg/.ENV.production",
             "backend/storage/app/private/key.json",
+            "backend/storage/app/public/customer-uploads/photo.jpg",
+            "backend/Storage/App/Public/SECRET-ATTACHMENT.pdf",
             "backend/storage/app/system/settings.json",
             "backend/storage/logs/laravel.log",
             "backend/.git/config",
@@ -76,6 +78,7 @@ class V2SetupStagingVerifierTest(unittest.TestCase):
             for name in (
                 "backend/storage/app/private/",
                 "backend/storage/app/system/",
+                "backend/storage/app/public/",
                 "backend/storage/logs/",
             ):
                 member = zipfile.ZipInfo(name)
@@ -85,6 +88,7 @@ class V2SetupStagingVerifierTest(unittest.TestCase):
 
         for file in (
             "backend/storage/app/private/customer-upload.json",
+            "backend/storage/app/public/customer-upload.json",
             "backend/storage/app/system/installed-secrets.json",
             "backend/storage/logs/laravel.log",
         ):
