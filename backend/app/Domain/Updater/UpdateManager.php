@@ -154,11 +154,13 @@ final class UpdateManager
                 $maintenanceMode = false;
                 $this->checkpoint($history, ['maintenance_mode' => 'exited']);
 
+                $stage = 'record_version';
                 SystemVersion::query()->updateOrCreate(
                     ['version' => $manifest->targetVersion],
                     ['installed_at' => now(), 'package_hash' => strtolower($manifest->sha256)],
                 );
 
+                $stage = 'record_success';
                 $this->checkpoint($history, ['result' => 'success'], [
                     'status' => 'success',
                     'failure_reason' => null,
@@ -168,6 +170,7 @@ final class UpdateManager
                     'finished_at' => now(),
                 ]);
 
+                $stage = 'audit_completion';
                 $this->auditLogger->record(
                     'updater.completed',
                     $actor,
@@ -187,10 +190,30 @@ final class UpdateManager
                 $rollbackSucceeded = true;
                 $rollbackAttempted = false;
                 $rollbackEvidence = [];
+                $rollbackSafe = true;
+
+                // A late version/history/audit failure can occur after the site
+                // has already left maintenance mode. Never roll live files or
+                // database back while users can write new data.
+                if ($releaseMutationStarted && ! $maintenanceMode) {
+                    try {
+                        $this->runtime->enterMaintenanceMode();
+                        $maintenanceMode = true;
+                        $rollbackEvidence['maintenance_mode'] = 'reentered_for_rollback';
+                    } catch (Throwable) {
+                        $rollbackSafe = false;
+                        $rollbackSucceeded = false;
+                        $rollbackEvidence['maintenance_mode'] = 'reentry_failed';
+                        $rollbackEvidence['rollback_files'] = 'skipped_unsafe';
+                        $rollbackEvidence['rollback_database'] = $databaseMutationStarted
+                            ? 'skipped_unsafe'
+                            : 'not_required';
+                    }
+                }
 
                 // Never restore backups onto untouched live state after a
                 // failed preflight or failed backup integrity check.
-                if ($releaseMutationStarted && $fileBackup !== null) {
+                if ($rollbackSafe && $releaseMutationStarted && $fileBackup !== null) {
                     $rollbackAttempted = true;
                     try {
                         $this->runtime->rollbackFiles($fileBackup);
@@ -201,7 +224,7 @@ final class UpdateManager
                     }
                 }
 
-                if ($databaseMutationStarted && $databaseBackup !== null) {
+                if ($rollbackSafe && $databaseMutationStarted && $databaseBackup !== null) {
                     $rollbackAttempted = true;
                     try {
                         $this->runtime->rollbackDatabase($databaseBackup);
@@ -237,6 +260,10 @@ final class UpdateManager
                     $reason .= ' Rollback was attempted.';
                 }
 
+                if (! $rollbackSafe) {
+                    $reason .= ' Rollback was skipped because maintenance mode could not be re-entered.';
+                }
+
                 if (! $rollbackSucceeded) {
                     $reason .= ' Rollback is incomplete; manual recovery is required.';
                 }
@@ -268,9 +295,11 @@ final class UpdateManager
                     'status' => 'failed',
                     'backup_status' => ($fileBackup !== null || $databaseBackup !== null) ? 'available' : 'not_created',
                     'failed_stage' => $stage,
-                    'rollback_status' => $rollbackAttempted
-                        ? ($rollbackSucceeded ? 'succeeded' : 'incomplete')
-                        : 'not_required',
+                    'rollback_status' => ! $rollbackSafe
+                        ? 'incomplete'
+                        : ($rollbackAttempted
+                            ? ($rollbackSucceeded ? 'succeeded' : 'incomplete')
+                            : 'not_required'),
                     'maintenance_mode_remained' => $maintenanceMode,
                     'failure_reason' => $reason,
                     'finished_at' => now(),

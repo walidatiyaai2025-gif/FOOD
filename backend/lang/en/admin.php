@@ -308,6 +308,7 @@ return [
         'status' => 'Status',
         'started' => 'Started',
         'failure' => 'Failure',
+        'rollback_reentry_failed' => 'Rollback was stopped because maintenance mode could not be restored. Manual recovery is required before another update.',
         'empty' => 'No updates have been executed yet.',
         'dashboard_title' => 'Runtime health & recovery',
         'dashboard_description' => 'Live platform health, update readiness and recoverability from authoritative runtime checks.',

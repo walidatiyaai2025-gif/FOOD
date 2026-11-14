@@ -66,13 +66,14 @@ final class SchedulerRuntime
         }
 
         $path = $directory.'/scheduler-heartbeat.lock';
-        $handle = @fopen($path, 'c+');
+        $handle = $this->openTrustedLock($path);
         if (is_resource($handle) === false) {
             return;
         }
 
         try {
-            if (@flock($handle, LOCK_EX | LOCK_NB) === false) {
+            if (@flock($handle, LOCK_EX | LOCK_NB) === false
+                || ! $this->isTrustedLockInode($path, $handle)) {
                 return;
             }
 
@@ -111,13 +112,14 @@ final class SchedulerRuntime
         }
 
         $path = $directory.'/scheduler-cron-repair.lock';
-        $handle = @fopen($path, 'c+');
+        $handle = $this->openTrustedLock($path);
         if (is_resource($handle) === false) {
             return;
         }
 
         try {
-            if (@flock($handle, LOCK_EX | LOCK_NB) === false) {
+            if (@flock($handle, LOCK_EX | LOCK_NB) === false
+                || ! $this->isTrustedLockInode($path, $handle)) {
                 return;
             }
 
@@ -136,6 +138,70 @@ final class SchedulerRuntime
             @flock($handle, LOCK_UN);
             fclose($handle);
         }
+    }
+
+    /**
+     * Open a persistent heartbeat/cron-repair lock without following an existing
+     * linked path. Keep the inode intact; removing lock files creates races.
+     *
+     * @return resource|null
+     */
+    private function openTrustedLock(string $path)
+    {
+        if (! $this->lockPathHasNoSymlinks($path)) {
+            return null;
+        }
+
+        $handle = @fopen($path, 'c+');
+        if (! is_resource($handle)) {
+            return null;
+        }
+
+        if (! $this->isTrustedLockInode($path, $handle)) {
+            fclose($handle);
+
+            return null;
+        }
+
+        return $handle;
+    }
+
+    /**
+     * @param  resource  $handle
+     */
+    private function isTrustedLockInode(string $path, $handle): bool
+    {
+        if (! $this->lockPathHasNoSymlinks($path)) {
+            return false;
+        }
+
+        clearstatcache(true, $path);
+        $opened = @fstat($handle);
+        $linked = @lstat($path);
+
+        return is_array($opened) && is_array($linked)
+            && ($opened['mode'] & 0170000) === 0100000
+            && ($linked['mode'] & 0170000) === 0100000
+            && $opened['nlink'] === 1
+            && $linked['nlink'] === 1
+            && $opened['dev'] === $linked['dev']
+            && $opened['ino'] === $linked['ino'];
+    }
+
+    private function lockPathHasNoSymlinks(string $path): bool
+    {
+        for ($candidate = $path; ; $candidate = dirname($candidate)) {
+            clearstatcache(true, $candidate);
+            if (is_link($candidate)) {
+                return false;
+            }
+
+            if (dirname($candidate) === $candidate) {
+                break;
+            }
+        }
+
+        return true;
     }
 
     private function cronLine(): string
