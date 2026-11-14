@@ -53,6 +53,10 @@ final class SystemInspectorController extends Controller
             : null;
         abort_if($restaurantStoreId > 0 && $restaurantStore === null, 404);
 
+        // The user-entered filter is literal text: !, % and _ must not expand
+        // the fixed-column search into SQL LIKE wildcard matches.
+        $literalSearch = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
+
         $query = SystemInspectorEvent::query()
             ->with(['user:id,name,email', 'store:id,name,code'])
             ->when($source !== '', fn ($builder) => $builder->where('source', $source))
@@ -61,11 +65,11 @@ final class SystemInspectorController extends Controller
             ->when($appBuild !== '', fn ($builder) => $builder->where('context->app_build', $appBuild))
             ->when(in_array($channel, ['b2b', 'b2c'], true), fn ($builder) => $builder->where('context->channel', $channel))
             ->when($storeId > 0, fn ($builder) => $builder->where('store_id', $storeId))
-            ->when($search !== '', fn ($builder) => $builder->where(function ($builder) use ($search): void {
-                $builder->where('message', 'like', "%{$search}%")
-                    ->orWhere('route_name', 'like', "%{$search}%")
-                    ->orWhere('url', 'like', "%{$search}%")
-                    ->orWhere('correlation_id', 'like', "%{$search}%");
+            ->when($search !== '', fn ($builder) => $builder->where(function ($builder) use ($literalSearch): void {
+                $builder->whereRaw("message LIKE ? ESCAPE '!'", [$literalSearch])
+                    ->orWhereRaw("route_name LIKE ? ESCAPE '!'", [$literalSearch])
+                    ->orWhereRaw("url LIKE ? ESCAPE '!'", [$literalSearch])
+                    ->orWhereRaw("correlation_id LIKE ? ESCAPE '!'", [$literalSearch]);
             }))
             ->orderByDesc('occurred_at')
             ->orderByDesc('id');
