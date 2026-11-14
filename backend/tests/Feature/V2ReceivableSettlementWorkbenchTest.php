@@ -113,10 +113,15 @@ final class V2ReceivableSettlementWorkbenchTest extends TestCase
 
         // A manually supplied receipt reference is NOT collection provenance.
         // Direct HTTP must also reject attempts even by an authorized poster.
-        $this->actingAs($poster)->post(
-            route('admin.erp.finance.receivables.settlements.post', $allocation->id),
-            ['store_id' => $store->id],
-        )->assertSessionHasErrors('collection_source');
+        foreach (['en', 'ar'] as $locale) {
+            $poster->forceFill(['locale' => $locale])->save();
+            $this->actingAs($poster->fresh())->post(
+                route('admin.erp.finance.receivables.settlements.post', $allocation->id),
+                ['store_id' => $store->id],
+            )->assertSessionHasErrors([
+                'collection_source' => __('finance_workbench.receivables.verification_pending', [], $locale),
+            ]);
+        }
 
         $this->assertSame('draft', $allocation->fresh()->status);
         $this->assertNull($allocation->fresh()->journal_id);

@@ -514,7 +514,7 @@ final class AccountsReceivableService
             // not proof that the P303 collection-backed workflow verified it.
             if ($requiresVerifiedCollectionSource && $allocation->status === 'posted') {
                 throw ValidationException::withMessages([
-                    'collection_source' => ['A verified, store-scoped collection receipt is required before posting.'],
+                    'collection_source' => [__('finance_workbench.receivables.verification_pending')],
                 ]);
             }
 
@@ -541,7 +541,7 @@ final class AccountsReceivableService
             // existing canonical manual-AR API for its separate callers.
             if ($requiresVerifiedCollectionSource) {
                 throw ValidationException::withMessages([
-                    'collection_source' => ['A verified, store-scoped collection receipt is required before posting.'],
+                    'collection_source' => [__('finance_workbench.receivables.verification_pending')],
                 ]);
             }
 
