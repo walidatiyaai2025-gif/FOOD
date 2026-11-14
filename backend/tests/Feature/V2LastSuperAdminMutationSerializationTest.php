@@ -24,39 +24,47 @@ final class V2LastSuperAdminMutationSerializationTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
     }
 
-    public function test_status_cannot_remove_final_admin_after_a_stale_preflight_in_arabic_and_english(): void
+    public function test_arabic_status_cannot_remove_final_admin_after_a_stale_preflight(): void
     {
-        foreach (['ar', 'en'] as $locale) {
-            $first = $this->superAdmin();
-            $other = $this->superAdmin();
-            $operator = $this->operator();
-            $operator->forceFill(['locale' => $locale])->save();
+        $this->assertStaleStatusIsRejected('ar');
+    }
 
-            $injected = false;
-            $this->disableOtherAdminImmediatelyAfterPreflight($other, $injected);
-            Sanctum::actingAs($operator);
+    public function test_english_status_cannot_remove_final_admin_after_a_stale_preflight(): void
+    {
+        $this->assertStaleStatusIsRejected('en');
+    }
 
-            $this->patchJson("/api/v1/admin/security/users/{$first->id}/status", [
-                'is_active' => false,
-                'reason' => 'Reviewed offboarding after impact assessment',
-                'impact_reviewed' => true,
-                'confirm_email' => $first->email,
-            ])->assertUnprocessable()
-                ->assertJsonValidationErrors('is_active')
-                ->assertJsonPath(
-                    'errors.is_active.0',
-                    trans('admin.security.errors.last_super_admin', [], $locale),
-                );
+    private function assertStaleStatusIsRejected(string $locale): void
+    {
+        $first = $this->superAdmin();
+        $other = $this->superAdmin();
+        $operator = $this->operator();
+        $operator->forceFill(['locale' => $locale])->save();
 
-            $this->assertTrue($injected, 'The preflight count must be reached before mutation.');
-            $this->assertTrue((bool) $first->fresh()->is_active);
-            $this->assertFalse((bool) $other->fresh()->is_active);
-            $this->assertSame(1, $this->activeSuperAdminCount());
-            $this->assertDatabaseMissing('audit_logs', [
-                'event' => 'user.status_changed',
-                'auditable_id' => $first->id,
-            ]);
-        }
+        $injected = false;
+        $this->disableOtherAdminImmediatelyAfterPreflight($other, $injected);
+        Sanctum::actingAs($operator);
+
+        $this->patchJson("/api/v1/admin/security/users/{$first->id}/status", [
+            'is_active' => false,
+            'reason' => 'Reviewed offboarding after impact assessment',
+            'impact_reviewed' => true,
+            'confirm_email' => $first->email,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('is_active')
+            ->assertJsonPath(
+                'errors.is_active.0',
+                trans('admin.security.errors.last_super_admin', [], $locale),
+            );
+
+        $this->assertTrue($injected, 'The preflight count must be reached before mutation.');
+        $this->assertTrue((bool) $first->fresh()->is_active);
+        $this->assertFalse((bool) $other->fresh()->is_active);
+        $this->assertSame(1, $this->activeSuperAdminCount());
+        $this->assertDatabaseMissing('audit_logs', [
+            'event' => 'user.status_changed',
+            'auditable_id' => $first->id,
+        ]);
     }
 
     public function test_role_demotion_cannot_remove_final_admin_after_a_stale_preflight(): void
