@@ -98,11 +98,15 @@ class GuestCatalogController extends Controller
         }
 
         if (isset($validated['q']) && trim((string) $validated['q']) !== '') {
-            $term = '%'.trim((string) $validated['q']).'%';
+            // Guest search is literal text; `%` and `_` must not broaden
+            // the catalog query into wildcard matches. Use a portable, fixed
+            // escape marker and bound values on trusted product columns only.
+            $literal = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], trim((string) $validated['q']));
+            $term = '%'.$literal.'%';
             $query->where(function (Builder $query) use ($term): void {
                 $query
-                    ->where('products.name', 'like', $term)
-                    ->orWhere('products.sku', 'like', $term);
+                    ->whereRaw("products.name LIKE ? ESCAPE '!'", [$term])
+                    ->orWhereRaw("products.sku LIKE ? ESCAPE '!'", [$term]);
             });
         }
 

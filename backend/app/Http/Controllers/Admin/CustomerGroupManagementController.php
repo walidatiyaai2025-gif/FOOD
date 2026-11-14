@@ -27,7 +27,11 @@ final class CustomerGroupManagementController extends Controller
         $search = trim((string) $request->query('q', ''));
         $groups = DB::table('commercial_customer_groups')
             ->where('store_id', $storeId)
-            ->when($search !== '', fn ($query) => $query->where('name', 'like', '%'.$search.'%'))
+            ->when($search !== '', function ($query) use ($search): void {
+                // User search is literal text, not a SQL wildcard pattern.
+                $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
+                $query->whereRaw("name LIKE ? ESCAPE '!'", [$like]);
+            })
             ->orderByDesc('priority')
             ->orderBy('name')
             ->paginate(20)

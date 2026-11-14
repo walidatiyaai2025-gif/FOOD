@@ -233,6 +233,71 @@ class GuestBrowsingTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_guest_product_search_matches_literal_special_characters_within_its_retail_store(): void
+    {
+        $existing = DB::table('products')->where('id', $this->productId)->firstOrFail();
+        DB::table('products')->where('id', $this->productId)->update([
+            'sku' => 'B2C-A%!_B',
+            'name' => 'Literal %!_ Guest Item',
+        ]);
+
+        $lookalikeId = (int) DB::table('products')->insertGetId([
+            'catalog_id' => $existing->catalog_id,
+            'category_id' => $existing->category_id,
+            'unit_id' => $existing->unit_id,
+            'sku' => 'B2C-AABB',
+            'name' => 'Plain Guest Item',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('store_products')->insert([
+            'store_id' => $this->storeId,
+            'product_id' => $lookalikeId,
+            'price' => 2.5,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $url = "/api/v1/stores/{$this->storeId}/products?q=";
+        foreach (['%', '_', '!', '%!_'] as $literalSearch) {
+            $this->getJson($url.rawurlencode($literalSearch))
+                ->assertOk()
+                ->assertJsonCount(1, 'data')
+                ->assertJsonPath('data.0.id', $this->productId)
+                ->assertJsonPath('meta.total', 1);
+        }
+
+        // Existing ordinary substring and pagination behavior stays intact.
+        $this->getJson($url.rawurlencode('B2C-A'))
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.total', 2);
+
+        $this->getJson($url.rawurlencode('B2C-A').'&per_page=1&page=2')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.per_page', 1)
+            ->assertJsonPath('meta.total', 2)
+            ->assertJsonPath('meta.current_page', 2);
+
+        $this->getJson($url.rawurlencode('not-present%'))
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        // A product in another Retail store never joins this store's result.
+        DB::table('products')->where('sku', 'SKU-001')->update(['sku' => 'OTHER%!_SKU']);
+        $this->getJson($url.rawurlencode('OTHER%!_SKU'))
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        // Public access is denied for an inactive or non-Retail store.
+        DB::table('stores')->where('id', $this->storeId)->update(['is_active' => false]);
+        $this->getJson($url.rawurlencode('%'))->assertNotFound();
+    }
+
     public function test_inactive_catalog_rows_and_expired_offers_are_hidden(): void
     {
         DB::table('products')->where('id', $this->productId)->update(['is_active' => false]);

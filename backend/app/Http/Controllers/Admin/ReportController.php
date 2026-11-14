@@ -92,6 +92,8 @@ final class ReportController extends Controller
         }
 
         $term = trim((string) ($validated['q'] ?? ''));
+        // Escape user input as literal text. Binding alone does not escape SQL LIKE wildcards.
+        $literalLike = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $term).'%';
         $page = max(1, (int) ($validated['page'] ?? 1));
         $pageSize = 25;
 
@@ -117,12 +119,11 @@ final class ReportController extends Controller
                     ->when(! $superAdmin && $storeId === null, fn (Builder $query) => $query->whereIn('store_id', $allowedStoreIds));
 
             $rows = $query
-                ->when($term !== '', function (Builder $query) use ($term): void {
-                    $like = '%'.$term.'%';
-                    $query->where(function (Builder $search) use ($like): void {
-                        $search->where('name', 'like', $like)
-                            ->orWhere('phone', 'like', $like)
-                            ->orWhere('email', 'like', $like);
+                ->when($term !== '', function (Builder $query) use ($literalLike): void {
+                    $query->where(function (Builder $search) use ($literalLike): void {
+                        $search->whereRaw("name LIKE ? ESCAPE '!'", [$literalLike])
+                            ->orWhereRaw("phone LIKE ? ESCAPE '!'", [$literalLike])
+                            ->orWhereRaw("email LIKE ? ESCAPE '!'", [$literalLike]);
                     });
                 })
                 ->orderBy('name')
@@ -154,12 +155,11 @@ final class ReportController extends Controller
             ->when(! $superAdmin && $storeId === null, fn (Builder $query) => $query->whereIn('catalogs.store_id', $allowedStoreIds))
             ->when($channel !== null, fn (Builder $query) => $query->where('catalogs.channel', $channel))
             ->when($categoryId !== null, fn (Builder $query) => $query->where('products.category_id', $categoryId))
-            ->when($term !== '', function (Builder $query) use ($term): void {
-                $like = '%'.$term.'%';
-                $query->where(function (Builder $search) use ($like): void {
-                    $search->where('products.name', 'like', $like)
-                        ->orWhere('products.sku', 'like', $like)
-                        ->orWhere('products.barcode', 'like', $like);
+            ->when($term !== '', function (Builder $query) use ($literalLike): void {
+                $query->where(function (Builder $search) use ($literalLike): void {
+                    $search->whereRaw("products.name LIKE ? ESCAPE '!'", [$literalLike])
+                        ->orWhereRaw("products.sku LIKE ? ESCAPE '!'", [$literalLike])
+                        ->orWhereRaw("products.barcode LIKE ? ESCAPE '!'", [$literalLike]);
                 });
             })
             ->orderBy('products.name')
