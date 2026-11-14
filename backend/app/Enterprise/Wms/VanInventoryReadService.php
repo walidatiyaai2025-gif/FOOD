@@ -75,6 +75,20 @@ final class VanInventoryReadService
         );
         $storeId = (int) $warehouse->store_id;
         abort_unless($this->tenantScope->storeChannel($storeId) === 'b2b', 404);
+        // An imported/legacy primary assignment can point at an incompatible
+        // Retail driver. B2B warehouse scope never makes a B2C driver eligible
+        // for Van stock custody; nor may a deactivated driver authorize reads.
+        // Driverless Van assignments remain valid for supervisor operations.
+        if ($assignment->driver_id !== null) {
+            abort_unless(
+                DB::table('drivers')
+                    ->where('id', (int) $assignment->driver_id)
+                    ->where('driver_type', 'b2b')
+                    ->where('is_active', true)
+                    ->exists(),
+                404,
+            );
+        }
         // Inventory access does not itself grant authority to inspect a Van.
         // A store-scoped Van permission DENY must override global B2B roles.
         $this->tenantScope->assertStore($actor, $storeId, 'drivers.b2b.view', 'b2b');

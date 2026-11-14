@@ -252,6 +252,65 @@ final class V2VanInventoryReadAuthorityTest extends TestCase
         $this->assertSame(0, DB::table('stock_movements')->count());
     }
 
+    public function test_b2c_or_inactive_driver_on_primary_van_assignment_cannot_expose_b2b_stock(): void
+    {
+        $storeId = $this->store('B2B', 'P274-DRIVER-CHANNEL-B2B');
+        $retailId = $this->store('B2C', 'P274-DRIVER-CHANNEL-B2C');
+        $warehouseId = $this->warehouse($storeId, 'P274-DRIVER-CHANNEL-WH');
+        $this->enableEnterpriseWmsForStore($storeId);
+        $viewer = $this->viewer($storeId);
+        $van = $this->van($warehouseId);
+        $assignment = $this->assign($van, $warehouseId, $viewer);
+        $this->stock($warehouseId, $storeId, 'P274-DRIVER-CHANNEL-SKU');
+        $service = app(VanInventoryReadService::class);
+
+        // An authorized supervisor may inspect a Van before assigning a driver.
+        $this->assertCount(1, $service->page($viewer, (int) $van->id)['rows']);
+
+        // Deliberately bypass the assignment writer to model legacy/imported
+        // data. Even a properly scoped WMS reader cannot launder a B2C driver
+        // into a B2B Van stock authority.
+        $driverUser = User::factory()->create(['is_active' => true]);
+        $driverId = (int) DB::table('drivers')->insertGetId([
+            'user_id' => $driverUser->id,
+            'store_id' => $retailId,
+            'driver_type' => 'b2c',
+            'is_active' => true,
+            'is_available' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $assignment->forceFill(['driver_id' => $driverId])->save();
+
+        try {
+            $service->page($viewer, (int) $van->id);
+            $this->fail('Retail driver may not authorize reading Wholesale Van stock.');
+        } catch (HttpException $exception) {
+            $this->assertSame(404, $exception->getStatusCode());
+        }
+
+        // Switching the same assignment to an active B2B driver preserves
+        // legitimate inventory visibility without granting a new permission.
+        DB::table('drivers')->where('id', $driverId)->update([
+            'store_id' => $storeId,
+            'driver_type' => 'b2b',
+            'updated_at' => now(),
+        ]);
+        $this->assertCount(1, $service->page($viewer, (int) $van->id)['rows']);
+
+        DB::table('drivers')->where('id', $driverId)->update([
+            'is_active' => false,
+            'updated_at' => now(),
+        ]);
+        try {
+            $service->page($viewer, (int) $van->id);
+            $this->fail('Inactive linked B2B driver must not authorize Van stock reads.');
+        } catch (HttpException $exception) {
+            $this->assertSame(404, $exception->getStatusCode());
+        }
+        $this->assertSame(0, DB::table('stock_movements')->count());
+    }
+
     public function test_expired_assignment_cannot_fall_back_to_home_warehouse(): void
     {
         $storeId = $this->store('B2B', 'P274-EXPIRED');
