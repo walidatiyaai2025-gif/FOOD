@@ -100,7 +100,7 @@ final class AppPreviewTargetService
         if ($search !== '') {
             $matchingUserIds = User::query()
                 ->where('is_active', true)
-                ->where('name', 'like', '%'.$search.'%')
+                ->whereRaw("name LIKE ? ESCAPE '!'", [$this->literalNamePattern($search)])
                 ->pluck('id');
             if ($matchingUserIds->isEmpty()) {
                 return [];
@@ -144,6 +144,13 @@ final class AppPreviewTargetService
             })
             ->values()
             ->all();
+    }
+
+    private function literalNamePattern(string $search): string
+    {
+        // Use one portable explicit escape marker across SQLite and MySQL.
+        // All user-supplied search text is a literal, never a SQL wildcard.
+        return '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
     }
 
     /** @return list<array<string,mixed>> */
@@ -195,7 +202,10 @@ final class AppPreviewTargetService
         return User::query()
             ->whereIn('id', $customerIds->all())
             ->where('is_active', true)
-            ->when($search !== '', fn ($query) => $query->where('name', 'like', '%'.$search.'%'))
+            ->when($search !== '', fn ($query) => $query->whereRaw(
+                "name LIKE ? ESCAPE '!'",
+                [$this->literalNamePattern($search)],
+            ))
             ->orderBy('name')
             ->limit(self::MAX_RESULTS)
             ->get(['id', 'name', 'locale'])
