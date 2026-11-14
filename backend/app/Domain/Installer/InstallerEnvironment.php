@@ -45,11 +45,25 @@ final class InstallerEnvironment
 
         foreach ($values as $key => $value) {
             $line = $key.'='.$this->encodeValue($value);
-            $pattern = '/^'.preg_quote($key, '/').'\s*=.*$/m';
+            // Read() uses the last .env assignment: after any installer write,
+            // ensure the managed key has only one effective definition.
+            $pattern = '/^[ \t]*'.preg_quote($key, '/').'[ \t]*=.*$/m';
+            $found = false;
+            $content = (string) preg_replace_callback(
+                $pattern,
+                static function () use ($line, &$found): string {
+                    if ($found) {
+                        return '';
+                    }
 
-            if (preg_match($pattern, $content) === 1) {
-                $content = (string) preg_replace_callback($pattern, static fn (): string => $line, $content, 1);
-            } else {
+                    $found = true;
+
+                    return $line;
+                },
+                $content,
+            );
+
+            if (! $found) {
                 $content = rtrim($content).PHP_EOL.$line.PHP_EOL;
             }
         }
@@ -195,11 +209,27 @@ final class InstallerEnvironment
         if (strlen($value) >= 2 && $value[0] === '"' && $value[strlen($value) - 1] === '"') {
             $value = substr($value, 1, -1);
 
-            return str_replace(
-                ['\\n', '\\r', '\\"', '\\\\'],
-                ["\n", "\r", '"', '\\'],
-                $value,
-            );
+            // Process escapes once: decoding an escaped backslash must not
+            // turn a following literal "n" or "r" into a control character.
+            $decoded = '';
+            for ($index = 0, $length = strlen($value); $index < $length; $index++) {
+                if ($value[$index] !== '\\' || $index + 1 >= $length) {
+                    $decoded .= $value[$index];
+
+                    continue;
+                }
+
+                $escaped = $value[++$index];
+                $decoded .= match ($escaped) {
+                    'n' => "\n",
+                    'r' => "\r",
+                    '"' => '"',
+                    '\\' => '\\',
+                    default => '\\'.$escaped,
+                };
+            }
+
+            return $decoded;
         }
 
         if (strlen($value) >= 2 && $value[0] === "'" && $value[strlen($value) - 1] === "'") {

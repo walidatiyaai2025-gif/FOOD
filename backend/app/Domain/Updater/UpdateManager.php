@@ -77,6 +77,8 @@ final class UpdateManager
             $fileBackup = null;
             $databaseBackup = null;
             $maintenanceMode = false;
+            $releaseMutationStarted = false;
+            $databaseMutationStarted = false;
 
             try {
                 $this->validator->validate($manifest, $currentVersion, $packagePath);
@@ -117,16 +119,22 @@ final class UpdateManager
                 $this->checkpoint($history, ['maintenance_mode' => 'entered']);
 
                 $stage = 'extract_release';
+                // Extraction can partially replace files before throwing.
+                $releaseMutationStarted = true;
                 $this->runtime->extractRelease($packagePath);
                 $this->checkpoint($history, ['release_activation' => 'passed']);
 
                 if ($manifest->containsMigrations) {
                     $stage = 'run_migrations';
+                    // A failed migration can already have changed live tables.
+                    $databaseMutationStarted = true;
                     $this->runtime->runMigrations();
                     $this->checkpoint($history, ['migrations' => 'passed']);
                 }
 
                 $stage = 'clear_and_rebuild_cache';
+                // Cache rebuild also reconciles persisted job-role grants.
+                $databaseMutationStarted = true;
                 $this->runtime->rebuildCaches();
                 $this->checkpoint($history, ['cache_rebuild' => 'passed']);
 
@@ -170,12 +178,14 @@ final class UpdateManager
                 return $history->refresh();
             } catch (Throwable $exception) {
                 $exceptionSummary = $this->exceptionSummary($exception);
-                $reason = "Update failed during [{$stage}]. Cause: {$exceptionSummary}. Rollback was attempted.";
+                $reason = "Update failed during [{$stage}]. Cause: {$exceptionSummary}.";
                 $rollbackSucceeded = true;
                 $rollbackAttempted = false;
                 $rollbackEvidence = [];
 
-                if ($fileBackup !== null) {
+                // Never restore backups onto untouched live state after a
+                // failed preflight or failed backup integrity check.
+                if ($releaseMutationStarted && $fileBackup !== null) {
                     $rollbackAttempted = true;
                     try {
                         $this->runtime->rollbackFiles($fileBackup);
@@ -186,7 +196,7 @@ final class UpdateManager
                     }
                 }
 
-                if ($databaseBackup !== null) {
+                if ($databaseMutationStarted && $databaseBackup !== null) {
                     $rollbackAttempted = true;
                     try {
                         $this->runtime->rollbackDatabase($databaseBackup);
@@ -216,6 +226,10 @@ final class UpdateManager
                         $maintenanceMode = true;
                         $rollbackEvidence['maintenance_mode'] = 'exit_failed';
                     }
+                }
+
+                if ($rollbackAttempted) {
+                    $reason .= ' Rollback was attempted.';
                 }
 
                 if (! $rollbackSucceeded) {
@@ -325,20 +339,53 @@ final class UpdateManager
             throw new RuntimeException('Updater execution lock could not be opened.');
         }
 
+        // Verify the opened inode, not just the previously checked path.
+        // A hard link passes is_link(), and an atomic path replacement may
+        // otherwise let two requests flock unrelated inodes.
+        $held = false;
+
+        try {
+            $this->assertExecutionLockIdentity($path, $lock);
+
+            if (! flock($lock, LOCK_EX | LOCK_NB)) {
+                throw new RuntimeException('Another system update is already running.');
+            }
+
+            $held = true;
+            $this->assertExecutionLockIdentity($path, $lock);
+            @chmod($path, 0600);
+            $this->assertExecutionLockIdentity($path, $lock);
+
+            return $lock;
+        } catch (Throwable $exception) {
+            if ($held) {
+                @flock($lock, LOCK_UN);
+            }
+
+            fclose($lock);
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @param  resource  $lock
+     */
+    private function assertExecutionLockIdentity(string $path, $lock): void
+    {
         clearstatcache(true, $path);
-        if (is_link($path)) {
-            fclose($lock);
-            throw new RuntimeException('Updater execution lock path cannot be a symbolic link.');
+        $opened = fstat($lock);
+        $current = @lstat($path);
+
+        if ($opened === false || $current === false
+            || ($opened['mode'] & 0170000) !== 0100000
+            || ($current['mode'] & 0170000) !== 0100000
+            || $opened['nlink'] !== 1
+            || $current['nlink'] !== 1
+            || $opened['dev'] !== $current['dev']
+            || $opened['ino'] !== $current['ino']) {
+            throw new RuntimeException('Updater execution lock path is not an exclusive regular file.');
         }
-
-        @chmod($path, 0600);
-
-        if (! flock($lock, LOCK_EX | LOCK_NB)) {
-            fclose($lock);
-            throw new RuntimeException('Another system update is already running.');
-        }
-
-        return $lock;
     }
 
     private function exceptionSummary(Throwable $exception): string

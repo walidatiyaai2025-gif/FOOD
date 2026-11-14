@@ -839,6 +839,7 @@ return [
             'privileged_account_deletion' => 'Management identities require an authorized offboarding process and cannot use mobile self-deletion.',
             'last_super_admin' => 'The last active SUPER_ADMIN cannot be deactivated.',
             'last_super_admin_role' => 'The last active SUPER_ADMIN assignment cannot be removed.',
+            'open_operational_assignments' => 'The account has unfinished Driver or Van assignments or visits. Finish or reassign the work before deactivating the account.',
             'role_code_reserved' => 'This role code is already reserved and cannot be reused.', 'role_code_immutable' => 'A role code cannot change after creation.', 'role_scope_immutable' => 'A role scope cannot change; create a new role code.', 'role_archived' => 'This role is archived and cannot be changed or reactivated.', 'role_missing' => 'One or more selected roles do not exist.',
             'role_inactive' => 'Role :role is inactive.',
             'role_store_only' => 'Role :role is store-scoped and cannot be assigned globally.',

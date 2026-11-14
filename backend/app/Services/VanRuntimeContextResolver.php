@@ -89,8 +89,10 @@ final class VanRuntimeContextResolver
      *
      * Explicit van.login remains the primary authorization mechanism. Legacy
      * production assignments can pre-date the VAN_OPERATOR role linkage, so an
-     * active B2B/B2C Driver may also use the Van runtime only when the selected
-     * effective assignment points back to that same active Driver record.
+     * active B2B Driver may also use the Van runtime only when the selected
+     * effective assignment points back to that same active Wholesale Driver
+     * record. A Retail (B2C) Driver never inherits Van execution from an
+     * accidental assignment or a stale B2B role on a Retail driver record.
      *
      * @param  array{driver_id:?int}|null  $context
      */
@@ -112,8 +114,10 @@ final class VanRuntimeContextResolver
             return true;
         }
 
-        $hasDriverRole = $user->hasRole('B2B_DRIVER') || $user->hasRole('B2C_DRIVER');
-        if ($hasDriverRole === false) {
+        // Wholesale execution is Van-only; Retail execution is Driver-only.
+        // Never elevate a B2C driver to Van merely because an old Van assignment
+        // happens to reference the same user.
+        if (! $user->hasRole('B2B_DRIVER')) {
             return false;
         }
 
@@ -127,6 +131,7 @@ final class VanRuntimeContextResolver
         return DB::table('drivers')
             ->where('id', (int) $driverId)
             ->where('user_id', $user->id)
+            ->where('driver_type', 'b2b')
             ->where('is_active', true)
             ->exists();
     }
