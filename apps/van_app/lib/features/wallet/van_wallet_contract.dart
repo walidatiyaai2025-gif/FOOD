@@ -4,6 +4,7 @@ class VanCustomerScope {
     required this.id,
     required this.name,
     required this.storeId,
+    this.canDirectSell = false,
   });
 
   final String type;
