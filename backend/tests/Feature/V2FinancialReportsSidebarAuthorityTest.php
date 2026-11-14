@@ -195,7 +195,7 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
             [...$allocation, 'ar_document_id' => $ownDocumentId, 'idempotency_key' => 'p309-own-posted',
                 'amount' => '4.000', 'status' => 'posted', 'posted_at' => now()],
             [...$allocation, 'ar_document_id' => $ownDocumentId, 'idempotency_key' => 'p309-own-draft',
-                'amount' => '7.000', 'status' => 'draft'],
+                'amount' => '7.000', 'status' => 'draft', 'posted_at' => null],
             [...$allocation, 'ar_document_id' => $siblingDocumentId, 'idempotency_key' => 'p309-sibling-posted',
                 'amount' => '250.000', 'status' => 'posted', 'posted_at' => now()],
         ]);
