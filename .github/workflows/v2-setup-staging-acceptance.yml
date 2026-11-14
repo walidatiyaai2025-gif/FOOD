@@ -74,6 +74,7 @@ jobs:
           set -euo pipefail
           test "$GITHUB_REF_NAME" != main
           test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"
+          bash -n scripts/validate-fresh-setup.sh
           test -f backend/composer.lock
           composer validate --working-dir=backend --strict --no-check-publish
           composer install --working-dir=backend --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
