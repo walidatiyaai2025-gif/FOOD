@@ -348,7 +348,7 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
         manifest_path = self.first / "FOODEX-Update.json"
         original = manifest_path.read_text(encoding="utf-8")
         self.assertIn('"file_count": 3', original)
-        for constant in ("NaN", "Infinity", "-Infinity"):
+        for constant in ("NaN", "Infinity", "-Infinity", "1e999", "-1e999"):
             with self.subTest(constant=constant):
                 malformed = original.replace('"file_count": 3', '"file_count": ' + constant, 1)
                 manifest_path.write_text(malformed, encoding="utf-8")
