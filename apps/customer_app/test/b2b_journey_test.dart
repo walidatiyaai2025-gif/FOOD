@@ -638,9 +638,8 @@ void main() {
             'available_credit_line': 875.0,
             'purchasing_power': 875.0,
           };
-          finance[invalidField] = invalidField == 'total_purchases'
-              ? 'invalid-price'
-              : double.nan;
+          finance[invalidField] =
+              invalidField == 'total_purchases' ? 'invalid-price' : double.nan;
           final api = _PathB2bApi({
             '/api/v1/profile': {
               'customer': {'id': 19, 'type': 'b2b', 'name': 'Buyer'},
