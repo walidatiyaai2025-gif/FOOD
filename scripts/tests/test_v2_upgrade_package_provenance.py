@@ -118,7 +118,7 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
 
     def test_metadata_sidecar_invalid_utf8_fails_closed(self) -> None:
         sidecar = self.first / "FOODEX-Update.files.txt"
-        sidecar.write_bytes(b"\\xff\\xfe")
+        sidecar.write_bytes(bytes([0xFF, 0xFE]))
         with self.assertRaisesRegex(PackageContractError, "Cannot read update metadata"):
             self.verify_first()
 
