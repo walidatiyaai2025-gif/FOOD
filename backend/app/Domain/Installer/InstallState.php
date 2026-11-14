@@ -98,7 +98,7 @@ final class InstallState
         // non-null token must not be silently reset: token() would replace
         // saved progress and erase the prior setup session's recovery state.
         $token = $decoded['token'];
-        if ($token !== null && (! is_string($token) || preg_match('/^[a-f0-9]{64}$/', $token) !== 1)) {
+        if ($token !== null && (! is_string($token) || preg_match('/\\A[a-f0-9]{64}\\z/', $token) !== 1)) {
             throw new RuntimeException('Installer progress state is invalid.');
         }
 
