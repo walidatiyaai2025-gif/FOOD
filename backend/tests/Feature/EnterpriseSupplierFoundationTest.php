@@ -156,14 +156,14 @@ final class EnterpriseSupplierFoundationTest extends TestCase
         $directory = app(SupplierDirectory::class);
         $matched = $directory->create($actor, $context, [
             'scope_type' => 'store',
-            'code' => 'LIT-SUP-1',
+            'code' => 'LIT_SUP_1',
             'name_en' => 'Percent%_! Supplies',
             'name_ar' => 'عربي%_! المورد',
             'status' => 'active',
         ]);
         $lookalike = $directory->create($actor, $context, [
             'scope_type' => 'store',
-            'code' => 'LIT-SUP-2',
+            'code' => 'LITXSUPX2',
             'name_en' => 'PercentXYZ Supplies',
             'name_ar' => 'عربيXYZ المورد',
             'status' => 'active',
@@ -199,6 +199,7 @@ final class EnterpriseSupplierFoundationTest extends TestCase
             ['q' => 'email_%!', 'expected' => [$matched->id]],
             ['q' => '+965%_!', 'expected' => [$matched->id]],
             ['q' => 'TAX%_!', 'expected' => [$matched->id]],
+            ['q' => 'LIT_', 'expected' => [$matched->id]],
             ['q' => '%', 'expected' => []],
             ['q' => '_', 'expected' => []],
             ['q' => '!', 'expected' => []],
