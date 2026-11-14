@@ -291,7 +291,13 @@
                         @php($localizedUpdateState = $statusLabel(strtolower((string)$row->status)))
                         <td>{{ $localizedUpdateState }}</td>
                         <td>{{ $row->started_at ?: '—' }}</td>
-                        <td>{{ $row->failure_reason ?: '—' }}</td>
+                        <td>
+                            @if(($row->execution_evidence['maintenance_mode'] ?? null) === 'reentry_failed')
+                                <span role="alert">{{ __('admin.system_update_surface.rollback_reentry_failed') }}</span>
+                            @else
+                                {{ $row->failure_reason ?: '—' }}
+                            @endif
+                        </td>
                     </tr>
                 @empty
                     <tr><td colspan="5">{{ __('admin.system_update_surface.empty') }}</td></tr>
