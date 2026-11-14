@@ -38,6 +38,16 @@ class FoundationSmokeTest extends TestCase
 
     public function test_installer_foundation_is_available_before_lock(): void
     {
-        $this->get('/install')->assertOk()->assertSee('FOODEX Setup Wizard');
+        $this->get('/install')
+            ->assertOk()
+            ->assertSee('مثبّت FOODEX')
+            ->assertSee('lang="ar"', false)
+            ->assertSee('dir="rtl"', false);
+
+        $this->get('/install?lang=en')
+            ->assertOk()
+            ->assertSee('FOODEX Installer')
+            ->assertSee('lang="en"', false)
+            ->assertSee('dir="ltr"', false);
     }
 }
