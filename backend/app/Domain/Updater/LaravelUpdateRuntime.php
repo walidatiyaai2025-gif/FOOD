@@ -867,7 +867,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             $isExampleTemplate = $index === $lastComponent
                 && preg_match('/^\.env(?:\.[A-Za-z0-9_-]+)*\.example$/', $component) === 1;
 
-            if (preg_match('/^\.env(?:\.[^\/]+)?$/i', $component) === 1 && ! $isExampleTemplate) {
+            if (preg_match('/^\.env(?:\..*)?$/i', $component) === 1 && ! $isExampleTemplate) {
                 throw new RuntimeException('Update archive targets a protected runtime path.');
             }
         }
