@@ -147,9 +147,14 @@ final class InstallState
         $opened = fstat($lock);
         $linked = @lstat($path);
 
-        // Reject a replaced file or redirected symlink even when it was
-        // swapped between the initial filesystem check and fopen/flock.
+        // Reject a replaced file, symlink or hardlinked foreign inode before
+        // chmod or saving a token. A hardlink passes is_link() and shares the
+        // original file's permissions, so the lock must have one link only.
         if ($opened === false || $linked === false
+            || ($opened['mode'] & 0170000) !== 0100000
+            || ($linked['mode'] & 0170000) !== 0100000
+            || $opened['nlink'] !== 1
+            || $linked['nlink'] !== 1
             || $opened['dev'] !== $linked['dev']
             || $opened['ino'] !== $linked['ino']) {
             throw new RuntimeException('Installer token lock path changed unexpectedly.');
