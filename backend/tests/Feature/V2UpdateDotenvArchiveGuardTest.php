@@ -30,6 +30,8 @@ final class V2UpdateDotenvArchiveGuardTest extends TestCase
             'backend/.env',
             'backend/.env.local',
             'backend/.env.production',
+            'backend/.env.production.backup',
+            'backend/.env.local.secrets',
             'backend/.env.backup',
             'backend/.ENV',
             'backend/.Env.Secrets',
