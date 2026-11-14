@@ -619,6 +619,80 @@ void main() {
     );
   }
 
+  for (final locale in const <Locale>[Locale('ar'), Locale('en')]) {
+    for (final invalidField in const <String>[
+      'total_purchases',
+      'outstanding_receivable',
+    ]) {
+      testWidgets(
+        'B2B More fails closed on malformed $invalidField in ' +
+            locale.languageCode,
+        (tester) async {
+          final finance = <String, Object?>{
+            'currency': 'KWD',
+            'balance': -125.0,
+            'balance_direction': 'customer_owes_company',
+            'total_purchases': 400.0,
+            'total_debits': 420.0,
+            'outstanding_receivable': 125.0,
+            'credit_limit': 1000.0,
+            'available_credit_line': 875.0,
+            'purchasing_power': 875.0,
+          };
+          finance[invalidField] = invalidField == 'total_purchases'
+              ? 'invalid-price'
+              : double.nan;
+          final api = _PathB2bApi({
+            '/api/v1/profile': {
+              'customer': {'id': 19, 'type': 'b2b', 'name': 'Buyer'},
+              'business_account': {
+                'id': 27,
+                'company_name': 'Buyer Co',
+                'status': 'active',
+              },
+            },
+            '/api/v1/b2b/account-summary?store_id=7': {'data': finance},
+          });
+
+          await tester.pumpWidget(
+            FoodexCustomerApp(
+              session: const CustomerSession.authenticated(
+                CustomerChannel.b2b,
+                accessToken: 'token',
+                platformWide: true,
+              ),
+              locale: locale,
+              initialRoute: '/b2b/profile?channel=wholesale&store_id=7',
+              b2bApi: api,
+            ),
+          );
+          await _pumpCustomerFrames(tester);
+
+          final invalid = find.byKey(
+            const ValueKey('b2b-finance-summary-invalid'),
+          );
+          expect(invalid, findsOneWidget);
+          expect(
+            find.descendant(
+              of: invalid,
+              matching: find.text(
+                locale.languageCode == 'ar'
+                    ? 'تعذر تحميل البيانات. حاول مرة أخرى.'
+                    : 'Unable to load data. Please try again.',
+              ),
+            ),
+            findsOneWidget,
+          );
+          expect(find.text('0.000 KWD'), findsNothing);
+          expect(
+            Directionality.of(tester.element(invalid)),
+            locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+          );
+        },
+      );
+    }
+  }
+
   testWidgets('B2B More keeps the compact hub without inline account sections',
       (
     tester,
