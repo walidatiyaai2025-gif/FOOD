@@ -5,9 +5,10 @@ import 'package:foodex_customer_app/core/routing/customer_routes.dart';
 
 void main() {
   for (final locale in const [Locale('ar'), Locale('en')]) {
-    testWidgets('Customer diagnostics has a screen-reader label and usable note input in ${locale.languageCode}', (tester) async {
+    testWidgets(
+        'Customer diagnostics has a screen-reader label and usable note input in ${locale.languageCode}',
+        (tester) async {
       final semantics = tester.ensureSemantics();
-      addTearDown(semantics.dispose);
 
       await tester.pumpWidget(FoodexCustomerApp(
         locale: locale,
@@ -25,13 +26,15 @@ void main() {
       final label = field.decoration?.labelText;
       expect(label, isNotNull);
       expect(label!.trim(), isNotEmpty);
-      expect(RegExp(r'[\u0600-\u06ff]').hasMatch(label), locale.languageCode == 'ar');
+      expect(RegExp(r'[\u0600-\u06ff]').hasMatch(label),
+          locale.languageCode == 'ar');
       final node = tester.getSemantics(note);
       expect('${node.label} ${node.hint}', contains(label));
 
       await tester.tap(note);
       await tester.pump();
-      final input = find.descendant(of: note, matching: find.byType(EditableText));
+      final input =
+          find.descendant(of: note, matching: find.byType(EditableText));
       expect(tester.widget<EditableText>(input).focusNode.hasFocus, isTrue);
       await tester.enterText(note, 'FOODEX accessibility fixture');
       expect(find.text('FOODEX accessibility fixture'), findsOneWidget);
@@ -41,6 +44,7 @@ void main() {
       await tester.pump();
       expect(tester.widget<FilledButton>(export).onPressed, isNotNull);
       expect(tester.getSemantics(export).label.trim(), isNotEmpty);
+      semantics.dispose();
     });
   }
 }
