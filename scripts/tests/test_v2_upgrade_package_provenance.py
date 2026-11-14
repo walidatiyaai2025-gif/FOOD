@@ -32,6 +32,7 @@ def build_bundle(
     old: str = "1.0.124",
     new: str = "1.0.125",
     source: str = SHA125,
+    source_base: str = BASE,
     entries: list[tuple[str, bytes, bool]] | None = None,
     redeploy: bool = False,
     special_mode: int | None = None,
@@ -65,7 +66,7 @@ def build_bundle(
         "package": archive_path.name,
         "target_version": new,
         "minimum_current_version": old,
-        "source_base": BASE,
+        "source_base": source_base,
         "source_commit": source,
         "sha256": digest,
         "contains_migrations": bool(migrations),
@@ -110,6 +111,7 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
     def test_exact_historical_pair_cli_accepts_only_124_125_and_125_127(self) -> None:
         second = build_bundle(
             self.root / "125-127", old="1.0.125", new="1.0.127", source=SHA127,
+            source_base=SHA125,
         )
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
@@ -123,6 +125,29 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
         self.assertEqual("archive_integrity_only", result["status"])
         self.assertEqual(["1.0.125", "1.0.127"],
                          [row["to"] for row in result["verified_edges"]])
+
+    def test_disconnected_source_chain_fails_even_when_each_zip_is_independently_valid(self) -> None:
+        # Both archives have internally consistent manifests, hashes, versions
+        # and source SHAs. The second package is nonetheless built from a
+        # different Git source than the first package actually delivered.
+        second = build_bundle(
+            self.root / "125-127", old="1.0.125", new="1.0.127",
+            source=SHA127, source_base=BASE,
+        )
+        self.assertEqual(SHA125, self.verify_first()["source_commit"])
+        second_report = validate_package(
+            second, installed_version="1.0.125", target_version="1.0.127",
+            expected_source_commit=SHA127,
+        )
+        self.assertEqual(BASE, second_report["source_base"])
+        self.assertNotEqual(SHA125, second_report["source_base"])
+        with self.assertRaisesRegex(PackageContractError, "source lineage mismatch"):
+            main([
+                "--upgrade-124-125", str(self.first),
+                "--upgrade-125-127", str(second),
+                "--source-125", SHA125,
+                "--source-127", SHA127,
+            ])
 
     def test_symlinked_package_directory_is_rejected_before_reading_assets(self) -> None:
         alias = self.root / "linked-124-125"
