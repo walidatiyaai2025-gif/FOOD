@@ -69,7 +69,7 @@ final class V2UpdaterArchiveNamespaceCollisionTest extends TestCase
             $this->releaseName.'/sentinel.txt' => 'should not overwrite',
             $this->releaseName.'/module' => 'a file, not a directory',
             $this->releaseName.'/module/Feature.php' => 'illegal child',
-        ], 'Update archive contains conflicting file and directory targets.');
+        ], 'Update archive contains a file/directory target conflict.');
     }
 
     public function test_file_child_before_parent_is_rejected_before_any_file_mutation(): void
@@ -78,7 +78,7 @@ final class V2UpdaterArchiveNamespaceCollisionTest extends TestCase
             $this->releaseName.'/sentinel.txt' => 'should not overwrite',
             $this->releaseName.'/module/Feature.php' => 'illegal child',
             $this->releaseName.'/module' => 'a file, not a directory',
-        ], 'Update archive contains conflicting file and directory targets.');
+        ], 'Update archive contains a file/directory target conflict.');
     }
 
     public function test_case_alias_file_parent_is_rejected_before_any_file_mutation(): void
@@ -87,7 +87,26 @@ final class V2UpdaterArchiveNamespaceCollisionTest extends TestCase
             $this->releaseName.'/sentinel.txt' => 'should not overwrite',
             $this->releaseName.'/Module' => 'a file, not a directory',
             $this->releaseName.'/module/Feature.php' => 'illegal child',
-        ], 'Update archive contains conflicting file and directory targets.');
+        ], 'Update archive contains a file/directory target conflict.');
+    }
+
+    public function test_nested_ancestor_file_conflict_fails_closed_in_both_member_orders(): void
+    {
+        foreach ([
+            [
+                $this->releaseName.'/Module' => 'not a directory',
+                $this->releaseName.'/module/Nested/Feature.php' => 'illegal grandchild',
+            ],
+            [
+                $this->releaseName.'/module/Nested/Feature.php' => 'illegal grandchild',
+                $this->releaseName.'/Module' => 'not a directory',
+            ],
+        ] as $entries) {
+            $this->assertArchiveRejected([
+                $this->releaseName.'/sentinel.txt' => 'should not overwrite',
+                ...$entries,
+            ], 'Update archive contains a file/directory target conflict.');
+        }
     }
 
     public function test_distinct_canonical_release_paths_still_extract_and_rollback_safely(): void
