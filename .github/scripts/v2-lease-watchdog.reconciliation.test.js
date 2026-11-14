@@ -26,9 +26,25 @@ test('a handoff marker resets the claim origin for a successor', () => {
   assert.equal(c.createdMs, Date.parse('2026-11-10T09:50:00Z'));
   assert.equal(c.claimId,3);
 });
-test('fully integrated issues are not considered active claims', () => {
-  assert.equal(parseClaim([state(1,'2026-11-10T09:00:00Z'),
-    state(2,'2026-11-10T09:30:00Z','unassigned','INTEGRATED_PENDING_ACCEPTANCE')]), null);
+test('fully integrated and composite handoff states are not live claims', () => {
+  for (const status of ['INTEGRATED_PENDING_ACCEPTANCE',
+    'INTEGRATED_BOUNDED_TEST / LEASE_RELEASED',
+    'HANDOFF_READY / CI_COMPLETED', 'HANDOFF / BLOCKED']) {
+    assert.equal(parseClaim([state(1,'2026-11-10T09:00:00Z'),
+      state(2,'2026-11-10T09:30:00Z','unassigned',status)]), null, status);
+  }
+});
+test('canonical issue PR number survives status checkpoints without a repeated PR field', () => {
+  for (const spelling of ['#4455', '4455', '#4455 (DRAFT)']) {
+    const first=state(1,'2026-11-10T09:20:00Z');
+    first.body+='\nPR: '+spelling;
+    const parsed=parseClaim([first,state(2,'2026-11-10T09:25:00Z','worker-a','WAITING_CI')]);
+    assert.equal(parsed.pr,4455,spelling);
+    assert.equal(parsed.createdMs,Date.parse('2026-11-10T09:20:00Z'));
+  }
+  const untrusted=state(1,'2026-11-10T09:20:00Z');
+  untrusted.body+='\nPR: https://github.com/example/FOOD/pull/4455';
+  assert.equal(parseClaim([untrusted]).pr,0);
 });
 test('GitHub Search item pagination and REST array pagination both work', async () => {
   assert.deepEqual(await listPages(async()=>({data:{items:[{number:2929}]}}),{},2),[{number:2929}]);
@@ -40,16 +56,40 @@ test('malformed GitHub API payload fails closed rather than silently skipping', 
 test('incomplete GitHub API page cap fails closed', async () => {
   await assert.rejects(listPages(async()=>({data:Array.from({length:100},(_,i)=>i)}),{},2),/pagination limit/);
 });
+test('paginated exact-head check and workflow collections include later pages', async () => {
+  for (const key of ['check_runs', 'workflow_runs']) {
+    const collected=await listPages(async args=>({data:{[key]:args.page===1
+      ? Array.from({length:100},(_,i)=>({id:i,status:'completed'}))
+      : [{id:101,status:'queued'}]}}),{},3,key);
+    assert.equal(collected.length,101,key);
+    assert.equal(collected[100].status,'queued',key);
+    await assert.rejects(listPages(async()=>({data:{[key]:Array(100).fill({status:'completed'})}}),
+      {},2,key),/pagination limit/);
+    await assert.rejects(listPages(async()=>({data:{items:[]}}),{},2,key),
+      /pagination payload/);
+  }
+});
 
 function harness(opts={}) {
   const issue = { number:2929, title:'V2 | AUTO-LEASE example', state:'open',
     labels: [{name:'worker:active'}, ...(opts.humanGate ? [{name:'gate:human'}] : [])] };
-  const mutations=[]; let branchReads=0, commentReads=0;
+  const mutations=[]; let branchReads=0, commentReads=0, prReads=0;
   const oldState = state(1,'2026-11-10T09:20:00Z');
+  if (opts.claimPr) oldState.body+='\nPR: #4455 (DRAFT)';
   const freshState = state(2,'2026-11-10T09:59:00Z','worker-b');
+  const matchingPr = { number:4455, merged:Boolean(opts.mergedPr),
+    merged_at:opts.mergedPr?'2026-11-10T09:40:00Z':null,
+    state:opts.closedOriginalPr || opts.mergedPr ? 'closed' : 'open',
+    base:{ref:opts.foreignPr?'main':'Foodex_V2'},
+    head:{ref:opts.foreignPr?'feat/unrelated':'feat/2929-lease-tests'} };
+  const terminalRuns=Array.from({length:100},(_,i)=>({id:i,head_sha:'old-head',status:'completed'}));
   const github = { rest: {
     search:{issuesAndPullRequests:async()=>({data:{items:[issue]}})},
-    pulls:{list:async()=>({data:[]})},
+    pulls:{list:async()=>({data:[]}),get:async()=>{
+      prReads++;
+      return {data:opts.originalPrClosesMidSweep&&prReads>1
+        ? {...matchingPr,state:'closed',merged:false,merged_at:null} : matchingPr};
+    }},
     issues:{
       listComments:async()=>{commentReads++;return {data:commentReads>1&&opts.newClaim?[oldState,freshState]:[oldState]};},
       get:async()=>({data:issue}),
@@ -63,9 +103,23 @@ function harness(opts={}) {
       getCommit:async()=>({data:{commit:{committer:{date:opts.recentCommit?
         '2026-11-10T09:50:00Z':'2026-11-10T09:20:00Z'}}}}),
     },
-    checks:{listForRef:async()=>({data:{check_runs:opts.queuedCi?[{name:'required-ci-gate',status:'queued'}]:[]}})},
-    actions:{listWorkflowRunsForRepo:async()=>({data:{workflow_runs:opts.runningWorkflow?
-      [{name:'FOODEX Required CI Gate',head_sha:'old-head',status:'in_progress'}]:[]}})},
+    checks:{listForRef:async args=>{
+      if (opts.malformedChecksPageTwo && args.page===2) return {data:{wrong_collection:[]}};
+      if (opts.tooManyChecks) return {data:{check_runs:terminalRuns}};
+      if (opts.activeCheckPageTwo) return {data:{check_runs:args.page===1
+        ? terminalRuns : [{id:101,name:'required-ci-gate',status:'queued'}]}};
+      return {data:{check_runs:opts.queuedCi?[{name:'required-ci-gate',status:'queued'}]:[]}};
+    }},
+    actions:{listWorkflowRunsForRepo:async args=>{
+      if (opts.malformedWorkflowsPageTwo && args.page===2) return {data:{wrong_collection:[]}};
+      if (opts.tooManyWorkflows) return {data:{workflow_runs:terminalRuns}};
+      if (opts.activeWorkflowPageTwo || opts.unrelatedWorkflowPageTwo)
+        return {data:{workflow_runs:args.page===1 ? terminalRuns :
+          [{id:101,name:'FOODEX Required CI Gate',
+            head_sha:opts.unrelatedWorkflowPageTwo?'different-head':'old-head',status:'in_progress'}]}};
+      return {data:{workflow_runs:opts.runningWorkflow?
+        [{name:'FOODEX Required CI Gate',head_sha:'old-head',status:'in_progress'}]:[]}};
+    }},
   }};
   return {github, mutations, getBranchReads:()=>branchReads};
 }
@@ -81,6 +135,49 @@ test('stale issue releases original labels, preserves branch/PR and records audi
   assert.deepEqual(out.mutations,['remove:worker:active','add:worker:handoff-ready','comment']);
   assert.equal(out.getBranchReads(),2);
 });
+test('merged original PR clears obsolete worker claim, never offers a duplicate PR', async () => {
+  const out=await sweep({claimPr:true,mergedPr:true});
+  assert.deepEqual(out.mutations,['remove:worker:active','comment']);
+  assert.equal(out.result.released,0);
+  assert.equal(out.getBranchReads(),2);
+});
+test('merged PR does not override active queued CI or a racing successor lease', async () => {
+  for(const opts of [{queuedCi:true},{runningWorkflow:true},{newClaim:true},{branchMoves:true}]) {
+    const out=await sweep({...opts,claimPr:true,mergedPr:true});
+    assert.equal(out.result.released,0);
+    assert.deepEqual(out.mutations,[],JSON.stringify(opts));
+  }
+});
+test('unmerged original PR keeps normal stale lease release behavior', async () => {
+  const out=await sweep({claimPr:true,mergedPr:false});
+  assert.deepEqual(out.mutations,['remove:worker:active','add:worker:handoff-ready','comment']);
+});
+test('closed unmerged original PR is approval-gated, never handed off or recreated', async () => {
+  const out=await sweep({claimPr:true,closedOriginalPr:true});
+  assert.deepEqual(out.result,{scanned:1,released:0,active:0});
+  assert.deepEqual(out.mutations,['remove:worker:active','add:gate:approval','comment']);
+  assert.equal(out.getBranchReads(),2);
+});
+test('closed original PR gate respects queued CI and a racing successor or branch', async () => {
+  for (const opts of [{queuedCi:true},{runningWorkflow:true},{newClaim:true},{branchMoves:true}]) {
+    const out=await sweep({...opts,claimPr:true,closedOriginalPr:true});
+    assert.equal(out.result.released,0);
+    assert.deepEqual(out.mutations,[],JSON.stringify(opts));
+  }
+});
+test('unrelated or foreign closed PR cannot be used to gate an Issue lease', async () => {
+  const out=await sweep({claimPr:true,closedOriginalPr:true,foreignPr:true});
+  assert.deepEqual(out.mutations,['remove:worker:active','add:worker:handoff-ready','comment']);
+});
+test('administrative PR closure racing with stale release aborts handoff', async () => {
+  const out=await sweep({claimPr:true,originalPrClosesMidSweep:true});
+  assert.equal(out.result.released,0);
+  assert.deepEqual(out.mutations,[]);
+});
+test('unrelated merged PR cannot override issue lease or prevent normal expiry', async () => {
+  const out=await sweep({claimPr:true,mergedPr:true,foreignPr:true});
+  assert.deepEqual(out.mutations,['remove:worker:active','add:worker:handoff-ready','comment']);
+});
 test('29-minute boundary keeps worker reserved', async () => {
   const out=await sweep({nowMs:Date.parse('2026-11-10T09:49:59Z')});
   assert.equal(out.result.released,0);
@@ -95,6 +192,28 @@ test('queued check or workflow on exact head protects worker', async () => {
     const out=await sweep(opts);
     assert.equal(out.result.released,0);
     assert.deepEqual(out.mutations,[]);
+  }
+});
+test('active check or exact-head workflow on page two protects a 30-minute lease', async () => {
+  for (const opts of [{activeCheckPageTwo:true},{activeWorkflowPageTwo:true}]) {
+    const out=await sweep(opts);
+    assert.equal(out.result.released,0);
+    assert.deepEqual(out.mutations,[],JSON.stringify(opts));
+  }
+});
+test('page-two workflow for unrelated SHA does not renew an idle branch lease', async () => {
+  const out=await sweep({unrelatedWorkflowPageTwo:true});
+  assert.equal(out.result.released,1);
+  assert.deepEqual(out.mutations,['remove:worker:active','add:worker:handoff-ready','comment']);
+});
+test('incomplete or malformed CI pagination fails closed without issue mutations', async () => {
+  for (const opts of [{malformedChecksPageTwo:true,activeCheckPageTwo:true},
+    {malformedWorkflowsPageTwo:true,activeWorkflowPageTwo:true},
+    {tooManyChecks:true},{tooManyWorkflows:true}]) {
+    const h=harness(opts);
+    await assert.rejects(run({github:h.github,context:{repo:{owner:'example',repo:'FOOD'}},
+      core:{info:()=>{}},nowMs:now}),/pagination (payload|limit)/,JSON.stringify(opts));
+    assert.deepEqual(h.mutations,[],JSON.stringify(opts));
   }
 });
 test('a worker claim made during scan aborts release', async () => {

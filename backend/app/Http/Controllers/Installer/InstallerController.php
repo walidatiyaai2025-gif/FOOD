@@ -23,6 +23,7 @@ class InstallerController extends Controller
         InstallerWorkflow $workflow,
     ): View {
         $this->ensureInstallerOpen($state);
+        $this->setInstallerLocale($request, $environment);
 
         $progress = $state->progress();
         $allowedStep = min(InstallerChecklist::count(), $progress['completed_step'] + 1);
@@ -48,13 +49,14 @@ class InstallerController extends Controller
     ): RedirectResponse|Response {
         $this->ensureInstallerOpen($state);
         abort_unless($step >= 1 && $step <= InstallerChecklist::count(), 404);
+        $this->setInstallerLocale($request, $environment);
 
         $submittedToken = (string) $request->input('installer_token', '');
         abort_if($submittedToken === '' || ! hash_equals($state->token(), $submittedToken), 419);
 
         $progress = $state->progress();
         $allowedStep = min(InstallerChecklist::count(), $progress['completed_step'] + 1);
-        abort_if($step > $allowedStep, 409, 'Installer steps must be completed in order.');
+        abort_if($step > $allowedStep, 409, (string) __('installer.errors.step_order'));
 
         try {
             $admin = null;
@@ -174,15 +176,28 @@ class InstallerController extends Controller
                     break;
 
                 case 11:
-                    $workflow->runMigrations();
+                    // A completed step may be posted again after a refresh. Do not
+                    // execute migrations twice; failed first attempts remain retryable.
+                    if ($progress['completed_step'] < 11) {
+                        $workflow->runMigrations();
+                    }
                     break;
 
                 case 12:
-                    $workflow->seedRequiredCoreData();
+                    // Replaying a completed step must not reset seeded reference
+                    // or administrator-managed data. First attempts can still retry.
+                    if ($progress['completed_step'] < 12) {
+                        $workflow->seedRequiredCoreData();
+                    }
                     break;
 
                 case 13:
-                    $workflow->generateApplicationKey();
+                    // Step 13 is repeatable as an HTTP request, but key rotation is
+                    // not. Keep ciphertext generated after the first completion
+                    // readable when the installer form is refreshed or resubmitted.
+                    if ($progress['completed_step'] < 13) {
+                        $workflow->generateApplicationKey();
+                    }
                     break;
 
                 case 14:
@@ -192,7 +207,7 @@ class InstallerController extends Controller
                 case 15:
                     $admin = $progress['admin'];
                     if ($admin === null) {
-                        throw new RuntimeException('Super Admin setup is incomplete. Return to step 7 and provide the account details.');
+                        throw new RuntimeException((string) __('installer.errors.admin_incomplete'));
                     }
 
                     $workflow->finish($admin);
@@ -202,9 +217,13 @@ class InstallerController extends Controller
 
             $state->markStepComplete($step, $admin);
 
-            return redirect()->route('install.index', [
-                'step' => min(InstallerChecklist::count(), $step + 1),
-            ]);
+            $next = ['step' => min(InstallerChecklist::count(), $step + 1)];
+            $queryLocale = $request->query('lang');
+            if (is_string($queryLocale) && in_array($queryLocale, ['ar', 'en'], true)) {
+                $next['lang'] = $queryLocale;
+            }
+
+            return redirect()->route('install.index', $next);
         } catch (RuntimeException $exception) {
             return response()->view('install.index', $this->viewData(
                 $state,
@@ -230,7 +249,12 @@ class InstallerController extends Controller
      */
     private function validated(Request $request, array $rules): array
     {
-        $validator = Validator::make($request->all(), $rules);
+        $validator = Validator::make(
+            $request->all(),
+            $rules,
+            (array) __('installer.validation'),
+            (array) __('installer.fields'),
+        );
 
         if ($validator->fails()) {
             throw new RuntimeException(implode(' ', $validator->errors()->all()));
@@ -273,9 +297,28 @@ class InstallerController extends Controller
             'input' => $input,
             'errorMessages' => $errorMessages,
             'installerToken' => $state->token(),
+            'installerLocale' => app()->getLocale(),
+            'languageQuery' => in_array(request()->query('lang'), ['ar', 'en'], true)
+                ? request()->query('lang')
+                : null,
             'requirementFailures' => $currentStep === 2 ? $workflow->serverRequirementFailures() : [],
             'permissionFailures' => $currentStep === 3 ? $workflow->writablePathFailures() : [],
         ];
+    }
+
+    private function setInstallerLocale(Request $request, InstallerEnvironment $environment): void
+    {
+        $requested = $request->query('lang');
+        if (is_string($requested) && in_array($requested, ['ar', 'en'], true)) {
+            app()->setLocale($requested);
+
+            return;
+        }
+
+        // The saved platform locale is the default; requesting a different
+        // display language must never write .env or mutate installer progress.
+        $saved = $environment->read(['APP_LOCALE'])['APP_LOCALE'] ?? null;
+        app()->setLocale($saved === 'en' ? 'en' : 'ar');
     }
 
     private function ensureInstallerOpen(InstallState $state): void

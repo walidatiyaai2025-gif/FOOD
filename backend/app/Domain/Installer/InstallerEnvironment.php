@@ -38,18 +38,105 @@ final class InstallerEnvironment
         }
 
         $path = $this->path();
+        // The .env rename is atomic, but its read/modify/write sequence is not.
+        // Lock a persistent inode outside the replaceable .env file so two
+        // setup requests cannot silently discard each other's managed fields.
+        $lockPath = (string) config(
+            'foodex.installer_env_lock_path',
+            storage_path('framework/installer-env-locks/'.hash('sha256', $path).'.lock'),
+        );
+        $this->rejectSymbolicLink($lockPath);
+
+        $directory = dirname($lockPath);
+        if (! is_dir($directory) && ! @mkdir($directory, 0750, true) && ! is_dir($directory)) {
+            throw new RuntimeException('Installer environment write lock directory is not writable.');
+        }
+
+        $this->rejectSymbolicLink($lockPath);
+        $lock = @fopen($lockPath, 'c');
+        if ($lock === false) {
+            throw new RuntimeException('Installer environment write lock could not be opened.');
+        }
+
+        try {
+            $this->assertSafeWriteLock($lockPath, $lock);
+            if (! flock($lock, LOCK_EX)) {
+                throw new RuntimeException('Installer environment write lock could not be acquired.');
+            }
+
+            $this->assertSafeWriteLock($lockPath, $lock);
+            @chmod($lockPath, 0640);
+            $this->writeWithLock($path, $values);
+        } finally {
+            @flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    /**
+     * @param  resource  $lock
+     */
+    private function assertSafeWriteLock(string $lockPath, $lock): void
+    {
+        $this->rejectSymbolicLink($lockPath);
+        clearstatcache(true, $lockPath);
+
+        $opened = fstat($lock);
+        $current = @lstat($lockPath);
+
+        // Refuse symlink swaps, hardlinked external files and replaced inodes.
+        // Never change permissions on an unverified lock file.
+        if ($opened === false || $current === false
+            || ($opened['mode'] & 0170000) !== 0100000
+            || ($current['mode'] & 0170000) !== 0100000
+            || $opened['nlink'] !== 1
+            || $current['nlink'] !== 1
+            || $opened['dev'] !== $current['dev']
+            || $opened['ino'] !== $current['ino']) {
+            throw new RuntimeException('Installer environment write lock path changed unexpectedly.');
+        }
+    }
+
+    /**
+     * @param  array<string, scalar|null>  $values
+     */
+    private function writeWithLock(string $path, array $values): void
+    {
         $this->rejectSymbolicLink($path);
         $this->ensureEnvironmentFile($path);
         $this->rejectSymbolicLink($path);
-        $content = (string) file_get_contents($path);
+        $content = file_get_contents($path);
+        if ($content === false) {
+            throw new RuntimeException('Environment configuration could not be read.');
+        }
 
         foreach ($values as $key => $value) {
-            $line = $key.'='.$this->encodeValue($value);
-            $pattern = '/^'.preg_quote($key, '/').'\s*=.*$/m';
+            // The explicit missing Redis password is the one intentional
+            // unquoted dotenv null sentinel. A user-typed string "null" must
+            // instead remain a literal credential (and be quoted below).
+            $encodedValue = $key === 'REDIS_PASSWORD' && $value === null
+                ? 'null'
+                : $this->encodeValue($value, $key);
+            $line = $key.'='.$encodedValue;
+            // Read() uses the last .env assignment: after any installer write,
+            // ensure the managed key has only one effective definition.
+            $pattern = '/^[ \t]*'.preg_quote($key, '/').'[ \t]*=.*$/m';
+            $found = false;
+            $content = (string) preg_replace_callback(
+                $pattern,
+                static function () use ($line, &$found): string {
+                    if ($found) {
+                        return '';
+                    }
 
-            if (preg_match($pattern, $content) === 1) {
-                $content = (string) preg_replace_callback($pattern, static fn (): string => $line, $content, 1);
-            } else {
+                    $found = true;
+
+                    return $line;
+                },
+                $content,
+            );
+
+            if (! $found) {
                 $content = rtrim($content).PHP_EOL.$line.PHP_EOL;
             }
         }
@@ -62,9 +149,18 @@ final class InstallerEnvironment
 
         @chmod($temporary, 0600);
 
-        if (! @rename($temporary, $path)) {
-            @unlink($temporary);
-            throw new RuntimeException('Environment configuration could not be finalized.');
+        try {
+            // Recheck just before the final rename: a containing directory
+            // might have changed since the initial read and backup write.
+            $this->rejectSymbolicLink($path);
+
+            if (! @rename($temporary, $path)) {
+                throw new RuntimeException('Environment configuration could not be finalized.');
+            }
+        } finally {
+            if (is_file($temporary) || is_link($temporary)) {
+                @unlink($temporary);
+            }
         }
     }
 
@@ -135,14 +231,30 @@ final class InstallerEnvironment
 
     private function rejectSymbolicLink(string $path): void
     {
-        clearstatcache(true, $path);
+        // A regular .env beneath a symlinked directory still follows that link
+        // on read, initialization and replacement. Trust the configured
+        // application root, but reject links in every descendant path segment.
+        $trustedRoot = rtrim(base_path(), '/\\');
+        $candidate = $path;
 
-        if (is_link($path)) {
-            throw new RuntimeException('Environment configuration path cannot be a symbolic link.');
+        while ($candidate !== $trustedRoot) {
+            clearstatcache(true, $candidate);
+
+            if (is_link($candidate)) {
+                throw new RuntimeException('Environment configuration path cannot be a symbolic link.');
+            }
+
+            $parent = dirname($candidate);
+
+            if ($parent === $candidate) {
+                break;
+            }
+
+            $candidate = $parent;
         }
     }
 
-    private function encodeValue(mixed $value): string
+    private function encodeValue(mixed $value, string $key): string
     {
         if ($value === null) {
             return '';
@@ -152,6 +264,13 @@ final class InstallerEnvironment
 
         if ($string === '') {
             return '""';
+        }
+
+        // Laravel env() coerces unquoted true/false/null/empty to non-string
+        // values. Preserve literal credentials, but keep APP_DEBUG=false
+        // unquoted: Laravel must read it as a boolean, not truthy text.
+        if ($key !== 'APP_DEBUG' && in_array(strtolower($string), ['true', 'false', 'null', 'empty'], true)) {
+            return '"'.$string.'"';
         }
 
         if (preg_match('/^[A-Za-z0-9_\.\-:\/@]+$/', $string) === 1) {
@@ -170,11 +289,27 @@ final class InstallerEnvironment
         if (strlen($value) >= 2 && $value[0] === '"' && $value[strlen($value) - 1] === '"') {
             $value = substr($value, 1, -1);
 
-            return str_replace(
-                ['\\n', '\\r', '\\"', '\\\\'],
-                ["\n", "\r", '"', '\\'],
-                $value,
-            );
+            // Process escapes once: decoding an escaped backslash must not
+            // turn a following literal "n" or "r" into a control character.
+            $decoded = '';
+            for ($index = 0, $length = strlen($value); $index < $length; $index++) {
+                if ($value[$index] !== '\\' || $index + 1 >= $length) {
+                    $decoded .= $value[$index];
+
+                    continue;
+                }
+
+                $escaped = $value[++$index];
+                $decoded .= match ($escaped) {
+                    'n' => "\n",
+                    'r' => "\r",
+                    '"' => '"',
+                    '\\' => '\\',
+                    default => '\\'.$escaped,
+                };
+            }
+
+            return $decoded;
         }
 
         if (strlen($value) >= 2 && $value[0] === "'" && $value[strlen($value) - 1] === "'") {

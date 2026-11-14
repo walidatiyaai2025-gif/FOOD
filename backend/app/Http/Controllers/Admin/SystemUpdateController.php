@@ -91,15 +91,15 @@ final class SystemUpdateController extends Controller
         $upload->move($directory, $fileName);
         $packagePath = $directory.'/'.$fileName;
 
-        $manifest = new UpdatePackageManifest(
-            (string) $validated['target_version'],
-            (string) $validated['minimum_current_version'],
-            strtolower((string) $validated['sha256']),
-            (string) ($validated['release_notes'] ?? ''),
-            $this->packageContainsMigrations($packagePath) || $request->boolean('contains_migrations'),
-        );
-
         try {
+            $manifest = new UpdatePackageManifest(
+                (string) $validated['target_version'],
+                (string) $validated['minimum_current_version'],
+                strtolower((string) $validated['sha256']),
+                (string) ($validated['release_notes'] ?? ''),
+                $this->packageContainsMigrations($packagePath) || $request->boolean('contains_migrations'),
+            );
+
             $history = $this->manager->execute(
                 $manifest,
                 $this->currentVersion(),
@@ -115,7 +115,9 @@ final class SystemUpdateController extends Controller
 
             return redirect()
                 ->route('admin.system-update.index')
-                ->with('status', 'Update '.$history->to_version.' completed successfully.');
+                ->with('status', __('admin.system_update_surface.update_completed', [
+                    'version' => $history->to_version,
+                ]));
         } catch (RuntimeException $exception) {
             return redirect()
                 ->route('admin.system-update.index')
@@ -200,19 +202,37 @@ final class SystemUpdateController extends Controller
 
     private function packageContainsMigrations(string $packagePath): bool
     {
+        // The Dashboard calls this before UpdateManager validates the ZIP.
+        // Bound this scan independently: the validator's ZIP member budget
+        // cannot protect an earlier upload-time member enumeration.
+        if (! class_exists(ZipArchive::class)) {
+            throw new RuntimeException(__('admin.system_update_surface.not_applied'));
+        }
+
         $archive = new ZipArchive;
 
         if ($archive->open($packagePath) !== true) {
-            return false;
+            throw new RuntimeException(__('admin.system_update_surface.not_applied'));
         }
 
         try {
+            $maxMembers = max(1, (int) config('foodex.update_max_zip_members', 50000));
+            if ($archive->numFiles > $maxMembers) {
+                throw new RuntimeException(__('admin.system_update_surface.not_applied'));
+            }
+
             for ($index = 0; $index < $archive->numFiles; $index++) {
                 $name = $archive->getNameIndex($index);
 
-                if (is_string($name)
-                    && str_starts_with(str_replace('\\\\', '/', $name), 'backend/database/migrations/')
-                    && str_ends_with($name, '.php')) {
+                if (! is_string($name)) {
+                    continue;
+                }
+
+                // Match validator migration classification on case-insensitive
+                // hosts as well as canonical Linux release layouts.
+                $relativePath = strtolower(str_replace('\\', '/', trim($name)));
+                if (str_starts_with($relativePath, 'backend/database/migrations/')
+                    && str_ends_with($relativePath, '.php')) {
                     return true;
                 }
             }

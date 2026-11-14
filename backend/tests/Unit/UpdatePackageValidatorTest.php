@@ -14,8 +14,13 @@ class UpdatePackageValidatorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
         $this->packagePath = tempnam(sys_get_temp_dir(), 'foodex-update-');
-        file_put_contents($this->packagePath, 'signed release payload');
+        if (! class_exists(\ZipArchive::class)) {
+            $this->markTestSkipped('The ZIP extension is required for package validation.');
+        }
+
+        $this->createZipPackage(['release-notes.txt']);
     }
 
     protected function tearDown(): void
@@ -30,6 +35,46 @@ class UpdatePackageValidatorTest extends TestCase
         $result = (new UpdatePackageValidator)->validate($manifest, '1.1.0', $this->packagePath);
         $this->assertSame('1.2.0', $result['target_version']);
         $this->assertTrue($result['contains_migrations']);
+    }
+
+    public function test_matching_checksum_does_not_authorize_a_non_zip_update_package(): void
+    {
+        file_put_contents($this->packagePath, 'This is not a ZIP archive.');
+
+        $manifest = new UpdatePackageManifest(
+            '1.2.0',
+            '1.0.0',
+            hash_file('sha256', $this->packagePath),
+            'Invalid release',
+            false,
+        );
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('not a readable ZIP archive');
+
+        (new UpdatePackageValidator)->validate($manifest, '1.1.0', $this->packagePath);
+    }
+
+    public function test_truncated_zip_is_rejected_even_when_manifest_hash_matches(): void
+    {
+        $this->createZipPackage(['backend/app/Example.php']);
+        $contents = file_get_contents($this->packagePath);
+        $this->assertIsString($contents);
+        $this->assertGreaterThan(30, strlen($contents));
+        file_put_contents($this->packagePath, substr($contents, 0, 24));
+
+        $manifest = new UpdatePackageManifest(
+            '1.2.0',
+            '1.0.0',
+            hash_file('sha256', $this->packagePath),
+            'Truncated release',
+            false,
+        );
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('not a readable ZIP archive');
+
+        (new UpdatePackageValidator)->validate($manifest, '1.1.0', $this->packagePath);
     }
 
     public function test_migration_zip_cannot_bypass_database_backup_when_manifest_flag_is_false(): void

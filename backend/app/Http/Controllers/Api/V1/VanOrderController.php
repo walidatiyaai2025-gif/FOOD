@@ -286,24 +286,30 @@ final class VanOrderController extends Controller
         int $customer,
         int $storeId,
     ): void {
-        abort_unless(in_array($type, ['b2b', 'b2c'], true), 404);
+        // Van-originated direct sales are Wholesale/B2B only, regardless of
+        // legacy B2C visits or customer IDs exposed by older mobile clients.
+        abort_unless($type === 'b2b', 404);
 
-        $query = VanVisit::query()
+        // A historical visit in another store must never authorize selling
+        // from the Van's currently assigned Wholesale store.
+        abort_unless(VanVisit::query()
             ->where('actor_user_id', $actor->getKey())
-            ->where('customer_type', $type)
-            ->where('customer_id', $customer);
-
-        if ($this->runtimeStoreId($request) === null) {
-            $query->where('store_id', $storeId);
-        }
-
-        abort_unless($query->exists(), 404);
+            ->where('customer_type', 'b2b')
+            ->where('customer_id', $customer)
+            ->where('store_id', $storeId)
+            // A completed/closed historical visit is not an authorization
+            // grant for another sale. Collections retain their own scope.
+            ->whereIn('status', ['planned', 'started'])
+            ->exists(), 404);
     }
 
     private function sellerStoreId(Request $request, mixed $requestedStoreId): int
     {
         $runtimeStoreId = $this->runtimeStoreId($request);
         if ($runtimeStoreId !== null) {
+            // Do not silently reinterpret a stale or tampered store selection.
+            abort_if($requestedStoreId !== null && (int) $requestedStoreId !== $runtimeStoreId, 404);
+
             return $runtimeStoreId;
         }
 
@@ -347,11 +353,14 @@ final class VanOrderController extends Controller
             ->where('catalogs.is_active', true)
             ->where('catalogs.is_migration_quarantine', false)
             ->when($search !== '', function ($query) use ($search): void {
-                $like = '%'.$search.'%';
+                // Treat operator-entered % and _ as text, not SQL wildcards.
+                // A fixed escape marker and bound values work on MySQL and SQLite.
+                $literal = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search);
+                $like = '%'.$literal.'%';
                 $query->where(function ($nested) use ($like): void {
-                    $nested->where('products.name', 'like', $like)
-                        ->orWhere('products.sku', 'like', $like)
-                        ->orWhere('products.barcode', 'like', $like);
+                    $nested->whereRaw("products.name LIKE ? ESCAPE '!'", [$like])
+                        ->orWhereRaw("products.sku LIKE ? ESCAPE '!'", [$like])
+                        ->orWhereRaw("products.barcode LIKE ? ESCAPE '!'", [$like]);
                 });
             })
             ->orderBy('products.name')

@@ -23,8 +23,8 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
- * V2 #2615 / P285: the Receivables Sidebar children project the same
- * store-specific AR/AP capabilities as the canonical Finance HTTP tabs.
+ * V2 #2615 / P285 and #2628 / P298: Receivables and Supplier Settlements
+ * project store-specific AR/AP capabilities to their canonical Finance tabs.
  */
 final class V2ReceivablesSidebarGroupAuthorityTest extends TestCase
 {
@@ -47,7 +47,10 @@ final class V2ReceivablesSidebarGroupAuthorityTest extends TestCase
         [$actor, $store, $context] = $this->reader('V2-P285-OWN');
         $this->enableFinance($actor, $context);
 
-        foreach (['ar' => ['الذمم', 'rtl'], 'en' => ['Receivables & Payables', 'ltr']] as $locale => [$heading, $direction]) {
+        foreach ([
+            'ar' => ['الذمم المدينة', 'تسويات الموردين', 'rtl'],
+            'en' => ['Receivables', 'Supplier Settlements', 'ltr'],
+        ] as $locale => [$heading, $supplierHeading, $direction]) {
             $actor->forceFill(['locale' => $locale])->save();
             app()->setLocale($locale);
 
@@ -59,10 +62,17 @@ final class V2ReceivablesSidebarGroupAuthorityTest extends TestCase
             $this->assertSame($heading, __($group['label']));
 
             $items = collect($group['children'])->keyBy('key');
-            $this->assertSame(['erp_receivables', 'erp_payables'], $items->keys()->all());
+            $this->assertSame(['erp_receivables'], $items->keys()->all());
+
+            $supplierGroup = $groups->firstWhere('key', 'supplier_settlements');
+            $this->assertIsArray($supplierGroup);
+            $this->assertSame('admin.nav_groups.supplier_settlements', $supplierGroup['label']);
+            $this->assertSame($supplierHeading, __($supplierGroup['label']));
+            $supplierItems = collect($supplierGroup['children'])->keyBy('key');
+            $this->assertSame(['erp_payables'], $supplierItems->keys()->all());
 
             foreach (['erp_receivables' => 'receivables', 'erp_payables' => 'payables'] as $key => $tab) {
-                $item = $items[$key];
+                $item = $tab === 'payables' ? $supplierItems[$key] : $items[$key];
                 $this->assertSame('admin.erp.finance.index', $item['route']);
                 $this->assertSame('finance_workbench.tabs.'.$tab, $item['label']);
                 $this->assertSame(['store_id' => (string) $store->id, 'tab' => $tab], $item['params']);
@@ -86,6 +96,7 @@ final class V2ReceivablesSidebarGroupAuthorityTest extends TestCase
         [$actor, $store, $context] = $this->reader('V2-P285-DISABLED');
 
         $this->assertNull($this->navigationGroups($actor)->firstWhere('key', 'receivables'));
+        $this->assertNull($this->navigationGroups($actor)->firstWhere('key', 'supplier_settlements'));
         $this->actingAs($actor)->get($this->tabUrl($store, 'receivables'))->assertForbidden();
 
         $this->enableFinance($actor, $context);
@@ -93,6 +104,7 @@ final class V2ReceivablesSidebarGroupAuthorityTest extends TestCase
 
         config()->set('enterprise_module_readiness.certified_versions.finance', null);
         $this->assertNull($this->navigationGroups($actor)->firstWhere('key', 'receivables'));
+        $this->assertNull($this->navigationGroups($actor)->firstWhere('key', 'supplier_settlements'));
     }
 
     public function test_ar_only_entitlement_hides_ap_link_and_http_rejects_ap_tab(): void
@@ -103,6 +115,7 @@ final class V2ReceivablesSidebarGroupAuthorityTest extends TestCase
         $group = $this->navigationGroups($actor)->firstWhere('key', 'receivables');
         $this->assertIsArray($group);
         $this->assertSame(['erp_receivables'], collect($group['children'])->pluck('key')->all());
+        $this->assertNull($this->navigationGroups($actor)->firstWhere('key', 'supplier_settlements'));
 
         $this->actingAs($actor)->get($this->tabUrl($store, 'receivables'))->assertOk();
         $this->actingAs($actor)->get($this->tabUrl($store, 'payables'))->assertForbidden();
@@ -117,8 +130,12 @@ final class V2ReceivablesSidebarGroupAuthorityTest extends TestCase
 
         $group = $this->navigationGroups($actor)->firstWhere('key', 'receivables');
         $this->assertIsArray($group);
-        foreach ($group['children'] as $item) {
-            $this->assertSame((string) $store->id, $item['params']['store_id']);
+        foreach (['receivables', 'supplier_settlements'] as $groupKey) {
+            $sourceGroup = $this->navigationGroups($actor)->firstWhere('key', $groupKey);
+            $this->assertIsArray($sourceGroup);
+            foreach ($sourceGroup['children'] as $item) {
+                $this->assertSame((string) $store->id, $item['params']['store_id']);
+            }
         }
 
         foreach ([$foreignRetail, $foreignWholesale] as $foreign) {
@@ -146,6 +163,7 @@ final class V2ReceivablesSidebarGroupAuthorityTest extends TestCase
         $actor->forceFill(['has_permission_overrides' => true])->save();
 
         $this->assertNull($this->navigationGroups($actor)->firstWhere('key', 'receivables'));
+        $this->assertNull($this->navigationGroups($actor)->firstWhere('key', 'supplier_settlements'));
         $this->actingAs($actor->fresh())->get($this->tabUrl($store, 'receivables'))->assertForbidden();
 
         $actor->forceFill(['is_active' => false])->save();

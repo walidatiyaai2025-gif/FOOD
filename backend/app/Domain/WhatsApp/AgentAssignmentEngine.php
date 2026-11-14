@@ -17,7 +17,9 @@ final class AgentAssignmentEngine
             ->orderBy('id')
             ->get()
             ->filter(function (User $user) use ($storeId): bool {
-                if (! $user->hasPermission('whatsapp.conversations.view', $storeId)) {
+                // Auto-routing must never assign a conversation to an agent
+                // who can read it but cannot reply in this exact store.
+                if (! $this->canWorkConversation($user, $storeId)) {
                     return false;
                 }
 
@@ -77,7 +79,7 @@ final class AgentAssignmentEngine
     {
         $agent = User::query()->whereKey($agentId)->where('is_active', true)->first();
 
-        if (! $agent instanceof User || ! $agent->hasPermission('whatsapp.conversations.view', $storeId)) {
+        if (! $agent instanceof User || ! $this->canWorkConversation($agent, $storeId)) {
             throw ValidationException::withMessages([
                 'agent_id' => [__('whatsapp.inbox.errors.agent_scope')],
             ]);

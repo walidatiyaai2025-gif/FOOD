@@ -54,34 +54,26 @@ final class VanRegistryService
         }
 
         $territoryKey = isset($attributes['territory_key']) ? trim((string) $attributes['territory_key']) : null;
-        if ($territoryKey !== null && $territoryKey !== '') {
-            $territoryExists = ServiceTerritory::query()
-                ->where('code', $territoryKey)
-                ->where('status', 'active')
-                ->where(fn ($query) => $query->whereNull('effective_from')->orWhere('effective_from', '<=', $from))
-                ->where(fn ($query) => $query->whereNull('effective_until')->orWhere('effective_until', '>', $from))
-                ->exists();
-
-            if ($territoryExists === false) {
-                throw ValidationException::withMessages([
-                    'territory_key' => ['Territory must reference an active Service Territory at assignment start.'],
-                ]);
-            }
-        }
 
         return DB::transaction(function () use ($actor, $van, $attributes, $from, $until, $type, $territoryKey): VanAssignment {
+            // Match suspend() lock order: Van first, then assignment/actor rows.
+            // A previously fetched active Van may have been suspended meanwhile.
+            $this->assertActiveVanForAssignment((int) $van->getKey());
+            $this->assertTerritoryCoversAssignment($territoryKey, $from, $until);
+
+            // Serialize validation with the Driver/User status rows so a Retail
+            // or deactivated Driver cannot become an active B2B Van assignee.
+            $this->assertActiveB2bDriver($attributes['driver_id'] ?? null);
+
+            // Half-open intervals: existing.start < new.end (when bounded)
+            // AND existing.end > new.start. Comparing end to end silently
+            // misses shorter primary assignments and territory reservations.
             if ($type === 'primary') {
                 $overlap = VanAssignment::query()
                     ->where('van_id', $van->id)
                     ->where('assignment_type', 'primary')
                     ->where('status', 'active')
-                    ->where(function ($query) use ($until): void {
-                        if ($until === null) {
-                            $query->whereNull('effective_until')->orWhere('effective_until', '>', now());
-                        } else {
-                            $query->whereNull('effective_until')->orWhere('effective_until', '>', $until);
-                        }
-                    })
+                    ->when($until !== null, fn ($query) => $query->where('effective_from', '<', $until))
                     ->where(function ($query) use ($from): void {
                         $query->whereNull('effective_until')->orWhere('effective_until', '>', $from);
                     })
@@ -100,13 +92,7 @@ final class VanRegistryService
                         ->where('assignment_type', 'primary')
                         ->where('status', 'active')
                         ->where('van_id', '!=', $van->id)
-                        ->where(function ($query) use ($until): void {
-                            if ($until === null) {
-                                $query->whereNull('effective_until')->orWhere('effective_until', '>', now());
-                            } else {
-                                $query->whereNull('effective_until')->orWhere('effective_until', '>', $until);
-                            }
-                        })
+                        ->when($until !== null, fn ($query) => $query->where('effective_from', '<', $until))
                         ->where(fn ($query) => $query->whereNull('effective_until')->orWhere('effective_until', '>', $from))
                         ->lockForUpdate()
                         ->exists();
@@ -178,34 +164,25 @@ final class VanRegistryService
         }
 
         $vanId = (int) ($attributes['van_id'] ?? $assignment->van_id);
-        $vanExists = Van::query()->whereKey($vanId)->where('status', 'active')->exists();
-        if (! $vanExists) {
-            throw ValidationException::withMessages([
-                'van_id' => ['Van must reference an active Van.'],
-            ]);
-        }
+        // Check under the same transaction/row lock as the subsequent write,
+        // not here where suspend() could change the status before save.
 
         $territoryKey = filled($attributes['territory_key'] ?? null)
             ? trim((string) $attributes['territory_key'])
             : null;
 
-        if ($territoryKey !== null) {
-            $territoryExists = ServiceTerritory::query()
-                ->where('code', $territoryKey)
-                ->where('status', 'active')
-                ->where(fn ($query) => $query->whereNull('effective_from')->orWhere('effective_from', '<=', $from))
-                ->where(fn ($query) => $query->whereNull('effective_until')->orWhere('effective_until', '>', $from))
-                ->exists();
-
-            if (! $territoryExists) {
-                throw ValidationException::withMessages([
-                    'territory_key' => ['Territory must reference an active Service Territory at assignment start.'],
-                ]);
-            }
-        }
-
         return DB::transaction(function () use ($actor, $assignment, $attributes, $from, $until, $type, $status, $territoryKey, $vanId): VanAssignment {
+            // Use the same Van -> assignment lock order as suspend() so an edit
+            // cannot restore an active assignment after suspension.
+            $this->assertActiveVanForAssignment($vanId);
+            $this->assertTerritoryCoversAssignment($territoryKey, $from, $until);
             $locked = VanAssignment::query()->lockForUpdate()->findOrFail($assignment->id);
+
+            // Allow terminating legacy inconsistent rows, but never creating
+            // or retaining an active assignment with an ineligible Driver.
+            if ($status === 'active') {
+                $this->assertActiveB2bDriver($attributes['driver_id'] ?? null);
+            }
 
             if ($type === 'primary' && $status === 'active') {
                 $overlap = VanAssignment::query()
@@ -274,6 +251,80 @@ final class VanRegistryService
 
             return $locked->fresh();
         });
+    }
+
+    /**
+     * At write time, the full half-open Van assignment window must fit inside
+     * the active Service Territory window. Lock the row within the write
+     * transaction to serialize against concurrent territory status/date edits.
+     */
+    private function assertTerritoryCoversAssignment(?string $territoryKey, Carbon $from, ?Carbon $until): void
+    {
+        if ($territoryKey === null || $territoryKey === '') {
+            return;
+        }
+
+        $territory = ServiceTerritory::query()
+            ->where('code', $territoryKey)
+            ->lockForUpdate()
+            ->first();
+
+        if ($territory === null
+            || $territory->status !== 'active'
+            || ($territory->effective_from !== null && Carbon::parse($territory->effective_from)->greaterThan($from))
+            || ($territory->effective_until !== null
+                && ($until === null || Carbon::parse($territory->effective_until)->lessThan($until)))) {
+            throw ValidationException::withMessages([
+                'territory_key' => [__('van_assignment_guard.territory_window_required')],
+            ]);
+        }
+    }
+
+    /**
+     * Serialize create/update assignment writes with Van suspension. A separate
+     * preflight exists()/status check is unsafe: the Van could be suspended
+     * before an active assignment is persisted.
+     */
+    private function assertActiveVanForAssignment(int $vanId): void
+    {
+        $van = Van::query()->whereKey($vanId)->lockForUpdate()->first();
+
+        if ($van === null || $van->status !== 'active') {
+            throw ValidationException::withMessages([
+                'van_id' => [__('van_assignment_guard.active_van_required')],
+            ]);
+        }
+    }
+
+    /**
+     * Enforce the B2B-only Van write boundary independently of HTTP validation.
+     * Call from a transaction before persisting the assignment or its audit.
+     */
+    private function assertActiveB2bDriver(mixed $driverId): void
+    {
+        // Representative-only Van assignments are a supported workflow.
+        if ($driverId === null || $driverId === '') {
+            return;
+        }
+
+        $id = filter_var($driverId, FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1],
+        ]);
+
+        $valid = $id !== false && DB::table('drivers')
+            ->join('users', 'users.id', '=', 'drivers.user_id')
+            ->where('drivers.id', $id)
+            ->where('drivers.driver_type', 'b2b')
+            ->where('drivers.is_active', true)
+            ->where('users.is_active', true)
+            ->lockForUpdate()
+            ->first(['drivers.id']) !== null;
+
+        if (! $valid) {
+            throw ValidationException::withMessages([
+                'driver_id' => [__('van_assignment_guard.b2b_driver_required')],
+            ]);
+        }
     }
 
     /**
@@ -363,7 +414,29 @@ final class VanRegistryService
     public function suspend(Van $van, ?Van $transferTarget = null, ?string $reason = null): Van
     {
         return DB::transaction(function () use ($van, $transferTarget, $reason): Van {
-            $locked = Van::query()->lockForUpdate()->findOrFail($van->id);
+            // Serialize cross-Van suspension with a stable row-lock order.
+            // Source A -> B and source B -> A must never invert lock order,
+            // and the target status must be rechecked under the same lock.
+            $vanIds = [(int) $van->getKey()];
+            if ($transferTarget !== null && $transferTarget->getKey() !== null) {
+                $vanIds[] = (int) $transferTarget->getKey();
+            }
+
+            $vanIds = array_values(array_unique($vanIds));
+            sort($vanIds, SORT_NUMERIC);
+            $lockedVans = [];
+
+            foreach ($vanIds as $vanId) {
+                // The source must exist. An optional target may have been
+                // deleted since its model was loaded: let the loaded-work
+                // validation below reject that stale destination with the
+                // same localized field error as any other invalid target.
+                $lockedVans[$vanId] = $vanId === (int) $van->getKey()
+                    ? Van::query()->lockForUpdate()->findOrFail($vanId)
+                    : Van::query()->lockForUpdate()->find($vanId);
+            }
+
+            $locked = $lockedVans[(int) $van->getKey()];
             $active = VanAssignment::query()
                 ->where('van_id', $locked->id)
                 ->where('status', 'active')
@@ -371,16 +444,35 @@ final class VanRegistryService
                 ->get();
 
             $loaded = $active->sum(fn (VanAssignment $assignment): int => (int) $assignment->loaded_work_count);
-            if ($loaded > 0 && $transferTarget === null) {
+            $targetId = $transferTarget?->getKey();
+
+            if ($loaded > 0 && (
+                $targetId === null
+                || (int) $targetId === (int) $locked->id
+                || ($lockedVans[(int) $targetId]->status ?? null) !== 'active'
+            )) {
                 throw ValidationException::withMessages([
-                    'transfer_target' => ['Loaded work requires an explicit transfer or recovery target before suspension.'],
+                    'transfer_target' => [__('van_assignment_guard.active_transfer_target_required')],
                 ]);
             }
 
+            $suspendedAt = now();
+
             foreach ($active as $assignment) {
+                // An active-status row may represent a past or future interval.
+                // Only truncate an assignment that is effective at suspension;
+                // otherwise preserve its original dates for audit provenance.
+                $effectiveFrom = Carbon::parse($assignment->effective_from);
+                $effectiveUntil = $assignment->effective_until === null
+                    ? null
+                    : Carbon::parse($assignment->effective_until);
+
+                $currentlyEffective = $effectiveFrom->lessThan($suspendedAt)
+                    && ($effectiveUntil === null || $effectiveUntil->greaterThan($suspendedAt));
+
                 $assignment->forceFill([
                     'status' => 'ended',
-                    'effective_until' => now(),
+                    'effective_until' => $currentlyEffective ? $suspendedAt : $assignment->effective_until,
                     'transferred_to_van_id' => $loaded > 0 ? $transferTarget->id : null,
                     'transfer_reason' => $loaded > 0 ? $reason : null,
                 ])->save();

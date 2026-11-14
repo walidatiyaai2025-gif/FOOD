@@ -2422,6 +2422,10 @@ paths:
     post:
       tags: [Push Devices]
       summary: Register or refresh an authenticated user's push device
+      description: >-
+        The bearer token must have the app:customer, app:driver or app:van
+        ability matching the requested app. The separate Customer guest
+        registration route does not require a bearer token.
       operationId: registerPushDevice
       security:
         - bearerAuth: []
@@ -2697,6 +2701,191 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { description: Retry is not allowed from the current execution state }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /van/customers:
+    get:
+      tags: [Van Fulfillment]
+      summary: List Van visit customers for collection, with current direct-sale eligibility
+      description: Historical/closed visit customers remain visible for collection. The can_direct_sell flag is true only for an actor-owned planned or started Wholesale visit in the selected Van store; it never grants HTTP sale authority by itself.
+      operationId: listVanVisitCustomers
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Customer history with server-authoritative direct-sale eligibility
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [type, id, name, store_id, can_direct_sell]
+                      properties:
+                        type: { type: string, enum: [b2b, b2c] }
+                        id: { type: integer }
+                        name: { type: string }
+                        phone: { type: [string, "null"] }
+                        email: { type: [string, "null"] }
+                        store_id: { type: [integer, "null"] }
+                        can_direct_sell:
+                          type: boolean
+                          description: True only for an actor-owned planned/started B2B visit in the current seller store; absent/false must disable Van checkout.
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /van/customers/{type}/{customer}/catalog:
+    get:
+      tags: [Van Fulfillment]
+      summary: Get authorized B2B Van direct-sale catalog for a visited customer
+      description: Requires effective Van assignment, B2B customer type and an actor-owned planned or started visit at the current seller store. Completed/closed, B2C and other-store visits return 404.
+      operationId: getVanDirectSaleCatalog
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema: { type: string, enum: [b2b] }
+        - in: path
+          name: customer
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: store_id
+          required: false
+          description: Must match the current Van-assigned store when one exists.
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200": { description: Authorized and available B2B products with canonical prices and quantities }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /van/customers/{type}/{customer}/order-options:
+    get:
+      tags: [Van Fulfillment]
+      summary: Get authorized B2B direct-sale addresses, warehouses and payment methods
+      operationId: getVanDirectSaleOptions
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema: { type: string, enum: [b2b] }
+        - in: path
+          name: customer
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: store_id
+          required: false
+          description: Must match effective Van store; customer requires an actor-owned visit at that store.
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200": { description: Authoritative B2B order-option lookups }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /van/customers/{type}/{customer}/order-quote:
+    post:
+      tags: [Van Fulfillment]
+      summary: Quote an authorized B2B direct-sale order using canonical pricing and inventory
+      operationId: quoteVanDirectSale
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema: { type: string, enum: [b2b] }
+        - in: path
+          name: customer
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              required: [items, payment_method]
+              properties:
+                store_id: { type: integer, minimum: 1 }
+                payment_method: { type: string }
+                warehouse_id: { type: integer, minimum: 1 }
+                address_id: { type: integer, minimum: 1 }
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [product_id, quantity]
+                    properties:
+                      product_id: { type: integer, minimum: 1 }
+                      quantity: { type: number, exclusiveMinimum: 0 }
+      responses:
+        "200": { description: Server-authoritative B2B quote and Van commercial provenance }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /van/customers/{type}/{customer}/orders:
+    post:
+      tags: [Van Fulfillment]
+      summary: Submit an idempotent, actor-visited, B2B Van direct-sale order
+      operationId: createVanDirectSale
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema: { type: string, enum: [b2b] }
+        - in: path
+          name: customer
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string, minLength: 16, maxLength: 100 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              required: [items, payment_method]
+              properties:
+                store_id: { type: integer, minimum: 1 }
+                payment_method: { type: string }
+                warehouse_id: { type: integer, minimum: 1 }
+                address_id: { type: integer, minimum: 1 }
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [product_id, quantity]
+                    properties:
+                      product_id: { type: integer, minimum: 1 }
+                      quantity: { type: number, exclusiveMinimum: 0 }
+      responses:
+        "201": { description: Canonical B2B order and sale provenance; retry with same key does not duplicate }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: Idempotency conflict for a reused key with a different order payload }
         "422": { $ref: "#/components/responses/ValidationError" }
 
   /van/customers/{type}/{customer}/flash-offers:

@@ -6,6 +6,7 @@ use App\Models\Driver;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\VanRegistryService;
+use App\Services\VanRuntimeContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -111,7 +112,7 @@ class AuthFoundationTest extends TestCase
         $this->assertContains('van.login', $login->json('user.permissions'));
     }
 
-    public function test_same_driver_account_can_login_to_driver_and_van_with_effective_assignment(): void
+    public function test_retail_driver_login_cannot_grant_van_runtime_from_an_accidental_assignment(): void
     {
         $this->seed(CoreReferenceSeeder::class);
 
@@ -146,33 +147,47 @@ class AuthFoundationTest extends TestCase
 
         $registry = app(VanRegistryService::class);
         $van = $registry->createVan(['code' => 'AUTH-VAN-01']);
+        // Reproduce a pre-guard historical B2C assignment without using the
+        // now-protected production Van write path. Authentication must still
+        // refuse to promote a Retail-only Driver based on this stale row.
         $assignment = $registry->assign($user, $van, [
-            'driver_id' => $driver->id,
+            'representative_user_id' => $user->id,
             'assignment_type' => 'primary',
             'effective_from' => now()->subMinute(),
         ]);
+        $assignment->forceFill([
+            'driver_id' => $driver->id,
+            'representative_user_id' => null,
+        ])->save();
 
         $this->postJson('/api/v1/auth/login', [
             'email' => $user->email,
             'password' => 'correct-password',
             'app' => 'driver',
         ])->assertOk()
-            ->assertJsonPath('user.driver_scope.driver_id', $driver->id);
+            ->assertJsonPath('user.driver_scope.driver_id', $driver->id)
+            ->assertJsonPath('user.driver_scope.channel', 'b2c');
 
-        $vanLogin = $this->postJson('/api/v1/auth/login', [
+        // Retail/B2C is Driver-only. An existing Van assignment must not
+        // promote a B2C-only user to Van or issue a second app token.
+        $this->postJson('/api/v1/auth/login', [
             'email' => $user->email,
             'password' => 'correct-password',
             'app' => 'van',
-        ])->assertOk()
-            ->assertJsonPath('user.van_scope.van_id', $van->id)
-            ->assertJsonPath('user.van_scope.assignment_id', $assignment->id)
-            ->assertJsonPath('user.van_context_selection_reason', 'deterministic_primary');
+        ])->assertForbidden();
 
-        $this->assertContains('van.login', $vanLogin->json('user.permissions'));
-
-        $this->withToken($vanLogin->json('token'))
-            ->getJson('/api/v1/van/no-order-reasons')
-            ->assertOk();
+        $this->assertSame(1, $user->tokens()->count());
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'is_active' => true]);
+        $this->assertDatabaseHas('drivers', [
+            'id' => $driver->id,
+            'driver_type' => 'b2c',
+            'is_active' => true,
+        ]);
+        $this->assertDatabaseHas('van_assignments', [
+            'id' => $assignment->id,
+            'driver_id' => $driver->id,
+            'status' => 'active',
+        ]);
     }
 
     public function test_driver_and_van_tokens_cannot_cross_app_runtime_boundaries(): void
@@ -210,11 +225,31 @@ class AuthFoundationTest extends TestCase
 
         $registry = app(VanRegistryService::class);
         $van = $registry->createVan(['code' => 'AUTH-TOKEN-VAN']);
-        $registry->assign($user, $van, [
-            'driver_id' => $driver->id,
+        // Preserve the historical inconsistent Retail Driver Van link as a
+        // negative fixture. It cannot grant Van runtime, even to a dual-role user.
+        $legacyAssignment = $registry->assign($user, $van, [
+            'representative_user_id' => $user->id,
             'assignment_type' => 'primary',
             'effective_from' => now()->subMinute(),
         ]);
+        $legacyAssignment->forceFill([
+            'driver_id' => $driver->id,
+            'representative_user_id' => null,
+        ])->save();
+
+        // Explicit VAN_OPERATOR has a separate legitimate representative-only
+        // Van assignment. The Van token tests this authorized context, never
+        // the stale Retail-linked assignment above.
+        $operatorVan = $registry->createVan(['code' => 'AUTH-TOKEN-OPERATOR-VAN']);
+        $operatorAssignment = $registry->assign($user, $operatorVan, [
+            'representative_user_id' => $user->id,
+            'assignment_type' => 'primary',
+            'effective_from' => now()->subMinute(),
+        ]);
+        $context = app(VanRuntimeContextResolver::class)->resolve($user);
+        $this->assertSame($operatorAssignment->id, $context['selected']['assignment_id']);
+        $this->assertCount(1, $context['available']);
+        $this->assertDatabaseHas('van_assignments', ['id' => $legacyAssignment->id, 'driver_id' => $driver->id]);
 
         $driverToken = $this->postJson('/api/v1/auth/login', [
             'email' => $user->email,

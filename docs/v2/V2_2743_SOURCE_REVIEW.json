@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "owner_issue": 2743,
+  "source": "FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx",
+  "source_sha256": "ea6e6eefa006831c3e90604cde05ec4b5b95d42fe21fab68604f6fe18c5f1757",
+  "paragraph_count": 374,
+  "table_data_row_counts": [
+    7,
+    8,
+    6,
+    4,
+    5,
+    20,
+    4,
+    6,
+    3,
+    5,
+    24,
+    8,
+    12
+  ],
+  "contextual_paragraphs": {
+    "document_metadata": [
+      0,
+      1,
+      2,
+      3,
+      14,
+      17,
+      25,
+      33,
+      51,
+      59,
+      80,
+      96,
+      106,
+      112,
+      142
+    ],
+    "section_headings": [
+      4,
+      13,
+      16,
+      18,
+      24,
+      26,
+      32,
+      34,
+      43,
+      50,
+      53,
+      57,
+      60,
+      69,
+      71,
+      78,
+      81,
+      87,
+      93,
+      95,
+      98,
+      105,
+      107,
+      110,
+      114,
+      120,
+      127,
+      135,
+      141,
+      144,
+      148,
+      155,
+      161,
+      340,
+      342,
+      344,
+      349,
+      355,
+      361,
+      367
+    ],
+    "context_and_source_notes": [
+      15,
+      52,
+      54,
+      55,
+      56,
+      58,
+      79,
+      111,
+      113,
+      136,
+      137,
+      138,
+      139,
+      140,
+      143,
+      162,
+      341,
+      343,
+      373
+    ]
+  },
+  "contextual_table_rows": {
+    "0": {
+      "kind": "status_and_provenance_rollup_not_separate_features",
+      "data_rows": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "issue_references": [
+        2503,
+        2751,
+        2806,
+        2818,
+        2858
+      ]
+    },
+    "6": {
+      "kind": "requirement_restatement_not_separate_features",
+      "data_rows": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "issue_references": [
+        2806,
+        2818,
+        2858
+      ]
+    }
+  },
+  "header_row_policy": "Every native table has one descriptive header row (row 0), not a separate feature. All other rows must have an Issue or an explicit documented contextual exception.",
+  "scope_limitation": "Source-pointer structure and classification, not proof that issues are implemented, production behavior works, or owner signoff occurred. Derived 21 mobile and gate items have cross-source relationships, not invented native paragraph locations."
+}

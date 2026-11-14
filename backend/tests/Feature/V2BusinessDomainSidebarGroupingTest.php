@@ -25,8 +25,9 @@ final class V2BusinessDomainSidebarGroupingTest extends TestCase
     private const DOMAIN_ITEMS = [
         'commercial_sales_control' => 'catalog',
         'catalog_management' => 'catalog',
-        'b2b_inventory' => 'catalog',
-        'b2c_inventory' => 'catalog',
+        'sales_quotations' => 'sales',
+        'b2b_inventory' => 'inventory',
+        'b2c_inventory' => 'inventory',
         'order_operations' => 'operations',
         'b2c_incoming_orders' => 'operations',
         'treasury_master' => 'treasury',
@@ -54,7 +55,7 @@ final class V2BusinessDomainSidebarGroupingTest extends TestCase
             $this->assertSame($group, $layout['items'][$item]['group_key'], $item.' default placement');
         }
 
-        foreach (['catalog', 'procurement', 'warehouses', 'operations', 'finance', 'treasury', 'administration'] as $group) {
+        foreach (['catalog', 'sales', 'procurement', 'inventory', 'warehouses', 'operations', 'finance', 'treasury', 'administration'] as $group) {
             $label = $registry['groups'][$group]['label'];
             $this->assertTrue(Lang::hasForLocale($label, 'ar'), $group.' Arabic group label');
             $this->assertTrue(Lang::hasForLocale($label, 'en'), $group.' English group label');
@@ -114,7 +115,7 @@ final class V2BusinessDomainSidebarGroupingTest extends TestCase
             $actor->forceFill(['locale' => $locale])->save();
 
             $groups = app(AdminNavigation::class)->groupsFor($actor->fresh());
-            $this->assertSame('catalog', $this->groupOf($groups, 'b2c_inventory'));
+            $this->assertSame('inventory', $this->groupOf($groups, 'b2c_inventory'));
             // Retail incoming orders may be hidden by the module's real
             // readiness/route guard; a category label must not resurrect it.
             $this->assertContains(

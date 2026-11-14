@@ -15,6 +15,9 @@ use Throwable;
 
 final class InstallerWorkflow
 {
+    /** @var array<int, string> */
+    public const REQUIRED_EXTENSIONS = ['pdo', 'openssl', 'mbstring', 'tokenizer', 'json', 'zip', 'fileinfo'];
+
     public function __construct(
         private readonly InstallerEnvironment $environment,
         private readonly InstallState $state,
@@ -25,22 +28,23 @@ final class InstallerWorkflow
     /**
      * @return array<int, string>
      */
-    public function serverRequirementFailures(): array
+    public function serverRequirementFailures(?callable $extensionLoaded = null): array
     {
+        $extensionLoaded ??= static fn (string $extension): bool => extension_loaded($extension);
         $failures = [];
 
         if (version_compare(PHP_VERSION, '8.2.0', '<')) {
-            $failures[] = 'PHP 8.2 or newer is required.';
+            $failures[] = (string) __('installer.errors.php_version');
         }
 
-        foreach (['pdo', 'openssl', 'mbstring', 'tokenizer', 'json'] as $extension) {
-            if (! extension_loaded($extension)) {
-                $failures[] = "PHP extension [$extension] is required.";
+        foreach (self::REQUIRED_EXTENSIONS as $extension) {
+            if (! $extensionLoaded($extension)) {
+                $failures[] = (string) __('installer.errors.extension', ['extension' => $extension]);
             }
         }
 
-        if (! extension_loaded('pdo_mysql')) {
-            $failures[] = 'PHP extension [pdo_mysql] is required for the production MySQL/MariaDB database.';
+        if (! $extensionLoaded('pdo_mysql')) {
+            $failures[] = (string) __('installer.errors.pdo_mysql');
         }
 
         return $failures;
@@ -58,7 +62,7 @@ final class InstallerWorkflow
             'bootstrap/cache' => base_path('bootstrap/cache'),
         ] as $label => $path) {
             if (! is_dir($path) || ! is_writable($path)) {
-                $failures[] = "Runtime path [$label] must be writable.";
+                $failures[] = (string) __('installer.errors.path_writable', ['path' => $label]);
             }
         }
 
@@ -87,7 +91,7 @@ final class InstallerWorkflow
             DB::connection()->getPdo();
             DB::select('select 1');
         } catch (Throwable) {
-            throw new RuntimeException('Database connection failed. Verify the supplied host, port, database and credentials.');
+            throw new RuntimeException((string) __('installer.errors.db_connection'));
         }
     }
 
@@ -123,7 +127,7 @@ final class InstallerWorkflow
 
         foreach ([storage_path('app/private'), storage_path('app/public')] as $path) {
             if (! is_dir($path) && ! @mkdir($path, 0750, true) && ! is_dir($path)) {
-                throw new RuntimeException('Storage directories could not be prepared.');
+                throw new RuntimeException((string) __('installer.errors.storage_dir'));
             }
         }
 
@@ -132,8 +136,18 @@ final class InstallerWorkflow
             Artisan::call('storage:link');
         }
 
-        if (! is_link($publicLink) && ! is_dir($publicLink)) {
-            throw new RuntimeException('The public/storage link could not be created. Image uploads would not be publicly accessible.');
+        // An existing symlink must not silently expose a foreign directory
+        // (or a dangling target) as public uploads during the web installer.
+        // A real directory remains valid for shared hosts without symlinks.
+        if (is_link($publicLink)) {
+            $expected = realpath(storage_path('app/public'));
+            $actual = realpath($publicLink);
+
+            if ($expected === false || $actual === false || $actual !== $expected) {
+                throw new RuntimeException((string) __('installer.public_storage_link_invalid'));
+            }
+        } elseif (! is_dir($publicLink)) {
+            throw new RuntimeException((string) __('installer.errors.public_storage_link'));
         }
     }
 
@@ -151,7 +165,9 @@ final class InstallerWorkflow
             $values += [
                 'REDIS_HOST' => $data['redis_host'] ?? '127.0.0.1',
                 'REDIS_PORT' => (string) ($data['redis_port'] ?? 6379),
-                'REDIS_PASSWORD' => $data['redis_password'] ?? 'null',
+                // A missing Redis password is an intentional dotenv null, not
+                // the operator-entered literal string "null".
+                'REDIS_PASSWORD' => $data['redis_password'] ?? null,
             ];
         }
 
@@ -187,7 +203,7 @@ final class InstallerWorkflow
         $this->applyDatabaseConfiguration();
 
         if (Artisan::call('migrate', ['--force' => true]) !== 0) {
-            throw new RuntimeException('Database migrations failed.');
+            throw new RuntimeException((string) __('installer.errors.migrations'));
         }
     }
 
@@ -196,7 +212,7 @@ final class InstallerWorkflow
         $this->applyDatabaseConfiguration();
 
         if (Artisan::call('db:seed', ['--class' => DatabaseSeeder::class, '--force' => true]) !== 0) {
-            throw new RuntimeException('Required core data could not be seeded.');
+            throw new RuntimeException((string) __('installer.errors.seed'));
         }
 
         $this->seedFreshInstallVanReleaseDefaults();
@@ -228,12 +244,12 @@ final class InstallerWorkflow
 
             $probeDirectory = storage_path('app/system');
             if (! is_dir($probeDirectory) && ! @mkdir($probeDirectory, 0750, true) && ! is_dir($probeDirectory)) {
-                throw new RuntimeException('Storage health check failed.');
+                throw new RuntimeException((string) __('installer.errors.storage_health'));
             }
 
             $probe = $probeDirectory.'/health-'.bin2hex(random_bytes(5));
             if (file_put_contents($probe, 'ok', LOCK_EX) === false) {
-                throw new RuntimeException('Storage health check failed.');
+                throw new RuntimeException((string) __('installer.errors.storage_health'));
             }
             @unlink($probe);
             $checks['storage'] = true;
@@ -249,17 +265,17 @@ final class InstallerWorkflow
                 $queueProbe = 'foodex-installer-queue-health-'.bin2hex(random_bytes(5));
                 Cache::store('redis')->put($queueProbe, 'ok', 30);
                 if (Cache::store('redis')->get($queueProbe) !== 'ok') {
-                    throw new RuntimeException('Queue Redis health check failed.');
+                    throw new RuntimeException((string) __('installer.errors.redis_queue_health'));
                 }
                 Cache::store('redis')->forget($queueProbe);
             }
             $checks['queue'] = in_array($queue, ['redis', 'sync'], true);
         } catch (Throwable) {
-            throw new RuntimeException('Installer health check failed. Verify database, storage, cache and queue services.');
+            throw new RuntimeException((string) __('installer.errors.health'));
         }
 
         if (in_array(false, $checks, true)) {
-            throw new RuntimeException('Installer health check failed. Verify database, storage, cache and queue services.');
+            throw new RuntimeException((string) __('installer.errors.health'));
         }
 
         return $checks;
@@ -274,14 +290,14 @@ final class InstallerWorkflow
         $version = trim((string) @file_get_contents(base_path('../VERSION')));
 
         if ($version === '') {
-            throw new RuntimeException('Platform version could not be determined.');
+            throw new RuntimeException((string) __('installer.errors.version'));
         }
 
         DB::transaction(function () use ($admin, $version): void {
             $roleId = DB::table('roles')->where('code', 'SUPER_ADMIN')->value('id');
 
             if ($roleId === null) {
-                throw new RuntimeException('SUPER_ADMIN role is missing. Run the core seed step first.');
+                throw new RuntimeException((string) __('installer.errors.super_admin_role'));
             }
 
             $userId = DB::table('users')->where('email', $admin['email'])->value('id');
@@ -451,6 +467,6 @@ final class InstallerWorkflow
             return;
         }
 
-        throw new RuntimeException('Unsupported installer database driver.');
+        throw new RuntimeException((string) __('installer.errors.unsupported_driver'));
     }
 }
