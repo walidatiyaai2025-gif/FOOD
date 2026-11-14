@@ -162,6 +162,20 @@ final class V2ReceivableSettlementWorkbenchTest extends TestCase
             $this->assertArrayHasKey('collection_source', $exception->errors());
         }
 
+        // Even a legitimately posted legacy AR allocation cannot be
+        // replayed through the P303 Admin route as a verified collection.
+        // Both locales must give the same fail-closed denial, with no
+        // financial journal duplication or mutation of the old posting.
+        foreach (['ar', 'en'] as $locale) {
+            $fixture['poster']->forceFill(['locale' => $locale])->save();
+            $this->actingAs($fixture['poster']->fresh())->post(
+                route('admin.erp.finance.receivables.settlements.post', $allocation->id),
+                ['store_id' => $fixture['store']->id],
+            )->assertSessionHasErrors([
+                'collection_source' => __('finance_workbench.receivables.verification_pending', [], $locale),
+            ]);
+        }
+
         $this->assertSame('posted', $posted->fresh()->status);
         $this->assertSame($journalId, $posted->fresh()->journal_id);
         $this->assertDatabaseCount('enterprise_finance_journals', 2);
