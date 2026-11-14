@@ -15,11 +15,11 @@ class UpdatePackageValidatorTest extends TestCase
     {
         parent::setUp();
 
+        $this->packagePath = tempnam(sys_get_temp_dir(), 'foodex-update-');
         if (! class_exists(\ZipArchive::class)) {
             $this->markTestSkipped('The ZIP extension is required for package validation.');
         }
 
-        $this->packagePath = tempnam(sys_get_temp_dir(), 'foodex-update-');
         $this->createZipPackage(['release-notes.txt']);
     }
 
