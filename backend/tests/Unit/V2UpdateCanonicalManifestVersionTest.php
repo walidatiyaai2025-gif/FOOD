@@ -7,6 +7,7 @@ use App\Domain\Updater\UpdatePackageValidator;
 use App\Domain\Updater\UpdateVersion;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\UpdateZipFixture;
 use RuntimeException;
 
 final class V2UpdateCanonicalManifestVersionTest extends TestCase
@@ -23,7 +24,7 @@ final class V2UpdateCanonicalManifestVersionTest extends TestCase
         }
 
         $this->packagePath = $temporary;
-        file_put_contents($this->packagePath, 'synthetic package for version verification');
+        UpdateZipFixture::write($this->packagePath);
     }
 
     protected function tearDown(): void
