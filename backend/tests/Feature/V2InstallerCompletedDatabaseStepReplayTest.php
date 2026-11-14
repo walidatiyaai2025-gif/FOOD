@@ -95,7 +95,7 @@ final class V2InstallerCompletedDatabaseStepReplayTest extends TestCase
             ->andReturn(1, 0);
 
         $token = $state->token();
-        $this->post('/install/step/11', ['installer_token' => $token])
+        $this->post('/install/step/11?lang=en', ['installer_token' => $token])
             ->assertUnprocessable()
             ->assertSee('Database migrations failed.', false);
         $this->assertSame(10, $state->progress()['completed_step']);
@@ -154,7 +154,7 @@ final class V2InstallerCompletedDatabaseStepReplayTest extends TestCase
 
         $token = $state->token();
 
-        $this->post('/install/step/12', ['installer_token' => $token])
+        $this->post('/install/step/12?lang=en', ['installer_token' => $token])
             ->assertUnprocessable()
             ->assertSee('Required core data could not be seeded.', false);
         $this->assertSame(11, $state->progress()['completed_step']);
