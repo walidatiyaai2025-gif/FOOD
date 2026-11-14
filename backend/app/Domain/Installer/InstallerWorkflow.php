@@ -15,6 +15,9 @@ use Throwable;
 
 final class InstallerWorkflow
 {
+    /** @var array<int, string> */
+    public const REQUIRED_EXTENSIONS = ['pdo', 'openssl', 'mbstring', 'tokenizer', 'json', 'zip', 'fileinfo'];
+
     public function __construct(
         private readonly InstallerEnvironment $environment,
         private readonly InstallState $state,
@@ -33,7 +36,7 @@ final class InstallerWorkflow
             $failures[] = (string) __('installer.errors.php_version');
         }
 
-        foreach (['pdo', 'openssl', 'mbstring', 'tokenizer', 'json'] as $extension) {
+        foreach (self::REQUIRED_EXTENSIONS as $extension) {
             if (! extension_loaded($extension)) {
                 $failures[] = (string) __('installer.errors.extension', ['extension' => $extension]);
             }
