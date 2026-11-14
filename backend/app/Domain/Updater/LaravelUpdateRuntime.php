@@ -832,6 +832,33 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             throw new RuntimeException('Update archive contains no release files.');
         }
 
+        // cPanel/shared-host release trees may be deployed on case-insensitive
+        // filesystems. Exact ZIP names can then refer to the same live target.
+        // Check every file before backup or extraction, independent of order.
+        $targetsByCase = [];
+        foreach ($entries as $relativePath) {
+            $folded = strtolower($relativePath);
+            if (isset($targetsByCase[$folded])) {
+                throw new RuntimeException('Update archive contains duplicate release target paths.');
+            }
+
+            $targetsByCase[$folded] = true;
+        }
+
+        // A package cannot make a path both a regular file and an ancestor
+        // directory of another file (including case aliases of that parent).
+        // Detect conflicts across the whole ZIP before activating ANY member.
+        foreach ($entries as $relativePath) {
+            $parts = explode('/', strtolower($relativePath));
+            $ancestor = '';
+            foreach (array_slice($parts, 0, -1) as $part) {
+                $ancestor = $ancestor === '' ? $part : $ancestor.'/'.$part;
+                if (isset($targetsByCase[$ancestor])) {
+                    throw new RuntimeException('Update archive contains conflicting file and directory targets.');
+                }
+            }
+        }
+
         return $entries;
     }
 
