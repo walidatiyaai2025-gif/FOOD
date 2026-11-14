@@ -410,6 +410,12 @@ class LookupManagementCenterTest extends TestCase
         $inactiveId = $this->brand('inactive%literal', 'Inactive Percent% Brand', 'store', $storeA);
         DB::table('brands')->where('id', $inactiveId)->update(['is_active' => false]);
 
+        $roleless = User::query()->create([
+            'name' => 'Lookup roleless',
+            'email' => 'lookup-roleless-literal@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
         $brandsBefore = DB::table('brands')->count();
         $auditBefore = DB::table('audit_logs')->count();
 
@@ -444,19 +450,12 @@ class LookupManagementCenterTest extends TestCase
             ->assertSee('Sale Percent% Exact')
             ->assertDontSee('Inactive Percent% Brand');
 
-        $this->actingAs($admin)->get('/admin/lookups?'.http_build_query(['type' => 'brands', 'store_id' => $storeB, 'q' => '%']))
-            ->assertNotFound();
-
-        $roleless = User::query()->create([
-            'name' => 'Lookup roleless',
-            'email' => 'lookup-roleless-literal@example.test',
-            'password' => 'password',
-            'is_active' => true,
-        ]);
-        $this->actingAs($roleless)->get('/admin/lookups?type=brands&q=%25')->assertForbidden();
-
         $this->assertSame($brandsBefore, DB::table('brands')->count());
         $this->assertSame($auditBefore, DB::table('audit_logs')->count());
+
+        $this->actingAs($admin)->get('/admin/lookups?'.http_build_query(['type' => 'brands', 'store_id' => $storeB, 'q' => '%']))
+            ->assertNotFound();
+        $this->actingAs($roleless)->get('/admin/lookups?type=brands&q=%25')->assertForbidden();
     }
 
     public function test_wholesale_unit_search_matches_literal_symbol_code_arabic_and_english_without_retail_leak(): void
@@ -476,6 +475,7 @@ class LookupManagementCenterTest extends TestCase
         DB::table('units')->where('id', $arabicFalseId)->update(['name_ar' => 'وحدةXمحددة']);
         $this->unit('BOX%5', 'Retail Percent% Secret', 'store', $retailStore);
 
+        $englishAdmin = $this->globalRole('B2B_ADMIN', 'literal-unit-b2b-en@example.test', 'en');
         $unitsBefore = DB::table('units')->count();
         $auditBefore = DB::table('audit_logs')->count();
 
@@ -506,9 +506,7 @@ class LookupManagementCenterTest extends TestCase
             ->assertSee('Percent% Pack')
             ->assertDontSee('Retail Percent% Secret');
 
-        $admin->locale = 'en';
-        $admin->save();
-        $this->actingAs($admin)->get('/admin/lookups?'.http_build_query(['type' => 'units', 'q' => 'BOX%']))
+        $this->actingAs($englishAdmin)->get('/admin/lookups?'.http_build_query(['type' => 'units', 'q' => 'BOX%']))
             ->assertOk()
             ->assertSee('dir="ltr"', false)
             ->assertSee('Percent% Pack');
