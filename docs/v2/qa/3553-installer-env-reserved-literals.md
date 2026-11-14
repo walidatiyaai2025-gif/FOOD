@@ -8,15 +8,19 @@
 
 ## Implementation and contracts
 
-1. Canonical env serializer quotes strings whose value is exactly one of Laravel's reserved `true/false/null/empty` tokens (case-insensitive), preserving original spelling, quoting, escaping and duplicate managed-key replacement.
+1. Canonical env serializer quotes literal strings whose value is exactly one of Laravel's reserved `true/false/null/empty` tokens (case-insensitive), preserving spelling, escaping and duplicate managed-key replacement. **Exception: `APP_DEBUG=false`/`true` remains unquoted** so Laravel evaluates a boolean, not a truthy quoted string in production.
 2. A missing Redis password is represented internally as typed `null` from the existing cache/queue wizard; the serializer maps **only** the combination `REDIS_PASSWORD` + typed null to unquoted `REDIS_PASSWORD=null`. Actual user-entered string `'null'` or `'FALSE'` is quoted. Generic typed null on other config keys retains existing blank serialization; no DB/mail config policy changes.
 3. No direct Redis, database or mail connection is made in this test; synthetic values are used and all paths are isolated under `storage/framework/testing`.
 
 ## Automated QA
 
+The actual `InstallerWorkflow::finish()` writes `APP_ENV=production` and `APP_DEBUG=false`; quoted `"false"` here would be an unsafe change. The key-aware encoder therefore explicitly preserves existing boolean syntax for `APP_DEBUG` while quoting credentials and operator-entered literal text. This contract is covered by a positive/negative raw-env regression.
+
+
 `backend/tests/Feature/V2InstallerEnvReservedLiteralTest.php` uses temp `.env` plus a dedicated process-safe lock and verifies:
 - Upper/lower/mixed reserved scalar strings written as literal **quoted** passwords/app names; installer `read()` roundtrip, only one managed assignment and private file mode `0600`.
 - Passwordless Redis setup writes unquoted `null`; explicitly typed string `null` writes `"null"`; mixed-case string `FALSE` stays quoted, and switching back to no password recovers the unquoted sentinel without duplicate keys.
+- `APP_DEBUG=false`/`true` (including uppercase variants) remains unquoted while literal credential `"false"` stays quoted; a quoted debug value must never be used for production.
 - Ordinary names, hostnames, plain password and blank values retain prior serialization; generic typed null retains blank behavior.
 
 Required exact-final-head Policy, V2 Isolation and Required CI: PHP syntax/Pint/PHPStan/Composer security/OpenAPI; focused/full Laravel; AR/EN; disposable MySQL/Redis fresh install/upgrade/recovery; terminal `required-ci-gate`. Every check must be SUCCESS before guarded Foodex_V2 squash merge and atomic leaf closure. If required tests fail, repair this original issue branch/PR. No waiver or self-approved baseline.
