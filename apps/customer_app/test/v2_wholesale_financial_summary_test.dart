@@ -80,4 +80,14 @@ void main() {
     final normalized = debt()..['currency'] = ' KWD ';
     expect(WholesaleFinancialSummary.tryParse(normalized)?.currency, 'KWD');
   });
+  test('required display totals reject invalid and fabricated zeros', () {
+    expect(WholesaleFinancialSummary.nonNegativeAmount('120.500'), 120.5);
+    expect(WholesaleFinancialSummary.nonNegativeAmount(0), 0);
+    expect(WholesaleFinancialSummary.nonNegativeAmount(null), isNull);
+    expect(WholesaleFinancialSummary.nonNegativeAmount(true), isNull);
+    expect(WholesaleFinancialSummary.nonNegativeAmount(-0.1), isNull);
+    expect(WholesaleFinancialSummary.nonNegativeAmount(double.nan), isNull);
+    expect(WholesaleFinancialSummary.nonNegativeAmount('not-money'), isNull);
+  });
+
 }
