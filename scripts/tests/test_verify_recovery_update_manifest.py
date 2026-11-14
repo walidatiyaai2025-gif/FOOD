@@ -113,6 +113,37 @@ class RecoveryUpdateManifestPreflightTest(unittest.TestCase):
                 self.write_manifest()
                 self.assertNotEqual(0, self.invoke().returncode)
 
+    def test_duplicate_manifest_authority_keys_are_rejected_at_every_depth(self) -> None:
+        # json.loads normally selects the last duplicate key. That is unsafe
+        # when different consumers may interpret release authority differently.
+        original = self.manifest_path.read_text(encoding="utf-8")
+        digest = self.manifest["sha256"]
+        cases = (
+            ('"schema_version": 1', '"schema_version": 1, "schema_version": 1'),
+            ('"available": true', '"available": true, "available": true'),
+            (
+                f'"sha256": "{digest}"',
+                f'"sha256": "{digest}", "sha256": "{digest}"',
+            ),
+            (
+                '"dashboard_fields": {"target_version": "1.0.125"',
+                '"dashboard_fields": {"target_version": "1.0.125", "target_version": "1.0.125"',
+            ),
+        )
+        for single, repeated in cases:
+            with self.subTest(duplicated_field=single):
+                self.assertIn(single, original)
+                self.manifest_path.write_text(
+                    original.replace(single, repeated, 1), encoding="utf-8",
+                )
+                result = self.invoke()
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn("Duplicate update manifest JSON key", result.stderr)
+                self.assertNotIn("PASS:", result.stdout)
+
+        self.manifest_path.write_text(original, encoding="utf-8")
+        self.assertEqual(0, self.invoke().returncode)
+
     def test_missing_and_corrupt_manifest_fail_closed(self) -> None:
         self.manifest_path.unlink()
         self.assertIn("manifest is unavailable or invalid", self.invoke().stderr)
