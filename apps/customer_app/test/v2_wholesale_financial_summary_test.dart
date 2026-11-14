@@ -65,5 +65,19 @@ void main() {
 
     final noCurrency = debt()..['currency'] = '';
     expect(WholesaleFinancialSummary.tryParse(noCurrency), isNull);
+
+    final controlCurrency = debt()..['currency'] = 'KWD\u202E';
+    expect(WholesaleFinancialSummary.tryParse(controlCurrency), isNull);
+
+    final longCurrency = debt()..['currency'] = 'KWD-FAKE';
+    expect(WholesaleFinancialSummary.tryParse(longCurrency), isNull);
+
+    final lowerCurrency = debt()..['currency'] = 'kwd';
+    expect(WholesaleFinancialSummary.tryParse(lowerCurrency), isNull);
+  });
+
+  test('valid padded ISO code displays canonical currency', () {
+    final normalized = debt()..['currency'] = ' KWD ';
+    expect(WholesaleFinancialSummary.tryParse(normalized)?.currency, 'KWD');
   });
 }

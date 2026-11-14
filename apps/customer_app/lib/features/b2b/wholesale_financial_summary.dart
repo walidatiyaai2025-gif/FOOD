@@ -29,14 +29,69 @@ class WholesaleFinancialSummary {
     final creditLimit = _amount(data['credit_limit']);
     final availableCreditLine = _amount(data['available_credit_line']);
     final purchasingPower = _amount(data['purchasing_power']);
-    final currency = data['currency'];
+    final rawCurrency = data['currency'];
+    final currency = rawCurrency is String ? rawCurrency.trim() : '';
 
     if (balance == null ||
         creditLimit == null ||
         availableCreditLine == null ||
         purchasingPower == null ||
-        currency is! String ||
-        currency.trim().isEmpty ||
+        // Reject a forged currency label or hidden bidi control character.
+        !RegExp(r'^[A-Z]{3}
+        creditLimit < 0 ||
+        availableCreditLine < 0 ||
+        purchasingPower < 0) {
+      return null;
+    }
+
+    final direction = switch (data['balance_direction']) {
+      'customer_owes_company' => WholesaleBalanceDirection.customerOwesCompany,
+      'company_owes_customer' => WholesaleBalanceDirection.companyOwesCustomer,
+      'settled' => WholesaleBalanceDirection.settled,
+      _ => null,
+    };
+
+    final expectedDirection = balance < 0
+        ? WholesaleBalanceDirection.customerOwesCompany
+        : balance > 0
+            ? WholesaleBalanceDirection.companyOwesCustomer
+            : WholesaleBalanceDirection.settled;
+
+    if (direction != expectedDirection) {
+      return null;
+    }
+
+    // Matches B2bAccountLedgerService::summary. Tolerance allows the three
+    // decimal monetary rounding performed by the server, not policy drift.
+    final expectedLine = (creditLimit + (balance < 0 ? balance : 0.0))
+        .clamp(0.0, double.infinity);
+    final expectedPower = availableCreditLine + (balance > 0 ? balance : 0.0);
+    if ((expectedLine - availableCreditLine).abs() > 0.0015 ||
+        (expectedPower - purchasingPower).abs() > 0.0015) {
+      return null;
+    }
+
+    return WholesaleFinancialSummary._(
+      balance: balance,
+      direction: direction!,
+      currency: currency,
+      creditLimit: creditLimit,
+      availableCreditLine: availableCreditLine,
+      purchasingPower: purchasingPower,
+    );
+  }
+
+  static double? _amount(Object? value) {
+    if (value is bool) return null;
+    final parsed = value is num
+        ? value.toDouble()
+        : value is String
+            ? double.tryParse(value.trim())
+            : null;
+    return parsed != null && parsed.isFinite ? parsed : null;
+  }
+}
+).hasMatch(currency) ||
         creditLimit < 0 ||
         availableCreditLine < 0 ||
         purchasingPower < 0) {
