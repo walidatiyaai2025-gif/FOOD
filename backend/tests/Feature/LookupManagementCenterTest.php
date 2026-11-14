@@ -392,6 +392,146 @@ class LookupManagementCenterTest extends TestCase
             ->assertSee('Brands & Units');
     }
 
+    public function test_retail_brand_search_matches_literal_symbols_with_status_scope_and_read_only_guards(): void
+    {
+        $storeA = $this->store('B2C', 'LITERAL-BRAND-A');
+        $storeB = $this->store('B2C', 'LITERAL-BRAND-B');
+        $admin = $this->storeAdmin($storeA, 'literal-brand-a@example.test');
+
+        $this->brand('sale%genuine', 'Sale Percent% Exact', 'store', $storeA);
+        $this->brand('salexgenuine', 'Sale PercentX Exact', 'store', $storeA);
+        $arabicId = $this->brand('arabic-literal', 'Literal Arabic Brand', 'store', $storeA);
+        $arabicFalseId = $this->brand('arabic-lookalike', 'Other Arabic Brand', 'store', $storeA);
+        DB::table('brands')->where('id', $arabicId)->update(['name_ar' => 'علامة_خاصة']);
+        DB::table('brands')->where('id', $arabicFalseId)->update(['name_ar' => 'علامةXخاصة']);
+        $this->brand('brand-bang', 'Bang! Exact', 'store', $storeA);
+        $this->brand('brand-bang-lookalike', 'BangX Exact', 'store', $storeA);
+        $this->brand('foreign%name', 'Foreign Percent% Brand', 'store', $storeB);
+        $inactiveId = $this->brand('inactive%literal', 'Inactive Percent% Brand', 'store', $storeA);
+        DB::table('brands')->where('id', $inactiveId)->update(['is_active' => false]);
+
+        $roleless = User::query()->create([
+            'name' => 'Lookup roleless',
+            'email' => 'lookup-roleless-literal@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        $brandsBefore = DB::table('brands')->count();
+        $auditBefore = DB::table('audit_logs')->count();
+
+        $this->actingAs($admin)->get('/admin/lookups?'.http_build_query(['type' => 'brands', 'q' => 'Sale%']))
+            ->assertOk()
+            ->assertSee('Sale Percent% Exact')
+            ->assertDontSee('Sale PercentX Exact')
+            ->assertDontSee('Foreign Percent% Brand');
+
+        $this->actingAs($admin)->get('/admin/lookups?'.http_build_query(['type' => 'brands', 'q' => 'علامة_']))
+            ->assertOk()
+            ->assertSee('علامة_خاصة')
+            ->assertDontSee('علامةXخاصة');
+
+        $this->actingAs($admin)->get('/admin/lookups?'.http_build_query(['type' => 'brands', 'q' => 'Bang!']))
+            ->assertOk()
+            ->assertSee('Bang! Exact')
+            ->assertDontSee('BangX Exact');
+
+        $this->actingAs($admin)->get('/admin/lookups?'.http_build_query(['type' => 'brands', 'q' => 'sale%genuine']))
+            ->assertOk()
+            ->assertSee('Sale Percent% Exact')
+            ->assertDontSee('Sale PercentX Exact');
+
+        $this->actingAs($admin)->get('/admin/lookups?'.http_build_query(['type' => 'brands', 'q' => '%', 'status' => 'inactive']))
+            ->assertOk()
+            ->assertSee('Inactive Percent% Brand')
+            ->assertDontSee('Sale Percent% Exact');
+
+        $this->actingAs($admin)->get('/admin/lookups?'.http_build_query(['type' => 'brands', 'q' => '%', 'status' => 'active']))
+            ->assertOk()
+            ->assertSee('Sale Percent% Exact')
+            ->assertDontSee('Inactive Percent% Brand');
+
+        $this->assertSame($brandsBefore, DB::table('brands')->count());
+        $this->assertSame($auditBefore, DB::table('audit_logs')->count());
+
+        $this->actingAs($admin)->get('/admin/lookups?'.http_build_query(['type' => 'brands', 'store_id' => $storeB, 'q' => '%']))
+            ->assertNotFound();
+        $this->actingAs($roleless)->get('/admin/lookups?type=brands&q=%25')->assertForbidden();
+    }
+
+    public function test_wholesale_unit_search_matches_literal_symbol_code_arabic_and_english_without_retail_leak(): void
+    {
+        $retailStore = $this->store('B2C', 'LITERAL-UNIT-RETAIL');
+        $admin = $this->globalRole('B2B_ADMIN', 'literal-unit-b2b@example.test', 'ar');
+
+        $this->unit('BOX%5', 'Percent% Pack', 'b2b', null);
+        $this->unit('BOXX5', 'PercentX Pack', 'b2b', null);
+        $this->unit('UNIT_5', 'English_Unit', 'b2b', null);
+        $this->unit('UNITX5', 'EnglishXUnit', 'b2b', null);
+        $this->unit('EX!A', 'Bang! Unit', 'global', null);
+        $this->unit('EXXA', 'BangX Unit', 'global', null);
+        $arabicId = $this->unit('ARABIC-UNIT', 'Arabic Unit', 'b2b', null);
+        $arabicFalseId = $this->unit('ARABIC-FALSE', 'Arabic Other', 'b2b', null);
+        DB::table('units')->where('id', $arabicId)->update(['name_ar' => 'وحدة_محددة']);
+        DB::table('units')->where('id', $arabicFalseId)->update(['name_ar' => 'وحدةXمحددة']);
+        $this->unit('BOX%5', 'Retail Percent% Secret', 'store', $retailStore);
+
+        $englishAdmin = $this->globalRole('B2B_ADMIN', 'literal-unit-b2b-en@example.test', 'en');
+        $unitsBefore = DB::table('units')->count();
+        $auditBefore = DB::table('audit_logs')->count();
+
+        $this->actingAs($admin)->get('/admin/lookups?'.http_build_query(['type' => 'units', 'q' => 'BOX%']))
+            ->assertOk()
+            ->assertSee('Percent% Pack')
+            ->assertDontSee('PercentX Pack')
+            ->assertDontSee('Retail Percent% Secret')
+            ->assertSee('dir="rtl"', false);
+
+        $this->actingAs($admin)->get('/admin/lookups?'.http_build_query(['type' => 'units', 'q' => 'English_']))
+            ->assertOk()
+            ->assertSee('English_Unit')
+            ->assertDontSee('EnglishXUnit');
+
+        $this->actingAs($admin)->get('/admin/lookups?'.http_build_query(['type' => 'units', 'q' => 'Bang!']))
+            ->assertOk()
+            ->assertSee('Bang! Unit')
+            ->assertDontSee('BangX Unit');
+
+        $this->actingAs($admin)->get('/admin/lookups?'.http_build_query(['type' => 'units', 'q' => 'وحدة_']))
+            ->assertOk()
+            ->assertSee('وحدة_محددة')
+            ->assertDontSee('وحدةXمحددة');
+
+        $this->actingAs($admin)->get('/admin/lookups?'.http_build_query(['type' => 'units', 'q' => 'Percent']))
+            ->assertOk()
+            ->assertSee('Percent% Pack')
+            ->assertDontSee('Retail Percent% Secret');
+
+        $this->actingAs($englishAdmin)->get('/admin/lookups?'.http_build_query(['type' => 'units', 'q' => 'BOX%']))
+            ->assertOk()
+            ->assertSee('dir="ltr"', false)
+            ->assertSee('Percent% Pack');
+
+        $this->assertSame($unitsBefore, DB::table('units')->count());
+        $this->assertSame($auditBefore, DB::table('audit_logs')->count());
+    }
+
+    private function unit(string $code, string $name, string $scope, ?int $storeId): int
+    {
+        return (int) DB::table('units')->insertGetId([
+            'store_id' => $storeId,
+            'scope' => $scope,
+            'scope_key' => $scope === 'store' ? 'store:'.$storeId : $scope,
+            'code' => $code,
+            'name' => $name,
+            'name_ar' => $name,
+            'name_en' => $name,
+            'decimal_places' => 0,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
     private function store(string $type, string $code): int
     {
         $typeId = (int) DB::table('store_types')->where('code', $type)->value('id');

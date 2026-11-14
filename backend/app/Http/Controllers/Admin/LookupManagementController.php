@@ -70,13 +70,14 @@ final class LookupManagementController extends Controller
 
         $search = trim((string) $request->query('q', ''));
         if ($search !== '') {
-            $term = '%'.$search.'%';
+            // These are user-entered literal substrings, not SQL wildcard patterns.
+            $term = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
             $query->where(function ($filter) use ($table, $type, $term): void {
                 $filter
-                    ->where($table.'.name', 'like', $term)
-                    ->orWhere($table.'.name_ar', 'like', $term)
-                    ->orWhere($table.'.name_en', 'like', $term)
-                    ->orWhere($table.'.'.($type === 'brands' ? 'slug' : 'code'), 'like', $term);
+                    ->whereRaw($table.".name LIKE ? ESCAPE '!'", [$term])
+                    ->orWhereRaw($table.".name_ar LIKE ? ESCAPE '!'", [$term])
+                    ->orWhereRaw($table.".name_en LIKE ? ESCAPE '!'", [$term])
+                    ->orWhereRaw($table.'.'.($type === 'brands' ? 'slug' : 'code')." LIKE ? ESCAPE '!'", [$term]);
             });
         }
 
