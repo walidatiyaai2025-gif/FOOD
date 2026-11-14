@@ -8,7 +8,10 @@ use Illuminate\Support\Facades\DB;
 
 final class NotificationAudience
 {
-    public function __construct(private readonly VanRuntimeContextResolver $vanRuntimeContexts) {}
+    public function __construct(
+        private readonly VanRuntimeContextResolver $vanRuntimeContexts,
+        private readonly DriverTenantScope $driverTenants,
+    ) {}
 
     public function apply(Builder $query, User $user): Builder
     {
@@ -138,18 +141,10 @@ final class NotificationAudience
             ->unique()
             ->values();
 
-        $driverChannels = collect(
-            DB::table('drivers')
-                ->where('user_id', $user->id)
-                ->where('driver_type', 'b2c')
-                ->where('is_active', true)
-                ->pluck('driver_type'),
-        )
-            ->filter(fn ($channel): bool => is_string($channel)
-                && in_array(strtolower($channel), ['b2b', 'b2c'], true))
-            ->map(static fn (string $channel): string => strtolower($channel))
-            ->unique()
-            ->values();
+        // A historical or inactive driver row must never expand the audience
+        // beyond the one current Retail profile authorized by DriverTenantScope.
+        $eligibleDriver = $this->driverTenants->eligibleRetailDriver($user);
+        $driverChannels = collect($eligibleDriver === null ? [] : ['b2c']);
 
         $apps = [];
         $channels = $customerChannels
@@ -218,7 +213,7 @@ final class NotificationAudience
             ->where('user_id', $user->id)
             ->pluck('store_id'))
             ->merge(DB::table('b2c_customers')->where('user_id', $user->id)->pluck('store_id'))
-            ->merge(DB::table('drivers')->where('user_id', $user->id)->whereNotNull('store_id')->pluck('store_id'))
+            ->merge($eligibleDriver === null ? [] : [(int) $eligibleDriver->store_id])
             ->merge($dashboardStoreIds)
             ->merge(
                 DB::table('orders')
