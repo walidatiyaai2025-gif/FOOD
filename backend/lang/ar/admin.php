@@ -45,7 +45,7 @@ return [
         'field_operations' => 'الأسطول والعمليات الميدانية',
         'operations' => 'الطلبات والعمليات',
         'customer_service' => 'خدمة العملاء وواتساب',
-        'catalog' => 'المنتجات والكتالوج',
+        'catalog' => 'الكتالوج والتسعير والعروض',
         'procurement' => 'المشتريات',
         'inventory' => 'المخزون',
         'warehouses' => 'المستودعات',

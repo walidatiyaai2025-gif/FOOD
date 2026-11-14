@@ -12,7 +12,7 @@ Source: FOODEX Unified RBAC/ERP/Sidebar document, native paragraph P371 (legacy 
 | --- | --- |
 | `admin.customer_360` | العملاء 360 |
 | `admin.nav_groups.erp` | تخطيط موارد المؤسسة (ERP) |
-| `admin.nav_groups.catalog` | المنتجات والكتالوج |
+| `admin.nav_groups.catalog` | الكتالوج والتسعير والعروض |
 | `admin.nav_groups.advertising` | الإعلانات |
 | `admin.nav_groups.analytics` | التقارير والتحليلات |
 | `admin.catalog_management` | إدارة المنتجات والتصنيفات |
@@ -20,11 +20,13 @@ Source: FOODEX Unified RBAC/ERP/Sidebar document, native paragraph P371 (legacy 
 
 These are label changes to currently represented concepts, not authority for the 177 target Sidebar items or for opening unready ERP modules.
 
-## P384 catalog wording reconciliation (#3428)
+## Source precedence correction — original P218 group versus derived P384 text (#3427)
 
-The earlier merged #2904 implementation and its `V2ArabicSidebarNamingTest` were accidentally out of sync with this source table: the Arabic `admin.nav_groups.catalog` label still showed «الكتالوج والتسعير والعروض». The isolated #3428 change restores the explicitly documented canonical «المنتجات والكتالوج» without creating new navigation, altering the English translation, or rewriting saved bilingual Sidebar overrides. Existing `V2ArabicSidebarNamingTest` now asserts the rendered Arabic **and English** catalog group labels through the actual authorized `AdminNavigation::groupsFor` projection; its existing authorized/denied HTTP and bilingual override cases still apply. The full-current-registry native-locale checks from #3365 and #3420 remain independent. Full exact-head Laravel CI for #3428 initially found three additional test-only expectations of the **old** label in existing P218 / #2548, T356R5 / #2722, and P145 Sidebar localization suites. Their Arabic text expectations are updated to the later canonical P384 source value; all route membership, direct HTTP permission denial, store/channel isolation, RTL/LTR and English assertions remain unchanged. The source change does not disable those earlier business capabilities.
+The original `FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx` names the business group **«د. الكتالوج والتسعير والعروض»**, with catalog and products as children. Its later P371/P384 instruction to harmonize Arabic labels does **not** prescribe the competing `المنتجات والكتالوج` group title. The accepted canonical group was independently implemented for P218 by [Issue #2548](https://github.com/walidatiyaai2025-gif/FOOD/issues/2548) and [merged PR #3270](https://github.com/walidatiyaai2025-gif/FOOD/pull/3270), with exact-head Required CI #43268866553 SUCCESS. The former alternative phrase in this *derived Markdown table* was stale; it did not supersede the original native DOCX or P218 accepted source.
 
-Dashboard desktop and off-canvas mobile share the same server-projected group label, with RTL/LTR preserved. Customer, Driver and Van have **no public API, authentication, dispatch, data-contract or Flutter change**. B2B=VAN ONLY and B2C=DRIVER ONLY remain unchanged. CI on exact PR head must certify Laravel/security, AR/EN, and MySQL/Redis before #3428 can close; #2904 and #2503 remain independently gated for wider source acceptance and final V2 UAT. Existing custom Sidebar names intentionally take precedence when configured; no destructive live database rewrite is performed.
+A later isolated [PR #3432](https://github.com/walidatiyaai2025-gif/FOOD/pull/3432) / #3428 used the stale table to change the Arabic runtime group text and the expected strings in four Laravel tests, passing CI but regressing the original business-name requirement. The original preserved #3427 branch / PR #3429 now restores the source-approved runtime label and those exact text expectations; it **retains** the HTTP authorization, tenant/channel permission, AR/EN, RTL/LTR, existing user-saved bilingual labels and native-locale registry tests. This correction must not be represented as an ERP-module activation or certification of the future 177-node target tree.
+
+These are current Dashboard Sidebar default wording and regression checks only. The same authorized server-projected Sidebar supplies desktop and off-canvas mobile web. Customer, Driver and Van public APIs/Flutter remain unchanged; B2B=VAN ONLY and B2C=DRIVER ONLY remain unchanged. Existing custom Sidebar names continue to take precedence; no live database rows are rewritten.
 
 ## Authorization, tests and app-impact classification
 
