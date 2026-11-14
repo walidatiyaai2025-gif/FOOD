@@ -10,6 +10,7 @@ import unittest
 import warnings
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts.v2_upgrade_package_provenance import (
     PackageContractError,
@@ -243,8 +244,46 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
                 ("backend\\example.php", b"two", False),
             ],
         )
-        with self.assertRaisesRegex(PackageContractError, "Duplicate or aliased"):
+        with self.assertRaisesRegex(PackageContractError, "Unsafe archive member path|Duplicate or aliased"):
             self.verify_first()
+
+    def test_backslash_member_is_rejected_even_if_manifest_lists_normalized_path(self) -> None:
+        # Before hardening, a single backslash-containing ZIP member could
+        # pass if the attacker supplied a slash-normalized file list.
+        self.first = build_bundle(
+            self.first,
+            entries=[
+                ("VERSION", b"1.0.125", False),
+                (r"backend\app\Unsafe.php", b"<?php // unsafe", False),
+            ],
+        )
+        (self.first / "FOODEX-Update.files.txt").write_text(
+            "VERSION\nbackend/app/Unsafe.php\n", encoding="utf-8",
+        )
+        with self.assertRaisesRegex(PackageContractError, "Unsafe archive member path"):
+            self.verify_first()
+
+    def test_zip_member_count_and_expansion_limits_fail_before_crc_scan(self) -> None:
+        # Tiny fixtures and patched limits exercise the exact check without
+        # generating dangerous multi-GB decompression bombs during CI.
+        with patch("scripts.v2_upgrade_package_provenance.MAX_ARCHIVE_MEMBERS", 2):
+            with self.assertRaisesRegex(PackageContractError, "member count exceeds"):
+                self.verify_first()
+        with patch("scripts.v2_upgrade_package_provenance.MAX_MEMBER_UNCOMPRESSED_BYTES", 12):
+            with self.assertRaisesRegex(PackageContractError, "member exceeds uncompressed-size"):
+                self.verify_first()
+        with patch("scripts.v2_upgrade_package_provenance.MAX_TOTAL_UNCOMPRESSED_BYTES", 15):
+            with self.assertRaisesRegex(PackageContractError, "total uncompressed-size budget"):
+                self.verify_first()
+
+        self.first = build_bundle(
+            self.first,
+            entries=[("VERSION", b"1.0.125" + b" " * 4097, False)],
+        )
+        with self.assertRaisesRegex(PackageContractError, "VERSION entry exceeds"):
+            self.verify_first()
+        self.first = build_bundle(self.first)
+        self.assertEqual(3, self.verify_first()["files"])
 
     def test_casefold_and_unicode_normalized_archive_aliases_fail_closed(self) -> None:
         # A future updater can extract onto a case-insensitive or NFD volume;

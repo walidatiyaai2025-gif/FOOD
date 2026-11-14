@@ -27,6 +27,12 @@ SHA_PATTERN = re.compile(r"^[a-f0-9]{40}$")
 DIGEST_PATTERN = re.compile(r"^[a-f0-9]{64}$")
 VERSION_PATTERN = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
 WINDOWS_DEVICE_PATTERN = re.compile(r"^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$", re.IGNORECASE)
+# Defensive offline-verification limits: testzip() decompresses every member.
+# Actual archive manifest/signature acceptance remains a separate release gate.
+MAX_ARCHIVE_MEMBERS = 50_000
+MAX_MEMBER_UNCOMPRESSED_BYTES = 512 * 1024 * 1024
+MAX_TOTAL_UNCOMPRESSED_BYTES = 2 * 1024 * 1024 * 1024
+MAX_VERSION_MEMBER_BYTES = 4096
 
 
 def _require(condition: bool, message: str) -> None:
@@ -79,6 +85,10 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 def _member_name(info: zipfile.ZipInfo) -> str:
     name = info.filename
+    # A literal backslash can be a filename character on Linux, but is a
+    # separator on Windows. Normalizing it only for the file list would allow
+    # the manifest to attest to a different extraction destination.
+    _require("\\" not in name, f"Unsafe archive member path: {name!r}")
     canonical = name.replace("\\", "/")
     parts = canonical.split("/")
     _require(
@@ -195,7 +205,29 @@ def validate_package(
             names: list[str] = []
             seen: set[str] = set()
             portable_seen: set[str] = set()
-            for info in archive.infolist():
+            infos = archive.infolist()
+            _require(
+                len(infos) <= MAX_ARCHIVE_MEMBERS,
+                "ZIP member count exceeds verifier budget.",
+            )
+            total_uncompressed = 0
+            for info in infos:
+                # Check the central directory before testzip() expands a
+                # potentially enormous or deliberately oversized payload.
+                _require(
+                    0 <= info.file_size <= MAX_MEMBER_UNCOMPRESSED_BYTES,
+                    f"ZIP member exceeds uncompressed-size budget: {info.filename!r}",
+                )
+                total_uncompressed += info.file_size
+                _require(
+                    total_uncompressed <= MAX_TOTAL_UNCOMPRESSED_BYTES,
+                    "ZIP total uncompressed-size budget exceeded.",
+                )
+                if info.filename == "VERSION":
+                    _require(
+                        info.file_size <= MAX_VERSION_MEMBER_BYTES,
+                        "ZIP VERSION entry exceeds safe metadata size.",
+                    )
                 name = _member_name(info)
                 portable_name = unicodedata.normalize("NFC", name).casefold()
                 _require(
