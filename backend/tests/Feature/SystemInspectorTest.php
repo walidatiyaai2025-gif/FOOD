@@ -430,12 +430,14 @@ class SystemInspectorTest extends TestCase
             $this->assertSame($case['expected'], $actual, 'Inspector literal search for '.$case['q']);
         }
 
+        // Authorized search GETs must remain read-only. The subsequent forbidden
+        // request may legitimately emit a security/route diagnostic event.
+        $this->assertSame($eventCount, SystemInspectorEvent::query()->count());
+        $this->assertSame($auditCount, DB::table('audit_logs')->count());
+
         $denied = $this->userWithRole('B2B_ADMIN', 'inspector-literal-denied@example.test');
         $this->actingAs($denied)->get(route('admin.inspector.index', ['q' => '100%']))
             ->assertForbidden();
-
-        $this->assertSame($eventCount, SystemInspectorEvent::query()->count());
-        $this->assertSame($auditCount, DB::table('audit_logs')->count());
     }
 
     public function test_system_inspector_literal_search_preserves_hundred_row_pagination(): void
