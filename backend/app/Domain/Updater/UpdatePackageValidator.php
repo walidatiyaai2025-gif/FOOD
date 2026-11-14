@@ -68,9 +68,12 @@ final class UpdatePackageValidator
                     // Match LaravelUpdateRuntime::safeRelativePath: a ZIP name
                     // padded with whitespace must not hide a migration
                     // from the mandatory database-backup declaration.
-                    $relativePath = str_replace('\\', '/', trim($name));
+                    $relativePath = strtolower(str_replace('\\', '/', trim($name)));
+                    // Case-insensitive hosts can resolve upper/mixed-case ZIP
+                    // entries into the canonical Laravel migration directory.
+                    // Do not accept a migration-free manifest for these paths.
                     if (str_starts_with($relativePath, 'backend/database/migrations/')
-                        && str_ends_with(strtolower($relativePath), '.php')) {
+                        && str_ends_with($relativePath, '.php')) {
                         throw new InvalidArgumentException(
                             'Update package contains migrations but database backup was not declared.'
                         );
