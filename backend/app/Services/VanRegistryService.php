@@ -415,9 +415,13 @@ final class VanRegistryService
                 // An active-status row may represent a past or future interval.
                 // Only truncate an assignment that is effective at suspension;
                 // otherwise preserve its original dates for audit provenance.
-                $currentlyEffective = $assignment->effective_from->lessThan($suspendedAt)
-                    && ($assignment->effective_until === null
-                        || $assignment->effective_until->greaterThan($suspendedAt));
+                $effectiveFrom = Carbon::parse($assignment->effective_from);
+                $effectiveUntil = $assignment->effective_until === null
+                    ? null
+                    : Carbon::parse($assignment->effective_until);
+
+                $currentlyEffective = $effectiveFrom->lessThan($suspendedAt)
+                    && ($effectiveUntil === null || $effectiveUntil->greaterThan($suspendedAt));
 
                 $assignment->forceFill([
                     'status' => 'ended',
