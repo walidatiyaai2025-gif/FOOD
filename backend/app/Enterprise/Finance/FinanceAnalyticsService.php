@@ -38,6 +38,7 @@ final class FinanceAnalyticsService
             return [
                 'state' => 'empty',
                 'period' => null,
+                'legal_entity_reporting_available' => ! $context->isRetail(),
                 'metrics' => [],
                 'trend' => [],
                 'aging' => ['ar' => [], 'ap' => []],
@@ -46,52 +47,61 @@ final class FinanceAnalyticsService
             ];
         }
 
-        $profit = $this->profitAndLossSummary($scope, (int) $period->id);
-        // A Retail actor is store-scoped even when sister stores share the same legal entity.
-        // Wholesale retains the enterprise-wide legal-entity Finance view.
+        // GL, tax, budgets, fiscal-close and journal figures have no canonical
+        // store attribution in the posted source schema. Retail overview must
+        // never query or return legal-entity totals as though they were store KPIs.
+        $legalEntityReportingAvailable = ! $context->isRetail();
+        $profit = $legalEntityReportingAvailable
+            ? $this->profitAndLossSummary($scope, (int) $period->id)
+            : null;
+        // Wholesale retains its authorized legal-entity Finance view; Retail
+        // AR/AP exposures are limited to the exact selected store.
         $arStoreScoped = $context->isRetail();
         $ar = $this->exposureSummary('enterprise_ar_documents', 'enterprise_ar_allocations', 'ar_document_id', $scope, $arStoreScoped);
         $ap = $this->exposureSummary('enterprise_ap_documents', 'enterprise_ap_allocations', 'ap_document_id', $scope, true);
-        $budget = $this->budgetSummary($scope, (int) $period->id);
-        $tax = $this->taxSummary($scope, (int) $period->id);
-        $close = $this->closeSummary($scope, (int) $period->id);
+        $budget = $legalEntityReportingAvailable ? $this->budgetSummary($scope, (int) $period->id) : null;
+        $tax = $legalEntityReportingAvailable ? $this->taxSummary($scope, (int) $period->id) : null;
+        $close = $legalEntityReportingAvailable ? $this->closeSummary($scope, (int) $period->id) : null;
 
         return [
             'state' => 'current',
             'period' => $period,
+            'legal_entity_reporting_available' => $legalEntityReportingAvailable,
             'metrics' => [
-                'revenue' => $profit['revenue'],
-                'expense' => $profit['expense'],
-                'result' => $profit['result'],
+                'revenue' => $profit['revenue'] ?? null,
+                'expense' => $profit['expense'] ?? null,
+                'result' => $profit['result'] ?? null,
                 'ar_outstanding' => $ar['outstanding'],
                 'ar_overdue' => $ar['overdue'],
                 'ap_outstanding' => $ap['outstanding'],
                 'ap_overdue' => $ap['overdue'],
-                'unposted_journals' => DB::table('enterprise_finance_journals')
-                    ->where('organization_id', $scope->organizationId)
-                    ->where('company_id', $scope->companyId)
-                    ->where('legal_entity_id', $scope->legalEntityId)
-                    ->where('status', 'draft')
-                    ->count(),
+                'unposted_journals' => $legalEntityReportingAvailable
+                    ? DB::table('enterprise_finance_journals')
+                        ->where('organization_id', $scope->organizationId)
+                        ->where('company_id', $scope->companyId)
+                        ->where('legal_entity_id', $scope->legalEntityId)
+                        ->where('status', 'draft')
+                        ->count()
+                    : null,
                 'pending_approvals' => DB::table('enterprise_workflow_requests')
                     ->where('scope_type', 'store')
                     ->where('scope_id', $scope->storeId)
                     ->where('status', 'PENDING')
                     ->where('entity_type', 'like', 'enterprise_finance_%')
                     ->count(),
-                'close_blockers' => $close['blocking'],
-                'budget' => $budget['budget'],
-                'budget_actual' => $budget['actual'],
-                'budget_variance' => $budget['variance'],
-                'tax_position' => $tax['net'],
+                'close_blockers' => $close['blocking'] ?? null,
+                'budget' => $budget['budget'] ?? null,
+                'budget_actual' => $budget['actual'] ?? null,
+                'budget_variance' => $budget['variance'] ?? null,
+                'tax_position' => $tax['net'] ?? null,
             ],
-            'trend' => $this->profitAndLossTrend($scope),
+            'trend' => $legalEntityReportingAvailable ? $this->profitAndLossTrend($scope) : [],
             'aging' => [
                 'ar' => $this->agingBuckets('enterprise_ar_documents', 'enterprise_ar_allocations', 'ar_document_id', $scope, $arStoreScoped),
                 'ap' => $this->agingBuckets('enterprise_ap_documents', 'enterprise_ap_allocations', 'ap_document_id', $scope, true),
             ],
-            'expenses' => $this->expenseByCostCenter($scope, (int) $period->id),
-            'exceptions' => $close['exceptions'],
+            'expenses' => $legalEntityReportingAvailable ? $this->expenseByCostCenter($scope, (int) $period->id) : [],
+            'exceptions' => $close['exceptions'] ?? [],
         ];
     }
 
