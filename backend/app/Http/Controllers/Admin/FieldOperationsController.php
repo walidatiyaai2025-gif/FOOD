@@ -595,6 +595,17 @@ final class FieldOperationsController extends Controller
         $allowedB2bStores = $this->b2bStoreIds($user);
         $canReadAllWholesale = $user->hasRole('SUPER_ADMIN') || $user->hasRole('B2B_ADMIN')
             || $user->hasRole('OPERATIONS') || $user->hasRole('FINANCE');
+        // P276 uses canonical B2B Van visits and their recorded route context.
+        // A route grouping is not a separate financial or trip session ledger.
+        $tripFilters = $request->validate([
+            'trip_view' => ['nullable', Rule::in(['visits', 'trips'])],
+            'trip_route' => ['nullable', 'string', 'max:128'],
+            'trip_status' => ['nullable', Rule::in([
+                'planned', 'started', 'completed_with_order',
+                'completed_no_order', 'customer_unavailable', 'closed',
+            ])],
+        ]);
+        $tripView = $tripFilters['trip_view'] ?? 'visits';
         $visibleVisits = VanVisit::query()->where('customer_type', 'b2b')
             ->where(function ($query) use ($allowedB2bStores, $canReadAllWholesale): void {
                 $query->whereIn('store_id', $allowedB2bStores);
@@ -603,7 +614,23 @@ final class FieldOperationsController extends Controller
                 }
             });
 
-        $visits = (clone $visibleVisits)->with(['actor', 'noOrderReason'])->orderByDesc('created_at')->paginate(30);
+        $tripVisitsQuery = clone $visibleVisits;
+        if ($tripView === 'trips') {
+            if (isset($tripFilters['trip_route']) && $tripFilters['trip_route'] !== '') {
+                $routeKey = $tripFilters['trip_route'];
+                $tripVisitsQuery->where(function ($query) use ($routeKey): void {
+                    $query->where('metadata->route_key', $routeKey)
+                        ->orWhere('metadata->route_code', $routeKey)
+                        ->orWhere('metadata->route', $routeKey);
+                });
+            }
+            if (isset($tripFilters['trip_status'])) {
+                $tripVisitsQuery->where('status', $tripFilters['trip_status']);
+            }
+        }
+
+        $visits = $tripVisitsQuery->with(['actor', 'noOrderReason'])
+            ->orderByDesc('created_at')->paginate(30)->withQueryString();
         $visits->setCollection($visits->getCollection()->map(function (VanVisit $visit): VanVisit {
             $visit->setAttribute('customer_display', $this->customerDisplay((string) $visit->customer_type, (int) $visit->customer_id));
             $reason = $visit->noOrderReason;
@@ -709,7 +736,35 @@ final class FieldOperationsController extends Controller
             ->limit(300)
             ->get(['id', 'order_number', 'status', 'store_id']);
 
+        // Visit metadata is not authority to read arbitrary Van codes. An
+        // expired/revoked assignment, inactive warehouse or retired Van must
+        // never revive the historical label through a forged metadata.van_id.
+        $tripVanCodes = $tripView === 'trips'
+            ? Van::query()
+                ->whereIn('id', $visits->getCollection()
+                    ->pluck('metadata')
+                    ->map(static fn ($metadata): int => (int) ($metadata['van_id'] ?? 0))
+                    ->filter()
+                    ->unique())
+                ->where('status', 'active')
+                ->whereHas('assignments', static function ($query) use ($allowedB2bStores): void {
+                    $query->join('warehouses', 'warehouses.id', '=', 'van_assignments.warehouse_id')
+                        ->where('van_assignments.status', 'active')
+                        ->where('van_assignments.effective_from', '<=', now())
+                        ->where(function ($query): void {
+                            $query->whereNull('van_assignments.effective_until')
+                                ->orWhere('van_assignments.effective_until', '>', now());
+                        })
+                        ->where('warehouses.is_active', true)
+                        ->whereIn('warehouses.store_id', $allowedB2bStores);
+                })
+                ->pluck('code', 'id')
+            : collect();
+
         return $this->render($request, 'visits', compact(
+            'tripView',
+            'tripFilters',
+            'tripVanCodes',
             'visits',
             'assignments',
             'reasons',
