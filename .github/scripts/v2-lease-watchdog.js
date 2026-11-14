@@ -137,6 +137,14 @@ function isMatchingMergedPr(pr, claim) {
     && pr.base?.ref === 'Foodex_V2'
     && (!claim.branch || pr.head?.ref === claim.branch));
 }
+// An administratively closed but UNMERGED original Issue PR is not an
+// automatically resumable handoff. Preserve its review/closure decision;
+// require explicit approval before reviving the original work.
+function isMatchingClosedUnmergedPr(pr, claim) {
+  return Boolean(pr && pr.state === 'closed' && pr.merged === false
+    && !pr.merged_at && pr.base?.ref === 'Foodex_V2'
+    && (!claim.branch || pr.head?.ref === claim.branch));
+}
 
 async function run({ github, context, core, nowMs = Date.now() }) {
   const { owner, repo } = context.repo;
@@ -177,7 +185,9 @@ async function run({ github, context, core, nowMs = Date.now() }) {
     // only obsolete worker labels; never close the Issue or change its gates.
     if (claim.pr) {
       const resolved = await github.rest.pulls.get({ owner, repo, pull_number: claim.pr });
-      if (isMatchingMergedPr(resolved.data, claim)) {
+      const mergedOriginal = isMatchingMergedPr(resolved.data, claim);
+      const closedUnmergedOriginal = isMatchingClosedUnmergedPr(resolved.data, claim);
+      if (mergedOriginal || closedUnmergedOriginal) {
         if (ciRunning) { active += 1; continue; }
         const current = await listPages(args => github.rest.issues.listComments(args), {
           owner, repo, issue_number: issue.number,
@@ -191,26 +201,40 @@ async function run({ github, context, core, nowMs = Date.now() }) {
         if (latestBranch.sha !== firstBranch.sha
             || await ciInProgress(github, owner, repo, latestBranch.sha || head, claim.branch)) continue;
         const latestPr = await github.rest.pulls.get({ owner, repo, pull_number: claim.pr });
-        if (!isMatchingMergedPr(latestPr.data, claim)) continue;
+        if (mergedOriginal && !isMatchingMergedPr(latestPr.data, claim)) continue;
+        if (closedUnmergedOriginal && !isMatchingClosedUnmergedPr(latestPr.data, claim)) continue;
         for (const currentLabel of ACTIVE) {
           if (!liveLabels.includes(currentLabel)) continue;
           try {
             await github.rest.issues.removeLabel({ owner, repo, issue_number: issue.number, name: currentLabel });
           } catch (err) { if (err.status !== 404) throw err; }
         }
-        const marker = '<!-- foodex-v2-integrated-lease:issue=' + issue.number + ' pr=' + claim.pr + ' -->';
-        if (!current.some(c => (c.body || '').includes(marker))) {
-          await github.rest.issues.createComment({
-            owner, repo, issue_number: issue.number,
-            body: marker + '\n## V2 — Original issue PR already merged\n\n'
-              + 'PR #' + claim.pr + ' was independently verified MERGED into Foodex_V2. '
-              + 'Obsolete worker-active/waiting labels were cleared; no handoff-ready label was added.\n'
-              + 'The Issue remains OPEN for any unaccepted source requirements. '
-              + 'Do not recreate the merged PR; preflight a distinct atomic follow-up if necessary. '
-              + 'No main or production change.\n',
+        if (closedUnmergedOriginal && !liveLabels.includes('gate:approval')) {
+          await github.rest.issues.addLabels({
+            owner, repo, issue_number: issue.number, labels: ['gate:approval'],
           });
         }
-        core.info('#' + issue.number + ': verified merged issue PR #' + claim.pr + '; stale active labels cleared');
+        const marker = mergedOriginal
+          ? '<!-- foodex-v2-integrated-lease:issue=' + issue.number + ' pr=' + claim.pr + ' -->'
+          : '<!-- foodex-v2-closed-original-lease:issue=' + issue.number + ' pr=' + claim.pr + ' -->';
+        if (!current.some(c => (c.body || '').includes(marker))) {
+          const explanation = mergedOriginal
+            ? 'PR #' + claim.pr + ' was independently verified MERGED into Foodex_V2. '
+              + 'Obsolete worker-active/waiting labels were cleared; no handoff-ready label was added.\\n'
+              + 'The Issue remains OPEN for any unaccepted source requirements. '
+              + 'Do not recreate the merged PR; preflight a distinct atomic follow-up if necessary. '
+            : 'Original PR #' + claim.pr + ' was independently verified CLOSED / NOT MERGED '
+              + 'against Foodex_V2. The issue is approval-gated, not handed off as normal coding work.\\n'
+              + 'The Issue and original PR/branch history remain untouched. '
+              + 'Obtain owner-authorized reconciliation before reopening the original PR; never create a duplicate. ';
+          await github.rest.issues.createComment({
+            owner, repo, issue_number: issue.number,
+            body: marker + '\\n## V2 — Original issue PR ' + (mergedOriginal ? 'already merged' : 'closed without merge')
+              + '\\n\\n' + explanation + 'No main or production change.\\n',
+          });
+        }
+        core.info('#' + issue.number + ': verified ' + (mergedOriginal ? 'merged' : 'closed-unmerged')
+          + ' original PR #' + claim.pr + '; stale active labels cleared without handoff');
         continue;
       }
     }
@@ -246,6 +270,13 @@ async function run({ github, context, core, nowMs = Date.now() }) {
       latestPrCommitMs: secondBranch.commitMs, ciRunning: secondCi,
     });
     if (!secondDecision.release) continue;
+    // An original PR may be closed or merged while this sweep is scanning.
+    // Never race an administrative closure with an automatic handoff label.
+    if (claim.pr) {
+      const currentOriginal = await github.rest.pulls.get({ owner, repo, pull_number: claim.pr });
+      if (isMatchingMergedPr(currentOriginal.data, claim)
+          || isMatchingClosedUnmergedPr(currentOriginal.data, claim)) continue;
+    }
     // Labels are best-effort queue signals. Release never deletes original branch/PR.
     for (const currentLabel of [...ACTIVE]) {
       if (!liveLabels.includes(currentLabel)) continue;
