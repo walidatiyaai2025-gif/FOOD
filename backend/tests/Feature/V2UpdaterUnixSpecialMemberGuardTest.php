@@ -135,7 +135,9 @@ final class V2UpdaterUnixSpecialMemberGuardTest extends TestCase
         $this->assertSame([], glob($this->backupRoot.'/*') ?: []);
     }
 
-    /** @param array<string, string> $entries */
+    /**
+     * @param  array<string, string>  $entries
+     */
     private function package(array $entries, ?string $modePath = null, int $mode = 0): string
     {
         $path = tempnam(sys_get_temp_dir(), 'foodex-v2-unix-mode-');
