@@ -57,7 +57,18 @@ class AdminReportController extends Controller
         }
         $requested = $request->integer('store_id');
         if ($requested <= 0) {
-            throw ValidationException::withMessages(['store_id' => ['A store_id is required for store-scoped reports.']]);
+            $locale = in_array($user->locale, ['ar', 'en'], true) ? $user->locale : app()->getLocale();
+            foreach ($request->getLanguages() as $preferredLanguage) {
+                $candidate = strtolower(substr((string) $preferredLanguage, 0, 2));
+                if (in_array($candidate, ['ar', 'en'], true)) {
+                    $locale = $candidate;
+                    break;
+                }
+            }
+
+            $locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'en';
+
+            throw ValidationException::withMessages(['store_id' => [__('reports.store_required', [], $locale)]]);
         }
         abort_unless($user->hasPermission('reports.view', $requested), 403);
         abort_unless($user->storeRoleAssignments()->where('store_id', $requested)->exists(), 403);
