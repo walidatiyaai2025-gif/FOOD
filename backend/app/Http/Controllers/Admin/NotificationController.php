@@ -32,12 +32,16 @@ final class NotificationController extends Controller
         $search = trim((string) $request->query('q', ''));
         $status = trim((string) $request->query('status', ''));
 
+        // Treat user input as a literal substring, not a SQL LIKE pattern.
+        // A fixed, explicit escape character works consistently on MySQL and SQLite.
+        $term = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
+
         $notifications = Notification::query()
-            ->when($search !== '', fn ($query) => $query->where(function ($nested) use ($search): void {
-                $nested->where('title_ar', 'like', '%'.$search.'%')
-                    ->orWhere('title_en', 'like', '%'.$search.'%')
-                    ->orWhere('body_ar', 'like', '%'.$search.'%')
-                    ->orWhere('body_en', 'like', '%'.$search.'%');
+            ->when($search !== '', fn ($query) => $query->where(function ($nested) use ($term): void {
+                $nested->whereRaw("title_ar LIKE ? ESCAPE '!'", [$term])
+                    ->orWhereRaw("title_en LIKE ? ESCAPE '!'", [$term])
+                    ->orWhereRaw("body_ar LIKE ? ESCAPE '!'", [$term])
+                    ->orWhereRaw("body_en LIKE ? ESCAPE '!'", [$term]);
             }))
             ->when($status !== '', fn ($query) => $query->where('status', $status))
             ->latest('id')
