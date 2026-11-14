@@ -38,10 +38,77 @@ final class InstallerEnvironment
         }
 
         $path = $this->path();
+        // The .env rename is atomic, but its read/modify/write sequence is not.
+        // Lock a persistent inode outside the replaceable .env file so two
+        // setup requests cannot silently discard each other's managed fields.
+        $lockPath = (string) config(
+            'foodex.installer_env_lock_path',
+            storage_path('framework/installer-env-locks/'.hash('sha256', $path).'.lock'),
+        );
+        $this->rejectSymbolicLink($lockPath);
+
+        $directory = dirname($lockPath);
+        if (! is_dir($directory) && ! @mkdir($directory, 0750, true) && ! is_dir($directory)) {
+            throw new RuntimeException('Installer environment write lock directory is not writable.');
+        }
+
+        $this->rejectSymbolicLink($lockPath);
+        $lock = @fopen($lockPath, 'c');
+        if ($lock === false) {
+            throw new RuntimeException('Installer environment write lock could not be opened.');
+        }
+
+        try {
+            $this->assertSafeWriteLock($lockPath, $lock);
+            if (! flock($lock, LOCK_EX)) {
+                throw new RuntimeException('Installer environment write lock could not be acquired.');
+            }
+
+            $this->assertSafeWriteLock($lockPath, $lock);
+            @chmod($lockPath, 0640);
+            $this->writeWithLock($path, $values);
+        } finally {
+            @flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    /**
+     * @param  resource  $lock
+     */
+    private function assertSafeWriteLock(string $lockPath, $lock): void
+    {
+        $this->rejectSymbolicLink($lockPath);
+        clearstatcache(true, $lockPath);
+
+        $opened = fstat($lock);
+        $current = @lstat($lockPath);
+
+        // Refuse symlink swaps, hardlinked external files and replaced inodes.
+        // Never change permissions on an unverified lock file.
+        if ($opened === false || $current === false
+            || ($opened['mode'] & 0170000) !== 0100000
+            || ($current['mode'] & 0170000) !== 0100000
+            || $opened['nlink'] !== 1
+            || $current['nlink'] !== 1
+            || $opened['dev'] !== $current['dev']
+            || $opened['ino'] !== $current['ino']) {
+            throw new RuntimeException('Installer environment write lock path changed unexpectedly.');
+        }
+    }
+
+    /**
+     * @param  array<string, scalar|null>  $values
+     */
+    private function writeWithLock(string $path, array $values): void
+    {
         $this->rejectSymbolicLink($path);
         $this->ensureEnvironmentFile($path);
         $this->rejectSymbolicLink($path);
-        $content = (string) file_get_contents($path);
+        $content = file_get_contents($path);
+        if ($content === false) {
+            throw new RuntimeException('Environment configuration could not be read.');
+        }
 
         foreach ($values as $key => $value) {
             $line = $key.'='.$this->encodeValue($value);
