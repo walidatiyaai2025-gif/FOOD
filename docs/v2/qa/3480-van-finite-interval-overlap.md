@@ -11,7 +11,7 @@
 1. Shorter existing finite primary Van assignment blocks a later overlapping longer window with a field-scoped `assignment` validation error.
 2. Shorter existing finite primary territory reservation blocks a different Van with a field-scoped `territory_key` validation error.
 3. Boundary adjacency `[start,end)` on either side is valid for the same Van; same territory can transition to a different Van at exact end instant.
-4. A historical finite reservation may be followed by an open-ended reservation.
+4. A historical finite reservation may be followed by an open-ended reservation; an overlapping open-ended reservation is rejected even when its starting time is historical.
 5. Rejections create neither additional assignments nor assignment-created audit events. No stock movements, dispatch transitions, financial ledgers, or uploads are changed.
 
 **Authorization / cross-surface impacts**:
