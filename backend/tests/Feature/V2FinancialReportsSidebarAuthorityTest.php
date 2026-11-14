@@ -76,6 +76,77 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
         }
     }
 
+    public function test_wholesale_legal_entity_finance_reader_can_run_real_reports_and_statements_in_both_locales(): void
+    {
+        $store = Store::query()->create([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2B')->value('id'),
+            'code' => 'P309-B2B',
+            'name' => 'P309 Wholesale',
+            'is_active' => true,
+        ]);
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
+        $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $superAdmin = Role::query()->where('code', 'SUPER_ADMIN')->where('scope', 'global')->firstOrFail();
+        $actor->roles()->syncWithoutDetaching([$superAdmin->id]);
+        $context = app(TenantContextResolver::class)->wholesale($actor, $store->id);
+        $this->enableFinance($actor, $context, [
+            'finance.foundation.read',
+            'finance.foundation.manage',
+            'finance.gl.read',
+        ]);
+
+        $finance = app(FinanceFoundationService::class);
+        $year = $finance->createFiscalYear($actor, $context, [
+            'code' => 'P309-WHOLESALE-YEAR',
+            'name' => 'Wholesale corporate fiscal year',
+            'starts_on' => now()->startOfYear()->toDateString(),
+            'ends_on' => now()->endOfYear()->toDateString(),
+        ]);
+        $period = $finance->createFiscalPeriod($actor, $context, $year->id, [
+            'code' => 'P309-WHOLESALE-PERIOD',
+            'name' => 'Wholesale corporate fiscal period',
+            'sequence' => 1,
+            'starts_on' => now()->startOfMonth()->toDateString(),
+            'ends_on' => now()->endOfMonth()->toDateString(),
+        ]);
+
+        foreach (['en' => 'ltr', 'ar' => 'rtl'] as $locale => $direction) {
+            $actor->forceFill(['locale' => $locale])->save();
+            app()->setLocale($locale);
+
+            $overview = $this->actingAs($actor->fresh())
+                ->get(route('admin.erp.finance.index', [
+                    'store_id' => $store->id,
+                    'tab' => 'overview',
+                    'period_id' => $period->id,
+                ]))
+                ->assertOk()
+                ->assertSee('dir="'.$direction.'"', false)
+                ->assertSee(__('finance_workbench.tabs.reports'));
+            $this->assertTrue($overview->viewData('data')['legal_entity_reporting_available']);
+
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.erp.finance.index', [
+                    'store_id' => $store->id,
+                    'tab' => 'reports',
+                    'report' => 'cash_flow',
+                    'period_id' => $period->id,
+                ]))
+                ->assertOk()
+                ->assertSee(__('finance_workbench.reports.title'));
+
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.erp.finance.index', [
+                    'store_id' => $store->id,
+                    'tab' => 'statements',
+                    'statement' => 'trial_balance',
+                    'period_id' => $period->id,
+                ]))
+                ->assertOk()
+                ->assertSee(__('finance_workbench.tabs.statements'));
+        }
+    }
+
     public function test_gl_read_does_not_grant_foundation_financial_reports_without_entitlement(): void
     {
         [$actor, $store, $context] = $this->operator('P309-ENTITLEMENT');
