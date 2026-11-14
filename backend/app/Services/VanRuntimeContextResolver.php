@@ -143,11 +143,18 @@ final class VanRuntimeContextResolver
             return false;
         }
 
+        // The selected Van seller may be a B2B warehouse while a historical
+        // driver's *own* store is Retail. Check both independent boundaries:
+        // this fallback cannot convert a B2C store identity into Van access.
         return DB::table('drivers')
-            ->where('id', (int) $driverId)
-            ->where('user_id', $user->id)
-            ->where('driver_type', 'b2b')
-            ->where('is_active', true)
+            ->join('stores as driver_stores', 'driver_stores.id', '=', 'drivers.store_id')
+            ->join('store_types as driver_store_types', 'driver_store_types.id', '=', 'driver_stores.store_type_id')
+            ->where('drivers.id', (int) $driverId)
+            ->where('drivers.user_id', $user->id)
+            ->where('drivers.driver_type', 'b2b')
+            ->where('drivers.is_active', true)
+            ->where('driver_stores.is_active', true)
+            ->where('driver_store_types.code', 'B2B')
             ->exists();
     }
 }
