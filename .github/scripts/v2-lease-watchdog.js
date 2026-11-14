@@ -11,6 +11,12 @@ const STATE = '<!-- foodex-worker-state:v1 -->';
 const RELEASE_MARK = '<!-- foodex-v2-idle-release:';
 const CLAIM_RE = /(?:^|\n)\s*(?:OWNER|BRANCH|HEARTBEAT|STATE)\s*:/m;
 const ACTIVE = new Set(['worker:active', 'worker:waiting-ci']);
+// A terminal/gated/unknown state is not a live work lease, even if an old
+// worker label or OWNER text is still present. Keep the allowlist narrow.
+const LIVE_CLAIM_STATES = new Set([
+  'ACTIVE', 'WAITING_CI', 'WAITING_EXACT_HEAD_CI', 'WAITING_REQUIRED_CI',
+  'CI_FIX', 'CI_RUNNING', 'REQUIRED_CI_RUNNING',
+]);
 const name = label => typeof label === 'string' ? label : label.name;
 
 function time(value) {
@@ -24,7 +30,6 @@ function parseClaim(comments) {
   // Track the original claim, not the latest heartbeat/status comment.
   // Repeated WAITING_CI comments cannot extend a 30-minute inactivity TTL.
   let claim = null;
-  const inactive = new Set(['HANDOFF', 'HANDOFF_READY', 'RELEASED', 'UNCLAIMED', 'INTEGRATED_PENDING_ACCEPTANCE']);
   for (const c of comments || []) {
     const body = c.body || '';
     if (body.includes(RELEASE_MARK) || body.includes('<!-- foodex-watchdog:handoff')) {
@@ -36,13 +41,13 @@ function parseClaim(comments) {
     const kv = Object.fromEntries(body.slice(marker + STATE.length).split(/\r?\n/)
       .map(line => line.match(/^\s*([A-Z_]+)\s*:\s*(.*?)\s*$/))
       .filter(Boolean).map(m => [m[1], m[2]]));
-    const state = (kv.STATE || 'ACTIVE').toUpperCase();
-    // Workers also write e.g. "HANDOFF_READY / WAITING_DEPENDENCY" or
-    // "INTEGRATED_BOUNDED_TEST / LEASE_RELEASED". Do not treat those
-    // handoffs as a fresh ACTIVE claim merely because the suffix differs.
+    const state = String(kv.STATE || '').toUpperCase();
+    // Require a positive execution state. Historical GATE_APPROVAL,
+    // BLOCKED_DESIGN_DEPENDENCY, MERGED_* and WORKER_RELEASED comments
+    // supersede older ACTIVE claims instead of inviting a stale takeover.
+    // Missing or unknown STATE fails closed: no automatic lease release.
     const primaryState = state.split(/\s*[/|]\s*/)[0].trim();
-    if (inactive.has(primaryState) || primaryState.startsWith('INTEGRATED_')
-        || primaryState.startsWith('HANDOFF_')) { claim = null; continue; }
+    if (!LIVE_CLAIM_STATES.has(primaryState)) { claim = null; continue; }
     if (!kv.OWNER || !time(c.created_at)) continue;
     // A worker may claim before creating its issue branch; keep the empty
     // branch identity until a subsequent checkpoint supplies the real ref.
