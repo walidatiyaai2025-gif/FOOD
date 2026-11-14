@@ -4308,6 +4308,89 @@ void main() {
     },
   );
 
+  for (final locale in const <Locale>[Locale('ar'), Locale('en')]) {
+    testWidgets(
+      'Wholesale invoices do not fabricate paid or debt totals in ${locale.languageCode}',
+      (tester) async {
+        final api = _FakeB2bApi({
+          'data': [
+            {
+              'id': 31,
+              'invoice_number': 'INV-31',
+              'display_status': 'partially_paid',
+              'currency': 'KWD',
+              'total': 20.0,
+              'paid_amount': null,
+              'outstanding_amount': 'NaN',
+              'credit_amount': 0.0,
+              'store_id': 7,
+              'issued_at': '2026-10-01T10:00:00Z',
+            },
+          ],
+          'summary': {
+            'totals': [
+              {
+                'currency': 'KWD',
+                'total': 20.0,
+                'paid': null,
+                'outstanding': 'not-a-number',
+                'overdue': 'Infinity',
+                'credit': 0.0,
+              },
+            ],
+          },
+          'meta': {'page': 1, 'per_page': 20, 'total': 1, 'has_more': false},
+        });
+        await tester.pumpWidget(
+          FoodexCustomerApp(
+            session: b2b,
+            locale: locale,
+            initialRoute: '/b2b/invoices?store_id=7',
+            b2bApi: api,
+          ),
+        );
+        await _pumpCustomerFrames(tester);
+
+        final summary = find.byKey(
+          const ValueKey('b2b-invoices-summary-KWD'),
+        );
+        expect(summary, findsOneWidget);
+        final ar = locale.languageCode == 'ar';
+        expect(
+          find.descendant(
+            of: summary,
+            matching: find.text('${ar ? 'المدفوع' : 'Paid'}: —'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: summary,
+            matching: find.text('${ar ? 'المديونية' : 'Debt'}: —'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: summary,
+            matching: find.text('${ar ? 'المتأخر' : 'Overdue'}: —'),
+          ),
+          findsOneWidget,
+        );
+        final row = find.byKey(const ValueKey('b2b-invoice-paid-31'));
+        expect(row, findsOneWidget);
+        final paid = tester.widget<Text>(row);
+        expect(paid.textSpan?.toPlainText(), '${ar ? 'المدفوع' : 'Paid'}: —');
+        expect(find.textContaining('0.000 KWD'), findsNothing);
+        expect(
+          Directionality.of(tester.element(row)),
+          ar ? TextDirection.rtl : TextDirection.ltr,
+        );
+        expect(api.lastPath, '/api/v1/b2b/invoices?store_id=7');
+      },
+    );
+  }
+
   testWidgets('B2B collections expose approved detail navigation', (
     tester,
   ) async {
