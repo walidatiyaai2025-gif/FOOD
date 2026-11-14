@@ -177,7 +177,31 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
                 'idempotency_key' => 'p309-foreign', 'amount' => '900.000'],
         ]);
 
+        // Posted allocations reduce exposure, while a draft allocation must not.
+        // The sibling's posted collection must never influence this store's totals.
+        $ownDocumentId = DB::table('enterprise_ar_documents')
+            ->where('document_number', 'P309-OWN')->value('id');
+        $siblingDocumentId = DB::table('enterprise_ar_documents')
+            ->where('document_number', 'P309-FOREIGN')->value('id');
+        $allocation = [
+            'request_hash' => str_repeat('b', 64),
+            'allocation_date' => now()->toDateString(),
+            'settlement_account_id' => $arAccount->id,
+            'created_by' => $actor->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+        DB::table('enterprise_ar_allocations')->insert([
+            [...$allocation, 'ar_document_id' => $ownDocumentId, 'idempotency_key' => 'p309-own-posted',
+                'amount' => '4.000', 'status' => 'posted', 'posted_at' => now()],
+            [...$allocation, 'ar_document_id' => $ownDocumentId, 'idempotency_key' => 'p309-own-draft',
+                'amount' => '7.000', 'status' => 'draft'],
+            [...$allocation, 'ar_document_id' => $siblingDocumentId, 'idempotency_key' => 'p309-sibling-posted',
+                'amount' => '250.000', 'status' => 'posted', 'posted_at' => now()],
+        ]);
+
         $documentCount = DB::table('enterprise_ar_documents')->count();
+        $allocationCount = DB::table('enterprise_ar_allocations')->count();
         $response = $this->actingAs($actor->fresh())->get(route('admin.erp.finance.index', [
             'store_id' => $store->id,
             'tab' => 'overview',
@@ -185,11 +209,12 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
         ]))->assertOk();
 
         $data = $response->viewData('data');
-        $this->assertEqualsWithDelta(12.0, (float) $data['metrics']['ar_outstanding'], 0.001);
-        $this->assertEqualsWithDelta(12.0, (float) $data['metrics']['ar_overdue'], 0.001);
+        $this->assertEqualsWithDelta(8.0, (float) $data['metrics']['ar_outstanding'], 0.001);
+        $this->assertEqualsWithDelta(8.0, (float) $data['metrics']['ar_overdue'], 0.001);
         $this->assertSame(1, array_sum(array_column($data['aging']['ar'], 'documents')));
-        $this->assertEqualsWithDelta(12.0, array_sum(array_column($data['aging']['ar'], 'amount')), 0.001);
+        $this->assertEqualsWithDelta(8.0, array_sum(array_column($data['aging']['ar'], 'amount')), 0.001);
         $this->assertSame($documentCount, DB::table('enterprise_ar_documents')->count());
+        $this->assertSame($allocationCount, DB::table('enterprise_ar_allocations')->count());
     }
 
     /** @return array{User, Store, ResolvedTenantContext} */
