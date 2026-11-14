@@ -4669,7 +4669,6 @@ class _FinanceCard extends StatelessWidget {
                 ),
               );
             }
-            final balance = summary.balance;
             final currency = summary.currency;
             final values = <(String, String)>[
               (
