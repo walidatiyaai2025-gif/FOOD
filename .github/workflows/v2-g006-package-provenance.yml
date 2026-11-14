@@ -1,0 +1,92 @@
+name: FOODEX V2 G006 ZIP provenance unit tests
+
+on:
+  pull_request:
+    branches: [Foodex_V2]
+    paths:
+      - 'scripts/v2_upgrade_package_provenance.py'
+      - 'scripts/tests/test_v2_upgrade_package_provenance.py'
+      - 'docs/v2/qa/2747-upgrade-package-provenance-g006.md'
+      - '.github/workflows/v2-g006-package-provenance.yml'
+  push:
+    branches:
+      - 'test/2747-v2-upgrade-package-provenance-g006'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v2-g006-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-zip-manifest-contract:
+    name: Synthetic ZIP security and historical edge contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact candidate commit
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify source checkout identity
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+      - name: Validate Python source syntax
+        run: python3 -m py_compile scripts/v2_upgrade_package_provenance.py scripts/tests/test_v2_upgrade_package_provenance.py
+      - name: Execute positive and adversarial ZIP unit tests
+        run: python3 -m unittest discover -s scripts/tests -p 'test_v2_upgrade_package_provenance.py' -v
+
+  verify-published-historical-bytes:
+    name: Real v125/v127 archived Update ZIP integrity (not deploy/upgrade)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_125: 1a4d2ba341424c816040a7185a9ab1df59c3d574
+      SOURCE_127: a75d3780a8cf1eeb702781adbb17a5dcfd7d8130
+      SHA_125: b4fd85f983469c754c50cbb2b3d3f6d6474545863d4ea41a7b3728cce36cfb52
+      SHA_127: fd7c801c333c902d5d6704283eba75de24c7aeae46bcbbe6ebaac6e5dc6fdf46
+    steps:
+      - name: Checkout exact candidate commit
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Pin source tag refs without changing releases
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v1.0.125" --jq .object.sha)" = "$SOURCE_125"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v1.0.127" --jq .object.sha)" = "$SOURCE_127"
+      - name: Download fixed published release assets read-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/g006/v125" "$RUNNER_TEMP/g006/v127"
+          for v in 125 127; do
+            gh release download "v1.0.$v" -R "$GITHUB_REPOSITORY" \
+              -p 'FOODEX-Update.zip' -p 'FOODEX-Update.json' \
+              -p 'FOODEX-Update.sha256.txt' -p 'FOODEX-Update.files.txt' \
+              --dir "$RUNNER_TEMP/g006/v$v"
+          done
+      - name: Validate immutable bytes and both real compatibility edges
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' "$SHA_125" "$RUNNER_TEMP/g006/v125/FOODEX-Update.zip" | sha256sum -c -
+          printf '%s  %s\n' "$SHA_127" "$RUNNER_TEMP/g006/v127/FOODEX-Update.zip" | sha256sum -c -
+          python3 scripts/v2_upgrade_package_provenance.py \
+            --upgrade-124-125 "$RUNNER_TEMP/g006/v125" \
+            --upgrade-125-127 "$RUNNER_TEMP/g006/v127" \
+            --source-125 "$SOURCE_125" --source-127 "$SOURCE_127"
+          echo 'Historical archive-integrity evidence only; no signature authentication or MySQL upgrade performed.'
