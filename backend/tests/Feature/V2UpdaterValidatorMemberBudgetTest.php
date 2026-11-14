@@ -103,7 +103,7 @@ final class V2UpdaterValidatorMemberBudgetTest extends TestCase
     }
 
     /**
-     * @param array<string, string> $entries
+     * @param  array<string, string>  $entries
      */
     private function package(array $entries): string
     {
