@@ -13,6 +13,7 @@ import math
 import re
 import stat
 import sys
+import unicodedata
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,7 @@ class PackageContractError(ValueError):
 SHA_PATTERN = re.compile(r"^[a-f0-9]{40}$")
 DIGEST_PATTERN = re.compile(r"^[a-f0-9]{64}$")
 VERSION_PATTERN = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
+WINDOWS_DEVICE_PATTERN = re.compile(r"^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$", re.IGNORECASE)
 
 
 def _require(condition: bool, message: str) -> None:
@@ -86,6 +88,20 @@ def _member_name(info: zipfile.ZipInfo) -> str:
         all(part not in ("", ".", "..") for part in parts),
         f"Unsafe archive member path: {name!r}",
     )
+    # The ZIP may later be applied on Windows, macOS or shared hosts whose
+    # pathname semantics differ from the CI runner. Reject ambiguous aliases
+    # *before* treating the archive manifest as authoritative.
+    _require(
+        all(
+            part == part.rstrip(" .")
+            and not any(char in '<>:"|?*' or ord(char) < 32 or ord(char) == 127 for char in part)
+            and not WINDOWS_DEVICE_PATTERN.fullmatch(part)
+            for part in parts
+        ),
+        f"Unsafe cross-platform archive member component: {name!r}",
+    )
+    folded_parts = [part.casefold() for part in parts]
+    folded_canonical = "/".join(folded_parts)
     mode = (info.external_attr >> 16) & 0xFFFF
     _require(not stat.S_ISLNK(mode), f"Symlink is not allowed: {name!r}")
     # A non-directory entry must be a regular file, never a Unix FIFO,
@@ -97,10 +113,10 @@ def _member_name(info: zipfile.ZipInfo) -> str:
     )
     _require(not info.is_dir(), f"Directory entry is not expected: {name!r}")
     _require(
-        not any(part == ".env" or part.startswith(".env.") for part in parts)
-        and "storage" not in parts[:2]
-        and not canonical.startswith(("apps/", "Release/", "docs/", ".github/"))
-        and not canonical.startswith("backend/tests/"),
+        not any(part == ".env" or part.startswith(".env.") for part in folded_parts)
+        and "storage" not in folded_parts[:2]
+        and not folded_canonical.startswith(("apps/", "release/", "docs/", ".github/"))
+        and not folded_canonical.startswith("backend/tests/"),
         f"Private/non-runtime member in update: {name!r}",
     )
     return canonical
@@ -173,10 +189,16 @@ def validate_package(
         with zipfile.ZipFile(zip_path) as archive:
             names: list[str] = []
             seen: set[str] = set()
+            portable_seen: set[str] = set()
             for info in archive.infolist():
                 name = _member_name(info)
-                _require(name not in seen, f"Duplicate or aliased archive target: {name}")
+                portable_name = unicodedata.normalize("NFC", name).casefold()
+                _require(
+                    name not in seen and portable_name not in portable_seen,
+                    f"Duplicate or aliased archive target: {name}",
+                )
                 seen.add(name)
+                portable_seen.add(portable_name)
                 names.append(name)
             _require(bool(names) and "VERSION" in seen, "Archive has no VERSION member.")
             _require(
