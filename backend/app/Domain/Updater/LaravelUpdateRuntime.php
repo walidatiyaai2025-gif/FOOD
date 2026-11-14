@@ -861,9 +861,13 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         // release source. Explicit *.example templates are versioned defaults,
         // never the active credentials. Check each component so a ZIP cannot
         // replace a private dotenv directory or exploit case-insensitive hosts.
-        foreach (explode('/', $normalized) as $component) {
-            if (preg_match('/^\.env(?:\.[^\/]+)?$/i', $component) === 1
-                && preg_match('/^\.env(?:\.[A-Za-z0-9_-]+)*\.example$/', $component) !== 1) {
+        $pathComponents = explode('/', $normalized);
+        $lastComponent = array_key_last($pathComponents);
+        foreach ($pathComponents as $index => $component) {
+            $isExampleTemplate = $index === $lastComponent
+                && preg_match('/^\.env(?:\.[A-Za-z0-9_-]+)*\.example$/', $component) === 1;
+
+            if (preg_match('/^\.env(?:\.[^\/]+)?$/i', $component) === 1 && ! $isExampleTemplate) {
                 throw new RuntimeException('Update archive targets a protected runtime path.');
             }
         }
