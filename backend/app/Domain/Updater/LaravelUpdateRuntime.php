@@ -887,6 +887,13 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         $pathComponents = explode('/', $normalized);
         $lastComponent = array_key_last($pathComponents);
         foreach ($pathComponents as $index => $component) {
+            // On Windows and some shared-host filesystems, trailing periods
+            // or spaces in a component alias a different live path. Reject
+            // them before protected-directory and symlink checks.
+            if ($component === '' || str_ends_with($component, '.') || str_ends_with($component, ' ')) {
+                throw new RuntimeException('Update archive contains an unsafe path.');
+            }
+
             $isExampleTemplate = $index === $lastComponent
                 && preg_match('/^\.env(?:\.[A-Za-z0-9_-]+)*\.example$/', $component) === 1;
 
