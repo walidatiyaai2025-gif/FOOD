@@ -749,7 +749,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
     {
         $entries = [];
         $seen = [];
-        $seenCaseFolded = [];
+        $requiredDirectories = [];
         $expandedBytes = 0;
 
         // Empty members and directories can exhaust memory/CPU without
@@ -813,7 +813,11 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             // target (e.g. forward/backslash aliases). Never silently choose
             // one member while backup and extraction may read another.
             $relativePath = $this->safeRelativePath($name);
-            if (isset($seen[$relativePath])) {
+            // A pair of distinct ZIP paths can resolve to one live file on
+            // case-insensitive cPanel/Windows/macOS filesystems. Backups and
+            // extraction must agree on one deterministic target per member.
+            $foldedPath = mb_strtolower($relativePath, 'UTF-8');
+            if (isset($seen[$foldedPath])) {
                 throw new RuntimeException('Update archive contains duplicate release target paths.');
             }
 
@@ -825,16 +829,25 @@ final class LaravelUpdateRuntime implements UpdateRuntime
                 throw new RuntimeException('Update archive contains a non-canonical path.');
             }
 
-            // A case-insensitive filesystem resolves ASCII case variants to
-            // the same release target. Prevent ambiguous backup/extraction
-            // ordering even when the original ZIP member names differ.
-            $caseFoldedPath = strtolower($relativePath);
-            if (isset($seenCaseFolded[$caseFoldedPath])) {
-                throw new RuntimeException('Update archive contains duplicate release target paths.');
+            // A file cannot also be an ancestor directory of another archive
+            // member (including via a case alias). Refuse both ZIP entry orders
+            // before maintenance, file backup, or any release mutation.
+            if (isset($requiredDirectories[$foldedPath])) {
+                throw new RuntimeException('Update archive contains a file/directory target conflict.');
             }
 
-            $seen[$relativePath] = true;
-            $seenCaseFolded[$caseFoldedPath] = true;
+            $parts = explode('/', $foldedPath);
+            $parent = '';
+            for ($partIndex = 0, $lastPart = count($parts) - 1; $partIndex < $lastPart; $partIndex++) {
+                $parent = $parent === '' ? $parts[$partIndex] : $parent.'/'.$parts[$partIndex];
+                if (isset($seen[$parent])) {
+                    throw new RuntimeException('Update archive contains a file/directory target conflict.');
+                }
+
+                $requiredDirectories[$parent] = true;
+            }
+
+            $seen[$foldedPath] = true;
             $entries[] = $relativePath;
         }
 
@@ -874,9 +887,9 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         $pathComponents = explode('/', $normalized);
         $lastComponent = array_key_last($pathComponents);
         foreach ($pathComponents as $index => $component) {
-            // Windows and some shared-host filesystem APIs discard trailing
-            // dots or spaces from a path component. Reject these aliases
-            // before protected-directory checks or any live-file operations.
+            // On Windows and some shared-host filesystems, trailing periods
+            // or spaces in a component alias a different live path. Reject
+            // them before protected-directory and symlink checks.
             if ($component === '' || str_ends_with($component, '.') || str_ends_with($component, ' ')) {
                 throw new RuntimeException('Update archive contains an unsafe path.');
             }

@@ -91,6 +91,27 @@ final class DisplayNumberTest extends TestCase
         self::assertSame('—', DisplayNumber::reference('-42'));
     }
 
+    public function test_reference_values_never_coerce_non_identifier_types(): void
+    {
+        self::assertSame(42, DisplayNumber::referenceId(42));
+        self::assertSame('#42', DisplayNumber::reference(42));
+        self::assertSame(42, DisplayNumber::referenceId('  #00042  '));
+        self::assertSame('#42', DisplayNumber::reference('00042'));
+
+        $stringableId = new class
+        {
+            public function __toString(): string
+            {
+                return '42';
+            }
+        };
+
+        foreach ([true, false, 42.0, 0.0, [], ['42'], (object) ['id' => 42], $stringableId, null] as $invalid) {
+            self::assertNull(DisplayNumber::referenceId($invalid));
+            self::assertSame('—', DisplayNumber::reference($invalid));
+        }
+    }
+
     public function test_invalid_precision_is_rejected(): void
     {
         $this->expectException(InvalidArgumentException::class);

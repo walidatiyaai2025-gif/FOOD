@@ -6,6 +6,7 @@ use App\Models\Driver;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\VanRegistryService;
+use App\Services\VanRuntimeContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -224,8 +225,8 @@ class AuthFoundationTest extends TestCase
 
         $registry = app(VanRegistryService::class);
         $van = $registry->createVan(['code' => 'AUTH-TOKEN-VAN']);
-        // Exercise historical inconsistent assignment storage; the protected
-        // VanRegistryService::assign() must never accept a new B2C Driver.
+        // Preserve the historical inconsistent Retail Driver Van link as a
+        // negative fixture. It cannot grant Van runtime, even to a dual-role user.
         $legacyAssignment = $registry->assign($user, $van, [
             'representative_user_id' => $user->id,
             'assignment_type' => 'primary',
@@ -235,6 +236,20 @@ class AuthFoundationTest extends TestCase
             'driver_id' => $driver->id,
             'representative_user_id' => null,
         ])->save();
+
+        // Explicit VAN_OPERATOR has a separate legitimate representative-only
+        // Van assignment. The Van token tests this authorized context, never
+        // the stale Retail-linked assignment above.
+        $operatorVan = $registry->createVan(['code' => 'AUTH-TOKEN-OPERATOR-VAN']);
+        $operatorAssignment = $registry->assign($user, $operatorVan, [
+            'representative_user_id' => $user->id,
+            'assignment_type' => 'primary',
+            'effective_from' => now()->subMinute(),
+        ]);
+        $context = app(VanRuntimeContextResolver::class)->resolve($user);
+        $this->assertSame($operatorAssignment->id, $context['selected']['assignment_id']);
+        $this->assertCount(1, $context['available']);
+        $this->assertDatabaseHas('van_assignments', ['id' => $legacyAssignment->id, 'driver_id' => $driver->id]);
 
         $driverToken = $this->postJson('/api/v1/auth/login', [
             'email' => $user->email,
