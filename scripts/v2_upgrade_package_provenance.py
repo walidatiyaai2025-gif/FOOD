@@ -157,6 +157,19 @@ def _member_name(info: zipfile.ZipInfo) -> str:
         )
         extra_offset += field_size
 
+    # Require portable, unencrypted archive entries. zipfile may raise a raw
+    # RuntimeError for encrypted members or NotImplementedError for unsupported
+    # compression when testzip() reads attacker-controlled archive metadata.
+    # Reject before CRC scanning rather than trusting only a matching SHA-256.
+    _require(
+        not (info.flag_bits & 0x0001),
+        f"Encrypted ZIP member is forbidden: {name!r}",
+    )
+    _require(
+        info.compress_type in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED),
+        f"Unsupported ZIP compression method: {name!r}",
+    )
+
     mode = (info.external_attr >> 16) & 0xFFFF
     _require(not stat.S_ISLNK(mode), f"Symlink is not allowed: {name!r}")
     # A non-directory entry must be a regular file, never a Unix FIFO,
