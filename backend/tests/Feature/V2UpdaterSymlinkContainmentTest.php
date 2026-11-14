@@ -22,6 +22,8 @@ class V2UpdaterSymlinkContainmentTest extends TestCase
     /** @var array<int, string> */
     private array $temporaryManifests = [];
 
+    private string $rollbackBackupRoot;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -39,6 +41,15 @@ class V2UpdaterSymlinkContainmentTest extends TestCase
         }
 
         file_put_contents($this->outsideDir.'/sentinel.txt', 'protected');
+
+        // Keep the existing symlink regression's manifest inside the
+        // canonical updater backup root so target-symlink validation is tested.
+        $this->rollbackBackupRoot = sys_get_temp_dir().'/foodex-v2-trusted-rollback-'.bin2hex(random_bytes(8));
+        if (! mkdir($this->rollbackBackupRoot, 0700) && ! is_dir($this->rollbackBackupRoot)) {
+            throw new RuntimeException('Cannot create trusted updater test backup root.');
+        }
+
+        config()->set('foodex.update_backup_path', $this->rollbackBackupRoot);
     }
 
     protected function tearDown(): void
@@ -50,6 +61,10 @@ class V2UpdaterSymlinkContainmentTest extends TestCase
         foreach ($this->temporaryManifests as $path) {
             @unlink($path.'/files.json');
             @rmdir($path);
+        }
+
+        if (isset($this->rollbackBackupRoot)) {
+            @rmdir($this->rollbackBackupRoot);
         }
 
         if (is_link($this->fixturePath)) {
@@ -97,7 +112,7 @@ class V2UpdaterSymlinkContainmentTest extends TestCase
     public function test_rollback_does_not_follow_a_symlinked_target_from_its_manifest(): void
     {
         $this->linkFixtureTo($this->outsideDir);
-        $backup = sys_get_temp_dir().'/foodex-updater-manifest-'.bin2hex(random_bytes(8));
+        $backup = $this->rollbackBackupRoot.'/foodex-updater-manifest-'.bin2hex(random_bytes(8));
         mkdir($backup, 0700);
         $this->temporaryManifests[] = $backup;
 

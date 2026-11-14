@@ -6,6 +6,10 @@ return [
     'installer_env_path' => env('FOODEX_INSTALL_ENV_PATH', base_path('.env')),
     'update_backup_path' => env('FOODEX_UPDATE_BACKUP_PATH', storage_path('app/system/update-backups')),
     'update_backup_retention_days' => max(1, (int) env('FOODEX_UPDATE_BACKUP_RETENTION_DAYS', 30)),
+    // Uncompressed Update ZIP staging budgets (bytes); verify larger release
+    // payloads before increasing limits on shared hosting.
+    'update_max_entry_uncompressed_bytes' => max(1, (int) env('FOODEX_UPDATE_MAX_ENTRY_UNCOMPRESSED_BYTES', 268435456)),
+    'update_max_total_uncompressed_bytes' => max(1, (int) env('FOODEX_UPDATE_MAX_TOTAL_UNCOMPRESSED_BYTES', 1073741824)),
     'mysql_dump_binary' => env('FOODEX_MYSQL_DUMP_BINARY', 'mysqldump'),
     'mysql_client_binary' => env('FOODEX_MYSQL_CLIENT_BINARY', 'mysql'),
     'pg_dump_binary' => env('FOODEX_PG_DUMP_BINARY', 'pg_dump'),

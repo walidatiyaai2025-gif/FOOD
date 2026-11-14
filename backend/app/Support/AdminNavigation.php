@@ -602,9 +602,13 @@ class AdminNavigation
             return false;
         }
 
+        // Mobile-only identities are not ERP/Dashboard principals. Having a
+        // historical global B2B Driver, Retail Driver or Van runtime role must
+        // not expose ERP Center/My Work links that management HTTP denies.
         return $user->roles()
             ->where('roles.is_active', true)
             ->where('roles.scope', 'global')
+            ->whereNotIn('roles.code', ['B2B_DRIVER', 'B2C_DRIVER', 'VAN_OPERATOR'])
             ->exists();
     }
 

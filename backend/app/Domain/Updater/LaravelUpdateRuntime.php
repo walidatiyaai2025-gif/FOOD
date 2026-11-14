@@ -29,14 +29,20 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             throw new RuntimeException('Release root is not writable.');
         }
 
+        // Validate the fully expanded archive before trusting the compressed
+        // ZIP length as a disk-space estimate. A highly compressible payload
+        // must not exhaust shared-host storage during staging/rollback.
+        $expandedBytes = 0;
+        $entries = $this->archiveEntries($packagePath, $expandedBytes);
         $backupRoot = $this->backupRoot();
         $freeSpace = disk_free_space($backupRoot);
-        if ($freeSpace === false || $freeSpace < ($packageSize * 3)) {
+        if ($freeSpace === false
+            || $freeSpace < max($packageSize * 3, $expandedBytes * 2)) {
             throw new RuntimeException('Insufficient free disk space for safe update and rollback.');
         }
 
         // Reject symlinks before creating any backup or changing live files.
-        foreach ($this->archiveEntries($packagePath) as $relativePath) {
+        foreach ($entries as $relativePath) {
             $this->assertSafeReleaseTarget($relativePath);
         }
 
@@ -62,6 +68,8 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
     public function backupFiles(string $packagePath): string
     {
+        // Reject ambiguous/unsafe ZIP entries before creating any backup state.
+        $entries = $this->archiveEntries($packagePath);
         $backupDirectory = $this->newBackupDirectory('files');
         $filesDirectory = $backupDirectory.'/existing';
         $this->ensureDirectory($filesDirectory);
@@ -69,7 +77,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         $targets = [];
         $existing = [];
 
-        foreach ($this->archiveEntries($packagePath) as $relativePath) {
+        foreach ($entries as $relativePath) {
             $this->assertSafeReleaseTarget($relativePath);
             $targets[] = $relativePath;
             $target = $this->releaseRoot().'/'.$relativePath;
@@ -211,6 +219,12 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
         try {
             foreach ($this->archiveEntriesFrom($archive) as $relativePath) {
+                $stat = $archive->statName($relativePath);
+                $expectedSize = is_array($stat) ? $stat['size'] : null;
+                if (! is_int($expectedSize) || $expectedSize < 0) {
+                    throw new RuntimeException('Update archive entry length could not be read.');
+                }
+
                 $stream = $archive->getStream($relativePath);
                 if (! is_resource($stream)) {
                     throw new RuntimeException('Update archive entry could not be read.');
@@ -228,13 +242,16 @@ final class LaravelUpdateRuntime implements UpdateRuntime
                     throw new RuntimeException('Update file could not be staged.');
                 }
 
-                $copied = stream_copy_to_stream($stream, $destination);
+                // Bound actual decompression, not only ZIP central-directory
+                // claims: extra data and truncated streams must fail before
+                // the temporary file can be activated.
+                $copied = stream_copy_to_stream($stream, $destination, $expectedSize + 1);
                 fclose($stream);
                 fclose($destination);
 
-                if ($copied === false) {
+                if ($copied === false || $copied !== $expectedSize) {
                     @unlink($temporary);
-                    throw new RuntimeException('Update file could not be written.');
+                    throw new RuntimeException('Update archive entry size does not match its metadata.');
                 }
 
                 @chmod($temporary, 0644);
@@ -311,41 +328,145 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
     public function rollbackFiles(string $backupReference): void
     {
-        $manifestPath = $backupReference.'/files.json';
-        if (! is_file($manifestPath)) {
-            throw new RuntimeException('File rollback manifest is missing.');
+        // Rollback sources must be issued under the configured trusted backup
+        // root. Never accept a readable but foreign files.json as authority to
+        // delete or restore release files.
+        $rawConfiguredRoot = str_replace('\\', '/', $this->backupRoot());
+        $configuredRoot = rtrim($rawConfiguredRoot, '/');
+        $candidate = rtrim(str_replace('\\', '/', $backupReference), '/');
+        $canonicalRoot = realpath($configuredRoot);
+        $canonicalCandidate = realpath($candidate);
+        $prefix = $configuredRoot.'/';
+
+        if ($canonicalRoot === false
+            || $canonicalCandidate === false
+            || ! str_starts_with($candidate, $prefix)
+            || ! str_starts_with(
+                str_replace('\\', '/', $canonicalCandidate),
+                rtrim(str_replace('\\', '/', $canonicalRoot), '/').'/'
+            )) {
+            throw new RuntimeException('File rollback backup location is invalid.');
+        }
+
+        // Reject traversals and symlinks even when an alias happens to resolve
+        // back inside the trusted root. Keep configured-root ancestors working
+        // on hosts where the trusted storage root itself has a canonical alias.
+        // newBackupDirectory() historically appends '/' to the configured
+        // backup root. When that setting already ends with '/', the stored
+        // reference includes a double separator at this one trusted boundary.
+        // Accept only exactly those generated boundary separators, never
+        // arbitrary aliases or empty/dot segments inside the backup path.
+        $relativeBackupPath = substr($candidate, strlen($prefix));
+        $rootTrailingSeparators = strlen($rawConfiguredRoot) - strlen($configuredRoot);
+        if ($rootTrailingSeparators > 0) {
+            $generatedBoundary = str_repeat('/', $rootTrailingSeparators);
+            if (str_starts_with($relativeBackupPath, $generatedBoundary)
+                && ! str_starts_with(substr($relativeBackupPath, $rootTrailingSeparators), '/')) {
+                $relativeBackupPath = substr($relativeBackupPath, $rootTrailingSeparators);
+            }
+        }
+
+        $component = $configuredRoot;
+        foreach (explode('/', $relativeBackupPath) as $part) {
+            if ($part === '' || $part === '.' || $part === '..') {
+                throw new RuntimeException('File rollback backup location is invalid.');
+            }
+
+            $component .= '/'.$part;
+            if (is_link($component)) {
+                throw new RuntimeException('File rollback backup location is invalid.');
+            }
+        }
+
+        $manifestPath = $candidate.'/files.json';
+        if (is_link($backupReference) || is_link($manifestPath) || ! is_file($manifestPath)) {
+            throw new RuntimeException('File rollback manifest is missing or unsafe.');
         }
 
         try {
-            $payload = json_decode((string) file_get_contents($manifestPath), true, flags: JSON_THROW_ON_ERROR);
+            $payload = json_decode((string) file_get_contents($manifestPath), flags: JSON_THROW_ON_ERROR);
         } catch (JsonException) {
             throw new RuntimeException('File rollback manifest is invalid.');
         }
 
-        if (! is_array($payload)) {
+        if (! ($payload instanceof \stdClass)
+            || ! is_array($payload->targets ?? null)
+            || ! array_is_list($payload->targets)
+            || ! is_array($payload->existing ?? null)
+            || ! array_is_list($payload->existing)) {
             throw new RuntimeException('File rollback manifest is invalid.');
         }
 
-        $targets = $this->stringList($payload['targets'] ?? []);
-        $existing = $this->stringList($payload['existing'] ?? []);
+        $targets = $this->stringList($payload->targets);
+        $existing = $this->stringList($payload->existing);
+
+        if ($targets === []
+            || count($targets) !== count($payload->targets)
+            || count($existing) !== count($payload->existing)) {
+            throw new RuntimeException('File rollback manifest is invalid.');
+        }
+
+        // Validate the ENTIRE rollback manifest and every required backup source
+        // before removing even one live file. A partial/corrupt backup must never
+        // turn a recoverable failed update into further destructive file loss.
+        $targetSet = [];
+        foreach ($targets as $relativePath) {
+            if ($relativePath !== $this->safeRelativePath($relativePath)
+                || isset($targetSet[$relativePath])) {
+                throw new RuntimeException('File rollback manifest is invalid.');
+            }
+
+            $this->assertSafeReleaseTarget($relativePath);
+            $targetSet[$relativePath] = true;
+        }
+
+        $existingSet = [];
+        $backedUpFiles = rtrim($backupReference, '/\\').'/existing';
+        if (is_link($backedUpFiles)) {
+            throw new RuntimeException('File rollback backup is incomplete or unsafe.');
+        }
+
+        foreach ($existing as $relativePath) {
+            if ($relativePath !== $this->safeRelativePath($relativePath)
+                || ! isset($targetSet[$relativePath])
+                || isset($existingSet[$relativePath])) {
+                throw new RuntimeException('File rollback manifest is invalid.');
+            }
+
+            $this->assertSafeReleaseTarget($relativePath);
+            $existingSet[$relativePath] = true;
+
+            $source = $backedUpFiles;
+            foreach (explode('/', $relativePath) as $part) {
+                $source .= '/'.$part;
+                if (is_link($source)) {
+                    throw new RuntimeException('File rollback backup is incomplete or unsafe.');
+                }
+            }
+
+            // Empty original files are valid; require readability, not a
+            // nonzero size. Do not follow links in the private backup tree.
+            if (! is_file($source) || ! is_readable($source)) {
+                throw new RuntimeException('File rollback backup is incomplete or unsafe.');
+            }
+        }
 
         foreach ($targets as $relativePath) {
             $this->assertSafeReleaseTarget($relativePath);
-            $target = $this->releaseRoot().'/'.$this->safeRelativePath($relativePath);
+            $target = $this->releaseRoot().'/'.$relativePath;
             if (is_file($target) && ! @unlink($target)) {
                 throw new RuntimeException('Updated file could not be removed during rollback.');
             }
         }
 
         foreach ($existing as $relativePath) {
-            $safePath = $this->safeRelativePath($relativePath);
-            $this->assertSafeReleaseTarget($safePath);
-            $source = $backupReference.'/existing/'.$safePath;
-            $target = $this->releaseRoot().'/'.$safePath;
+            $this->assertSafeReleaseTarget($relativePath);
+            $source = $backedUpFiles.'/'.$relativePath;
+            $target = $this->releaseRoot().'/'.$relativePath;
             $this->ensureDirectory(dirname($target));
-            $this->assertSafeReleaseTarget($safePath);
+            $this->assertSafeReleaseTarget($relativePath);
 
-            if (! is_file($source) || ! copy($source, $target)) {
+            if (! copy($source, $target)) {
                 throw new RuntimeException('Original release file could not be restored.');
             }
         }
@@ -353,21 +474,10 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
     public function verifyDatabaseBackup(string $backupReference): void
     {
-        $metadataPath = rtrim($backupReference, '/\\\\').'/database.json';
-        try {
-            $metadata = json_decode((string) file_get_contents($metadataPath), true, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            throw new RuntimeException('Database backup verification metadata is invalid.');
-        }
-
-        if (! is_array($metadata) || ! is_string($metadata['driver'] ?? null) || ! is_string($metadata['snapshot'] ?? null)) {
-            throw new RuntimeException('Database backup verification metadata is invalid.');
-        }
-
+        // Reject tampered references and snapshot metadata before opening a
+        // database dump or invoking any database client.
+        $metadata = $this->trustedDatabaseBackupMetadata($backupReference);
         $snapshot = $metadata['snapshot'];
-        if (! is_file($snapshot) || filesize($snapshot) === 0) {
-            throw new RuntimeException('Database backup snapshot is missing or empty.');
-        }
 
         if ($metadata['driver'] === 'sqlite') {
             try {
@@ -409,20 +519,11 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
     public function rollbackDatabase(string $backupReference): void
     {
-        $metadataPath = $backupReference.'/database.json';
-
-        try {
-            $metadata = json_decode((string) file_get_contents($metadataPath), true, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            throw new RuntimeException('Database rollback metadata is invalid.');
-        }
-
-        if (! is_array($metadata)
-            || ! is_string($metadata['driver'] ?? null)
-            || ! is_string($metadata['snapshot'] ?? null)) {
-            throw new RuntimeException('Database rollback metadata is invalid.');
-        }
-
+        // Revalidate the actual backup immediately before recovery, even when
+        // it was previously checked at backup time. No DB purge, sidecar unlink
+        // or restore process may run until all provenance/integrity checks pass.
+        $this->verifyDatabaseBackup($backupReference);
+        $metadata = $this->trustedDatabaseBackupMetadata($backupReference);
         $snapshot = $metadata['snapshot'];
 
         if ($metadata['driver'] === 'sqlite') {
@@ -483,6 +584,97 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         throw new RuntimeException('Database rollback driver is unsupported.');
     }
 
+    /**
+     * Validate database backup provenance without modifying the database.
+     *
+     * @return array{driver: string, snapshot: string}
+     */
+    private function trustedDatabaseBackupMetadata(string $backupReference): array
+    {
+        $rawRoot = str_replace('\\', '/', $this->backupRoot());
+        $configuredRoot = rtrim($rawRoot, '/');
+        $candidate = rtrim(str_replace('\\', '/', $backupReference), '/');
+        $canonicalRoot = realpath($configuredRoot);
+        $canonicalCandidate = realpath($candidate);
+        $prefix = $configuredRoot.'/';
+
+        if ($canonicalRoot === false
+            || $canonicalCandidate === false
+            || ! str_starts_with($candidate, $prefix)
+            || ! str_starts_with(
+                str_replace('\\', '/', $canonicalCandidate),
+                rtrim(str_replace('\\', '/', $canonicalRoot), '/').'/'
+            )) {
+            throw new RuntimeException('Database backup location is invalid or unsafe.');
+        }
+
+        // The backup creator appends "/" to a configured root. Preserve its
+        // generated reference if the configuration already has a trailing
+        // slash, but reject every other empty/dot/alias or symlink component.
+        $relative = substr($candidate, strlen($prefix));
+        $trailingSeparators = strlen($rawRoot) - strlen($configuredRoot);
+        if ($trailingSeparators > 0
+            && str_starts_with($relative, str_repeat('/', $trailingSeparators))
+            && ! str_starts_with(substr($relative, $trailingSeparators), '/')) {
+            $relative = substr($relative, $trailingSeparators);
+        }
+
+        $component = $configuredRoot;
+        foreach (explode('/', $relative) as $part) {
+            if ($part === '' || $part === '.' || $part === '..') {
+                throw new RuntimeException('Database backup location is invalid or unsafe.');
+            }
+
+            $component .= '/'.$part;
+            if (is_link($component)) {
+                throw new RuntimeException('Database backup location is invalid or unsafe.');
+            }
+        }
+
+        $metadataPath = $candidate.'/database.json';
+        if (is_link($metadataPath) || ! is_file($metadataPath) || ! is_readable($metadataPath)) {
+            throw new RuntimeException('Database backup metadata is invalid or unsafe.');
+        }
+
+        try {
+            $json = @file_get_contents($metadataPath);
+            if (! is_string($json)) {
+                throw new RuntimeException('Database backup metadata is invalid or unsafe.');
+            }
+
+            $metadata = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw new RuntimeException('Database backup metadata is invalid or unsafe.');
+        }
+
+        $names = [
+            'sqlite' => 'database.sqlite',
+            'mysql' => 'database.sql',
+            'pgsql' => 'database.dump',
+        ];
+        $driver = is_array($metadata) ? ($metadata['driver'] ?? null) : null;
+        $snapshot = is_array($metadata) ? ($metadata['snapshot'] ?? null) : null;
+
+        if (! is_string($driver)
+            || ! isset($names[$driver])
+            || $driver !== DB::connection()->getDriverName()
+            || ! is_string($snapshot)) {
+            throw new RuntimeException('Database backup metadata is invalid or unsafe.');
+        }
+
+        $expected = $candidate.'/'.$names[$driver];
+        if (str_replace('\\', '/', $snapshot) !== $expected
+            || is_link($expected)
+            || ! is_file($expected)
+            || ! is_readable($expected)
+            || filesize($expected) === 0
+            || realpath($expected) !== rtrim(str_replace('\\', '/', $canonicalCandidate), '/').'/'.$names[$driver]) {
+            throw new RuntimeException('Database backup snapshot is missing or unsafe.');
+        }
+
+        return ['driver' => $driver, 'snapshot' => $expected];
+    }
+
     public function exitMaintenanceMode(): void
     {
         if (Artisan::call('up') !== 0) {
@@ -493,12 +685,12 @@ final class LaravelUpdateRuntime implements UpdateRuntime
     /**
      * @return array<int, string>
      */
-    private function archiveEntries(string $packagePath): array
+    private function archiveEntries(string $packagePath, int &$expandedBytes = 0): array
     {
         $archive = $this->openArchive($packagePath);
 
         try {
-            return $this->archiveEntriesFrom($archive);
+            return $this->archiveEntriesFrom($archive, $expandedBytes);
         } finally {
             $archive->close();
         }
@@ -507,9 +699,16 @@ final class LaravelUpdateRuntime implements UpdateRuntime
     /**
      * @return array<int, string>
      */
-    private function archiveEntriesFrom(ZipArchive $archive): array
+    private function archiveEntriesFrom(ZipArchive $archive, int &$expandedBytes = 0): array
     {
         $entries = [];
+        $seen = [];
+        $expandedBytes = 0;
+
+        // Configurable for verified larger releases, but always positive and
+        // finite: a tiny ZIP must not unpack an unlimited volume of files.
+        $maxEntry = max(1, (int) config('foodex.update_max_entry_uncompressed_bytes', 268435456));
+        $maxTotal = max(1, (int) config('foodex.update_max_total_uncompressed_bytes', 1073741824));
 
         for ($index = 0; $index < $archive->numFiles; $index++) {
             $name = $archive->getNameIndex($index);
@@ -520,23 +719,66 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             $operatingSystem = 0;
             $attributes = 0;
             if ($archive->getExternalAttributesIndex($index, $operatingSystem, $attributes)
-                && $operatingSystem === ZipArchive::OPSYS_UNIX
-                && (($attributes >> 16) & 0170000) === 0120000) {
-                throw new RuntimeException('Update archive contains a symbolic link.');
+                && $operatingSystem === ZipArchive::OPSYS_UNIX) {
+                $type = ($attributes >> 16) & 0170000;
+                if ($type === 0120000) {
+                    throw new RuntimeException('Update archive contains a symbolic link.');
+                }
+
+                // A ZIP member with a normal-looking filename may still be
+                // labelled as a FIFO, device, socket, or disguised directory.
+                // Allow Unix regular files and missing type bits for ZIPs made
+                // on other platforms; canonical directory entries are skipped.
+                if ($type !== 0
+                    && $type !== 0100000
+                    && ! ($type === 0040000 && str_ends_with($name, '/'))) {
+                    throw new RuntimeException('Update archive contains a non-regular file entry.');
+                }
             }
 
             if (str_ends_with($name, '/')) {
                 continue;
             }
 
-            $entries[] = $this->safeRelativePath($name);
+            $stat = $archive->statIndex($index);
+            $memberBytes = is_array($stat) ? $stat['size'] : null;
+            if (! is_int($memberBytes) || $memberBytes < 0) {
+                throw new RuntimeException('Update archive entry length could not be read.');
+            }
+
+            // Subtract first to avoid integer overflow when accumulating ZIP
+            // central-directory sizes on 64-bit PHP.
+            if ($memberBytes > $maxEntry || $memberBytes > $maxTotal - $expandedBytes) {
+                throw new RuntimeException('Update archive exceeds the allowed expanded size.');
+            }
+
+            $expandedBytes += $memberBytes;
+
+            // Two different ZIP member names can normalize to the same live
+            // target (e.g. forward/backslash aliases). Never silently choose
+            // one member while backup and extraction may read another.
+            $relativePath = $this->safeRelativePath($name);
+            if (isset($seen[$relativePath])) {
+                throw new RuntimeException('Update archive contains duplicate release target paths.');
+            }
+
+            // Keep duplicate-target rejection authoritative for existing
+            // security regressions, then refuse a single noncanonical member.
+            // The extractor opens ZIP streams using $relativePath, which may
+            // not exist in an archive with padded or backslash-aliased names.
+            if ($name !== $relativePath) {
+                throw new RuntimeException('Update archive contains a non-canonical path.');
+            }
+
+            $seen[$relativePath] = true;
+            $entries[] = $relativePath;
         }
 
         if ($entries === []) {
             throw new RuntimeException('Update archive contains no release files.');
         }
 
-        return array_values(array_unique($entries));
+        return $entries;
     }
 
     private function openArchive(string $packagePath): ZipArchive
@@ -565,6 +807,16 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             || str_ends_with($normalized, '/.env')
             || preg_match('#(^|/)(storage|vendor|\.git)(/|$)#', $normalized) === 1) {
             throw new RuntimeException('Update archive targets a protected runtime path.');
+        }
+
+        // Shared-host public release-root mirrors are static assets only.
+        // Never stage server-executable scripts or handler configuration
+        // there, including Apache multi-extension names like foo.php.jpg.
+        // Laravel's own backend/public/index.php remains a valid release file.
+        if (preg_match('#^(assets|brand|demo|preview)/#i', $normalized) === 1
+            && (preg_match('#(?:^|/)[^/]*\.(?:php[0-9]*|phtml|phar|cgi|pl|py|sh|asp|aspx|jsp)(?:\.|$)#i', $normalized) === 1
+                || preg_match('#(?:^|/)(?:\.htaccess|\.user\.ini|web\.config)(?:\.|$)#i', $normalized) === 1)) {
+            throw new RuntimeException('Update archive targets an executable public asset path.');
         }
 
         return $normalized;
