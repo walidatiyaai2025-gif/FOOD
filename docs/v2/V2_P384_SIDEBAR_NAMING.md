@@ -18,9 +18,15 @@ Source: FOODEX Unified RBAC/ERP/Sidebar document, native paragraph P371 (legacy 
 | `admin.catalog_management` | إدارة المنتجات والتصنيفات |
 | `admin.retail_store_provisioning` | تهيئة متاجر التجزئة |
 
-**Canonical name provenance:** the Catalog/Pricing/Offers group was independently finalized by source `P218` [Issue #2548](https://github.com/walidatiyaai2025-gif/FOOD/issues/2548) and [merged PR #3270](https://github.com/walidatiyaai2025-gif/FOOD/pull/3270). Its approved Arabic label is **الكتالوج والتسعير والعروض**, matching the current `backend/lang/ar/admin.php` and `V2ArabicSidebarNamingTest`. The earlier text **المنتجات والكتالوج** in this P384 trace was stale documentation, not a request to revert the accepted P218 business-group name or alter any route, permission or UI key. P218's validated implementation head was `941ca3108871752bbad9ea23461597424dda0e3f` (Repository Policy `43268866436`, V2 Isolation `43268866618`, Required CI `43268866553`, all SUCCESS) and merged to `Foodex_V2` as `87fe0f7cfc2b1e83c2b487d8bfc6e899a1999fff`. P384 and P218 both use the same canonical current Sidebar group.
+These are label changes to currently represented concepts, not authority for the 177 target Sidebar items or for opening unready ERP modules.
 
-These are label changes to currently represented concepts, not authority for the 177 target Sidebar items or for opening unready ERP modules. Existing custom Sidebar names intentionally take precedence when configured; no destructive live database rewrite is performed.
+## Source precedence correction — original P218 group versus derived P384 text (#3427)
+
+The original `FOODEX-Unified-RBAC-ERP-Sidebar-Discussion-2026-11-09.docx` names the business group **«د. الكتالوج والتسعير والعروض»**, with catalog and products as children. Its later P371/P384 instruction to harmonize Arabic labels does **not** prescribe the competing `المنتجات والكتالوج` group title. The accepted canonical group was independently implemented for P218 by [Issue #2548](https://github.com/walidatiyaai2025-gif/FOOD/issues/2548) and [merged PR #3270](https://github.com/walidatiyaai2025-gif/FOOD/pull/3270), with exact-head Required CI #43268866553 SUCCESS. The former alternative phrase in this *derived Markdown table* was stale; it did not supersede the original native DOCX or P218 accepted source.
+
+A later isolated [PR #3432](https://github.com/walidatiyaai2025-gif/FOOD/pull/3432) / #3428 used the stale table to change the Arabic runtime group text and the expected strings in four Laravel tests, passing CI but regressing the original business-name requirement. The original preserved #3427 branch / PR #3429 now restores the source-approved runtime label and those exact text expectations; it **retains** the HTTP authorization, tenant/channel permission, AR/EN, RTL/LTR, existing user-saved bilingual labels and native-locale registry tests. This correction must not be represented as an ERP-module activation or certification of the future 177-node target tree.
+
+These are current Dashboard Sidebar default wording and regression checks only. The same authorized server-projected Sidebar supplies desktop and off-canvas mobile web. Customer, Driver and Van public APIs/Flutter remain unchanged; B2B=VAN ONLY and B2C=DRIVER ONLY remain unchanged. Existing custom Sidebar names continue to take precedence; no live database rows are rewritten.
 
 ## Authorization, tests and app-impact classification
 
@@ -33,4 +39,4 @@ These are label changes to currently represented concepts, not authority for the
 
 ## Gate
 
-Issue #3427 corrects the stale text/documentation contract without changing runtime code. Keep Issue #2904 open until its own source-complete technical acceptance and current-language/route/permission checks are confirmed; preserve #2503 final UX and 177-node acceptance separately. This document is not a production or full 177-item Sidebar acceptance claim. No merge to `main`, release, tag or production deployment is authorized.
+Keep Issue #2904 open until latest exact-head Laravel/lint/localization/Required CI and integrated `Foodex_V2` acceptance are confirmed. This document is not a production or full 177-item Sidebar acceptance claim. No merge to `main`, release, tag or production deployment is authorized.
