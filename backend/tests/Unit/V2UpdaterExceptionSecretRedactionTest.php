@@ -20,7 +20,12 @@ final class V2UpdaterExceptionSecretRedactionTest extends TestCase
         $summary = $this->summarize(new RuntimeException('SQLSTATE[HY000] '.$input));
 
         $this->assertStringContainsString('SQLSTATE[HY000]', $summary);
-        $this->assertStringContainsString('[REDACTED]', $summary);
+        // URL source text may be fully masked by the existing server-path
+        // scrubber after its credentials have already been redacted.
+        $this->assertTrue(
+            str_contains($summary, '[REDACTED]') || str_contains($summary, '[server-path]'),
+            'Credential-bearing exception text must not remain visible.',
+        );
         $this->assertStringNotContainsString($secret, $summary);
     }
 
