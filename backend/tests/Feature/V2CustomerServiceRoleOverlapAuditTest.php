@@ -162,8 +162,8 @@ final class V2CustomerServiceRoleOverlapAuditTest extends TestCase
 
         $this->actingAs($admin)->put(route('admin.security.users.roles', $target), [
             'global_role_ids' => [(int) $agentRole->getKey()],
-            'store_roles' => [
-                ['store_id' => $retailStoreId, 'role_id' => $retailRole->getKey()],
+            'store_role_ids' => [
+                $retailStoreId => [(int) $retailRole->getKey()],
             ],
             'change_reason' => 'Reviewed role consolidation preserving an approved Retail assignment',
         ])->assertRedirect()->assertSessionHasNoErrors();
