@@ -26,7 +26,7 @@ final class V2CanonicalSidebarRegistryLocalizationTest extends TestCase
                 $translationKey = $definition['label'];
                 $this->assertIsString($translationKey, "Sidebar {$section}.{$key} must use a translation key.");
                 $this->assertMatchesRegularExpression(
-                    '/^[a-z][a-z0-9_]*(?:\\.[a-z0-9_]+)+$/',
+                    '/^[a-z][a-z0-9_]*(?:[.][a-z0-9_]+)+$/',
                     $translationKey,
                     "Sidebar {$section}.{$key} must use an explicit nested translation key.",
                 );
