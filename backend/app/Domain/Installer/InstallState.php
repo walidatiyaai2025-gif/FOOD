@@ -107,13 +107,33 @@ final class InstallState
             return $progress['token'];
         }
 
-        // The first two installer pages may be loaded at the same time. The
-        // progress JSON rename is atomic, but read/generate/write is not.
-        // Keep the separate lock file across requests: removing it on unlock
-        // could let a third request lock a different inode.
+        return $this->withProgressWriteLock(function (): string {
+            // A competing checkpoint may have supplied the token while this
+            // request waited for the same persistent lock.
+            $progress = $this->progress();
+
+            if ($progress['token'] === null) {
+                $progress['token'] = bin2hex(random_bytes(32));
+                $this->writeJson($this->progressPath(), $progress);
+            }
+
+            return $progress['token'];
+        });
+    }
+
+    /**
+     * Progress JSON is replaced by rename, so locking its disposable inode
+     * cannot serialize read/modify/write across requests. Both initial token
+     * writes and step/admin checkpoints share this persistent, verified lock.
+     *
+     * @template TResult
+     *
+     * @param  callable(): TResult  $operation
+     * @return TResult
+     */
+    private function withProgressWriteLock(callable $operation): mixed
+    {
         $progressPath = $this->progressPath();
-        // Keep the persistent inode outside a disposable progress directory.
-        // Testing and custom hosting layouts can override this safe local path.
         $tokenLockPath = (string) config(
             'foodex.installer_token_lock_path',
             storage_path('framework/installer-token-locks/'.hash('sha256', $progressPath).'.lock'),
@@ -142,15 +162,7 @@ final class InstallState
 
             $this->assertTokenLockFile($tokenLockPath, $lock);
 
-            // Always re-read while holding the exclusive lock. The caller's
-            // earlier snapshot might predate another request's successful init.
-            $progress = $this->progress();
-            if ($progress['token'] === null) {
-                $progress['token'] = bin2hex(random_bytes(32));
-                $this->writeJson($progressPath, $progress);
-            }
-
-            return $progress['token'];
+            return $operation();
         } finally {
             @flock($lock, LOCK_UN);
             fclose($lock);
@@ -185,15 +197,24 @@ final class InstallState
      */
     public function markStepComplete(int $step, ?array $admin = null): void
     {
-        $progress = $this->progress();
-        $progress['completed_step'] = max($progress['completed_step'], min(15, $step));
-        $progress['token'] ??= bin2hex(random_bytes(32));
+        // Fail closed before creating a lock file if persisted progress is
+        // corrupt, as the original installer state contract requires.
+        $this->progress();
 
-        if ($admin !== null) {
-            $progress['admin'] = $admin;
-        }
+        $this->withProgressWriteLock(function () use ($step, $admin): void {
+            // A concurrent request may have advanced setup or stored Super
+            // Admin details while this request waited. Never write its stale
+            // snapshot back over the authoritative progress document.
+            $progress = $this->progress();
+            $progress['completed_step'] = max($progress['completed_step'], min(15, $step));
+            $progress['token'] ??= bin2hex(random_bytes(32));
 
-        $this->writeJson($this->progressPath(), $progress);
+            if ($admin !== null) {
+                $progress['admin'] = $admin;
+            }
+
+            $this->writeJson($this->progressPath(), $progress);
+        });
     }
 
     public function writeLock(string $version): void
