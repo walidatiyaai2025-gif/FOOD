@@ -168,6 +168,59 @@ final class V2VanTripSettlementProvenanceTest extends TestCase
         $this->assertDatabaseCount('custody_ledger_entries', 1);
     }
 
+    public function test_invoice_allocations_reject_zero_negative_and_non_finite_amounts_without_financial_writes(): void
+    {
+        $actor = User::factory()->create(['is_active' => true]);
+        $store = $this->store('B2B', 'P272-ALLOCATION-AMOUNT-GUARD');
+        $invoice = $this->invoice($store, 'b2b', 'P272-AMOUNT-VALID-INVOICE');
+        $account = CollectionAccount::query()->create([
+            'actor_type' => 'van',
+            'actor_id' => 406,
+            'store_id' => $store,
+            'currency' => 'KWD',
+            'status' => 'active',
+        ]);
+
+        foreach (['zero' => 0, 'negative' => -1, 'infinity' => INF, 'not_a_number' => NAN] as $case => $allocationAmount) {
+            try {
+                app(CollectionCustodyService::class)->collect(
+                    $account,
+                    $actor,
+                    'p272-bad-allocation-'.$case,
+                    10,
+                    'KWD',
+                    'van_app',
+                    [['invoice_id' => (int) $invoice->getKey(), 'amount' => $allocationAmount]],
+                );
+                $this->fail('Invalid invoice allocation amount must never post: '.$case);
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('allocations', $exception->errors());
+            }
+
+            $this->assertDatabaseMissing('payments', ['provider_reference' => 'p272-bad-allocation-'.$case]);
+        }
+
+        $this->assertDatabaseCount('collection_transactions', 0);
+        $this->assertDatabaseCount('collection_allocations', 0);
+        $this->assertDatabaseCount('custody_ledger_entries', 0);
+
+        // A valid line must remain accepted after the rejected requests.
+        $transaction = app(CollectionCustodyService::class)->collect(
+            $account,
+            $actor,
+            'p272-after-invalid-allocations',
+            10,
+            'KWD',
+            'van_app',
+            [['invoice_id' => (int) $invoice->getKey(), 'amount' => 10]],
+        );
+        $this->assertDatabaseHas('collection_allocations', [
+            'collection_transaction_id' => $transaction->getKey(),
+            'invoice_id' => $invoice->getKey(),
+            'amount' => 10,
+        ]);
+    }
+
     public function test_van_cannot_allocate_to_retail_or_unknown_store_but_driver_retail_collection_remains_valid(): void
     {
         $actor = User::factory()->create(['is_active' => true]);
