@@ -91,32 +91,65 @@ final class CustomerInvoiceController extends Controller
         $b2cCustomerIds = DB::table('b2c_customers')->where('user_id', $user->getKey())->pluck('id')->all();
         $legacyCustomerIds = DB::table('customers')->where('user_id', $user->getKey())->pluck('id')->all();
 
-        return Invoice::query()->where(function (Builder $query) use (
-            $platformCustomerId,
-            $b2bCustomerId,
-            $b2cCustomerIds,
-            $legacyCustomerIds,
-        ): void {
+        $references = [
+            'platform_customer_id' => $platformCustomerId === null ? [] : [(int) $platformCustomerId],
+            'b2b_customer_id' => $b2bCustomerId === null ? [] : [(int) $b2bCustomerId],
+            'b2c_customer_id' => array_map('intval', $b2cCustomerIds),
+            'customer_id' => array_map('intval', $legacyCustomerIds),
+        ];
+
+        $query = Invoice::query();
+
+        // An invoice needs at least one owned identifier, but a matching legacy
+        // identifier must never override a conflicting authoritative identity.
+        $query->where(function (Builder $candidate) use ($references): void {
             $hasScope = false;
-            if ($platformCustomerId !== null) {
-                $query->orWhere('platform_customer_id', (int) $platformCustomerId);
+            foreach ($references as $column => $ids) {
+                if ($ids === []) {
+                    continue;
+                }
+
+                $candidate->orWhereIn($column, $ids);
                 $hasScope = true;
             }
-            if ($b2bCustomerId !== null) {
-                $query->orWhere('b2b_customer_id', (int) $b2bCustomerId);
-                $hasScope = true;
-            }
-            if ($b2cCustomerIds !== []) {
-                $query->orWhereIn('b2c_customer_id', array_map('intval', $b2cCustomerIds));
-                $hasScope = true;
-            }
-            if ($legacyCustomerIds !== []) {
-                $query->orWhereIn('customer_id', array_map('intval', $legacyCustomerIds));
-                $hasScope = true;
-            }
+
             if (! $hasScope) {
-                $query->whereRaw('1 = 0');
+                $candidate->whereRaw('1 = 0');
             }
+        });
+
+        foreach ($references as $column => $ids) {
+            $query->where(function (Builder $candidate) use ($column, $ids): void {
+                $candidate->whereNull($column);
+                if ($ids !== []) {
+                    $candidate->orWhereIn($column, $ids);
+                }
+            });
+        }
+
+        // Imported invoices may have a missing channel, but a populated domain
+        // identifier must not contradict a known invoice channel.
+        $query->where(function (Builder $candidate): void {
+            $candidate->whereNull('channel')
+                ->orWhere(function (Builder $b2b): void {
+                    $b2b->where('channel', 'b2b')->whereNull('b2c_customer_id');
+                })
+                ->orWhere(function (Builder $b2c): void {
+                    $b2c->where('channel', 'b2c')->whereNull('b2b_customer_id');
+                });
+        });
+
+        // A B2C customer belongs to one authoritative store; another store's
+        // invoice is not owned merely because it carries that customer's ID.
+        return $query->where(function (Builder $candidate): void {
+            $candidate->whereNull('b2c_customer_id')
+                ->orWhereNull('store_id')
+                ->orWhereExists(function ($store): void {
+                    $store->selectRaw('1')
+                        ->from('b2c_customers')
+                        ->whereColumn('b2c_customers.id', 'invoices.b2c_customer_id')
+                        ->whereColumn('b2c_customers.store_id', 'invoices.store_id');
+                });
         });
     }
 
