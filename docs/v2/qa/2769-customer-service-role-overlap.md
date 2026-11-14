@@ -12,7 +12,7 @@ The existing canonical Security Center is /admin/security?section=users; the gua
 
 ## Regression evidence
 
-The new test backend/tests/Feature/V2CustomerServiceRoleOverlapAuditTest.php uses synthetic users, seeded built-in roles, and the real web route:
+The expanded test backend/tests/Feature/V2CustomerServiceRoleOverlapAuditTest.php uses synthetic users, seeded built-in roles, and the real web route:
 
 1. An authorized Super Admin consolidates overlapping CUSTOMER_SERVICE_AGENT and CUSTOMER_SUPPORT assignments down to the reviewed agent role without modifying other accounts or built-in role grants. Excess support.manage permission disappears; agent permissions remain, and a persisted audit event identifies the operator and target.
 2. A customer-service agent cannot modify another user's role assignments in Arabic or English. Denied requests preserve the target's role links and do not emit a successful role-change audit.
@@ -41,3 +41,9 @@ No live account has been accessed or modified by this PR. If approved current-ac
 - Formatting: cd backend && vendor/bin/pint --test tests/Feature/V2CustomerServiceRoleOverlapAuditTest.php
 - Full applicable Laravel/security, AR/EN, Repository Policy, FOODEX V2 Isolation and exact-head Required CI Gate from the same branch head.
 - Manual final staging/browser/mobile acceptance: DEFERRED_TO_V2_FINAL per #2503, not a waiver of missing source/live-account evidence.
+
+## Coding-only closure versus source-account acceptance (owner #2503)
+
+The canonical Security Center role replacement, AR/EN guard, audit and current permission model already exist. This issue-owned test demonstrates them plus explicit store-role preservation and override reset. It adds no production role mutation, API, route, schema or mobile contract. Exact-HEAD required GitHub CI must succeed after final branch reconciliation before the coding-only implementation may merge into Foodex_V2.
+
+The historical account's current identity/roles/overrides, organizational scope, an approved least-privilege target role set and a signed remediation/change ticket are **not** known from repository data. These remain mandatory confidential read-only/operator-reviewed final acceptance under #2503; no test fixture proves the live exported account has changed. If the private review reveals an unmet source implementation or unauthorized permissions, this issue must not be represented as final remediation; document and fix the discovered code gap under V2 governance. Do not disclose private account identifiers in GitHub.
