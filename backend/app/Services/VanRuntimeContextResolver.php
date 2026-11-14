@@ -21,11 +21,26 @@ final class VanRuntimeContextResolver
             ->where('is_active', true)
             ->pluck('id');
 
+        // Keep seller-store precedence identical for the authorization
+        // filter and the store_id returned to the Van app.
+        $sellerStoreExpression = 'COALESCE(assignment_warehouses.store_id, home_warehouses.store_id, assignment_drivers.store_id)';
+
         $assignments = DB::table('van_assignments')
             ->join('vans', 'vans.id', '=', 'van_assignments.van_id')
             ->leftJoin('warehouses as assignment_warehouses', 'assignment_warehouses.id', '=', 'van_assignments.warehouse_id')
             ->leftJoin('warehouses as home_warehouses', 'home_warehouses.id', '=', 'vans.home_warehouse_id')
             ->leftJoin('drivers as assignment_drivers', 'assignment_drivers.id', '=', 'van_assignments.driver_id')
+            ->leftJoin('stores as effective_stores', 'effective_stores.id', '=', DB::raw($sellerStoreExpression))
+            ->leftJoin('store_types as effective_store_types', 'effective_store_types.id', '=', 'effective_stores.store_type_id')
+            ->where(function ($query) use ($sellerStoreExpression): void {
+                // Filter legacy Retail/inactive seller contexts before selecting
+                // a Van. Never silently fall back past an explicit Retail store.
+                $query->whereRaw($sellerStoreExpression.' IS NULL')
+                    ->orWhere(function ($query): void {
+                        $query->where('effective_stores.is_active', true)
+                            ->where('effective_store_types.code', 'B2B');
+                    });
+            })
             ->where('van_assignments.status', 'active')
             ->where('vans.status', 'active')
             ->where('van_assignments.effective_from', '<=', now())
@@ -48,7 +63,7 @@ final class VanRuntimeContextResolver
                 'van_assignments.driver_id',
                 'van_assignments.territory_key',
                 'van_assignments.warehouse_id',
-                DB::raw('COALESCE(assignment_warehouses.store_id, home_warehouses.store_id, assignment_drivers.store_id) as store_id'),
+                DB::raw($sellerStoreExpression.' as store_id'),
                 'vans.code as van_code',
             ]);
 
