@@ -341,6 +341,98 @@ class AppPreviewDashboardBridgeTest extends TestCase
         $this->assertDatabaseCount('app_preview_sessions', 0);
     }
 
+    public function test_preview_customer_name_search_treats_percent_underscore_and_escape_as_literals(): void
+    {
+        $storeA = $this->retailStore('PREVIEW-LITERAL-CUST-A');
+        $storeB = $this->retailStore('PREVIEW-LITERAL-CUST-B');
+        $admin = $this->storeAdmin($storeA, 'preview-literal-customer-admin@example.test');
+        $match = $this->user('Preview %_ Customer', 'preview-literal-match@example.test');
+        $lookalike = $this->user('Preview AX Customer', 'preview-literal-lookalike@example.test');
+        $escaped = $this->user('Preview !_ Customer', 'preview-literal-escape@example.test');
+        $foreign = $this->user('Preview %_ Foreign', 'preview-literal-foreign@example.test');
+        foreach ([$match, $lookalike, $escaped] as $user) {
+            $this->retailCustomer($user, $storeA);
+        }
+        $this->retailCustomer($foreign, $storeB);
+
+        $parameters = ['target_type' => 'customer', 'channel' => 'b2c', 'store_id' => $storeA];
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.app-preview.targets', $parameters + ['q' => 'Preview %_']))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.user_id', $match->id)
+            ->assertJsonPath('data.0.store_id', $storeA)
+            ->assertJsonMissing(['user_id' => $foreign->id]);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.app-preview.targets', $parameters + ['q' => 'Preview !_']))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.user_id', $escaped->id);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.app-preview.targets', $parameters + ['q' => 'Preview']))
+            ->assertOk()
+            ->assertJsonCount(3, 'data');
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.app-preview.targets', $parameters + ['q' => 'Preview _%']))
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_preview_driver_name_search_filters_wildcards_without_widening_store_scope(): void
+    {
+        $storeA = $this->retailStore('PREVIEW-LITERAL-DRV-A');
+        $storeB = $this->retailStore('PREVIEW-LITERAL-DRV-B');
+        $admin = $this->storeAdmin($storeA, 'preview-literal-driver-admin@example.test');
+        $match = $this->roleUser('B2C_DRIVER', 'preview-literal-driver-match@example.test');
+        $lookalike = $this->roleUser('B2C_DRIVER', 'preview-literal-driver-lookalike@example.test');
+        $escaped = $this->roleUser('B2C_DRIVER', 'preview-literal-driver-escape@example.test');
+        $foreign = $this->roleUser('B2C_DRIVER', 'preview-literal-driver-foreign@example.test');
+
+        foreach ([
+            [$match, $storeA, 'Courier %_ A'],
+            [$lookalike, $storeA, 'Courier AX B'],
+            [$escaped, $storeA, 'Courier !_ C'],
+            [$foreign, $storeB, 'Courier %_ Foreign'],
+        ] as [$user, $storeId, $name]) {
+            $user->update(['name' => $name]);
+            Driver::query()->create([
+                'user_id' => $user->id,
+                'store_id' => $storeId,
+                'driver_type' => 'b2c',
+                'is_available' => true,
+                'is_active' => true,
+            ]);
+        }
+
+        $parameters = ['target_type' => 'driver', 'channel' => 'b2c', 'store_id' => $storeA];
+        $this->actingAs($admin)
+            ->getJson(route('admin.app-preview.targets', $parameters + ['q' => 'Courier %_']))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.user_id', $match->id)
+            ->assertJsonMissing(['user_id' => $foreign->id]);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.app-preview.targets', $parameters + ['q' => 'Courier !_']))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.user_id', $escaped->id);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.app-preview.targets', $parameters + ['q' => 'Courier']))
+            ->assertOk()
+            ->assertJsonCount(3, 'data');
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.app-preview.targets', $parameters + ['q' => 'Courier _%']))
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
     private function roleUser(string $roleCode, string $email): User
     {
         $user = $this->user($roleCode, $email);
