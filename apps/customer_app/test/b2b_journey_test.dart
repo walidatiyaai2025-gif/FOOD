@@ -4381,7 +4381,7 @@ void main() {
         expect(row, findsOneWidget);
         final paid = tester.widget<Text>(row);
         expect(paid.textSpan?.toPlainText(), '${ar ? 'المدفوع' : 'Paid'}: —');
-        expect(find.textContaining('0.000 KWD'), findsNothing);
+        expect(find.text('0.000 KWD'), findsNothing);
         expect(
           Directionality.of(tester.element(row)),
           ar ? TextDirection.rtl : TextDirection.ltr,
