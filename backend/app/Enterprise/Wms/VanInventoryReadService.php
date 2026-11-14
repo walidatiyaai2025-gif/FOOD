@@ -81,16 +81,22 @@ final class VanInventoryReadService
         // linked user accounts may authorize reads (assignment-write parity).
         // Driverless Van assignments remain valid for supervisor operations.
         if ($assignment->driver_id !== null) {
-            abort_unless(
-                DB::table('drivers')
-                    ->join('users', 'users.id', '=', 'drivers.user_id')
-                    ->where('drivers.id', (int) $assignment->driver_id)
-                    ->where('drivers.driver_type', 'b2b')
-                    ->where('drivers.is_active', true)
-                    ->where('users.is_active', true)
-                    ->exists(),
-                404,
-            );
+            $driver = DB::table('drivers')
+                ->join('users', 'users.id', '=', 'drivers.user_id')
+                ->where('drivers.id', (int) $assignment->driver_id)
+                ->where('drivers.driver_type', 'b2b')
+                ->where('drivers.is_active', true)
+                ->where('users.is_active', true)
+                ->first(['drivers.store_id']);
+
+            abort_unless($driver !== null, 404);
+            // Legacy/imported rows may forge a B2B driver type while retaining
+            // a Retail store. Validate any explicit Driver store's real channel
+            // rather than granting Van inventory access based on a type string.
+            // Keep the existing null-store/global B2B driver compatibility.
+            if ($driver->store_id !== null) {
+                abort_unless($this->tenantScope->storeChannel((int) $driver->store_id) === 'b2b', 404);
+            }
         }
         // Inventory access does not itself grant authority to inspect a Van.
         // A store-scoped Van permission DENY must override global B2B roles.
