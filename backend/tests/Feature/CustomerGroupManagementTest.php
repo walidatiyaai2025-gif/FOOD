@@ -340,7 +340,7 @@ class CustomerGroupManagementTest extends TestCase
         $roleless = User::factory()->create(['is_active' => true]);
         $this->actingAs($roleless)
             ->get(route('admin.b2c.customer-groups.index', ['store_id' => $stores[0], 'q' => '%_']))
-            ->assertNotFound();
+            ->assertForbidden();
 
         $this->assertSame($before, DB::table('commercial_customer_groups')->count());
     }
