@@ -271,9 +271,9 @@ final class VanRegistryService
 
         if ($territory === null
             || $territory->status !== 'active'
-            || ($territory->effective_from !== null && $territory->effective_from->greaterThan($from))
+            || ($territory->effective_from !== null && Carbon::parse($territory->effective_from)->greaterThan($from))
             || ($territory->effective_until !== null
-                && ($until === null || $territory->effective_until->lessThan($until)))) {
+                && ($until === null || Carbon::parse($territory->effective_until)->lessThan($until)))) {
             throw ValidationException::withMessages([
                 'territory_key' => [__('van_assignment_guard.territory_window_required')],
             ]);
