@@ -531,9 +531,13 @@ PY
 test "$(curl -sS -b /tmp/foodex-cookies.txt -D /tmp/admin-landing.headers -o /tmp/admin-landing.html -w '%{http_code}' http://127.0.0.1:8099/admin)" = "302"
 grep -Eiq '^Location: (https?://[^/]+)?/admin/administration([?][^[:space:]]*)?' /tmp/admin-landing.headers
 test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/admin-home.html -w '%{http_code}' http://127.0.0.1:8099/admin/administration)" = "200"
-grep -Fq 'Product Sales Control' /tmp/admin-home.html
-grep -Fq 'Flash Offers' /tmp/admin-home.html
-grep -Fq 'Van &amp; Field Operations' /tmp/admin-home.html || grep -Fq 'Van & Field Operations' /tmp/admin-home.html
+# P130 keeps Super Admin on the control plane. Test the actual Hub surface,
+# not obsolete business-operator navigation labels. Dedicated authenticated
+# Product Sales / Flash / Field Operations HTTP checks continue below.
+grep -Fq 'data-admin-hub="true"' /tmp/admin-home.html
+grep -Fq 'data-admin-app="customer"' /tmp/admin-home.html
+grep -Fq 'data-admin-app="driver"' /tmp/admin-home.html
+grep -Fq 'data-admin-app="van"' /tmp/admin-home.html
 
 declare -A field_pages=(
   [overview]="/admin/field-operations"
