@@ -133,6 +133,30 @@ def _member_name(info: zipfile.ZipInfo) -> str:
     )
     folded_parts = [part.casefold() for part in parts]
     folded_canonical = "/".join(folded_parts)
+    # Info-ZIP Unicode Path (0x7075) can supply an alternate filename in
+    # the ZIP extra metadata. Python ignores it on a bad name CRC, while
+    # another extractor may interpret it differently. A path attested by
+    # ZipInfo.filename must never have a second possible extraction name.
+    # Other well-formed non-path fields (such as timestamps) are allowed.
+    extra_offset = 0
+    while extra_offset < len(info.extra):
+        _require(
+            extra_offset + 4 <= len(info.extra),
+            f"Malformed ZIP extra field for: {name!r}",
+        )
+        field_id = int.from_bytes(info.extra[extra_offset:extra_offset + 2], "little")
+        field_size = int.from_bytes(info.extra[extra_offset + 2:extra_offset + 4], "little")
+        extra_offset += 4
+        _require(
+            field_size <= len(info.extra) - extra_offset,
+            f"Malformed ZIP extra field for: {name!r}",
+        )
+        _require(
+            field_id != 0x7075,
+            f"Ambiguous Unicode Path ZIP extra field for: {name!r}",
+        )
+        extra_offset += field_size
+
     mode = (info.external_attr >> 16) & 0xFFFF
     _require(not stat.S_ISLNK(mode), f"Symlink is not allowed: {name!r}")
     # A non-directory entry must be a regular file, never a Unix FIFO,
