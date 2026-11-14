@@ -10,6 +10,10 @@ The verifier rejects a missing archive, a symlinked package directory or symlink
 
 **Important:** SHA-256 establishes consistency, **not publisher authenticity**. A trusted digital signature/approved signing key and version trust must still be verified by the actual installer/updater release authority. An archive integrity PASS is **not** evidence that migrations ran successfully, that existing records or secrets were preserved, or that recovery worked. Never mark this Issue complete on this test alone.
 
+## Strict manifest JSON decoding (ambiguous keys and non-finite numbers)
+
+The offline verifier rejects repeated JSON object keys at **all nesting levels** rather than silently selecting the last value (Python's default `json.loads` behavior). This prevents an ambiguous manifest containing repeated `available`, `source_commit`, `delta.file_count` or other authority/provenance fields from passing interpretation-dependent validation. Non-standard unquoted JSON numeric constants `NaN`, `Infinity` and `-Infinity` are also rejected, including inside otherwise unused nested metadata. Dedicated synthetic negative regressions plus revalidation of a valid manifest prove fail-closed parsing. The change is restricted to this **read-only archive integrity checker**, not the Laravel installer/updater, signature trust, database migration or rollback. The G006 release acceptance blockers remain open.
+
 ## Migration manifest completeness regression
 
 The ZIP's `backend/database/migrations/` members and manifest `migrations` list must have **exactly the same unique paths**, not merely a valid subset. A listing omitting one ZIP migration or repeating another can otherwise pass checksum integrity when the metadata was changed alongside the archive. The negative test exercises a real second ZIP migration, an omitted declaration and a duplicated declaration; the complete valid list still passes. This is offline integrity verification, **not** signed-publisher provenance or a database-upgrade success claim.
