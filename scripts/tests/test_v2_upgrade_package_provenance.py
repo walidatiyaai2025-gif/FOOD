@@ -406,6 +406,39 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
         self.first = build_bundle(self.first)
         self.assertEqual(3, self.verify_first()["files"])
 
+    def test_windows_console_device_aliases_fail_closed_without_prefix_overblocking(self) -> None:
+        # CONIN$ and CONOUT$ bind Windows console input/output devices, not
+        # files. Treat bare, mixed-case, nested and extension aliases as unsafe.
+        for forbidden in (
+            "backend/CONIN$",
+            "backend/conout$",
+            "backend/ConIn$.txt",
+            "backend/CONOUT$.log",
+            "backend/public/conin$",
+            "backend/assets/CoNoUt$.json",
+        ):
+            with self.subTest(path=forbidden):
+                self.first = build_bundle(
+                    self.first,
+                    entries=[
+                        ("VERSION", b"1.0.125", False),
+                        (forbidden, b"unsafe device", False),
+                    ],
+                )
+                with self.assertRaisesRegex(PackageContractError, "Unsafe cross-platform"):
+                    self.verify_first()
+
+        # Avoid overblocking ordinary names with a longer non-device basename.
+        self.first = build_bundle(
+            self.first,
+            entries=[
+                ("VERSION", b"1.0.125", False),
+                ("backend/public/CONIN$notes.txt", b"safe", False),
+                ("backend/public/CONOUT$report.txt", b"safe", False),
+            ],
+        )
+        self.assertEqual(3, self.verify_first()["files"])
+
     def test_safe_portable_update_member_paths_remain_accepted(self) -> None:
         self.first = build_bundle(
             self.first,
