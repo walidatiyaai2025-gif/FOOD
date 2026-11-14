@@ -391,6 +391,43 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
         self.change_manifest("migrations", [MIGRATION, second_migration])
         self.assertEqual(4, self.verify_first()["files"])
 
+    def test_manifest_integer_fields_reject_boolean_and_float_type_confusion(self) -> None:
+        # Python's bool subclasses int and compares equal to 1; floating
+        # 1.0 also compares equal to 1. Neither is a JSON integer version.
+        for invalid in (True, 1.0, "1", None):
+            with self.subTest(schema_version=invalid):
+                self.change_manifest("schema_version", invalid)
+                with self.assertRaisesRegex(PackageContractError, "Unexpected manifest schema"):
+                    self.verify_first()
+        self.change_manifest("schema_version", 1)
+
+        # An integer-looking JSON float may match the ZIP member count
+        # numerically while remaining an untrusted metadata type.
+        self.change_manifest(
+            "delta", {"file_count": 3.0, "files_manifest": "FOODEX-Update.files.txt"},
+        )
+        with self.assertRaisesRegex(PackageContractError, "Manifest delta file count"):
+            self.verify_first()
+        self.change_manifest(
+            "delta", {"file_count": 3, "files_manifest": "FOODEX-Update.files.txt"},
+        )
+        self.assertEqual(3, self.verify_first()["files"])
+
+        # A one-member ZIP makes bool true compare equal to a count of one
+        # unless the field is explicitly checked as a JSON integer.
+        self.first = build_bundle(
+            self.first, entries=[("VERSION", b"1.0.125", False)],
+        )
+        self.change_manifest(
+            "delta", {"file_count": True, "files_manifest": "FOODEX-Update.files.txt"},
+        )
+        with self.assertRaisesRegex(PackageContractError, "Manifest delta file count"):
+            self.verify_first()
+        self.change_manifest(
+            "delta", {"file_count": 1, "files_manifest": "FOODEX-Update.files.txt"},
+        )
+        self.assertEqual(1, self.verify_first()["files"])
+
     def test_duplicate_manifest_keys_are_rejected_at_every_nesting_level(self) -> None:
         manifest_path = self.first / "FOODEX-Update.json"
         original = manifest_path.read_text(encoding="utf-8")

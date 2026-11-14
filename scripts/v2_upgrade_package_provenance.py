@@ -153,7 +153,12 @@ def validate_package(
         _require(not path.is_symlink(), f"Symbolic link artifact is forbidden: {path.name}")
         _require(path.is_file(), f"Required artifact missing: {path.name}")
     manifest = _read_json(manifest_path)
-    _require(manifest.get("schema_version") == 1, "Unexpected manifest schema.")
+    # Python considers True == 1 and 1.0 == 1. Release schemas must be
+    # JSON integers, never a boolean or an ambiguously typed float.
+    _require(
+        type(manifest.get("schema_version")) is int and manifest["schema_version"] == 1,
+        "Unexpected manifest schema.",
+    )
     _require(manifest.get("available") is True, "Artifact is not available.")
     _require(manifest.get("package") == zip_path.name, "Manifest package mismatch.")
     _require(
@@ -214,7 +219,8 @@ def validate_package(
     delta = manifest.get("delta")
     _require(
         isinstance(delta, dict)
-        and delta.get("file_count") == len(names)
+        and type(delta.get("file_count")) is int
+        and delta["file_count"] == len(names)
         and delta.get("files_manifest") == list_path.name,
         "Manifest delta file count/list mismatch.",
     )
