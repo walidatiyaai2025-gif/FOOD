@@ -28,8 +28,10 @@ final class CollectionCustodyService
         $currency = strtoupper(trim($currency));
         $this->assertAccountCurrency($account, $currency);
 
-        if ($amount <= 0) {
-            throw ValidationException::withMessages(['amount' => ['Collection amount must be greater than zero.']]);
+        // Non-finite float totals bypass <= 0 for NaN and can poison
+        // payment, collection and custody ledger amounts.
+        if (! is_finite($amount) || $amount <= 0) {
+            throw ValidationException::withMessages(['amount' => ['Collection amount must be finite and greater than zero.']]);
         }
 
         return DB::transaction(function () use ($account, $actor, $idempotencyKey, $amount, $currency, $source, $allocations): CollectionTransaction {
@@ -185,8 +187,8 @@ final class CollectionCustodyService
         $currency = strtoupper(trim($currency));
         $this->assertAccountCurrency($account, $currency);
 
-        if ($amount <= 0) {
-            throw ValidationException::withMessages(['amount' => ['Remittance amount must be greater than zero.']]);
+        if (! is_finite($amount) || $amount <= 0) {
+            throw ValidationException::withMessages(['amount' => ['Remittance amount must be finite and greater than zero.']]);
         }
 
         return DB::transaction(function () use ($account, $actor, $idempotencyKey, $amount, $currency, $method, $reference, $note): Remittance {

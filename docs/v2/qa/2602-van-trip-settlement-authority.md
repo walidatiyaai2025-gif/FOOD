@@ -79,6 +79,12 @@ This is a bounded financial integrity fix only: it is NOT an approval of
 per-invoice outstanding balances, trip attribution, immutable trip identity,
 maker/checker posting, mobile offline replay or the whole P272 lifecycle.
 
+## Financial total integrity (bounded direct-service guard)
+
+The canonical CollectionCustodyService now requires `is_finite($amount)` and a strictly positive total for **both** collection posting and pending remittance submission. The preexisting `$amount <= 0` condition rejected zero/negative amounts but could accept PHP NaN (and positive infinity) at this service boundary, risking invalid Payment, CollectionTransaction, CustodyLedgerEntry or Remittance amounts before an underlying database layer rejects the write. This change fails closed **before** any transaction or financial mutation, independent of controller request validation.
+
+`test_non_finite_collection_and_remittance_totals_cannot_create_financial_entries` checks INF, -INF and NAN for both APIs, field-scoped validation and zero payment/collection/ledger/remittance rows, then verifies a valid B2B Van collection and a pending treasury remittance remain functional. No source, store, entitlement, maker/checker, offline replay or actual-trip attribution is widened; Customer and Driver runtime APIs are unchanged. This is not an implemented P272 trip settlement workflow.
+
 ## Required authoritative design and completion steps
 
 1. Define an immutable trip/session identity (Van, authorized store/tenant/channel, route, start/end and actor), link Van visits/orders to it, and handle legacy unknown provenance without inventing attribution. Lock and audit trip lifecycle/SoD; B2B uses VAN ONLY, B2C uses DRIVER ONLY.

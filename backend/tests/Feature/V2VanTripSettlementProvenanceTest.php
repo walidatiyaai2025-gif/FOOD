@@ -221,6 +221,75 @@ final class V2VanTripSettlementProvenanceTest extends TestCase
         ]);
     }
 
+    public function test_non_finite_collection_and_remittance_totals_cannot_create_financial_entries(): void
+    {
+        $actor = User::factory()->create(['is_active' => true]);
+        $store = $this->store('B2B', 'P272-FINITE-TOTAL-GUARD');
+        $account = CollectionAccount::query()->create([
+            'actor_type' => 'van',
+            'actor_id' => 407,
+            'store_id' => $store,
+            'currency' => 'KWD',
+            'status' => 'active',
+        ]);
+
+        foreach (['infinity' => INF, 'negative_infinity' => -INF, 'not_a_number' => NAN] as $case => $invalidAmount) {
+            try {
+                app(CollectionCustodyService::class)->collect(
+                    $account,
+                    $actor,
+                    'p272-bad-total-'.$case,
+                    $invalidAmount,
+                    'KWD',
+                    'van_app',
+                );
+                $this->fail('Non-finite collection total must never post: '.$case);
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('amount', $exception->errors());
+            }
+
+            try {
+                app(CollectionCustodyService::class)->submitRemittance(
+                    $account,
+                    $actor,
+                    'p272-bad-remittance-'.$case,
+                    $invalidAmount,
+                    'KWD',
+                    'cash',
+                );
+                $this->fail('Non-finite remittance total must never be submitted: '.$case);
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('amount', $exception->errors());
+            }
+
+            $this->assertDatabaseMissing('payments', ['provider_reference' => 'p272-bad-total-'.$case]);
+            $this->assertDatabaseMissing('collection_transactions', ['idempotency_key' => 'p272-bad-total-'.$case]);
+            $this->assertDatabaseMissing('remittances', ['idempotency_key' => 'p272-bad-remittance-'.$case]);
+        }
+
+        $this->assertDatabaseCount('collection_transactions', 0);
+        $this->assertDatabaseCount('collection_allocations', 0);
+        $this->assertDatabaseCount('custody_ledger_entries', 0);
+        $this->assertDatabaseCount('remittances', 0);
+
+        // An ordinary B2B collection and pending remittance still succeed.
+        $transaction = app(CollectionCustodyService::class)->collect(
+            $account, $actor, 'p272-finite-total', 10, 'KWD', 'van_app',
+        );
+        $remittance = app(CollectionCustodyService::class)->submitRemittance(
+            $account, $actor, 'p272-finite-remittance', 5, 'KWD', 'cash',
+        );
+
+        $this->assertSame('posted', $transaction->status);
+        $this->assertSame('pending', $remittance->status);
+        $this->assertDatabaseCount('custody_ledger_entries', 1);
+        $this->assertDatabaseHas('remittances', [
+            'id' => $remittance->getKey(),
+            'amount' => 5,
+            'currency' => 'KWD',
+        ]);
+    }
+
     public function test_van_cannot_allocate_to_retail_or_unknown_store_but_driver_retail_collection_remains_valid(): void
     {
         $actor = User::factory()->create(['is_active' => true]);
