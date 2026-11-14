@@ -462,7 +462,6 @@ final class UpdateManager
             : class_basename($exception);
     }
 
-
     /**
      * Updater failures are shown in the Admin update history and stored in
      * execution evidence. Never persist credential values copied from an
