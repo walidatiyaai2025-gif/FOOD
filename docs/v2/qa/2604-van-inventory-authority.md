@@ -30,3 +30,11 @@ The canonical assignment writer `VanRegistryService::assertActiveB2bDriver` requ
 The `V2VanInventoryReadAuthorityTest` progression now proves: legitimate driverless read, B2C driver denied, active B2B driver allowed, *the B2B driver's user disabled* denied, user reactivated allowed, and disabled driver row denied; all without stock movements. This is a Backend service security increment only. Customer: no API/Flutter change. Driver: no API/Flutter change. Van: no API/Flutter change in this patch; any user-facing stock UI/API work remains linked to #2739.
 
 **NOT P274 COMPLETE:** This does not establish actual loaded Van stock custody, returns, settlement lineage, real Dashboard entry/HTTP route, AR/EN responsive/a11y, nor Van mobile acceptance. PR #3330 remains draft and unmergeable by source policy until those gaps and exact-final-HEAD Required CI are satisfied. Independent performance baseline approval #3160 is not waived. No main, release or production change.
+
+## Legacy Driver-store channel integrity — 2026-11-14
+
+The read service now checks a non-null linked Driver's persisted store through the canonical `OperationalTenantScope::storeChannel`, in addition to the driver's B2B type, active row and active user. An imported row reporting `driver_type=b2b` while referencing a Retail/B2C store is rejected with 404 before inventory retrieval. A null `drivers.store_id` retains the existing global B2B driver compatibility; a B2B driver from another B2B store is not newly denied by this check. This is intentionally not a new Driver-to-Van same-store policy or a change to the separately owned assignment writer.
+
+The existing isolated `V2VanInventoryReadAuthorityTest` progression now tests B2C type denial, a forged B2B type backed by a Retail store (denied), correction to an authentic Wholesale store (allowed), disabled linked user (denied), reactivation (allowed), and inactive driver row (denied). It checks no stock movements were written.
+
+Scope is limited to existing Van inventory service/test/QA files on original PR #3330. Dashboard route/AR-EN UI, physical Van custody/returns/settlements, Van Flutter parity (#2739), and exact-head Required CI/source approval remain outstanding. This is not P274 acceptance, signed ZIP/APK release, or production verification. No main, tags, releases or deployments.
