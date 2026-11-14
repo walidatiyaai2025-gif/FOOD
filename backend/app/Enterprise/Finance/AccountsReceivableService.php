@@ -502,6 +502,22 @@ final class AccountsReceivableService
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            // Check canonical store/channel scope BEFORE returning an idempotent
+            // already-posted allocation. Legal-entity scope alone is not enough
+            // for Retail siblings that share the same legal entity.
+            $document = $this->documentQuery($scope, $context)
+                ->whereKey($allocation->ar_document_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            // A historic allocation posted by another legitimate AR flow is
+            // not proof that the P303 collection-backed workflow verified it.
+            if ($requiresVerifiedCollectionSource && $allocation->status === 'posted') {
+                throw ValidationException::withMessages([
+                    'collection_source' => ['A verified, store-scoped collection receipt is required before posting.'],
+                ]);
+            }
+
             if ($allocation->status === 'posted') {
                 return $allocation;
             }
@@ -517,11 +533,6 @@ final class AccountsReceivableService
                     'poster' => ['The allocation creator cannot post the same allocation.'],
                 ]);
             }
-
-            $document = $this->documentQuery($scope, $context)
-                ->whereKey($allocation->ar_document_id)
-                ->lockForUpdate()
-                ->firstOrFail();
 
             // P303 requires a verifiable collected receipt, not an editable
             // reference. The AR allocation schema does not yet persist a

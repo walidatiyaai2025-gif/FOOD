@@ -20,8 +20,10 @@ use App\Models\User;
 use App\Support\ResolvedTenantContext;
 use App\Support\TenantContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 final class V2ReceivableSettlementWorkbenchTest extends TestCase
@@ -131,6 +133,35 @@ final class V2ReceivableSettlementWorkbenchTest extends TestCase
         $this->assertDatabaseCount('enterprise_finance_journals', 1);
     }
 
+    public function test_posted_legacy_allocation_cannot_be_replayed_as_verified_collection(): void
+    {
+        $fixture = $this->fixture('P303-POSTED-REPLAY');
+        $tenants = app(TenantContextResolver::class);
+        $ar = app(AccountsReceivableService::class);
+        $makerContext = $tenants->retail($fixture['maker'], $fixture['store']->id);
+        $posterContext = $tenants->retail($fixture['poster'], $fixture['store']->id);
+        $allocation = $ar->createAllocation($fixture['maker'], $makerContext, $fixture['document']->id, [
+            'idempotency_key' => 'p303-posted-replay',
+            'allocation_date' => '2027-01-12',
+            'amount' => '10.000',
+            'settlement_account_id' => $fixture['cash_account_id'],
+        ]);
+        $posted = $ar->postAllocation($fixture['poster'], $posterContext, $allocation->id);
+        $this->assertSame('posted', $posted->status);
+        $journalId = $posted->journal_id;
+
+        try {
+            $ar->postAllocation($fixture['poster'], $posterContext, $allocation->id, requiresVerifiedCollectionSource: true);
+            $this->fail('A posted legacy AR allocation must not be accepted as receipt-verified.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('collection_source', $exception->errors());
+        }
+
+        $this->assertSame('posted', $posted->fresh()->status);
+        $this->assertSame($journalId, $posted->fresh()->journal_id);
+        $this->assertDatabaseCount('enterprise_finance_journals', 2);
+    }
+
     public function test_direct_http_denies_cross_store_and_over_allocation_without_financial_mutation(): void
     {
         $fixture = $this->fixture('P303-BOUNDARY');
@@ -208,6 +239,11 @@ final class V2ReceivableSettlementWorkbenchTest extends TestCase
             'reference' => 'P303-SIBLING',
         ]);
 
+        // A previously posted legacy allocation must still be scoped on
+        // idempotent retries, not just on the initial financial transition.
+        $postedSiblingAllocation = $ar->postAllocation($siblingPoster, $siblingPosterContext, $foreignAllocation->id);
+        $this->assertSame('posted', $postedSiblingAllocation->status);
+
         $current = $fixture['maker'];
         $currentStoreId = $fixture['store']->id;
         $this->actingAs($current)
@@ -243,6 +279,11 @@ final class V2ReceivableSettlementWorkbenchTest extends TestCase
             'ar_document_id' => $foreignDocument->id,
             'idempotency_key' => 'p303-cross-store-allocation',
         ]);
+
+        // The controller already denies this posted ID. Direct service calls
+        // must also reject cross-store posted replays before returning status.
+        $this->expectException(ModelNotFoundException::class);
+        $ar->postAllocation($current, $currentContext, $foreignAllocation->id);
     }
 
     /** @return array{store:Store,maker:User,poster:User,document:EnterpriseAccountsReceivableDocument,cash_account_id:int} */
