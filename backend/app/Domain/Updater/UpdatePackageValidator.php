@@ -34,30 +34,43 @@ final class UpdatePackageValidator
             throw new InvalidArgumentException('Update package integrity check failed.');
         }
 
-        // An incorrect caller-supplied flag must never suppress a database
-        // backup or migration step for a valid update archive. The HTTP upload
-        // detects migrations too, but this is the service-level safety boundary.
-        if (! $manifest->containsMigrations && class_exists(\ZipArchive::class)) {
+        // Every opened ZIP must satisfy the same central-directory member budget
+        // as the runtime parser. The validator runs before runtime preflight and
+        // must not scan an unbounded number of zero-byte members to check whether
+        // a caller concealed migrations in the manifest.
+        if (class_exists(\ZipArchive::class)) {
             $archive = new \ZipArchive;
 
             if ($archive->open($packagePath) === true) {
                 try {
-                    for ($index = 0; $index < $archive->numFiles; $index++) {
-                        $name = $archive->getNameIndex($index);
+                    // Standalone PHPUnit unit tests exercise this validator
+                    // without booting Laravel's config repository.
+                    $configuredMaxMembers = app()->bound('config')
+                        ? config('foodex.update_max_zip_members', 50000)
+                        : 50000;
+                    $maxMembers = max(1, (int) $configuredMaxMembers);
+                    if ($archive->numFiles > $maxMembers) {
+                        throw new InvalidArgumentException('Update archive exceeds the allowed member count.');
+                    }
 
-                        if (! is_string($name)) {
-                            continue;
-                        }
+                    if (! $manifest->containsMigrations) {
+                        for ($index = 0; $index < $archive->numFiles; $index++) {
+                            $name = $archive->getNameIndex($index);
 
-                        // Match LaravelUpdateRuntime::safeRelativePath: a ZIP name
-                        // padded with whitespace must not hide a migration
-                        // from the mandatory database-backup declaration.
-                        $relativePath = str_replace('\\', '/', trim($name));
-                        if (str_starts_with($relativePath, 'backend/database/migrations/')
-                            && str_ends_with(strtolower($relativePath), '.php')) {
-                            throw new InvalidArgumentException(
-                                'Update package contains migrations but database backup was not declared.'
-                            );
+                            if (! is_string($name)) {
+                                continue;
+                            }
+
+                            // Match LaravelUpdateRuntime::safeRelativePath: a ZIP name
+                            // padded with whitespace must not hide a migration
+                            // from the mandatory database-backup declaration.
+                            $relativePath = str_replace('\\', '/', trim($name));
+                            if (str_starts_with($relativePath, 'backend/database/migrations/')
+                                && str_ends_with(strtolower($relativePath), '.php')) {
+                                throw new InvalidArgumentException(
+                                    'Update package contains migrations but database backup was not declared.'
+                                );
+                            }
                         }
                     }
                 } finally {

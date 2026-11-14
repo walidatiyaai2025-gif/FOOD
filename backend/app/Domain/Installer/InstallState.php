@@ -2,7 +2,9 @@
 
 namespace App\Domain\Installer;
 
+use JsonException;
 use RuntimeException;
+use stdClass;
 
 final class InstallState
 {
@@ -36,14 +38,31 @@ final class InstallState
             return ['completed_step' => 0, 'admin' => null, 'token' => null];
         }
 
-        $decoded = json_decode((string) file_get_contents($path), true);
-
-        if (! is_array($decoded)) {
-            return ['completed_step' => 0, 'admin' => null, 'token' => null];
+        // Existing progress must never be treated as a fresh installation
+        // when its contents are corrupt: token() could otherwise overwrite
+        // its prior admin, step and token snapshot with a new first-run token.
+        $contents = @file_get_contents($path);
+        if ($contents === false) {
+            throw new RuntimeException('Installer progress state could not be read.');
         }
 
+        try {
+            $document = json_decode($contents, false, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw new RuntimeException('Installer progress state is invalid.');
+        }
+
+        // The persisted root is a JSON object, not a scalar or list.
+        if (! $document instanceof stdClass) {
+            throw new RuntimeException('Installer progress state is invalid.');
+        }
+
+        $decoded = (array) $document;
         $admin = null;
         $candidate = $decoded['admin'] ?? null;
+        if ($candidate instanceof stdClass) {
+            $candidate = (array) $candidate;
+        }
 
         if (is_array($candidate)
             && isset($candidate['name'], $candidate['email'], $candidate['password_hash'], $candidate['locale'])
