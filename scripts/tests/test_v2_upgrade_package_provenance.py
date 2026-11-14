@@ -36,6 +36,7 @@ def build_bundle(
     entries: list[tuple[str, bytes, bool]] | None = None,
     redeploy: bool = False,
     special_mode: int | None = None,
+    runtime_extra: bytes | None = None,
 ) -> Path:
     parent.mkdir(parents=True, exist_ok=True)
     if entries is None:
@@ -55,6 +56,8 @@ def build_bundle(
                 if special_mode is not None and name == RUNTIME:
                     mode = special_mode
                 info.external_attr = mode << 16
+                if name == RUNTIME and runtime_extra is not None:
+                    info.extra = runtime_extra
                 archive.writestr(info, content)
     from hashlib import sha256
     digest = sha256(archive_path.read_bytes()).hexdigest()
@@ -438,6 +441,41 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
             ],
         )
         self.assertEqual(3, self.verify_first()["files"])
+
+    def test_infozip_unicode_path_extra_alias_is_rejected_even_with_invalid_crc(self) -> None:
+        # Info-ZIP 0x7075 allows an alternate Unicode filename. Python's
+        # zipfile ignores an invalid filename CRC and uses the safe central
+        # filename; other extraction tooling can disagree on that name.
+        # Supply otherwise consistent ZIP bytes, manifest and SHA sidecars.
+        alternate = b"\x01" + (0).to_bytes(4, "little") + b"backend/.env"
+        unicode_extra = (
+            (0x7075).to_bytes(2, "little")
+            + len(alternate).to_bytes(2, "little")
+            + alternate
+        )
+        self.first = build_bundle(self.first, runtime_extra=unicode_extra)
+        with zipfile.ZipFile(self.first / "FOODEX-Update.zip") as archive:
+            self.assertEqual(RUNTIME, archive.getinfo(RUNTIME).filename)
+            self.assertIsNone(archive.testzip())
+        with self.assertRaisesRegex(PackageContractError, "Unicode Path ZIP extra"):
+            self.verify_first()
+
+    def test_unambiguous_zip_timestamp_extra_remains_allowed(self) -> None:
+        # Extra metadata is not categorically forbidden: reject only
+        # alternate path authority (and malformed extra-field framing).
+        extended_timestamp = (
+            (0x5455).to_bytes(2, "little")
+            + (1).to_bytes(2, "little")
+            + b"\x00"
+        )
+        self.first = build_bundle(self.first, runtime_extra=extended_timestamp)
+        self.assertEqual(3, self.verify_first()["files"])
+
+    def test_malformed_zip_extra_framing_is_rejected(self) -> None:
+        # An unknown ZIP extra field must be correctly length-framed.
+        self.first = build_bundle(self.first, runtime_extra=b"\x34\x12\x03\x00\x01")
+        with self.assertRaisesRegex(PackageContractError, "Malformed ZIP extra|corrupt update ZIP"):
+            self.verify_first()
 
     def test_safe_portable_update_member_paths_remain_accepted(self) -> None:
         self.first = build_bundle(
