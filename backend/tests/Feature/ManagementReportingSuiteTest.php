@@ -203,6 +203,142 @@ class ManagementReportingSuiteTest extends TestCase
             ->assertJsonValidationErrors('channel');
     }
 
+    public function test_reports_product_lookup_treats_sql_wildcards_as_literal_substrings_and_retains_pagination(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN');
+        $catalog = (int) DB::table('catalogs')->where('store_id', $this->storeA)->where('channel', 'b2c')->value('id');
+        $unit = (int) DB::table('units')->where('code', 'RPT-U')->value('id');
+        $category = (int) DB::table('categories')->where('catalog_id', $catalog)->where('slug', 'reporting')->value('id');
+        $ids = [];
+
+        foreach (['%' => 'Literal % item', '_' => 'Literal _ item', '!' => 'Literal ! item'] as $symbol => $name) {
+            $ids[$symbol] = $this->product($catalog, $unit, $category, 'RPT-LITERAL-'.ord($symbol), $name);
+        }
+        $arabicId = $this->product($catalog, $unit, $category, 'RPT-LITERAL-AR', 'منتج عربي جديد');
+
+        foreach ($ids as $symbol => $expectedId) {
+            $this->actingAs($admin)
+                ->getJson('/admin/reports/lookups/products?store_id='.$this->storeA.'&channel=b2c&q='.urlencode($symbol))
+                ->assertOk()
+                ->assertJsonCount(1, 'products')
+                ->assertJsonPath('products.0.id', $expectedId)
+                ->assertJsonPath('meta.has_more', false);
+        }
+
+        $this->actingAs($admin)
+            ->getJson('/admin/reports/lookups/products?store_id='.$this->storeA.'&channel=b2c&q='.urlencode('عربي'))
+            ->assertOk()
+            ->assertJsonCount(1, 'products')
+            ->assertJsonPath('products.0.id', $arabicId);
+
+        for ($i = 1; $i <= 26; $i++) {
+            $this->product($catalog, $unit, $category, sprintf('RPT-PAGE-%02d', $i), sprintf('Page%% Item %02d', $i));
+        }
+        $url = '/admin/reports/lookups/products?store_id='.$this->storeA.'&channel=b2c&q='.urlencode('Page%');
+        $this->actingAs($admin)->getJson($url)
+            ->assertOk()->assertJsonCount(25, 'products')->assertJsonPath('next_page', 2);
+        $this->actingAs($admin)->getJson($url.'&page=2')
+            ->assertOk()->assertJsonCount(1, 'products')->assertJsonPath('next_page', null);
+    }
+
+    public function test_reports_customer_lookup_literal_search_keeps_b2b_b2c_and_store_authority(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN');
+        $createRetail = fn (int $store, string $name, string $email): int => (int) DB::table('b2c_customers')->insertGetId([
+            'legacy_customer_id' => null,
+            'store_id' => $store,
+            'user_id' => null,
+            'name' => $name,
+            'phone' => null,
+            'email' => $email,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $retailPercent = $createRetail($this->storeA, 'Retail % match', 'literal-percent@example.test');
+        $retailUnderscore = $createRetail($this->storeA, 'Retail _ match', 'literal-underscore@example.test');
+        $retailBang = $createRetail($this->storeA, 'Retail ! match', 'literal-bang@example.test');
+        $retailArabic = $createRetail($this->storeA, 'عميل تجريبي', 'literal-ar@example.test');
+        $createRetail($this->storeA, 'Retail x match', 'literal-normal@example.test');
+        $foreignPercent = $createRetail($this->storeB, 'Foreign % match', 'foreign-percent@example.test');
+
+        $wholesale = Customer::query()->create([
+            'type' => 'b2b',
+            'name' => 'Wholesale % match',
+            'email' => 'wholesale-literal@example.test',
+        ]);
+        $wholesaleId = (int) DB::table('b2b_customers')->insertGetId([
+            'legacy_customer_id' => $wholesale->id,
+            'user_id' => null,
+            'name' => 'Wholesale % match',
+            'phone' => '+96560008055',
+            'email' => 'wholesale-literal@example.test',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('orders')->insert([
+            'store_id' => $this->storeA,
+            'customer_id' => $wholesale->id,
+            'b2b_customer_id' => $wholesaleId,
+            'order_number' => 'RPT-B2B-LITERAL',
+            'channel' => 'b2b',
+            'status' => 'delivered',
+            'currency' => 'KWD',
+            'subtotal' => 1,
+            'discount_total' => 0,
+            'delivery_total' => 0,
+            'grand_total' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        foreach (['%' => $retailPercent, '_' => $retailUnderscore, '!' => $retailBang, 'تجريبي' => $retailArabic] as $term => $expectedId) {
+            $this->actingAs($admin)
+                ->getJson('/admin/reports/lookups/customers?channel=b2c&store_id='.$this->storeA.'&q='.urlencode($term))
+                ->assertOk()
+                ->assertJsonCount(1, 'customers')
+                ->assertJsonPath('customers.0.id', $expectedId)
+                ->assertJsonPath('customers.0.channel', 'b2c');
+        }
+
+        $this->actingAs($admin)
+            ->getJson('/admin/reports/lookups/customers?channel=b2b&store_id='.$this->storeA.'&q='.urlencode('%'))
+            ->assertOk()->assertJsonCount(1, 'customers')
+            ->assertJsonPath('customers.0.id', $wholesaleId)
+            ->assertJsonPath('customers.0.channel', 'b2b');
+
+        $storeAdmin = $this->userWithRole('B2C_STORE_ADMIN');
+        DB::table('user_store_roles')->insert([
+            'user_id' => $storeAdmin->id,
+            'store_id' => $this->storeA,
+            'role_id' => (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id'),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $auditBefore = DB::table('audit_logs')->count();
+
+        $this->actingAs($storeAdmin)
+            ->getJson('/admin/reports/lookups/customers?channel=b2c&q='.urlencode('%'))
+            ->assertOk()->assertJsonCount(1, 'customers')
+            ->assertJsonPath('customers.0.id', $retailPercent);
+        $this->actingAs($storeAdmin)
+            ->getJson('/admin/reports/lookups/customers?channel=b2c&store_id='.$this->storeB.'&q='.urlencode('%'))
+            ->assertForbidden();
+
+        $unauthorized = User::query()->create([
+            'name' => 'No Report Permission',
+            'email' => 'report-no-permission@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        $this->actingAs($unauthorized)
+            ->getJson('/admin/reports/lookups/customers?channel=b2c&store_id='.$this->storeB.'&q='.urlencode('%'))
+            ->assertForbidden();
+
+        $this->assertGreaterThan(0, $foreignPercent);
+        $this->assertSame($auditBefore, DB::table('audit_logs')->count(), 'Read-only report lookups must not append audit events.');
+    }
+
     public function test_report_filters_use_shared_picker_and_clear_dependent_selections(): void
     {
         $admin = $this->userWithRole('SUPER_ADMIN');
