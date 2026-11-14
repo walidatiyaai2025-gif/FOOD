@@ -274,10 +274,11 @@ class B2bPricingController extends Controller
             ->where('stores.is_active', true)
             ->where('store_types.code', 'B2B')
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
-                $like = '%'.$search.'%';
-                $query->where('products.name', 'like', $like)
-                    ->orWhere('products.sku', 'like', $like)
-                    ->orWhere('products.barcode', 'like', $like);
+                // Treat Customer search as literal text on SQLite and MySQL.
+                $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
+                $query->whereRaw("products.name LIKE ? ESCAPE '!'", [$like])
+                    ->orWhereRaw("products.sku LIKE ? ESCAPE '!'", [$like])
+                    ->orWhereRaw("products.barcode LIKE ? ESCAPE '!'", [$like]);
             }))
             ->when($categoryId !== null, fn ($query) => $query->where('products.category_id', $categoryId))
             ->when($brandId !== null, fn ($query) => $query->where('products.brand_id', $brandId));
