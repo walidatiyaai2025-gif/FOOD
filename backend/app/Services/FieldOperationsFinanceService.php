@@ -14,7 +14,7 @@ final class FieldOperationsFinanceService
      */
     public function viewModel(array $storeIds, array $filters): array
     {
-        $tab = in_array(($filters['ops_tab'] ?? 'wallets'), ['wallets', 'collections', 'remittances', 'reconciliation'], true)
+        $tab = in_array(($filters['ops_tab'] ?? 'wallets'), ['wallets', 'collections', 'remittances', 'reconciliation', 'closeout'], true)
             ? (string) ($filters['ops_tab'] ?? 'wallets')
             : 'wallets';
         $q = trim((string) ($filters['ops_q'] ?? ''));
@@ -23,6 +23,7 @@ final class FieldOperationsFinanceService
 
         $paginator = match ($tab) {
             'collections' => $this->collections($storeIds, $q, $status, $perPage),
+            'closeout' => $this->vanCloseout($storeIds, $q, $perPage),
             'remittances' => $this->remittances($storeIds, $q, $status, $perPage, false),
             'reconciliation' => $this->remittances($storeIds, $q, $status, $perPage, true),
             default => $this->wallets($storeIds, $q, $status, $perPage),
@@ -34,7 +35,18 @@ final class FieldOperationsFinanceService
             'q' => $q,
             'status' => $status,
             'per_page' => $perPage,
-            'rows' => collect($paginator->items())->map(fn (mixed $row): array => (array) $row)->all(),
+            'rows' => collect($paginator->items())->map(static function (mixed $row) use ($tab): array {
+                $record = (array) $row;
+                if ($tab === 'closeout') {
+                    $record['review_state'] = (
+                        abs((float) $record['custody_balance']) > 0.0005
+                        || (float) $record['pending_remittance'] > 0.0005
+                        || (int) $record['awaiting_reconciliation'] > 0
+                    ) ? 'needs_review' : 'ledger_clear';
+                }
+
+                return $record;
+            })->all(),
             'pagination' => [
                 'current_page' => $paginator->currentPage(),
                 'last_page' => $paginator->lastPage(),
@@ -79,6 +91,66 @@ final class FieldOperationsFinanceService
             ->filter(static fn (array $row): bool => abs($row['amount']) > 0.0005)
             ->values()
             ->all();
+    }
+
+    /**
+     * The custody ledger is per collection account (Van / B2B store / currency),
+     * not per trip. This is a READ-ONLY financial pre-closeout review and must
+     * never be represented as trip closure or mutate finance/visit state.
+     *
+     * @param  list<int>  $storeIds
+     */
+    private function vanCloseout(array $storeIds, string $q, int $perPage): LengthAwarePaginator
+    {
+        $custody = DB::table('custody_ledger_entries')
+            ->select('collection_account_id')
+            ->selectRaw('COALESCE(SUM(amount), 0) as custody_balance')
+            ->groupBy('collection_account_id');
+
+        $pending = DB::table('remittances')
+            ->where('status', 'pending')
+            ->select('collection_account_id')
+            ->selectRaw('COALESCE(SUM(amount), 0) as pending_remittance')
+            ->groupBy('collection_account_id');
+
+        $approved = DB::table('remittances')
+            ->where('status', 'approved')
+            ->select('collection_account_id')
+            ->selectRaw('COUNT(*) as awaiting_reconciliation')
+            ->groupBy('collection_account_id');
+
+        return DB::table('collection_accounts')
+            ->join('vans', 'vans.id', '=', 'collection_accounts.actor_id')
+            ->leftJoin('stores', 'stores.id', '=', 'collection_accounts.store_id')
+            ->leftJoinSub($custody, 'custody_totals', fn ($join) => $join->on('custody_totals.collection_account_id', '=', 'collection_accounts.id'))
+            ->leftJoinSub($pending, 'pending_totals', fn ($join) => $join->on('pending_totals.collection_account_id', '=', 'collection_accounts.id'))
+            ->leftJoinSub($approved, 'approved_totals', fn ($join) => $join->on('approved_totals.collection_account_id', '=', 'collection_accounts.id'))
+            ->where('collection_accounts.actor_type', 'van')
+            ->whereIn('collection_accounts.store_id', $storeIds)
+            ->when($q !== '', function ($query) use ($q): void {
+                $query->where(function ($scope) use ($q): void {
+                    $scope->where('vans.code', 'like', '%'.$q.'%')
+                        ->orWhere('vans.plate_number', 'like', '%'.$q.'%')
+                        ->orWhere('stores.name', 'like', '%'.$q.'%')
+                        ->orWhere('collection_accounts.currency', 'like', '%'.$q.'%');
+                });
+            })
+            ->orderBy('collection_accounts.store_id')
+            ->orderBy('vans.code')
+            ->orderBy('collection_accounts.currency')
+            ->select([
+                'collection_accounts.id',
+                'collection_accounts.actor_type',
+                'collection_accounts.actor_id',
+                'collection_accounts.store_id',
+                'collection_accounts.currency',
+                'collection_accounts.status',
+                'stores.name as store_name',
+                DB::raw('COALESCE(custody_totals.custody_balance, 0) as custody_balance'),
+                DB::raw('COALESCE(pending_totals.pending_remittance, 0) as pending_remittance'),
+                DB::raw('COALESCE(approved_totals.awaiting_reconciliation, 0) as awaiting_reconciliation'),
+            ])
+            ->paginate($perPage, ['*'], 'ops_page');
     }
 
     /** @param  list<int>  $storeIds */
@@ -244,6 +316,7 @@ final class FieldOperationsFinanceService
     {
         return match ($tab) {
             'wallets' => ['active', 'suspended', 'closed'],
+            'closeout' => [],
             'collections' => ['posted', 'reversed', 'failed'],
             'remittances', 'reconciliation' => ['pending', 'approved', 'rejected', 'reconciled'],
             default => [],

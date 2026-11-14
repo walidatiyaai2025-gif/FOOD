@@ -135,6 +135,101 @@ class VanFinanceSupportTest extends TestCase
             ->assertSee('Van Finance Support');
     }
 
+    public function test_closeout_review_is_read_only_and_restricts_accounts_to_wholesale_vans(): void
+    {
+        $admin = $this->superAdmin();
+        $now = now();
+        $b2b = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $b2c = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+
+        $wholesale = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2b, 'code' => 'P277-B2B', 'name' => 'P277 Wholesale',
+            'is_active' => true, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $retail = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $b2c, 'code' => 'P277-B2C', 'name' => 'P277 Retail',
+            'is_active' => true, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $vanId = (int) DB::table('vans')->insertGetId([
+            'public_id' => (string) Str::uuid(), 'code' => 'P277-VAN-01',
+            'plate_number' => 'P277-100', 'status' => 'active',
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $retailVanId = (int) DB::table('vans')->insertGetId([
+            'public_id' => (string) Str::uuid(), 'code' => 'P277-RETAIL-VAN',
+            'plate_number' => 'P277-200', 'status' => 'active',
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $accountId = (int) DB::table('collection_accounts')->insertGetId([
+            'actor_type' => 'van', 'actor_id' => $vanId, 'store_id' => $wholesale,
+            'currency' => 'KWD', 'status' => 'active', 'custody_limit' => 500,
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
+        DB::table('collection_accounts')->insert([
+            [
+                'actor_type' => 'van', 'actor_id' => $retailVanId, 'store_id' => $retail,
+                'currency' => 'KWD', 'status' => 'active', 'custody_limit' => 500,
+                'created_at' => $now, 'updated_at' => $now,
+            ],
+            [
+                'actor_type' => 'driver', 'actor_id' => 9999, 'store_id' => $wholesale,
+                'currency' => 'KWD', 'status' => 'active', 'custody_limit' => 500,
+                'created_at' => $now, 'updated_at' => $now,
+            ],
+        ]);
+
+        $this->actingAs($admin)->get('/admin/van-finance-support?ops_tab=closeout')
+            ->assertOk()
+            ->assertSee('data-van-closeout-review', false)
+            ->assertSee('P277-VAN-01')
+            ->assertSee('Financial ledger clear')
+            ->assertSee('does not close a trip or visit')
+            ->assertDontSee('P277-RETAIL-VAN')
+            ->assertDontSee('P277 Retail');
+
+        DB::table('custody_ledger_entries')->insert([
+            'collection_account_id' => $accountId, 'entry_type' => 'collection',
+            'amount' => 30, 'currency' => 'KWD',
+            'reference_type' => 'collection_transaction', 'reference_id' => 777,
+            'created_by' => $admin->id, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        DB::table('remittances')->insert([
+            'collection_account_id' => $accountId, 'idempotency_key' => 'P277-APPROVED',
+            'amount' => 10, 'currency' => 'KWD', 'method' => 'bank_transfer',
+            'reference' => 'P277-REF', 'status' => 'approved',
+            'submitted_by' => $admin->id, 'reviewed_by' => $admin->id,
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
+
+        $this->actingAs($admin)->get('/admin/van-finance-support?ops_tab=closeout')
+            ->assertOk()
+            ->assertSee('30.000')
+            ->assertSee('Financial review required')
+            ->assertDontSee('Financial ledger clear');
+        $this->assertDatabaseHas('remittances', [
+            'idempotency_key' => 'P277-APPROVED', 'status' => 'approved',
+        ]);
+    }
+
+    public function test_closeout_requires_finance_permission_and_has_arabic_parity(): void
+    {
+        $unauthorized = User::query()->create([
+            'name' => 'No finance access', 'email' => 'p277-denied@example.test',
+            'password' => 'password', 'locale' => 'en', 'is_active' => true,
+        ]);
+        $this->actingAs($unauthorized)
+            ->get('/admin/van-finance-support?ops_tab=closeout')
+            ->assertForbidden();
+
+        $admin = $this->superAdmin();
+        $admin->forceFill(['locale' => 'ar'])->save();
+        $this->actingAs($admin)
+            ->get('/admin/van-finance-support?ops_tab=closeout')
+            ->assertOk()
+            ->assertSee('dir="rtl"', false)
+            ->assertSee('مراجعة العهدة قبل الإقفال');
+    }
+
     private function superAdmin(): User
     {
         $user = User::query()->create([

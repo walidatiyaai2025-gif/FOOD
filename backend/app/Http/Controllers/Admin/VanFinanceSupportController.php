@@ -27,7 +27,7 @@ final class VanFinanceSupportController extends Controller
         App::setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
 
         $filters = $request->validate([
-            'ops_tab' => ['nullable', 'string', 'in:wallets,collections,remittances,reconciliation'],
+            'ops_tab' => ['nullable', 'string', 'in:wallets,collections,remittances,reconciliation,closeout'],
             'ops_q' => ['nullable', 'string', 'max:120'],
             'ops_status' => ['nullable', 'string', 'max:32'],
             'ops_per_page' => ['nullable', 'integer', 'min:10', 'max:100'],

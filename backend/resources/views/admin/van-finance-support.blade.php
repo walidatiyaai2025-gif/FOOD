@@ -60,15 +60,21 @@ html[dir=ltr] .main{grid-column:2}
 
 <section class="card">
 <nav class="tabs" aria-label="{{ __('van_finance_support.title') }}">
-@foreach(['wallets','collections','remittances','reconciliation'] as $key)
+@foreach(['wallets','collections','remittances','reconciliation','closeout'] as $key)
 <a href="{{ route('admin.van-finance-support.index', array_merge(request()->except(['ops_tab','ops_page']), ['ops_tab'=>$key])) }}" @class(['active'=>$tab===$key]) @if($tab===$key) aria-current="page" @endif>{{ __("van_finance_support.tabs.$key") }}</a>
 @endforeach
 </nav>
 
+@if($tab==='closeout')
+<div class="card" role="note" data-van-closeout-review>
+<strong>{{ __('van_finance_support.closeout_review_title') }}</strong>
+<p class="muted">{{ __('van_finance_support.closeout_review_scope') }}</p>
+</div>
+@endif
 <form method="get" action="{{ route('admin.van-finance-support.index') }}" class="filters">
 <input type="hidden" name="ops_tab" value="{{ $tab }}">
 <label><span>{{ __('van_finance_support.search') }}</span><input type="search" name="ops_q" value="{{ $finance['q'] ?? '' }}" placeholder="{{ __('van_finance_support.search_placeholder') }}"></label>
-<label><span>{{ __('van_finance_support.status') }}</span><select name="ops_status"><option value="">{{ __('van_finance_support.all_statuses') }}</option>@foreach(($finance['status_options'] ?? []) as $status)<option value="{{ $status }}" @selected(($finance['status'] ?? '')===$status)>{{ $statusLabel($status) }}</option>@endforeach</select></label>
+@if($tab!=='closeout')<label><span>{{ __('van_finance_support.status') }}</span><select name="ops_status"><option value="">{{ __('van_finance_support.all_statuses') }}</option>@foreach(($finance['status_options'] ?? []) as $status)<option value="{{ $status }}" @selected(($finance['status'] ?? '')===$status)>{{ $statusLabel($status) }}</option>@endforeach</select></label>@endif
 <label><span>{{ __('van_finance_support.rows') }}</span><select name="ops_per_page">@foreach([10,25,50,100] as $size)<option value="{{ $size }}" @selected((int)($finance['per_page'] ?? 25)===$size)>{{ $size }}</option>@endforeach</select></label>
 <button type="submit">{{ __('van_finance_support.apply') }}</button>
 </form>
@@ -77,7 +83,9 @@ html[dir=ltr] .main{grid-column:2}
 <div class="empty">{{ __('van_finance_support.empty') }}</div>
 @else
 <div class="table-wrap"><table class="finance-table"><thead>
-@if($tab==='wallets')
+@if($tab==='closeout')
+<tr><th>{{ __('van_finance_support.actor') }}</th><th>{{ __('van_finance_support.store') }}</th><th>{{ __('van_finance_support.currency') }}</th><th>{{ __('van_finance_support.custody') }}</th><th>{{ __('van_finance_support.pending_remittance') }}</th><th>{{ __('van_finance_support.awaiting_reconciliation') }}</th><th>{{ __('van_finance_support.financial_review') }}</th></tr>
+@elseif($tab==='wallets')
 <tr><th>{{ __('van_finance_support.actor') }}</th><th>{{ __('van_finance_support.store') }}</th><th>{{ __('van_finance_support.currency') }}</th><th>{{ __('van_finance_support.custody') }}</th><th>{{ __('van_finance_support.pending_remittance') }}</th><th>{{ __('van_finance_support.available') }}</th><th>{{ __('van_finance_support.status') }}</th></tr>
 @elseif($tab==='collections')
 <tr><th>{{ __('van_finance_support.actor') }}</th><th>{{ __('van_finance_support.store') }}</th><th>{{ __('van_finance_support.amount') }}</th><th>{{ __('van_finance_support.source') }}</th><th>{{ __('van_finance_support.receipt_reference') }}</th><th>{{ __('van_finance_support.status') }}</th><th>{{ __('van_finance_support.time') }}</th></tr>
@@ -86,7 +94,17 @@ html[dir=ltr] .main{grid-column:2}
 @endif
 </thead><tbody>
 @foreach($rows as $row)
-@if($tab==='wallets')
+@if($tab==='closeout')
+<tr data-van-closeout-row>
+<td>{{ $row['actor_display'] }}</td>
+<td>{{ $row['store_display'] ?: __('van_finance_support.not_available') }}</td>
+<td>{{ $row['currency'] }}</td>
+<td>{{ \App\Support\DisplayNumber::money((float)$row['custody_balance'], $row['currency']) }}</td>
+<td>{{ \App\Support\DisplayNumber::money((float)$row['pending_remittance'], $row['currency']) }}</td>
+<td>{{ (int)$row['awaiting_reconciliation'] }}</td>
+<td><span class="state">{{ __('van_finance_support.review_states.'.$row['review_state']) }}</span></td>
+</tr>
+@elseif($tab==='wallets')
 <tr><td>{{ $row['actor_display'] }}</td><td>{{ $row['store_display'] ?: __('van_finance_support.not_available') }}</td><td>{{ $row['currency'] }}</td><td>{{ \App\Support\DisplayNumber::money((float)$row['custody_balance'], $row['currency']) }}</td><td>{{ \App\Support\DisplayNumber::money((float)$row['pending_remittance'], $row['currency']) }}</td><td>{{ \App\Support\DisplayNumber::money((float)$row['available_to_remit'], $row['currency']) }}</td><td><span class="state">{{ $statusLabel((string)$row['status']) }}</span></td></tr>
 @elseif($tab==='collections')
 <tr><td>{{ $row['actor_display'] }}</td><td>{{ $row['store_display'] ?: __('van_finance_support.not_available') }}</td><td>{{ $row['currency'] }} {{ \App\Support\DisplayNumber::money((float)$row['amount'], $row['currency']) }}</td><td>{{ $human((string)($row['source'] ?? '')) }}</td><td>{{ $row['provider_reference'] ?: __('van_finance_support.receipt_unavailable') }}</td><td><span class="state">{{ $statusLabel((string)$row['status']) }}</span></td><td>{{ $row['created_at'] }}</td></tr>
