@@ -54,25 +54,12 @@ final class VanRegistryService
         }
 
         $territoryKey = isset($attributes['territory_key']) ? trim((string) $attributes['territory_key']) : null;
-        if ($territoryKey !== null && $territoryKey !== '') {
-            $territoryExists = ServiceTerritory::query()
-                ->where('code', $territoryKey)
-                ->where('status', 'active')
-                ->where(fn ($query) => $query->whereNull('effective_from')->orWhere('effective_from', '<=', $from))
-                ->where(fn ($query) => $query->whereNull('effective_until')->orWhere('effective_until', '>', $from))
-                ->exists();
-
-            if ($territoryExists === false) {
-                throw ValidationException::withMessages([
-                    'territory_key' => ['Territory must reference an active Service Territory at assignment start.'],
-                ]);
-            }
-        }
 
         return DB::transaction(function () use ($actor, $van, $attributes, $from, $until, $type, $territoryKey): VanAssignment {
             // Match suspend() lock order: Van first, then assignment/actor rows.
             // A previously fetched active Van may have been suspended meanwhile.
             $this->assertActiveVanForAssignment((int) $van->getKey());
+            $this->assertTerritoryCoversAssignment($territoryKey, $from, $until);
 
             // Serialize validation with the Driver/User status rows so a Retail
             // or deactivated Driver cannot become an active B2B Van assignee.
@@ -184,25 +171,11 @@ final class VanRegistryService
             ? trim((string) $attributes['territory_key'])
             : null;
 
-        if ($territoryKey !== null) {
-            $territoryExists = ServiceTerritory::query()
-                ->where('code', $territoryKey)
-                ->where('status', 'active')
-                ->where(fn ($query) => $query->whereNull('effective_from')->orWhere('effective_from', '<=', $from))
-                ->where(fn ($query) => $query->whereNull('effective_until')->orWhere('effective_until', '>', $from))
-                ->exists();
-
-            if (! $territoryExists) {
-                throw ValidationException::withMessages([
-                    'territory_key' => ['Territory must reference an active Service Territory at assignment start.'],
-                ]);
-            }
-        }
-
         return DB::transaction(function () use ($actor, $assignment, $attributes, $from, $until, $type, $status, $territoryKey, $vanId): VanAssignment {
             // Use the same Van -> assignment lock order as suspend() so an edit
             // cannot restore an active assignment after suspension.
             $this->assertActiveVanForAssignment($vanId);
+            $this->assertTerritoryCoversAssignment($territoryKey, $from, $until);
             $locked = VanAssignment::query()->lockForUpdate()->findOrFail($assignment->id);
 
             // Allow terminating legacy inconsistent rows, but never creating
@@ -278,6 +251,33 @@ final class VanRegistryService
 
             return $locked->fresh();
         });
+    }
+
+    /**
+     * At write time, the full half-open Van assignment window must fit inside
+     * the active Service Territory window. Lock the row within the write
+     * transaction to serialize against concurrent territory status/date edits.
+     */
+    private function assertTerritoryCoversAssignment(?string $territoryKey, Carbon $from, ?Carbon $until): void
+    {
+        if ($territoryKey === null || $territoryKey === '') {
+            return;
+        }
+
+        $territory = ServiceTerritory::query()
+            ->where('code', $territoryKey)
+            ->lockForUpdate()
+            ->first();
+
+        if ($territory === null
+            || $territory->status !== 'active'
+            || ($territory->effective_from !== null && Carbon::parse($territory->effective_from)->greaterThan($from))
+            || ($territory->effective_until !== null
+                && ($until === null || Carbon::parse($territory->effective_until)->lessThan($until)))) {
+            throw ValidationException::withMessages([
+                'territory_key' => [__('van_assignment_guard.territory_window_required')],
+            ]);
+        }
     }
 
     /**
