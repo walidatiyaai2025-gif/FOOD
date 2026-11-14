@@ -13,6 +13,8 @@ final class V2CustomerB2bAddressProvenanceTest extends TestCase
 {
     use RefreshDatabase;
 
+    private int $registrations = 0;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -163,7 +165,7 @@ final class V2CustomerB2bAddressProvenanceTest extends TestCase
         $this->postJson('/api/v1/auth/register', [
             'name' => 'Address Customer',
             'email' => $email,
-            'phone' => '+201000000001',
+            'phone' => '+20100000000'.(++$this->registrations),
             'password' => 'Password123!',
             'password_confirmation' => 'Password123!',
             'locale' => 'ar',
