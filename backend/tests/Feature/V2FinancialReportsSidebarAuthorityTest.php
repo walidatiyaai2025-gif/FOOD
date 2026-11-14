@@ -162,7 +162,7 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
             'request_hash' => str_repeat('a', 64),
             'document_type' => 'invoice',
             'entry_date' => now()->toDateString(),
-            'due_date' => now()->addDay()->toDateString(),
+            'due_date' => now()->subDay()->toDateString(),
             'currency_code' => 'KWD',
             'receivable_account_id' => $arAccount->id,
             'offset_account_id' => $revenue->id,
@@ -186,6 +186,7 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
 
         $data = $response->viewData('data');
         $this->assertEqualsWithDelta(12.0, (float) $data['metrics']['ar_outstanding'], 0.001);
+        $this->assertEqualsWithDelta(12.0, (float) $data['metrics']['ar_overdue'], 0.001);
         $this->assertSame(1, array_sum(array_column($data['aging']['ar'], 'documents')));
         $this->assertEqualsWithDelta(12.0, array_sum(array_column($data['aging']['ar'], 'amount')), 0.001);
         $this->assertSame($documentCount, DB::table('enterprise_ar_documents')->count());
