@@ -29,6 +29,8 @@ class HttpVanWalletRepository implements VanWalletRepository {
         id: _requiredInt(data['id']),
         name: _string(data['name']),
         storeId: storeId,
+        // Legacy/malformed API responses must never authorize a new sale.
+        canDirectSell: data['can_direct_sell'] == true,
       );
     }).toList(growable: false);
   }
