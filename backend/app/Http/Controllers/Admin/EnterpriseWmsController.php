@@ -228,7 +228,10 @@ final class EnterpriseWmsController extends Controller
     public function createTransfer(Request $request): RedirectResponse
     {
         $actor = $this->actor($request);
+        // P258: a warehouse-to-warehouse transfer cannot load a van.
+        // Reject a forged van target until the dedicated van-stock lifecycle exists.
         $data = $request->validate([
+            'van_id' => ['missing'],
             'store_id' => ['required', 'integer', 'min:1'],
             'source_warehouse_id' => ['required', 'integer', 'min:1'],
             'target_warehouse_id' => ['required', 'integer', 'different:source_warehouse_id'],
@@ -253,7 +256,11 @@ final class EnterpriseWmsController extends Controller
     public function dispatchTransfer(Request $request, int $transfer): RedirectResponse
     {
         $actor = $this->actor($request);
-        $data = $request->validate(['store_id' => ['required', 'integer', 'min:1']]);
+        // P258: normal warehouse transfer transitions never authorize van stock loading.
+        $data = $request->validate([
+            'van_id' => ['missing'],
+            'store_id' => ['required', 'integer', 'min:1'],
+        ]);
         $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
         $this->transfers->dispatch($actor, $transfer);
         $this->locations->captureTransfer($actor, $transfer);
@@ -265,7 +272,11 @@ final class EnterpriseWmsController extends Controller
     public function receiveTransfer(Request $request, int $transfer): RedirectResponse
     {
         $actor = $this->actor($request);
-        $data = $request->validate(['store_id' => ['required', 'integer', 'min:1']]);
+        // P258: normal warehouse transfer transitions never authorize van stock loading.
+        $data = $request->validate([
+            'van_id' => ['missing'],
+            'store_id' => ['required', 'integer', 'min:1'],
+        ]);
         $this->assertStore($actor, (int) $data['store_id'], 'inventory.manage');
         $this->transfers->receive($actor, $transfer);
         $this->locations->captureTransfer($actor, $transfer);
