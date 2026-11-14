@@ -414,7 +414,23 @@ final class VanRegistryService
     public function suspend(Van $van, ?Van $transferTarget = null, ?string $reason = null): Van
     {
         return DB::transaction(function () use ($van, $transferTarget, $reason): Van {
-            $locked = Van::query()->lockForUpdate()->findOrFail($van->id);
+            // Serialize cross-Van suspension with a stable row-lock order.
+            // Source A -> B and source B -> A must never invert lock order,
+            // and the target status must be rechecked under the same lock.
+            $vanIds = [(int) $van->getKey()];
+            if ($transferTarget !== null && $transferTarget->getKey() !== null) {
+                $vanIds[] = (int) $transferTarget->getKey();
+            }
+
+            $vanIds = array_values(array_unique($vanIds));
+            sort($vanIds, SORT_NUMERIC);
+            $lockedVans = [];
+
+            foreach ($vanIds as $vanId) {
+                $lockedVans[$vanId] = Van::query()->lockForUpdate()->findOrFail($vanId);
+            }
+
+            $locked = $lockedVans[(int) $van->getKey()];
             $active = VanAssignment::query()
                 ->where('van_id', $locked->id)
                 ->where('status', 'active')
@@ -422,9 +438,15 @@ final class VanRegistryService
                 ->get();
 
             $loaded = $active->sum(fn (VanAssignment $assignment): int => (int) $assignment->loaded_work_count);
-            if ($loaded > 0 && $transferTarget === null) {
+            $targetId = $transferTarget?->getKey();
+
+            if ($loaded > 0 && (
+                $targetId === null
+                || (int) $targetId === (int) $locked->id
+                || ($lockedVans[(int) $targetId]->status ?? null) !== 'active'
+            )) {
                 throw ValidationException::withMessages([
-                    'transfer_target' => ['Loaded work requires an explicit transfer or recovery target before suspension.'],
+                    'transfer_target' => [__('van_assignment_guard.active_transfer_target_required')],
                 ]);
             }
 
