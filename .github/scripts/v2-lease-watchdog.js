@@ -165,6 +165,10 @@ async function run({ github, context, core, nowMs = Date.now() }) {
     const claim = parseClaim(comments);
     if (!claim) continue;
     scanned += 1;
+    // Approval/human gates have no releasable coding lease. Check before
+    // branch/CI probes: a deleted historical ref or failed GitHub API call
+    // must not abort the sweep of unrelated actionable issues.
+    if (humanGate(labels, claim)) { active += 1; continue; }
     const ownPr = prs.find(pr =>
       pr.base?.ref === 'Foodex_V2' &&
       (
@@ -176,7 +180,6 @@ async function run({ github, context, core, nowMs = Date.now() }) {
     const firstBranch = await branchState(github, owner, repo, claim.branch);
     const head = firstBranch.sha || ownPr?.head?.sha || '';
     const ciRunning = await ciInProgress(github, owner, repo, head, claim.branch);
-    if (humanGate(labels, claim)) { active += 1; continue; }
 
     // A merged original issue PR is NOT an abandoned unmerged branch/PR.
     // The source Issue may correctly remain OPEN for wider acceptance, but
