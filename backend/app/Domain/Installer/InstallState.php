@@ -58,6 +58,15 @@ final class InstallState
         }
 
         $decoded = (array) $document;
+        // A persisted progress object is written with all three keys, even
+        // before the admin is configured. Missing fields indicate a partial
+        // snapshot; never silently rewrite it as a fresh installation.
+        foreach (['completed_step', 'admin', 'token'] as $requiredKey) {
+            if (! array_key_exists($requiredKey, $decoded)) {
+                throw new RuntimeException('Installer progress state is invalid.');
+            }
+        }
+
         $admin = null;
         $candidate = $decoded['admin'] ?? null;
         if ($candidate instanceof stdClass) {
