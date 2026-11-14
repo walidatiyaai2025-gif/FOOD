@@ -102,6 +102,29 @@ final class V2UpdaterZipExpansionBudgetTest extends TestCase
         $this->assertFileDoesNotExist($this->releaseFolder().'/new.txt');
     }
 
+    public function test_exact_per_member_and_total_budget_boundary_is_accepted_and_recoverable(): void
+    {
+        // 11 bytes of replacement CSS plus exactly 1024 expanded bytes.
+        config(['foodex.update_max_total_uncompressed_bytes' => 1035]);
+        $package = $this->package([
+            $this->relative('style.css') => 'replacement',
+            $this->relative('boundary.txt') => str_repeat('B', 1024),
+        ]);
+
+        $runtime = $this->runtime();
+        $runtime->preflight($this->manifest($package), $package);
+        $backup = $runtime->backupFiles($package);
+        $runtime->extractRelease($package);
+
+        $this->assertSame(1024, filesize($this->releaseFolder().'/boundary.txt'));
+        $this->assertSame('replacement', file_get_contents($this->releaseFolder().'/style.css'));
+
+        $runtime->rollbackFiles($backup);
+
+        $this->assertSame('original', file_get_contents($this->releaseFolder().'/style.css'));
+        $this->assertFileDoesNotExist($this->releaseFolder().'/boundary.txt');
+    }
+
     public function test_normal_directory_entries_do_not_consume_expanded_file_budget(): void
     {
         $package = $this->package([
