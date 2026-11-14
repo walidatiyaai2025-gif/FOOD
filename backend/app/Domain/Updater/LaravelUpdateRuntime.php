@@ -698,9 +698,21 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             $operatingSystem = 0;
             $attributes = 0;
             if ($archive->getExternalAttributesIndex($index, $operatingSystem, $attributes)
-                && $operatingSystem === ZipArchive::OPSYS_UNIX
-                && (($attributes >> 16) & 0170000) === 0120000) {
-                throw new RuntimeException('Update archive contains a symbolic link.');
+                && $operatingSystem === ZipArchive::OPSYS_UNIX) {
+                $type = ($attributes >> 16) & 0170000;
+                if ($type === 0120000) {
+                    throw new RuntimeException('Update archive contains a symbolic link.');
+                }
+
+                // A ZIP member with a normal-looking filename may still be
+                // labelled as a FIFO, device, socket, or disguised directory.
+                // Allow Unix regular files and missing type bits for ZIPs made
+                // on other platforms; canonical directory entries are skipped.
+                if ($type !== 0
+                    && $type !== 0100000
+                    && ! ($type === 0040000 && str_ends_with($name, '/'))) {
+                    throw new RuntimeException('Update archive contains a non-regular file entry.');
+                }
             }
 
             if (str_ends_with($name, '/')) {
