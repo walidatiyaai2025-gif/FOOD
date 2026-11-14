@@ -105,6 +105,55 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
         manifest[key] = value
         path.write_text(json.dumps(manifest))
 
+    def _modify_zip_headers_and_refresh_digest(
+        self, *, local_offset: int, central_offset: int, field_value: int,
+    ) -> None:
+        # Change real ZIP metadata (not merely a mock) and refresh BOTH
+        # integrity sidecars; reject the archive even when all hashes match.
+        from hashlib import sha256
+
+        archive_path = self.first / "FOODEX-Update.zip"
+        payload = bytearray(archive_path.read_bytes())
+        local_header = payload.index(b"PK\x03\x04")
+        central_header = payload.index(b"PK\x01\x02")
+        payload[local_header + local_offset:local_header + local_offset + 2] = (
+            field_value.to_bytes(2, "little")
+        )
+        payload[central_header + central_offset:central_header + central_offset + 2] = (
+            field_value.to_bytes(2, "little")
+        )
+        archive_path.write_bytes(payload)
+        digest = sha256(payload).hexdigest()
+        manifest_path = self.first / "FOODEX-Update.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["sha256"] = digest
+        manifest["dashboard_fields"]["sha256"] = digest
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        (self.first / "FOODEX-Update.sha256.txt").write_text(
+            f"{digest}  FOODEX-Update.zip\n", encoding="utf-8",
+        )
+
+    def test_checksum_valid_encrypted_zip_member_rejected_before_crc_scan(self) -> None:
+        # ZIP local and central general-purpose bit 0 requests decryption.
+        self._modify_zip_headers_and_refresh_digest(
+            local_offset=6, central_offset=8, field_value=1,
+        )
+        with zipfile.ZipFile(self.first / "FOODEX-Update.zip") as archive:
+            self.assertEqual(1, archive.infolist()[0].flag_bits & 1)
+        with self.assertRaisesRegex(PackageContractError, "Encrypted ZIP member"):
+            self.verify_first()
+
+    def test_checksum_valid_nonportable_compression_method_rejected(self) -> None:
+        # Unknown method 99 cannot be safely expanded by cPanel unzip or
+        # Python zipfile; a matching checksum must never certify it.
+        self._modify_zip_headers_and_refresh_digest(
+            local_offset=8, central_offset=10, field_value=99,
+        )
+        with zipfile.ZipFile(self.first / "FOODEX-Update.zip") as archive:
+            self.assertEqual(99, archive.infolist()[0].compress_type)
+        with self.assertRaisesRegex(PackageContractError, "Unsupported ZIP compression"):
+            self.verify_first()
+
     def test_metadata_sidecars_are_bounded_before_json_or_list_parsing(self) -> None:
         # Small real fixtures and tiny patched limits reproduce resource
         # exhaustion defenses without constructing dangerous large files.
