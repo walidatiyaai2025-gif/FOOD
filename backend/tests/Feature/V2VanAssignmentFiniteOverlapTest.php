@@ -100,6 +100,33 @@ final class V2VanAssignmentFiniteOverlapTest extends TestCase
         $this->assertSame(1, DB::table('audit_logs')->where('event', 'van.assignment.created')->count());
     }
 
+    public function test_open_ended_primary_cannot_overlap_a_historical_finite_window(): void
+    {
+        $actor = User::factory()->create();
+        $registry = app(VanRegistryService::class);
+        $van = $registry->createVan(['code' => 'P3480-OPEN-CONFLICT']);
+
+        $registry->assign($actor, $van, [
+            'assignment_type' => 'primary',
+            'effective_from' => '2026-01-10T00:00:00Z',
+            'effective_until' => '2026-01-20T00:00:00Z',
+        ]);
+
+        // Old create logic compared existing.end against now(), thereby
+        // missing a historical overlap when a new window has no upper bound.
+        try {
+            $registry->assign($actor, $van, [
+                'assignment_type' => 'primary',
+                'effective_from' => '2026-01-15T00:00:00Z',
+            ]);
+            $this->fail('An open-ended new window must not overlap a finite old window.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('assignment', $exception->errors());
+        }
+
+        $this->assertDatabaseCount('van_assignments', 1);
+    }
+
     public function test_adjacent_primary_territory_windows_for_different_vans_remain_valid(): void
     {
         $actor = User::factory()->create();
