@@ -240,6 +240,111 @@ class CustomerGroupManagementTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['event' => 'customers.group.members_updated']);
     }
 
+    public function test_customer_group_search_treats_percent_underscore_and_bang_as_literal_with_store_scope(): void
+    {
+        $admin = $this->admin();
+        $wholesaleStore = app(WholesalePrincipal::class)->storeId();
+
+        foreach (['Gold%_VIP', 'GoldxyVIP', 'Flag!_VIP'] as $name) {
+            DB::table('commercial_customer_groups')->insert([
+                'store_id' => $wholesaleStore,
+                'name' => $name,
+                'priority' => 1,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $route = 'admin.b2b.customer-groups.index';
+        $this->actingAs($admin)
+            ->get(route($route, ['store_id' => $wholesaleStore, 'q' => '%_']))
+            ->assertOk()
+            ->assertSee('Gold%_VIP')
+            ->assertDontSee('GoldxyVIP')
+            ->assertDontSee('Flag!_VIP');
+
+        $this->actingAs($admin)
+            ->get(route($route, ['store_id' => $wholesaleStore, 'q' => '!_']))
+            ->assertOk()
+            ->assertSee('Flag!_VIP')
+            ->assertDontSee('Gold%_VIP');
+
+        $this->actingAs($admin)
+            ->get(route($route, ['store_id' => $wholesaleStore, 'q' => '!']))
+            ->assertOk()
+            ->assertSee('Flag!_VIP')
+            ->assertDontSee('GoldxyVIP');
+
+        $this->actingAs($admin)
+            ->get(route($route, ['store_id' => $wholesaleStore, 'q' => 'Gold']))
+            ->assertOk()
+            ->assertSee('Gold%_VIP')
+            ->assertSee('GoldxyVIP');
+
+        $this->actingAs($admin)
+            ->get(route($route, ['store_id' => $wholesaleStore, 'q' => 'missing%_']))
+            ->assertOk()
+            ->assertDontSee('Gold%_VIP')
+            ->assertDontSee('GoldxyVIP');
+
+        $retailRoleId = (int) Role::query()->where('code', 'B2C_STORE_ADMIN')->value('id');
+        $retailTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $stores = [];
+        foreach (['A', 'B'] as $letter) {
+            $stores[] = (int) DB::table('stores')->insertGetId([
+                'store_type_id' => $retailTypeId,
+                'code' => 'GROUP-LITERAL-'.$letter,
+                'name' => 'Retail Literal '.$letter,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+        foreach ([
+            [$stores[0], 'Retail%_VIP'],
+            [$stores[0], 'RetailxyVIP'],
+            [$stores[1], 'Retail%_OTHER'],
+        ] as [$storeId, $name]) {
+            DB::table('commercial_customer_groups')->insert([
+                'store_id' => $storeId,
+                'name' => $name,
+                'priority' => 1,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $retailAdmin = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        DB::table('user_store_roles')->insert([
+            'user_id' => $retailAdmin->id,
+            'store_id' => $stores[0],
+            'role_id' => $retailRoleId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $before = DB::table('commercial_customer_groups')->count();
+
+        $this->actingAs($retailAdmin)
+            ->get(route('admin.b2c.customer-groups.index', ['store_id' => $stores[0], 'q' => '%_']))
+            ->assertOk()
+            ->assertSee('Retail%_VIP')
+            ->assertDontSee('RetailxyVIP')
+            ->assertDontSee('Retail%_OTHER');
+
+        $this->actingAs($retailAdmin)
+            ->get(route('admin.b2c.customer-groups.index', ['store_id' => $stores[1], 'q' => '%_']))
+            ->assertNotFound();
+
+        $roleless = User::factory()->create(['is_active' => true]);
+        $this->actingAs($roleless)
+            ->get(route('admin.b2c.customer-groups.index', ['store_id' => $stores[0], 'q' => '%_']))
+            ->assertNotFound();
+
+        $this->assertSame($before, DB::table('commercial_customer_groups')->count());
+    }
+
     private function admin(): User
     {
         $admin = User::query()->create([
