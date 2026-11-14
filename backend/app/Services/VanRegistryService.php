@@ -74,18 +74,15 @@ final class VanRegistryService
             // or deactivated Driver cannot become an active B2B Van assignee.
             $this->assertActiveB2bDriver($attributes['driver_id'] ?? null);
 
+            // Half-open intervals: existing.start < new.end (when bounded)
+            // AND existing.end > new.start. Comparing end to end silently
+            // misses shorter primary assignments and territory reservations.
             if ($type === 'primary') {
                 $overlap = VanAssignment::query()
                     ->where('van_id', $van->id)
                     ->where('assignment_type', 'primary')
                     ->where('status', 'active')
-                    ->where(function ($query) use ($until): void {
-                        if ($until === null) {
-                            $query->whereNull('effective_until')->orWhere('effective_until', '>', now());
-                        } else {
-                            $query->whereNull('effective_until')->orWhere('effective_until', '>', $until);
-                        }
-                    })
+                    ->when($until !== null, fn ($query) => $query->where('effective_from', '<', $until))
                     ->where(function ($query) use ($from): void {
                         $query->whereNull('effective_until')->orWhere('effective_until', '>', $from);
                     })
@@ -104,13 +101,7 @@ final class VanRegistryService
                         ->where('assignment_type', 'primary')
                         ->where('status', 'active')
                         ->where('van_id', '!=', $van->id)
-                        ->where(function ($query) use ($until): void {
-                            if ($until === null) {
-                                $query->whereNull('effective_until')->orWhere('effective_until', '>', now());
-                            } else {
-                                $query->whereNull('effective_until')->orWhere('effective_until', '>', $until);
-                            }
-                        })
+                        ->when($until !== null, fn ($query) => $query->where('effective_from', '<', $until))
                         ->where(fn ($query) => $query->whereNull('effective_until')->orWhere('effective_until', '>', $from))
                         ->lockForUpdate()
                         ->exists();
