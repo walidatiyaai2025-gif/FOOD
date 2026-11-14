@@ -25,3 +25,7 @@ New `backend/tests/Feature/V2VanRetailStoreRuntimeScopeTest.php` uses RefreshDat
 - Backend/Operations: canonical read query filter only; Dashboard assignment forms and write mutations unchanged, pending source reconciliation remains explicit.
 
 No release readiness is asserted. This atomic source guard may close as code-complete only after exact-final-head required checks and verified SHA-guarded merge into Foodex_V2; #2738/#2604/#2503 remain open.
+
+## Existing multi-app token boundary regression (CI rescue)
+
+The initial exact-head Laravel suite (Required CI #43585757547) passed the new five-case Retail seller tests, but two older token-boundary tests expected successful Van login when the only Van assignment was a historically inconsistent B2C Driver link. That expectation conflicts with the new fail-closed B2B seller rule. Retain **the same legacy Retail-linked assignment rows as negative fixtures** and add a separate authorized representative-only Van for users who explicitly possess the VAN_OPERATOR permission. This preserves the positive independent Driver/Van token-boundary tests while asserting the resolver selects only the valid assignment and still preserves the stale Retail row without execution privilege. Scope includes only the fixture blocks in `AuthFoundationTest.php` and `V2CrossAppTokenScopeMatrixTest.php`; no application authorization, route, source migration or production data changed. The full test suite and exact new-head CI must rerun before merge.
