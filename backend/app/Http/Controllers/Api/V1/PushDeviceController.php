@@ -55,6 +55,12 @@ final class PushDeviceController extends Controller
             'locale' => ['nullable', 'in:ar,en'],
         ]);
 
+        // An authenticated app session must not register another app's device.
+        // Guest Customer registration uses the separate anonymous route.
+        if ($user instanceof User) {
+            abort_unless($user->tokenCan('app:'.$data['app']), 403);
+        }
+
         $driverChannel = null;
 
         if ($user === null) {

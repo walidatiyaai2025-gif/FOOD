@@ -2422,6 +2422,10 @@ paths:
     post:
       tags: [Push Devices]
       summary: Register or refresh an authenticated user's push device
+      description: >-
+        The bearer token must have the app:customer, app:driver or app:van
+        ability matching the requested app. The separate Customer guest
+        registration route does not require a bearer token.
       operationId: registerPushDevice
       security:
         - bearerAuth: []
