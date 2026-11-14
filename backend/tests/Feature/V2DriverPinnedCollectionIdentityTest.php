@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\EnsureDriverRuntimeAccess;
 use App\Models\CollectionAccount;
 use App\Models\Driver;
 use App\Models\Role;
@@ -18,10 +19,10 @@ final class V2DriverPinnedCollectionIdentityTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_mixed_history_wallet_reads_only_the_middleware_authorized_retail_profile(): void
+    public function test_retail_driver_wallet_is_scoped_to_its_authorized_profile_not_other_users_wholesale_custody(): void
     {
-        [$user, , $retailDriver, $legacyAccount, $retailAccount] = $this->mixedProfiles();
-        Sanctum::actingAs($user, ['app:driver']);
+        [$retailUser, $retailDriver, $retailAccount, , $foreignAccount] = $this->fixtures();
+        Sanctum::actingAs($retailUser, ['app:driver']);
 
         $this->getJson('/api/v1/driver/wallet')
             ->assertOk()
@@ -29,26 +30,25 @@ final class V2DriverPinnedCollectionIdentityTest extends TestCase
             ->assertJsonPath('data.0.id', $retailAccount->id)
             ->assertJsonPath('data.0.currency', 'EGP');
 
-        $this->assertNotEquals($legacyAccount->actor_id, $retailDriver->id);
+        $this->assertNotEquals($foreignAccount->actor_id, $retailDriver->id);
         $this->assertDatabaseCount('remittances', 0);
     }
 
-    public function test_mixed_history_remittance_cannot_use_wholesale_custody_but_retail_remit_is_idempotent(): void
+    public function test_foreign_wholesale_account_remittance_is_denied_without_writes_but_retail_remittance_is_idempotent(): void
     {
-        [$user, , , $legacyAccount, $retailAccount] = $this->mixedProfiles();
-        Sanctum::actingAs($user, ['app:driver']);
+        [$retailUser, , $retailAccount, , $foreignAccount] = $this->fixtures();
+        Sanctum::actingAs($retailUser, ['app:driver']);
 
         $this->postJson('/api/v1/driver/wallet/remittances', [
-            'collection_account_id' => $legacyAccount->id,
+            'collection_account_id' => $foreignAccount->id,
             'amount' => 4,
             'method' => 'cash',
-        ], ['Idempotency-Key' => 'pinned-legacy-remit-123'])
-            ->assertNotFound();
+        ], ['Idempotency-Key' => 'pinned-foreign-remit-123'])->assertNotFound();
         $this->assertDatabaseCount('remittances', 0);
 
         app(CollectionCustodyService::class)->collect(
             $retailAccount,
-            $user,
+            $retailUser,
             'pinned-retail-existing-collection',
             10,
             'EGP',
@@ -70,10 +70,7 @@ final class V2DriverPinnedCollectionIdentityTest extends TestCase
         $second = $this->postJson('/api/v1/driver/wallet/remittances', $payload, $headers)
             ->assertCreated();
 
-        $this->assertSame(
-            $first->json('data.remittance.id'),
-            $second->json('data.remittance.id'),
-        );
+        $this->assertSame($first->json('data.remittance.id'), $second->json('data.remittance.id'));
         $this->assertDatabaseCount('remittances', 1);
         $this->assertDatabaseHas('remittances', [
             'collection_account_id' => $retailAccount->id,
@@ -82,20 +79,11 @@ final class V2DriverPinnedCollectionIdentityTest extends TestCase
         ]);
     }
 
-    public function test_b2b_only_driver_and_wrong_app_token_are_denied_before_finance_access(): void
+    public function test_wholesale_only_driver_and_wrong_app_token_are_denied_before_finance_access(): void
     {
-        $this->seed(CoreReferenceSeeder::class);
-        $user = User::factory()->create(['is_active' => true]);
-        $user->roles()->attach(Role::query()->where('code', 'B2C_DRIVER')->firstOrFail());
-        Driver::query()->create([
-            'user_id' => $user->id,
-            'store_id' => app(WholesalePrincipal::class)->storeId(),
-            'driver_type' => 'b2b',
-            'is_available' => true,
-            'is_active' => true,
-        ]);
+        [$retailUser, , , $wholesaleUser] = $this->fixtures();
 
-        Sanctum::actingAs($user, ['app:driver']);
+        Sanctum::actingAs($wholesaleUser, ['app:driver']);
         $this->getJson('/api/v1/driver/wallet')->assertForbidden();
         $this->postJson('/api/v1/driver/wallet/remittances', [
             'collection_account_id' => 999,
@@ -103,29 +91,30 @@ final class V2DriverPinnedCollectionIdentityTest extends TestCase
             'method' => 'cash',
         ], ['Idempotency-Key' => 'b2b-only-denied-123'])->assertForbidden();
 
-        Sanctum::actingAs($user, ['app:customer']);
+        Sanctum::actingAs($retailUser, ['app:customer']);
         $this->getJson('/api/v1/driver/wallet')->assertForbidden();
         $this->assertDatabaseCount('remittances', 0);
     }
 
-    /** @return array{0: User, 1: Driver, 2: Driver, 3: CollectionAccount, 4: CollectionAccount} */
-    private function mixedProfiles(): array
+    public function test_wallet_rejects_missing_middleware_pinned_driver_context(): void
+    {
+        [$retailUser] = $this->fixtures();
+        Sanctum::actingAs($retailUser, ['app:driver']);
+
+        // Simulate future route/middleware wiring regression. A scoped token
+        // alone is not enough to access custody without the verified identity.
+        $this->withoutMiddleware(EnsureDriverRuntimeAccess::class);
+        $this->getJson('/api/v1/driver/wallet')->assertForbidden();
+    }
+
+    /** @return array{0: User, 1: Driver, 2: CollectionAccount, 3: User, 4: CollectionAccount} */
+    private function fixtures(): array
     {
         $this->seed(CoreReferenceSeeder::class);
 
-        $user = User::factory()->create(['is_active' => true, 'locale' => 'ar']);
-        $user->roles()->attach(Role::query()->where('code', 'B2C_DRIVER')->firstOrFail());
-
-        // Deliberately insert Wholesale before Retail to catch first() regressions.
-        $legacyDriver = Driver::query()->create([
-            'user_id' => $user->id,
-            'store_id' => app(WholesalePrincipal::class)->storeId(),
-            'driver_type' => 'b2b',
-            'is_available' => true,
-            'is_active' => true,
-        ]);
-
-        $storeId = (int) DB::table('stores')->insertGetId([
+        $retailUser = User::factory()->create(['is_active' => true, 'locale' => 'ar']);
+        $retailUser->roles()->attach(Role::query()->where('code', 'B2C_DRIVER')->firstOrFail());
+        $retailStore = (int) DB::table('stores')->insertGetId([
             'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
             'code' => 'V2-PINNED-DRIVER-RETAIL',
             'name' => 'V2 Pinned Driver Retail',
@@ -134,28 +123,39 @@ final class V2DriverPinnedCollectionIdentityTest extends TestCase
             'updated_at' => now(),
         ]);
         $retailDriver = Driver::query()->create([
-            'user_id' => $user->id,
-            'store_id' => $storeId,
+            'user_id' => $retailUser->id,
+            'store_id' => $retailStore,
             'driver_type' => 'b2c',
             'is_available' => true,
             'is_active' => true,
         ]);
-
-        $legacyAccount = CollectionAccount::query()->create([
-            'actor_type' => 'driver',
-            'actor_id' => $legacyDriver->id,
-            'store_id' => (int) $legacyDriver->store_id,
-            'currency' => 'EGP',
-            'status' => 'active',
-        ]);
         $retailAccount = CollectionAccount::query()->create([
             'actor_type' => 'driver',
             'actor_id' => $retailDriver->id,
-            'store_id' => $storeId,
+            'store_id' => $retailStore,
             'currency' => 'EGP',
             'status' => 'active',
         ]);
 
-        return [$user, $legacyDriver, $retailDriver, $legacyAccount, $retailAccount];
+        // Independent historical Wholesale driver: drivers.user_id is UNIQUE,
+        // so mixed B2B/B2C profiles for the same user are NOT a valid fixture.
+        $wholesaleUser = User::factory()->create(['is_active' => true]);
+        $wholesaleUser->roles()->attach(Role::query()->where('code', 'B2B_DRIVER')->firstOrFail());
+        $wholesaleDriver = Driver::query()->create([
+            'user_id' => $wholesaleUser->id,
+            'store_id' => app(WholesalePrincipal::class)->storeId(),
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+        $foreignAccount = CollectionAccount::query()->create([
+            'actor_type' => 'driver',
+            'actor_id' => $wholesaleDriver->id,
+            'store_id' => (int) $wholesaleDriver->store_id,
+            'currency' => 'EGP',
+            'status' => 'active',
+        ]);
+
+        return [$retailUser, $retailDriver, $retailAccount, $wholesaleUser, $foreignAccount];
     }
 }
