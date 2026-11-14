@@ -42,6 +42,15 @@ final class UpdatePackageValidator
 
             if ($archive->open($packagePath) === true) {
                 try {
+                    // A checksum-valid ZIP can still have arbitrarily many
+                    // zero-byte members. Reject before scanning migration names,
+                    // even when the expanded-byte budget would not be exceeded.
+                    // Match LaravelUpdateRuntime's preflight member-count policy.
+                    $maxMembers = max(1, (int) config('foodex.update_max_zip_members', 50000));
+                    if ($archive->numFiles > $maxMembers) {
+                        throw new InvalidArgumentException('Update archive exceeds the allowed member count.');
+                    }
+
                     for ($index = 0; $index < $archive->numFiles; $index++) {
                         $name = $archive->getNameIndex($index);
 
