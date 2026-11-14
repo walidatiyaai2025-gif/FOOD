@@ -46,7 +46,12 @@ final class UpdatePackageValidator
                     // zero-byte members. Reject before scanning migration names,
                     // even when the expanded-byte budget would not be exceeded.
                     // Match LaravelUpdateRuntime's preflight member-count policy.
-                    $maxMembers = max(1, (int) config('foodex.update_max_zip_members', 50000));
+                    // Plain PHPUnit consumers instantiate this validator
+                    // without a bootstrapped Laravel config repository.
+                    $configuredLimit = app()->bound('config')
+                        ? (int) config('foodex.update_max_zip_members', 50000)
+                        : 50000;
+                    $maxMembers = max(1, $configuredLimit);
                     if ($archive->numFiles > $maxMembers) {
                         throw new InvalidArgumentException('Update archive exceeds the allowed member count.');
                     }
