@@ -95,6 +95,12 @@ jobs:
           rm -f "$stage/backend/bootstrap/cache/"*.php
           cp VERSION "$stage/VERSION"
           cp Release/INSTALL-FIRST.txt "$stage/INSTALL-FIRST.txt"
+          # zip(1) updates an existing archive without removing absent source
+          # members. A tracked/leftover Setup ZIP could therefore reintroduce
+          # previously packaged private files even after rsync exclusions.
+          # Always build a fresh archive from the current exact PR source.
+          rm -f "$GITHUB_WORKSPACE/Release/FOODEX-Laravel-Setup.zip"
+          test ! -e "$GITHUB_WORKSPACE/Release/FOODEX-Laravel-Setup.zip"
           (cd "$stage" && zip -qr "$GITHUB_WORKSPACE/Release/FOODEX-Laravel-Setup.zip" .)
       - name: Verify ZIP security, secret exclusion and source checksum
         shell: bash
