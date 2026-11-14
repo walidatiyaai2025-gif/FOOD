@@ -331,6 +331,32 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
         self.change_manifest("migrations", [MIGRATION, second_migration])
         self.assertEqual(4, self.verify_first()["files"])
 
+    def test_duplicate_manifest_keys_are_rejected_at_every_nesting_level(self) -> None:
+        manifest_path = self.first / "FOODEX-Update.json"
+        original = manifest_path.read_text(encoding="utf-8")
+        for field in ('"available": true', '"file_count": 3', '"source_commit": "' + SHA125 + '"'):
+            with self.subTest(duplicate=field):
+                self.assertIn(field, original)
+                ambiguous = original.replace(field, field + ", " + field, 1)
+                manifest_path.write_text(ambiguous, encoding="utf-8")
+                with self.assertRaisesRegex(PackageContractError, "Duplicate update manifest JSON key"):
+                    self.verify_first()
+        manifest_path.write_text(original, encoding="utf-8")
+        self.assertEqual("1.0.125", self.verify_first()["to"])
+
+    def test_non_finite_manifest_json_numbers_fail_closed(self) -> None:
+        manifest_path = self.first / "FOODEX-Update.json"
+        original = manifest_path.read_text(encoding="utf-8")
+        self.assertIn('"file_count": 3', original)
+        for constant in ("NaN", "Infinity", "-Infinity"):
+            with self.subTest(constant=constant):
+                malformed = original.replace('"file_count": 3', '"file_count": ' + constant, 1)
+                manifest_path.write_text(malformed, encoding="utf-8")
+                with self.assertRaisesRegex(PackageContractError, "Non-finite update manifest JSON"):
+                    self.verify_first()
+        manifest_path.write_text(original, encoding="utf-8")
+        self.assertEqual(3, self.verify_first()["files"])
+
     def test_malformed_dashboard_fields_are_rejected_not_interpreted(self) -> None:
         self.change_manifest("dashboard_fields", ["not-a-mapping"])
         with self.assertRaisesRegex(PackageContractError, "Dashboard fields"):
