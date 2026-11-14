@@ -144,6 +144,95 @@ final class EnterpriseActionCenterTest extends TestCase
         $this->assertDatabaseHas('enterprise_workflow_requests', ['id' => $blocked->id, 'status' => 'PENDING']);
     }
 
+    public function test_approval_search_uses_literal_percent_underscore_and_escape_marker(): void
+    {
+        $requester = $this->userWithRole('CUSTOMER_SERVICE_AGENT', 'en', 'literal-action-maker@example.test');
+        $approver = $this->userWithRole('B2B_ADMIN', 'en', 'literal-action-checker@example.test');
+
+        $literal = $this->workflow(
+            $requester,
+            ['action_title' => 'Literal wildcard approval'],
+            'ACT-%_MATCH',
+        );
+        $this->workflow(
+            $requester,
+            ['action_title' => 'Unexpected pattern candidate'],
+            'ACT-ABMATCH',
+        );
+        $escaped = $this->workflow(
+            $requester,
+            ['action_title' => 'Literal escape approval'],
+            'ACT-!_MATCH',
+        );
+        $before = DB::table('enterprise_workflow_requests')->count();
+
+        $response = $this->actingAs($approver)
+            ->get(route('admin.action-center.index', ['q' => 'ACT-%_']))
+            ->assertOk();
+        $this->assertSame(
+            [(int) $literal->id],
+            array_column($response->viewData('actions')->items(), 'workflow_request_id'),
+        );
+
+        $response = $this->actingAs($approver)
+            ->get(route('admin.action-center.index', ['q' => 'ACT-!_']))
+            ->assertOk();
+        $this->assertSame(
+            [(int) $escaped->id],
+            array_column($response->viewData('actions')->items(), 'workflow_request_id'),
+        );
+
+        $response = $this->actingAs($approver)
+            ->get(route('admin.action-center.index', ['q' => 'ACT-_%']))
+            ->assertOk();
+        $this->assertSame([], $response->viewData('actions')->items());
+
+        $response = $this->actingAs($approver)
+            ->get(route('admin.action-center.index', ['q' => 'ACT-']))
+            ->assertOk();
+        $this->assertCount(3, $response->viewData('actions')->items());
+
+        $this->assertSame($before, DB::table('enterprise_workflow_requests')->count());
+    }
+
+    public function test_literal_approval_search_preserves_foreign_store_denial(): void
+    {
+        $requester = $this->userWithRole('CUSTOMER_SERVICE_AGENT', 'en', 'literal-store-maker@example.test');
+        $approver = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $ownStore = $this->retailStore('LIT-APPROVAL-A');
+        $foreignStore = $this->retailStore('LIT-APPROVAL-B');
+        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->firstOrFail();
+        UserStoreRole::query()->create([
+            'user_id' => $approver->id,
+            'store_id' => $ownStore->id,
+            'role_id' => $role->id,
+        ]);
+
+        $allowed = $this->workflow(
+            $requester,
+            ['action_title' => 'Scoped literal approval'],
+            'OWN-%_ACTION',
+            'store',
+            $ownStore->id,
+        );
+        $blocked = $this->workflow(
+            $requester,
+            ['action_title' => 'Foreign literal approval'],
+            'FOREIGN-%_ACTION',
+            'store',
+            $foreignStore->id,
+        );
+
+        $response = $this->actingAs($approver)
+            ->get(route('admin.action-center.index', ['q' => '%_ACTION']))
+            ->assertOk();
+        $this->assertSame(
+            [(int) $allowed->id],
+            array_column($response->viewData('actions')->items(), 'workflow_request_id'),
+        );
+        $this->assertDatabaseHas('enterprise_workflow_requests', ['id' => $blocked->id, 'status' => 'PENDING']);
+    }
+
     public function test_queue_is_bounded_and_paginated(): void
     {
         $requester = $this->userWithRole('CUSTOMER_SERVICE_AGENT', 'en', 'action-bounded-requester@example.test');

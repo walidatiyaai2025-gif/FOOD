@@ -34,16 +34,18 @@ final class EnterpriseActionCenter
             ->whereHas('workflowRequest', fn ($request) => $request->where('status', 'PENDING'));
 
         if ($search !== '') {
-            $query->where(function ($candidate) use ($search): void {
-                $like = '%'.$search.'%';
-
+            // An approval search is a literal substring, not a user-supplied
+            // SQL LIKE pattern. Explicit ! escaping is portable across SQLite
+            // and MySQL/MariaDB, independent of backslash SQL modes.
+            $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
+            $query->where(function ($candidate) use ($like): void {
                 $candidate
-                    ->where('step_code', 'like', $like)
+                    ->whereRaw("step_code LIKE ? ESCAPE '!'", [$like])
                     ->orWhereHas('workflowRequest', function ($request) use ($like): void {
                         $request
-                            ->where('workflow_key', 'like', $like)
-                            ->orWhere('entity_type', 'like', $like)
-                            ->orWhere('entity_id', 'like', $like);
+                            ->whereRaw("workflow_key LIKE ? ESCAPE '!'", [$like])
+                            ->orWhereRaw("entity_type LIKE ? ESCAPE '!'", [$like])
+                            ->orWhereRaw("entity_id LIKE ? ESCAPE '!'", [$like]);
                     });
             });
         }
