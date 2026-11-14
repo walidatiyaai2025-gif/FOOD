@@ -749,6 +749,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
     {
         $entries = [];
         $seen = [];
+        $seenCaseFolded = [];
         $expandedBytes = 0;
 
         // Empty members and directories can exhaust memory/CPU without
@@ -824,7 +825,16 @@ final class LaravelUpdateRuntime implements UpdateRuntime
                 throw new RuntimeException('Update archive contains a non-canonical path.');
             }
 
+            // A case-insensitive filesystem resolves ASCII case variants to
+            // the same release target. Prevent ambiguous backup/extraction
+            // ordering even when the original ZIP member names differ.
+            $caseFoldedPath = strtolower($relativePath);
+            if (isset($seenCaseFolded[$caseFoldedPath])) {
+                throw new RuntimeException('Update archive contains duplicate release target paths.');
+            }
+
             $seen[$relativePath] = true;
+            $seenCaseFolded[$caseFoldedPath] = true;
             $entries[] = $relativePath;
         }
 
@@ -864,6 +874,13 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         $pathComponents = explode('/', $normalized);
         $lastComponent = array_key_last($pathComponents);
         foreach ($pathComponents as $index => $component) {
+            // Windows and some shared-host filesystem APIs discard trailing
+            // dots or spaces from a path component. Reject these aliases
+            // before protected-directory checks or any live-file operations.
+            if ($component === '' || str_ends_with($component, '.') || str_ends_with($component, ' ')) {
+                throw new RuntimeException('Update archive contains an unsafe path.');
+            }
+
             $isExampleTemplate = $index === $lastComponent
                 && preg_match('/^\.env(?:\.[A-Za-z0-9_-]+)*\.example$/', $component) === 1;
 
