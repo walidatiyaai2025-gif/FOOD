@@ -17,3 +17,7 @@ Validation is localized with dedicated `van_assignment_guard` AR/EN strings, wit
 Impact matrix: Backend/Dashboard Van assignment write protected. Van app: safer authoritative assigned-driver provenance, no Flutter/API payload change, B2B-only unchanged. Driver app: B2C-only execution unchanged, Retail driver may not acquire Van assignment. Customer app: unaffected. Finance, custody, routing, legacy assignment cleanup and broader Van visit/territory/offline parity remain under their original V2 issues, not certified by this bounded leaf.
 
 Close #3433 only after the issue-specific PR passes exact-head Policy, V2 Isolation, Required CI child jobs, is reviewed and merged only into Foodex_V2. Parent #2738 and #2503 remain OPEN for remaining V2 contracts and final manual staging UAT.
+
+## CI metadata follow-up
+
+The PR explicitly identifies **Mobile impact — Customer / Driver / Van** for the V2 Isolation Gate's required prose contract. Its initial failure was PR-body metadata only, not evidence that the source contract or tests passed. Exact-head checks must be rerun on the latest source commit and independently inspected before any integration.
