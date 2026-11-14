@@ -89,6 +89,12 @@ final class V2AddressQualityLiteralSearchTest extends TestCase
         $actor = User::factory()->create();
         Sanctum::actingAs($actor);
 
+        // The API's active.user guard rejects an inactive identity before
+        // evaluating the separate customers.view authorization Gate.
+        $this->getJson($this->searchUrl('Sensitive'))->assertUnauthorized();
+
+        $actor->forceFill(['is_active' => true])->save();
+        Sanctum::actingAs($actor);
         $this->getJson($this->searchUrl('Sensitive'))->assertForbidden();
 
         $this->assertSame(1, DB::table('address_quality_reviews')->count());
