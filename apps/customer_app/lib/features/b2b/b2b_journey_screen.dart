@@ -6965,7 +6965,8 @@ class _InvoicesRemoteStateState extends State<_InvoicesRemoteState>
   }
 
   String _money(Object? value, String currency) {
-    final amount = double.tryParse(value?.toString() ?? '') ?? 0;
+    final amount = double.tryParse(value?.toString() ?? '');
+    if (amount == null || !amount.isFinite) return '—';
     return foodexMoneyText(amount, currency).trim();
   }
 
