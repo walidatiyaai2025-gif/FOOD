@@ -29,14 +29,20 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             throw new RuntimeException('Release root is not writable.');
         }
 
+        // Validate the fully expanded archive before trusting the compressed
+        // ZIP length as a disk-space estimate. A highly compressible payload
+        // must not exhaust shared-host storage during staging/rollback.
+        $expandedBytes = 0;
+        $entries = $this->archiveEntries($packagePath, $expandedBytes);
         $backupRoot = $this->backupRoot();
         $freeSpace = disk_free_space($backupRoot);
-        if ($freeSpace === false || $freeSpace < ($packageSize * 3)) {
+        if ($freeSpace === false
+            || $freeSpace < max($packageSize * 3, $expandedBytes * 2)) {
             throw new RuntimeException('Insufficient free disk space for safe update and rollback.');
         }
 
         // Reject symlinks before creating any backup or changing live files.
-        foreach ($this->archiveEntries($packagePath) as $relativePath) {
+        foreach ($entries as $relativePath) {
             $this->assertSafeReleaseTarget($relativePath);
         }
 
@@ -213,6 +219,12 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
         try {
             foreach ($this->archiveEntriesFrom($archive) as $relativePath) {
+                $stat = $archive->statName($relativePath);
+                $expectedSize = is_array($stat) ? $stat['size'] : null;
+                if (! is_int($expectedSize) || $expectedSize < 0) {
+                    throw new RuntimeException('Update archive entry length could not be read.');
+                }
+
                 $stream = $archive->getStream($relativePath);
                 if (! is_resource($stream)) {
                     throw new RuntimeException('Update archive entry could not be read.');
@@ -230,13 +242,16 @@ final class LaravelUpdateRuntime implements UpdateRuntime
                     throw new RuntimeException('Update file could not be staged.');
                 }
 
-                $copied = stream_copy_to_stream($stream, $destination);
+                // Bound actual decompression, not only ZIP central-directory
+                // claims: extra data and truncated streams must fail before
+                // the temporary file can be activated.
+                $copied = stream_copy_to_stream($stream, $destination, $expectedSize + 1);
                 fclose($stream);
                 fclose($destination);
 
-                if ($copied === false) {
+                if ($copied === false || $copied !== $expectedSize) {
                     @unlink($temporary);
-                    throw new RuntimeException('Update file could not be written.');
+                    throw new RuntimeException('Update archive entry size does not match its metadata.');
                 }
 
                 @chmod($temporary, 0644);
@@ -670,12 +685,12 @@ final class LaravelUpdateRuntime implements UpdateRuntime
     /**
      * @return array<int, string>
      */
-    private function archiveEntries(string $packagePath): array
+    private function archiveEntries(string $packagePath, int &$expandedBytes = 0): array
     {
         $archive = $this->openArchive($packagePath);
 
         try {
-            return $this->archiveEntriesFrom($archive);
+            return $this->archiveEntriesFrom($archive, $expandedBytes);
         } finally {
             $archive->close();
         }
@@ -684,10 +699,16 @@ final class LaravelUpdateRuntime implements UpdateRuntime
     /**
      * @return array<int, string>
      */
-    private function archiveEntriesFrom(ZipArchive $archive): array
+    private function archiveEntriesFrom(ZipArchive $archive, int &$expandedBytes = 0): array
     {
         $entries = [];
         $seen = [];
+        $expandedBytes = 0;
+
+        // Configurable for verified larger releases, but always positive and
+        // finite: a tiny ZIP must not unpack an unlimited volume of files.
+        $maxEntry = max(1, (int) config('foodex.update_max_entry_uncompressed_bytes', 268435456));
+        $maxTotal = max(1, (int) config('foodex.update_max_total_uncompressed_bytes', 1073741824));
 
         for ($index = 0; $index < $archive->numFiles; $index++) {
             $name = $archive->getNameIndex($index);
@@ -698,14 +719,40 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             $operatingSystem = 0;
             $attributes = 0;
             if ($archive->getExternalAttributesIndex($index, $operatingSystem, $attributes)
-                && $operatingSystem === ZipArchive::OPSYS_UNIX
-                && (($attributes >> 16) & 0170000) === 0120000) {
-                throw new RuntimeException('Update archive contains a symbolic link.');
+                && $operatingSystem === ZipArchive::OPSYS_UNIX) {
+                $type = ($attributes >> 16) & 0170000;
+                if ($type === 0120000) {
+                    throw new RuntimeException('Update archive contains a symbolic link.');
+                }
+
+                // A ZIP member with a normal-looking filename may still be
+                // labelled as a FIFO, device, socket, or disguised directory.
+                // Allow Unix regular files and missing type bits for ZIPs made
+                // on other platforms; canonical directory entries are skipped.
+                if ($type !== 0
+                    && $type !== 0100000
+                    && ! ($type === 0040000 && str_ends_with($name, '/'))) {
+                    throw new RuntimeException('Update archive contains a non-regular file entry.');
+                }
             }
 
             if (str_ends_with($name, '/')) {
                 continue;
             }
+
+            $stat = $archive->statIndex($index);
+            $memberBytes = is_array($stat) ? $stat['size'] : null;
+            if (! is_int($memberBytes) || $memberBytes < 0) {
+                throw new RuntimeException('Update archive entry length could not be read.');
+            }
+
+            // Subtract first to avoid integer overflow when accumulating ZIP
+            // central-directory sizes on 64-bit PHP.
+            if ($memberBytes > $maxEntry || $memberBytes > $maxTotal - $expandedBytes) {
+                throw new RuntimeException('Update archive exceeds the allowed expanded size.');
+            }
+
+            $expandedBytes += $memberBytes;
 
             // Two different ZIP member names can normalize to the same live
             // target (e.g. forward/backslash aliases). Never silently choose
@@ -713,6 +760,14 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             $relativePath = $this->safeRelativePath($name);
             if (isset($seen[$relativePath])) {
                 throw new RuntimeException('Update archive contains duplicate release target paths.');
+            }
+
+            // Keep duplicate-target rejection authoritative for existing
+            // security regressions, then refuse a single noncanonical member.
+            // The extractor opens ZIP streams using $relativePath, which may
+            // not exist in an archive with padded or backslash-aliased names.
+            if ($name !== $relativePath) {
+                throw new RuntimeException('Update archive contains a non-canonical path.');
             }
 
             $seen[$relativePath] = true;
@@ -752,6 +807,16 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             || str_ends_with($normalized, '/.env')
             || preg_match('#(^|/)(storage|vendor|\.git)(/|$)#', $normalized) === 1) {
             throw new RuntimeException('Update archive targets a protected runtime path.');
+        }
+
+        // Shared-host public release-root mirrors are static assets only.
+        // Never stage server-executable scripts or handler configuration
+        // there, including Apache multi-extension names like foo.php.jpg.
+        // Laravel's own backend/public/index.php remains a valid release file.
+        if (preg_match('#^(assets|brand|demo|preview)/#i', $normalized) === 1
+            && (preg_match('#(?:^|/)[^/]*\.(?:php[0-9]*|phtml|phar|cgi|pl|py|sh|asp|aspx|jsp)(?:\.|$)#i', $normalized) === 1
+                || preg_match('#(?:^|/)(?:\.htaccess|\.user\.ini|web\.config)(?:\.|$)#i', $normalized) === 1)) {
+            throw new RuntimeException('Update archive targets an executable public asset path.');
         }
 
         return $normalized;
