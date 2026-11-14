@@ -56,7 +56,7 @@ class InstallerController extends Controller
 
         $progress = $state->progress();
         $allowedStep = min(InstallerChecklist::count(), $progress['completed_step'] + 1);
-        abort_if($step > $allowedStep, 409, 'Installer steps must be completed in order.');
+        abort_if($step > $allowedStep, 409, (string) __('installer.errors.step_order'));
 
         try {
             $admin = null;
@@ -207,7 +207,7 @@ class InstallerController extends Controller
                 case 15:
                     $admin = $progress['admin'];
                     if ($admin === null) {
-                        throw new RuntimeException('Super Admin setup is incomplete. Return to step 7 and provide the account details.');
+                        throw new RuntimeException((string) __('installer.errors.admin_incomplete'));
                     }
 
                     $workflow->finish($admin);
@@ -249,7 +249,12 @@ class InstallerController extends Controller
      */
     private function validated(Request $request, array $rules): array
     {
-        $validator = Validator::make($request->all(), $rules);
+        $validator = Validator::make(
+            $request->all(),
+            $rules,
+            (array) __('installer.validation'),
+            (array) __('installer.fields'),
+        );
 
         if ($validator->fails()) {
             throw new RuntimeException(implode(' ', $validator->errors()->all()));
