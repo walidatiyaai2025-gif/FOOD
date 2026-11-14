@@ -124,7 +124,6 @@ final class V2CustomerServiceRoleOverlapAuditTest extends TestCase
         }
     }
 
-
     public function test_authorized_consolidation_preserves_explicit_retail_scope_and_removes_stale_permission_overrides(): void
     {
         $admin = $this->actorWithRoles(['SUPER_ADMIN']);
