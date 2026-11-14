@@ -556,6 +556,141 @@ void main() {
     expect(find.text('Active orders'), findsOneWidget);
   });
 
+  for (final locale in const <Locale>[Locale('ar'), Locale('en')]) {
+    testWidgets(
+      'B2B rejects a contradictory signed credit snapshot in ${locale.languageCode}',
+      (tester) async {
+        final api = _PathB2bApi({
+          '/api/v1/profile': {
+            'customer': {'id': 19, 'type': 'b2b', 'name': 'Buyer'},
+            'business_account': {
+              'id': 27,
+              'company_name': 'Buyer Co',
+              'status': 'active',
+            },
+          },
+          '/api/v1/b2b/account-summary?store_id=7': {
+            'data': {
+              'currency': 'KWD',
+              'balance': 125,
+              'balance_direction': 'customer_owes_company',
+              'credit_limit': 1000,
+              'available_credit_line': 875,
+              'purchasing_power': 875,
+            },
+          },
+        });
+
+        await tester.pumpWidget(
+          FoodexCustomerApp(
+            session: const CustomerSession.authenticated(
+              CustomerChannel.b2b,
+              accessToken: 'token',
+              platformWide: true,
+            ),
+            locale: locale,
+            initialRoute: '/b2b/profile?channel=wholesale&store_id=7',
+            b2bApi: api,
+          ),
+        );
+        await _pumpCustomerFrames(tester);
+
+        final invalid = find.byKey(
+          const ValueKey('b2b-finance-summary-invalid'),
+        );
+        expect(invalid, findsOneWidget);
+        expect(
+          find.descendant(
+            of: invalid,
+            matching: find.text(
+              locale.languageCode == 'ar'
+                  ? 'تعذر تحميل البيانات. حاول مرة أخرى.'
+                  : 'Unable to load data. Please try again.',
+            ),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          Directionality.of(tester.element(invalid)),
+          locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+        );
+        expect(find.text('0.000 KWD'), findsNothing);
+      },
+    );
+  }
+
+  for (final locale in const <Locale>[Locale('ar'), Locale('en')]) {
+    for (final invalidField in const <String>[
+      'total_purchases',
+      'outstanding_receivable',
+    ]) {
+      testWidgets(
+        'B2B More fails closed on malformed $invalidField in ${locale.languageCode}',
+        (tester) async {
+          final finance = <String, Object?>{
+            'currency': 'KWD',
+            'balance': -125.0,
+            'balance_direction': 'customer_owes_company',
+            'total_purchases': 400.0,
+            'total_debits': 420.0,
+            'outstanding_receivable': 125.0,
+            'credit_limit': 1000.0,
+            'available_credit_line': 875.0,
+            'purchasing_power': 875.0,
+          };
+          finance[invalidField] =
+              invalidField == 'total_purchases' ? 'invalid-price' : double.nan;
+          final api = _PathB2bApi({
+            '/api/v1/profile': {
+              'customer': {'id': 19, 'type': 'b2b', 'name': 'Buyer'},
+              'business_account': {
+                'id': 27,
+                'company_name': 'Buyer Co',
+                'status': 'active',
+              },
+            },
+            '/api/v1/b2b/account-summary?store_id=7': {'data': finance},
+          });
+
+          await tester.pumpWidget(
+            FoodexCustomerApp(
+              session: const CustomerSession.authenticated(
+                CustomerChannel.b2b,
+                accessToken: 'token',
+                platformWide: true,
+              ),
+              locale: locale,
+              initialRoute: '/b2b/profile?channel=wholesale&store_id=7',
+              b2bApi: api,
+            ),
+          );
+          await _pumpCustomerFrames(tester);
+
+          final invalid = find.byKey(
+            const ValueKey('b2b-finance-summary-invalid'),
+          );
+          expect(invalid, findsOneWidget);
+          expect(
+            find.descendant(
+              of: invalid,
+              matching: find.text(
+                locale.languageCode == 'ar'
+                    ? 'تعذر تحميل البيانات. حاول مرة أخرى.'
+                    : 'Unable to load data. Please try again.',
+              ),
+            ),
+            findsOneWidget,
+          );
+          expect(find.text('0.000 KWD'), findsNothing);
+          expect(
+            Directionality.of(tester.element(invalid)),
+            locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+          );
+        },
+      );
+    }
+  }
+
   testWidgets('B2B More keeps the compact hub without inline account sections',
       (
     tester,
@@ -584,7 +719,7 @@ void main() {
       '/api/v1/b2b/account-summary?store_id=7': {
         'data': {
           'currency': 'KWD',
-          'balance': 125.0,
+          'balance': -125.0,
           'balance_direction': 'customer_owes_company',
           'total_debits': 420.0,
           'total_purchases': 400.0,
@@ -4173,6 +4308,89 @@ void main() {
     },
   );
 
+  for (final locale in const <Locale>[Locale('ar'), Locale('en')]) {
+    testWidgets(
+      'Wholesale invoices do not fabricate paid or debt totals in ${locale.languageCode}',
+      (tester) async {
+        final api = _FakeB2bApi({
+          'data': [
+            {
+              'id': 31,
+              'invoice_number': 'INV-31',
+              'display_status': 'partially_paid',
+              'currency': 'KWD',
+              'total': 20.0,
+              'paid_amount': null,
+              'outstanding_amount': 'NaN',
+              'credit_amount': 0.0,
+              'store_id': 7,
+              'issued_at': '2026-10-01T10:00:00Z',
+            },
+          ],
+          'summary': {
+            'totals': [
+              {
+                'currency': 'KWD',
+                'total': 20.0,
+                'paid': null,
+                'outstanding': 'not-a-number',
+                'overdue': 'Infinity',
+                'credit': 0.0,
+              },
+            ],
+          },
+          'meta': {'page': 1, 'per_page': 20, 'total': 1, 'has_more': false},
+        });
+        await tester.pumpWidget(
+          FoodexCustomerApp(
+            session: b2b,
+            locale: locale,
+            initialRoute: '/b2b/invoices?store_id=7',
+            b2bApi: api,
+          ),
+        );
+        await _pumpCustomerFrames(tester);
+
+        final summary = find.byKey(
+          const ValueKey('b2b-invoices-summary-KWD'),
+        );
+        expect(summary, findsOneWidget);
+        final ar = locale.languageCode == 'ar';
+        expect(
+          find.descendant(
+            of: summary,
+            matching: find.text('${ar ? 'المدفوع' : 'Paid'}: —'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: summary,
+            matching: find.text('${ar ? 'المديونية' : 'Debt'}: —'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: summary,
+            matching: find.text('${ar ? 'المتأخر' : 'Overdue'}: —'),
+          ),
+          findsOneWidget,
+        );
+        final row = find.byKey(const ValueKey('b2b-invoice-paid-31'));
+        expect(row, findsOneWidget);
+        final paid = tester.widget<Text>(row);
+        expect(paid.textSpan?.toPlainText(), '${ar ? 'المدفوع' : 'Paid'}: —');
+        expect(find.text('0.000 KWD'), findsNothing);
+        expect(
+          Directionality.of(tester.element(row)),
+          ar ? TextDirection.rtl : TextDirection.ltr,
+        );
+        expect(api.lastPath, '/api/v1/b2b/invoices?store_id=7');
+      },
+    );
+  }
+
   testWidgets('B2B collections expose approved detail navigation', (
     tester,
   ) async {
@@ -4544,11 +4762,14 @@ void main() {
       'company_name': 'FOODEX Wholesale Business Account With Long Name',
       'name': 'Business Buyer',
       'currency': 'KWD',
-      'balance': 12.5,
+      'balance': -12.5,
+      'balance_direction': 'customer_owes_company',
+      'outstanding_receivable': 12.5,
       'open_amount': 12.5,
       'overdue_amount': 0,
       'credit_limit': 100,
       'available_credit_line': 87.5,
+      'purchasing_power': 87.5,
       'items_count': 2,
       'unread_count': 3,
       'data': <Object?>[],
