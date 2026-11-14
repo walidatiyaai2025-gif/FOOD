@@ -7,6 +7,7 @@ use App\Domain\Updater\UpdatePackageValidator;
 use App\Domain\Updater\UpdateVersion;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\UpdateZipFixture;
 
 class V2LegacyInstalledVersionPrecisionTest extends TestCase
 {
@@ -19,7 +20,7 @@ class V2LegacyInstalledVersionPrecisionTest extends TestCase
         $path = tempnam(sys_get_temp_dir(), 'v2-versions-');
         self::assertIsString($path);
         $this->packagePath = $path;
-        file_put_contents($path, 'test-only release content');
+        UpdateZipFixture::write($path);
     }
 
     protected function tearDown(): void
