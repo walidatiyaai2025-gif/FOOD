@@ -116,7 +116,7 @@ final class InstallerEnvironment
             // instead remain a literal credential (and be quoted below).
             $encodedValue = $key === 'REDIS_PASSWORD' && $value === null
                 ? 'null'
-                : $this->encodeValue($value);
+                : $this->encodeValue($value, $key);
             $line = $key.'='.$encodedValue;
             // Read() uses the last .env assignment: after any installer write,
             // ensure the managed key has only one effective definition.
@@ -254,7 +254,7 @@ final class InstallerEnvironment
         }
     }
 
-    private function encodeValue(mixed $value): string
+    private function encodeValue(mixed $value, string $key): string
     {
         if ($value === null) {
             return '';
@@ -267,8 +267,9 @@ final class InstallerEnvironment
         }
 
         // Laravel env() coerces unquoted true/false/null/empty to non-string
-        // values. Credentials and operator-entered names are literals.
-        if (in_array(strtolower($string), ['true', 'false', 'null', 'empty'], true)) {
+        // values. Preserve literal credentials, but keep APP_DEBUG=false
+        // unquoted: Laravel must read it as a boolean, not truthy text.
+        if ($key !== 'APP_DEBUG' && in_array(strtolower($string), ['true', 'false', 'null', 'empty'], true)) {
             return '"'.$string.'"';
         }
 
