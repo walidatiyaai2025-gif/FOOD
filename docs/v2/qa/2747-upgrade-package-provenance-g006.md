@@ -112,3 +112,9 @@ The integrity verifier rejects **every literal backslash** in ZIP member names, 
 `archive.testzip()` decompresses every member to verify CRC. To prevent unbounded decompression on hostile archives, the verifier checks central-directory metadata before reading any member: at most 50,000 members, at most 512 MiB uncompressed per member and 2 GiB total, with a 4 KiB cap for the text `VERSION` marker. Tiny synthetic fixtures exercise the size/count boundaries by patching the limits rather than allocating multi-gigabyte blobs. Genuine oversized release packages must use an independently accepted full-deploy path; never silently weaken these controls to pass a ZIP integrity check.
 
 These are **offline verifier safety improvements only**. They do not authenticate the publisher signature, execute migrations, preserve a real populated MySQL installation, or demonstrate interrupted upgrade/backup/recovery, and cannot justify merging draft PR #3364 or closing gate #2747 on their own.
+
+## Metadata sidecar memory bounds
+
+The G006 read-only verifier now imposes strict byte budgets **before** loading its untrusted sidecars into memory: the JSON manifest and ordered file list are each limited to 8 MiB; the SHA-256 checksum sidecar is limited to 4 KiB. The shared helper checks the actual file size and performs a bounded read even if an attacker replaces content after the size check, then decodes strict UTF-8; oversized or malformed sidecars fail closed without parsing. Synthetic tests cover all three limits and invalid UTF-8 alongside a successful ordinary fixture. The historical 1.0.125/1.0.127 archive-integrity workflow checks compatibility against the exact published sidecar bytes.
+
+These memory limits do not authenticate any release signature, prove real MySQL upgrades, or authorize merging #3364 before original G006 source/recovery acceptance. No Laravel runtime, Admin, Customer, Driver or Van application behavior changed.

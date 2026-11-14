@@ -102,6 +102,26 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
         manifest[key] = value
         path.write_text(json.dumps(manifest))
 
+    def test_metadata_sidecars_are_bounded_before_json_or_list_parsing(self) -> None:
+        # Small real fixtures and tiny patched limits reproduce resource
+        # exhaustion defenses without constructing dangerous large files.
+        with patch("scripts.v2_upgrade_package_provenance.MAX_MANIFEST_METADATA_BYTES", 8):
+            with self.assertRaisesRegex(PackageContractError, "metadata size budget"):
+                self.verify_first()
+        with patch("scripts.v2_upgrade_package_provenance.MAX_FILE_LIST_METADATA_BYTES", 8):
+            with self.assertRaisesRegex(PackageContractError, "metadata size budget"):
+                self.verify_first()
+        with patch("scripts.v2_upgrade_package_provenance.MAX_CHECKSUM_METADATA_BYTES", 8):
+            with self.assertRaisesRegex(PackageContractError, "metadata size budget"):
+                self.verify_first()
+        self.assertEqual(3, self.verify_first()["files"])
+
+    def test_metadata_sidecar_invalid_utf8_fails_closed(self) -> None:
+        sidecar = self.first / "FOODEX-Update.files.txt"
+        sidecar.write_bytes(b"\\xff\\xfe")
+        with self.assertRaisesRegex(PackageContractError, "Cannot read update metadata"):
+            self.verify_first()
+
     def test_genuine_matching_zip_manifest_checksum_file_list_and_version_pass(self) -> None:
         report = self.verify_first()
         self.assertEqual("1.0.125", report["to"])

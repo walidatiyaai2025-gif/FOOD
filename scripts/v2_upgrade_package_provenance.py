@@ -33,6 +33,9 @@ MAX_ARCHIVE_MEMBERS = 50_000
 MAX_MEMBER_UNCOMPRESSED_BYTES = 512 * 1024 * 1024
 MAX_TOTAL_UNCOMPRESSED_BYTES = 2 * 1024 * 1024 * 1024
 MAX_VERSION_MEMBER_BYTES = 4096
+MAX_MANIFEST_METADATA_BYTES = 8 * 1024 * 1024
+MAX_FILE_LIST_METADATA_BYTES = 8 * 1024 * 1024
+MAX_CHECKSUM_METADATA_BYTES = 4096
 
 
 def _require(condition: bool, message: str) -> None:
@@ -69,10 +72,26 @@ def _parse_finite_json_float(token: str) -> float:
     return number
 
 
+def _read_text_budgeted(path: Path, maximum_bytes: int) -> str:
+    """Bound untrusted sidecar allocation before any decoding/parsing."""
+    try:
+        # The stat check avoids opening a known-oversized sidecar, while the
+        # bounded read also prevents unbounded allocation if it changes later.
+        _require(path.stat().st_size <= maximum_bytes,
+                 f"Update metadata size budget exceeded: {path.name}")
+        with path.open("rb") as handle:
+            payload = handle.read(maximum_bytes + 1)
+        _require(len(payload) <= maximum_bytes,
+                 f"Update metadata size budget exceeded: {path.name}")
+        return payload.decode("utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise PackageContractError(f"Cannot read update metadata: {path.name}") from exc
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     try:
         data = json.loads(
-            path.read_text(encoding="utf-8"),
+            _read_text_budgeted(path, MAX_MANIFEST_METADATA_BYTES),
             object_pairs_hook=_unique_json_object,
             parse_constant=_reject_nonfinite_json_constant,
             parse_float=_parse_finite_json_float,
@@ -192,7 +211,7 @@ def validate_package(
     digest = _sha256(zip_path)
     _require(manifest.get("sha256") == digest, "Manifest ZIP SHA-256 mismatch.")
     try:
-        checksum = checksum_path.read_text(encoding="utf-8").strip().split()
+        checksum = _read_text_budgeted(checksum_path, MAX_CHECKSUM_METADATA_BYTES).strip().split()
     except (OSError, UnicodeError) as exc:
         raise PackageContractError("Cannot read ZIP SHA-256 file.") from exc
     _require(
@@ -246,7 +265,7 @@ def validate_package(
             _require(bad_member is None, f"ZIP member CRC failure: {bad_member}")
     except (OSError, zipfile.BadZipFile, UnicodeError, KeyError) as exc:
         raise PackageContractError("Unreadable or corrupt update ZIP.") from exc
-    listed = list_path.read_text(encoding="utf-8").splitlines()
+    listed = _read_text_budgeted(list_path, MAX_FILE_LIST_METADATA_BYTES).splitlines()
     _require(names == listed, "ZIP member order/list differs from package file list.")
     delta = manifest.get("delta")
     _require(
