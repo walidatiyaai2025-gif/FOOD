@@ -298,6 +298,18 @@ final class V2VanInventoryReadAuthorityTest extends TestCase
         ]);
         $this->assertCount(1, $service->page($viewer, (int) $van->id)['rows']);
 
+        // The canonical assignment writer requires both the Driver and its
+        // linked User to be active; legacy assignments must obey this on read.
+        $driverUser->forceFill(['is_active' => false])->save();
+        try {
+            $service->page($viewer, (int) $van->id);
+            $this->fail('Disabled driver user account must not expose Van stock.');
+        } catch (HttpException $exception) {
+            $this->assertSame(404, $exception->getStatusCode());
+        }
+        $driverUser->forceFill(['is_active' => true])->save();
+        $this->assertCount(1, $service->page($viewer, (int) $van->id)['rows']);
+
         DB::table('drivers')->where('id', $driverId)->update([
             'is_active' => false,
             'updated_at' => now(),
