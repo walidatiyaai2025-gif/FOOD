@@ -26,9 +26,23 @@ final class DriverRuntimeContextResolver
         abort_unless(in_array($channel, ['b2c', 'b2b'], true), 403);
         abort_unless($user->hasPermission("deliveries.{$channel}.execute"), 403);
 
+        // Driver routes are already authorized by EnsureDriverRuntimeAccess.
+        // Recheck that its trusted snapshot still describes this same profile.
+        // A reassignment between the middleware and heartbeat/freshness checks
+        // must not silently switch the request into another store's scope.
+        $authorized = $request->attributes->get('driver_runtime_context');
+        abort_unless(
+            is_array($authorized)
+                && (int) ($authorized['driver_id'] ?? 0) === (int) $driver->getKey()
+                && ($authorized['channel'] ?? null) === $channel,
+            409,
+            'Driver role channel does not match the authoritative driver scope.',
+        );
+
         [$authoritativeChannel, $storeId] = $this->driverTenants->resolve($driver);
         abort_unless(
-            $authoritativeChannel === $channel,
+            $authoritativeChannel === $channel
+                && (int) ($authorized['store_id'] ?? 0) === $storeId,
             409,
             'Driver role channel does not match the authoritative driver scope.',
         );
