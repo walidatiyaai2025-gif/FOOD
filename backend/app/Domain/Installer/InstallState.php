@@ -94,10 +94,13 @@ final class InstallState
             ];
         }
 
-        $token = $decoded['token'] ?? null;
-        $token = is_string($token) && preg_match('/^[a-f0-9]{64}$/', $token) === 1
-            ? $token
-            : null;
+        // The persisted token is null only before initial setup. A damaged
+        // non-null token must not be silently reset: token() would replace
+        // saved progress and erase the prior setup session's recovery state.
+        $token = $decoded['token'];
+        if ($token !== null && (! is_string($token) || preg_match('/^[a-f0-9]{64}$/', $token) !== 1)) {
+            throw new RuntimeException('Installer progress state is invalid.');
+        }
 
         // Progress is a persisted trust boundary: coercing "12", 12.9 or
         // true into a completed step would allow a corrupt JSON state to
