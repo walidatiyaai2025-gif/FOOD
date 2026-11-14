@@ -168,7 +168,8 @@ final class EnterpriseProcurementWorkbenchTest extends TestCase
             ]))->assertOk()->viewData('rows');
 
             $this->assertSame([$matching], $page->getCollection()->pluck('id')->all());
-            $this->assertSame($case['q'], $page->getOptions()['path'] !== '' ? $case['q'] : '');
+            parse_str((string) parse_url((string) $page->url(2), PHP_URL_QUERY), $query);
+            $this->assertSame($case['q'], $query['q'] ?? null);
         }
 
         $this->assertSame($auditBefore, DB::table('audit_logs')->count());
