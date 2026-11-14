@@ -220,17 +220,17 @@ async function run({ github, context, core, nowMs = Date.now() }) {
         if (!current.some(c => (c.body || '').includes(marker))) {
           const explanation = mergedOriginal
             ? 'PR #' + claim.pr + ' was independently verified MERGED into Foodex_V2. '
-              + 'Obsolete worker-active/waiting labels were cleared; no handoff-ready label was added.\\n'
+              + 'Obsolete worker-active/waiting labels were cleared; no handoff-ready label was added.\n'
               + 'The Issue remains OPEN for any unaccepted source requirements. '
               + 'Do not recreate the merged PR; preflight a distinct atomic follow-up if necessary. '
             : 'Original PR #' + claim.pr + ' was independently verified CLOSED / NOT MERGED '
-              + 'against Foodex_V2. The issue is approval-gated, not handed off as normal coding work.\\n'
+              + 'against Foodex_V2. The issue is approval-gated, not handed off as normal coding work.\n'
               + 'The Issue and original PR/branch history remain untouched. '
               + 'Obtain owner-authorized reconciliation before reopening the original PR; never create a duplicate. ';
           await github.rest.issues.createComment({
             owner, repo, issue_number: issue.number,
-            body: marker + '\\n## V2 — Original issue PR ' + (mergedOriginal ? 'already merged' : 'closed without merge')
-              + '\\n\\n' + explanation + 'No main or production change.\\n',
+            body: marker + '\n## V2 — Original issue PR ' + (mergedOriginal ? 'already merged' : 'closed without merge')
+              + '\n\n' + explanation + 'No main or production change.\n',
           });
         }
         core.info('#' + issue.number + ': verified ' + (mergedOriginal ? 'merged' : 'closed-unmerged')
