@@ -262,6 +262,7 @@ final class V2ReceivableSettlementWorkbenchTest extends TestCase
         // idempotent retries, not just on the initial financial transition.
         $postedSiblingAllocation = $ar->postAllocation($siblingPoster, $siblingPosterContext, $foreignAllocation->id);
         $this->assertSame('posted', $postedSiblingAllocation->status);
+        $postedSiblingJournalId = $postedSiblingAllocation->journal_id;
 
         $current = $fixture['maker'];
         $currentStoreId = $fixture['store']->id;
@@ -293,7 +294,11 @@ final class V2ReceivableSettlementWorkbenchTest extends TestCase
             ['store_id' => $currentStoreId],
         )->assertNotFound();
 
-        $this->assertSame('draft', $foreignAllocation->fresh()->status);
+        // The legitimate sibling-store poster already committed this legacy
+        // allocation. A foreign-store HTTP attempt must not alter its status,
+        // journal link or consume an additional receipt.
+        $this->assertSame('posted', $foreignAllocation->fresh()->status);
+        $this->assertSame($postedSiblingJournalId, $foreignAllocation->fresh()->journal_id);
         $this->assertDatabaseMissing('enterprise_ar_allocations', [
             'ar_document_id' => $foreignDocument->id,
             'idempotency_key' => 'p303-cross-store-allocation',
