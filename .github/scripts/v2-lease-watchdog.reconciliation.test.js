@@ -56,6 +56,19 @@ test('malformed GitHub API payload fails closed rather than silently skipping', 
 test('incomplete GitHub API page cap fails closed', async () => {
   await assert.rejects(listPages(async()=>({data:Array.from({length:100},(_,i)=>i)}),{},2),/pagination limit/);
 });
+test('paginated exact-head check and workflow collections include later pages', async () => {
+  for (const key of ['check_runs', 'workflow_runs']) {
+    const collected=await listPages(async args=>({data:{[key]:args.page===1
+      ? Array.from({length:100},(_,i)=>({id:i,status:'completed'}))
+      : [{id:101,status:'queued'}]}}),{},3,key);
+    assert.equal(collected.length,101,key);
+    assert.equal(collected[100].status,'queued',key);
+    await assert.rejects(listPages(async()=>({data:{[key]:Array(100).fill({status:'completed'})}}),
+      {},2,key),/pagination limit/);
+    await assert.rejects(listPages(async()=>({data:{items:[]}}),{},2,key),
+      /pagination payload/);
+  }
+});
 
 function harness(opts={}) {
   const issue = { number:2929, title:'V2 | AUTO-LEASE example', state:'open',
@@ -68,6 +81,7 @@ function harness(opts={}) {
     merged_at:opts.mergedPr?'2026-11-10T09:40:00Z':null,
     base:{ref:opts.foreignPr?'main':'Foodex_V2'},
     head:{ref:opts.foreignPr?'feat/unrelated':'feat/2929-lease-tests'} };
+  const terminalRuns=Array.from({length:100},(_,i)=>({id:i,head_sha:'old-head',status:'completed'}));
   const github = { rest: {
     search:{issuesAndPullRequests:async()=>({data:{items:[issue]}})},
     pulls:{list:async()=>({data:[]}),get:async()=>({data:matchingPr})},
@@ -84,9 +98,23 @@ function harness(opts={}) {
       getCommit:async()=>({data:{commit:{committer:{date:opts.recentCommit?
         '2026-11-10T09:50:00Z':'2026-11-10T09:20:00Z'}}}}),
     },
-    checks:{listForRef:async()=>({data:{check_runs:opts.queuedCi?[{name:'required-ci-gate',status:'queued'}]:[]}})},
-    actions:{listWorkflowRunsForRepo:async()=>({data:{workflow_runs:opts.runningWorkflow?
-      [{name:'FOODEX Required CI Gate',head_sha:'old-head',status:'in_progress'}]:[]}})},
+    checks:{listForRef:async args=>{
+      if (opts.malformedChecksPageTwo && args.page===2) return {data:{wrong_collection:[]}};
+      if (opts.tooManyChecks) return {data:{check_runs:terminalRuns}};
+      if (opts.activeCheckPageTwo) return {data:{check_runs:args.page===1
+        ? terminalRuns : [{id:101,name:'required-ci-gate',status:'queued'}]}};
+      return {data:{check_runs:opts.queuedCi?[{name:'required-ci-gate',status:'queued'}]:[]}};
+    }},
+    actions:{listWorkflowRunsForRepo:async args=>{
+      if (opts.malformedWorkflowsPageTwo && args.page===2) return {data:{wrong_collection:[]}};
+      if (opts.tooManyWorkflows) return {data:{workflow_runs:terminalRuns}};
+      if (opts.activeWorkflowPageTwo || opts.unrelatedWorkflowPageTwo)
+        return {data:{workflow_runs:args.page===1 ? terminalRuns :
+          [{id:101,name:'FOODEX Required CI Gate',
+            head_sha:opts.unrelatedWorkflowPageTwo?'different-head':'old-head',status:'in_progress'}]}};
+      return {data:{workflow_runs:opts.runningWorkflow?
+        [{name:'FOODEX Required CI Gate',head_sha:'old-head',status:'in_progress'}]:[]}};
+    }},
   }};
   return {github, mutations, getBranchReads:()=>branchReads};
 }
@@ -137,6 +165,28 @@ test('queued check or workflow on exact head protects worker', async () => {
     const out=await sweep(opts);
     assert.equal(out.result.released,0);
     assert.deepEqual(out.mutations,[]);
+  }
+});
+test('active check or exact-head workflow on page two protects a 30-minute lease', async () => {
+  for (const opts of [{activeCheckPageTwo:true},{activeWorkflowPageTwo:true}]) {
+    const out=await sweep(opts);
+    assert.equal(out.result.released,0);
+    assert.deepEqual(out.mutations,[],JSON.stringify(opts));
+  }
+});
+test('page-two workflow for unrelated SHA does not renew an idle branch lease', async () => {
+  const out=await sweep({unrelatedWorkflowPageTwo:true});
+  assert.equal(out.result.released,1);
+  assert.deepEqual(out.mutations,['remove:worker:active','add:worker:handoff-ready','comment']);
+});
+test('incomplete or malformed CI pagination fails closed without issue mutations', async () => {
+  for (const opts of [{malformedChecksPageTwo:true,activeCheckPageTwo:true},
+    {malformedWorkflowsPageTwo:true,activeWorkflowPageTwo:true},
+    {tooManyChecks:true},{tooManyWorkflows:true}]) {
+    const h=harness(opts);
+    await assert.rejects(run({github:h.github,context:{repo:{owner:'example',repo:'FOOD'}},
+      core:{info:()=>{}},nowMs:now}),/pagination (payload|limit)/,JSON.stringify(opts));
+    assert.deepEqual(h.mutations,[],JSON.stringify(opts));
   }
 });
 test('a worker claim made during scan aborts release', async () => {

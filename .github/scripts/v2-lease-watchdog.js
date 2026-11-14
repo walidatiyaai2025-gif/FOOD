@@ -78,13 +78,13 @@ function claimIdentity(c) {
   return String(c.claimId || c.commentId) + ':' + String(c.createdMs);
 }
 
-async function listPages(fetch, config, maxPages = 15) {
+async function listPages(fetch, config, maxPages = 15, collection = 'items') {
   const found = [];
   for (let page = 1; page <= maxPages; page++) {
     const response = await fetch({ ...config, per_page: 100, page });
     // GitHub Search returns { data: { items: [...] } }, while REST list
     // endpoints return { data: [...] }. A malformed response must fail closed.
-    const pageItems = Array.isArray(response?.data) ? response.data : response?.data?.items;
+    const pageItems = Array.isArray(response?.data) ? response.data : response?.data?.[collection];
     if (!Array.isArray(pageItems)) throw Error('Invalid GitHub pagination payload; refuse incomplete sweep');
     found.push(...pageItems);
     if (pageItems.length < 100) break;
@@ -107,13 +107,18 @@ async function branchState(github, owner, repo, branch) {
 }
 async function ciInProgress(github, owner, repo, head, branch) {
   if (!head) return false;
+  // GitHub paginates both endpoints. A queued or running exact-head job on
+  // page 2+ must never be mistaken for an idle lease. A malformed response
+  // or a page-cap overflow throws before this caller can mutate any labels.
   const [checks, workflows] = await Promise.all([
-    github.rest.checks.listForRef({ owner, repo, ref: head, per_page: 100 }),
-    github.rest.actions.listWorkflowRunsForRepo({ owner, repo, branch, per_page: 100 }),
+    listPages(args => github.rest.checks.listForRef(args),
+      { owner, repo, ref: head }, 15, 'check_runs'),
+    listPages(args => github.rest.actions.listWorkflowRunsForRepo(args),
+      { owner, repo, branch }, 15, 'workflow_runs'),
   ]);
-  const checkActive = (checks.data.check_runs || []).some(check =>
+  const checkActive = checks.some(check =>
     check.status !== 'completed' && check.name !== 'Release V2 claims with no real work for 30 minutes');
-  const workflowActive = (workflows.data.workflow_runs || []).some(run =>
+  const workflowActive = workflows.some(run =>
     run.head_sha === head && run.status !== 'completed'
     && !['FOODEX V2 Idle Lease Watchdog', 'Worker Watchdog'].includes(run.name));
   return checkActive || workflowActive;
