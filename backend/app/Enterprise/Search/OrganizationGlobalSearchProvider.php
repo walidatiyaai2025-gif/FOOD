@@ -13,10 +13,12 @@ final class OrganizationGlobalSearchProvider implements GlobalSearchProvider
             return [];
         }
 
+        $literalPattern = LiteralLikePattern::contains($query);
+
         return EnterpriseOrganization::query()
-            ->where(function ($builder) use ($query): void {
-                $builder->where('name', 'like', '%'.$query.'%')
-                    ->orWhere('code', 'like', '%'.$query.'%');
+            ->where(function ($builder) use ($literalPattern): void {
+                $builder->whereRaw("name LIKE ? ESCAPE '!'", [$literalPattern])
+                    ->orWhereRaw("code LIKE ? ESCAPE '!'", [$literalPattern]);
             })
             ->orderBy('name')
             ->orderBy('id')

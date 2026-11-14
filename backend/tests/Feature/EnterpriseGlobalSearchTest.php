@@ -97,6 +97,100 @@ final class EnterpriseGlobalSearchTest extends TestCase
             ]);
     }
 
+    public function test_order_search_treats_sql_wildcards_and_escape_marker_as_literal_text(): void
+    {
+        $store = $this->store('GLOBAL-LIT', 'Literal Search Store');
+        $foreignStore = $this->store('GLOBAL-FOREIGN', 'Foreign Search Store');
+        $actor = $this->storeOperator($store);
+
+        $literal = $this->order($store, 'LIT-A%_CD');
+        $escape = $this->order($store, 'LIT-A!_CD');
+        $this->order($store, 'LIT-AB-CD');
+        // Order numbers are globally unique; suffix the foreign store record
+        // while retaining the same literal search term to test scope isolation.
+        $foreign = $this->order($foreignStore, 'LIT-A%_CD-FOREIGN');
+
+        $this->actingAs($actor)
+            ->getJson(route('admin.global-search', ['q' => 'LIT-A%_']))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.title', '#'.$literal->id)
+            ->assertJsonMissing(['url' => route('admin.operations.orders.index', [
+                'channel' => 'b2c',
+                'store_id' => $foreignStore->id,
+                'order' => $foreign->id,
+            ], false)]);
+
+        $this->actingAs($actor)
+            ->getJson(route('admin.global-search', ['q' => 'LIT-A!_']))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.title', '#'.$escape->id);
+
+        $this->actingAs($actor)
+            ->getJson(route('admin.global-search', ['q' => 'LIT-A_%']))
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $this->actingAs($actor)
+            ->getJson(route('admin.global-search', ['q' => '#'.$literal->id]))
+            ->assertOk()
+            ->assertJsonPath('data.0.title', '#'.$literal->id);
+    }
+
+    public function test_organization_search_matches_literal_wildcards_without_platform_scope_expansion(): void
+    {
+        $store = $this->store('GLOBAL-ORG-LIT', 'Scoped Organization Store');
+        $operator = $this->storeOperator($store);
+
+        $literal = EnterpriseOrganization::query()->create([
+            'code' => 'ORG_%_LITERAL',
+            'name' => 'North_% Branch',
+            'is_active' => true,
+        ]);
+        $escape = EnterpriseOrganization::query()->create([
+            'code' => 'ORG!%_LITERAL',
+            'name' => 'North!% Branch',
+            'is_active' => true,
+        ]);
+        EnterpriseOrganization::query()->create([
+            'code' => 'ORG_AB_LITERAL',
+            'name' => 'North AB Branch',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($operator)
+            ->getJson(route('admin.global-search', ['q' => 'ORG_%_']))
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $admin = $this->globalUser('SUPER_ADMIN', 'global-search-literals@example.test');
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.global-search', ['q' => 'ORG_%_']))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonFragment([
+                'type' => 'organization',
+                'title' => $literal->name,
+            ]);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.global-search', ['q' => 'ORG!%_']))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonFragment([
+                'type' => 'organization',
+                'title' => $escape->name,
+            ]);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.global-search', ['q' => 'North_%']))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonFragment(['title' => $literal->name]);
+    }
+
     public function test_disabled_module_provider_factory_is_never_resolved(): void
     {
         app(ModuleRegistry::class)->syncManifest('sample_optional');
