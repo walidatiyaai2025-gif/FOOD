@@ -25,12 +25,16 @@ class V2ArabicSidebarNamingTest extends TestCase
         $arabicLabels = [
             'admin.customer_360' => 'العملاء 360',
             'admin.nav_groups.erp' => 'تخطيط موارد المؤسسة (ERP)',
-            'admin.nav_groups.catalog' => 'الكتالوج والتسعير والعروض',
+            'admin.nav_groups.catalog' => 'المنتجات والكتالوج',
             'admin.nav_groups.advertising' => 'الإعلانات',
             'admin.nav_groups.analytics' => 'التقارير والتحليلات',
             'admin.catalog_management' => 'إدارة المنتجات والتصنيفات',
             'admin.retail_store_provisioning' => 'تهيئة متاجر التجزئة',
         ];
+
+        $sourceContract = file_get_contents(base_path('../docs/v2/V2_P384_SIDEBAR_NAMING.md'));
+        $this->assertNotFalse($sourceContract);
+        $this->assertStringContainsString('| `admin.nav_groups.catalog` | المنتجات والكتالوج |', $sourceContract);
 
         foreach ($arabicLabels as $key => $expected) {
             $this->assertSame($expected, __($key, [], 'ar'), "Unexpected Arabic navigation label for {$key}.");
