@@ -129,6 +129,67 @@ final class EnterpriseProcurementWorkbenchTest extends TestCase
             ->assertSee('مُصدر');
     }
 
+    public function test_supplier_tab_filters_literal_prefix_and_rejects_foreign_store_access(): void
+    {
+        $this->enableProcurement();
+        [$user, $store] = $this->operator('ERP-UI-LITERAL');
+        [, $foreignStore] = $this->operator('ERP-UI-LITERAL-FOREIGN');
+
+        $this->actingAs($user)->post(route('admin.erp.procurement.suppliers.store'), [
+            'store_id' => $store->id,
+            'scope_type' => 'store',
+            'code' => 'LITERAL-ONE',
+            'name_en' => 'Deal%_! Supplier',
+            'name_ar' => 'مورد%_! عربي',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->actingAs($user)->post(route('admin.erp.procurement.suppliers.store'), [
+            'store_id' => $store->id,
+            'scope_type' => 'store',
+            'code' => 'LITERAL-TWO',
+            'name_en' => 'DealXYZ Supplier',
+            'name_ar' => 'موردXYZ عربي',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $matching = (int) DB::table('enterprise_suppliers')->where('code', 'LITERAL-ONE')->value('id');
+        $this->assertGreaterThan(0, $matching);
+        $auditBefore = DB::table('audit_logs')->count();
+
+        foreach ([
+            ['q' => 'Deal%_!', 'locale' => 'en'],
+            ['q' => 'مورد%_!', 'locale' => 'ar'],
+        ] as $case) {
+            $user->forceFill(['locale' => $case['locale']])->save();
+            $page = $this->actingAs($user)->get(route('admin.erp.procurement.index', [
+                'store_id' => $store->id,
+                'tab' => 'suppliers',
+                'q' => $case['q'],
+                'status' => 'active',
+            ]))->assertOk()->viewData('rows');
+
+            $this->assertSame([$matching], $page->getCollection()->pluck('id')->all());
+            parse_str((string) parse_url((string) $page->url(2), PHP_URL_QUERY), $query);
+            $this->assertSame($case['q'], $query['q'] ?? null);
+        }
+
+        $this->assertSame($auditBefore, DB::table('audit_logs')->count());
+
+        $this->actingAs($user)
+            ->get(route('admin.erp.procurement.index', [
+                'store_id' => $foreignStore->id,
+                'tab' => 'suppliers',
+                'q' => 'Deal%_!',
+            ]))->assertForbidden();
+
+        $unprivileged = User::factory()->create(['is_active' => true]);
+        $this->actingAs($unprivileged)
+            ->get(route('admin.erp.procurement.index', [
+                'store_id' => $store->id,
+                'tab' => 'suppliers',
+                'q' => 'Deal%_!',
+            ]))->assertForbidden();
+    }
+
     public function test_completed_procurement_tabs_render_inside_one_canonical_workbench(): void
     {
         $this->enableProcurement();

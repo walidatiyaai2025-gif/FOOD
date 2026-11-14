@@ -50,7 +50,9 @@ final class SupplierDirectory
 
         $perPage = max(10, min(100, $perPage));
         $term = trim((string) ($validated['q'] ?? ''));
-        $term = str_replace(['%', '_'], '', $term);
+        // Preserve user-entered symbols as literal prefix characters instead of
+        // dropping them or allowing SQL LIKE wildcards to broaden supplier results.
+        $literalPrefix = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $term).'%';
 
         return $this->visibleQuery($scope)
             ->when(
@@ -61,15 +63,15 @@ final class SupplierDirectory
                 $validated['scope_type'] ?? null,
                 fn (Builder $query, string $scopeType): Builder => $query->where('scope_type', $scopeType),
             )
-            ->when($term !== '', function (Builder $query) use ($term): void {
-                $query->where(function (Builder $search) use ($term): void {
+            ->when($term !== '', function (Builder $query) use ($literalPrefix): void {
+                $query->where(function (Builder $search) use ($literalPrefix): void {
                     $search
-                        ->where('code', 'like', $term.'%')
-                        ->orWhere('name_en', 'like', $term.'%')
-                        ->orWhere('name_ar', 'like', $term.'%')
-                        ->orWhere('email', 'like', $term.'%')
-                        ->orWhere('phone', 'like', $term.'%')
-                        ->orWhere('tax_registration_number', 'like', $term.'%');
+                        ->whereRaw("code LIKE ? ESCAPE '!'", [$literalPrefix])
+                        ->orWhereRaw("name_en LIKE ? ESCAPE '!'", [$literalPrefix])
+                        ->orWhereRaw("name_ar LIKE ? ESCAPE '!'", [$literalPrefix])
+                        ->orWhereRaw("email LIKE ? ESCAPE '!'", [$literalPrefix])
+                        ->orWhereRaw("phone LIKE ? ESCAPE '!'", [$literalPrefix])
+                        ->orWhereRaw("tax_registration_number LIKE ? ESCAPE '!'", [$literalPrefix]);
                 });
             })
             ->orderBy('name_en')

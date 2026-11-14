@@ -142,6 +142,101 @@ final class EnterpriseSupplierFoundationTest extends TestCase
         $directory->supplier360($actorA, $contextA, $supplier->id);
     }
 
+    public function test_supplier_prefix_search_matches_literal_symbols_and_preserves_scope_and_filters(): void
+    {
+        [$actor, , $context] = $this->scopedUser(
+            ['procurement.suppliers.view', 'procurement.suppliers.manage'],
+            'SUP-LITERAL-A',
+        );
+        [$foreignActor, , $foreignContext] = $this->scopedUser(
+            ['procurement.suppliers.view', 'procurement.suppliers.manage'],
+            'SUP-LITERAL-B',
+        );
+
+        $directory = app(SupplierDirectory::class);
+        $matched = $directory->create($actor, $context, [
+            'scope_type' => 'store',
+            'code' => 'LIT_SUP_1',
+            'name_en' => 'Percent%_! Supplies',
+            'name_ar' => 'عربي%_! المورد',
+            'status' => 'active',
+        ]);
+        $lookalike = $directory->create($actor, $context, [
+            'scope_type' => 'store',
+            'code' => 'LITXSUPX2',
+            'name_en' => 'PercentXYZ Supplies',
+            'name_ar' => 'عربيXYZ المورد',
+            'status' => 'active',
+        ]);
+        $inactive = $directory->create($actor, $context, [
+            'scope_type' => 'store',
+            'code' => 'LIT-SUP-3',
+            'name_en' => 'Percent%_! Inactive',
+            'name_ar' => 'عربي%_! غير نشط',
+            'status' => 'inactive',
+        ]);
+        $foreign = $directory->create($foreignActor, $foreignContext, [
+            'scope_type' => 'store',
+            'code' => 'LIT-SUP-4',
+            'name_en' => 'Percent%_! Foreign',
+            'name_ar' => 'عربي%_! خارجي',
+            'status' => 'active',
+        ]);
+
+        // Preserve legitimate historic supplier contact values that cannot always
+        // be entered through present-day creation validation.
+        DB::table('enterprise_suppliers')->where('id', $matched->id)->update([
+            'email' => 'email_%!@example.test',
+            'phone' => '+965%_!77',
+            'tax_registration_number' => 'TAX%_!98',
+        ]);
+        $auditCount = DB::table('audit_logs')->count();
+        $supplierCount = DB::table('enterprise_suppliers')->count();
+
+        foreach ([
+            ['q' => 'Percent%_!', 'expected' => [$matched->id, $inactive->id]],
+            ['q' => 'عربي%_!', 'expected' => [$matched->id, $inactive->id]],
+            ['q' => 'email_%!', 'expected' => [$matched->id]],
+            ['q' => '+965%_!', 'expected' => [$matched->id]],
+            ['q' => 'TAX%_!', 'expected' => [$matched->id]],
+            ['q' => 'LIT_', 'expected' => [$matched->id]],
+            ['q' => '%', 'expected' => []],
+            ['q' => '_', 'expected' => []],
+            ['q' => '!', 'expected' => []],
+            ['q' => 'Percent', 'expected' => [$matched->id, $lookalike->id, $inactive->id]],
+            ['q' => 'Supplies', 'expected' => []],
+        ] as $case) {
+            $ids = $directory->paginate($actor, $context, ['q' => $case['q']])
+                ->getCollection()->pluck('id')->all();
+            sort($ids);
+            $expected = $case['expected'];
+            sort($expected);
+            $this->assertSame($expected, $ids, 'Supplier literal prefix q='.$case['q']);
+        }
+
+        $activeIds = $directory->paginate($actor, $context, [
+            'q' => 'Percent%_!', 'status' => 'active', 'scope_type' => 'store',
+        ])->getCollection()->pluck('id')->all();
+        $this->assertSame([$matched->id], $activeIds);
+
+        $this->assertSame(0, $directory->paginate($actor, $context, [
+            'q' => 'Percent%_!', 'scope_type' => 'company',
+        ])->total());
+
+        $this->assertSame(0, $directory->paginate($actor, $context, [
+            'q' => 'Percent%_! Foreign',
+        ])->total());
+        $this->assertSame(1, $directory->paginate($foreignActor, $foreignContext, [
+            'q' => 'Percent%_! Foreign',
+        ])->total());
+        $this->assertSame($foreign->id, $directory->paginate($foreignActor, $foreignContext, [
+            'q' => 'Percent%_! Foreign',
+        ])->items()[0]->id);
+
+        $this->assertSame($auditCount, DB::table('audit_logs')->count());
+        $this->assertSame($supplierCount, DB::table('enterprise_suppliers')->count());
+    }
+
     /**
      * @param  list<string>  $permissions
      * @return array{User,Store,ResolvedTenantContext}
