@@ -20,6 +20,16 @@ import zipfile
 SHA256_HEX = re.compile(r"^[0-9a-f]{64}$")
 
 
+def _unique_json_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    """Refuse ambiguous authority fields, including nested Dashboard metadata."""
+    fields: dict[str, object] = {}
+    for key, value in pairs:
+        if key in fields:
+            raise ValueError("Duplicate update manifest JSON key.")
+        fields[key] = value
+    return fields
+
+
 def verify(
     package: Path,
     manifest_path: Path,
@@ -31,7 +41,10 @@ def verify(
     if not zipfile.is_zipfile(package):
         raise ValueError("Update archive is not a valid ZIP.")
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest = json.loads(
+            manifest_path.read_text(encoding="utf-8"),
+            object_pairs_hook=_unique_json_keys,
+        )
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise ValueError("Update JSON manifest is unavailable or invalid.") from exc
 
