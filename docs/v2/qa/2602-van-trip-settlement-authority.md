@@ -62,6 +62,23 @@ This is real backend authorization hardening, not a trip-level identity,
 ledger/posting, maker-checker or financial closeout implementation. P272
 remains open for its full trip-session/provenance and UI/Van-app requirements.
 
+## Financial allocation integrity (follow-up security regression)
+
+`CollectionCustodyService::collect()` now rejects a zero, negative, infinite,
+or NaN invoice-allocation amount before inserting a paid Payment, collection,
+allocation or custody-ledger entry. Previously the service checked only the
+overall allocation sum against the receipt amount: a negative line could offset
+a positive line and evade that aggregate cap. Numeric-string amounts already
+normalized by callers remain accepted where numeric and finite; successful
+same-store B2B Van and B2C Driver paths are unchanged.
+
+`V2VanTripSettlementProvenanceTest::test_invoice_allocations_reject_zero_negative_and_non_finite_amounts_without_financial_writes`
+covers the four rejection cases, verifies no payment, collection or custody
+mutation and proves that a following valid B2B Van collection still succeeds.
+This is a bounded financial integrity fix only: it is NOT an approval of
+per-invoice outstanding balances, trip attribution, immutable trip identity,
+maker/checker posting, mobile offline replay or the whole P272 lifecycle.
+
 ## Required authoritative design and completion steps
 
 1. Define an immutable trip/session identity (Van, authorized store/tenant/channel, route, start/end and actor), link Van visits/orders to it, and handle legacy unknown provenance without inventing attribution. Lock and audit trip lifecycle/SoD; B2B uses VAN ONLY, B2C uses DRIVER ONLY.
