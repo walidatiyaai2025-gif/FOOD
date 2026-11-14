@@ -967,6 +967,10 @@ final class FinanceWorkbenchController extends Controller
 
         return [
             'foundation_read' => $permitted('finance.view') && $entitled('finance.foundation.read'),
+            // Posted GL has legal-entity, not immutable Retail store, source scope.
+            // Report/statement tab visibility must match server-side 403 checks.
+            'reports_read' => ! $context->isRetail() && $permitted('finance.view') && $entitled('finance.foundation.read'),
+            'statements_read' => ! $context->isRetail() && $permitted('finance.view') && $entitled('finance.gl.read'),
             'foundation_manage' => $permitted('finance.manage') && $entitled('finance.foundation.manage'),
             'gl_read' => $permitted('finance.view') && $entitled('finance.gl.read'),
             'gl_manage' => $permitted('finance.manage') && $entitled('finance.gl.manage'),
@@ -1006,8 +1010,8 @@ final class FinanceWorkbenchController extends Controller
             ['key' => 'tax', 'label' => 'finance_workbench.tabs.tax', 'available' => $available('foundation_read')],
             ['key' => 'allocations', 'label' => 'finance_workbench.tabs.allocations', 'available' => $available('foundation_read')],
             ['key' => 'assets', 'label' => 'finance_workbench.tabs.assets', 'available' => $available('foundation_read')],
-            ['key' => 'statements', 'label' => 'finance_workbench.tabs.statements', 'available' => $available('gl_read')],
-            ['key' => 'reports', 'label' => 'finance_workbench.tabs.reports', 'available' => $available('foundation_read')],
+            ['key' => 'statements', 'label' => 'finance_workbench.tabs.statements', 'available' => $available('statements_read')],
+            ['key' => 'reports', 'label' => 'finance_workbench.tabs.reports', 'available' => $available('reports_read')],
         ];
     }
 
