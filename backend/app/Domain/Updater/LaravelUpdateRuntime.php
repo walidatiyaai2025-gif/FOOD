@@ -220,7 +220,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         try {
             foreach ($this->archiveEntriesFrom($archive) as $relativePath) {
                 $stat = $archive->statName($relativePath);
-                $expectedSize = is_array($stat) ? ($stat['size'] ?? null) : null;
+                $expectedSize = is_array($stat) ? $stat['size'] : null;
                 if (! is_int($expectedSize) || $expectedSize < 0) {
                     throw new RuntimeException('Update archive entry length could not be read.');
                 }
@@ -685,7 +685,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
     /**
      * @return array<int, string>
      */
-    private function archiveEntries(string $packagePath, ?int &$expandedBytes = null): array
+    private function archiveEntries(string $packagePath, int &$expandedBytes = 0): array
     {
         $archive = $this->openArchive($packagePath);
 
@@ -699,7 +699,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
     /**
      * @return array<int, string>
      */
-    private function archiveEntriesFrom(ZipArchive $archive, ?int &$expandedBytes = null): array
+    private function archiveEntriesFrom(ZipArchive $archive, int &$expandedBytes = 0): array
     {
         $entries = [];
         $seen = [];
@@ -741,7 +741,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             }
 
             $stat = $archive->statIndex($index);
-            $memberBytes = is_array($stat) ? ($stat['size'] ?? null) : null;
+            $memberBytes = is_array($stat) ? $stat['size'] : null;
             if (! is_int($memberBytes) || $memberBytes < 0) {
                 throw new RuntimeException('Update archive entry length could not be read.');
             }
