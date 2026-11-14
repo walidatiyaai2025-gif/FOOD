@@ -36,7 +36,7 @@ final class V2TreasuryMasterLiteralSearchTest extends TestCase
         $cashEn = $this->cashbox($store, 'CASH-EN', 'Cash %_! English');
         $cashBang = $this->cashbox($store, 'CASH-BANG', 'Flag!_Cash');
         $cashCode = $this->cashbox($store, 'CASH_TEST', 'Ordinary treasury');
-        $this->cashbox($store, 'CASH-LOOKALIKE', 'CashXY! English');
+        $this->cashbox($store, 'CASH-LOOKALIKE', 'CashXY! unrelated');
         $cashInactive = $this->cashbox($store, 'CASH-INACTIVE', 'Inactive %_! cash', false);
         $this->cashbox($foreignStore, 'CASH-FOREIGN', 'Foreign %_! cash');
 
@@ -44,7 +44,7 @@ final class V2TreasuryMasterLiteralSearchTest extends TestCase
         $bankEn = $this->bank($store, 'BANK-EN', 'English Bank', 'Bank %_! English');
         $bankBang = $this->bank($store, 'BANK-BANG', 'Flag!_Bank', 'Regional Bank', true, 'Account!_literal');
         $bankCode = $this->bank($store, 'BANK_TEST', 'Ordinary account', 'Regular Bank');
-        $this->bank($store, 'BANK-LOOKALIKE', 'Unrelated bank', 'BankXY! English');
+        $this->bank($store, 'BANK-LOOKALIKE', 'Unrelated bank', 'BankXY! unrelated');
         $bankInactive = $this->bank($store, 'BANK-INACTIVE', 'Inactive %_! Bank', 'Local Bank', false);
         $this->bank($foreignStore, 'BANK-FOREIGN', 'Foreign %_! Bank', 'Other Bank');
 
