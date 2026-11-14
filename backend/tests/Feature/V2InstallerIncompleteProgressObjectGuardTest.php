@@ -215,6 +215,83 @@ final class V2InstallerIncompleteProgressObjectGuardTest extends TestCase
         $this->assertSame(['completed_step' => 1, 'admin' => null, 'token' => $token], $state->progress());
     }
 
+    public function test_invalid_persisted_token_fails_closed_without_replacing_progress_or_environment(): void
+    {
+        $state = app(InstallState::class);
+
+        foreach ([
+            '',
+            'not-a-token',
+            str_repeat('a', 63),
+            str_repeat('A', 64),
+            str_repeat('a', 63).'g',
+            true,
+            123,
+            [],
+            (object) [],
+        ] as $badToken) {
+            $before = json_encode([
+                'completed_step' => 12,
+                'admin' => [
+                    'name' => 'Existing Admin',
+                    'email' => 'existing@example.test',
+                    'password_hash' => 'already-hashed',
+                    'locale' => 'ar',
+                ],
+                'token' => $badToken,
+            ], JSON_THROW_ON_ERROR);
+
+            $this->assertNotFalse(file_put_contents($this->progressFile(), $before));
+            $originalEnvironment = (string) file_get_contents($this->directory.'/.env');
+
+            foreach ([
+                'progress' => static fn () => $state->progress(),
+                'token' => static fn () => $state->token(),
+                'checkpoint' => static fn () => $state->markStepComplete(13),
+            ] as $operation => $callback) {
+                $actualError = null;
+                try {
+                    $callback();
+                } catch (RuntimeException $exception) {
+                    $actualError = $exception->getMessage();
+                }
+                $this->assertSame('Installer progress state is invalid.', $actualError, $operation);
+            }
+
+            $this->get('/install')->assertStatus(500);
+            $this->assertSame($before, file_get_contents($this->progressFile()));
+            $this->assertSame($originalEnvironment, file_get_contents($this->directory.'/.env'));
+            $this->assertFileDoesNotExist($this->directory.'/installer-token.lock');
+            $this->assertFileDoesNotExist($this->directory.'/installed.lock');
+        }
+    }
+
+    public function test_valid_null_saved_token_is_initialized_once_without_losing_admin_progress(): void
+    {
+        $state = app(InstallState::class);
+        $admin = [
+            'name' => 'Saved Admin',
+            'email' => 'saved@example.test',
+            'password_hash' => 'valid-hash',
+            'locale' => 'en',
+        ];
+        $before = json_encode([
+            'completed_step' => 4,
+            'admin' => $admin,
+            'token' => null,
+        ], JSON_THROW_ON_ERROR);
+        $this->assertNotFalse(file_put_contents($this->progressFile(), $before));
+
+        $this->assertSame(['completed_step' => 4, 'admin' => $admin, 'token' => null], $state->progress());
+        $token = $state->token();
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $token);
+        $this->assertSame($token, $state->token());
+        $this->assertSame(
+            ['completed_step' => 4, 'admin' => $admin, 'token' => $token],
+            $state->progress(),
+        );
+    }
+
     private function progressFile(): string
     {
         return $this->directory.'/install-progress.json';
