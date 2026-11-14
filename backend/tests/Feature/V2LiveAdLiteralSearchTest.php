@@ -95,8 +95,9 @@ class V2LiveAdLiteralSearchTest extends TestCase
             ->assertForbidden();
     }
 
-    /** @param array<string, string> $filters
-     *  @param list<int> $expectedIds
+    /**
+     * @param  array<string, string>  $filters
+     * @param  list<int>  $expectedIds
      */
     private function assertResults(array $filters, array $expectedIds): void
     {
