@@ -283,6 +283,19 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
         ]))->assertOk();
 
         $data = $response->viewData('data');
+        $this->assertFalse($data['legal_entity_reporting_available']);
+        foreach ([
+            'revenue', 'expense', 'result', 'unposted_journals', 'close_blockers',
+            'budget', 'budget_actual', 'budget_variance', 'tax_position',
+        ] as $companyMetric) {
+            $this->assertNull($data['metrics'][$companyMetric], $companyMetric);
+        }
+        $this->assertSame([], $data['trend']);
+        $this->assertSame([], $data['expenses']);
+        $this->assertSame([], $data['exceptions']);
+        $response->assertSee('data-v2-retail-finance-scope', false)
+            ->assertSee(__('finance_p309.store_scope_notice'))
+            ->assertDontSee('data-foodex-module-chart="finance-pnl"', false);
         $this->assertEqualsWithDelta(8.0, (float) $data['metrics']['ar_outstanding'], 0.001);
         $this->assertEqualsWithDelta(8.0, (float) $data['metrics']['ar_overdue'], 0.001);
         $this->assertSame(1, array_sum(array_column($data['aging']['ar'], 'documents')));
