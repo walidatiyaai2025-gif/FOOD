@@ -30,7 +30,7 @@ No new AR/EN label is introduced. Test calls the existing denial path with `loca
 
 ## Test and acceptance records
 
-- New `backend/tests/Feature/V2CustomerInvoiceProvenanceGuardTest.php`: legitimate B2C and null-reference legacy invoices visible; contradictory platform/B2C/legacy owners rejected from list/detail/PDF in AR/EN; wrong Retail store and B2B channel denied without deleting invoices.
+- New `backend/tests/Feature/V2CustomerInvoiceProvenanceGuardTest.php`: legitimate B2C, B2B Wholesale with correct domain/store, and null-reference legacy invoices visible; contradictory platform/B2C/legacy owners rejected from list/detail/PDF in AR/EN; wrong Retail store and B2B channel denied without deleting invoices.
 - Existing `CheckoutDomainTest::test_customer_invoice_is_snapshot_owned_and_downloads_in_arabic_and_english` covers real legitimate Arabic/English PDF output; preserve its success.
 - This issue is an atomic security fix; it does **not** certify all #2733 invoices/notifications/deep links, all #2782 routes, or V2 final UAT. Parents remain OPEN.
 - Exact-final-head Repository Policy, V2 Isolation, Required CI (Laravel, MySQL/Redis acceptance, PHP lint/Pint/PHPStan/security, AR/EN) must be terminal SUCCESS before merging to `Foodex_V2`, then close only #3503 with tested/integration SHAs and run URLs.
