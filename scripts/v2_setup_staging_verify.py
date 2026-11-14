@@ -82,6 +82,23 @@ def _member_target(member: zipfile.ZipInfo) -> tuple[str, str, bool]:
         and len(folded_parts) >= 3 and folded_parts[:3] == ["backend", "storage", "logs"]
     ), f"Runtime logs in Setup ZIP: {name!r}")
 
+    # Runtime session, cache and compiled view/config files may contain
+    # cookies, APP_KEY or database credentials from a dirty build tree.
+    # Fresh Laravel only needs their parent directories, never the files.
+    private_framework = (
+        len(folded_parts) >= 4
+        and folded_parts[:3] == ["backend", "storage", "framework"]
+        and folded_parts[3] in ("sessions", "cache", "views", "testing")
+    )
+    compiled_bootstrap = (
+        len(folded_parts) >= 3
+        and folded_parts[:3] == ["backend", "bootstrap", "cache"]
+    )
+    _require(
+        is_directory or not (private_framework or compiled_bootstrap),
+        f"Runtime session/cache/config file in Setup ZIP: {name!r}",
+    )
+
     # Info-ZIP Unicode Path (0x7075) is an alternate destination filename
     # that different ZIP extractors can interpret differently. A CRC-invalid
     # extra name may be silently ignored by Python while another installer
