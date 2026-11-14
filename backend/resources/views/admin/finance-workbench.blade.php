@@ -137,7 +137,9 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <input type="hidden" name="store_id" value="{{ $storeId }}"><input type="hidden" name="tab" value="overview">
 <label class="foodex-module-filter-group"><span>{{ __('finance_workbench.common.period') }}</span><select name="period_id"><option value="">{{ __('finance_workbench.dashboard.latest_period') }}</option>@foreach($data['periods'] as $period)<option value="{{ $period->id }}" @selected((int)request('period_id')===(int)$period->id)>{{ $period->code }} · {{ $period->name }}</option>@endforeach</select></label>
 <button class="finance-button primary" type="submit">{{ __('finance_workbench.actions.apply') }}</button>
+@if($access['reports_read'] ?? false)
 <a class="finance-button" href="{{ route('admin.erp.finance.index',[...$routeBase,'tab'=>'reports']) }}">{{ __('finance_workbench.actions.open_reports') }}</a>
+@endif
 </form>
 @if(($data['state'] ?? 'empty')!=='current')
 @include('admin._module-dashboard-state',['state'=>$data['state'] ?? 'empty'])
@@ -156,12 +158,30 @@ $kpis=[
  ['label'=>__('finance_workbench.metrics.budget_variance'),'value'=>$money($data['metrics']['budget_variance']),'comparison'=>['value'=>$money($data['metrics']['budget_actual']),'label'=>__('finance_workbench.metrics.actual'),'trend'=>abs((float)$data['metrics']['budget_variance'])>0.001?'down':'neutral'],'drilldown_url'=>route('admin.erp.finance.index',[...$routeBase,'tab'=>'reports','report'=>'budget_vs_actual','period_id'=>$periodId])],
  ['label'=>__('finance_workbench.metrics.tax_position'),'value'=>$money($data['metrics']['tax_position']),'drilldown_url'=>route('admin.erp.finance.index',[...$routeBase,'tab'=>'reports','report'=>'tax_vat','period_id'=>$periodId])],
 ];
+// A Retail store has real AR/AP provenance but no authoritative store-level
+// posted GL attribution. Hide company metrics and their drill-through links.
+$legalEntityReports = (bool)($data['legal_entity_reporting_available'] ?? true);
+if (! $legalEntityReports) {
+    $storeMetricLabels = [
+        __('finance_workbench.metrics.ar_outstanding'),
+        __('finance_workbench.metrics.ap_outstanding'),
+        __('finance_workbench.metrics.pending_approvals'),
+    ];
+    $kpis = array_values(array_filter(
+        $kpis,
+        static fn (array $metric): bool => in_array($metric['label'], $storeMetricLabels, true),
+    ));
+}
 $trendMax=max(1,max(array_map(fn($r)=>max(abs((float)$r['revenue']),abs((float)$r['expense'])), $data['trend'] ?: [['revenue'=>0,'expense'=>0]])));
 @endphp
+@if(! $legalEntityReports)
+<div class="finance-notice" role="status" data-v2-retail-finance-scope>{{ __('finance_p309.store_scope_notice') }}</div>
+@endif
 <div class="foodex-module-kpis">
 @foreach($kpis as $metric) @include('admin._module-dashboard-kpi',['metric'=>$metric]) @endforeach
 </div>
 <div class="foodex-module-panels">
+@if($legalEntityReports)
 <article class="foodex-viz-card foodex-module-chart" data-foodex-module-chart="finance-pnl">
 <div class="foodex-viz-header"><div><h2 class="foodex-viz-title">{{ __('finance_workbench.dashboard.pnl_trend') }}</h2><p class="foodex-viz-subtitle">{{ __('finance_workbench.dashboard.pnl_trend_help') }}</p></div></div>
 @if($data['trend']===[])
@@ -179,6 +199,7 @@ $trendMax=max(1,max(array_map(fn($r)=>max(abs((float)$r['revenue']),abs((float)$
 <div class="foodex-viz-legend"><span class="foodex-viz-legend-item"><i class="foodex-viz-swatch"></i>{{ __('finance_workbench.metrics.revenue') }}</span><span class="foodex-viz-legend-item">{{ __('finance_workbench.metrics.expense') }}</span></div>
 @endif
 </article>
+@endif
 <article class="foodex-viz-card foodex-module-chart">
 <div class="foodex-viz-header"><div><h2 class="foodex-viz-title">{{ __('finance_workbench.dashboard.aging') }}</h2><p class="foodex-viz-subtitle">{{ __('finance_workbench.dashboard.aging_help') }}</p></div></div>
 <div class="foodex-module-chart-table-wrap"><table class="foodex-module-chart-table"><thead><tr><th>{{ __('finance_workbench.common.aging_bucket') }}</th><th>{{ __('finance_workbench.dashboard.ar') }}</th><th>{{ __('finance_workbench.dashboard.ap') }}</th></tr></thead><tbody>
@@ -189,6 +210,7 @@ $trendMax=max(1,max(array_map(fn($r)=>max(abs((float)$r['revenue']),abs((float)$
 </tbody></table></div>
 </article>
 </div>
+@if($legalEntityReports)
 <div class="finance-subgrid">
 <section class="finance-panel"><div class="finance-panel-head"><div><h2>{{ __('finance_workbench.dashboard.expense_centers') }}</h2><p>{{ __('finance_workbench.dashboard.expense_centers_help') }}</p></div></div>
 <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>{{ __('finance_workbench.common.code') }}</th><th>{{ __('finance_workbench.common.name') }}</th><th>{{ __('finance_workbench.common.amount') }}</th></tr></thead><tbody>
@@ -199,6 +221,7 @@ $trendMax=max(1,max(array_map(fn($r)=>max(abs((float)$r['revenue']),abs((float)$
 @forelse($data['exceptions'] as $row)<tr><td>{{ $row['code'] }}</td><td><span class="finance-status">{{ __('finance_workbench.statuses.'.$row['status']) }}</span></td><td>{{ number_format($row['count']) }}</td></tr>@empty<tr><td colspan="3" class="finance-empty">{{ __('finance_workbench.dashboard.no_close_exceptions') }}</td></tr>@endforelse
 </tbody></table></div></section>
 </div>
+@endif
 @endif
 </section>
 @endif
