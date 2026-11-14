@@ -525,6 +525,11 @@ final class FinanceAnalyticsService
         EnterpriseDataScope $scope,
         object $period,
     ): array {
+        // Consolidation is a company/legal-entity report, never a Retail store
+        // report. Posted GL entries do not carry a reliable store attribution,
+        // so a store-scoped Retail actor must not see sibling-store totals even
+        // if their role has finance.approve and the entity is entitled.
+        abort_if($context->isRetail(), 403);
         abort_unless(
             $actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('finance.approve', $context->storeId),
             403,
