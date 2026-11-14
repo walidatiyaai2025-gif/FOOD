@@ -8,7 +8,7 @@ List<VanCustomerScope> syncWholesaleDirectSaleDraft(
   Iterable<VanCustomerScope> assigned,
 ) {
   final eligible = assigned
-      .where((customer) => customer.type == 'b2b')
+      .where((customer) => customer.type == 'b2b' && customer.canDirectSell)
       .toList(growable: false);
   final selected = draft.customer;
 
