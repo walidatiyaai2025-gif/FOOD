@@ -228,11 +228,11 @@ final class SystemUpdateController extends Controller
                     continue;
                 }
 
-                // Use the same path semantics as the runtime and validator,
-                // including whitespace, Windows separators and PHP case.
-                $relativePath = str_replace('\\', '/', trim($name));
+                // Match validator migration classification on case-insensitive
+                // hosts as well as canonical Linux release layouts.
+                $relativePath = strtolower(str_replace('\\', '/', trim($name)));
                 if (str_starts_with($relativePath, 'backend/database/migrations/')
-                    && str_ends_with(strtolower($relativePath), '.php')) {
+                    && str_ends_with($relativePath, '.php')) {
                     return true;
                 }
             }
