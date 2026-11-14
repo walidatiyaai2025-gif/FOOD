@@ -6,6 +6,7 @@ use App\Domain\Updater\UpdatePackageManifest;
 use App\Domain\Updater\UpdatePackageValidator;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\UpdateZipFixture;
 
 class V2UpdaterPackageSymlinkGuardTest extends TestCase
 {
@@ -73,7 +74,7 @@ class V2UpdaterPackageSymlinkGuardTest extends TestCase
         $actualDirectory = $this->fixtureRoot.'/actual-directory';
         $this->assertTrue(mkdir($actualDirectory, 0700));
         $original = $actualDirectory.'/update.zip';
-        $this->assertNotFalse(file_put_contents($original, 'private fixture payload'));
+        UpdateZipFixture::write($original);
         $linkedDirectory = $this->fixtureRoot.'/linked-directory';
         $this->assertTrue(symlink($actualDirectory, $linkedDirectory));
 
@@ -105,7 +106,7 @@ class V2UpdaterPackageSymlinkGuardTest extends TestCase
     private function originalPackage(): string
     {
         $path = $this->fixtureRoot.'/original.zip';
-        $this->assertNotFalse(file_put_contents($path, 'private fixture payload'));
+        UpdateZipFixture::write($path);
 
         return $path;
     }

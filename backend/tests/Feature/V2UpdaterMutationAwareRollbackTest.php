@@ -10,6 +10,7 @@ use App\Models\UpdateHistory;
 use App\Services\AuditLogger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
+use Tests\Support\UpdateZipFixture;
 use Tests\TestCase;
 
 class V2UpdaterMutationAwareRollbackTest extends TestCase
@@ -23,7 +24,7 @@ class V2UpdaterMutationAwareRollbackTest extends TestCase
         parent::setUp();
 
         $this->packagePath = tempnam(sys_get_temp_dir(), 'foodex-v2-rollback-');
-        file_put_contents($this->packagePath, 'mutation-aware rollback fixture');
+        UpdateZipFixture::write($this->packagePath);
     }
 
     protected function tearDown(): void

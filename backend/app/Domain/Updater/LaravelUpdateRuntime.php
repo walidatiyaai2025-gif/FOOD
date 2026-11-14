@@ -76,6 +76,7 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
         $targets = [];
         $existing = [];
+        $fileDigests = [];
 
         foreach ($entries as $relativePath) {
             $this->assertSafeReleaseTarget($relativePath);
@@ -90,6 +91,14 @@ final class LaravelUpdateRuntime implements UpdateRuntime
                     throw new RuntimeException('Existing release file could not be backed up.');
                 }
 
+                // A readable file is not necessarily a recoverable file.
+                // Record the bytes actually copied into this private snapshot.
+                $digest = hash_file('sha256', $backupPath);
+                if (! is_string($digest) || ! preg_match('/^[a-f0-9]{64}$/', $digest)) {
+                    throw new RuntimeException('Existing release backup integrity could not be recorded.');
+                }
+
+                $fileDigests[$relativePath] = $digest;
                 $existing[] = $relativePath;
             } elseif (file_exists($target)) {
                 throw new RuntimeException('Update target conflicts with an existing non-file path.');
@@ -99,6 +108,10 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         $manifest = json_encode([
             'targets' => $targets,
             'existing' => $existing,
+            // New snapshots have independently verifiable file content.
+            // Older unversioned manifests remain readable for legacy recovery.
+            'file_snapshot_format' => 1,
+            'file_sha256' => (object) $fileDigests,
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
         if (file_put_contents($backupDirectory.'/files.json', $manifest.PHP_EOL, LOCK_EX) === false) {
@@ -400,6 +413,26 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         $targets = $this->stringList($payload->targets);
         $existing = $this->stringList($payload->existing);
 
+        // Never silently accept incomplete or malformed integrity metadata in
+        // a versioned snapshot. Unversioned files.json is supported only for
+        // pre-existing legacy recovery references (not claimed as verified).
+        $hasSnapshotFormat = property_exists($payload, 'file_snapshot_format');
+        $hasSnapshotHashes = property_exists($payload, 'file_sha256');
+        $fileDigests = null;
+        if ($hasSnapshotFormat || $hasSnapshotHashes) {
+            if (! $hasSnapshotFormat
+                || ! $hasSnapshotHashes
+                || $payload->file_snapshot_format !== 1
+                || ! ($payload->file_sha256 instanceof \stdClass)) {
+                throw new RuntimeException('File rollback manifest is invalid.');
+            }
+
+            $fileDigests = get_object_vars($payload->file_sha256);
+            if (count($fileDigests) !== count($existing)) {
+                throw new RuntimeException('File rollback manifest is invalid.');
+            }
+        }
+
         if ($targets === []
             || count($targets) !== count($payload->targets)
             || count($existing) !== count($payload->existing)) {
@@ -448,6 +481,19 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             // nonzero size. Do not follow links in the private backup tree.
             if (! is_file($source) || ! is_readable($source)) {
                 throw new RuntimeException('File rollback backup is incomplete or unsafe.');
+            }
+
+            if ($fileDigests !== null) {
+                $expected = $fileDigests[$relativePath] ?? null;
+                if (! is_string($expected)
+                    || preg_match('/^[a-f0-9]{64}$/', $expected) !== 1) {
+                    throw new RuntimeException('File rollback manifest is invalid.');
+                }
+
+                $actual = hash_file('sha256', $source);
+                if (! is_string($actual) || ! hash_equals($expected, $actual)) {
+                    throw new RuntimeException('File rollback backup is incomplete or unsafe.');
+                }
             }
         }
 
@@ -821,7 +867,17 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         // Never stage server-executable scripts or handler configuration
         // there, including Apache multi-extension names like foo.php.jpg.
         // Laravel's own backend/public/index.php remains a valid release file.
-        if (preg_match('#^(assets|brand|demo|preview)/#i', $normalized) === 1
+        $staticMirror = preg_match('#^(assets|brand|demo|preview)/#i', $normalized) === 1;
+        $laravelPublic = preg_match('#^backend/public/#i', $normalized) === 1;
+        // Keep Laravel's exact front controller and root rewrite config.
+        // All other scripts and handler overrides inside the served webroot
+        // are unsafe to stage even from a signed ZIP release.
+        $laravelBootstrap = in_array($normalized, [
+            'backend/public/index.php',
+            'backend/public/.htaccess',
+        ], true);
+
+        if (($staticMirror || ($laravelPublic && ! $laravelBootstrap))
             && (preg_match('#(?:^|/)[^/]*\.(?:php[0-9]*|phtml|phar|cgi|pl|py|sh|asp|aspx|jsp)(?:\.|$)#i', $normalized) === 1
                 || preg_match('#(?:^|/)(?:\.htaccess|\.user\.ini|web\.config)(?:\.|$)#i', $normalized) === 1)) {
             throw new RuntimeException('Update archive targets an executable public asset path.');

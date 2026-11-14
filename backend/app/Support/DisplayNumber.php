@@ -41,6 +41,10 @@ final class DisplayNumber
         bool $preserveFixedPrecision = false,
         bool $groupThousands = true,
     ): string {
+        if ($fractionDigits < 0) {
+            throw new \InvalidArgumentException('fractionDigits must be zero or greater.');
+        }
+
         $number = (float) $value;
 
         if ($preserveFixedPrecision) {
@@ -62,8 +66,10 @@ final class DisplayNumber
         }
 
         $raw = trim((string) $id);
-        if ($raw !== '' && ctype_digit($raw) && (int) $raw > 0) {
-            return '#'.(int) $raw;
+        if ($raw !== '' && ctype_digit($raw)) {
+            $referenceId = self::referenceId($raw);
+
+            return $referenceId === null ? '—' : '#'.$referenceId;
         }
 
         return '—';
@@ -80,9 +86,20 @@ final class DisplayNumber
             return null;
         }
 
-        $id = (int) $raw;
+        // Integer casts saturate oversized decimal strings at PHP_INT_MAX.
+        // Compare canonical digits first to avoid matching a different record.
+        $digits = ltrim($raw, '0');
+        if ($digits === '') {
+            return null;
+        }
 
-        return $id > 0 ? $id : null;
+        $maximum = (string) PHP_INT_MAX;
+        if (strlen($digits) > strlen($maximum)
+            || (strlen($digits) === strlen($maximum) && strcmp($digits, $maximum) > 0)) {
+            return null;
+        }
+
+        return (int) $digits;
     }
 
     private static function compact(

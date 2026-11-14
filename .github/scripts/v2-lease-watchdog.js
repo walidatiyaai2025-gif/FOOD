@@ -11,6 +11,12 @@ const STATE = '<!-- foodex-worker-state:v1 -->';
 const RELEASE_MARK = '<!-- foodex-v2-idle-release:';
 const CLAIM_RE = /(?:^|\n)\s*(?:OWNER|BRANCH|HEARTBEAT|STATE)\s*:/m;
 const ACTIVE = new Set(['worker:active', 'worker:waiting-ci']);
+// A terminal/gated/unknown state is not a live work lease, even if an old
+// worker label or OWNER text is still present. Keep the allowlist narrow.
+const LIVE_CLAIM_STATES = new Set([
+  'ACTIVE', 'WAITING_CI', 'WAITING_EXACT_HEAD_CI', 'WAITING_REQUIRED_CI',
+  'CI_FIX', 'CI_RUNNING', 'REQUIRED_CI_RUNNING',
+]);
 const name = label => typeof label === 'string' ? label : label.name;
 
 function time(value) {
@@ -24,7 +30,6 @@ function parseClaim(comments) {
   // Track the original claim, not the latest heartbeat/status comment.
   // Repeated WAITING_CI comments cannot extend a 30-minute inactivity TTL.
   let claim = null;
-  const inactive = new Set(['HANDOFF', 'HANDOFF_READY', 'RELEASED', 'UNCLAIMED', 'INTEGRATED_PENDING_ACCEPTANCE']);
   for (const c of comments || []) {
     const body = c.body || '';
     if (body.includes(RELEASE_MARK) || body.includes('<!-- foodex-watchdog:handoff')) {
@@ -36,13 +41,13 @@ function parseClaim(comments) {
     const kv = Object.fromEntries(body.slice(marker + STATE.length).split(/\r?\n/)
       .map(line => line.match(/^\s*([A-Z_]+)\s*:\s*(.*?)\s*$/))
       .filter(Boolean).map(m => [m[1], m[2]]));
-    const state = (kv.STATE || 'ACTIVE').toUpperCase();
-    // Workers also write e.g. "HANDOFF_READY / WAITING_DEPENDENCY" or
-    // "INTEGRATED_BOUNDED_TEST / LEASE_RELEASED". Do not treat those
-    // handoffs as a fresh ACTIVE claim merely because the suffix differs.
+    const state = String(kv.STATE || '').toUpperCase();
+    // Require a positive execution state. Historical GATE_APPROVAL,
+    // BLOCKED_DESIGN_DEPENDENCY, MERGED_* and WORKER_RELEASED comments
+    // supersede older ACTIVE claims instead of inviting a stale takeover.
+    // Missing or unknown STATE fails closed: no automatic lease release.
     const primaryState = state.split(/\s*[/|]\s*/)[0].trim();
-    if (inactive.has(primaryState) || primaryState.startsWith('INTEGRATED_')
-        || primaryState.startsWith('HANDOFF_')) { claim = null; continue; }
+    if (!LIVE_CLAIM_STATES.has(primaryState)) { claim = null; continue; }
     if (!kv.OWNER || !time(c.created_at)) continue;
     // A worker may claim before creating its issue branch; keep the empty
     // branch identity until a subsequent checkpoint supplies the real ref.
@@ -132,6 +137,14 @@ function isMatchingMergedPr(pr, claim) {
     && pr.base?.ref === 'Foodex_V2'
     && (!claim.branch || pr.head?.ref === claim.branch));
 }
+// An administratively closed but UNMERGED original Issue PR is not an
+// automatically resumable handoff. Preserve its review/closure decision;
+// require explicit approval before reviving the original work.
+function isMatchingClosedUnmergedPr(pr, claim) {
+  return Boolean(pr && pr.state === 'closed' && pr.merged === false
+    && !pr.merged_at && pr.base?.ref === 'Foodex_V2'
+    && (!claim.branch || pr.head?.ref === claim.branch));
+}
 
 async function run({ github, context, core, nowMs = Date.now() }) {
   const { owner, repo } = context.repo;
@@ -172,7 +185,9 @@ async function run({ github, context, core, nowMs = Date.now() }) {
     // only obsolete worker labels; never close the Issue or change its gates.
     if (claim.pr) {
       const resolved = await github.rest.pulls.get({ owner, repo, pull_number: claim.pr });
-      if (isMatchingMergedPr(resolved.data, claim)) {
+      const mergedOriginal = isMatchingMergedPr(resolved.data, claim);
+      const closedUnmergedOriginal = isMatchingClosedUnmergedPr(resolved.data, claim);
+      if (mergedOriginal || closedUnmergedOriginal) {
         if (ciRunning) { active += 1; continue; }
         const current = await listPages(args => github.rest.issues.listComments(args), {
           owner, repo, issue_number: issue.number,
@@ -186,26 +201,40 @@ async function run({ github, context, core, nowMs = Date.now() }) {
         if (latestBranch.sha !== firstBranch.sha
             || await ciInProgress(github, owner, repo, latestBranch.sha || head, claim.branch)) continue;
         const latestPr = await github.rest.pulls.get({ owner, repo, pull_number: claim.pr });
-        if (!isMatchingMergedPr(latestPr.data, claim)) continue;
+        if (mergedOriginal && !isMatchingMergedPr(latestPr.data, claim)) continue;
+        if (closedUnmergedOriginal && !isMatchingClosedUnmergedPr(latestPr.data, claim)) continue;
         for (const currentLabel of ACTIVE) {
           if (!liveLabels.includes(currentLabel)) continue;
           try {
             await github.rest.issues.removeLabel({ owner, repo, issue_number: issue.number, name: currentLabel });
           } catch (err) { if (err.status !== 404) throw err; }
         }
-        const marker = '<!-- foodex-v2-integrated-lease:issue=' + issue.number + ' pr=' + claim.pr + ' -->';
+        if (closedUnmergedOriginal && !liveLabels.includes('gate:approval')) {
+          await github.rest.issues.addLabels({
+            owner, repo, issue_number: issue.number, labels: ['gate:approval'],
+          });
+        }
+        const marker = mergedOriginal
+          ? '<!-- foodex-v2-integrated-lease:issue=' + issue.number + ' pr=' + claim.pr + ' -->'
+          : '<!-- foodex-v2-closed-original-lease:issue=' + issue.number + ' pr=' + claim.pr + ' -->';
         if (!current.some(c => (c.body || '').includes(marker))) {
-          await github.rest.issues.createComment({
-            owner, repo, issue_number: issue.number,
-            body: marker + '\n## V2 — Original issue PR already merged\n\n'
-              + 'PR #' + claim.pr + ' was independently verified MERGED into Foodex_V2. '
+          const explanation = mergedOriginal
+            ? 'PR #' + claim.pr + ' was independently verified MERGED into Foodex_V2. '
               + 'Obsolete worker-active/waiting labels were cleared; no handoff-ready label was added.\n'
               + 'The Issue remains OPEN for any unaccepted source requirements. '
               + 'Do not recreate the merged PR; preflight a distinct atomic follow-up if necessary. '
-              + 'No main or production change.\n',
+            : 'Original PR #' + claim.pr + ' was independently verified CLOSED / NOT MERGED '
+              + 'against Foodex_V2. The issue is approval-gated, not handed off as normal coding work.\n'
+              + 'The Issue and original PR/branch history remain untouched. '
+              + 'Obtain owner-authorized reconciliation before reopening the original PR; never create a duplicate. ';
+          await github.rest.issues.createComment({
+            owner, repo, issue_number: issue.number,
+            body: marker + '\n## V2 — Original issue PR ' + (mergedOriginal ? 'already merged' : 'closed without merge')
+              + '\n\n' + explanation + 'No main or production change.\n',
           });
         }
-        core.info('#' + issue.number + ': verified merged issue PR #' + claim.pr + '; stale active labels cleared');
+        core.info('#' + issue.number + ': verified ' + (mergedOriginal ? 'merged' : 'closed-unmerged')
+          + ' original PR #' + claim.pr + '; stale active labels cleared without handoff');
         continue;
       }
     }
@@ -241,6 +270,13 @@ async function run({ github, context, core, nowMs = Date.now() }) {
       latestPrCommitMs: secondBranch.commitMs, ciRunning: secondCi,
     });
     if (!secondDecision.release) continue;
+    // An original PR may be closed or merged while this sweep is scanning.
+    // Never race an administrative closure with an automatic handoff label.
+    if (claim.pr) {
+      const currentOriginal = await github.rest.pulls.get({ owner, repo, pull_number: claim.pr });
+      if (isMatchingMergedPr(currentOriginal.data, claim)
+          || isMatchingClosedUnmergedPr(currentOriginal.data, claim)) continue;
+    }
     // Labels are best-effort queue signals. Release never deletes original branch/PR.
     for (const currentLabel of [...ACTIVE]) {
       if (!liveLabels.includes(currentLabel)) continue;

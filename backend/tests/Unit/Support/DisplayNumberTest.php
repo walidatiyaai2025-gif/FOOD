@@ -61,9 +61,47 @@ final class DisplayNumberTest extends TestCase
         self::assertNull(DisplayNumber::referenceId('0'));
     }
 
+    public function test_numeric_reference_never_saturates_at_php_int_max(): void
+    {
+        $maximum = (string) PHP_INT_MAX;
+        $justAboveMaximum = substr($maximum, 0, -1).((int) substr($maximum, -1) + 1);
+
+        self::assertSame(PHP_INT_MAX, DisplayNumber::referenceId($maximum));
+        self::assertSame(PHP_INT_MAX, DisplayNumber::referenceId('#000'.$maximum));
+        self::assertSame('#'.$maximum, DisplayNumber::reference($maximum));
+
+        self::assertNull(DisplayNumber::referenceId($justAboveMaximum));
+        self::assertNull(DisplayNumber::referenceId('#'.$justAboveMaximum));
+        self::assertNull(DisplayNumber::referenceId(str_repeat('9', 128)));
+        self::assertSame('—', DisplayNumber::reference($justAboveMaximum));
+        self::assertSame('—', DisplayNumber::reference(str_repeat('9', 128)));
+    }
+
+    public function test_numeric_reference_preserves_valid_padding_and_rejects_malformed_values(): void
+    {
+        self::assertSame(42, DisplayNumber::referenceId('  #00042  '));
+        self::assertSame(42, DisplayNumber::referenceId('00042'));
+        self::assertSame('#42', DisplayNumber::reference('00042'));
+
+        foreach (['', '#', '0', '#000', '0000', '-42', '#-42', '##42', '# 42', '42.0', '42x'] as $invalid) {
+            self::assertNull(DisplayNumber::referenceId($invalid));
+        }
+
+        self::assertSame('—', DisplayNumber::reference('0000'));
+        self::assertSame('—', DisplayNumber::reference('-42'));
+    }
+
     public function test_invalid_precision_is_rejected(): void
     {
         $this->expectException(InvalidArgumentException::class);
         DisplayNumber::quantity(1, -1);
+    }
+
+    public function test_negative_fixed_precision_is_rejected_before_number_format(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('fractionDigits must be zero or greater.');
+
+        DisplayNumber::quantity(123.45, -1, preserveFixedPrecision: true);
     }
 }

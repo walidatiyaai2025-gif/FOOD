@@ -10,6 +10,7 @@ use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Tests\Support\UpdateZipFixture;
 use Tests\TestCase;
 
 final class V2SystemUpdateLocalizedFlashTest extends TestCase
@@ -79,7 +80,7 @@ final class V2SystemUpdateLocalizedFlashTest extends TestCase
     {
         $package = UploadedFile::fake()->createWithContent(
             'v2-localized-success.zip',
-            'localized system update synthetic fixture',
+            UpdateZipFixture::bytes(),
         );
 
         return [
