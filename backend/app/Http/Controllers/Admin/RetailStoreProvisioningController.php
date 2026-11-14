@@ -72,13 +72,17 @@ final class RetailStoreProvisioningController extends Controller
             is_string($to) ? $to : null,
         );
 
+        // Escape user text rather than interpreting %/_ as SQL wildcard operators.
+        // The explicit ! escape is portable across SQLite and MySQL/MariaDB.
+        $literalSearch = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
+
         $stores = Store::query()
             ->select('stores.*')
             ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
             ->where('store_types.code', 'B2C')
-            ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
-                $query->where('stores.name', 'like', "%{$search}%")
-                    ->orWhere('stores.code', 'like', "%{$search}%");
+            ->when($search !== '', fn ($query) => $query->where(function ($query) use ($literalSearch): void {
+                $query->whereRaw("stores.name LIKE ? ESCAPE '!'", [$literalSearch])
+                    ->orWhereRaw("stores.code LIKE ? ESCAPE '!'", [$literalSearch]);
             }))
             ->with(['storeRoleAssignments.user', 'storeRoleAssignments.role'])
             ->orderByDesc('stores.created_at')

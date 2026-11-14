@@ -661,6 +661,93 @@ class RetailStoreProvisioningTest extends TestCase
         ]);
     }
 
+    public function test_retail_store_list_search_matches_literal_wildcards_in_both_languages_and_respects_authority(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'literal-store-search@example.test');
+        $percent = $this->retailStore('LITERAL-PERCENT');
+        $this->retailStore('LITERAL-PERCENT-LOOKALIKE');
+        $underscore = $this->retailStore('LITERAL-UNDER');
+        $this->retailStore('LITERAL-UNDER-LOOKALIKE');
+        $escape = $this->retailStore('LITERAL-ESCAPE');
+        $english = $this->retailStore('LITERAL-ENGLISH');
+        $arabic = $this->retailStore('LITERAL-ARABIC');
+        $code = $this->retailStore('CODE_UNDER');
+        $this->retailStore('CODEXUNDER');
+
+        DB::table('stores')->where('id', $percent)->update(['name' => 'عرض 100% خاص']);
+        DB::table('stores')->where('code', 'TEST-LITERAL-PERCENT-LOOKALIKE')->update(['name' => 'عرض 1000 خاص']);
+        DB::table('stores')->where('id', $underscore)->update(['name' => 'Offer_A']);
+        DB::table('stores')->where('code', 'TEST-LITERAL-UNDER-LOOKALIKE')->update(['name' => 'OfferXA']);
+        DB::table('stores')->where('id', $escape)->update(['name' => 'Best! Sale']);
+        DB::table('stores')->where('id', $english)->update(['name' => 'Orchid Bakery']);
+        DB::table('stores')->where('id', $arabic)->update(['name' => 'مخبز الورد']);
+
+        $b2bTypeId = DB::table('store_types')->where('code', 'B2B')->value('id');
+        $this->assertNotNull($b2bTypeId);
+        DB::table('stores')->insert([
+            'store_type_id' => $b2bTypeId,
+            'code' => 'B2B-ONLY-PERCENT',
+            'name' => 'Wholesale 100% Only',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $storeCount = DB::table('stores')->count();
+        $auditCount = DB::table('audit_logs')->count();
+
+        foreach ([
+            ['q' => '100%', 'locale' => 'ar', 'expected' => [$percent]],
+            ['q' => 'Offer_', 'locale' => 'en', 'expected' => [$underscore]],
+            ['q' => 'Best!', 'locale' => 'en', 'expected' => [$escape]],
+            ['q' => 'Bakery', 'locale' => 'en', 'expected' => [$english]],
+            ['q' => 'الورد', 'locale' => 'ar', 'expected' => [$arabic]],
+            ['q' => 'CODE_UNDER', 'locale' => 'en', 'expected' => [$code]],
+            ['q' => 'Wholesale 100%', 'locale' => 'en', 'expected' => []],
+            ['q' => 'Unmatched%_!', 'locale' => 'ar', 'expected' => []],
+        ] as $case) {
+            app()->setLocale($case['locale']);
+
+            $response = $this->actingAs($admin)
+                ->get(route('admin.retail-stores.index', ['q' => $case['q']]))
+                ->assertOk();
+
+            $actual = $response->viewData('stores')->getCollection()
+                ->pluck('id')->map(static fn ($id): int => (int) $id)->all();
+            $this->assertSame($case['expected'], $actual, 'Literal store search failed for '.$case['q']);
+        }
+
+        $denied = $this->userWithRole('B2B_ADMIN', 'literal-store-denied@example.test');
+        $this->actingAs($denied)
+            ->get(route('admin.retail-stores.index', ['q' => '100%']))
+            ->assertForbidden();
+
+        $this->assertSame($storeCount, DB::table('stores')->count());
+        $this->assertSame($auditCount, DB::table('audit_logs')->count());
+    }
+
+    public function test_retail_store_literal_filter_retains_query_in_pagination(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'literal-store-page@example.test');
+        for ($index = 0; $index < 26; $index++) {
+            $id = $this->retailStore('LITERAL-PAGE-'.$index);
+            DB::table('stores')->where('id', $id)->update(['name' => 'Batch! '.$index]);
+        }
+
+        $first = $this->actingAs($admin)->get(route('admin.retail-stores.index', ['q' => 'Batch!']))
+            ->assertOk()->viewData('stores');
+        $this->assertSame(26, $first->total());
+        $this->assertCount(25, $first->items());
+        parse_str((string) parse_url((string) $first->nextPageUrl(), PHP_URL_QUERY), $query);
+        $this->assertSame('Batch!', $query['q'] ?? null);
+
+        $second = $this->actingAs($admin)
+            ->get(route('admin.retail-stores.index', ['q' => 'Batch!', 'page' => 2]))
+            ->assertOk()->viewData('stores');
+        $this->assertSame(26, $second->total());
+        $this->assertCount(1, $second->items());
+    }
+
     private function priceTierId(): int
     {
         return (int) DB::table('b2b_price_tiers')->where('code', 'STANDARD')->value('id');

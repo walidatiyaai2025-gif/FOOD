@@ -369,10 +369,11 @@ class B2bReportController extends Controller
         }
         $search = trim((string) ($validated['q'] ?? ''));
         if ($search !== '') {
-            $query->where(function ($builder) use ($search): void {
-                $like = '%'.$search.'%';
-                $builder->where('order_items.name_snapshot', 'like', $like)
-                    ->orWhere('order_items.sku_snapshot', 'like', $like);
+            // Treat search text as a literal substring on SQLite and MySQL/MariaDB.
+            $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
+            $query->where(function ($builder) use ($like): void {
+                $builder->whereRaw("order_items.name_snapshot LIKE ? ESCAPE '!'", [$like])
+                    ->orWhereRaw("order_items.sku_snapshot LIKE ? ESCAPE '!'", [$like]);
             });
         }
 

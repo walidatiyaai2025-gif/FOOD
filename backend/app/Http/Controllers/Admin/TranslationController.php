@@ -21,12 +21,13 @@ final class TranslationController extends Controller
 
         $search = trim((string) $request->query('q', ''));
         $surface = trim((string) $request->query('surface', ''));
+        $literalSearch = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
 
         $translations = AppTranslation::query()
-            ->when($search !== '', fn ($query) => $query->where(function ($nested) use ($search): void {
-                $nested->where('key', 'like', '%'.$search.'%')
-                    ->orWhere('ar', 'like', '%'.$search.'%')
-                    ->orWhere('en', 'like', '%'.$search.'%');
+            ->when($search !== '', fn ($query) => $query->where(function ($nested) use ($literalSearch): void {
+                $nested->whereRaw("key LIKE ? ESCAPE '!'", [$literalSearch])
+                    ->orWhereRaw("ar LIKE ? ESCAPE '!'", [$literalSearch])
+                    ->orWhereRaw("en LIKE ? ESCAPE '!'", [$literalSearch]);
             }))
             ->when($surface !== '', fn ($query) => $query->where('surface', $surface))
             ->orderBy('surface')

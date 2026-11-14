@@ -61,17 +61,17 @@ final class SystemLookupController extends Controller
         $definition = self::TYPES[$key];
         $status = (string) $request->query('status', 'all');
         $search = trim((string) $request->query('q', ''));
+        $literalSearch = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
 
         if ($definition['type'] === OperationalLookupService::PRICE_TIER) {
             $query = B2bPriceTier::query()
                 ->when($status === 'active', fn ($query) => $query->where('is_active', true))
                 ->when($status === 'inactive', fn ($query) => $query->where('is_active', false))
-                ->when($search !== '', fn ($query) => $query->where(function ($filter) use ($search): void {
-                    $term = '%'.$search.'%';
-                    $filter->where('code', 'like', $term)
-                        ->orWhere('name', 'like', $term)
-                        ->orWhere('name_ar', 'like', $term)
-                        ->orWhere('name_en', 'like', $term);
+                ->when($search !== '', fn ($query) => $query->where(function ($filter) use ($literalSearch): void {
+                    $filter->whereRaw("code LIKE ? ESCAPE '!'", [$literalSearch])
+                        ->orWhereRaw("name LIKE ? ESCAPE '!'", [$literalSearch])
+                        ->orWhereRaw("name_ar LIKE ? ESCAPE '!'", [$literalSearch])
+                        ->orWhereRaw("name_en LIKE ? ESCAPE '!'", [$literalSearch]);
                 }))
                 ->orderBy('priority')
                 ->orderBy('id');
@@ -82,11 +82,10 @@ final class SystemLookupController extends Controller
                 ->where('type', $definition['type'])
                 ->when($status === 'active', fn ($query) => $query->where('is_active', true))
                 ->when($status === 'inactive', fn ($query) => $query->where('is_active', false))
-                ->when($search !== '', fn ($query) => $query->where(function ($filter) use ($search): void {
-                    $term = '%'.$search.'%';
-                    $filter->where('code', 'like', $term)
-                        ->orWhere('label_ar', 'like', $term)
-                        ->orWhere('label_en', 'like', $term);
+                ->when($search !== '', fn ($query) => $query->where(function ($filter) use ($literalSearch): void {
+                    $filter->whereRaw("code LIKE ? ESCAPE '!'", [$literalSearch])
+                        ->orWhereRaw("label_ar LIKE ? ESCAPE '!'", [$literalSearch])
+                        ->orWhereRaw("label_en LIKE ? ESCAPE '!'", [$literalSearch]);
                 }))
                 ->orderBy('sort_order')
                 ->orderBy('id');

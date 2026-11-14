@@ -42,12 +42,15 @@ final class PromotionalNotificationCampaignController extends Controller
         $search = trim((string) $request->query('q', ''));
         $status = trim((string) $request->query('status', ''));
 
+        // A campaign search is a literal substring, not a user-supplied LIKE pattern.
+        $term = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
+
         $campaigns = $this->visibleCampaigns($actor, 'notifications.view')
             ->with(['runs' => fn ($query) => $query->latest('id')->limit(10)])
-            ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $nested) use ($search): void {
-                $nested->where('name', 'like', '%'.$search.'%')
-                    ->orWhere('title_ar', 'like', '%'.$search.'%')
-                    ->orWhere('title_en', 'like', '%'.$search.'%');
+            ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $nested) use ($term): void {
+                $nested->whereRaw("name LIKE ? ESCAPE '!'", [$term])
+                    ->orWhereRaw("title_ar LIKE ? ESCAPE '!'", [$term])
+                    ->orWhereRaw("title_en LIKE ? ESCAPE '!'", [$term]);
             }))
             ->when($status !== '', fn (Builder $query) => $query->where('status', $status))
             ->latest('id')
