@@ -37,13 +37,13 @@ test('fully integrated and composite handoff states are not live claims', () => 
 test('canonical issue PR number survives status checkpoints without a repeated PR field', () => {
   for (const spelling of ['#4455', '4455', '#4455 (DRAFT)']) {
     const first=state(1,'2026-11-10T09:20:00Z');
-    first.body+='\\nPR: '+spelling;
+    first.body+='\nPR: '+spelling;
     const parsed=parseClaim([first,state(2,'2026-11-10T09:25:00Z','worker-a','WAITING_CI')]);
     assert.equal(parsed.pr,4455,spelling);
     assert.equal(parsed.createdMs,Date.parse('2026-11-10T09:20:00Z'));
   }
   const untrusted=state(1,'2026-11-10T09:20:00Z');
-  untrusted.body+='\\nPR: https://github.com/example/FOOD/pull/4455';
+  untrusted.body+='\nPR: https://github.com/example/FOOD/pull/4455';
   assert.equal(parseClaim([untrusted]).pr,0);
 });
 test('GitHub Search item pagination and REST array pagination both work', async () => {
@@ -62,7 +62,7 @@ function harness(opts={}) {
     labels: [{name:'worker:active'}, ...(opts.humanGate ? [{name:'gate:human'}] : [])] };
   const mutations=[]; let branchReads=0, commentReads=0;
   const oldState = state(1,'2026-11-10T09:20:00Z');
-  if (opts.claimPr) oldState.body+='\\nPR: #4455 (DRAFT)';
+  if (opts.claimPr) oldState.body+='\nPR: #4455 (DRAFT)';
   const freshState = state(2,'2026-11-10T09:59:00Z','worker-b');
   const matchingPr = { number:4455, merged:Boolean(opts.mergedPr),
     merged_at:opts.mergedPr?'2026-11-10T09:40:00Z':null,
