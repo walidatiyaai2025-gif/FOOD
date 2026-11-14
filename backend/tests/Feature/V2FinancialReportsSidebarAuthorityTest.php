@@ -48,7 +48,7 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
         $this->actingAs($actor)->get($this->url($store))->assertForbidden();
     }
 
-    public function test_scoped_financial_reports_and_statements_are_localized_and_reject_foreign_store(): void
+    public function test_retail_finance_overview_is_localized_while_legal_entity_report_tabs_are_unavailable(): void
     {
         [$actor, $store, $context] = $this->operator('P309-OWN');
         $this->enableFinance($actor, $context, ['finance.foundation.read', 'finance.gl.read']);
@@ -59,16 +59,18 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
             app()->setLocale($locale);
 
             $this->actingAs($actor->fresh())
-                ->get($this->url($store))
+                ->get(route('admin.erp.finance.index', ['store_id' => $store->id, 'tab' => 'overview']))
                 ->assertOk()
                 ->assertSee('data-finance-workbench="true"', false)
                 ->assertSee('dir="'.$direction.'"', false)
-                ->assertSee(__('finance_workbench.reports.title'));
+                ->assertSee(__('finance_workbench.tabs.reports'))
+                ->assertSee('aria-disabled="true"', false);
+
+            $this->actingAs($actor->fresh())->get($this->url($store))->assertForbidden();
 
             $this->actingAs($actor->fresh())
                 ->get(route('admin.erp.finance.index', ['store_id' => $store->id, 'tab' => 'statements']))
-                ->assertOk()
-                ->assertSee(__('finance_workbench.tabs.statements'));
+                ->assertForbidden();
 
             $this->actingAs($actor->fresh())->get($this->url($foreign))->assertNotFound();
         }
@@ -82,15 +84,19 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
         $this->actingAs($actor->fresh())->get($this->url($store))->assertForbidden();
 
         $this->enableFinance($actor, $context, ['finance.foundation.read', 'finance.gl.read']);
-        $this->actingAs($actor->fresh())->get($this->url($store))->assertOk();
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.erp.finance.index', ['store_id' => $store->id, 'tab' => 'overview']))
+            ->assertOk();
+        $this->actingAs($actor->fresh())->get($this->url($store))->assertForbidden();
     }
 
-    public function test_explicit_finance_deny_revokes_reports_but_keeps_store_role(): void
+    public function test_explicit_finance_deny_revokes_retail_overview_but_keeps_store_role(): void
     {
         [$actor, $store, $context] = $this->operator('P309-DENY');
         $this->enableFinance($actor, $context, ['finance.foundation.read']);
 
-        $this->actingAs($actor)->get($this->url($store))->assertOk();
+        $overview = route('admin.erp.finance.index', ['store_id' => $store->id, 'tab' => 'overview']);
+        $this->actingAs($actor)->get($overview)->assertOk();
 
         DB::table('user_permission_overrides')->insert([
             'user_id' => $actor->id,
@@ -103,7 +109,7 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
         ]);
         $actor->forceFill(['has_permission_overrides' => true])->save();
 
-        $this->actingAs($actor->fresh())->get($this->url($store))->assertForbidden();
+        $this->actingAs($actor->fresh())->get($overview)->assertForbidden();
         $this->assertDatabaseHas('user_store_roles', [
             'user_id' => $actor->id,
             'store_id' => $store->id,
