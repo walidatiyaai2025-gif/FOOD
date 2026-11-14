@@ -53,7 +53,7 @@ test('automated sweep has 30 minute exact boundary', () => {
 
 test('terminal and approval statuses supersede an old ACTIVE claim without a handoff', () => {
   const active = { id: 101, created_at: '2026-11-10T09:00:00Z',
-    body: '<!-- foodex-worker-state:v1 -->\\nSTATE: ACTIVE\\nOWNER: worker-a\\nBRANCH: feat/2700-example' };
+    body: '<!-- foodex-worker-state:v1 -->\nSTATE: ACTIVE\nOWNER: worker-a\nBRANCH: feat/2700-example' };
   for (const state of [
     'GATE_APPROVAL / WORKER_RELEASED',
     'WORKER_RELEASED',
@@ -65,10 +65,10 @@ test('terminal and approval statuses supersede an old ACTIVE claim without a han
     'UNKNOWN_STATE',
     '',
   ]) {
-    const stateLine = state ? 'STATE: ' + state + '\\n' : '';
+    const stateLine = state ? 'STATE: ' + state + '\n' : '';
     const checkpoint = { id: 102, created_at: '2026-11-10T09:10:00Z',
-      body: '<!-- foodex-worker-state:v1 -->\\n' + stateLine
-        + 'OWNER: worker-a\\nBRANCH: feat/2700-example' };
+      body: '<!-- foodex-worker-state:v1 -->\n' + stateLine
+        + 'OWNER: worker-a\nBRANCH: feat/2700-example' };
     assert.equal(parseClaim([active, checkpoint]), null, state || '(missing STATE)');
   }
 });
@@ -85,8 +85,8 @@ test('only explicit execution states are eligible for idle-leasing', () => {
     'REQUIRED_CI_RUNNING',
   ]) {
     const claim = parseClaim([{ id: 120, created_at: '2026-11-10T09:15:00Z',
-      body: '<!-- foodex-worker-state:v1 -->\\nSTATE: ' + state
-        + '\\nOWNER: worker-a\\nBRANCH: feat/2700-example' }]);
+      body: '<!-- foodex-worker-state:v1 -->\nSTATE: ' + state
+        + '\nOWNER: worker-a\nBRANCH: feat/2700-example' }]);
     assert.equal(claim.owner, 'worker-a', state);
     assert.equal(claim.createdMs, Date.parse('2026-11-10T09:15:00Z'), state);
     assert.equal(activityDecision({
@@ -98,13 +98,13 @@ test('only explicit execution states are eligible for idle-leasing', () => {
 test('gated issue requires a fresh ACTIVE claim before automatic handoff may occur', () => {
   const records = [
     { id: 201, created_at: '2026-11-10T08:30:00Z',
-      body: '<!-- foodex-worker-state:v1 -->\\nSTATE: ACTIVE\\nOWNER: first' },
+      body: '<!-- foodex-worker-state:v1 -->\nSTATE: ACTIVE\nOWNER: first' },
     { id: 202, created_at: '2026-11-10T08:50:00Z',
-      body: '<!-- foodex-worker-state:v1 -->\\nSTATE: GATE_APPROVAL / WORKER_RELEASED\\nOWNER: first' },
+      body: '<!-- foodex-worker-state:v1 -->\nSTATE: GATE_APPROVAL / WORKER_RELEASED\nOWNER: first' },
   ];
   assert.equal(parseClaim(records), null);
   records.push({ id: 203, created_at: '2026-11-10T09:40:00Z',
-    body: '<!-- foodex-worker-state:v1 -->\\nSTATE: ACTIVE / CLAIMED\\nOWNER: successor' });
+    body: '<!-- foodex-worker-state:v1 -->\nSTATE: ACTIVE / CLAIMED\nOWNER: successor' });
   const next = parseClaim(records);
   assert.equal(next.owner, 'successor');
   assert.equal(next.claimId, 203);
