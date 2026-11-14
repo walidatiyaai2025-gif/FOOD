@@ -21,6 +21,8 @@ return [
     'no' => 'No',
     'saved' => 'App version policy saved.',
     'invalid_policy' => 'Use valid version numbers; the minimum supported version must not exceed the latest version.',
+    'api_not_configured' => 'App version policy is not configured.',
+    'api_invalid_version' => 'Invalid application version.',
     'validation' => [
         'required' => 'The :attribute field is required.',
         'in' => 'Select a valid value for :attribute.',
