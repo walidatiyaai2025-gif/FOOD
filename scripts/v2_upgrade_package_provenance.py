@@ -26,7 +26,8 @@ class PackageContractError(ValueError):
 SHA_PATTERN = re.compile(r"^[a-f0-9]{40}$")
 DIGEST_PATTERN = re.compile(r"^[a-f0-9]{64}$")
 VERSION_PATTERN = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
-WINDOWS_DEVICE_PATTERN = re.compile(r"^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$", re.IGNORECASE)
+# Win32 reserves ISO-8859-1 superscripts ¹²³ as COM/LPT device indices too.
+WINDOWS_DEVICE_PATTERN = re.compile(r"^(?:con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(?:\..*)?$", re.IGNORECASE)
 # Defensive offline-verification limits: testzip() decompresses every member.
 # Actual archive manifest/signature acceptance remains a separate release gate.
 MAX_ARCHIVE_MEMBERS = 50_000

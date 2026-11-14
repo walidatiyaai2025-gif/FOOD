@@ -378,6 +378,34 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
                 with self.assertRaisesRegex(PackageContractError, "Unsafe cross-platform|Private/non-runtime"):
                     self.verify_first()
 
+    def test_windows_superscript_device_aliases_fail_closed(self) -> None:
+        # Microsoft Win32 reserves COM¹/²/³ and LPT¹/²/³ just like
+        # COM1..9/LPT1..9, including names followed by extensions.
+        # Linux ZIP integrity checks must not attest unsafe Windows targets.
+        for forbidden in (
+            "backend/COM¹.txt",
+            "backend/CoM².log",
+            "backend/com³",
+            "backend/LPT¹",
+            "backend/lpt².txt",
+            "backend/LpT³.md",
+            "backend/assets/COM¹",
+        ):
+            with self.subTest(path=forbidden):
+                self.first = build_bundle(
+                    self.first,
+                    entries=[
+                        ("VERSION", b"1.0.125", False),
+                        (forbidden, b"device alias", False),
+                    ],
+                )
+                with self.assertRaisesRegex(
+                    PackageContractError, "Unsafe cross-platform"
+                ):
+                    self.verify_first()
+        self.first = build_bundle(self.first)
+        self.assertEqual(3, self.verify_first()["files"])
+
     def test_safe_portable_update_member_paths_remain_accepted(self) -> None:
         self.first = build_bundle(
             self.first,
