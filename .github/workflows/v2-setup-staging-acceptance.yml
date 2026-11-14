@@ -24,7 +24,7 @@ concurrency:
 jobs:
   build-and-install-from-zip:
     name: Build immutable PR ZIP and fresh MySQL install
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 65
     env:
       PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
