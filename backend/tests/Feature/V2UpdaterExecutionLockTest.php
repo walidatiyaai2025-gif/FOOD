@@ -167,7 +167,7 @@ class V2UpdaterExecutionLockTest extends TestCase
     {
         $runtime = $this->createMock(UpdateRuntime::class);
         $runtime->method('backupFiles')->willReturn('files-backup');
-        $runtime->method('backupDatabase')->willReturn(null);
+        $runtime->method('backupDatabase')->with(true)->willReturn('database-backup');
 
         return $runtime;
     }

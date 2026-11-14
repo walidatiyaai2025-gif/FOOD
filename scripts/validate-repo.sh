@@ -52,4 +52,7 @@ if side_effect_assertion not in fresh_install_source:
         "the fresh-install Van Assignment POST must verify its persisted side effect."
     )
 PY
+# G006: run hermetic positive/negative ZIP provenance checks on every V2 PR.
+python3 -m unittest discover -s scripts/tests -p 'test_verify_recovery_update_manifest.py'
+bash -n scripts/ci-125-recovery-upgrade.sh scripts/ci-127-upgrade.sh
 echo "Repository foundation policy check passed."

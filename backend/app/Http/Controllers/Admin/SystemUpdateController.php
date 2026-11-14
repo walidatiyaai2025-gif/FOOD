@@ -115,7 +115,9 @@ final class SystemUpdateController extends Controller
 
             return redirect()
                 ->route('admin.system-update.index')
-                ->with('status', 'Update '.$history->to_version.' completed successfully.');
+                ->with('status', __('admin.system_update_surface.update_completed', [
+                    'version' => $history->to_version,
+                ]));
         } catch (RuntimeException $exception) {
             return redirect()
                 ->route('admin.system-update.index')
