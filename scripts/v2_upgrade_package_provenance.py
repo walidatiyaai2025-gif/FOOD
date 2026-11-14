@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import re
 import stat
 import sys
@@ -52,12 +53,21 @@ def _reject_nonfinite_json_constant(_token: str) -> Any:
     raise PackageContractError("Non-finite update manifest JSON number.")
 
 
+def _parse_finite_json_float(token: str) -> float:
+    # Even syntactically valid JSON exponents such as 1e999 must not silently
+    # overflow Python's binary float representation to infinity.
+    number = float(token)
+    _require(math.isfinite(number), "Non-finite update manifest JSON number.")
+    return number
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     try:
         data = json.loads(
             path.read_text(encoding="utf-8"),
             object_pairs_hook=_unique_json_object,
             parse_constant=_reject_nonfinite_json_constant,
+            parse_float=_parse_finite_json_float,
         )
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise PackageContractError(f"Cannot read update manifest: {path.name}") from exc
