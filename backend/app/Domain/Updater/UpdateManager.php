@@ -476,7 +476,7 @@ final class UpdateManager
             // additional space- or comma-separated fields; masking only the
             // first token would persist the remainder to updater audit/history.
             // Fail closed on the entire Authorization tail, regardless of scheme.
-            '/\\b(Authorization\\s*[:=]\\s*)[^\\r\\n]*/i' => '$1[REDACTED]',
+            '/\b(Authorization\s*[:=]\s*)[^\r\n]*/i' => '$1[REDACTED]',
             '/\b(Bearer\s+)\S+/i' => '$1[REDACTED]',
             '/\b((?:(?:DB|MAIL|REDIS|SMTP|AWS|STRIPE|PAYMENT)_)?(?:PASSWORD|PASS|TOKEN|SECRET|API_KEY|APP_KEY|ACCESS_KEY|PRIVATE_KEY))\s*([=:])\s*(?:"[^"]*"|\x27[^\x27]*\x27|[^\s,;)\]}]+)/i' => '$1$2[REDACTED]',
         ];
