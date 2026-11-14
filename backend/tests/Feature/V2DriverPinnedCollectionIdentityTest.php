@@ -84,9 +84,16 @@ final class V2DriverPinnedCollectionIdentityTest extends TestCase
 
     public function test_b2b_only_driver_and_wrong_app_token_are_denied_before_finance_access(): void
     {
-        [$user, $legacyDriver] = $this->mixedProfiles();
-        $legacyDriver->user->roles()->sync([Role::query()->where('code', 'B2C_DRIVER')->firstOrFail()->id]);
-        Driver::query()->where('user_id', $user->id)->where('driver_type', 'b2c')->delete();
+        $this->seed(CoreReferenceSeeder::class);
+        $user = User::factory()->create(['is_active' => true]);
+        $user->roles()->attach(Role::query()->where('code', 'B2C_DRIVER')->firstOrFail());
+        Driver::query()->create([
+            'user_id' => $user->id,
+            'store_id' => app(WholesalePrincipal::class)->storeId(),
+            'driver_type' => 'b2b',
+            'is_available' => true,
+            'is_active' => true,
+        ]);
 
         Sanctum::actingAs($user, ['app:driver']);
         $this->getJson('/api/v1/driver/wallet')->assertForbidden();
