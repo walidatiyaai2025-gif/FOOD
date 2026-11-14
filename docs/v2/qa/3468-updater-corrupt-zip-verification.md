@@ -30,6 +30,14 @@ Before this patch, a package file with matching manifest SHA-256 but **invalid Z
 | Localization | No new user-facing AR/EN catalog keys or copy |
 | Tenant/security | Existing RBAC, Super Admin update boundary, B2B=VAN ONLY, B2C=DRIVER ONLY unchanged |
 
+## Full-suite regression follow-up
+
+The first exact-head Required CI run [#43573188769](https://github.com/walidatiyaai2025-gif/FOOD/actions/runs/43573188769) passed Repository Policy, V2 Isolation, PHP lint/Pint/PHPStan/security/OpenAPI, AR/EN localization and real MySQL/Redis fresh-install/upgrade/recovery acceptance. Full Laravel reported **3,690 pass / 21 fail / 1 skip**, with every failure traced to a pre-existing `plain-text-as-valid-ZIP` test fixture incompatible with fail-closed validation (or an old assertion explicitly treating non-ZIP as valid). Its `required-ci-gate` is **FAILED** and is NOT acceptance evidence.
+
+Same Issue/branch/PR CI rescue extends ONLY related existing tests: `V2LegacyInstalledVersionPrecisionTest`, `V2UpdateCanonicalManifestVersionTest`, `V2UpdaterPackageSymlinkGuardTest`, `V2SystemUpdateLocalizedFlashTest`, `V2UpdateValidatorMemberCountPreflightTest`, `V2UpdaterExecutionLockTest`, `V2UpdaterMutationAwareRollbackTest`, `V2UpdaterNonMigrationDatabaseBackupTest`, `V2UpdaterPostExitRollbackMaintenanceTest`. A single reusable `Tests\\Support\\UpdateZipFixture` writes an actual harmless ZIP or supplies ZIP bytes for HTTP uploads; the deliberately invalid non-ZIP test now **expects** rejection. Existing original negative, rollback, lock and tenant/RBAC expectations remain intact. No peer-owned production file was changed.
+
+This follow-up is **unverified pending new exact-head Required CI**, and no earlier green partial job may substitute for the terminal latest run.
+
 ## Verification matrix
 
 - [ ] `php -l` on changed PHP files
