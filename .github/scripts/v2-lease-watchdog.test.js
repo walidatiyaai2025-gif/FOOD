@@ -50,3 +50,68 @@ test('only open V2 issues are in scope, not PRs', () => {
 test('automated sweep has 30 minute exact boundary', () => {
   assert.equal(LIMIT_MS,30*60000);
 });
+
+test('terminal and approval statuses supersede an old ACTIVE claim without a handoff', () => {
+  const active = { id: 101, created_at: '2026-11-10T09:00:00Z',
+    body: '<!-- foodex-worker-state:v1 -->\\nSTATE: ACTIVE\\nOWNER: worker-a\\nBRANCH: feat/2700-example' };
+  for (const state of [
+    'GATE_APPROVAL / WORKER_RELEASED',
+    'WORKER_RELEASED',
+    'BLOCKED_DESIGN_DEPENDENCY',
+    'MERGED_PENDING_ACCEPTANCE',
+    'INTEGRATED_PARTIAL / HANDOFF_READY',
+    'RELEASED',
+    'HANDOFF_READY',
+    'UNKNOWN_STATE',
+    '',
+  ]) {
+    const stateLine = state ? 'STATE: ' + state + '\\n' : '';
+    const checkpoint = { id: 102, created_at: '2026-11-10T09:10:00Z',
+      body: '<!-- foodex-worker-state:v1 -->\\n' + stateLine
+        + 'OWNER: worker-a\\nBRANCH: feat/2700-example' };
+    assert.equal(parseClaim([active, checkpoint]), null, state || '(missing STATE)');
+  }
+});
+
+test('only explicit execution states are eligible for idle-leasing', () => {
+  for (const state of [
+    'ACTIVE',
+    'ACTIVE / REQUIRED_CI_RUNNING',
+    'WAITING_CI',
+    'WAITING_EXACT_HEAD_CI',
+    'WAITING_REQUIRED_CI',
+    'CI_FIX',
+    'CI_RUNNING',
+    'REQUIRED_CI_RUNNING',
+  ]) {
+    const claim = parseClaim([{ id: 120, created_at: '2026-11-10T09:15:00Z',
+      body: '<!-- foodex-worker-state:v1 -->\\nSTATE: ' + state
+        + '\\nOWNER: worker-a\\nBRANCH: feat/2700-example' }]);
+    assert.equal(claim.owner, 'worker-a', state);
+    assert.equal(claim.createdMs, Date.parse('2026-11-10T09:15:00Z'), state);
+    assert.equal(activityDecision({
+      nowMs, claim, latestCommitMs: 0, latestPrCommitMs: 0, ciRunning: false
+    }).release, true, state);
+  }
+});
+
+test('gated issue requires a fresh ACTIVE claim before automatic handoff may occur', () => {
+  const records = [
+    { id: 201, created_at: '2026-11-10T08:30:00Z',
+      body: '<!-- foodex-worker-state:v1 -->\\nSTATE: ACTIVE\\nOWNER: first' },
+    { id: 202, created_at: '2026-11-10T08:50:00Z',
+      body: '<!-- foodex-worker-state:v1 -->\\nSTATE: GATE_APPROVAL / WORKER_RELEASED\\nOWNER: first' },
+  ];
+  assert.equal(parseClaim(records), null);
+  records.push({ id: 203, created_at: '2026-11-10T09:40:00Z',
+    body: '<!-- foodex-worker-state:v1 -->\\nSTATE: ACTIVE / CLAIMED\\nOWNER: successor' });
+  const next = parseClaim(records);
+  assert.equal(next.owner, 'successor');
+  assert.equal(next.claimId, 203);
+  assert.equal(activityDecision({
+    nowMs, claim: next, latestCommitMs: 0, latestPrCommitMs: 0, ciRunning: false
+  }).release, false);
+  assert.equal(activityDecision({
+    nowMs, claim: next, latestCommitMs: 0, latestPrCommitMs: 0, ciRunning: true
+  }).release, false);
+});
