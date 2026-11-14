@@ -109,7 +109,7 @@ class MobilePushSettingsTest extends TestCase
             'email' => $customer->email,
         ]);
 
-        Sanctum::actingAs($customer);
+        Sanctum::actingAs($customer, ['app:customer']);
 
         $device = $this->postJson('/api/v1/push/devices', [
             'app' => 'customer',
@@ -150,7 +150,7 @@ class MobilePushSettingsTest extends TestCase
             'user_id' => $admin->id,
         ]);
 
-        Sanctum::actingAs($customer);
+        Sanctum::actingAs($customer, ['app:customer']);
         $this->deleteJson('/api/v1/push/devices/'.$device)->assertOk();
 
         $this->assertDatabaseMissing('push_device_tokens', [
@@ -198,7 +198,7 @@ class MobilePushSettingsTest extends TestCase
             'email' => $customer->email,
         ]);
 
-        Sanctum::actingAs($customer);
+        Sanctum::actingAs($customer, ['app:customer']);
         $device = $this->postJson('/api/v1/push/devices', [
             'app' => 'customer',
             'platform' => 'ios',
