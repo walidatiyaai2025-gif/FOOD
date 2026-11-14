@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 final class CollectionCustodyService
 {
     /**
-     * @param  list<array{invoice_id: int, amount: float|int}>  $allocations
+     * @param  list<array{invoice_id: int, amount: float|int|string|null}>  $allocations
      */
     public function collect(
         CollectionAccount $account,
@@ -28,8 +28,10 @@ final class CollectionCustodyService
         $currency = strtoupper(trim($currency));
         $this->assertAccountCurrency($account, $currency);
 
-        if ($amount <= 0) {
-            throw ValidationException::withMessages(['amount' => ['Collection amount must be greater than zero.']]);
+        // Non-finite float totals bypass <= 0 for NaN and can poison
+        // payment, collection and custody ledger amounts.
+        if (! is_finite($amount) || $amount <= 0) {
+            throw ValidationException::withMessages(['amount' => ['Collection amount must be finite and greater than zero.']]);
         }
 
         return DB::transaction(function () use ($account, $actor, $idempotencyKey, $amount, $currency, $source, $allocations): CollectionTransaction {
@@ -45,19 +47,82 @@ final class CollectionCustodyService
                     ]);
                 }
 
+                // A retry may return an earlier receipt only when every
+                // financial term, including its invoice allocations, agrees.
+                // Otherwise the caller would receive a false paid receipt for
+                // a different amount, source or invoice.
+                $this->assertCollectionReplayMatches($existing, $amount, $currency, $source, $allocations);
+
                 return $existing;
+            }
+
+            // An invoice allocation is a financial write. Never accept an invoice by
+            // numeric ID alone: the collector account, store and invoice channel must
+            // share the same authoritative B2B/B2C scope before any payment is posted.
+            $accountStoreId = (int) ($account->store_id ?? 0);
+            $storeType = $allocations !== [] && $accountStoreId > 0
+                ? DB::table('stores')
+                    ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                    ->where('stores.id', $accountStoreId)
+                    ->value('store_types.code')
+                : null;
+            $accountChannel = match (strtoupper(trim((string) $storeType))) {
+                'B2B' => 'b2b',
+                'B2C' => 'b2c',
+                default => null,
+            };
+
+            if ($allocations !== [] && $accountChannel === null) {
+                throw ValidationException::withMessages([
+                    'allocations' => ['Collection account has no authoritative store/channel for invoice allocation.'],
+                ]);
+            }
+            if ($allocations !== []
+                && in_array(strtolower((string) $account->actor_type), ['van', 'van_rep'], true)
+                && $accountChannel !== 'b2b') {
+                throw ValidationException::withMessages([
+                    'allocations' => ['Van collections can allocate only Wholesale invoices.'],
+                ]);
+            }
+            // The inverse fulfillment boundary is equally authoritative:
+            // a Driver cannot settle B2B invoices even if a malformed
+            // collection account points at a legitimate Wholesale store.
+            if ($allocations !== []
+                && strtolower((string) $account->actor_type) === 'driver'
+                && $accountChannel !== 'b2c') {
+                throw ValidationException::withMessages([
+                    'allocations' => ['Driver collections can allocate only Retail invoices.'],
+                ]);
             }
 
             $allocatedTotal = 0.0;
             foreach ($allocations as $allocation) {
+                // Never post zero, negative or non-finite invoice allocations:
+                // a negative line can otherwise offset a positive line and
+                // bypass the collected-amount cap before the payment is posted.
+                $allocationAmount = $allocation['amount'] ?? null;
+                if (! is_numeric($allocationAmount)
+                    || ! is_finite((float) $allocationAmount)
+                    || (float) $allocationAmount <= 0) {
+                    throw ValidationException::withMessages([
+                        'allocations' => ['Invoice allocation amount must be a finite value greater than zero.'],
+                    ]);
+                }
+
                 $invoice = DB::table('invoices')->where('id', (int) $allocation['invoice_id'])->lockForUpdate()->first();
                 if ($invoice === null) {
                     throw ValidationException::withMessages(['allocations' => ['Invoice not found.']]);
                 }
+                if ((int) ($invoice->store_id ?? 0) !== $accountStoreId
+                    || strtolower(trim((string) ($invoice->channel ?? ''))) !== $accountChannel) {
+                    throw ValidationException::withMessages([
+                        'allocations' => ['Invoice does not belong to the collection account store and channel.'],
+                    ]);
+                }
                 if (strtoupper((string) $invoice->currency) !== $currency) {
                     throw ValidationException::withMessages(['currency' => ['Mixed-currency collection allocation is not allowed.']]);
                 }
-                $allocatedTotal += (float) $allocation['amount'];
+                $allocatedTotal += (float) $allocationAmount;
             }
 
             if ($allocatedTotal > $amount + 0.0005) {
@@ -128,8 +193,8 @@ final class CollectionCustodyService
         $currency = strtoupper(trim($currency));
         $this->assertAccountCurrency($account, $currency);
 
-        if ($amount <= 0) {
-            throw ValidationException::withMessages(['amount' => ['Remittance amount must be greater than zero.']]);
+        if (! is_finite($amount) || $amount <= 0) {
+            throw ValidationException::withMessages(['amount' => ['Remittance amount must be finite and greater than zero.']]);
         }
 
         return DB::transaction(function () use ($account, $actor, $idempotencyKey, $amount, $currency, $method, $reference, $note): Remittance {
@@ -142,6 +207,18 @@ final class CollectionCustodyService
                 if ((int) $existing->collection_account_id !== (int) $account->getKey()) {
                     throw ValidationException::withMessages([
                         'idempotency_key' => ['Idempotency-Key is already owned by another collection account.'],
+                    ]);
+                }
+
+                // Reusing a key with different terms must never acknowledge
+                // someone else's previously submitted treasury remittance.
+                if (abs((float) $existing->amount - $amount) > 0.0005
+                    || strtoupper((string) $existing->currency) !== $currency
+                    || (string) $existing->method !== trim($method)
+                    || $existing->reference !== $reference
+                    || $existing->note !== $note) {
+                    throw ValidationException::withMessages([
+                        'idempotency_key' => ['Idempotency-Key already has different remittance terms.'],
                     ]);
                 }
 
@@ -282,6 +359,61 @@ final class CollectionCustodyService
             ->sum('amount');
 
         return max(0.0, $this->custodyBalance($account) - $pending);
+    }
+
+    /**
+     * @param  list<array{invoice_id: int, amount: float|int|string|null}>  $allocations
+     */
+    private function assertCollectionReplayMatches(
+        CollectionTransaction $existing,
+        float $amount,
+        string $currency,
+        string $source,
+        array $allocations,
+    ): void {
+        if (abs((float) $existing->amount - $amount) > 0.0005
+            || strtoupper((string) $existing->currency) !== $currency
+            || (string) $existing->source !== $source) {
+            throw ValidationException::withMessages([
+                'idempotency_key' => ['Idempotency-Key already has different collection terms.'],
+            ]);
+        }
+
+        $submitted = [];
+        foreach ($allocations as $allocation) {
+            $invoiceId = (int) $allocation['invoice_id'];
+            $lineAmount = $allocation['amount'] ?? null;
+            if ($invoiceId <= 0
+                || ! is_numeric($lineAmount)
+                || ! is_finite((float) $lineAmount)
+                || (float) $lineAmount <= 0
+                || array_key_exists($invoiceId, $submitted)) {
+                throw ValidationException::withMessages([
+                    'idempotency_key' => ['Idempotency-Key replay has invalid invoice allocations.'],
+                ]);
+            }
+            $submitted[$invoiceId] = (float) $lineAmount;
+        }
+
+        $persisted = DB::table('collection_allocations')
+            ->where('collection_transaction_id', $existing->getKey())
+            ->get(['invoice_id', 'amount']);
+
+        if ($persisted->count() !== count($submitted)) {
+            throw ValidationException::withMessages([
+                'idempotency_key' => ['Idempotency-Key already has different invoice allocations.'],
+            ]);
+        }
+
+        foreach ($persisted as $line) {
+            $invoiceId = (int) $line->invoice_id;
+            if (! array_key_exists($invoiceId, $submitted)
+                || abs((float) $line->amount - $submitted[$invoiceId]) > 0.0005) {
+                throw ValidationException::withMessages([
+                    'idempotency_key' => ['Idempotency-Key already has different invoice allocations.'],
+                ]);
+            }
+        }
     }
 
     private function assertAccountCurrency(CollectionAccount $account, string $currency): void

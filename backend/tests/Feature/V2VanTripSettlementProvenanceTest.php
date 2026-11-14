@@ -1,0 +1,520 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\CollectionAccount;
+use App\Models\Customer;
+use App\Models\Invoice;
+use App\Models\Role;
+use App\Models\User;
+use App\Services\CollectionCustodyService;
+use Database\Seeders\CoreReferenceSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Tests\TestCase;
+
+/**
+ * P272: distinguish real B2B Van custody from an unproven "trip settlement".
+ *
+ * A Van account balance must not be represented as a closed trip's amount
+ * without a canonical trip-to-collection and trip-to-remittance attribution.
+ */
+final class V2VanTripSettlementProvenanceTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->seed(CoreReferenceSeeder::class);
+        config()->set('security.mfa.enforce_privileged', false);
+    }
+
+    public function test_van_finance_custody_read_is_b2b_only_and_never_writes_a_settlement(): void
+    {
+        $admin = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $admin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail()->id);
+
+        $now = now();
+        $b2bStore = $this->store('B2B', 'P272-B2B');
+        $b2cStore = $this->store('B2C', 'P272-B2C');
+        $vanId = (int) DB::table('vans')->insertGetId([
+            'public_id' => (string) Str::uuid(),
+            'code' => 'P272-VAN',
+            'plate_number' => 'P272-001',
+            'status' => 'active',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        foreach ([$b2bStore => '43.500', $b2cStore => '999.000'] as $storeId => $amount) {
+            $accountId = (int) DB::table('collection_accounts')->insertGetId([
+                'actor_type' => 'van',
+                'actor_id' => $vanId,
+                'store_id' => (int) $storeId,
+                'currency' => 'KWD',
+                'status' => 'active',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            DB::table('custody_ledger_entries')->insert([
+                'collection_account_id' => $accountId,
+                'entry_type' => 'collection',
+                'amount' => $amount,
+                'currency' => 'KWD',
+                'reference_type' => 'p272-test-collection',
+                'reference_id' => $accountId,
+                'created_by' => $admin->id,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+
+        foreach (['en' => 'ltr', 'ar' => 'rtl'] as $locale => $direction) {
+            $admin->forceFill(['locale' => $locale])->save();
+
+            $response = $this->actingAs($admin->fresh())
+                ->get('/admin/van-finance-support?ops_tab=wallets')
+                ->assertOk()
+                ->assertSee('dir="'.$direction.'"', false);
+
+            $finance = $response->viewData('finance');
+            $this->assertSame(1, $finance['pagination']['total']);
+            $this->assertCount(1, $finance['rows']);
+            $this->assertSame($b2bStore, (int) $finance['rows'][0]['store_id']);
+            $this->assertEqualsWithDelta(43.5, (float) $finance['rows'][0]['custody_balance'], 0.001);
+            $this->assertSame('KWD', $finance['rows'][0]['currency']);
+            $this->assertDatabaseCount('custody_ledger_entries', 2);
+            $this->assertDatabaseCount('remittances', 0);
+        }
+    }
+
+    public function test_actor_without_finance_authority_cannot_access_van_finance_support(): void
+    {
+        $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+
+        $this->actingAs($actor)
+            ->get('/admin/van-finance-support?ops_tab=reconciliation')
+            ->assertForbidden();
+    }
+
+    public function test_existing_custody_schema_cannot_prove_an_individual_trip_closeout(): void
+    {
+        $this->assertTrue(Schema::hasColumn('van_visits', 'order_id'));
+        $this->assertTrue(Schema::hasColumn('van_visits', 'store_id'));
+        $this->assertFalse(Schema::hasColumn('van_visits', 'trip_id'));
+        $this->assertFalse(Schema::hasColumn('collection_transactions', 'van_visit_id'));
+        $this->assertFalse(Schema::hasColumn('remittances', 'trip_id'));
+        $this->assertFalse(Schema::hasColumn('remittance_allocations', 'van_visit_id'));
+        $this->assertFalse(Schema::hasColumn('custody_ledger_entries', 'trip_id'));
+    }
+
+    public function test_van_custody_rejects_foreign_store_or_channel_invoice_before_any_financial_write(): void
+    {
+        $actor = User::factory()->create(['is_active' => true]);
+        $homeStore = $this->store('B2B', 'P272-SECURE-B2B');
+        $otherStore = $this->store('B2B', 'P272-FOREIGN-B2B');
+        $retailStore = $this->store('B2C', 'P272-FOREIGN-B2C');
+
+        $account = CollectionAccount::query()->create([
+            'actor_type' => 'van',
+            'actor_id' => 401,
+            'store_id' => $homeStore,
+            'currency' => 'KWD',
+            'status' => 'active',
+        ]);
+
+        $foreignInvoice = $this->invoice($otherStore, 'b2b', 'P272-FOREIGN-INVOICE');
+        $corruptChannelInvoice = $this->invoice($homeStore, 'b2c', 'P272-WRONG-CHANNEL');
+        $retailInvoice = $this->invoice($retailStore, 'b2c', 'P272-RETAIL-INVOICE');
+
+        $this->assertAllocationRejected($account, $actor, $foreignInvoice, 'p272-cross-store');
+        $this->assertAllocationRejected($account, $actor, $corruptChannelInvoice, 'p272-cross-channel');
+        $this->assertAllocationRejected($account, $actor, $retailInvoice, 'p272-retail-from-van');
+
+        $this->assertDatabaseCount('collection_transactions', 0);
+        $this->assertDatabaseCount('collection_allocations', 0);
+        $this->assertDatabaseCount('custody_ledger_entries', 0);
+        foreach (['p272-cross-store', 'p272-cross-channel', 'p272-retail-from-van'] as $reference) {
+            $this->assertDatabaseMissing('payments', ['provider_reference' => $reference]);
+        }
+
+        $validInvoice = $this->invoice($homeStore, 'b2b', 'P272-VALID-INVOICE');
+        $transaction = app(CollectionCustodyService::class)->collect(
+            $account,
+            $actor,
+            'p272-valid-van',
+            10,
+            'KWD',
+            'van_app',
+            [['invoice_id' => (int) $validInvoice->getKey(), 'amount' => 10]],
+        );
+
+        $this->assertDatabaseHas('collection_allocations', [
+            'collection_transaction_id' => $transaction->getKey(),
+            'invoice_id' => $validInvoice->getKey(),
+            'amount' => 10,
+            'currency' => 'KWD',
+        ]);
+        $this->assertDatabaseHas('payments', [
+            'id' => $transaction->payment_id,
+            'invoice_id' => $validInvoice->getKey(),
+            'provider_reference' => 'p272-valid-van',
+        ]);
+        $this->assertDatabaseCount('custody_ledger_entries', 1);
+    }
+
+    public function test_invoice_allocations_reject_zero_negative_and_non_finite_amounts_without_financial_writes(): void
+    {
+        $actor = User::factory()->create(['is_active' => true]);
+        $store = $this->store('B2B', 'P272-ALLOCATION-AMOUNT-GUARD');
+        $invoice = $this->invoice($store, 'b2b', 'P272-AMOUNT-VALID-INVOICE');
+        $account = CollectionAccount::query()->create([
+            'actor_type' => 'van',
+            'actor_id' => 406,
+            'store_id' => $store,
+            'currency' => 'KWD',
+            'status' => 'active',
+        ]);
+
+        foreach (['zero' => 0, 'negative' => -1, 'infinity' => INF, 'not_a_number' => NAN] as $case => $allocationAmount) {
+            try {
+                app(CollectionCustodyService::class)->collect(
+                    $account,
+                    $actor,
+                    'p272-bad-allocation-'.$case,
+                    10,
+                    'KWD',
+                    'van_app',
+                    [['invoice_id' => (int) $invoice->getKey(), 'amount' => $allocationAmount]],
+                );
+                $this->fail('Invalid invoice allocation amount must never post: '.$case);
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('allocations', $exception->errors());
+            }
+
+            $this->assertDatabaseMissing('payments', ['provider_reference' => 'p272-bad-allocation-'.$case]);
+        }
+
+        $this->assertDatabaseCount('collection_transactions', 0);
+        $this->assertDatabaseCount('collection_allocations', 0);
+        $this->assertDatabaseCount('custody_ledger_entries', 0);
+
+        // A valid line must remain accepted after the rejected requests.
+        $transaction = app(CollectionCustodyService::class)->collect(
+            $account,
+            $actor,
+            'p272-after-invalid-allocations',
+            10,
+            'KWD',
+            'van_app',
+            [['invoice_id' => (int) $invoice->getKey(), 'amount' => 10]],
+        );
+        $this->assertDatabaseHas('collection_allocations', [
+            'collection_transaction_id' => $transaction->getKey(),
+            'invoice_id' => $invoice->getKey(),
+            'amount' => 10,
+        ]);
+    }
+
+    public function test_non_finite_collection_and_remittance_totals_cannot_create_financial_entries(): void
+    {
+        $actor = User::factory()->create(['is_active' => true]);
+        $store = $this->store('B2B', 'P272-FINITE-TOTAL-GUARD');
+        $account = CollectionAccount::query()->create([
+            'actor_type' => 'van',
+            'actor_id' => 407,
+            'store_id' => $store,
+            'currency' => 'KWD',
+            'status' => 'active',
+        ]);
+
+        foreach (['infinity' => INF, 'negative_infinity' => -INF, 'not_a_number' => NAN] as $case => $invalidAmount) {
+            try {
+                app(CollectionCustodyService::class)->collect(
+                    $account,
+                    $actor,
+                    'p272-bad-total-'.$case,
+                    $invalidAmount,
+                    'KWD',
+                    'van_app',
+                );
+                $this->fail('Non-finite collection total must never post: '.$case);
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('amount', $exception->errors());
+            }
+
+            try {
+                app(CollectionCustodyService::class)->submitRemittance(
+                    $account,
+                    $actor,
+                    'p272-bad-remittance-'.$case,
+                    $invalidAmount,
+                    'KWD',
+                    'cash',
+                );
+                $this->fail('Non-finite remittance total must never be submitted: '.$case);
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('amount', $exception->errors());
+            }
+
+            $this->assertDatabaseMissing('payments', ['provider_reference' => 'p272-bad-total-'.$case]);
+            $this->assertDatabaseMissing('collection_transactions', ['idempotency_key' => 'p272-bad-total-'.$case]);
+            $this->assertDatabaseMissing('remittances', ['idempotency_key' => 'p272-bad-remittance-'.$case]);
+        }
+
+        $this->assertDatabaseCount('collection_transactions', 0);
+        $this->assertDatabaseCount('collection_allocations', 0);
+        $this->assertDatabaseCount('custody_ledger_entries', 0);
+        $this->assertDatabaseCount('remittances', 0);
+
+        // An ordinary B2B collection and pending remittance still succeed.
+        $transaction = app(CollectionCustodyService::class)->collect(
+            $account, $actor, 'p272-finite-total', 10, 'KWD', 'van_app',
+        );
+        $remittance = app(CollectionCustodyService::class)->submitRemittance(
+            $account, $actor, 'p272-finite-remittance', 5, 'KWD', 'cash',
+        );
+
+        $this->assertSame('posted', $transaction->status);
+        $this->assertSame('pending', $remittance->status);
+        $this->assertDatabaseCount('custody_ledger_entries', 1);
+        $this->assertDatabaseHas('remittances', [
+            'id' => $remittance->getKey(),
+            'amount' => 5,
+            'currency' => 'KWD',
+        ]);
+    }
+
+    public function test_replaying_collection_key_with_changed_financial_terms_never_acknowledges_prior_receipt(): void
+    {
+        $actor = User::factory()->create(['is_active' => true]);
+        $store = $this->store('B2B', 'P272-IDEMPOTENT-STORE');
+        $invoice = $this->invoice($store, 'b2b', 'P272-IDEMPOTENT-INVOICE');
+        $otherInvoice = $this->invoice($store, 'b2b', 'P272-IDEMPOTENT-OTHER');
+        $account = CollectionAccount::query()->create([
+            'actor_type' => 'van',
+            'actor_id' => 408,
+            'store_id' => $store,
+            'currency' => 'KWD',
+            'status' => 'active',
+        ]);
+        $service = app(CollectionCustodyService::class);
+        $allocation = [['invoice_id' => (int) $invoice->id, 'amount' => 10]];
+
+        $first = $service->collect($account, $actor, 'p272-collection-replay', 10, 'KWD', 'van_app', $allocation);
+        $same = $service->collect($account, $actor, 'p272-collection-replay', 10, 'KWD', 'van_app', $allocation);
+        $this->assertSame($first->getKey(), $same->getKey());
+
+        $conflicts = [
+            'amount' => [11, 'van_app', $allocation],
+            'source' => [10, 'driver_app', $allocation],
+            'missing_invoice' => [10, 'van_app', []],
+            'other_invoice' => [10, 'van_app', [['invoice_id' => (int) $otherInvoice->id, 'amount' => 10]]],
+            'changed_allocation' => [10, 'van_app', [['invoice_id' => (int) $invoice->id, 'amount' => 9]]],
+        ];
+
+        foreach ($conflicts as $case => [$amount, $source, $lines]) {
+            try {
+                $service->collect($account, $actor, 'p272-collection-replay', $amount, 'KWD', $source, $lines);
+                $this->fail('Collection idempotency must reject changed '.$case);
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('idempotency_key', $exception->errors());
+            }
+        }
+
+        $this->assertDatabaseCount('payments', 1);
+        $this->assertDatabaseCount('collection_transactions', 1);
+        $this->assertDatabaseCount('collection_allocations', 1);
+        $this->assertDatabaseCount('custody_ledger_entries', 1);
+        $this->assertDatabaseHas('collection_allocations', [
+            'collection_transaction_id' => $first->getKey(),
+            'invoice_id' => $invoice->id,
+            'amount' => 10,
+        ]);
+    }
+
+    public function test_replaying_remittance_key_with_changed_terms_never_acknowledges_prior_submission(): void
+    {
+        $actor = User::factory()->create(['is_active' => true]);
+        $store = $this->store('B2B', 'P272-REMITTANCE-REPLAY');
+        $account = CollectionAccount::query()->create([
+            'actor_type' => 'van',
+            'actor_id' => 409,
+            'store_id' => $store,
+            'currency' => 'KWD',
+            'status' => 'active',
+        ]);
+        $service = app(CollectionCustodyService::class);
+        $service->collect($account, $actor, 'p272-remit-custody', 20, 'KWD', 'van_app');
+
+        $first = $service->submitRemittance(
+            $account, $actor, 'p272-remit-replay', 8, 'KWD', 'cash', 'office-1', 'sealed',
+        );
+        $same = $service->submitRemittance(
+            $account, $actor, 'p272-remit-replay', 8, 'KWD', 'cash', 'office-1', 'sealed',
+        );
+        $this->assertSame($first->getKey(), $same->getKey());
+
+        $conflicts = [
+            'amount' => [9, 'cash', 'office-1', 'sealed'],
+            'method' => [8, 'bank_transfer', 'office-1', 'sealed'],
+            'reference' => [8, 'cash', 'office-2', 'sealed'],
+            'note' => [8, 'cash', 'office-1', 'opened'],
+        ];
+        foreach ($conflicts as $case => [$amount, $method, $reference, $note]) {
+            try {
+                $service->submitRemittance(
+                    $account, $actor, 'p272-remit-replay', $amount, 'KWD', $method, $reference, $note,
+                );
+                $this->fail('Remittance idempotency must reject changed '.$case);
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('idempotency_key', $exception->errors());
+            }
+        }
+
+        $this->assertDatabaseCount('remittances', 1);
+        $this->assertDatabaseCount('collection_transactions', 1);
+        $this->assertDatabaseCount('custody_ledger_entries', 1);
+        $this->assertDatabaseHas('remittances', [
+            'id' => $first->id,
+            'amount' => 8,
+            'method' => 'cash',
+            'reference' => 'office-1',
+            'note' => 'sealed',
+        ]);
+    }
+
+    public function test_van_cannot_allocate_to_retail_or_unknown_store_but_driver_retail_collection_remains_valid(): void
+    {
+        $actor = User::factory()->create(['is_active' => true]);
+        $retailStore = $this->store('B2C', 'P272-B2C-ROLE-BOUNDARY');
+        $retailInvoice = $this->invoice($retailStore, 'b2c', 'P272-RETAIL-ROLE');
+
+        $vanAccount = CollectionAccount::query()->create([
+            'actor_type' => 'van',
+            'actor_id' => 402,
+            'store_id' => $retailStore,
+            'currency' => 'KWD',
+            'status' => 'active',
+        ]);
+        $this->assertAllocationRejected($vanAccount, $actor, $retailInvoice, 'p272-b2c-van');
+
+        $unknownScope = CollectionAccount::query()->create([
+            'actor_type' => 'van',
+            'actor_id' => 403,
+            'store_id' => null,
+            'currency' => 'KWD',
+            'status' => 'active',
+        ]);
+        $this->assertAllocationRejected($unknownScope, $actor, $retailInvoice, 'p272-unknown-van');
+
+        $wholesaleStore = $this->store('B2B', 'P272-DRIVER-FORBIDDEN-WHOLESALE');
+        $wholesaleInvoice = $this->invoice($wholesaleStore, 'b2b', 'P272-DRIVER-B2B-INVOICE');
+        $forgedDriverAccount = CollectionAccount::query()->create([
+            'actor_type' => 'driver',
+            'actor_id' => 405,
+            'store_id' => $wholesaleStore,
+            'currency' => 'KWD',
+            'status' => 'active',
+        ]);
+        $this->assertAllocationRejected(
+            $forgedDriverAccount,
+            $actor,
+            $wholesaleInvoice,
+            'p272-b2b-driver-forbidden',
+            'driver_app',
+        );
+        $this->assertDatabaseCount('collection_transactions', 0);
+        $this->assertDatabaseCount('collection_allocations', 0);
+        $this->assertDatabaseCount('custody_ledger_entries', 0);
+        $this->assertDatabaseMissing('payments', [
+            'provider_reference' => 'p272-b2b-driver-forbidden',
+        ]);
+
+        $driverAccount = CollectionAccount::query()->create([
+            'actor_type' => 'driver',
+            'actor_id' => 404,
+            'store_id' => $retailStore,
+            'currency' => 'KWD',
+            'status' => 'active',
+        ]);
+        $transaction = app(CollectionCustodyService::class)->collect(
+            $driverAccount,
+            $actor,
+            'p272-valid-b2c-driver',
+            10,
+            'KWD',
+            'driver_app',
+            [['invoice_id' => (int) $retailInvoice->getKey(), 'amount' => 10]],
+        );
+
+        $this->assertDatabaseHas('collection_allocations', [
+            'collection_transaction_id' => $transaction->getKey(),
+            'invoice_id' => $retailInvoice->getKey(),
+            'currency' => 'KWD',
+        ]);
+        $this->assertDatabaseCount('custody_ledger_entries', 1);
+    }
+
+    private function assertAllocationRejected(
+        CollectionAccount $account,
+        User $actor,
+        Invoice $invoice,
+        string $idempotencyKey,
+        string $source = 'van_app',
+    ): void {
+        try {
+            app(CollectionCustodyService::class)->collect(
+                $account,
+                $actor,
+                $idempotencyKey,
+                10,
+                'KWD',
+                $source,
+                [['invoice_id' => (int) $invoice->getKey(), 'amount' => 10]],
+            );
+            $this->fail('An out-of-scope invoice allocation must never post.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('allocations', $exception->errors());
+        }
+    }
+
+    private function invoice(int $storeId, string $channel, string $number): Invoice
+    {
+        $user = User::factory()->create(['is_active' => true]);
+        $customer = Customer::query()->create([
+            'user_id' => $user->getKey(),
+            'type' => $channel,
+            'name' => 'P272 Synthetic Customer',
+            'email' => $user->email,
+        ]);
+
+        return Invoice::query()->create([
+            'store_id' => $storeId,
+            'customer_id' => $customer->getKey(),
+            'invoice_number' => $number,
+            'status' => 'issued',
+            'channel' => $channel,
+            'currency' => 'KWD',
+            'total' => 10,
+            'issued_at' => now(),
+        ]);
+    }
+
+    private function store(string $type, string $code): int
+    {
+        return (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', $type)->value('id'),
+            'code' => $code,
+            'name' => $code,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+}
