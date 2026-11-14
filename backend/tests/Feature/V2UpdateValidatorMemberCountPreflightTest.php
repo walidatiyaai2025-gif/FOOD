@@ -113,13 +113,14 @@ final class V2UpdateValidatorMemberCountPreflightTest extends TestCase
         (new UpdatePackageValidator)->validate($this->manifest(false), '1.1.0', $this->packagePath);
     }
 
-    public function test_non_zip_payload_still_follows_existing_hash_and_version_contract(): void
+    public function test_non_zip_payload_is_rejected_even_with_matching_hash_and_valid_versions(): void
     {
         file_put_contents($this->packagePath, 'non-zip test payload');
 
-        $result = (new UpdatePackageValidator)->validate($this->manifest(false), '1.1.0', $this->packagePath);
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('not a readable ZIP archive');
 
-        $this->assertSame('1.2.0', $result['target_version']);
+        (new UpdatePackageValidator)->validate($this->manifest(false), '1.1.0', $this->packagePath);
     }
 
     private function assertMemberBudgetDenied(bool $declaresMigrations): void
