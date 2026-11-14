@@ -180,7 +180,7 @@ final class CustomerInvoiceController extends Controller
                 ? $request->input('channel')
                 : $request->header('X-FOODEX-Customer-Domain');
             abort_unless(is_string($rawChannel), 404);
-            $channel = strtolower(trim($rawChannel));
+            $channel = strtolower(trim((string) $rawChannel));
             abort_unless(in_array($channel, ['b2b', 'b2c'], true), 404);
             abort_unless($channel === strtolower((string) $invoice->channel), 404);
         }
