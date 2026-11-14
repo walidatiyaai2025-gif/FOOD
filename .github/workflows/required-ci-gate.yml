@@ -253,7 +253,7 @@ jobs:
     uses: ./.github/workflows/enterprise-performance-gate.yml
     with:
       source_head: ${{ github.event.pull_request.head.sha }}
-      baseline_head: d171df2961687455f08c14b9419df83027edcbf0
+      baseline_head: d37204b58cf6ee604420f87bdfaf5f7d20c8f4c6
 
   backend-validation:
     name: Backend validation

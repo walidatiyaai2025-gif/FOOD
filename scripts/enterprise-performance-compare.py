@@ -179,6 +179,11 @@ def compare_reports(baseline: dict[str, Any], candidate: dict[str, Any]) -> dict
     if baseline["profile"] != candidate["profile"]:
         failures.append("profile mismatch between baseline and candidate")
 
+    # A runner-matched source comparison must measure the same fixture counts.
+    # Never conceal changed workload composition behind a passing latency gate.
+    if baseline["dataset"] != candidate["dataset"]:
+        failures.append("dataset mismatch between baseline and candidate")
+
     baseline_environment_key = comparison_environment_key(baseline)
     candidate_environment_key = comparison_environment_key(candidate)
     if baseline_environment_key != candidate_environment_key:

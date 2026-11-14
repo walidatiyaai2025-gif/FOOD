@@ -175,6 +175,38 @@ class EnterprisePerformanceCompareTest(unittest.TestCase):
         self.assertTrue(any("missing baseline scenario" in item for item in result["failures"]))
         self.assertTrue(any("no accepted baseline" in item for item in result["failures"]))
 
+    def test_sqlite_minor_drift_fails_without_runtime_pairing(self) -> None:
+        baseline = report(source="a" * 40, baseline=None)
+        baseline["environment"]["php"] = "8.3.35"
+        baseline["environment"]["database"] = "sqlite 3.45.1"
+        candidate = report(source="b" * 40, baseline="a" * 40)
+        candidate["environment"]["php"] = "8.3.36"
+        candidate["environment"]["database"] = "sqlite 3.46.1"
+
+        result = MODULE.compare_reports(baseline, candidate)
+        self.assertEqual("FAIL", result["status"])
+        self.assertTrue(any("environment fingerprint mismatch" in message for message in result["failures"]))
+
+        candidate["environment"] = copy.deepcopy(baseline["environment"])
+        self.assertEqual("PASS", MODULE.compare_reports(baseline, candidate)["status"])
+
+    def test_paired_fixture_mismatch_fails_even_with_matching_runtime(self) -> None:
+        baseline = report(source="a" * 40, baseline=None)
+        candidate = report(source="b" * 40, baseline="a" * 40)
+        candidate["dataset"]["stores"] += 1
+        result = MODULE.compare_reports(baseline, candidate)
+        self.assertEqual("FAIL", result["status"])
+        self.assertIn("dataset mismatch between baseline and candidate", result["failures"])
+
+    def test_matching_paired_runtime_still_rejects_p95_p99_query_and_memory_regressions(self) -> None:
+        baseline = report(source="a" * 40, baseline=None)
+        candidate = report(source="b" * 40, baseline="a" * 40,
+                           p95=130.0, p99=156.0, queries=13, peak_bytes=70_000_000)
+        result = MODULE.compare_reports(baseline, candidate)
+        self.assertEqual("FAIL", result["status"])
+        failed = {check["name"] for check in result["scenarios"][0]["checks"] if check["status"] == "FAIL"}
+        self.assertEqual({"p95", "p99", "query_count", "memory"}, failed)
+
     def test_github_php_patch_drift_is_equivalent_but_minor_drift_fails(self) -> None:
         baseline = report(source="a" * 40, baseline=None)
         baseline["environment"]["php"] = "8.3.35"
