@@ -56,6 +56,7 @@ final class VanVisitLifecycleService
 
                 if (
                     $order === null
+                    || (string) $order->channel !== (string) $locked->customer_type
                     || (int) $order->{$customerColumn} !== (int) $locked->customer_id
                     || (
                         $locked->store_id !== null
@@ -63,7 +64,7 @@ final class VanVisitLifecycleService
                     )
                 ) {
                     throw ValidationException::withMessages([
-                        'order_id' => ['The order must belong to the same authoritative customer/store scope as the visit.'],
+                        'order_id' => [__('van_visit_guard.order_customer_store_channel_mismatch')],
                     ]);
                 }
             }
