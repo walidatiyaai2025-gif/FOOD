@@ -17,6 +17,8 @@ Canonical `VanRegistryService::suspend()` previously required only a non-null ta
 
 New `backend/tests/Feature/V2VanSuspensionTransferTargetGuardTest.php` covers self-target and suspended-target rejection without source/assignment mutation; successful distinct active target with target ID lower than source; unloaded suspension; AR/EN localized no-target denial. Existing VanRegistryServiceTest and temporal suspension tests remain part of full Laravel CI. Required final-head GitHub Actions: Repository Policy, FOODEX V2 Isolation, Required CI including PHP lint/Pint/PHPStan/security/OpenAPI, Laravel full test suite, AR/EN and MySQL/Redis fresh-install/upgrade/recovery.
 
+Customer/Driver/Van impact: Customer has no public API or Flutter change; Driver has no API/Flutter or B2C dispatch change; Van has no Flutter/API contract change, but B2B transfer-reference validation is stricter in the existing authorized Dashboard flow. No new app code or mobile issue is necessary for a contract-preserving service guard.
+
 ## Per-surface classification
 
 | Surface | Impact |
