@@ -52,11 +52,22 @@ class AdminReportController extends Controller
 
     private function storeScope(Request $request, User $user): ?int
     {
-        if ($user->hasRole('SUPER_ADMIN')) {
-            return $request->filled('store_id') ? $request->integer('store_id') : null;
+        $isSuperAdmin = $user->hasRole('SUPER_ADMIN');
+        // Only an absent store_id allows platform-wide Super Admin reporting.
+        // A supplied array or malformed scalar must never become null or be
+        // coerced into another store's identifier.
+        if ($isSuperAdmin && ! $request->exists('store_id')) {
+            return null;
         }
-        $requested = $request->integer('store_id');
-        if ($requested <= 0) {
+
+        $rawStoreId = $request->input('store_id');
+        $requested = is_int($rawStoreId) && $rawStoreId > 0 ? $rawStoreId : null;
+        if (is_string($rawStoreId) && preg_match('/^[1-9][0-9]*$/D', $rawStoreId) === 1) {
+            $parsed = filter_var($rawStoreId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $requested = $parsed === false ? null : $parsed;
+        }
+
+        if ($requested === null) {
             $locale = in_array($user->locale, ['ar', 'en'], true) ? $user->locale : app()->getLocale();
             // Symfony may synthesize a default language when no Accept-Language
             // header was supplied; that must not override the user's locale.
@@ -74,6 +85,10 @@ class AdminReportController extends Controller
 
             throw ValidationException::withMessages(['store_id' => [__('reports.store_required', [], $locale)]]);
         }
+        if ($isSuperAdmin) {
+            return $requested;
+        }
+
         abort_unless($user->hasPermission('reports.view', $requested), 403);
         abort_unless($user->storeRoleAssignments()->where('store_id', $requested)->exists(), 403);
 

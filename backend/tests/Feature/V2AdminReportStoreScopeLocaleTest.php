@@ -67,6 +67,82 @@ final class V2AdminReportStoreScopeLocaleTest extends TestCase
             ->assertJsonPath('data.store_id', null);
     }
 
+    public function test_malformed_store_selection_never_coerces_or_bypasses_store_admin_scope(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$ownStore, $foreignStore] = $this->twoStores();
+        $user = $this->storeAdmin($ownStore, 'ar');
+        Sanctum::actingAs($user);
+
+        $this->withHeader('Accept-Language', 'ar-KW,ar;q=0.9');
+        foreach ([
+            'store_id%5B%5D='.$ownStore,
+            'store_id=',
+            'store_id=%20',
+            'store_id=0',
+            'store_id=-1',
+            'store_id=01',
+            'store_id=1abc',
+            'store_id=1e0',
+            'store_id=999999999999999999999999999999999999',
+        ] as $query) {
+            $this->getJson('/api/v1/admin/reports/dashboard?'.$query)
+                ->assertUnprocessable()
+                ->assertJsonPath('errors.store_id.0', __('reports.store_required', [], 'ar'));
+        }
+
+        $this->getJson('/api/v1/admin/reports/dashboard?store_id='.$foreignStore)
+            ->assertForbidden();
+
+        $this->getJson('/api/v1/admin/reports/dashboard?store_id='.$ownStore)
+            ->assertOk()
+            ->assertJsonPath('data.scope', 'store')
+            ->assertJsonPath('data.store_id', $ownStore);
+    }
+
+    public function test_super_admin_requires_valid_supplied_store_instead_of_global_fallback(): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+        [$ownStore] = $this->twoStores();
+        $admin = User::query()->create([
+            'name' => 'V2 Strict Report Super',
+            'email' => 'v2-strict-report-super@example.test',
+            'password' => 'password',
+            'locale' => 'en',
+            'is_active' => true,
+        ]);
+        $admin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+        Sanctum::actingAs($admin);
+
+        // Omission alone retains the existing privileged global summary.
+        $this->getJson('/api/v1/admin/reports/dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.scope', 'platform')
+            ->assertJsonPath('data.store_id', null);
+
+        $this->withHeader('Accept-Language', 'en-US,en;q=0.8');
+        foreach ([
+            'store_id%5B%5D='.$ownStore,
+            'store_id=',
+            'store_id=%20',
+            'store_id=0',
+            'store_id=-1',
+            'store_id=01',
+            'store_id=1abc',
+            'store_id=1e0',
+            'store_id=999999999999999999999999999999999999',
+        ] as $query) {
+            $this->getJson('/api/v1/admin/reports/dashboard?'.$query)
+                ->assertUnprocessable()
+                ->assertJsonPath('errors.store_id.0', __('reports.store_required', [], 'en'));
+        }
+
+        $this->getJson('/api/v1/admin/reports/dashboard?store_id='.$ownStore)
+            ->assertOk()
+            ->assertJsonPath('data.scope', 'store')
+            ->assertJsonPath('data.store_id', $ownStore);
+    }
+
     private function twoStores(): array
     {
         $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
