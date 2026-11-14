@@ -139,6 +139,21 @@ PHP;
         ], $state->progress());
     }
 
+    public function test_initial_checkpoint_uses_same_lock_and_does_not_regenerate_token(): void
+    {
+        $state = app(InstallState::class);
+        $this->assertFileDoesNotExist($this->directory.'/progress.json');
+
+        $state->markStepComplete(1);
+        $progress = $state->progress();
+
+        $this->assertFileExists($this->directory.'/token.lock');
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $progress['token']);
+        $this->assertSame(1, $progress['completed_step']);
+        $this->assertSame($progress['token'], $state->token());
+        $this->assertSame($progress, $state->progress());
+    }
+
     public function test_replayed_older_step_never_drops_admin_or_rotates_token(): void
     {
         $state = app(InstallState::class);
