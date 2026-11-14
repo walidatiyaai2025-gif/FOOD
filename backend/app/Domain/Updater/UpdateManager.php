@@ -64,7 +64,7 @@ final class UpdateManager
                     'package_integrity' => 'pending',
                     'preflight' => 'pending',
                     'backup_files' => 'pending',
-                    'backup_database' => $manifest->containsMigrations ? 'pending' : 'not_required',
+                    'backup_database' => 'pending',
                     'migrations' => $manifest->containsMigrations ? 'pending' : 'not_required',
                     'health_check' => 'pending',
                     'rollback_files' => 'not_required',
@@ -99,14 +99,19 @@ final class UpdateManager
                 ]);
 
                 $stage = 'backup_database';
-                $databaseBackup = $this->runtime->backupDatabase($manifest->containsMigrations);
-                if ($databaseBackup !== null) {
-                    $stage = 'verify_database_backup';
-                    $this->runtime->verifyDatabaseBackup($databaseBackup);
+                // Cache rebuild reconciles persisted job-role grants even when
+                // this ZIP declares no migrations. Every update must therefore
+                // have a verified database snapshot before files are activated.
+                $databaseBackup = $this->runtime->backupDatabase(true);
+                if ($databaseBackup === null) {
+                    throw new RuntimeException('Database backup is required for every system update.');
                 }
+
+                $stage = 'verify_database_backup';
+                $this->runtime->verifyDatabaseBackup($databaseBackup);
                 $this->checkpoint($history, [
-                    'backup_database' => $databaseBackup !== null ? 'passed' : 'not_required',
-                    'backup_verification' => $databaseBackup !== null ? 'passed' : 'not_required',
+                    'backup_database' => 'passed',
+                    'backup_verification' => 'passed',
                     'database_backup' => $this->backupDescriptor($databaseBackup),
                 ], [
                     'database_backup_reference' => $databaseBackup,
