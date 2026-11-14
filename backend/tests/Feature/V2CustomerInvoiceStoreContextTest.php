@@ -124,6 +124,13 @@ class V2CustomerInvoiceStoreContextTest extends TestCase
             ->getJson('/api/v1/invoices/'.$this->invoiceId.'?store_id=invalid')
             ->assertNotFound();
 
+        // ConvertEmptyStringsToNull must not make a present query key disappear.
+        $this->getJson('/api/v1/invoices/'.$this->invoiceId.'?store_id=')
+            ->assertNotFound();
+
+        $this->get('/api/v1/invoices/'.$this->invoiceId.'/download?store_id=')
+            ->assertNotFound();
+
         $this->get('/api/v1/invoices/'.$this->invoiceId.'/download?store_id=invalid')
             ->assertNotFound();
     }
