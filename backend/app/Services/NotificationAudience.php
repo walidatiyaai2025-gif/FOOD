@@ -157,6 +157,7 @@ final class NotificationAudience
         $isCustomer = $customerChannels->isNotEmpty();
         $isDriver = $driverChannels->isNotEmpty();
         $isVan = $user->hasPermission('van.login');
+        $vanContext = null;
 
         if (
             ! $isVan
@@ -165,6 +166,16 @@ final class NotificationAudience
             $vanContext = $this->vanRuntimeContexts->resolve($user)['selected'];
             $isVan = $vanContext !== null
                 && $this->vanRuntimeContexts->canUseRuntime($user, $vanContext);
+        }
+
+        // Van store eligibility is independent of the legacy Driver row.
+        // Keep authorized, selected B2B Van warehouse targeting intact.
+        $vanStoreIds = [];
+        if ($isVan) {
+            $vanContext ??= $this->vanRuntimeContexts->resolve($user)['selected'];
+            if ($vanContext !== null && $vanContext['store_id'] !== null) {
+                $vanStoreIds[] = (int) $vanContext['store_id'];
+            }
         }
 
         if ($isCustomer) {
@@ -214,6 +225,7 @@ final class NotificationAudience
             ->pluck('store_id'))
             ->merge(DB::table('b2c_customers')->where('user_id', $user->id)->pluck('store_id'))
             ->merge($eligibleDriver === null ? [] : [(int) $eligibleDriver->store_id])
+            ->merge($vanStoreIds)
             ->merge($dashboardStoreIds)
             ->merge(
                 DB::table('orders')
