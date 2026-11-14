@@ -96,4 +96,12 @@ final class DisplayNumberTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         DisplayNumber::quantity(1, -1);
     }
+
+    public function test_negative_fixed_precision_is_rejected_before_number_format(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('fractionDigits must be zero or greater.');
+
+        DisplayNumber::quantity(123.45, -1, preserveFixedPrecision: true);
+    }
 }
