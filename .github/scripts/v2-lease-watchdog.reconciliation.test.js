@@ -73,18 +73,23 @@ test('paginated exact-head check and workflow collections include later pages', 
 function harness(opts={}) {
   const issue = { number:2929, title:'V2 | AUTO-LEASE example', state:'open',
     labels: [{name:'worker:active'}, ...(opts.humanGate ? [{name:'gate:human'}] : [])] };
-  const mutations=[]; let branchReads=0, commentReads=0;
+  const mutations=[]; let branchReads=0, commentReads=0, prReads=0;
   const oldState = state(1,'2026-11-10T09:20:00Z');
   if (opts.claimPr) oldState.body+='\nPR: #4455 (DRAFT)';
   const freshState = state(2,'2026-11-10T09:59:00Z','worker-b');
   const matchingPr = { number:4455, merged:Boolean(opts.mergedPr),
     merged_at:opts.mergedPr?'2026-11-10T09:40:00Z':null,
+    state:opts.closedOriginalPr || opts.mergedPr ? 'closed' : 'open',
     base:{ref:opts.foreignPr?'main':'Foodex_V2'},
     head:{ref:opts.foreignPr?'feat/unrelated':'feat/2929-lease-tests'} };
   const terminalRuns=Array.from({length:100},(_,i)=>({id:i,head_sha:'old-head',status:'completed'}));
   const github = { rest: {
     search:{issuesAndPullRequests:async()=>({data:{items:[issue]}})},
-    pulls:{list:async()=>({data:[]}),get:async()=>({data:matchingPr})},
+    pulls:{list:async()=>({data:[]}),get:async()=>{
+      prReads++;
+      return {data:opts.originalPrClosesMidSweep&&prReads>1
+        ? {...matchingPr,state:'closed',merged:false,merged_at:null} : matchingPr};
+    }},
     issues:{
       listComments:async()=>{commentReads++;return {data:commentReads>1&&opts.newClaim?[oldState,freshState]:[oldState]};},
       get:async()=>({data:issue}),
@@ -146,6 +151,28 @@ test('merged PR does not override active queued CI or a racing successor lease',
 test('unmerged original PR keeps normal stale lease release behavior', async () => {
   const out=await sweep({claimPr:true,mergedPr:false});
   assert.deepEqual(out.mutations,['remove:worker:active','add:worker:handoff-ready','comment']);
+});
+test('closed unmerged original PR is approval-gated, never handed off or recreated', async () => {
+  const out=await sweep({claimPr:true,closedOriginalPr:true});
+  assert.deepEqual(out.result,{scanned:1,released:0,active:0});
+  assert.deepEqual(out.mutations,['remove:worker:active','add:gate:approval','comment']);
+  assert.equal(out.getBranchReads(),2);
+});
+test('closed original PR gate respects queued CI and a racing successor or branch', async () => {
+  for (const opts of [{queuedCi:true},{runningWorkflow:true},{newClaim:true},{branchMoves:true}]) {
+    const out=await sweep({...opts,claimPr:true,closedOriginalPr:true});
+    assert.equal(out.result.released,0);
+    assert.deepEqual(out.mutations,[],JSON.stringify(opts));
+  }
+});
+test('unrelated or foreign closed PR cannot be used to gate an Issue lease', async () => {
+  const out=await sweep({claimPr:true,closedOriginalPr:true,foreignPr:true});
+  assert.deepEqual(out.mutations,['remove:worker:active','add:worker:handoff-ready','comment']);
+});
+test('administrative PR closure racing with stale release aborts handoff', async () => {
+  const out=await sweep({claimPr:true,originalPrClosesMidSweep:true});
+  assert.equal(out.result.released,0);
+  assert.deepEqual(out.mutations,[]);
 });
 test('unrelated merged PR cannot override issue lease or prevent normal expiry', async () => {
   const out=await sweep({claimPr:true,mergedPr:true,foreignPr:true});
