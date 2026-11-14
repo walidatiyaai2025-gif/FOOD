@@ -339,20 +339,53 @@ final class UpdateManager
             throw new RuntimeException('Updater execution lock could not be opened.');
         }
 
+        // Verify the opened inode, not just the previously checked path.
+        // A hard link passes is_link(), and an atomic path replacement may
+        // otherwise let two requests flock unrelated inodes.
+        $held = false;
+
+        try {
+            $this->assertExecutionLockIdentity($path, $lock);
+
+            if (! flock($lock, LOCK_EX | LOCK_NB)) {
+                throw new RuntimeException('Another system update is already running.');
+            }
+
+            $held = true;
+            $this->assertExecutionLockIdentity($path, $lock);
+            @chmod($path, 0600);
+            $this->assertExecutionLockIdentity($path, $lock);
+
+            return $lock;
+        } catch (Throwable $exception) {
+            if ($held) {
+                @flock($lock, LOCK_UN);
+            }
+
+            fclose($lock);
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @param  resource  $lock
+     */
+    private function assertExecutionLockIdentity(string $path, $lock): void
+    {
         clearstatcache(true, $path);
-        if (is_link($path)) {
-            fclose($lock);
-            throw new RuntimeException('Updater execution lock path cannot be a symbolic link.');
+        $opened = fstat($lock);
+        $current = @lstat($path);
+
+        if ($opened === false || $current === false
+            || ($opened['mode'] & 0170000) !== 0100000
+            || ($current['mode'] & 0170000) !== 0100000
+            || $opened['nlink'] !== 1
+            || $current['nlink'] !== 1
+            || $opened['dev'] !== $current['dev']
+            || $opened['ino'] !== $current['ino']) {
+            throw new RuntimeException('Updater execution lock path is not an exclusive regular file.');
         }
-
-        @chmod($path, 0600);
-
-        if (! flock($lock, LOCK_EX | LOCK_NB)) {
-            fclose($lock);
-            throw new RuntimeException('Another system update is already running.');
-        }
-
-        return $lock;
     }
 
     private function exceptionSummary(Throwable $exception): string
