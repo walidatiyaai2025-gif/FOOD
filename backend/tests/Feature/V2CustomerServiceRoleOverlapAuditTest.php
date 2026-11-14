@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -121,6 +122,74 @@ final class V2CustomerServiceRoleOverlapAuditTest extends TestCase
                 ->get(route('admin.security.index', ['section' => 'users']))
                 ->assertForbidden();
         }
+    }
+
+
+    public function test_authorized_consolidation_preserves_explicit_retail_scope_and_removes_stale_permission_overrides(): void
+    {
+        $admin = $this->actorWithRoles(['SUPER_ADMIN']);
+        $target = $this->actorWithRoles(['CUSTOMER_SERVICE_AGENT', 'CUSTOMER_SUPPORT']);
+        $agentRole = Role::query()->where('code', 'CUSTOMER_SERVICE_AGENT')->firstOrFail();
+        $retailRole = Role::query()->where('code', 'RETAIL_CUSTOMER_SUPPORT')->firstOrFail();
+
+        $retailStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'code' => 'V2-2769-RETAIL-OWNED',
+            'name' => 'V2 2769 Scoped Retail Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('user_store_roles')->insert([
+            'user_id' => $target->getKey(),
+            'store_id' => $retailStoreId,
+            'role_id' => $retailRole->getKey(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $target->getKey(),
+            'permission_id' => DB::table('permissions')->where('code', 'support.manage')->value('id'),
+            'scope_key' => 'global',
+            'store_id' => null,
+            'effect' => 'allow',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $target->forceFill(['has_permission_overrides' => true])->save();
+
+        $this->actingAs($admin)->put(route('admin.security.users.roles', $target), [
+            'global_role_ids' => [(int) $agentRole->getKey()],
+            'store_roles' => [
+                ['store_id' => $retailStoreId, 'role_id' => $retailRole->getKey()],
+            ],
+            'change_reason' => 'Reviewed role consolidation preserving an approved Retail assignment',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $target = $target->fresh();
+
+        $this->assertEqualsCanonicalizing(
+            ['CUSTOMER_SERVICE_AGENT'],
+            $target->roles()->pluck('code')->all(),
+        );
+        $this->assertDatabaseHas('user_store_roles', [
+            'user_id' => $target->getKey(),
+            'store_id' => $retailStoreId,
+            'role_id' => $retailRole->getKey(),
+        ]);
+        $this->assertSame(1, $target->storeRoleAssignments()->count());
+        $this->assertSame(0, DB::table('user_permission_overrides')->where('user_id', $target->getKey())->count());
+        $this->assertFalse((bool) $target->has_permission_overrides);
+        $this->assertFalse($target->hasPermission('support.manage'));
+        $this->assertTrue($target->hasPermission('orders.create'));
+        $this->assertDatabaseHas('audit_logs', [
+            'event' => 'user.roles_changed',
+            'user_id' => $admin->getKey(),
+            'auditable_type' => User::class,
+            'auditable_id' => $target->getKey(),
+        ]);
     }
 
     /** @param list<string> $roleCodes */
