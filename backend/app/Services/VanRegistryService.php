@@ -171,8 +171,6 @@ final class VanRegistryService
             ? trim((string) $attributes['territory_key'])
             : null;
 
-
-
         return DB::transaction(function () use ($actor, $assignment, $attributes, $from, $until, $type, $status, $territoryKey, $vanId): VanAssignment {
             // Use the same Van -> assignment lock order as suspend() so an edit
             // cannot restore an active assignment after suspension.
