@@ -14,6 +14,8 @@ The canonical `DriverTenantScope::eligibleRetailDriver($user)` now supplies both
   - Active driver at inactive Retail Store and inactive profile at Store B + legacy B2B Driver: no valid Driver audience or notification visibility.
 - No real device/account identifier, FCM credential, release package, production action or external notification delivery is involved.
 
+## MOBILE IMPACT — Customer/Driver/Van
+
 ## Cross-app and dashboard matrix
 
 | Surface | Classification |
