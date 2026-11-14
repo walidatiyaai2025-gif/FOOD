@@ -212,7 +212,8 @@ void main() {
     );
   });
 
-  test('Retail customer cannot reach Van catalog options or quote API', () async {
+  test('Retail customer cannot reach Van catalog options or quote API',
+      () async {
     var sent = 0;
     final repository = _repository((request) async {
       sent += 1;
