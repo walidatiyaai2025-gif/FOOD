@@ -106,6 +106,12 @@ final class FinanceAnalyticsService
             throw ValidationException::withMessages(['report' => ['Unsupported Finance report.']]);
         }
 
+        // Every report type below aggregates at legal-entity / company level.
+        // No posted source-to-store provenance exists for Retail GL, budget,
+        // tax or assets. A store-level Finance grant must never expose totals
+        // belonging to sibling stores sharing the same legal entity.
+        abort_if($context->isRetail(), 403);
+
         $scope = $this->authorizedScope($actor, $context);
         $period = $this->selectedPeriod($scope, $periodId);
         if ($period === null || (int) $period->id !== $periodId) {
