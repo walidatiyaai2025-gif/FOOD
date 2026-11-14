@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\GeographyNode;
 use App\Models\ServiceTerritory;
 use App\Models\User;
-use App\Models\Van;
 use App\Services\VanRegistryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
