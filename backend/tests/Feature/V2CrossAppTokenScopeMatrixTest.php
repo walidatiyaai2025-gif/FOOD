@@ -171,10 +171,17 @@ class V2CrossAppTokenScopeMatrixTest extends TestCase
 
         $registry = app(VanRegistryService::class);
         $van = $registry->createVan(['code' => 'V2-MOB-ALL01-VAN-'.(int) $user->getKey()]);
-        $registry->assign($user, $van, [
-            'driver_id' => $driver->getKey(),
+        // Model an old B2C-linked Van assignment explicitly. New writes via
+        // VanRegistryService reject this state, but token-scope tests must
+        // still protect accounts with pre-existing inconsistent records.
+        $legacyAssignment = $registry->assign($user, $van, [
+            'representative_user_id' => $user->getKey(),
             'assignment_type' => 'primary',
             'effective_from' => now()->subMinute(),
         ]);
+        $legacyAssignment->forceFill([
+            'driver_id' => $driver->getKey(),
+            'representative_user_id' => null,
+        ])->save();
     }
 }
