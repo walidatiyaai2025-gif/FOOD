@@ -67,7 +67,7 @@ class V2NotificationLiteralSearchTest extends TestCase
             $this->actingAs($admin)->get(route('admin.notifications.index', [
                 'q' => 'PUBLISHED-FILTER',
                 'status' => 'published',
-            ]))->assertOk()->assertSee('PUBLISHED-FILTER');
+            ]))->assertOk()->assertSee('PUBLISHED-FILTER English');
         }
 
         $this->assertEquals($before, DB::table('notifications')->orderBy('id')->get()->toArray());
