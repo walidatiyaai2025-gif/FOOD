@@ -58,11 +58,15 @@ class AdminReportController extends Controller
         $requested = $request->integer('store_id');
         if ($requested <= 0) {
             $locale = in_array($user->locale, ['ar', 'en'], true) ? $user->locale : app()->getLocale();
-            foreach ($request->getLanguages() as $preferredLanguage) {
-                $candidate = strtolower(substr((string) $preferredLanguage, 0, 2));
-                if (in_array($candidate, ['ar', 'en'], true)) {
-                    $locale = $candidate;
-                    break;
+            // Symfony may synthesize a default language when no Accept-Language
+            // header was supplied; that must not override the user's locale.
+            if ($request->headers->has('Accept-Language')) {
+                foreach ($request->getLanguages() as $preferredLanguage) {
+                    $candidate = strtolower(substr((string) $preferredLanguage, 0, 2));
+                    if (in_array($candidate, ['ar', 'en'], true)) {
+                        $locale = $candidate;
+                        break;
+                    }
                 }
             }
 
