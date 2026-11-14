@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="{{ $installerLocale }}" dir="{{ $installerLocale === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     @include('admin._brand')
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>FOODEX Installer</title>
+    <title>{{ __('installer.wizard.page_title') }}</title>
     <style>
         :root { color: #18212f; background: #f5f7fa; }
         * { box-sizing: border-box; }
@@ -16,6 +16,11 @@
         ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
         .step-link, .step-disabled { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 8px; color: inherit; text-decoration: none; font-size: 14px; }
         .step-link:hover, .step-link.active { background: #1f2937; }
+        .language-switch { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+        .language-option { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 14px; color: inherit; border: 1px solid #475569; border-radius: 8px; text-decoration: none; }
+        .language-option[aria-current="true"] { background: #1f2937; border-color: #cbd5e1; }
+        :is(a, button, input, select):focus-visible { outline: 3px solid #059669; outline-offset: 3px; }
+        .step-link, .step-disabled { min-height: 44px; }
         .step-disabled { color: #64748b; }
         .step-number { display: inline-grid; place-items: center; width: 26px; height: 26px; border: 1px solid #475569; border-radius: 999px; flex: 0 0 auto; }
         .done .step-number { background: #e2e8f0; color: #111827; border-color: #e2e8f0; }
@@ -31,34 +36,39 @@
         .fields { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; }
         label { display: grid; gap: 7px; font-size: 14px; font-weight: 700; }
         label.full { grid-column: 1 / -1; }
-        input, select { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 11px 12px; font: inherit; background: #fff; }
+        input, select { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 11px 12px; font: inherit; font-size: 16px; background: #fff; min-height: 44px; }
+        input[type="email"], input[type="url"], input[type="password"], input[type="number"], input[name="db_host"], input[name="db_database"], input[name="db_username"], input[name="redis_host"], input[name="mail_host"], input[name="mail_username"], input[name="mail_from_address"] { direction: ltr; text-align: start; }
         small { color: #64748b; font-weight: 400; }
         .actions { display: flex; justify-content: flex-start; gap: 10px; margin-top: 28px; }
-        button { border: 0; border-radius: 8px; background: #111827; color: white; padding: 12px 22px; font: inherit; font-weight: 700; cursor: pointer; }
+        button { border: 0; border-radius: 8px; background: #047857; color: white; padding: 12px 22px; font: inherit; font-weight: 700; min-height: 44px; cursor: pointer; }
         code { direction: ltr; unicode-bidi: embed; }
         ul { line-height: 1.8; }
-        @media (max-width: 820px) { .layout { grid-template-columns: 1fr; } aside { padding: 20px; } main { padding: 22px; } .fields { grid-template-columns: 1fr; } }
+        @media (max-width: 820px) { .layout { grid-template-columns: minmax(0, 1fr); } aside { padding: 12px 16px; } aside p { margin-bottom: 8px; } aside ol { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: 6px; } aside li { flex: 0 0 auto; } .step-link, .step-disabled { white-space: nowrap; } main { padding: 16px; } .card { padding: 22px; } .fields { grid-template-columns: minmax(0, 1fr); } }
     </style>
 </head>
 <body>
 <div class="layout">
     <aside>
         <h1>FOODEX</h1>
-        <p>FOODEX Setup Wizard<br>معالج الإعداد الأولي / First-run Setup Wizard</p>
+        <p>{{ __('installer.wizard.subtitle') }}</p>
+        <nav class="language-switch" aria-label="{{ __('installer.wizard.language_select') }}">
+            <a class="language-option" href="{{ route('install.index', ['step' => $currentStep, 'lang' => 'ar']) }}" hreflang="ar" aria-current="{{ $installerLocale === 'ar' ? 'true' : 'false' }}">{{ __('installer.wizard.language_ar') }}</a>
+            <a class="language-option" href="{{ route('install.index', ['step' => $currentStep, 'lang' => 'en']) }}" hreflang="en" aria-current="{{ $installerLocale === 'en' ? 'true' : 'false' }}">{{ __('installer.wizard.language_en') }}</a>
+        </nav>
         <ol>
             @foreach ($steps as $number => $item)
                 @php($done = $number <= $completedStep)
                 @php($available = $number <= $allowedStep)
                 <li class="{{ $done ? 'done' : '' }}">
                     @if ($available)
-                        <a class="step-link {{ $number === $currentStep ? 'active' : '' }}" href="{{ route('install.index', ['step' => $number]) }}">
+                        <a class="step-link {{ $number === $currentStep ? 'active' : '' }}" href="{{ route('install.index', array_filter(['step' => $number, 'lang' => $languageQuery])) }}" aria-current="{{ $number === $currentStep ? 'step' : 'false' }}">
                             <span class="step-number">{{ $number }}</span>
-                            <span>{{ $item['title'] }}</span>
+                            <span>{{ __('installer.steps.'.$item['slug'].'.title') }}</span>
                         </a>
                     @else
                         <span class="step-disabled">
                             <span class="step-number">{{ $number }}</span>
-                            <span>{{ $item['title'] }}</span>
+                            <span>{{ __('installer.steps.'.$item['slug'].'.title') }}</span>
                         </span>
                     @endif
                 </li>
@@ -68,13 +78,13 @@
 
     <main>
         <section class="card">
-            <p class="eyebrow">الخطوة {{ $currentStep }} من {{ count($steps) }}</p>
-            <h2>{{ $step['title'] }}</h2>
-            <p class="description">{{ $step['description'] }}</p>
+            <p class="eyebrow">{{ __('installer.wizard.step_counter', ['current' => $currentStep, 'total' => count($steps)]) }}</p>
+            <h2>{{ __('installer.steps.'.$step['slug'].'.title') }}</h2>
+            <p class="description">{{ __('installer.steps.'.$step['slug'].'.description') }}</p>
 
             @if ($errorMessages !== [])
                 <div class="error" role="alert">
-                    <strong>تعذر إكمال الخطوة.</strong>
+                    <strong>{{ __('installer.wizard.error') }}</strong>
                     <ul>
                         @foreach ($errorMessages as $error)
                             <li>{{ $error }}</li>
@@ -85,7 +95,7 @@
 
             @if ($currentStep === 2)
                 @if ($requirementFailures === [])
-                    <div class="success">متطلبات الخادم الأساسية متاحة.</div>
+                    <div class="success">{{ __('installer.wizard.requirements_ok') }}</div>
                 @else
                     <div class="error"><ul>@foreach ($requirementFailures as $failure)<li>{{ $failure }}</li>@endforeach</ul></div>
                 @endif
@@ -93,28 +103,28 @@
 
             @if ($currentStep === 3)
                 @if ($permissionFailures === [])
-                    <div class="success">مجلدات التشغيل المطلوبة قابلة للكتابة.</div>
+                    <div class="success">{{ __('installer.wizard.permissions_ok') }}</div>
                 @else
                     <div class="error"><ul>@foreach ($permissionFailures as $failure)<li>{{ $failure }}</li>@endforeach</ul></div>
                 @endif
             @endif
 
-            <form method="post" action="{{ route('install.step', ['step' => $currentStep]) }}" autocomplete="off">
+            <form method="post" action="{{ route('install.step', array_filter(['step' => $currentStep, 'lang' => $languageQuery])) }}" autocomplete="off">
                 <input type="hidden" name="installer_token" value="{{ $installerToken }}">
 
                 @if ($currentStep === 1)
-                    <div class="notice">سيتم تنفيذ الإعداد بالتتابع، ولن يتم عرض كلمات المرور المخزنة أو الأسرار مرة أخرى.</div>
+                    <div class="notice">{{ __('installer.wizard.welcome_notice') }}</div>
                 @elseif ($currentStep === 4)
-                    <div class="notice" dir="ltr">Production database: MySQL / MariaDB (default port 3306).</div>
+                    <div class="notice">{{ __('installer.wizard.database_notice') }}</div>
                     <div class="fields" dir="ltr">
                         <label>Database host<input name="db_host" value="{{ $input['db_host'] ?? ($values['DB_HOST'] ?: '127.0.0.1') }}" required></label>
                         <label>Port<input name="db_port" type="number" min="1" max="65535" value="{{ $input['db_port'] ?? ($values['DB_PORT'] ?: '3306') }}" required></label>
                         <label>Database<input name="db_database" value="{{ $input['db_database'] ?? ($values['DB_DATABASE'] ?: 'foodex') }}" required></label>
                         <label>Username<input name="db_username" value="{{ $input['db_username'] ?? ($values['DB_USERNAME'] ?: 'foodex') }}" required></label>
-                        <label class="full">Password<input name="db_password" type="password" value=""><small>Stored passwords are never rendered back.</small></label>
+                        <label class="full">Password<input name="db_password" type="password" value=""><small>{{ __('installer.wizard.password_notice') }}</small></label>
                     </div>
                 @elseif ($currentStep === 5)
-                    <div class="notice">سيتم اختبار اتصال قاعدة البيانات باستخدام الإعدادات المحفوظة.</div>
+                    <div class="notice">{{ __('installer.wizard.database_test_notice') }}</div>
                 @elseif ($currentStep === 6)
                     <div class="fields">
                         <label>اسم المنصة<input name="app_name" value="{{ $input['app_name'] ?? ($values['APP_NAME'] ?: 'FOODEX') }}" required></label>
@@ -190,20 +200,20 @@
                         <label>From name<input name="mail_from_name" value="{{ $input['mail_from_name'] ?? ($values['MAIL_FROM_NAME'] ?: 'FOODEX') }}" required></label>
                     </div>
                 @elseif ($currentStep === 11)
-                    <div class="notice">سيتم تشغيل migrations المعتمدة فقط باستخدام <code>--force</code>.</div>
+                    <div class="notice">{{ __('installer.wizard.migrations_notice') }}</div>
                 @elseif ($currentStep === 12)
-                    <div class="notice">سيتم تشغيل seed المعتمد للأدوار والصلاحيات والبيانات المرجعية الأساسية.</div>
+                    <div class="notice">{{ __('installer.wizard.seed_notice') }}</div>
                 @elseif ($currentStep === 13)
-                    <div class="notice">سيتم إنشاء <code>APP_KEY</code> جديد وآمن للتثبيت.</div>
+                    <div class="notice">{{ __('installer.wizard.key_notice') }}</div>
                 @elseif ($currentStep === 14)
-                    <div class="notice">سيتم التحقق من قاعدة البيانات والتخزين والـcache والـqueue قبل الإنهاء.</div>
+                    <div class="notice">{{ __('installer.wizard.health_notice') }}</div>
                 @elseif ($currentStep === 15)
-                    <div class="notice">سيتم إنشاء حساب Super Admin النهائي، تسجيل نسخة النظام، كتابة install lock، ثم إغلاق المعالج.</div>
+                    <div class="notice">{{ __('installer.wizard.finish_notice') }}</div>
                 @endif
 
                 <div class="actions">
                     <button type="submit">
-                        {{ $currentStep === 15 ? 'Finish / إنهاء التثبيت' : 'Continue / متابعة' }}
+                        {{ $currentStep === 15 ? __('installer.wizard.finish') : __('installer.wizard.continue') }}
                     </button>
                 </div>
             </form>
