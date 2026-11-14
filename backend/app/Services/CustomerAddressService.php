@@ -28,7 +28,7 @@ final class CustomerAddressService
         $platformCustomer = $this->platformCustomer($user);
 
         if ($platformCustomer instanceof PlatformCustomer) {
-            return Address::query()
+            $query = Address::query()
                 ->where(function (Builder $owned) use (
                     $platformCustomer,
                     $domainCustomer,
@@ -63,6 +63,24 @@ final class CustomerAddressService
                         $owned->orWhere('b2c_customer_id', $domainCustomer->getKey());
                     }
                 });
+
+            if ($channel === 'b2b') {
+                // An imported address can carry both identifiers. Neither the
+                // platform nor the domain FK may contradict the other owner.
+                // Keep nullable legacy identifiers and old channel markers.
+                $query->where(function (Builder $platformScope) use ($platformCustomer): void {
+                    $platformScope->whereNull('platform_customer_id')
+                        ->orWhere('platform_customer_id', $platformCustomer->getKey());
+                })->where(function (Builder $domainScope) use ($domainCustomer): void {
+                    $domainScope->whereNull('b2b_customer_id');
+
+                    if ($domainCustomer instanceof B2bCustomer) {
+                        $domainScope->orWhere('b2b_customer_id', $domainCustomer->getKey());
+                    }
+                });
+            }
+
+            return $query;
         }
 
         abort_unless(
