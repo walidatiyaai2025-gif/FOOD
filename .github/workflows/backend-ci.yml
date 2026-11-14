@@ -34,8 +34,8 @@ jobs:
           restore-keys: |
             composer-${{ runner.os }}-
 
-      - name: Validate Composer manifest
-        run: composer validate --strict --no-check-lock
+      - name: Validate pinned Composer manifest and lock
+        run: composer validate --strict --no-check-publish
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
