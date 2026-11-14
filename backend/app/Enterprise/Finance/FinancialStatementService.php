@@ -500,6 +500,11 @@ final class FinancialStatementService
 
     private function authorizedScope(User $actor, ResolvedTenantContext $context): EnterpriseDataScope
     {
+        // Trial balance, P&L and balance sheet are posted-GL legal-entity
+        // aggregates, not store statements. Posted ledger has no immutable
+        // store provenance: a Retail store grant is insufficient to inspect
+        // another store's accounting entries inside the same entity.
+        abort_if($context->isRetail(), 403);
         abort_if($context->enterpriseScope === null, 409, 'Enterprise data scope is required.');
         $scope = $context->enterpriseScope;
         $this->authorizer->authorize(
