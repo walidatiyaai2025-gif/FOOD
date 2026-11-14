@@ -84,6 +84,12 @@ jobs:
           python3 ../../scripts/configure-mobile-native.py --app "${{ matrix.app }}" --app-dir . --platform android
           rm -f test/widget_test.dart
           flutter pub get
+      - name: Validate real bilingual accessibility and keyboard interactions
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter test test/localization_test.dart --reporter expanded
+          flutter test test/v2_accessibility_e2e_test.dart --reporter expanded
       - name: Pin official Gradle distribution origin
         shell: bash
         run: |
