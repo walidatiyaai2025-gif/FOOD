@@ -112,7 +112,7 @@ final class V2UpdaterNonMigrationDatabaseBackupTest extends TestCase
 
         $history = UpdateHistory::query()->where('to_version', '1.1.0')->firstOrFail();
         $this->assertSame('failed', $history->status);
-        $this->assertSame('rebuild_caches', $history->failed_stage);
+        $this->assertSame('clear_and_rebuild_cache', $history->failed_stage);
         $this->assertSame('succeeded', $history->rollback_status);
         $this->assertSame('passed', $history->execution_evidence['rollback_files'] ?? null);
         $this->assertSame('passed', $history->execution_evidence['rollback_database'] ?? null);
