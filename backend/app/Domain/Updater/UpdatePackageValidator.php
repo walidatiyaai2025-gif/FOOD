@@ -43,7 +43,12 @@ final class UpdatePackageValidator
 
             if ($archive->open($packagePath) === true) {
                 try {
-                    $maxMembers = max(1, (int) config('foodex.update_max_zip_members', 50000));
+                    // Standalone PHPUnit unit tests exercise this validator
+                    // without booting Laravel's config repository.
+                    $configuredMaxMembers = app()->bound('config')
+                        ? config('foodex.update_max_zip_members', 50000)
+                        : 50000;
+                    $maxMembers = max(1, (int) $configuredMaxMembers);
                     if ($archive->numFiles > $maxMembers) {
                         throw new InvalidArgumentException('Update archive exceeds the allowed member count.');
                     }
