@@ -93,6 +93,40 @@ class V2SetupStagingVerifierTest(unittest.TestCase):
                 with self.assertRaisesRegex(SetupZipError, "Private|Runtime"):
                     self.verify()
 
+    def test_unicode_path_extra_cannot_override_safe_zip_member_name(self) -> None:
+        # A valid ZIP central path could be extracted as a private .env file
+        # if another extractor trusts Info-ZIP's 0x7075 alternate filename.
+        # An intentionally bad CRC demonstrates Python ignores that alias.
+        alternate = b"\x01" + (0).to_bytes(4, "little") + b"backend/.env.local"
+        extra = (0x7075).to_bytes(2, "little") + len(alternate).to_bytes(2, "little") + alternate
+        member = zipfile.ZipInfo("backend/public/safe.php")
+        member.external_attr = (stat.S_IFREG | 0o644) << 16
+        member.extra = extra
+        with zipfile.ZipFile(self.archive, "a") as archive:
+            archive.writestr(member, b"<?php // no secret")
+        with zipfile.ZipFile(self.archive) as archive:
+            self.assertEqual("backend/public/safe.php", archive.getinfo(member.filename).filename)
+            self.assertIsNone(archive.testzip())
+        with self.assertRaisesRegex(SetupZipError, "Ambiguous Unicode Path"):
+            self.verify()
+
+    def test_safe_extra_timestamp_metadata_does_not_block_staging_zip(self) -> None:
+        member = zipfile.ZipInfo("backend/public/normal.php")
+        member.external_attr = (stat.S_IFREG | 0o644) << 16
+        member.extra = (0x5455).to_bytes(2, "little") + (1).to_bytes(2, "little") + b"\x00"
+        with zipfile.ZipFile(self.archive, "a") as archive:
+            archive.writestr(member, b"<?php // normal")
+        self.assertEqual("UNTRUSTED_CI_STAGING_ONLY", self.verify()["status"])
+
+    def test_malformed_extra_field_length_fails_closed(self) -> None:
+        member = zipfile.ZipInfo("backend/public/unsafe.php")
+        member.external_attr = (stat.S_IFREG | 0o644) << 16
+        member.extra = b"\x34\x12\x03\x00\x01"
+        with zipfile.ZipFile(self.archive, "a") as archive:
+            archive.writestr(member, b"<?php")
+        with self.assertRaisesRegex(SetupZipError, "Malformed|invalid Setup ZIP"):
+            self.verify()
+
     def test_unsafe_cross_platform_member_names_rejected(self) -> None:
         for entry in (
             "../outside.php",
