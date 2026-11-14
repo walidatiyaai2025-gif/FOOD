@@ -87,6 +87,17 @@ final class RbacManager
         // The audit and lifecycle mutation form one DB transaction. A failed
         // audit write must not leave an untraceable archive or revoked session.
         return DB::transaction(function () use ($target, $actor, $active, $reason, $request): User {
+            if (! $active) {
+                // Lock the same persistent row as role demotions before re-reading
+                // the live Super Admin count. Two independent offboarding requests
+                // must never both pass the last-admin preflight on stale snapshots.
+                $this->lockSuperAdminRoleForMutation();
+                $target->refresh();
+                if ($this->isLastActiveSuperAdmin($target)) {
+                    throw ValidationException::withMessages(['is_active' => [__('admin.security.errors.last_super_admin')]]);
+                }
+            }
+
             // The archival transition cannot strand active Driver or Van work.
             // This is checked at the canonical mutation boundary, not only in UI.
             if (! $active && (bool) $target->is_active && $this->hasOpenOperationalAssignments($target)) {
@@ -242,7 +253,17 @@ final class RbacManager
 
         $before = $this->userSnapshot($target);
 
-        DB::transaction(function () use ($target, $globalRoleIds, $storeRoles, $assignmentsChanged): void {
+        DB::transaction(function () use ($target, $globalRoleIds, $storeRoles, $assignmentsChanged, $newHasSuperAdmin): void {
+            if (! $newHasSuperAdmin) {
+                // Both role removal and account deactivation synchronize on the
+                // same DB row, then recheck against the committed state.
+                $this->lockSuperAdminRoleForMutation();
+                $target->refresh();
+                if ($this->isLastActiveSuperAdmin($target)) {
+                    throw ValidationException::withMessages(['global_role_ids' => [__('admin.security.errors.last_super_admin_role')]]);
+                }
+            }
+
             $target->roles()->sync($globalRoleIds);
             $target->storeRoleAssignments()->delete();
 
@@ -667,6 +688,19 @@ final class RbacManager
             ->whereIn('status', ['planned', 'started'])
             ->whereNull('closed_at')
             ->exists();
+    }
+
+    /**
+     * Serialize all mutations capable of removing a SUPER_ADMIN identity.
+     * This must be called inside the same transaction as the live recheck and
+     * write. SQLite serializes test writes; MySQL/MariaDB use FOR UPDATE.
+     */
+    private function lockSuperAdminRoleForMutation(): void
+    {
+        Role::query()
+            ->where('code', 'SUPER_ADMIN')
+            ->lockForUpdate()
+            ->first(['id']);
     }
 
     public function isLastActiveSuperAdmin(User $target): bool
