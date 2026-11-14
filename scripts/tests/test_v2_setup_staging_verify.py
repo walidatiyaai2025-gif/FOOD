@@ -68,6 +68,31 @@ class V2SetupStagingVerifierTest(unittest.TestCase):
                 with self.assertRaisesRegex(SetupZipError, "Secret|Private|Runtime|Source control"):
                     self.verify()
 
+    def test_empty_laravel_private_storage_directories_are_allowed_but_files_are_not(self) -> None:
+        # Fresh Laravel expects these folders to exist, but no upload,
+        # private key, cache/session or production log may be prepackaged.
+        self.pack()
+        with zipfile.ZipFile(self.archive, "a") as archive:
+            for name in (
+                "backend/storage/app/private/",
+                "backend/storage/app/system/",
+                "backend/storage/logs/",
+            ):
+                member = zipfile.ZipInfo(name)
+                member.external_attr = (stat.S_IFDIR | 0o755) << 16
+                archive.writestr(member, b"")
+        self.assertEqual("UNTRUSTED_CI_STAGING_ONLY", self.verify()["status"])
+
+        for file in (
+            "backend/storage/app/private/customer-upload.json",
+            "backend/storage/app/system/installed-secrets.json",
+            "backend/storage/logs/laravel.log",
+        ):
+            with self.subTest(file=file):
+                self.pack({file: b"private runtime data"})
+                with self.assertRaisesRegex(SetupZipError, "Private|Runtime"):
+                    self.verify()
+
     def test_unsafe_cross_platform_member_names_rejected(self) -> None:
         for entry in (
             "../outside.php",
