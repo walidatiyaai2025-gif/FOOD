@@ -119,14 +119,19 @@ final class OrderOperationsController extends Controller
         $perPage = (int) ($data['per_page'] ?? 25);
 
         $scopes = $this->operationalScopes($actor, $operationalChannel, 'orders.view');
-        $manageScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.manage');
-        $dispatchScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.dispatch');
-        $financeScopes = $this->operationalScopes($actor, $operationalChannel, 'finance.view');
+        // OperationalTenantScope returns the identical active-store set for every
+        // permission for an active SUPER_ADMIN. Reuse that read-only snapshot in
+        // this request instead of re-querying stores for each list action.
+        // All other actors retain independent permission-specific scope checks.
+        $superAdminScopes = $actor->is_active && $actor->hasRole('SUPER_ADMIN') ? $scopes : null;
+        $manageScopes = $superAdminScopes ?? $this->operationalScopes($actor, $operationalChannel, 'orders.manage');
+        $dispatchScopes = $superAdminScopes ?? $this->operationalScopes($actor, $operationalChannel, 'orders.dispatch');
+        $financeScopes = $superAdminScopes ?? $this->operationalScopes($actor, $operationalChannel, 'finance.view');
         $approvedDiscountsMode = ($data['discount_view'] ?? null) === 'approved';
         $pendingDiscountsMode = ($data['discount_view'] ?? null) === 'pending';
         $discountDecisionMode = $approvedDiscountsMode || $pendingDiscountsMode;
-        $discountRequestScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.customer_service_discount');
-        $discountApprovalScopes = $this->operationalScopes($actor, $operationalChannel, 'orders.approve');
+        $discountRequestScopes = $superAdminScopes ?? $this->operationalScopes($actor, $operationalChannel, 'orders.customer_service_discount');
+        $discountApprovalScopes = $superAdminScopes ?? $this->operationalScopes($actor, $operationalChannel, 'orders.approve');
         $discountReadScopes = [];
         foreach (['b2b', 'b2c'] as $channel) {
             $discountReadScopes[$channel] = array_values(array_intersect(
