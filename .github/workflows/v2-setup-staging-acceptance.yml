@@ -26,6 +26,8 @@ jobs:
     name: Build immutable PR ZIP and fresh MySQL install
     runs-on: ubuntu-latest
     timeout-minutes: 65
+    env:
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
     services:
       mysql:
         image: mysql:8.4
@@ -53,6 +55,7 @@ jobs:
       - name: Checkout exact pull-request commit
         uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - name: Set up PHP and Composer
         uses: shivammathur/setup-php@v2
@@ -70,6 +73,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF_NAME" != main
+          test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"
           test -f backend/composer.lock
           composer validate --working-dir=backend --strict --no-check-publish
           composer install --working-dir=backend --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
@@ -96,6 +100,7 @@ jobs:
           import hashlib
           import json
           import os
+          import subprocess
           from pathlib import Path, PurePosixPath
           import stat
           import zipfile
@@ -134,12 +139,14 @@ jobs:
               "schema_version": 1,
               "status": "UNTRUSTED_CI_STAGING_ONLY",
               "signed": False,
-              "source_commit": os.environ["GITHUB_SHA"],
+              "source_commit": os.environ["PR_HEAD_SHA"],
               "version": actual_version,
               "file": path.name,
               "bytes": path.stat().st_size,
               "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
           }
+          if subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip() != info["source_commit"]:
+              raise SystemExit("ZIP source commit is not the exact PR head")
           Path("Release/V2_SETUP_STAGING_EVIDENCE.json").write_text(
               json.dumps(info, indent=2) + "\n", encoding="utf-8"
           )
@@ -155,7 +162,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          CURRENT_VERSION="$(tr -d '[:space:]' < VERSION)" bash scripts/validate-fresh-setup.sh
+          GITHUB_SHA="$PR_HEAD_SHA" CURRENT_VERSION="$(tr -d '[:space:]' < VERSION)" bash scripts/validate-fresh-setup.sh
       - name: Upload isolated validation evidence, never publish Release
         uses: actions/upload-artifact@v4
         with:
