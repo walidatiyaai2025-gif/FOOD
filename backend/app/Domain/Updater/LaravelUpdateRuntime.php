@@ -857,9 +857,18 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             throw new RuntimeException('Update archive contains an unsafe path.');
         }
 
-        if ($normalized === '.env'
-            || str_ends_with($normalized, '/.env')
-            || preg_match('#(^|/)(storage|vendor|\.git)(/|$)#', $normalized) === 1) {
+        // Treat every live dotenv variant as protected runtime state, not
+        // release source. Explicit *.example templates are versioned defaults,
+        // never the active credentials. Check each component so a ZIP cannot
+        // replace a private dotenv directory or exploit case-insensitive hosts.
+        foreach (explode('/', $normalized) as $component) {
+            if (preg_match('/^\.env(?:\.[^\/]+)?$/i', $component) === 1
+                && preg_match('/^\.env(?:\.[A-Za-z0-9_-]+)*\.example$/', $component) !== 1) {
+                throw new RuntimeException('Update archive targets a protected runtime path.');
+            }
+        }
+
+        if (preg_match('#(^|/)(storage|vendor|\.git)(/|$)#i', $normalized) === 1) {
             throw new RuntimeException('Update archive targets a protected runtime path.');
         }
 
