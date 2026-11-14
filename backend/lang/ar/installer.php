@@ -153,6 +153,9 @@ return [
         'email' => 'أدخل عنوانًا صالحًا لحقل :attribute.',
         'url' => 'أدخل رابط http أو https صالحًا لحقل :attribute.',
         'in' => 'الخيار المحدد في :attribute غير صالح.',
+        'between.numeric' => 'يجب أن تكون قيمة :attribute بين :min و:max.',
+        'min.string' => 'يجب أن يحتوي :attribute على :min أحرف على الأقل.',
+        'max.string' => 'يجب ألا يتجاوز :attribute :max حرفًا.',
         'confirmed' => 'تأكيد :attribute غير مطابق.',
     ],
 ];
