@@ -41,13 +41,14 @@ final class LiveAdController extends Controller
         $search = trim((string) $request->query('q', ''));
         $channel = strtolower(trim((string) $request->query('channel', '')));
         $status = trim((string) $request->query('status', ''));
+        $literalSearch = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
 
         $ads = $this->visibleAds($actor)
             ->with(['store:id,name'])
-            ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $nested) use ($search): void {
-                $nested->where('name', 'like', '%'.$search.'%')
-                    ->orWhere('title_ar', 'like', '%'.$search.'%')
-                    ->orWhere('title_en', 'like', '%'.$search.'%');
+            ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $nested) use ($literalSearch): void {
+                $nested->whereRaw("name LIKE ? ESCAPE '!'", [$literalSearch])
+                    ->orWhereRaw("title_ar LIKE ? ESCAPE '!'", [$literalSearch])
+                    ->orWhereRaw("title_en LIKE ? ESCAPE '!'", [$literalSearch]);
             }))
             ->when(in_array($channel, ['b2b', 'b2c'], true), fn (Builder $query) => $query->where('channel', $channel))
             ->when($status === 'active', fn (Builder $query) => $query->where('is_active', true))
