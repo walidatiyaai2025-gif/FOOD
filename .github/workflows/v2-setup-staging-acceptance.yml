@@ -1,0 +1,150 @@
+# G004: untrusted, nonpublishing Setup ZIP acceptance on the exact V2 PR head.
+# This does not sign packages or authorize a release/production installation.
+name: FOODEX V2 Setup ZIP staging acceptance
+
+on:
+  pull_request:
+    branches:
+      - Foodex_V2
+    paths:
+      - '.github/workflows/v2-setup-staging-acceptance.yml'
+      - 'backend/composer.json'
+      - 'backend/composer.lock'
+      - 'backend/app/Domain/Installer/**'
+      - 'backend/database/**'
+      - 'scripts/validate-fresh-setup.sh'
+      - 'scripts/v2_setup_staging_verify.py'
+      - 'scripts/tests/test_v2_setup_staging_verify.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v2-setup-acceptance-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-install-from-zip:
+    name: Build immutable PR ZIP and fresh MySQL install
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: foodex_acceptance
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+
+    steps:
+      - name: Checkout exact pull-request commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Set up PHP and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, zip
+          tools: composer:v2
+          coverage: none
+      - name: Set up Node for existing browser installation test
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Verify locked production dependencies and stage canonical ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" != main
+          test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"
+          bash -n scripts/validate-fresh-setup.sh
+          test -f backend/composer.lock
+          composer validate --working-dir=backend --strict --no-check-publish
+          composer install --working-dir=backend --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
+          test -s backend/vendor/autoload.php
+          stage="$(mktemp -d)"
+          trap 'rm -rf "$stage"' EXIT
+          mkdir -p "$stage/backend" Release
+          rsync -a backend/ "$stage/backend/" \
+            --exclude='.env' \
+            --exclude='tests/' \
+            --exclude='docs/' \
+            --exclude='.phpunit.cache/' \
+            --exclude='storage/logs/*' \
+            --exclude='storage/app/private/*' \
+            --exclude='storage/app/public/*' \
+            --exclude='storage/app/system/*' \
+            --exclude='storage/framework/sessions/*' \
+            --exclude='storage/framework/cache/*' \
+            --exclude='storage/framework/views/*' \
+            --exclude='storage/framework/testing/*' \
+            --exclude='bootstrap/cache/*'
+          # Preserve required empty Laravel directories without shipping
+          # runtime sessions, cached secrets or compiled config/views.
+          mkdir -p "$stage/backend/storage/app/public" \
+            "$stage/backend/storage/framework/sessions" \
+            "$stage/backend/storage/framework/cache/data" \
+            "$stage/backend/storage/framework/views" \
+            "$stage/backend/storage/framework/testing" \
+            "$stage/backend/bootstrap/cache"
+          rm -f "$stage/backend/bootstrap/cache/"*.php
+          cp VERSION "$stage/VERSION"
+          cp Release/INSTALL-FIRST.txt "$stage/INSTALL-FIRST.txt"
+          # zip(1) updates an existing archive without removing absent source
+          # members. A tracked/leftover Setup ZIP could therefore reintroduce
+          # previously packaged private files even after rsync exclusions.
+          # Always build a fresh archive from the current exact PR source.
+          rm -f "$GITHUB_WORKSPACE/Release/FOODEX-Laravel-Setup.zip"
+          test ! -e "$GITHUB_WORKSPACE/Release/FOODEX-Laravel-Setup.zip"
+          (cd "$stage" && zip -qr "$GITHUB_WORKSPACE/Release/FOODEX-Laravel-Setup.zip" .)
+      - name: Verify ZIP security, secret exclusion and source checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s scripts/tests -p 'test_v2_setup_staging_verify.py'
+          test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"
+          python3 scripts/v2_setup_staging_verify.py \
+            --zip Release/FOODEX-Laravel-Setup.zip \
+            --version-file VERSION \
+            --source-commit "$PR_HEAD_SHA" \
+            --evidence Release/V2_SETUP_STAGING_EVIDENCE.json
+      - name: Install Chromium for canonical fresh-setup UI checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Fresh install from packaged ZIP into clean MySQL and Redis
+        shell: bash
+        run: |
+          set -euo pipefail
+          GITHUB_SHA="$PR_HEAD_SHA" CURRENT_VERSION="$(tr -d '[:space:]' < VERSION)" bash scripts/validate-fresh-setup.sh
+      - name: Upload isolated validation evidence, never publish Release
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2-setup-zip-staging-evidence
+          path: |
+            Release/FOODEX-Laravel-Setup.zip
+            Release/V2_SETUP_STAGING_EVIDENCE.json
+            Release/FRESH_INSTALL_EVIDENCE.json
+          if-no-files-found: error
+          retention-days: 7

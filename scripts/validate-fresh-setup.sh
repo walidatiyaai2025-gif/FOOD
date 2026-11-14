@@ -141,6 +141,27 @@ if ($mode === 'finish') {
         throw new RuntimeException('Expected seeded B2B store was not returned after fresh setup.');
     }
 
+    // Fresh-install Van operations use Wholesale customers and an explicitly
+    // scoped B2B warehouse. Legacy Retail fixtures below are isolation-only.
+    $b2bCustomerId = (int) $db::table('b2b_customers')->insertGetId([
+        'name' => 'Fresh Van Wholesale Customer',
+        'phone' => '9000011111',
+        'email' => 'fresh-van-wholesale@example.test',
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+    $b2bWarehouseId = (int) $db::table('warehouses')->insertGetId([
+        'store_id' => $b2bStoreId,
+        'code' => 'FRESH-VAN-B2B-WH',
+        'name' => 'Fresh Van Wholesale Warehouse',
+        'is_active' => true,
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+    if ($b2bCustomerId <= 0 || $b2bWarehouseId <= 0) {
+        throw new RuntimeException('Fresh Wholesale customer or warehouse was not created.');
+    }
+
     $b2bCatalogId = (int) $db::table('catalogs')->insertGetId([
         'store_id' => $b2bStoreId,
         'channel' => 'b2b',
@@ -379,6 +400,8 @@ if ($mode === 'finish') {
     file_put_contents('/tmp/foodex-fresh-fixture.json', json_encode([
         'store_id' => $storeId,
         'b2b_store_id' => $b2bStoreId,
+        'b2b_customer_id' => $b2bCustomerId,
+        'b2b_warehouse_id' => $b2bWarehouseId,
         'owner_id' => $owner->id,
         'product_id' => $productId,
         'customer_id' => $domainCustomerId,
@@ -504,19 +527,19 @@ eval "$(python3 - <<'PY'
 import json, shlex
 path='/tmp/foodex-fresh-fixture.json'
 data=json.load(open(path))
-required=['store_id','b2b_store_id','owner_id','product_id','customer_id','flash_offer_id','flash_offer_product_id','owner_token','customer_token','flags']
+required=['store_id','b2b_store_id','b2b_customer_id','b2b_warehouse_id','owner_id','product_id','customer_id','flash_offer_id','flash_offer_product_id','owner_token','customer_token','flags']
 missing=[key for key in required if key not in data]
 if missing:
     detail=' Expected seeded B2B store was not returned after fresh setup.' if 'b2b_store_id' in missing else ''
     raise SystemExit(f"Fresh-install fixture missing required keys: {missing}.{detail}")
-for key in ['store_id','b2b_store_id','owner_id','product_id','customer_id','flash_offer_id','flash_offer_product_id']:
+for key in ['store_id','b2b_store_id','b2b_customer_id','b2b_warehouse_id','owner_id','product_id','customer_id','flash_offer_id','flash_offer_product_id']:
     try:
         value=int(data[key])
     except (TypeError, ValueError):
         raise SystemExit(f"Fresh-install fixture key {key} is not a valid integer ID: {data[key]!r}")
     if value <= 0:
         raise SystemExit(f"Fresh-install fixture key {key} is not a real positive ID: {value}")
-for key in ['store_id','b2b_store_id','owner_id','product_id','customer_id','flash_offer_id','flash_offer_product_id','owner_token','customer_token']:
+for key in ['store_id','b2b_store_id','b2b_customer_id','b2b_warehouse_id','owner_id','product_id','customer_id','flash_offer_id','flash_offer_product_id','owner_token','customer_token']:
     print(f"{key.upper()}={shlex.quote(str(data[key]))}")
 flags=data['flags']
 assert all(flags.get(k) is True for k in [
@@ -525,10 +548,15 @@ assert all(flags.get(k) is True for k in [
 PY
 )"
 
-test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/admin-home.html -w '%{http_code}' http://127.0.0.1:8099/admin)" = "200"
-grep -Fq 'Product Sales Control' /tmp/admin-home.html
-grep -Fq 'Flash Offers' /tmp/admin-home.html
-grep -Fq 'Van &amp; Field Operations' /tmp/admin-home.html || grep -Fq 'Van & Field Operations' /tmp/admin-home.html
+# P130: the freshly provisioned SUPER_ADMIN belongs on the control plane.
+# Preserve the authenticated redirect instead of treating it as a broken install.
+test "$(curl -sS -b /tmp/foodex-cookies.txt -D /tmp/admin-landing.headers -o /tmp/admin-landing.html -w '%{http_code}' http://127.0.0.1:8099/admin)" = "302"
+grep -Eiq '^Location: (https?://[^/]+)?/admin/administration([?][^[:space:]]*)?' /tmp/admin-landing.headers
+test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/admin-home.html -w '%{http_code}' http://127.0.0.1:8099/admin/administration)" = "200"
+grep -Fq 'data-admin-hub="true"' /tmp/admin-home.html
+grep -Fq 'data-admin-app="customer"' /tmp/admin-home.html
+grep -Fq 'data-admin-app="driver"' /tmp/admin-home.html
+grep -Fq 'data-admin-app="van"' /tmp/admin-home.html
 
 declare -A field_pages=(
   [overview]="/admin/field-operations"
@@ -598,7 +626,7 @@ PY
 
 # Avoid a boundary race where the just-created assignment can be a fraction of a second ahead of now().
 EFFECTIVE_FROM="$(date -u -d '1 minute ago' '+%Y-%m-%dT%H:%M:%S+00:00')"
-test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/assignment-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "representative_user_id=$OWNER_ID"             --data-urlencode "territory_key=FRESH-TERR"             --data-urlencode "assignment_type=primary"             --data-urlencode "effective_from=$EFFECTIVE_FROM"             --data-urlencode "loaded_work_count=0"             "http://127.0.0.1:8099/admin/field-operations/vans/$VAN_ID/assignments")" = "302"
+test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/assignment-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "representative_user_id=$OWNER_ID"             --data-urlencode "warehouse_id=$B2B_WAREHOUSE_ID"             --data-urlencode "territory_key=FRESH-TERR"             --data-urlencode "assignment_type=primary"             --data-urlencode "effective_from=$EFFECTIVE_FROM"             --data-urlencode "loaded_work_count=0"             "http://127.0.0.1:8099/admin/field-operations/vans/$VAN_ID/assignments")" = "302"
 
 test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-assignments-populated.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/assignments)" = "200"
 python3 - <<'PY'
@@ -622,12 +650,12 @@ print(matches[0])
 PY
 )"
 
-test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/visit-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "assignment_id=$ASSIGNMENT_ID"             --data-urlencode "customer_type=b2c"             --data-urlencode "customer_id=$CUSTOMER_ID"             --data-urlencode "planned_at=$EFFECTIVE_FROM"             --data-urlencode "route_key=FRESH-ROUTE"             http://127.0.0.1:8099/admin/field-operations/visits)" = "302"
+test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/visit-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "assignment_id=$ASSIGNMENT_ID"             --data-urlencode "customer_type=b2b"             --data-urlencode "customer_id=$B2B_CUSTOMER_ID"             --data-urlencode "store_id=$B2B_STORE_ID"             --data-urlencode "planned_at=$EFFECTIVE_FROM"             --data-urlencode "route_key=FRESH-ROUTE"             http://127.0.0.1:8099/admin/field-operations/visits)" = "302"
 
 test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-visits-populated.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/visits)" = "200"
-grep -Fq 'Fresh Van Customer' /tmp/field-visits-populated.html
+grep -Fq 'Fresh Van Wholesale Customer' /tmp/field-visits-populated.html
 test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-customers-populated.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/customers)" = "200"
-grep -Fq 'Fresh Van Customer' /tmp/field-customers-populated.html
+grep -Fq 'Fresh Van Wholesale Customer' /tmp/field-customers-populated.html
 grep -Fq 'FRESH-VAN-UI' /tmp/field-customers-populated.html
 test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-van-detail.html -w '%{http_code}' "http://127.0.0.1:8099/admin/field-operations/vans/$VAN_ID")" = "200"
 grep -Fq 'Assignment history' /tmp/field-van-detail.html
