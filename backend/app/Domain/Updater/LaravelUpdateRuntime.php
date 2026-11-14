@@ -821,7 +821,17 @@ final class LaravelUpdateRuntime implements UpdateRuntime
         // Never stage server-executable scripts or handler configuration
         // there, including Apache multi-extension names like foo.php.jpg.
         // Laravel's own backend/public/index.php remains a valid release file.
-        if (preg_match('#^(assets|brand|demo|preview)/#i', $normalized) === 1
+        $staticMirror = preg_match('#^(assets|brand|demo|preview)/#i', $normalized) === 1;
+        $laravelPublic = preg_match('#^backend/public/#i', $normalized) === 1;
+        // Keep Laravel's exact front controller and root rewrite config.
+        // All other scripts and handler overrides inside the served webroot
+        // are unsafe to stage even from a signed ZIP release.
+        $laravelBootstrap = in_array($normalized, [
+            'backend/public/index.php',
+            'backend/public/.htaccess',
+        ], true);
+
+        if (($staticMirror || ($laravelPublic && ! $laravelBootstrap))
             && (preg_match('#(?:^|/)[^/]*\.(?:php[0-9]*|phtml|phar|cgi|pl|py|sh|asp|aspx|jsp)(?:\.|$)#i', $normalized) === 1
                 || preg_match('#(?:^|/)(?:\.htaccess|\.user\.ini|web\.config)(?:\.|$)#i', $normalized) === 1)) {
             throw new RuntimeException('Update archive targets an executable public asset path.');
