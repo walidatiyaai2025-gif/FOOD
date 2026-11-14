@@ -4,12 +4,16 @@ class VanCustomerScope {
     required this.id,
     required this.name,
     required this.storeId,
+    this.canDirectSell = false,
   });
 
   final String type;
   final int id;
   final String name;
   final int storeId;
+
+  /// Server-authoritative direct-sale eligibility; missing means denied.
+  final bool canDirectSell;
 }
 
 class VanInvoiceBalance {

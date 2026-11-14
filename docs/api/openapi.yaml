@@ -2699,11 +2699,46 @@ paths:
         "409": { description: Retry is not allowed from the current execution state }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /van/customers:
+    get:
+      tags: [Van Fulfillment]
+      summary: List Van visit customers for collection, with current direct-sale eligibility
+      description: Historical/closed visit customers remain visible for collection. The can_direct_sell flag is true only for an actor-owned planned or started Wholesale visit in the selected Van store; it never grants HTTP sale authority by itself.
+      operationId: listVanVisitCustomers
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Customer history with server-authoritative direct-sale eligibility
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [type, id, name, store_id, can_direct_sell]
+                      properties:
+                        type: { type: string, enum: [b2b, b2c] }
+                        id: { type: integer }
+                        name: { type: string }
+                        phone: { type: [string, "null"] }
+                        email: { type: [string, "null"] }
+                        store_id: { type: [integer, "null"] }
+                        can_direct_sell:
+                          type: boolean
+                          description: True only for an actor-owned planned/started B2B visit in the current seller store; absent/false must disable Van checkout.
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
   /van/customers/{type}/{customer}/catalog:
     get:
       tags: [Van Fulfillment]
       summary: Get authorized B2B Van direct-sale catalog for a visited customer
-      description: Requires effective Van assignment, B2B customer type and an actor-owned visit at the current seller store. Legacy B2C or another store's visits return 404.
+      description: Requires effective Van assignment, B2B customer type and an actor-owned planned or started visit at the current seller store. Completed/closed, B2C and other-store visits return 404.
       operationId: getVanDirectSaleCatalog
       security:
         - bearerAuth: []
