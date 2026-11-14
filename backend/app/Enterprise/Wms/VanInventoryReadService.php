@@ -75,6 +75,9 @@ final class VanInventoryReadService
         );
         $storeId = (int) $warehouse->store_id;
         abort_unless($this->tenantScope->storeChannel($storeId) === 'b2b', 404);
+        // Inventory access does not itself grant authority to inspect a Van.
+        // A store-scoped Van permission DENY must override global B2B roles.
+        $this->tenantScope->assertStore($actor, $storeId, 'drivers.b2b.view', 'b2b');
 
         $stock = DB::table('inventories as inventory')
             ->join('products as product', 'product.id', '=', 'inventory.product_id')
