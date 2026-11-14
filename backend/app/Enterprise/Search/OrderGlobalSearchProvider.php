@@ -19,11 +19,12 @@ final class OrderGlobalSearchProvider implements GlobalSearchProvider
         }
 
         $displayId = DisplayNumber::referenceId($query);
+        $literalPattern = LiteralLikePattern::contains($query);
         $rows = DB::table('orders')
             ->join('stores', 'stores.id', '=', 'orders.store_id')
             ->whereIn('orders.store_id', $storeIds)
-            ->where(function ($builder) use ($query, $displayId): void {
-                $builder->where('orders.order_number', 'like', '%'.$query.'%');
+            ->where(function ($builder) use ($literalPattern, $displayId): void {
+                $builder->whereRaw("orders.order_number LIKE ? ESCAPE '!'", [$literalPattern]);
                 if ($displayId !== null) {
                     $builder->orWhere('orders.id', $displayId);
                 }
