@@ -122,8 +122,12 @@ final class CustomerInvoiceController extends Controller
 
     private function assertRequestedContext(Request $request, Invoice $invoice): void
     {
-        $storeId = $request->input('store_id') ?? $request->query('store_id') ?? $request->header('X-FOODEX-Store-ID');
-        if ($storeId !== null) {
+        // Laravel may normalize an explicitly empty query value to null.
+        // Track key presence so an invalid input cannot fall back to a header.
+        $hasInputStoreId = array_key_exists('store_id', $request->all());
+        $hasHeaderStoreId = $request->headers->has('X-FOODEX-Store-ID');
+        $storeId = $hasInputStoreId ? $request->input('store_id') : $request->header('X-FOODEX-Store-ID');
+        if ($hasInputStoreId || $hasHeaderStoreId) {
             // A supplied but malformed store context must never bypass the
             // requested-store boundary, including when it shadows a valid header.
             abort_unless(is_string($storeId) || is_int($storeId), 404);
