@@ -29,14 +29,20 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             throw new RuntimeException('Release root is not writable.');
         }
 
+        // Validate the fully expanded archive before trusting the compressed
+        // ZIP length as a disk-space estimate. A highly compressible payload
+        // must not exhaust shared-host storage during staging/rollback.
+        $expandedBytes = 0;
+        $entries = $this->archiveEntries($packagePath, $expandedBytes);
         $backupRoot = $this->backupRoot();
         $freeSpace = disk_free_space($backupRoot);
-        if ($freeSpace === false || $freeSpace < ($packageSize * 3)) {
+        if ($freeSpace === false
+            || $freeSpace < max($packageSize * 3, $expandedBytes * 2)) {
             throw new RuntimeException('Insufficient free disk space for safe update and rollback.');
         }
 
         // Reject symlinks before creating any backup or changing live files.
-        foreach ($this->archiveEntries($packagePath) as $relativePath) {
+        foreach ($entries as $relativePath) {
             $this->assertSafeReleaseTarget($relativePath);
         }
 
@@ -213,6 +219,12 @@ final class LaravelUpdateRuntime implements UpdateRuntime
 
         try {
             foreach ($this->archiveEntriesFrom($archive) as $relativePath) {
+                $stat = $archive->statName($relativePath);
+                $expectedSize = is_array($stat) ? ($stat['size'] ?? null) : null;
+                if (! is_int($expectedSize) || $expectedSize < 0) {
+                    throw new RuntimeException('Update archive entry length could not be read.');
+                }
+
                 $stream = $archive->getStream($relativePath);
                 if (! is_resource($stream)) {
                     throw new RuntimeException('Update archive entry could not be read.');
@@ -230,13 +242,16 @@ final class LaravelUpdateRuntime implements UpdateRuntime
                     throw new RuntimeException('Update file could not be staged.');
                 }
 
-                $copied = stream_copy_to_stream($stream, $destination);
+                // Bound actual decompression, not only ZIP central-directory
+                // claims: extra data and truncated streams must fail before
+                // the temporary file can be activated.
+                $copied = stream_copy_to_stream($stream, $destination, $expectedSize + 1);
                 fclose($stream);
                 fclose($destination);
 
-                if ($copied === false) {
+                if ($copied === false || $copied !== $expectedSize) {
                     @unlink($temporary);
-                    throw new RuntimeException('Update file could not be written.');
+                    throw new RuntimeException('Update archive entry size does not match its metadata.');
                 }
 
                 @chmod($temporary, 0644);
@@ -670,12 +685,12 @@ final class LaravelUpdateRuntime implements UpdateRuntime
     /**
      * @return array<int, string>
      */
-    private function archiveEntries(string $packagePath): array
+    private function archiveEntries(string $packagePath, ?int &$expandedBytes = null): array
     {
         $archive = $this->openArchive($packagePath);
 
         try {
-            return $this->archiveEntriesFrom($archive);
+            return $this->archiveEntriesFrom($archive, $expandedBytes);
         } finally {
             $archive->close();
         }
@@ -684,10 +699,16 @@ final class LaravelUpdateRuntime implements UpdateRuntime
     /**
      * @return array<int, string>
      */
-    private function archiveEntriesFrom(ZipArchive $archive): array
+    private function archiveEntriesFrom(ZipArchive $archive, ?int &$expandedBytes = null): array
     {
         $entries = [];
         $seen = [];
+        $expandedBytes = 0;
+
+        // Configurable for verified larger releases, but always positive and
+        // finite: a tiny ZIP must not unpack an unlimited volume of files.
+        $maxEntry = max(1, (int) config('foodex.update_max_entry_uncompressed_bytes', 268435456));
+        $maxTotal = max(1, (int) config('foodex.update_max_total_uncompressed_bytes', 1073741824));
 
         for ($index = 0; $index < $archive->numFiles; $index++) {
             $name = $archive->getNameIndex($index);
@@ -718,6 +739,20 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             if (str_ends_with($name, '/')) {
                 continue;
             }
+
+            $stat = $archive->statIndex($index);
+            $memberBytes = is_array($stat) ? ($stat['size'] ?? null) : null;
+            if (! is_int($memberBytes) || $memberBytes < 0) {
+                throw new RuntimeException('Update archive entry length could not be read.');
+            }
+
+            // Subtract first to avoid integer overflow when accumulating ZIP
+            // central-directory sizes on 64-bit PHP.
+            if ($memberBytes > $maxEntry || $memberBytes > $maxTotal - $expandedBytes) {
+                throw new RuntimeException('Update archive exceeds the allowed expanded size.');
+            }
+
+            $expandedBytes += $memberBytes;
 
             // Two different ZIP member names can normalize to the same live
             // target (e.g. forward/backslash aliases). Never silently choose
