@@ -431,6 +431,10 @@ final class UpdateManager
         while ($current !== null && $depth < 3) {
             $message = trim(preg_replace('/\s+/', ' ', $current->getMessage()) ?? '');
             if ($message !== '') {
+                // Exception text is persisted to UpdateHistory and audit entries.
+                // Redact credentials BEFORE retaining any diagnostic details.
+                $message = $this->redactSecrets($message);
+
                 // Do not expose absolute server paths in UI/audit-visible failure text.
                 $message = preg_replace(
                     '#(?<![A-Za-z0-9._-])/(?:[^\s:()]+/)+[^\s:()]+#',
@@ -456,6 +460,35 @@ final class UpdateManager
         return $parts !== []
             ? implode(' | Caused by: ', $parts)
             : class_basename($exception);
+    }
+
+    /**
+     * Updater failures are shown in the Admin update history and stored in
+     * execution evidence. Never persist credential values copied from an
+     * underlying SQL/HTTP/provider exception.
+     */
+    private function redactSecrets(string $message): string
+    {
+        $patterns = [
+            '#\b([a-z][a-z0-9+.-]*://)[^/\s@]+@#i' => '$1[REDACTED]@',
+            '/\b(Authorization\s*[:=]\s*)(?:(?:Bearer|Basic)\s+)?\S+/i' => '$1[REDACTED]',
+            '/\b(Bearer\s+)\S+/i' => '$1[REDACTED]',
+            '/\b((?:(?:DB|MAIL|REDIS|SMTP|AWS|STRIPE|PAYMENT)_)?(?:PASSWORD|PASS|TOKEN|SECRET|API_KEY|APP_KEY|ACCESS_KEY|PRIVATE_KEY))\s*([=:])\s*(?:"[^"]*"|\x27[^\x27]*\x27|[^\s,;)\]}]+)/i' => '$1$2[REDACTED]',
+        ];
+
+        foreach ($patterns as $pattern => $replacement) {
+            $redacted = preg_replace($pattern, $replacement, $message);
+
+            if (! is_string($redacted)) {
+                // Fail closed if a regex ever fails (e.g. invalid UTF-8 or
+                // processing limit); never fall back to the original secret.
+                return '[sensitive error details redacted]';
+            }
+
+            $message = $redacted;
+        }
+
+        return $message;
     }
 
     /**
