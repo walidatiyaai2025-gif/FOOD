@@ -154,4 +154,55 @@ class V2CustomerInvoiceStoreContextTest extends TestCase
         $this->get('/api/v1/invoices/'.$this->invoiceId.'/download?store_id='.$this->storeId)
             ->assertNotFound();
     }
+
+    public function test_channel_context_accepts_owned_matching_or_omitted_context(): void
+    {
+        $this->getJson('/api/v1/invoices/'.$this->invoiceId)
+            ->assertOk()
+            ->assertJsonPath('data.id', $this->invoiceId);
+
+        $this->getJson('/api/v1/invoices/'.$this->invoiceId.'?channel=B2C')
+            ->assertOk()
+            ->assertJsonPath('data.channel', 'b2c');
+
+        $this->get('/api/v1/invoices/'.$this->invoiceId.'/download?channel=b2c&locale=ar')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+
+        $this->withHeader('X-FOODEX-Customer-Domain', ' b2c ')
+            ->getJson('/api/v1/invoices/'.$this->invoiceId)
+            ->assertOk()
+            ->assertJsonPath('data.id', $this->invoiceId);
+    }
+
+    public function test_malformed_supplied_channel_context_is_404_on_detail_and_pdf(): void
+    {
+        // A valid header must not hide an explicitly malformed query value.
+        $this->withHeader('X-FOODEX-Customer-Domain', 'b2c');
+
+        foreach (['', ' ', 'van', 'b2b', 'b2c,b2b', '0'] as $badChannel) {
+            $query = '?channel='.rawurlencode($badChannel);
+
+            $this->getJson('/api/v1/invoices/'.$this->invoiceId.$query)
+                ->assertNotFound();
+
+            $this->get('/api/v1/invoices/'.$this->invoiceId.'/download'.$query)
+                ->assertNotFound();
+        }
+
+        $arrayQuery = '?channel%5B%5D=b2c';
+        $this->getJson('/api/v1/invoices/'.$this->invoiceId.$arrayQuery)
+            ->assertNotFound();
+        $this->get('/api/v1/invoices/'.$this->invoiceId.'/download'.$arrayQuery)
+            ->assertNotFound();
+
+        $this->withHeader('X-FOODEX-Customer-Domain', 'van')
+            ->getJson('/api/v1/invoices/'.$this->invoiceId)
+            ->assertNotFound();
+
+        $this->get('/api/v1/invoices/'.$this->invoiceId.'/download')
+            ->assertNotFound();
+
+        $this->assertDatabaseCount('invoices', 1);
+    }
 }

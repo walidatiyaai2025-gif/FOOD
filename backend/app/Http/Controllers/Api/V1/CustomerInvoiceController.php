@@ -170,10 +170,17 @@ final class CustomerInvoiceController extends Controller
             abort_unless($requestedStoreId !== null && (int) $invoice->store_id === $requestedStoreId, 404);
         }
 
-        $channel = strtolower(trim((string) (
-            $request->input('channel') ?? $request->query('channel') ?? $request->header('X-FOODEX-Customer-Domain', '')
-        )));
-        if ($channel !== '') {
+        // A supplied channel must be a valid scalar context. Casting an
+        // array to string would surface a PHP warning instead of a safe 404;
+        // an explicitly empty query must not silently fall back to a header.
+        $hasInputChannel = array_key_exists('channel', $request->all());
+        $hasHeaderChannel = $request->headers->has('X-FOODEX-Customer-Domain');
+        if ($hasInputChannel || $hasHeaderChannel) {
+            $rawChannel = $hasInputChannel
+                ? $request->input('channel')
+                : $request->header('X-FOODEX-Customer-Domain');
+            abort_unless(is_string($rawChannel), 404);
+            $channel = strtolower(trim((string) $rawChannel));
             abort_unless(in_array($channel, ['b2b', 'b2c'], true), 404);
             abort_unless($channel === strtolower((string) $invoice->channel), 404);
         }
