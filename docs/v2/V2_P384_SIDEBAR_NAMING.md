@@ -18,7 +18,13 @@ Source: FOODEX Unified RBAC/ERP/Sidebar document, native paragraph P371 (legacy 
 | `admin.catalog_management` | إدارة المنتجات والتصنيفات |
 | `admin.retail_store_provisioning` | تهيئة متاجر التجزئة |
 
-These are label changes to currently represented concepts, not authority for the 177 target Sidebar items or for opening unready ERP modules. Existing custom Sidebar names intentionally take precedence when configured; no destructive live database rewrite is performed.
+These are label changes to currently represented concepts, not authority for the 177 target Sidebar items or for opening unready ERP modules.
+
+## P384 catalog wording reconciliation (#3428)
+
+The earlier merged #2904 implementation and its `V2ArabicSidebarNamingTest` were accidentally out of sync with this source table: the Arabic `admin.nav_groups.catalog` label still showed «الكتالوج والتسعير والعروض». The isolated #3428 change restores the explicitly documented canonical «المنتجات والكتالوج» without creating new navigation, altering the English translation, or rewriting saved bilingual Sidebar overrides. Existing `V2ArabicSidebarNamingTest` now asserts the rendered Arabic **and English** catalog group labels through the actual authorized `AdminNavigation::groupsFor` projection; its existing authorized/denied HTTP and bilingual override cases still apply. The full-current-registry native-locale checks from #3365 and #3420 remain independent.
+
+Dashboard desktop and off-canvas mobile share the same server-projected group label, with RTL/LTR preserved. Customer, Driver and Van have **no public API, authentication, dispatch, data-contract or Flutter change**. B2B=VAN ONLY and B2C=DRIVER ONLY remain unchanged. CI on exact PR head must certify Laravel/security, AR/EN, and MySQL/Redis before #3428 can close; #2904 and #2503 remain independently gated for wider source acceptance and final V2 UAT. Existing custom Sidebar names intentionally take precedence when configured; no destructive live database rewrite is performed.
 
 ## Authorization, tests and app-impact classification
 

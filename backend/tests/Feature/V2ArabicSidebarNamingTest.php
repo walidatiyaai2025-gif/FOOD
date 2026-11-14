@@ -25,7 +25,7 @@ class V2ArabicSidebarNamingTest extends TestCase
         $arabicLabels = [
             'admin.customer_360' => 'العملاء 360',
             'admin.nav_groups.erp' => 'تخطيط موارد المؤسسة (ERP)',
-            'admin.nav_groups.catalog' => 'الكتالوج والتسعير والعروض',
+            'admin.nav_groups.catalog' => 'المنتجات والكتالوج',
             'admin.nav_groups.advertising' => 'الإعلانات',
             'admin.nav_groups.analytics' => 'التقارير والتحليلات',
             'admin.catalog_management' => 'إدارة المنتجات والتصنيفات',
@@ -67,6 +67,11 @@ class V2ArabicSidebarNamingTest extends TestCase
         $catalog = collect($arabicGroups)->firstWhere('key', 'catalog');
         $this->assertNotNull($catalog);
         $this->assertSame('admin.nav_groups.catalog', $catalog['label']);
+        $this->assertSame('المنتجات والكتالوج', $catalog['label_text']);
+
+        $englishCatalog = collect($englishGroups)->firstWhere('key', 'catalog');
+        $this->assertNotNull($englishCatalog);
+        $this->assertSame(__('admin.nav_groups.catalog', [], 'en'), $englishCatalog['label_text']);
         $catalogItem = collect($catalog['children'])->firstWhere('key', 'catalog_management');
         $this->assertNotNull($catalogItem);
         $this->assertSame('admin.catalog.index', $catalogItem['route']);
