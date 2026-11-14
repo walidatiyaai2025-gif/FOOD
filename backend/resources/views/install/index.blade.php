@@ -116,88 +116,88 @@
                     <div class="notice">{{ __('installer.wizard.welcome_notice') }}</div>
                 @elseif ($currentStep === 4)
                     <div class="notice">{{ __('installer.wizard.database_notice') }}</div>
-                    <div class="fields" dir="ltr">
-                        <label>Database host<input name="db_host" value="{{ $input['db_host'] ?? ($values['DB_HOST'] ?: '127.0.0.1') }}" required></label>
-                        <label>Port<input name="db_port" type="number" min="1" max="65535" value="{{ $input['db_port'] ?? ($values['DB_PORT'] ?: '3306') }}" required></label>
-                        <label>Database<input name="db_database" value="{{ $input['db_database'] ?? ($values['DB_DATABASE'] ?: 'foodex') }}" required></label>
-                        <label>Username<input name="db_username" value="{{ $input['db_username'] ?? ($values['DB_USERNAME'] ?: 'foodex') }}" required></label>
-                        <label class="full">Password<input name="db_password" type="password" value=""><small>{{ __('installer.wizard.password_notice') }}</small></label>
+                    <div class="fields">
+                        <label>{{ __('installer.fields.db_host') }}<input name="db_host" value="{{ $input['db_host'] ?? ($values['DB_HOST'] ?: '127.0.0.1') }}" required></label>
+                        <label>{{ __('installer.fields.db_port') }}<input name="db_port" type="number" min="1" max="65535" value="{{ $input['db_port'] ?? ($values['DB_PORT'] ?: '3306') }}" required></label>
+                        <label>{{ __('installer.fields.db_database') }}<input name="db_database" value="{{ $input['db_database'] ?? ($values['DB_DATABASE'] ?: 'foodex') }}" required></label>
+                        <label>{{ __('installer.fields.db_username') }}<input name="db_username" value="{{ $input['db_username'] ?? ($values['DB_USERNAME'] ?: 'foodex') }}" required></label>
+                        <label class="full">{{ __('installer.fields.db_password') }}<input name="db_password" type="password" value=""><small>{{ __('installer.wizard.password_notice') }}</small></label>
                     </div>
                 @elseif ($currentStep === 5)
                     <div class="notice">{{ __('installer.wizard.database_test_notice') }}</div>
                 @elseif ($currentStep === 6)
                     <div class="fields">
-                        <label>اسم المنصة<input name="app_name" value="{{ $input['app_name'] ?? ($values['APP_NAME'] ?: 'FOODEX') }}" required></label>
-                        <label dir="ltr">Application URL<input name="app_url" type="url" value="{{ $input['app_url'] ?? ($values['APP_URL'] ?: 'http://localhost') }}" required></label>
-                        <label>اللغة الأساسية
+                        <label>{{ __('installer.fields.app_name') }}<input name="app_name" value="{{ $input['app_name'] ?? ($values['APP_NAME'] ?: 'FOODEX') }}" required></label>
+                        <label>{{ __('installer.fields.app_url') }}<input name="app_url" type="url" value="{{ $input['app_url'] ?? ($values['APP_URL'] ?: 'http://localhost') }}" required></label>
+                        <label>{{ __('installer.fields.app_locale') }}
                             <select name="app_locale">
-                                <option value="ar" @selected(($input['app_locale'] ?? ($values['APP_LOCALE'] ?: 'ar')) === 'ar')>العربية</option>
-                                <option value="en" @selected(($input['app_locale'] ?? ($values['APP_LOCALE'] ?: 'ar')) === 'en')>English</option>
+                                <option value="ar" @selected(($input['app_locale'] ?? ($values['APP_LOCALE'] ?: 'ar')) === 'ar')>{{ __('installer.options.arabic') }}</option>
+                                <option value="en" @selected(($input['app_locale'] ?? ($values['APP_LOCALE'] ?: 'ar')) === 'en')>{{ __('installer.options.english') }}</option>
                             </select>
                         </label>
                     </div>
                 @elseif ($currentStep === 7)
                     <div class="fields">
-                        <label>الاسم<input name="admin_name" value="{{ $input['admin_name'] ?? '' }}" required></label>
-                        <label dir="ltr">Email<input name="admin_email" type="email" value="{{ $input['admin_email'] ?? '' }}" required></label>
-                        <label>اللغة
+                        <label>{{ __('installer.fields.admin_name') }}<input name="admin_name" value="{{ $input['admin_name'] ?? '' }}" required></label>
+                        <label>{{ __('installer.fields.admin_email') }}<input name="admin_email" type="email" value="{{ $input['admin_email'] ?? '' }}" required></label>
+                        <label>{{ __('installer.fields.admin_locale') }}
                             <select name="admin_locale">
-                                <option value="ar">العربية</option>
-                                <option value="en">English</option>
+                                <option value="ar">{{ __('installer.options.arabic') }}</option>
+                                <option value="en">{{ __('installer.options.english') }}</option>
                             </select>
                         </label>
-                        <label dir="ltr">Password<input name="admin_password" type="password" minlength="12" required></label>
-                        <label class="full" dir="ltr">Confirm password<input name="admin_password_confirmation" type="password" minlength="12" required></label>
+                        <label>{{ __('installer.fields.admin_password') }}<input name="admin_password" type="password" minlength="12" required></label>
+                        <label class="full">{{ __('installer.fields.admin_password_confirmation') }}<input name="admin_password_confirmation" type="password" minlength="12" required></label>
                     </div>
                 @elseif ($currentStep === 8)
                     <div class="fields">
-                        <label>Default storage disk
+                        <label>{{ __('installer.fields.filesystem_disk') }}
                             <select name="filesystem_disk">
-                                <option value="local" @selected(($input['filesystem_disk'] ?? ($values['FILESYSTEM_DISK'] ?: 'local')) === 'local')>local (private)</option>
-                                <option value="public" @selected(($input['filesystem_disk'] ?? ($values['FILESYSTEM_DISK'] ?: 'local')) === 'public')>public</option>
+                                <option value="local" @selected(($input['filesystem_disk'] ?? ($values['FILESYSTEM_DISK'] ?: 'local')) === 'local')>{{ __('installer.options.local_private') }}</option>
+                                <option value="public" @selected(($input['filesystem_disk'] ?? ($values['FILESYSTEM_DISK'] ?: 'local')) === 'public')>{{ __('installer.options.public') }}</option>
                             </select>
                         </label>
                     </div>
                 @elseif ($currentStep === 9)
-                    <div class="fields" dir="ltr">
-                        <label>Cache
+                    <div class="fields">
+                        <label>{{ __('installer.fields.cache_store') }}
                             <select name="cache_store">
                                 <option value="redis" @selected(($input['cache_store'] ?? ($values['CACHE_STORE'] ?: 'redis')) === 'redis')>redis</option>
                                 <option value="file" @selected(($input['cache_store'] ?? $values['CACHE_STORE']) === 'file')>file</option>
                             </select>
                         </label>
-                        <label>Queue
+                        <label>{{ __('installer.fields.queue_connection') }}
                             <select name="queue_connection">
                                 <option value="redis" @selected(($input['queue_connection'] ?? ($values['QUEUE_CONNECTION'] ?: 'redis')) === 'redis')>redis</option>
                                 <option value="sync" @selected(($input['queue_connection'] ?? $values['QUEUE_CONNECTION']) === 'sync')>sync</option>
                             </select>
                         </label>
-                        <label>Redis host<input name="redis_host" value="{{ $input['redis_host'] ?? ($values['REDIS_HOST'] ?: '127.0.0.1') }}"></label>
-                        <label>Redis port<input name="redis_port" type="number" min="1" max="65535" value="{{ $input['redis_port'] ?? ($values['REDIS_PORT'] ?: '6379') }}"></label>
-                        <label class="full">Redis password<input name="redis_password" type="password" value=""></label>
+                        <label>{{ __('installer.fields.redis_host') }}<input name="redis_host" value="{{ $input['redis_host'] ?? ($values['REDIS_HOST'] ?: '127.0.0.1') }}"></label>
+                        <label>{{ __('installer.fields.redis_port') }}<input name="redis_port" type="number" min="1" max="65535" value="{{ $input['redis_port'] ?? ($values['REDIS_PORT'] ?: '6379') }}"></label>
+                        <label class="full">{{ __('installer.fields.redis_password') }}<input name="redis_password" type="password" value=""></label>
                     </div>
                 @elseif ($currentStep === 10)
-                    <div class="fields" dir="ltr">
-                        <label>Mailer
+                    <div class="fields">
+                        <label>{{ __('installer.fields.mail_mailer') }}
                             <select name="mail_mailer">
                                 <option value="log" @selected(($input['mail_mailer'] ?? ($values['MAIL_MAILER'] ?: 'log')) === 'log')>log</option>
                                 <option value="array" @selected(($input['mail_mailer'] ?? $values['MAIL_MAILER']) === 'array')>array</option>
                                 <option value="smtp" @selected(($input['mail_mailer'] ?? $values['MAIL_MAILER']) === 'smtp')>smtp</option>
                             </select>
                         </label>
-                        <label>SMTP scheme
+                        <label>{{ __('installer.fields.mail_scheme') }}
                             <select name="mail_scheme">
-                                <option value="">default</option>
+                                <option value="">{{ __('installer.options.default') }}</option>
                                 <option value="smtp" @selected(($input['mail_scheme'] ?? $values['MAIL_SCHEME']) === 'smtp')>smtp</option>
                                 <option value="smtps" @selected(($input['mail_scheme'] ?? $values['MAIL_SCHEME']) === 'smtps')>smtps</option>
                             </select>
                         </label>
-                        <label>SMTP host<input name="mail_host" value="{{ $input['mail_host'] ?? ($values['MAIL_HOST'] ?: '127.0.0.1') }}"></label>
-                        <label>SMTP port<input name="mail_port" type="number" min="1" max="65535" value="{{ $input['mail_port'] ?? ($values['MAIL_PORT'] ?: '587') }}"></label>
-                        <label>Username<input name="mail_username" value="{{ $input['mail_username'] ?? $values['MAIL_USERNAME'] }}"></label>
-                        <label>Password<input name="mail_password" type="password" value=""></label>
-                        <label>From address<input name="mail_from_address" type="email" value="{{ $input['mail_from_address'] ?? ($values['MAIL_FROM_ADDRESS'] ?: 'noreply@example.com') }}" required></label>
-                        <label>From name<input name="mail_from_name" value="{{ $input['mail_from_name'] ?? ($values['MAIL_FROM_NAME'] ?: 'FOODEX') }}" required></label>
+                        <label>{{ __('installer.fields.mail_host') }}<input name="mail_host" value="{{ $input['mail_host'] ?? ($values['MAIL_HOST'] ?: '127.0.0.1') }}"></label>
+                        <label>{{ __('installer.fields.mail_port') }}<input name="mail_port" type="number" min="1" max="65535" value="{{ $input['mail_port'] ?? ($values['MAIL_PORT'] ?: '587') }}"></label>
+                        <label>{{ __('installer.fields.mail_username') }}<input name="mail_username" value="{{ $input['mail_username'] ?? $values['MAIL_USERNAME'] }}"></label>
+                        <label>{{ __('installer.fields.mail_password') }}<input name="mail_password" type="password" value=""></label>
+                        <label>{{ __('installer.fields.mail_from_address') }}<input name="mail_from_address" type="email" value="{{ $input['mail_from_address'] ?? ($values['MAIL_FROM_ADDRESS'] ?: 'noreply@example.com') }}" required></label>
+                        <label>{{ __('installer.fields.mail_from_name') }}<input name="mail_from_name" value="{{ $input['mail_from_name'] ?? ($values['MAIL_FROM_NAME'] ?: 'FOODEX') }}" required></label>
                     </div>
                 @elseif ($currentStep === 11)
                     <div class="notice">{{ __('installer.wizard.migrations_notice') }}</div>
