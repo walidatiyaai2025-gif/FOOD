@@ -292,6 +292,7 @@ return [
         'current' => 'Current version',
         'back_settings' => 'Settings Center',
         'not_applied' => 'Update was not applied.',
+        'update_completed' => 'System update to version :version completed successfully.',
         'package_title' => 'Validated update package',
         'package_description' => 'The package is verified and backed up before maintenance mode or release extraction begins.',
         'zip_package' => 'ZIP package',
