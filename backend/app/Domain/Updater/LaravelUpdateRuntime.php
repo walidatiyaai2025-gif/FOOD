@@ -711,15 +711,16 @@ final class LaravelUpdateRuntime implements UpdateRuntime
             // target (e.g. forward/backslash aliases). Never silently choose
             // one member while backup and extraction may read another.
             $relativePath = $this->safeRelativePath($name);
-            // The extractor opens ZIP streams by $relativePath. A padded or
-            // backslash-aliased raw ZIP name may not exist under that lookup:
-            // reject it during preflight, before backup or maintenance mode.
-            if ($name !== $relativePath) {
-                throw new RuntimeException('Update archive contains a non-canonical path.');
-            }
-
             if (isset($seen[$relativePath])) {
                 throw new RuntimeException('Update archive contains duplicate release target paths.');
+            }
+
+            // Keep duplicate-target rejection authoritative for existing
+            // security regressions, then refuse a single noncanonical member.
+            // The extractor opens ZIP streams using $relativePath, which may
+            // not exist in an archive with padded or backslash-aliased names.
+            if ($name !== $relativePath) {
+                throw new RuntimeException('Update archive contains a non-canonical path.');
             }
 
             $seen[$relativePath] = true;
