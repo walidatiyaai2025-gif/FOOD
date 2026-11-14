@@ -76,3 +76,7 @@ Source ancestry was verified with GitHub compare: `v1.0.124` → `v1.0.125` (4 c
 - **Strict limitation:** Release ZIP and checksum bytes alone **do not authenticate the publisher**, prove a signature trusted by the updater, prove compatible PHP/Composer runtime, run MySQL migrations, preserve `.env`/uploads/financial rows, or demonstrate interrupted-update recovery. Neither historical release advertised a separately verified trusted package signature in this inspection. The test only yields `archive_integrity_only`.
 - Do not call G006 complete or merge solely on this evidence. Actual source-approved signed packages, clean installation, supported upgrade, database-preservation/backup and recovery acceptance from G004/G005/P112 must be evidenced on the exact tested packages before marking full G006 done.
 
+
+## Unix ZIP special-file mode protection
+
+A ZIP member can have an ordinary-looking filename yet carry Unix external-attribute metadata identifying a FIFO, character/block device, socket or directory. The offline G006 validator now fails closed on these non-regular member types (and continues to reject symbolic links and directory entries). Ordinary regular files and archives without a Unix file-type field remain supported. Synthetic real-ZIP regression cases exercise every prohibited special type plus a valid regular-file control. This is archive **type integrity only**, not publisher authentication or safe extraction evidence; final signed artifacts and MySQL data-preserving upgrade/recovery acceptance are still required before this gate can close.
