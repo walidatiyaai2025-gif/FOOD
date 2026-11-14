@@ -57,6 +57,65 @@ class CiPlanTest(unittest.TestCase):
             self.assertTrue(p["areas"]["dashboard_ui"],path)
             self.assertFalse(p["areas"]["mobile_ui"],path)
 
+    def test_v2_g003_final_matrix_includes_all_three_mobile_apps_and_backend(self):
+        """Final isolated V2 head must not silently skip Flutter for a CI-only diff."""
+        p=module.resolve(
+            self.config,
+            [".ci/ci-map.json", "docs/v2/qa/2744-final-required-ci-matrix.md"],
+            "test/2744-v2-final-required-ci-matrix",
+        )
+        self.assertIn("v2-g003-full-matrix",p["branch_rules"])
+        for area in ("backend","customer","driver","van","dashboard_ui","mobile_ui"):
+            self.assertTrue(p["areas"][area],area)
+        self.assertFalse(p["backend_dashboard_only"])
+
+    def test_v2_g003_branch_is_exact_and_does_not_widen_other_workers(self):
+        """Normal V2 backend-only PRs must not build unrelated mobile apps."""
+        names=("feat/2744-unrelated","test/2745-v2-final-required-ci-matrix",
+               "test/2744-v2-final-required-ci-matrix-retry",
+               "feat/2678-v2-store-permission-audit")
+        for branch in names:
+            with self.subTest(branch=branch):
+                p=module.resolve(self.config,["backend/app/Services/OrderService.php"],branch)
+                self.assertNotIn("v2-g003-full-matrix",p["branch_rules"])
+                self.assertTrue(p["backend_dashboard_only"])
+                for area in ("customer","driver","van"):
+                    self.assertFalse(p["areas"][area],area)
+
+    def test_v2_g003_all_four_validation_jobs_are_real_required_gate_dependencies(self):
+        """A runtime named elsewhere in YAML must not evade the terminal CI gate."""
+        import re
+
+        workflow=(ROOT/".github/workflows/required-ci-gate.yml").read_text(encoding="utf-8")
+
+        def job_body(name):
+            marker=f"  {name}:\n"
+            self.assertIn(marker,workflow)
+            body=workflow.split(marker,1)[1]
+            next_job=re.search(r"(?m)^  [a-z][a-z0-9-]*:\s*$",body)
+            return body[:next_job.start()] if next_job else body
+
+        gate=job_body("required-ci-gate")
+        match=re.search(r"(?m)^    needs:\n((?:      - [a-z][a-z0-9-]*\n)+)",gate)
+        self.assertIsNotNone(match,"Terminal required-ci-gate lacks a real needs list")
+        needs=match.group(1)
+        workflows={
+            "backend":"backend-ci.yml",
+            "customer":"customer-app-ci.yml",
+            "driver":"driver-app-ci.yml",
+            "van":"van-app-ci.yml",
+        }
+        for area,called in workflows.items():
+            with self.subTest(area=area):
+                job=job_body(f"{area}-validation")
+                self.assertIn("needs: changes",job)
+                self.assertIn(f"needs.changes.outputs.{area} == 'true'",job)
+                self.assertIn(f"uses: ./.github/workflows/{called}",job)
+                self.assertIn(f"      - {area}-validation\n",needs)
+                self.assertIn(f"{area.upper()}_RESULT:",gate)
+                self.assertIn(f'require_applicable_success "${area.upper()}_CHANGED"',gate)
+        self.assertIn("!cancelled()",gate)
+
     def test_final_convergence_branch_can_explicitly_restore_mobile_lanes(self):
         p=module.resolve(self.config,["backend/app/Services/OrderService.php"],"test/1253-operational-completion-e2e")
         self.assertFalse(p["backend_dashboard_only"])
