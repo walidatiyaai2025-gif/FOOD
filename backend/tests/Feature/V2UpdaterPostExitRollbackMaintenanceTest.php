@@ -6,8 +6,11 @@ use App\Domain\Updater\UpdateManager;
 use App\Domain\Updater\UpdatePackageManifest;
 use App\Domain\Updater\UpdatePackageValidator;
 use App\Domain\Updater\UpdateRuntime;
+use App\Models\Role;
 use App\Models\SystemVersion;
 use App\Models\UpdateHistory;
+use App\Models\User;
+use Database\Seeders\CoreReferenceSeeder;
 use App\Services\AuditLogger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
@@ -96,6 +99,60 @@ class V2UpdaterPostExitRollbackMaintenanceTest extends TestCase
         $this->assertStringContainsString('manual recovery is required', (string) $history->failure_reason);
         $this->assertStringNotContainsString('Rollback was attempted.', (string) $history->failure_reason);
         $this->assertDatabaseHas('audit_logs', ['event' => 'updater.failed']);
+    }
+
+    public function test_arabic_admin_sees_localized_unsafe_rollback_warning(): void
+    {
+        $this->assertUnsafeRollbackHistoryTranslated(
+            'ar',
+            'تم إيقاف الاسترجاع لتعذّر إعادة تفعيل وضع الصيانة. يلزم الاسترجاع اليدوي قبل أي محاولة تحديث أخرى.',
+        );
+    }
+
+    public function test_english_admin_sees_localized_unsafe_rollback_warning(): void
+    {
+        $this->assertUnsafeRollbackHistoryTranslated(
+            'en',
+            'Rollback was stopped because maintenance mode could not be restored. Manual recovery is required before another update.',
+        );
+    }
+
+    private function assertUnsafeRollbackHistoryTranslated(string $locale, string $expected): void
+    {
+        $this->seed(CoreReferenceSeeder::class);
+
+        UpdateHistory::query()->create([
+            'from_version' => '1.0.0',
+            'to_version' => '1.1.0',
+            'status' => 'failed',
+            'package_hash' => str_repeat('b', 64),
+            'started_at' => now()->subMinute(),
+            'finished_at' => now(),
+            'failed_stage' => 'record_version',
+            'failure_reason' => 'Update failed. Rollback was skipped because maintenance mode could not be re-entered.',
+            'rollback_status' => 'incomplete',
+            'maintenance_mode_remained' => false,
+            'execution_evidence' => [
+                'maintenance_mode' => 'reentry_failed',
+                'rollback_files' => 'skipped_unsafe',
+                'rollback_database' => 'skipped_unsafe',
+            ],
+        ]);
+
+        $admin = User::query()->create([
+            'name' => 'Super Admin',
+            'email' => 'v2-unsafe-update-history-'.$locale.'@example.test',
+            'password' => 'password',
+            'locale' => $locale,
+            'is_active' => true,
+        ]);
+        $admin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $this->actingAs($admin)
+            ->get(route('admin.system-update.index'))
+            ->assertOk()
+            ->assertSee($expected)
+            ->assertDontSee('Rollback was skipped because maintenance mode could not be re-entered.');
     }
 
     /**
