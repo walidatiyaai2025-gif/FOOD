@@ -212,16 +212,32 @@ final class DriverCollectionController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
+        // The Driver App middleware has already selected the authorized Retail
+        // profile. Never reselect the first historical Driver row for this user.
+        $runtime = $request->attributes->get('driver_runtime_context');
+        abort_unless(
+            is_array($runtime)
+                && ($runtime['channel'] ?? null) === 'b2c'
+                && is_int($runtime['driver_id'] ?? null),
+            403,
+            'Authorized Retail driver context is required.',
+        );
+
         $driver = Driver::query()
+            ->whereKey($runtime['driver_id'])
             ->where('user_id', $user->getKey())
+            ->where('driver_type', 'b2c')
             ->where('is_active', true)
             ->first();
-        abort_unless($driver instanceof Driver, 403, 'Active driver profile is required.');
+        abort_unless($driver instanceof Driver, 403, 'Active Retail driver profile is required.');
 
         [$channel, $storeId] = $this->driverTenants->resolve($driver);
-        abort_unless(in_array($channel, ['b2c', 'b2b'], true), 403);
-        abort_unless($storeId === (int) $driver->store_id, 403);
-        abort_unless($user->hasPermission("deliveries.{$channel}.execute"), 403);
+        abort_unless(
+            $channel === 'b2c' && $storeId === (int) ($runtime['store_id'] ?? 0),
+            403,
+            'Authorized Retail driver store is required.',
+        );
+        abort_unless($user->hasPermission('deliveries.b2c.execute'), 403);
 
         return [$user, $driver, $channel];
     }
