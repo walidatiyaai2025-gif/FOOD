@@ -22,11 +22,11 @@ class UpdateManagerTest extends TestCase
     {
         parent::setUp();
 
+        $this->packagePath = tempnam(sys_get_temp_dir(), 'foodex-update-manager-');
         if (! class_exists(\ZipArchive::class)) {
             $this->markTestSkipped('The ZIP extension is required for package validation.');
         }
 
-        $this->packagePath = tempnam(sys_get_temp_dir(), 'foodex-update-manager-');
         $archive = new \ZipArchive;
         $this->assertTrue(
             $archive->open($this->packagePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true,
