@@ -715,6 +715,14 @@ final class LaravelUpdateRuntime implements UpdateRuntime
                 throw new RuntimeException('Update archive contains duplicate release target paths.');
             }
 
+            // Keep duplicate-target rejection authoritative for existing
+            // security regressions, then refuse a single noncanonical member.
+            // The extractor opens ZIP streams using $relativePath, which may
+            // not exist in an archive with padded or backslash-aliased names.
+            if ($name !== $relativePath) {
+                throw new RuntimeException('Update archive contains a non-canonical path.');
+            }
+
             $seen[$relativePath] = true;
             $entries[] = $relativePath;
         }
