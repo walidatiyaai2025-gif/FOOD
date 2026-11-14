@@ -192,12 +192,12 @@ async function run({ github, context, core, nowMs = Date.now() }) {
         if (!current.some(c => (c.body || '').includes(marker))) {
           await github.rest.issues.createComment({
             owner, repo, issue_number: issue.number,
-            body: marker + '\\n## V2 — Original issue PR already merged\\n\\n'
+            body: marker + '\n## V2 — Original issue PR already merged\n\n'
               + 'PR #' + claim.pr + ' was independently verified MERGED into Foodex_V2. '
-              + 'Obsolete worker-active/waiting labels were cleared; no handoff-ready label was added.\\n'
+              + 'Obsolete worker-active/waiting labels were cleared; no handoff-ready label was added.\n'
               + 'The Issue remains OPEN for any unaccepted source requirements. '
               + 'Do not recreate the merged PR; preflight a distinct atomic follow-up if necessary. '
-              + 'No main or production change.\\n',
+              + 'No main or production change.\n',
           });
         }
         core.info('#' + issue.number + ': verified merged issue PR #' + claim.pr + '; stale active labels cleared');
