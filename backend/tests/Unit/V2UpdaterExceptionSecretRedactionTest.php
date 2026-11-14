@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Domain\Updater\UpdateManager;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionMethod;
@@ -10,9 +11,7 @@ use RuntimeException;
 
 final class V2UpdaterExceptionSecretRedactionTest extends TestCase
 {
-    /**
-     * @dataProvider sensitiveErrorProvider
-     */
+    #[DataProvider('sensitiveErrorProvider')]
     public function test_exception_summary_never_retains_sensitive_values(
         string $input,
         string $secret,
