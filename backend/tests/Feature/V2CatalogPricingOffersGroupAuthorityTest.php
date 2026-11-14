@@ -31,7 +31,7 @@ final class V2CatalogPricingOffersGroupAuthorityTest extends TestCase
     {
         $actor = $this->globalActor('B2B_ADMIN', 'v2-p218-wholesale@example.test');
 
-        $this->assertSame('الكتالوج والتسعير والعروض', __('admin.nav_groups.catalog', [], 'ar'));
+        $this->assertSame('المنتجات والكتالوج', __('admin.nav_groups.catalog', [], 'ar'));
         $this->assertSame('Catalog, Pricing & Offers', __('admin.nav_groups.catalog', [], 'en'));
 
         $expectedKeys = null;
