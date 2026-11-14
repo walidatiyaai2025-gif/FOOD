@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
-use App\Models\Van;
 use App\Models\VanAssignment;
 use App\Services\VanRegistryService;
 use App\Services\VanRuntimeContextResolver;
