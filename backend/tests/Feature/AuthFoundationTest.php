@@ -146,11 +146,18 @@ class AuthFoundationTest extends TestCase
 
         $registry = app(VanRegistryService::class);
         $van = $registry->createVan(['code' => 'AUTH-VAN-01']);
+        // Reproduce a pre-guard historical B2C assignment without using the
+        // now-protected production Van write path. Authentication must still
+        // refuse to promote a Retail-only Driver based on this stale row.
         $assignment = $registry->assign($user, $van, [
-            'driver_id' => $driver->id,
+            'representative_user_id' => $user->id,
             'assignment_type' => 'primary',
             'effective_from' => now()->subMinute(),
         ]);
+        $assignment->forceFill([
+            'driver_id' => $driver->id,
+            'representative_user_id' => null,
+        ])->save();
 
         $this->postJson('/api/v1/auth/login', [
             'email' => $user->email,
@@ -217,11 +224,17 @@ class AuthFoundationTest extends TestCase
 
         $registry = app(VanRegistryService::class);
         $van = $registry->createVan(['code' => 'AUTH-TOKEN-VAN']);
-        $registry->assign($user, $van, [
-            'driver_id' => $driver->id,
+        // Exercise historical inconsistent assignment storage; the protected
+        // VanRegistryService::assign() must never accept a new B2C Driver.
+        $legacyAssignment = $registry->assign($user, $van, [
+            'representative_user_id' => $user->id,
             'assignment_type' => 'primary',
             'effective_from' => now()->subMinute(),
         ]);
+        $legacyAssignment->forceFill([
+            'driver_id' => $driver->id,
+            'representative_user_id' => null,
+        ])->save();
 
         $driverToken = $this->postJson('/api/v1/auth/login', [
             'email' => $user->email,
