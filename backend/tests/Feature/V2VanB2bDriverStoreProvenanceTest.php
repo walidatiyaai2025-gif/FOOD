@@ -123,14 +123,19 @@ final class V2VanB2bDriverStoreProvenanceTest extends TestCase
         $ownedDriver = $this->driver($user, $store);
         $foreignDriver = $this->driver($other, $store);
         $retailStore = $this->store('B2C', 'V2-3547-UNTRUSTED');
-        $retailDriver = $this->driver($user, $retailStore);
         $resolver = app(VanRuntimeContextResolver::class);
 
+        // drivers.user_id is unique; exercise historical Retail provenance by
+        // mutating only the synthetic owned fixture instead of duplicating it.
         $this->assertTrue($resolver->canUseRuntime($user, ['driver_id' => $ownedDriver]));
         $this->assertFalse($resolver->canUseRuntime($user, ['driver_id' => $foreignDriver]));
-        $this->assertFalse($resolver->canUseRuntime($user, ['driver_id' => $retailDriver]));
         $this->assertFalse($resolver->canUseRuntime($user, ['driver_id' => null]));
         $this->assertFalse($resolver->canUseRuntime($user, ['driver_id' => 999999999]));
+
+        DB::table('drivers')->where('id', $ownedDriver)->update(['store_id' => $retailStore]);
+        $this->assertFalse($resolver->canUseRuntime($user, ['driver_id' => $ownedDriver]));
+        DB::table('drivers')->where('id', $ownedDriver)->update(['store_id' => $store]);
+        $this->assertTrue($resolver->canUseRuntime($user, ['driver_id' => $ownedDriver]));
     }
 
     private function b2bDriverUser(string $slug): User
