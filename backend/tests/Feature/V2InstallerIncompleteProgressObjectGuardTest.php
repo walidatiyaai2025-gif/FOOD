@@ -142,6 +142,79 @@ final class V2InstallerIncompleteProgressObjectGuardTest extends TestCase
         $this->assertSame($token, $document['token']);
     }
 
+    public function test_malformed_nested_admin_progress_fails_closed_before_any_state_or_token_write(): void
+    {
+        $state = app(InstallState::class);
+        $token = str_repeat('c', 64);
+
+        foreach ([
+            (object) [],
+            (object) ['name' => 'Admin', 'email' => 'admin@example.test', 'locale' => 'ar'],
+            (object) [
+                'name' => 'Admin',
+                'email' => 'admin@example.test',
+                'password_hash' => false,
+                'locale' => 'ar',
+            ],
+            // A numeric PHP array serializes as a JSON list; an associative
+            // PHP array serializes as a valid object and is not an invalid case.
+            ['Admin', 'admin@example.test', 'hash', 'ar'],
+            'unexpected-admin',
+            true,
+        ] as $invalidAdmin) {
+            $before = json_encode([
+                'completed_step' => 12,
+                'admin' => $invalidAdmin,
+                'token' => $token,
+            ], JSON_THROW_ON_ERROR);
+
+            $this->assertNotFalse(file_put_contents($this->progressFile(), $before));
+            $environment = (string) file_get_contents($this->directory.'/.env');
+
+            foreach ([
+                'progress' => static fn () => $state->progress(),
+                'token' => static fn () => $state->token(),
+                'markStepComplete' => static fn () => $state->markStepComplete(13),
+            ] as $operationName => $operation) {
+                $actualError = null;
+                try {
+                    $operation();
+                } catch (RuntimeException $exception) {
+                    $actualError = $exception->getMessage();
+                }
+
+                // Assert outside catch: PHPUnit's fail() can itself be a
+                // RuntimeException, which would mask a non-throwing operation.
+                $this->assertSame('Installer progress state is invalid.', $actualError, $operationName);
+            }
+
+            $this->get('/install')->assertStatus(500);
+            $this->assertSame($before, file_get_contents($this->progressFile()));
+            $this->assertSame($environment, file_get_contents($this->directory.'/.env'));
+            $this->assertFileDoesNotExist($this->directory.'/installer-token.lock');
+            $this->assertFileDoesNotExist($this->directory.'/installed.lock');
+        }
+    }
+
+    public function test_existing_progress_with_null_admin_is_valid_and_keeps_token(): void
+    {
+        $state = app(InstallState::class);
+        $token = str_repeat('d', 64);
+        $before = json_encode([
+            'completed_step' => 0,
+            'admin' => null,
+            'token' => $token,
+        ], JSON_THROW_ON_ERROR);
+        $this->assertNotFalse(file_put_contents($this->progressFile(), $before));
+
+        $this->assertSame(['completed_step' => 0, 'admin' => null, 'token' => $token], $state->progress());
+        $this->assertSame($token, $state->token());
+        $this->assertSame($before, file_get_contents($this->progressFile()));
+
+        $state->markStepComplete(1);
+        $this->assertSame(['completed_step' => 1, 'admin' => null, 'token' => $token], $state->progress());
+    }
+
     private function progressFile(): string
     {
         return $this->directory.'/install-progress.json';
