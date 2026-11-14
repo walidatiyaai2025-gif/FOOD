@@ -375,6 +375,100 @@ class SystemInspectorTest extends TestCase
             ->assertDontSee('provider-secret-token');
     }
 
+    public function test_system_inspector_matches_literal_search_across_all_four_columns_and_denies_non_platform_roles(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'inspector-literal-owner@example.test');
+        $events = [
+            ['message' => 'Storage 100% used', 'source' => 'route', 'severity' => 'error'],
+            ['message' => 'Storage 1000 used', 'source' => 'route', 'severity' => 'error'],
+            ['message' => 'Route failure', 'route_name' => 'admin.Orders_queue', 'source' => 'route', 'severity' => 'error'],
+            ['message' => 'Route failure', 'route_name' => 'admin.OrdersXqueue', 'source' => 'route', 'severity' => 'error'],
+            ['message' => 'URL failure', 'url' => '/admin/retry!token', 'source' => 'fetch', 'severity' => 'warning'],
+            ['message' => 'URL failure', 'url' => '/admin/retryXtoken', 'source' => 'fetch', 'severity' => 'warning'],
+            ['message' => 'Correlation failure', 'correlation_id' => 'corr_25%', 'source' => 'javascript', 'severity' => 'error'],
+            ['message' => 'Correlation failure', 'correlation_id' => 'corrX250', 'source' => 'javascript', 'severity' => 'error'],
+            ['message' => 'خطأ تجريبي في النظام', 'source' => 'route', 'severity' => 'warning'],
+            ['message' => 'Unhandled request', 'source' => 'route', 'severity' => 'error'],
+        ];
+
+        $ids = [];
+        foreach ($events as $event) {
+            $saved = SystemInspectorEvent::query()->create(array_merge([
+                'message' => 'Synthetic safe event',
+                'source' => 'route',
+                'severity' => 'error',
+                'occurred_at' => now(),
+            ], $event));
+            $ids[] = (int) $saved->getKey();
+        }
+
+        $eventCount = SystemInspectorEvent::query()->count();
+        $auditCount = DB::table('audit_logs')->count();
+
+        foreach ([
+            ['q' => '100%', 'locale' => 'en', 'expected' => [$ids[0]]],
+            ['q' => 'Orders_', 'locale' => 'en', 'expected' => [$ids[2]]],
+            ['q' => 'retry!', 'locale' => 'en', 'expected' => [$ids[4]]],
+            ['q' => '_25%', 'locale' => 'en', 'expected' => [$ids[6]]],
+            ['q' => 'خطأ', 'locale' => 'ar', 'expected' => [$ids[8]]],
+            ['q' => 'Unhandled', 'locale' => 'en', 'expected' => [$ids[9]]],
+            ['q' => '100%', 'locale' => 'en', 'source' => 'javascript', 'expected' => []],
+            ['q' => '100%', 'locale' => 'en', 'severity' => 'warning', 'expected' => []],
+            ['q' => 'no%_!match', 'locale' => 'ar', 'expected' => []],
+        ] as $case) {
+            app()->setLocale($case['locale']);
+            $response = $this->actingAs($admin)
+                ->get(route('admin.inspector.index', array_filter([
+                    'q' => $case['q'],
+                    'source' => $case['source'] ?? null,
+                    'severity' => $case['severity'] ?? null,
+                ], static fn ($value): bool => $value !== null)))
+                ->assertOk();
+
+            $actual = $response->viewData('events')->getCollection()
+                ->pluck('id')->map(static fn ($id): int => (int) $id)->all();
+            $this->assertSame($case['expected'], $actual, 'Inspector literal search for '.$case['q']);
+        }
+
+        // Authorized search GETs must remain read-only. The subsequent forbidden
+        // request may legitimately emit a security/route diagnostic event.
+        $this->assertSame($eventCount, SystemInspectorEvent::query()->count());
+        $this->assertSame($auditCount, DB::table('audit_logs')->count());
+
+        $denied = $this->userWithRole('B2B_ADMIN', 'inspector-literal-denied@example.test');
+        $this->actingAs($denied)->get(route('admin.inspector.index', ['q' => '100%']))
+            ->assertForbidden();
+    }
+
+    public function test_system_inspector_literal_search_preserves_hundred_row_pagination(): void
+    {
+        $admin = $this->userWithRole('SUPER_ADMIN', 'inspector-literal-pagination@example.test');
+        for ($index = 0; $index < 101; $index++) {
+            SystemInspectorEvent::query()->create([
+                'source' => 'route',
+                'severity' => 'warning',
+                'message' => 'Batch! '.$index,
+                'occurred_at' => now(),
+            ]);
+        }
+
+        $pageOne = $this->actingAs($admin)
+            ->get(route('admin.inspector.index', ['q' => 'Batch!']))
+            ->assertOk()
+            ->viewData('events');
+        $this->assertSame(101, $pageOne->total());
+        $this->assertCount(100, $pageOne->items());
+        parse_str((string) parse_url((string) $pageOne->nextPageUrl(), PHP_URL_QUERY), $query);
+        $this->assertSame('Batch!', $query['q'] ?? null);
+
+        $pageTwo = $this->actingAs($admin)
+            ->get(route('admin.inspector.index', ['q' => 'Batch!', 'page' => 2]))
+            ->assertOk()
+            ->viewData('events');
+        $this->assertSame(101, $pageTwo->total());
+        $this->assertCount(1, $pageTwo->items());
+    }
+
     private function userWithRole(string $roleCode, string $email): User
     {
         $user = User::query()->create([
