@@ -69,13 +69,17 @@ def _member_target(member: zipfile.ZipInfo) -> tuple[str, str, bool]:
 
     normalized = "/".join(parts)
     folded_parts = [p.casefold() for p in parts]
+    # Empty private/log directories are needed for Laravel bootstrap; the
+    # archive must not carry any stored runtime file below those paths.
     _require(not (
-        len(folded_parts) >= 4
+        not is_directory
+        and len(folded_parts) >= 4
         and folded_parts[:3] == ["backend", "storage", "app"]
         and folded_parts[3] in ("private", "system")
     ), f"Private storage in Setup ZIP: {name!r}")
     _require(not (
-        len(folded_parts) >= 3 and folded_parts[:3] == ["backend", "storage", "logs"]
+        not is_directory
+        and len(folded_parts) >= 3 and folded_parts[:3] == ["backend", "storage", "logs"]
     ), f"Runtime logs in Setup ZIP: {name!r}")
 
     mode = (member.external_attr >> 16) & 0xFFFF
