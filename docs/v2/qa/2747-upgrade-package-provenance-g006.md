@@ -142,3 +142,10 @@ The issue-owned synthetic regression constructs a real ZIP with a safe central `
 Cross-surface impact: historical offline ZIP validation script/tests/QA only. No Laravel routes, Dashboard business UI, Customer/Driver/Van Flutter/API schema or B2B/B2C runtime behavior changes. No user-facing strings; AR/EN parity unchanged.
 
 **Final G006 acceptance remains blocked:** independently authenticated publisher signatures, exact signed version/source chain, live-populated MySQL upgrade and migration/data/uploads/.env retention, interruption/backup/rollback/recovery tests, and source-complete Admin Update ZIP trust workflow. Keep original PR #3364 DRAFT and issue #2747 OPEN, do not merge partial archive-integrity code or publish to main/production.
+
+
+## Encrypted and non-portable compression member rejection
+
+The offline verifier now rejects ZIP entries marked encrypted (general-purpose flag bit 0) and entries using compression methods other than **STORED** or **DEFLATED** before ZIP CRC/decompression scanning. Some ZIP readers reject these with an unhandled password or unsupported-method exception, and shared-host extractors may not implement the same methods. A matching SHA-256 is not permission to accept an encrypted or non-portable ZIP. Two real synthetic ZIP-header regression cases update both local and central headers and recompute the manifest, standalone checksum and Dashboard digest to prove that the explicit policy—not a stale hash—rejects these inputs. The existing historical release integrity and ordinary ZIP tests must remain green.
+
+This is **archive-integrity-only** hardening on the original G006 PR. It is not a publisher-authenticated digital-signature check, a Laravel runtime change, a completed MySQL historical upgrade or recovery proof. Customer, Driver, Van and Dashboard APIs, UI strings and AR/EN/RTL are unchanged. G006 acceptance and the existing PR remain open/draft pending verified full-source requirements.
