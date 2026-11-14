@@ -304,10 +304,12 @@ final class TreasuryMasterController extends Controller
         }
 
         if ($search !== '') {
-            $query->where(function (Builder $nested) use ($search, $searchColumns): void {
+            // Index supplies only fixed, internal column names; user text is bound.
+            $literalPattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
+            $query->where(function (Builder $nested) use ($literalPattern, $searchColumns): void {
                 foreach ($searchColumns as $index => $column) {
-                    $method = $index === 0 ? 'where' : 'orWhere';
-                    $nested->{$method}($column, 'like', '%'.$search.'%');
+                    $method = $index === 0 ? 'whereRaw' : 'orWhereRaw';
+                    $nested->{$method}($column." LIKE ? ESCAPE '!'", [$literalPattern]);
                 }
             });
         }
