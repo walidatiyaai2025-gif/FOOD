@@ -409,10 +409,23 @@ final class VanRegistryService
                 ]);
             }
 
+            $suspendedAt = now();
+
             foreach ($active as $assignment) {
+                // An active-status row may represent a past or future interval.
+                // Only truncate an assignment that is effective at suspension;
+                // otherwise preserve its original dates for audit provenance.
+                $effectiveFrom = Carbon::parse($assignment->effective_from);
+                $effectiveUntil = $assignment->effective_until === null
+                    ? null
+                    : Carbon::parse($assignment->effective_until);
+
+                $currentlyEffective = $effectiveFrom->lessThan($suspendedAt)
+                    && ($effectiveUntil === null || $effectiveUntil->greaterThan($suspendedAt));
+
                 $assignment->forceFill([
                     'status' => 'ended',
-                    'effective_until' => now(),
+                    'effective_until' => $currentlyEffective ? $suspendedAt : $assignment->effective_until,
                     'transferred_to_van_id' => $loaded > 0 ? $transferTarget->id : null,
                     'transfer_reason' => $loaded > 0 ? $reason : null,
                 ])->save();
