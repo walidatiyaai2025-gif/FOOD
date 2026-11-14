@@ -120,7 +120,7 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
         ]);
         $actor = $actor->fresh();
         $this->assertTrue($actor->hasPermission('finance.approve', $store->id));
-        $this->enableFinance($actor, $context, ['finance.foundation.read', 'finance.foundation.manage']);
+        $this->enableFinance($actor, $context, ['finance.foundation.read', 'finance.foundation.manage', 'finance.gl.read']);
 
         $finance = app(FinanceFoundationService::class);
         $year = $finance->createFiscalYear($actor, $context, [
@@ -145,14 +145,37 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
         $siblingHierarchy = app(OrganizationHierarchyService::class)->scopeForStore($sibling->id);
         $this->assertSame($scope->legalEntityId, (int) $siblingHierarchy['legal_entity_id']);
 
-        $this->actingAs($actor->fresh())
-            ->get(route('admin.erp.finance.index', [
-                'store_id' => $store->id,
-                'tab' => 'reports',
-                'report' => 'consolidated',
-                'period_id' => $period->id,
-            ]))
-            ->assertForbidden();
+        // Every legal-entity aggregate remains forbidden to a Retail-only
+        // actor, including with finance.approve and entity-level entitlements.
+        foreach ([
+            'cash_flow',
+            'budget_vs_actual',
+            'tax_vat',
+            'consolidated',
+            'variance_exceptions',
+            'fixed_assets',
+            'close_status',
+        ] as $report) {
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.erp.finance.index', [
+                    'store_id' => $store->id,
+                    'tab' => 'reports',
+                    'report' => $report,
+                    'period_id' => $period->id,
+                ]))
+                ->assertForbidden();
+        }
+
+        foreach (['trial_balance', 'profit_and_loss', 'balance_sheet'] as $statement) {
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.erp.finance.index', [
+                    'store_id' => $store->id,
+                    'tab' => 'statements',
+                    'statement' => $statement,
+                    'period_id' => $period->id,
+                ]))
+                ->assertForbidden();
+        }
     }
 
     public function test_retail_finance_overview_does_not_aggregate_ar_of_sibling_store_in_same_legal_entity(): void
