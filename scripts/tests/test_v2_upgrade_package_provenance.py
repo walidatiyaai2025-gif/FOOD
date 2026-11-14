@@ -246,6 +246,66 @@ class V2G006PackageProvenanceTest(unittest.TestCase):
         with self.assertRaisesRegex(PackageContractError, "Duplicate or aliased"):
             self.verify_first()
 
+    def test_casefold_and_unicode_normalized_archive_aliases_fail_closed(self) -> None:
+        # A future updater can extract onto a case-insensitive or NFD volume;
+        # different ZIP names must not resolve to one target on those hosts.
+        for first, second in (
+            ("backend/Catalog.php", "backend/catalog.php"),
+            ("backend/café.php", "backend/cafe\u0301.php"),
+        ):
+            with self.subTest(first=first, second=second):
+                self.first = build_bundle(
+                    self.first,
+                    entries=[
+                        ("VERSION", b"1.0.125", False),
+                        (first, b"one", False),
+                        (second, b"two", False),
+                    ],
+                )
+                with self.assertRaisesRegex(PackageContractError, "Duplicate or aliased"):
+                    self.verify_first()
+
+    def test_portable_windows_path_and_case_insensitive_private_names_are_rejected(self) -> None:
+        # Reject NTFS alternate data streams, reserved device paths and names
+        # that Windows trims/collapses. Private files must be case-insensitive.
+        for forbidden in (
+            "backend/Config.php:stream",
+            "backend/CON",
+            "backend/NuL.txt",
+            "backend/COM1.log",
+            "backend/LPT9",
+            "backend/file.php.",
+            "backend/file.php ",
+            "backend/bad\tname.php",
+            "backend/name?.php",
+            "backend/.ENV",
+            "BACKEND/.EnV",
+            "backend/Storage/private.txt",
+            "Backend/Tests/Feature/HiddenTest.php",
+        ):
+            with self.subTest(path=forbidden):
+                self.first = build_bundle(
+                    self.first,
+                    entries=[
+                        ("VERSION", b"1.0.125", False),
+                        (forbidden, b"unsafe", False),
+                    ],
+                )
+                with self.assertRaisesRegex(PackageContractError, "Unsafe cross-platform|Private/non-runtime"):
+                    self.verify_first()
+
+    def test_safe_portable_update_member_paths_remain_accepted(self) -> None:
+        self.first = build_bundle(
+            self.first,
+            entries=[
+                ("VERSION", b"1.0.125", False),
+                (RUNTIME, b"<?php echo 'test';", False),
+                ("backend/public/.htaccess", b"Options -Indexes", False),
+                (MIGRATION, b"<?php // migration", False),
+            ],
+        )
+        self.assertEqual(4, self.verify_first()["files"])
+
     def test_exact_duplicate_entries_rejected(self) -> None:
         self.first = build_bundle(
             self.first,
