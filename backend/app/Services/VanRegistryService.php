@@ -70,6 +70,10 @@ final class VanRegistryService
         }
 
         return DB::transaction(function () use ($actor, $van, $attributes, $from, $until, $type, $territoryKey): VanAssignment {
+            // Match suspend() lock order: Van first, then assignment/actor rows.
+            // A previously fetched active Van may have been suspended meanwhile.
+            $this->assertActiveVanForAssignment((int) $van->getKey());
+
             // Serialize validation with the Driver/User status rows so a Retail
             // or deactivated Driver cannot become an active B2B Van assignee.
             $this->assertActiveB2bDriver($attributes['driver_id'] ?? null);
@@ -173,12 +177,8 @@ final class VanRegistryService
         }
 
         $vanId = (int) ($attributes['van_id'] ?? $assignment->van_id);
-        $vanExists = Van::query()->whereKey($vanId)->where('status', 'active')->exists();
-        if (! $vanExists) {
-            throw ValidationException::withMessages([
-                'van_id' => ['Van must reference an active Van.'],
-            ]);
-        }
+        // Check under the same transaction/row lock as the subsequent write,
+        // not here where suspend() could change the status before save.
 
         $territoryKey = filled($attributes['territory_key'] ?? null)
             ? trim((string) $attributes['territory_key'])
@@ -200,6 +200,9 @@ final class VanRegistryService
         }
 
         return DB::transaction(function () use ($actor, $assignment, $attributes, $from, $until, $type, $status, $territoryKey, $vanId): VanAssignment {
+            // Use the same Van -> assignment lock order as suspend() so an edit
+            // cannot restore an active assignment after suspension.
+            $this->assertActiveVanForAssignment($vanId);
             $locked = VanAssignment::query()->lockForUpdate()->findOrFail($assignment->id);
 
             // Allow terminating legacy inconsistent rows, but never creating
@@ -275,6 +278,22 @@ final class VanRegistryService
 
             return $locked->fresh();
         });
+    }
+
+    /**
+     * Serialize create/update assignment writes with Van suspension. A separate
+     * preflight exists()/status check is unsafe: the Van could be suspended
+     * before an active assignment is persisted.
+     */
+    private function assertActiveVanForAssignment(int $vanId): void
+    {
+        $van = Van::query()->whereKey($vanId)->lockForUpdate()->first();
+
+        if ($van === null || $van->status !== 'active') {
+            throw ValidationException::withMessages([
+                'van_id' => [__('van_assignment_guard.active_van_required')],
+            ]);
+        }
     }
 
     /**
