@@ -113,6 +113,23 @@ final class V2InstallerEnvReservedLiteralTest extends TestCase
         $this->assertSame(1, preg_match_all('/^REDIS_PASSWORD=/m', $contents));
     }
 
+    public function test_app_debug_keeps_laravel_boolean_semantics_in_production_configuration(): void
+    {
+        $environment = app(InstallerEnvironment::class);
+
+        foreach (['false', 'true', 'FALSE', 'TRUE'] as $flag) {
+            $environment->write(['APP_DEBUG' => $flag]);
+
+            $contents = (string) file_get_contents($this->environmentPath);
+            // A quoted "false" is truthy when a boolean config is cast from
+            // the raw value; the installer must emit APP_DEBUG=false.
+            $this->assertStringContainsString("APP_DEBUG={$flag}\n", $contents);
+            $this->assertStringNotContainsString('APP_DEBUG="', $contents);
+            $this->assertSame($flag, $environment->read(['APP_DEBUG'])['APP_DEBUG']);
+            $this->assertSame(1, preg_match_all('/^APP_DEBUG=/m', $contents));
+        }
+    }
+
     public function test_ordinary_and_blank_values_keep_existing_serialization_behavior(): void
     {
         $environment = app(InstallerEnvironment::class);
