@@ -10,6 +10,14 @@ The verifier rejects a missing archive, a symlinked package directory or symlink
 
 **Important:** SHA-256 establishes consistency, **not publisher authenticity**. A trusted digital signature/approved signing key and version trust must still be verified by the actual installer/updater release authority. An archive integrity PASS is **not** evidence that migrations ran successfully, that existing records or secrets were preserved, or that recovery worked. Never mark this Issue complete on this test alone.
 
+## Historical Git source-chain continuity (v124 → v125 → v127)
+
+The two independently checksum-valid ZIPs must also be **one contiguous source lineage**. For the 1.0.124 → 1.0.125 and 1.0.125 → 1.0.127 pair, the latter manifest's `source_base` must exactly equal the former manifest's `source_commit` (40-character immutable Git SHA). Valid source SHAs that do **not** join are rejected before any `archive_integrity_only` success response. Both individual archive checks, exact version edges, checksum/file lists, and distinct target source commits remain mandatory.
+
+The focused regression first verifies both archives independently, then supplies a second archive whose `source_base` is a valid but *different* Git SHA; the CLI must fail with a source-lineage error. The positive synthetic pair uses the first package's `source_commit` as the second package's base. This matches the archived historical G006 source-commit chain exercised by the real-artifact integrity workflow.
+
+**Evidence boundary:** source-lineage equality is necessary for historical binary provenance but insufficient to authenticate a publisher or prove an executable data-preserving MySQL upgrade, ZIP signature, recovery, final Setup/Update package or production deployability. Those G006/G004/G005/P112 release acceptance gates remain OPEN.
+
 ## Strict manifest JSON decoding (ambiguous keys and non-finite numbers)
 
 The offline verifier rejects repeated JSON object keys at **all nesting levels** rather than silently selecting the last value (Python's default `json.loads` behavior). This prevents an ambiguous manifest containing repeated `available`, `source_commit`, `delta.file_count` or other authority/provenance fields from passing interpretation-dependent validation. Non-standard unquoted JSON numeric constants `NaN`, `Infinity` and `-Infinity` are also rejected, including inside otherwise unused nested metadata. The parser additionally rejects valid-looking scientific-notation numbers such as `1e999` and `-1e999` when Python would overflow them into infinity. Dedicated synthetic negative regressions plus revalidation of a valid manifest prove fail-closed parsing. The change is restricted to this **read-only archive integrity checker**, not the Laravel installer/updater, signature trust, database migration or rollback. The G006 release acceptance blockers remain open.
