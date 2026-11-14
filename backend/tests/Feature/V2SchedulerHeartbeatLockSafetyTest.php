@@ -75,10 +75,11 @@ class V2SchedulerHeartbeatLockSafetyTest extends TestCase
 
     public function test_regular_persistent_lock_still_throttles_without_rewriting(): void
     {
-        file_put_contents($this->heartbeatPath(), (string) time());
+        $recordedTimestamp = (string) time();
+        file_put_contents($this->heartbeatPath(), $recordedTimestamp);
         app(SchedulerRuntime::class)->tickIfDue();
 
-        $this->assertSame((string) time(), trim((string) file_get_contents($this->heartbeatPath())));
+        $this->assertSame($recordedTimestamp, trim((string) file_get_contents($this->heartbeatPath())));
     }
 
     private function heartbeatPath(): string
