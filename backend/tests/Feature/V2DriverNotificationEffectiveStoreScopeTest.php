@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Driver;
 use App\Models\Notification;
 use App\Models\User;
+use App\Services\B2cCustomerService;
 use App\Services\NotificationAudience;
 use App\Services\WholesalePrincipal;
 use Database\Seeders\CoreReferenceSeeder;
@@ -23,29 +24,27 @@ class V2DriverNotificationEffectiveStoreScopeTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
     }
 
-    public function test_active_retail_driver_cannot_read_foreign_store_notifications_from_stale_profiles(): void
+    public function test_inactive_foreign_driver_cannot_expand_active_customer_notification_store_scope(): void
     {
-        $storeA = $this->retailStore('V2-DRV-NOT-A');
-        $storeB = $this->retailStore('V2-DRV-NOT-B');
+        $storeA = $this->retailStore('V2-NOT-CUST-A');
+        $storeB = $this->retailStore('V2-NOT-CUST-B');
         $user = User::factory()->create(['is_active' => true, 'locale' => 'en']);
-
-        $this->driver($user, $storeA, 'b2c', true);
+        app(B2cCustomerService::class)->create($storeA, ['name' => 'Dual Persona'], $user);
         $this->driver($user, $storeB, 'b2c', false);
-        $this->driver($user, app(WholesalePrincipal::class)->storeId(), 'b2b', true);
 
-        $own = $this->notification($storeA, 'Own store notification');
-        $foreign = $this->notification($storeB, 'Foreign store notification');
+        $own = $this->notification($storeA, 'customer', 'customer', 'Own customer store');
+        $foreign = $this->notification($storeB, 'customer', 'customer', 'Foreign customer store');
 
         $audience = app(NotificationAudience::class);
-        $this->assertTrue($audience->matchesTarget($user, 'driver', 'driver', 'b2c', $storeA));
-        $this->assertFalse($audience->matchesTarget($user, 'driver', 'driver', 'b2c', $storeB));
+        $this->assertTrue($audience->matchesTarget($user, 'customer', 'customer', 'b2c', $storeA));
+        $this->assertFalse($audience->matchesTarget($user, 'customer', 'customer', 'b2c', $storeB));
 
-        Sanctum::actingAs($user, ['app:driver']);
+        Sanctum::actingAs($user, ['app:customer']);
         $this->getJson('/api/v1/notifications?locale=en')
             ->assertOk()
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.id', $own->id)
-            ->assertJsonPath('data.0.title', 'Own store notification');
+            ->assertJsonPath('data.0.title', 'Own customer store');
 
         $this->getJson("/api/v1/notifications/{$foreign->id}")->assertNotFound();
         $this->postJson("/api/v1/notifications/{$foreign->id}/read")->assertNotFound();
@@ -61,27 +60,52 @@ class V2DriverNotificationEffectiveStoreScopeTest extends TestCase
         ]);
     }
 
-    public function test_driver_without_current_active_retail_store_has_no_driver_audience(): void
+    public function test_valid_active_driver_receives_own_retail_store_but_not_foreign_store(): void
     {
-        $inactiveStore = $this->retailStore('V2-DRV-NOT-INACTIVE');
-        DB::table('stores')->where('id', $inactiveStore)->update(['is_active' => false]);
-        $otherStore = $this->retailStore('V2-DRV-NOT-OTHER');
-        $user = User::factory()->create(['is_active' => true]);
+        $storeA = $this->retailStore('V2-NOT-DRV-A');
+        $storeB = $this->retailStore('V2-NOT-DRV-B');
+        $user = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $this->driver($user, $storeA, 'b2c', true);
 
-        $this->driver($user, $inactiveStore, 'b2c', true);
-        $this->driver($user, $otherStore, 'b2c', false);
-        $this->driver($user, app(WholesalePrincipal::class)->storeId(), 'b2b', true);
+        $own = $this->notification($storeA, 'driver', 'driver', 'Own driver store');
+        $foreign = $this->notification($storeB, 'driver', 'driver', 'Foreign driver store');
 
-        $notification = $this->notification($otherStore, 'Inactive driver should not see');
         $audience = app(NotificationAudience::class);
-        $this->assertFalse($audience->matchesTarget($user, 'driver', 'driver', 'b2c', $otherStore));
+        $this->assertTrue($audience->matchesTarget($user, 'driver', 'driver', 'b2c', $storeA));
+        $this->assertFalse($audience->matchesTarget($user, 'driver', 'driver', 'b2c', $storeB));
 
         Sanctum::actingAs($user, ['app:driver']);
-        $this->getJson('/api/v1/notifications')
+        $this->getJson('/api/v1/notifications?locale=en')
             ->assertOk()
-            ->assertJsonPath('meta.total', 0)
-            ->assertJsonCount(0, 'data');
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $own->id);
+        $this->getJson("/api/v1/notifications/{$foreign->id}")->assertNotFound();
+    }
+
+    public function test_driver_in_inactive_retail_store_has_no_driver_notification_audience(): void
+    {
+        $store = $this->retailStore('V2-NOT-DRV-INACTIVE');
+        DB::table('stores')->where('id', $store)->update(['is_active' => false]);
+        $user = User::factory()->create(['is_active' => true]);
+        $this->driver($user, $store, 'b2c', true);
+
+        $notification = $this->notification($store, 'driver', 'driver', 'Inactive store');
+        $this->assertFalse(app(NotificationAudience::class)
+            ->matchesTarget($user, 'driver', 'driver', 'b2c', $store));
+
+        Sanctum::actingAs($user, ['app:driver']);
+        $this->getJson('/api/v1/notifications')->assertOk()->assertJsonPath('meta.total', 0);
         $this->getJson("/api/v1/notifications/{$notification->id}")->assertNotFound();
+    }
+
+    public function test_retail_driver_pointing_to_wholesale_store_has_no_driver_audience(): void
+    {
+        $user = User::factory()->create(['is_active' => true]);
+        $store = app(WholesalePrincipal::class)->storeId();
+        $this->driver($user, $store, 'b2c', true);
+
+        $this->assertFalse(app(NotificationAudience::class)
+            ->matchesTarget($user, 'driver', 'driver', 'b2c', $store));
     }
 
     private function retailStore(string $code): int
@@ -107,7 +131,7 @@ class V2DriverNotificationEffectiveStoreScopeTest extends TestCase
         ]);
     }
 
-    private function notification(int $storeId, string $name): Notification
+    private function notification(int $storeId, string $audience, string $app, string $name): Notification
     {
         return Notification::query()->create([
             'channel' => 'in_app',
@@ -118,8 +142,8 @@ class V2DriverNotificationEffectiveStoreScopeTest extends TestCase
             'title_en' => $name,
             'body_ar' => 'تحديث التوصيل',
             'body_en' => 'Delivery update',
-            'audience' => 'driver',
-            'app' => 'driver',
+            'audience' => $audience,
+            'app' => $app,
             'target_channel' => 'b2c',
             'store_id' => $storeId,
             'status' => 'published',
