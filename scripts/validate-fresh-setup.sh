@@ -529,7 +529,9 @@ PY
 # to Administration Hub; treating this documented redirect as a failed install
 # is stale acceptance, not a reason to weaken the production landing policy.
 test "$(curl -sS -b /tmp/foodex-cookies.txt -D /tmp/admin-landing.headers -o /tmp/admin-landing.html -w '%{http_code}' http://127.0.0.1:8099/admin)" = "302"
-grep -Eiq '^Location: (https?://[^/]+)?/admin/administration([?][^[:space:]]*)?\r?
+grep -Eiq '^Location: (https?://[^/]+)?/admin/administration([?][^[:space:]]*)?' /tmp/admin-landing.headers
+test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/admin-home.html -w '%{http_code}' http://127.0.0.1:8099/admin/administration)" = "200"
+grep -Fq 'Product Sales Control' /tmp/admin-home.html
 grep -Fq 'Flash Offers' /tmp/admin-home.html
 grep -Fq 'Van &amp; Field Operations' /tmp/admin-home.html || grep -Fq 'Van & Field Operations' /tmp/admin-home.html
 
