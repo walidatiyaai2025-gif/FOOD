@@ -13,6 +13,8 @@ on:
       - 'backend/app/Domain/Installer/**'
       - 'backend/database/**'
       - 'scripts/validate-fresh-setup.sh'
+      - 'scripts/v2_setup_staging_verify.py'
+      - 'scripts/tests/test_v2_setup_staging_verify.py'
 
 permissions:
   contents: read
