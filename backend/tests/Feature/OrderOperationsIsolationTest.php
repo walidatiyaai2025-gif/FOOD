@@ -1247,6 +1247,129 @@ class OrderOperationsIsolationTest extends TestCase
             ->assertSee('#'.$order);
     }
 
+    public function test_operations_order_number_filter_treats_percent_underscore_and_bang_literally_with_store_isolation(): void
+    {
+        $mine = $this->store('OPS-LITERAL-MINE');
+        $foreign = $this->store('OPS-LITERAL-FOREIGN');
+        $admin = $this->storeAdmin($mine, 'ops-literal-admin@example.test');
+        $myCustomer = app(B2cCustomerService::class)->create($mine, ['name' => 'Literal Buyer']);
+        $foreignCustomer = app(B2cCustomerService::class)->create($foreign, ['name' => 'Foreign Literal Buyer']);
+
+        $ids = [];
+        foreach ([
+            'percent' => 'OPS-LITERAL-%-1001',
+            'underscore' => 'OPS-LITERAL-_-1002',
+            'bang' => 'OPS-LITERAL-!-1003',
+            'ordinary' => 'OPS-LITERAL-X-1004',
+        ] as $key => $number) {
+            $id = $this->order($mine, (int) $myCustomer->legacy_customer_id, (int) $myCustomer->id, 'OPS-LITERAL-'.$key);
+            DB::table('orders')->where('id', $id)->update(['order_number' => $number, 'updated_at' => now()]);
+            $ids[$key] = $id;
+        }
+
+        $foreignId = $this->order(
+            $foreign,
+            (int) $foreignCustomer->legacy_customer_id,
+            (int) $foreignCustomer->id,
+            'OPS-LITERAL-FOREIGN',
+        );
+        DB::table('orders')->where('id', $foreignId)
+            ->update(['order_number' => 'OPS-LITERAL-%-FOREIGN', 'updated_at' => now()]);
+
+        $auditBefore = DB::table('audit_logs')->count();
+
+        foreach ([
+            '%' => $ids['percent'],
+            '_' => $ids['underscore'],
+            '!' => $ids['bang'],
+            'X-1004' => $ids['ordinary'],
+        ] as $search => $expected) {
+            $this->actingAs($admin)
+                ->get('/admin/operations/orders?channel=b2c&order_number='.urlencode($search))
+                ->assertOk()
+                ->assertViewHas('rows', static fn (array $rows): bool => collect($rows)
+                    ->pluck('id')->map(static fn ($id): int => (int) $id)->all() === [$expected]);
+        }
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c&order_number='.urlencode('OPS-LITERAL-'))
+            ->assertOk()
+            ->assertViewHas('rows', static fn (array $rows): bool => collect($rows)
+                ->pluck('id')->map(static fn ($id): int => (int) $id)->sort()->values()->all()
+                === collect($ids)->values()->sort()->values()->all());
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c&order_number='.urlencode('#'.$ids['percent']))
+            ->assertOk()
+            ->assertViewHas('rows', static fn (array $rows): bool => collect($rows)
+                ->pluck('id')->map(static fn ($id): int => (int) $id)->all() === [$ids['percent']]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2c&store_id='.$foreign.'&order_number='.urlencode('%'))
+            ->assertNotFound();
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2b&order_number='.urlencode('%'))
+            ->assertForbidden();
+
+        $this->assertSame($auditBefore, DB::table('audit_logs')->count(), 'Read-only order searches must not write audit events.');
+    }
+
+    public function test_wholesale_order_number_literal_search_preserves_b2b_principal_and_authorization(): void
+    {
+        $principal = app(WholesalePrincipal::class)->storeId();
+        $customer = app(B2bCustomerService::class)->create(['name' => 'Literal Wholesale Buyer']);
+        $admin = User::query()->create([
+            'name' => 'Wholesale Literal Viewer',
+            'email' => 'ops-wholesale-literal@example.test',
+            'password' => 'password',
+            'locale' => 'ar',
+            'is_active' => true,
+        ]);
+        $admin->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
+
+        $orders = [];
+        foreach (['percent' => 'WHO-LITERAL-%-1001', 'ordinary' => 'WHO-LITERAL-X-1002'] as $key => $number) {
+            $orders[$key] = (int) DB::table('orders')->insertGetId([
+                'store_id' => $principal,
+                'customer_id' => (int) $customer->legacy_customer_id,
+                'b2b_customer_id' => (int) $customer->getKey(),
+                'order_number' => $number,
+                'channel' => 'b2b',
+                'status' => 'pending',
+                'currency' => 'KWD',
+                'subtotal' => 10,
+                'discount_total' => 0,
+                'delivery_total' => 0,
+                'grand_total' => 10,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2b&order_number='.urlencode('%'))
+            ->assertOk()
+            ->assertViewHas('rows', static fn (array $rows): bool => collect($rows)
+                ->pluck('id')->map(static fn ($id): int => (int) $id)->all() === [$orders['percent']]);
+
+        $this->actingAs($admin)
+            ->get('/admin/operations/orders?channel=b2b&order_number='.urlencode('#'.$orders['ordinary']))
+            ->assertOk()
+            ->assertViewHas('rows', static fn (array $rows): bool => collect($rows)
+                ->pluck('id')->map(static fn ($id): int => (int) $id)->all() === [$orders['ordinary']]);
+
+        $unauthorized = User::query()->create([
+            'name' => 'Unentitled Operations User',
+            'email' => 'ops-literal-denied@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        $this->actingAs($unauthorized)
+            ->get('/admin/operations/orders?channel=b2b&order_number='.urlencode('%'))
+            ->assertForbidden();
+    }
+
     private function store(string $code): int
     {
         return (int) DB::table('stores')->insertGetId([
