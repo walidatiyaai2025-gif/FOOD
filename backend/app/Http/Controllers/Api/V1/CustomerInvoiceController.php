@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\User;
 use App\Services\InvoiceService;
+use App\Support\DisplayNumber;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -154,9 +155,19 @@ final class CustomerInvoiceController extends Controller
 
     private function assertRequestedContext(Request $request, Invoice $invoice): void
     {
-        $storeId = $request->input('store_id') ?? $request->query('store_id') ?? $request->header('X-FOODEX-Store-ID');
-        if (is_numeric($storeId) && (int) $storeId > 0) {
-            abort_unless((int) $invoice->store_id === (int) $storeId, 404);
+        // Laravel may normalize an explicitly empty query value to null.
+        // Track key presence so an invalid input cannot fall back to a header.
+        $hasInputStoreId = array_key_exists('store_id', $request->all());
+        $hasHeaderStoreId = $request->headers->has('X-FOODEX-Store-ID');
+        $storeId = $hasInputStoreId ? $request->input('store_id') : $request->header('X-FOODEX-Store-ID');
+        if ($hasInputStoreId || $hasHeaderStoreId) {
+            // A supplied but malformed store context must never bypass the
+            // requested-store boundary, including when it shadows a valid header.
+            abort_unless(is_string($storeId) || is_int($storeId), 404);
+            $rawStoreId = trim((string) $storeId);
+            abort_unless($rawStoreId !== '' && ctype_digit($rawStoreId), 404);
+            $requestedStoreId = DisplayNumber::referenceId($rawStoreId);
+            abort_unless($requestedStoreId !== null && (int) $invoice->store_id === $requestedStoreId, 404);
         }
 
         $channel = strtolower(trim((string) (
