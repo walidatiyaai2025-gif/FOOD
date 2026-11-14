@@ -70,6 +70,10 @@ final class VanRegistryService
         }
 
         return DB::transaction(function () use ($actor, $van, $attributes, $from, $until, $type, $territoryKey): VanAssignment {
+            // Serialize validation with the Driver/User status rows so a Retail
+            // or deactivated Driver cannot become an active B2B Van assignee.
+            $this->assertActiveB2bDriver($attributes['driver_id'] ?? null);
+
             if ($type === 'primary') {
                 $overlap = VanAssignment::query()
                     ->where('van_id', $van->id)
@@ -207,6 +211,12 @@ final class VanRegistryService
         return DB::transaction(function () use ($actor, $assignment, $attributes, $from, $until, $type, $status, $territoryKey, $vanId): VanAssignment {
             $locked = VanAssignment::query()->lockForUpdate()->findOrFail($assignment->id);
 
+            // Allow terminating legacy inconsistent rows, but never creating
+            // or retaining an active assignment with an ineligible Driver.
+            if ($status === 'active') {
+                $this->assertActiveB2bDriver($attributes['driver_id'] ?? null);
+            }
+
             if ($type === 'primary' && $status === 'active') {
                 $overlap = VanAssignment::query()
                     ->whereKeyNot($locked->id)
@@ -274,6 +284,37 @@ final class VanRegistryService
 
             return $locked->fresh();
         });
+    }
+
+    /**
+     * Enforce the B2B-only Van write boundary independently of HTTP validation.
+     * Call from a transaction before persisting the assignment or its audit.
+     */
+    private function assertActiveB2bDriver(mixed $driverId): void
+    {
+        // Representative-only Van assignments are a supported workflow.
+        if ($driverId === null || $driverId === '') {
+            return;
+        }
+
+        $id = filter_var($driverId, FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1],
+        ]);
+
+        $valid = $id !== false && DB::table('drivers')
+            ->join('users', 'users.id', '=', 'drivers.user_id')
+            ->where('drivers.id', $id)
+            ->where('drivers.driver_type', 'b2b')
+            ->where('drivers.is_active', true)
+            ->where('users.is_active', true)
+            ->lockForUpdate()
+            ->first(['drivers.id']) !== null;
+
+        if (! $valid) {
+            throw ValidationException::withMessages([
+                'driver_id' => [__('van_assignment_guard.b2b_driver_required')],
+            ]);
+        }
     }
 
     /**
