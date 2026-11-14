@@ -42,7 +42,7 @@ final class V2CommercialSalesControlSidebarMigrationTest extends TestCase
         $this->assertTrue(Route::has('admin.commercial.sales-control'));
         $this->assertSame('admin.commercial.sales-control', Route::getRoutes()->getByName('admin.commercial.sales-control')?->getName());
 
-        $this->assertSame('الكتالوج والتسعير والعروض', __('admin.nav_groups.catalog', [], 'ar'));
+        $this->assertSame('المنتجات والكتالوج', __('admin.nav_groups.catalog', [], 'ar'));
         $this->assertSame('Catalog, Pricing & Offers', __('admin.nav_groups.catalog', [], 'en'));
         $this->assertSame('التحكم التجاري والتسعير', __('admin.commercial_sales_control', [], 'ar'));
         $this->assertSame('Commercial & Pricing Control', __('admin.commercial_sales_control', [], 'en'));
