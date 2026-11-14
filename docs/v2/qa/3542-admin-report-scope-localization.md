@@ -8,7 +8,7 @@ The existing authorized `GET /api/v1/admin/reports/dashboard` endpoint requires 
 
 ## Implementation
 
-The controller uses the **existing** `reports.store_required` key. The first supported AR/EN `Accept-Language` preference (including `ar-KW` and `en-US`) wins; absent supported preferences use the authenticated user's AR/EN locale, otherwise application AR/EN locale, then EN. No raw headers become translation file names. The existing 422 `errors.store_id` structure and Super Admin platform aggregation are unchanged, with no grant or scope bypass.
+The controller uses the **existing** `reports.store_required` key. The first supported AR/EN **explicit** `Accept-Language` preference (including `ar-KW` and `en-US`) wins; when the header is absent or contains no supported language, fall back to the authenticated user's AR/EN locale, otherwise application AR/EN locale, then EN. Symfony can synthesize a language default without an explicit request header; #3542's original required CI run #43590227886 showed that this default incorrectly replaced an Arabic user locale with English (1 failure among 3,791 tests), so the follow-up guards the header's presence before applying negotiated preferences. No raw headers become translation file names. The existing 422 `errors.store_id` structure and Super Admin platform aggregation are unchanged, with no grant or scope bypass.
 
 ## Focused HTTP regression
 
