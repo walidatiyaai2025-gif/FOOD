@@ -46,18 +46,16 @@ class HttpVanWalletRepository implements VanWalletRepository {
       ),
     );
     final data = _map(decoded['data']);
-    final invoices = _list(data['invoices'])
-        .map((row) {
-          final invoice = _map(row);
-          return VanInvoiceBalance(
-            id: _requiredInt(invoice['id']),
-            number: _string(invoice['number']),
-            currency: _string(invoice['currency']),
-            total: _double(invoice['total']),
-            outstandingAmount: _double(invoice['outstanding_amount']),
-          );
-        })
-        .toList(growable: false);
+    final invoices = _list(data['invoices']).map((row) {
+      final invoice = _map(row);
+      return VanInvoiceBalance(
+        id: _requiredInt(invoice['id']),
+        number: _string(invoice['number']),
+        currency: _string(invoice['currency']),
+        total: _double(invoice['total']),
+        outstandingAmount: _double(invoice['outstanding_amount']),
+      );
+    }).toList(growable: false);
 
     return VanCollectionContext(
       storeId: _requiredInt(data['store_id']),
