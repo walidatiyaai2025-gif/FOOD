@@ -12,7 +12,11 @@ The existing Customer diagnostics route, Driver sign-in screen and Van sign-in s
 | Driver | `FoodexDriverApp` unauthenticated login | AR/EN email/password semantic labeling, focus/input and sign-in action label; no HTTP sign-in |
 | Van | `VanLoginScreen` with fake repository | AR/EN email accessible hint, focus, password masking and required-email validation after tapping Sign in; fake repository throws on any attempted credential POST |
 
-The tests use `tester.ensureSemantics()`, real app widgets and deterministic local inputs. They do not use real credentials, production HTTP, push, location or deployment. Existing AR/EN and LTR/RTL regression tests continue to run. The two localized variants must both pass.
+The tests use `tester.ensureSemantics()`, actual field semantics finders (not unrelated ancestor widgets), real app widgets and deterministic local inputs. They do not use real credentials, production HTTP, push, location or deployment. Existing AR/EN and LTR/RTL regression tests continue to run. The two localized variants must both pass.
+
+## Source-level lifecycle defect found and corrected
+
+The initial Customer test revealed an actual Flutter exception during teardown of a localized non-FOODEX diagnostic header: `_FoodexAnimatedHeaderTitleState` kept a lazy `late final AnimationController` accessed in `dispose()` even when its non-branded title path had never initialized it. This attempted `TickerMode` ancestor lookup on a deactivated Element. The minimal fix in `apps/customer_app/lib/features/storefront/storefront_design_system.dart` retains lazy animation creation **only for branded header text**, caches the controller once when needed, reads it from the existing animation builder, and uses null-aware disposal. Rendering, routing, font, AR/EN labels, role/store scope and network behavior remain unchanged. Running the new Customer widget tests through actual mount/focus/route teardown now passes both locales without the original exception. No Driver or Van runtime files were modified.
 
 ## CI integration
 
@@ -26,13 +30,13 @@ flutter test test/localization_test.dart --reporter expanded
 flutter test test/v2_accessibility_e2e_test.dart --reporter expanded
 ```
 
-These are reproducible commands, not assertions of success until completed GitHub jobs or local execution establish their outcome.
+Local GCC Flutter focused accessibility tests were actually executed after correcting the semantics-handle test teardown: **Customer 2 PASS / Driver 2 PASS / Van 2 PASS (6 test cases total)**. The initial failing Customer header teardown and its fix were reproduced. The independently rerun original localization and official exact-head CI gates must still be checked before any merge claim.
 
 ## Security and application impact
 
 - **Backend/API:** no controller, route, permission, token, ledger, database or business state delta.
 - **Dashboard:** no view, navigation, locale or authorization delta.
-- **Customer:** diagnostics view tested; B2B/B2C customer role and store context unchanged.
+- **Customer:** diagnostics view tested plus lifecycle bug corrected for localized headers; B2B/B2C customer role, permissions, store context and API unchanged.
 - **Driver:** login tested without network; B2C Driver-only dispatch unchanged.
 - **Van:** login tested with a rejecting offline fake repository; B2B Van-only dispatch and consignment unchanged.
 - **Privacy:** tests use synthetic email/note and never persist auth secrets.
