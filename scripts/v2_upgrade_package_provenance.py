@@ -312,6 +312,12 @@ def main(argv: list[str] | None = None) -> int:
         first["source_commit"] != second["source_commit"],
         "Distinct historical release edges may not claim identical source commits.",
     )
+    # Two checksum-valid ZIPs are not an upgrade chain unless the newer edge
+    # was built from the exact immutable Git source delivered by the prior edge.
+    _require(
+        second["source_base"] == first["source_commit"],
+        "Historical upgrade source lineage mismatch between consecutive ZIP edges.",
+    )
     print(json.dumps({"status": "archive_integrity_only", "verified_edges": [first, second]}, sort_keys=True))
     return 0
 
