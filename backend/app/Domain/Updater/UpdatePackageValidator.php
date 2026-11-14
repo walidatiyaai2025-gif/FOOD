@@ -42,6 +42,14 @@ final class UpdatePackageValidator
 
             if ($archive->open($packagePath) === true) {
                 try {
+                    // Migration-declaration validation runs before the update
+                    // runtime's ZIP preflight. Apply the same entry-count limit
+                    // here before inspecting any central-directory members.
+                    $maxMembers = max(1, (int) config('foodex.update_max_zip_members', 50000));
+                    if ($archive->numFiles > $maxMembers) {
+                        throw new InvalidArgumentException('Update archive exceeds the allowed member count.');
+                    }
+
                     for ($index = 0; $index < $archive->numFiles; $index++) {
                         $name = $archive->getNameIndex($index);
 
