@@ -23,6 +23,7 @@ class InstallerController extends Controller
         InstallerWorkflow $workflow,
     ): View {
         $this->ensureInstallerOpen($state);
+        $this->setInstallerLocale($request, $environment);
 
         $progress = $state->progress();
         $allowedStep = min(InstallerChecklist::count(), $progress['completed_step'] + 1);
@@ -48,6 +49,7 @@ class InstallerController extends Controller
     ): RedirectResponse|Response {
         $this->ensureInstallerOpen($state);
         abort_unless($step >= 1 && $step <= InstallerChecklist::count(), 404);
+        $this->setInstallerLocale($request, $environment);
 
         $submittedToken = (string) $request->input('installer_token', '');
         abort_if($submittedToken === '' || ! hash_equals($state->token(), $submittedToken), 419);
@@ -215,9 +217,13 @@ class InstallerController extends Controller
 
             $state->markStepComplete($step, $admin);
 
-            return redirect()->route('install.index', [
-                'step' => min(InstallerChecklist::count(), $step + 1),
-            ]);
+            $next = ['step' => min(InstallerChecklist::count(), $step + 1)];
+            $queryLocale = $request->query('lang');
+            if (is_string($queryLocale) && in_array($queryLocale, ['ar', 'en'], true)) {
+                $next['lang'] = $queryLocale;
+            }
+
+            return redirect()->route('install.index', $next);
         } catch (RuntimeException $exception) {
             return response()->view('install.index', $this->viewData(
                 $state,
@@ -286,9 +292,28 @@ class InstallerController extends Controller
             'input' => $input,
             'errorMessages' => $errorMessages,
             'installerToken' => $state->token(),
+            'installerLocale' => app()->getLocale(),
+            'languageQuery' => in_array(request()->query('lang'), ['ar', 'en'], true)
+                ? request()->query('lang')
+                : null,
             'requirementFailures' => $currentStep === 2 ? $workflow->serverRequirementFailures() : [],
             'permissionFailures' => $currentStep === 3 ? $workflow->writablePathFailures() : [],
         ];
+    }
+
+    private function setInstallerLocale(Request $request, InstallerEnvironment $environment): void
+    {
+        $requested = $request->query('lang');
+        if (is_string($requested) && in_array($requested, ['ar', 'en'], true)) {
+            app()->setLocale($requested);
+
+            return;
+        }
+
+        // The saved platform locale is the default; requesting a different
+        // display language must never write .env or mutate installer progress.
+        $saved = $environment->read(['APP_LOCALE'])['APP_LOCALE'] ?? null;
+        app()->setLocale($saved === 'en' ? 'en' : 'ar');
     }
 
     private function ensureInstallerOpen(InstallState $state): void
