@@ -760,14 +760,18 @@ class _FoodexAnimatedHeaderTitleState extends State<_FoodexAnimatedHeaderTitle>
     fontWeight: FontWeight.w800,
   );
 
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1650),
-  )..forward();
+  AnimationController? _controller;
+
+  AnimationController get _activeController {
+    return _controller ??= (AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1650),
+    )..forward());
+  }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -791,10 +795,11 @@ class _FoodexAnimatedHeaderTitleState extends State<_FoodexAnimatedHeaderTitle>
         arabicBrand ? 'فوديكس' : title.substring(0, englishMatch!.end);
     final rest = title.substring(brand.length);
 
+    final controller = _activeController;
     final animatedBrand = AnimatedBuilder(
-      animation: _controller,
+      animation: controller,
       builder: (context, child) {
-        final progress = _controller.value;
+        final progress = controller.value;
         final wave = math.sin(progress * math.pi * 2);
         final travel = progress * 2.5;
 
