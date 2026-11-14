@@ -154,11 +154,13 @@ final class UpdateManager
                 $maintenanceMode = false;
                 $this->checkpoint($history, ['maintenance_mode' => 'exited']);
 
+                $stage = 'record_version';
                 SystemVersion::query()->updateOrCreate(
                     ['version' => $manifest->targetVersion],
                     ['installed_at' => now(), 'package_hash' => strtolower($manifest->sha256)],
                 );
 
+                $stage = 'record_success';
                 $this->checkpoint($history, ['result' => 'success'], [
                     'status' => 'success',
                     'failure_reason' => null,
@@ -168,6 +170,7 @@ final class UpdateManager
                     'finished_at' => now(),
                 ]);
 
+                $stage = 'audit_completion';
                 $this->auditLogger->record(
                     'updater.completed',
                     $actor,
