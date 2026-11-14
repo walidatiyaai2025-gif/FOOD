@@ -10,6 +10,9 @@ return [
     // payloads before increasing limits on shared hosting.
     'update_max_entry_uncompressed_bytes' => max(1, (int) env('FOODEX_UPDATE_MAX_ENTRY_UNCOMPRESSED_BYTES', 268435456)),
     'update_max_total_uncompressed_bytes' => max(1, (int) env('FOODEX_UPDATE_MAX_TOTAL_UNCOMPRESSED_BYTES', 1073741824)),
+    // Bound ZIP central-directory records (files and directories) before enumeration.
+    // Enforced in both package validation and runtime preflight/extraction.
+    'update_max_zip_members' => max(1, (int) env('FOODEX_UPDATE_MAX_ZIP_MEMBERS', 50000)),
     'mysql_dump_binary' => env('FOODEX_MYSQL_DUMP_BINARY', 'mysqldump'),
     'mysql_client_binary' => env('FOODEX_MYSQL_CLIENT_BINARY', 'mysql'),
     'pg_dump_binary' => env('FOODEX_PG_DUMP_BINARY', 'pg_dump'),
