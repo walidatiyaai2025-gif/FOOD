@@ -153,6 +153,9 @@ return [
         'email' => 'Enter a valid :attribute.',
         'url' => 'Enter a valid http or https :attribute.',
         'in' => 'The selected :attribute is invalid.',
+        'between.numeric' => 'The :attribute must be between :min and :max.',
+        'min.string' => 'The :attribute must be at least :min characters.',
+        'max.string' => 'The :attribute may not exceed :max characters.',
         'confirmed' => 'The :attribute confirmation does not match.',
     ],
 ];
