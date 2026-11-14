@@ -22,8 +22,17 @@ class UpdateManagerTest extends TestCase
     {
         parent::setUp();
 
+        if (! class_exists(\ZipArchive::class)) {
+            $this->markTestSkipped('The ZIP extension is required for package validation.');
+        }
+
         $this->packagePath = tempnam(sys_get_temp_dir(), 'foodex-update-manager-');
-        file_put_contents($this->packagePath, 'validated update payload');
+        $archive = new \ZipArchive;
+        $this->assertTrue(
+            $archive->open($this->packagePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true,
+        );
+        $this->assertTrue($archive->addFromString('release-notes.txt', 'Updater test fixture'));
+        $this->assertTrue($archive->close());
     }
 
     protected function tearDown(): void
@@ -31,6 +40,37 @@ class UpdateManagerTest extends TestCase
         @unlink($this->packagePath);
 
         parent::tearDown();
+    }
+
+    public function test_corrupt_zip_fails_before_runtime_preflight_backup_or_maintenance(): void
+    {
+        file_put_contents($this->packagePath, 'Not an update ZIP');
+        $runtime = new RecordingUpdateRuntime;
+        $manager = new UpdateManager(
+            new UpdatePackageValidator,
+            $runtime,
+            app(AuditLogger::class),
+        );
+
+        try {
+            $manager->execute($this->manifest(false), '1.0.0', $this->packagePath);
+            $this->fail('An unreadable ZIP must not reach runtime preflight.');
+        } catch (RuntimeException $exception) {
+            $this->assertStringContainsString('validate_package', $exception->getMessage());
+            $this->assertStringContainsString('not a readable ZIP archive', $exception->getMessage());
+        }
+
+        $this->assertSame([], $runtime->calls);
+        $this->assertDatabaseHas('update_history', [
+            'to_version' => '1.1.0',
+            'status' => 'failed',
+            'failed_stage' => 'validate_package',
+            'backup_status' => 'not_created',
+            'rollback_status' => 'not_required',
+            'maintenance_mode_remained' => false,
+        ]);
+        $this->assertDatabaseMissing('system_versions', ['version' => '1.1.0']);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'updater.failed']);
     }
 
     public function test_success_pipeline_records_history_version_and_audit(): void
