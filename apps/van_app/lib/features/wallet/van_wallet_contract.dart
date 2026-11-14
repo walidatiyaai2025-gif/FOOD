@@ -11,6 +11,7 @@ class VanCustomerScope {
   final int id;
   final String name;
   final int storeId;
+
   /// Server-authoritative direct-sale eligibility; missing means denied.
   final bool canDirectSell;
 }
