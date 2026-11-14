@@ -289,11 +289,23 @@ final class V2VanInventoryReadAuthorityTest extends TestCase
             $this->assertSame(404, $exception->getStatusCode());
         }
 
-        // Switching the same assignment to an active B2B driver preserves
-        // legitimate inventory visibility without granting a new permission.
+        // An imported Driver can claim a B2B type while still belonging to a
+        // Retail store. Type alone must not authorize Wholesale Van inventory.
+        DB::table('drivers')->where('id', $driverId)->update([
+            'driver_type' => 'b2b',
+            'updated_at' => now(),
+        ]);
+        try {
+            $service->page($viewer, (int) $van->id);
+            $this->fail('B2B driver type with a B2C store must not expose Van stock.');
+        } catch (HttpException $exception) {
+            $this->assertSame(404, $exception->getStatusCode());
+        }
+
+        // Correcting the persisted Driver store to Wholesale preserves a
+        // legitimate B2B read without changing Van or inventory permissions.
         DB::table('drivers')->where('id', $driverId)->update([
             'store_id' => $storeId,
-            'driver_type' => 'b2b',
             'updated_at' => now(),
         ]);
         $this->assertCount(1, $service->page($viewer, (int) $van->id)['rows']);
