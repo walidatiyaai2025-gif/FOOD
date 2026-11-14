@@ -61,6 +61,13 @@ def _member_name(info: zipfile.ZipInfo) -> str:
     )
     mode = (info.external_attr >> 16) & 0xFFFF
     _require(not stat.S_ISLNK(mode), f"Symlink is not allowed: {name!r}")
+    # A non-directory entry must be a regular file, never a Unix FIFO,
+    # device, socket or disguised directory. An absent Unix file-type
+    # field is permitted for ZIP archives created on other platforms.
+    _require(
+        stat.S_IFMT(mode) in (0, stat.S_IFREG),
+        f"Non-regular archive member type is forbidden: {name!r}",
+    )
     _require(not info.is_dir(), f"Directory entry is not expected: {name!r}")
     _require(
         not any(part == ".env" or part.startswith(".env.") for part in parts)
