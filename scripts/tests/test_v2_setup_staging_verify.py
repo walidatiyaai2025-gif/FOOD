@@ -93,6 +93,45 @@ class V2SetupStagingVerifierTest(unittest.TestCase):
                 with self.assertRaisesRegex(SetupZipError, "Private|Runtime"):
                     self.verify()
 
+    def test_runtime_sessions_cached_config_and_compiled_views_cannot_ship_in_setup(self) -> None:
+        # These files might exist in a dirty host or CI working tree. An
+        # APP_KEY, DB password, session cookie or compiled view must never
+        # enter a public Setup archive merely because it passed zip CRC.
+        unsafe = (
+            "backend/storage/framework/sessions/abcd-session",
+            "backend/storage/framework/cache/data/ab/secret.cache",
+            "backend/storage/framework/views/compiled-view.php",
+            "backend/storage/framework/testing/testing-session",
+            "backend/bootstrap/cache/config.php",
+            "backend/bootstrap/cache/routes-v7.php",
+            "backend/bootstrap/cache/services.php",
+            "backend/Storage/Framework/Sessions/CAPS-SESSION",
+        )
+        for entry in unsafe:
+            with self.subTest(entry=entry):
+                self.pack({entry: b"APP_KEY=base64:secret;DB_PASSWORD=secret"})
+                with self.assertRaisesRegex(SetupZipError, "Runtime session/cache/config"):
+                    self.verify()
+
+    def test_empty_runtime_directories_are_preserved_without_private_files(self) -> None:
+        self.pack()
+        with zipfile.ZipFile(self.archive, "a") as archive:
+            for directory in (
+                "backend/storage/framework/sessions/",
+                "backend/storage/framework/cache/",
+                "backend/storage/framework/cache/data/",
+                "backend/storage/framework/views/",
+                "backend/storage/framework/testing/",
+                "backend/bootstrap/cache/",
+            ):
+                member = zipfile.ZipInfo(directory)
+                member.external_attr = (stat.S_IFDIR | 0o755) << 16
+                archive.writestr(member, b"")
+        self.assertEqual("UNTRUSTED_CI_STAGING_ONLY", self.verify()["status"])
+        # Public framework source remains packageable.
+        self.pack({"backend/app/Http/Kernel.php": b"<?php"})
+        self.assertEqual("UNTRUSTED_CI_STAGING_ONLY", self.verify()["status"])
+
     def test_unicode_path_extra_cannot_override_safe_zip_member_name(self) -> None:
         # A valid ZIP central path could be extracted as a private .env file
         # if another extractor trusts Info-ZIP's 0x7075 alternate filename.
