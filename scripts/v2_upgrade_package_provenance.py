@@ -39,9 +39,26 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject duplicate names in every object, including nested metadata."""
+    data: dict[str, Any] = {}
+    for key, value in pairs:
+        _require(key not in data, "Duplicate update manifest JSON key.")
+        data[key] = value
+    return data
+
+
+def _reject_nonfinite_json_constant(_token: str) -> Any:
+    raise PackageContractError("Non-finite update manifest JSON number.")
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(
+            path.read_text(encoding="utf-8"),
+            object_pairs_hook=_unique_json_object,
+            parse_constant=_reject_nonfinite_json_constant,
+        )
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise PackageContractError(f"Cannot read update manifest: {path.name}") from exc
     _require(isinstance(data, dict), "Update manifest must be a JSON object.")
