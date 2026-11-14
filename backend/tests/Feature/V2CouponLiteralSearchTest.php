@@ -24,7 +24,7 @@ class V2CouponLiteralSearchTest extends TestCase
     {
         $this->actingAs($this->actor('SUPER_ADMIN', 'v2-coupon-super@example.test'));
 
-        $code = $this->coupon('b2b', null, 'CODE%_!', [
+        $code = $this->coupon('b2b', null, 'CODE_UNDERSCORE', [
             'name_ar' => 'عنوان اعتيادي',
             'name_en' => 'Normal name',
         ]);
@@ -34,15 +34,15 @@ class V2CouponLiteralSearchTest extends TestCase
         $english = $this->coupon('b2b', null, 'EN-COUPON', [
             'name_en' => 'Deal %_! English',
         ]);
-        $lookalike = $this->coupon('b2b', null, 'WILDCARD-!');
+        $lookalike = $this->coupon('b2b', null, 'WILDCARD', ['name_en' => 'Unrelated !']);
         $this->coupon('b2b', null, 'PLAIN');
 
         $auditBefore = DB::table('audit_logs')->count();
 
-        $this->assertResults(['q' => '%_!'], [$code->id, $arabic->id, $english->id]);
-        $this->assertResults(['q' => '%'], [$code->id, $arabic->id, $english->id]);
+        $this->assertResults(['q' => '%_!'], [$arabic->id, $english->id]);
+        $this->assertResults(['q' => '%'], [$arabic->id, $english->id]);
         $this->assertResults(['q' => '_'], [$code->id, $arabic->id, $english->id]);
-        $this->assertResults(['q' => '!'], [$code->id, $arabic->id, $english->id, $lookalike->id]);
+        $this->assertResults(['q' => '!'], [$arabic->id, $english->id, $lookalike->id]);
         $this->assertResults(['q' => 'CODE'], [$code->id]);
         $this->assertResults(['q' => 'خصم'], [$arabic->id]);
         $this->assertResults(['q' => 'Deal'], [$english->id]);
@@ -50,7 +50,7 @@ class V2CouponLiteralSearchTest extends TestCase
         $this->assertSame($auditBefore, DB::table('audit_logs')->count());
         $this->assertDatabaseHas('marketing_coupons', [
             'id' => $code->id,
-            'code' => 'CODE%_!',
+            'code' => 'CODE_UNDERSCORE',
             'is_active' => true,
         ]);
     }
@@ -60,10 +60,10 @@ class V2CouponLiteralSearchTest extends TestCase
         $storeA = $this->retailStore('V2-CUP-LITERAL-A');
         $storeB = $this->retailStore('V2-CUP-LITERAL-B');
 
-        $mine = $this->coupon('b2c', $storeA, 'MINE%_!');
-        $inactive = $this->coupon('b2c', $storeA, 'OFF%_!', ['is_active' => false]);
-        $foreign = $this->coupon('b2c', $storeB, 'FOREIGN%_!');
-        $wholesale = $this->coupon('b2b', null, 'B2B%_!');
+        $mine = $this->coupon('b2c', $storeA, 'MINE_VALID', ['name_en' => 'Mine %_!']);
+        $inactive = $this->coupon('b2c', $storeA, 'OFF_VALID', ['name_ar' => 'غير نشط %_!', 'is_active' => false]);
+        $foreign = $this->coupon('b2c', $storeB, 'FOREIGN_VALID', ['name_en' => 'Foreign %_!']);
+        $wholesale = $this->coupon('b2b', null, 'B2B_VALID', ['name_en' => 'Wholesale %_!']);
 
         $this->actingAs($this->retailAdmin($storeA));
         $this->assertResults(['q' => '%_!', 'channel' => 'b2c', 'status' => 'active'], [$mine->id]);
