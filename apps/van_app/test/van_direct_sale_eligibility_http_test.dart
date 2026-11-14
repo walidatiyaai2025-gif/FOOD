@@ -7,7 +7,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
-  test('Van customer API requires exact true for direct-sale authority', () async {
+  test('Van customer API requires exact true for direct-sale authority',
+      () async {
     final client = MockClient((request) async {
       expect(request.method, 'GET');
       expect(request.url.path, '/api/v1/van/customers');
