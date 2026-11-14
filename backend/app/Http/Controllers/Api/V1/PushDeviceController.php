@@ -29,8 +29,11 @@ final class PushDeviceController extends Controller
 
     public function destroy(Request $request, PushDeviceToken $device): JsonResponse
     {
+        $user = $request->user();
         abort_unless(
-            (int) $device->user_id === (int) $request->user()?->getAuthIdentifier(),
+            $user instanceof User
+                && (int) $device->user_id === (int) $user->getAuthIdentifier()
+                && $user->tokenCan('app:'.$device->app),
             404,
         );
 

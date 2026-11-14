@@ -1675,6 +1675,7 @@ class _CustomerWalletRepository implements VanWalletRepository {
           id: 42,
           name: 'Acme Grocery',
           storeId: 7,
+          canDirectSell: true,
         ),
       ];
 

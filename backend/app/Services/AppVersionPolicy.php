@@ -49,10 +49,11 @@ final class AppVersionPolicy
     {
         $version = ltrim(trim($version), 'vV');
 
-        if (! preg_match('/^\d+(?:\.\d+){0,3}(?:[-+][0-9A-Za-z.-]+)?$/', $version)) {
+        if (! preg_match('/^\d+(?:\.\d+){0,3}(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/', $version)) {
             throw new InvalidArgumentException('Invalid application version.');
         }
 
-        return $version;
+        // Build metadata is not part of SemVer precedence. Preserve raw response values.
+        return explode('+', $version, 2)[0];
     }
 }

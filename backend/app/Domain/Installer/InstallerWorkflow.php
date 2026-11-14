@@ -15,6 +15,9 @@ use Throwable;
 
 final class InstallerWorkflow
 {
+    /** @var array<int, string> */
+    public const REQUIRED_EXTENSIONS = ['pdo', 'openssl', 'mbstring', 'tokenizer', 'json', 'zip', 'fileinfo'];
+
     public function __construct(
         private readonly InstallerEnvironment $environment,
         private readonly InstallState $state,
@@ -25,21 +28,22 @@ final class InstallerWorkflow
     /**
      * @return array<int, string>
      */
-    public function serverRequirementFailures(): array
+    public function serverRequirementFailures(?callable $extensionLoaded = null): array
     {
+        $extensionLoaded ??= static fn (string $extension): bool => extension_loaded($extension);
         $failures = [];
 
         if (version_compare(PHP_VERSION, '8.2.0', '<')) {
             $failures[] = (string) __('installer.errors.php_version');
         }
 
-        foreach (['pdo', 'openssl', 'mbstring', 'tokenizer', 'json'] as $extension) {
-            if (! extension_loaded($extension)) {
+        foreach (self::REQUIRED_EXTENSIONS as $extension) {
+            if (! $extensionLoaded($extension)) {
                 $failures[] = (string) __('installer.errors.extension', ['extension' => $extension]);
             }
         }
 
-        if (! extension_loaded('pdo_mysql')) {
+        if (! $extensionLoaded('pdo_mysql')) {
             $failures[] = (string) __('installer.errors.pdo_mysql');
         }
 

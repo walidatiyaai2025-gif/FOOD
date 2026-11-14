@@ -9,6 +9,7 @@ void main() {
     id: 10,
     name: 'Wholesale customer',
     storeId: 2,
+    canDirectSell: true,
   );
   const retail = VanCustomerScope(
     type: 'b2c',
@@ -61,6 +62,46 @@ void main() {
     expect(syncWholesaleDirectSaleDraft(draft, [retail]), isEmpty);
     expect(draft.customer, isNull);
     expect(draft.lines, isEmpty);
+  });
+
+  test('closed B2B visits cannot appear in sale picker or retain draft', () {
+    final draft = VanOrderDraftController();
+    draft.selectCustomer(wholesale);
+    draft.add(
+      const VanCatalogProduct(
+        id: 3,
+        name: 'Existing wholesale cart',
+        sku: 'CLOSED-VISIT',
+        unitPrice: 9,
+        minimumQuantity: 1,
+        orderingIncrement: 1,
+        isAvailable: true,
+      ),
+    );
+
+    const terminal = VanCustomerScope(
+      type: 'b2b',
+      id: 10,
+      name: 'Wholesale customer',
+      storeId: 2,
+      canDirectSell: false,
+    );
+    expect(syncWholesaleDirectSaleDraft(draft, [terminal]), isEmpty);
+    expect(draft.customer, isNull);
+    expect(draft.lines, isEmpty);
+    expect(draft.quote, isNull);
+  });
+
+  test('missing sale eligibility defaults to deny for historic B2B buyer', () {
+    const legacy = VanCustomerScope(
+      type: 'b2b',
+      id: 40,
+      name: 'Legacy customer',
+      storeId: 2,
+    );
+    final draft = VanOrderDraftController();
+    expect(syncWholesaleDirectSaleDraft(draft, [legacy]), isEmpty);
+    expect(draft.customer, isNull);
   });
 
   test('still authorized Wholesale selection survives customer refresh', () {
