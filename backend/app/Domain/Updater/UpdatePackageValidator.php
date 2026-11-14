@@ -66,11 +66,11 @@ final class UpdatePackageValidator
             }
         }
 
-        if (version_compare($currentVersion, $manifest->minimumCurrentVersion, '<')) {
+        if (UpdateVersion::compareCanonical($currentVersion, $manifest->minimumCurrentVersion) < 0) {
             throw new InvalidArgumentException('Current version is not supported by this update.');
         }
 
-        if (version_compare($manifest->targetVersion, $currentVersion, '<=')) {
+        if (UpdateVersion::compareCanonical($manifest->targetVersion, $currentVersion) <= 0) {
             throw new InvalidArgumentException('Target version must be newer than the installed version.');
         }
 
