@@ -212,6 +212,99 @@ void main() {
     );
   });
 
+  test('Retail customer cannot reach Van catalog options or quote API', () async {
+    var sent = 0;
+    final repository = _repository((request) async {
+      sent += 1;
+      return http.Response('{}', 200);
+    });
+    const retail = VanCustomerScope(
+      type: 'b2c',
+      id: 55,
+      name: 'Retail customer',
+      storeId: 9,
+    );
+
+    await expectLater(
+      repository.catalog(retail),
+      throwsA(isA<VanAccessDeniedException>()),
+    );
+    await expectLater(
+      repository.options(retail),
+      throwsA(isA<VanAccessDeniedException>()),
+    );
+    await expectLater(
+      repository.quote(
+        customer: retail,
+        lines: const [],
+        paymentMethod: 'cash_on_delivery',
+      ),
+      throwsA(isA<VanAccessDeniedException>()),
+    );
+    expect(sent, 0);
+  });
+
+  test('valid Wholesale catalog options and quote remain accessible', () async {
+    final requests = <String>[];
+    final repository = _repository((request) async {
+      requests.add(request.url.path);
+      if (request.url.path.endsWith('/catalog')) {
+        return http.Response(
+          jsonEncode({
+            'currency': 'EGP',
+            'data': <Object>[],
+            'meta': {'page': 1, 'per_page': 50, 'has_more': false},
+          }),
+          200,
+        );
+      }
+      if (request.url.path.endsWith('/order-options')) {
+        return http.Response(
+          jsonEncode({
+            'data': {
+              'addresses': <Object>[],
+              'warehouses': <Object>[],
+              'payment_methods': ['cash_on_delivery'],
+              'default_payment_method': 'cash_on_delivery',
+            },
+          }),
+          200,
+        );
+      }
+      return http.Response(
+        jsonEncode({
+          'data': {
+            'currency': 'EGP',
+            'subtotal': 0,
+            'discount_total': 0,
+            'delivery_total': 0,
+            'tax_total': 0,
+            'grand_total': 0,
+            'has_unavailable_items': false,
+          },
+        }),
+        200,
+      );
+    });
+
+    final catalog = await repository.catalog(_customer);
+    final options = await repository.options(_customer);
+    final quote = await repository.quote(
+      customer: _customer,
+      lines: const [],
+      paymentMethod: 'cash_on_delivery',
+    );
+
+    expect(catalog.products, isEmpty);
+    expect(options.paymentMethods, contains('cash_on_delivery'));
+    expect(quote.grandTotal, 0);
+    expect(requests, [
+      '/api/v1/van/customers/b2b/42/catalog',
+      '/api/v1/van/customers/b2b/42/order-options',
+      '/api/v1/van/customers/b2b/42/order-quote',
+    ]);
+  });
+
   test('Retail customer request never reaches a Van order endpoint', () async {
     var sent = 0;
     final repository = _repository((request) async {

@@ -15,6 +15,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
     int page = 1,
     int perPage = 50,
   }) async {
+    _assertWholesaleCustomer(customer);
     final query = StringBuffer(
       'van/customers/${customer.type}/${customer.id}/catalog'
       '?store_id=${customer.storeId}'
@@ -52,6 +53,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
 
   @override
   Future<VanOrderOptions> options(VanCustomerScope customer) async {
+    _assertWholesaleCustomer(customer);
     final decoded = _map(
       await api.getJson(
         'van/customers/${customer.type}/${customer.id}/order-options'
@@ -114,6 +116,7 @@ class HttpVanOrderRepository implements VanOrderRepository {
     int? warehouseId,
     String? customerNote,
   }) async {
+    _assertWholesaleCustomer(customer);
     final decoded = _map(
       await api.postJson(
         'van/customers/${customer.type}/${customer.id}/order-quote',
