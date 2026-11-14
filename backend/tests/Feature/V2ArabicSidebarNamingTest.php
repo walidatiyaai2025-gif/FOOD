@@ -67,6 +67,11 @@ class V2ArabicSidebarNamingTest extends TestCase
         $catalog = collect($arabicGroups)->firstWhere('key', 'catalog');
         $this->assertNotNull($catalog);
         $this->assertSame('admin.nav_groups.catalog', $catalog['label']);
+        $this->assertSame('الكتالوج والتسعير والعروض', $catalog['label_text'] ?? __($catalog['label'], [], 'ar'));
+
+        $englishCatalog = collect($englishGroups)->firstWhere('key', 'catalog');
+        $this->assertNotNull($englishCatalog);
+        $this->assertSame(__('admin.nav_groups.catalog', [], 'en'), $englishCatalog['label_text'] ?? __($englishCatalog['label'], [], 'en'));
         $catalogItem = collect($catalog['children'])->firstWhere('key', 'catalog_management');
         $this->assertNotNull($catalogItem);
         $this->assertSame('admin.catalog.index', $catalogItem['route']);
