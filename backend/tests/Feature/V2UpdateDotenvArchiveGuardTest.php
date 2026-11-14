@@ -35,6 +35,7 @@ final class V2UpdateDotenvArchiveGuardTest extends TestCase
             'backend/.Env.Secrets',
             'backend/config/.env.production',
             'backend/.env.production/private.php',
+            'backend/.env.production.example/private.php',
             'backend/Storage/app/private/credentials.json',
             'backend/VENDOR/autoload.php',
             'backend/.GIT/config',
