@@ -123,8 +123,16 @@ jobs:
         run: bash scripts/release-readiness.sh
       - id: plan
         shell: bash
+        env:
+          REQUESTED_PUBLISH: ${{ inputs.publish }}
         run: |
           set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" \
+            && "${REQUESTED_PUBLISH,,}" == "true" \
+            && "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "::error::Publishing is permitted only from main; V2 validation runs must remain nonpublishing."
+            exit 1
+          fi
           version="$(tr -d '[:space:]' < VERSION)"
           customer="$(awk '/^version:/{print $2; exit}' apps/customer_app/pubspec.yaml | tr -d '"')"
           driver="$(awk '/^version:/{print $2; exit}' apps/driver_app/pubspec.yaml | tr -d '"')"
@@ -218,7 +226,10 @@ jobs:
   dashboard-only:
     name: Route Dashboard-only release
     needs: plan
-    if: needs.plan.outputs.dashboard_only == 'true'
+    if: >-
+      needs.plan.outputs.dashboard_only == 'true' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || inputs.publish)
     runs-on: ubuntu-latest
     steps:
       - name: Dispatch canonical Dashboard update workflow
@@ -318,16 +329,61 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          composer validate --working-dir=backend --strict --no-check-publish
           composer install --working-dir=backend --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
           stage="$(mktemp -d)"
+          trap 'rm -rf "$stage"' EXIT
           mkdir -p "$stage/backend"
-          rsync -a backend/ "$stage/backend/"             --exclude='.env'             --exclude='tests/'             --exclude='docs/'             --exclude='.phpunit.cache/'             --exclude='storage/logs/*'             --exclude='storage/app/system/*'
-          rm -f "$stage/backend/bootstrap/cache/"*.php
+          # Storage and bootstrap caches are *runtime data*, not distributable
+          # source. Never copy user uploads, exports, sessions, backups, or
+          # generated configuration from a dirty build into signed Setup.
+          rsync -a backend/ "$stage/backend/" \
+            --exclude='/.env' \
+            --exclude='tests/' \
+            --exclude='docs/' \
+            --exclude='.phpunit.cache/' \
+            --exclude='/storage/' \
+            --exclude='/bootstrap/cache/' \
+            --exclude='/public/storage' \
+            --exclude='/public/uploads'
+          mkdir -p "$stage/backend/storage/app/public" \
+            "$stage/backend/storage/app/private" \
+            "$stage/backend/storage/app/system" \
+            "$stage/backend/storage/framework/cache/data" \
+            "$stage/backend/storage/framework/sessions" \
+            "$stage/backend/storage/framework/views" \
+            "$stage/backend/storage/framework/testing" \
+            "$stage/backend/storage/logs" \
+            "$stage/backend/bootstrap/cache"
           cp VERSION "$stage/VERSION"
           cp Release/INSTALL-FIRST.txt "$stage/INSTALL-FIRST.txt"
-          (cd "$stage" && zip -qr "$GITHUB_WORKSPACE/FOODEX-Laravel-Setup.zip" .)
+          # Use the same integrity-only deterministic ZIP writer as the
+          # Foodex_V2 staged fresh-install gate. A successful checksum does
+          # not authenticate publisher identity or authorize publication.
+          # Rebuild from THIS immutable tree, compare exact bytes and only
+          # then run the canonical package security verifier.
+          rm -f "$GITHUB_WORKSPACE/FOODEX-Laravel-Setup.zip"
+          repeat="$RUNNER_TEMP/FOODEX-Laravel-Setup-repeat.zip"
+          rm -f "$repeat"
+          source_epoch="$(git show -s --format=%ct HEAD)"
+          python3 scripts/v2_build_setup_zip.py \
+            --source-root "$stage" \
+            --output "$GITHUB_WORKSPACE/FOODEX-Laravel-Setup.zip" \
+            --source-date-epoch "$source_epoch"
+          python3 scripts/v2_build_setup_zip.py \
+            --source-root "$stage" \
+            --output "$repeat" \
+            --source-date-epoch "$source_epoch"
+          cmp "$GITHUB_WORKSPACE/FOODEX-Laravel-Setup.zip" "$repeat"
+          rm -f "$repeat"
           test -s FOODEX-Laravel-Setup.zip
-          test "$(unzip -Z1 FOODEX-Laravel-Setup.zip | grep -c '^backend/.env$' || true)" = "0"
+          # Validate the actual assembled artifact before upload/signing;
+          # this CI integrity check is not publisher authentication.
+          python3 scripts/v2_setup_staging_verify.py \
+            --zip FOODEX-Laravel-Setup.zip \
+            --version-file VERSION \
+            --source-commit "$(git rev-parse HEAD)" \
+            --evidence "$RUNNER_TEMP/setup-zip-integrity.json"
       - uses: actions/upload-artifact@v4
         with:
           name: release-laravel-setup-${{ github.sha }}
@@ -339,7 +395,7 @@ jobs:
     name: Validate clean install from exact Setup ZIP
     needs: [plan, setup]
     if: needs.plan.outputs.dashboard_only != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
       CURRENT_VERSION: ${{ needs.plan.outputs.version }}

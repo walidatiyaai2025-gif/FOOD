@@ -10,7 +10,10 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Throwable;
 
 final class InstallerWorkflow
@@ -51,6 +54,20 @@ final class InstallerWorkflow
     }
 
     /**
+     * ERP operational evidence requires detached Ed25519 verification.
+     * Missing crypto support blocks module certification, not core setup.
+     */
+    public function hasErpEvidenceVerifier(
+        ?callable $extensionLoaded = null,
+        ?callable $functionExists = null,
+    ): bool {
+        $extensionLoaded ??= static fn (string $extension): bool => extension_loaded($extension);
+        $functionExists ??= static fn (string $function): bool => function_exists($function);
+
+        return $extensionLoaded('sodium') && $functionExists('sodium_crypto_sign_verify_detached');
+    }
+
+    /**
      * @return array<int, string>
      */
     public function writablePathFailures(): array
@@ -61,8 +78,51 @@ final class InstallerWorkflow
             'storage' => storage_path(),
             'bootstrap/cache' => base_path('bootstrap/cache'),
         ] as $label => $path) {
-            if (! is_dir($path) || ! is_writable($path)) {
+            if (! $this->isWritableInstallerDirectory($path)) {
                 $failures[] = (string) __('installer.errors.path_writable', ['path' => $label]);
+            }
+        }
+
+        // The .env writer uses a temporary sibling + atomic rename; writing
+        // storage/cache alone does not establish the required parent rights.
+        $environmentPath = $this->environment->path();
+        if ($this->hasInstallerSymlinkComponent($environmentPath)
+            || ! $this->writableOrCreatableInstallerTarget($environmentPath, readExisting: true)) {
+            $failures[] = (string) __('installer.errors.env_directory_writable');
+        }
+
+        // The persistent lock path is separate from the replaceable .env.
+        // Inspect only: the preflight must not create files or mutate secrets.
+        $lockPath = (string) config(
+            'foodex.installer_env_lock_path',
+            storage_path('framework/installer-env-locks/'.hash('sha256', $environmentPath).'.lock'),
+        );
+        if ($this->hasInstallerSymlinkComponent($lockPath)
+            || ! $this->writableOrCreatableInstallerTarget($lockPath, writeExisting: true)) {
+            $failures[] = (string) __('installer.errors.env_lock_directory_writable');
+        }
+
+        // InstallState creates the progress and final installed lock using
+        // sibling temporary files + rename. It also needs a persistent token
+        // lock before the first POST. Check their actual configured parents,
+        // without creating folders/files or touching an existing live site.
+        $progressPath = $this->state->progressPath();
+        $tokenLockPath = (string) config(
+            'foodex.installer_token_lock_path',
+            storage_path('framework/installer-token-locks/'.hash('sha256', $progressPath).'.lock'),
+        );
+        foreach ([
+            'install_state_directory_writable' => $this->state->lockPath(),
+            'install_progress_directory_writable' => $progressPath,
+            'installer_token_lock_directory_writable' => $tokenLockPath,
+        ] as $error => $path) {
+            if ($this->hasInstallerSymlinkComponent($path)
+                || ! $this->writableOrCreatableInstallerTarget(
+                    $path,
+                    readExisting: $error === 'install_progress_directory_writable',
+                    writeExisting: $error === 'installer_token_lock_directory_writable',
+                )) {
+                $failures[] = (string) __('installer.errors.'.$error);
             }
         }
 
@@ -70,10 +130,155 @@ final class InstallerWorkflow
     }
 
     /**
+     * Read-only host preflight. A writable parent supports atomic rename but
+     * does not prove an existing leaf is a readable file or usable lock.
+     * Never create, chmod, unlink, read contents or print absolute host paths.
+     */
+    private function writableOrCreatableInstallerTarget(
+        string $path,
+        bool $readExisting = false,
+        bool $writeExisting = false,
+    ): bool {
+        if (! $this->writableOrCreatableInstallerDirectory(dirname($path))) {
+            return false;
+        }
+
+        if (! file_exists($path)) {
+            return ! is_link($path);
+        }
+
+        if (! is_file($path)) {
+            return false;
+        }
+
+        $metadata = @lstat($path);
+        if ($metadata === false
+            || ($metadata['mode'] & 0170000) !== 0100000
+            || $metadata['nlink'] !== 1) {
+            return false;
+        }
+
+        if ($readExisting && ! is_readable($path)) {
+            return false;
+        }
+        if ($writeExisting && ! is_writable($path)) {
+            return false;
+        }
+
+        // A privileged test runner may access files that a shared-host PHP
+        // worker cannot. Zero POSIX read/write bits are never "Ready".
+        if (PHP_OS_FAMILY !== 'Windows') {
+            if ($readExisting && ($metadata['mode'] & 0444) === 0) {
+                return false;
+            }
+            if ($writeExisting && ($metadata['mode'] & 0222) === 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function writableOrCreatableInstallerDirectory(string $directory): bool
+    {
+        $candidate = $directory;
+
+        while (! is_dir($candidate)) {
+            if (file_exists($candidate) || is_link($candidate)) {
+                return false;
+            }
+
+            $parent = dirname($candidate);
+            if ($parent === $candidate) {
+                return false;
+            }
+
+            $candidate = $parent;
+        }
+
+        return $this->isWritableInstallerDirectory($candidate);
+    }
+
+    /**
+     * Checking is_writable() alone can misreport a 0555 cPanel directory as
+     * ready when CI or a PHP process runs with elevated permissions. Do not
+     * probe by creating files or changing host ACLs during installer preflight.
+     */
+    private function isWritableInstallerDirectory(string $directory): bool
+    {
+        if (! is_dir($directory) || ! is_writable($directory)) {
+            return false;
+        }
+
+        if (PHP_OS_FAMILY !== 'Windows') {
+            $mode = @fileperms($directory);
+            if ($mode === false || ($mode & 0222) === 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function hasInstallerSymlinkComponent(string $path): bool
+    {
+        $candidate = $path;
+
+        while (true) {
+            if (is_link($candidate)) {
+                return true;
+            }
+
+            $parent = dirname($candidate);
+            if ($parent === $candidate) {
+                return false;
+            }
+
+            $candidate = $parent;
+        }
+    }
+
+    /**
      * @param  array{host: string, port: int|string, database: string, username: string, password?: string|null}  $data
      */
     public function saveDatabaseConfiguration(array $data): void
     {
+        // Losing installed.lock must never turn a configured live site back
+        // into a first-install wizard with permission to replace its .env.
+        // Inspect BEFORE the first write; the next step's DB probe is too
+        // late to preserve the original database credentials and APP_KEY.
+        $existing = $this->environment->read(['APP_ENV', 'APP_KEY']);
+        abort_if($this->state->isInstalled(), 404);
+        if (trim((string) ($existing['APP_KEY'] ?? '')) !== '') {
+            throw new RuntimeException((string) __('installer.environment_already_configured'));
+        }
+
+        // A genuine first-install ZIP starts in APP_ENV=production with an
+        // empty APP_KEY. Treat that as uninitialized, not as proof of a live
+        // site, but examine the previously configured database BEFORE
+        // changing its credentials whenever the old connection is reachable.
+        if (strtolower(trim((string) ($existing['APP_ENV'] ?? ''))) === 'production') {
+            $existingConnectionAvailable = false;
+            try {
+                $this->applyDatabaseConfiguration();
+                DB::connection()->getPdo();
+                $existingConnectionAvailable = true;
+            } catch (Throwable) {
+                // The stock production template may name an unavailable
+                // database. An empty key/absent lock may still configure it.
+            }
+
+            if ($existingConnectionAvailable) {
+                try {
+                    $this->assertFreshInstallDatabase();
+                } catch (RuntimeException) {
+                    // Existing FOODEX business data or uncertain introspection
+                    // must never be overwritten through a fresh setup.
+                    throw new RuntimeException((string) __('installer.environment_already_configured'));
+                }
+            }
+        }
+
         $this->environment->write([
             'DB_CONNECTION' => 'mysql',
             'DB_HOST' => $data['host'],
@@ -93,6 +298,10 @@ final class InstallerWorkflow
         } catch (Throwable) {
             throw new RuntimeException((string) __('installer.errors.db_connection'));
         }
+
+        // A missing installer lock does not make an already populated FOODEX
+        // database safe to initialize. Check before any migrations or seeding.
+        $this->assertFreshInstallDatabase();
     }
 
     /**
@@ -123,8 +332,6 @@ final class InstallerWorkflow
 
     public function saveStorageConfiguration(string $disk): void
     {
-        $this->environment->write(['FILESYSTEM_DISK' => $disk]);
-
         foreach ([storage_path('app/private'), storage_path('app/public')] as $path) {
             if (! is_dir($path) && ! @mkdir($path, 0750, true) && ! is_dir($path)) {
                 throw new RuntimeException((string) __('installer.errors.storage_dir'));
@@ -132,14 +339,24 @@ final class InstallerWorkflow
         }
 
         $publicLink = public_path('storage');
+
+        // Shared hosts may pre-provision a real public/storage directory and
+        // map it at the web-server layer. Preserve that compatibility. When
+        // the entry is a symlink, however, require its exact canonical target.
         if (! is_link($publicLink) && ! is_dir($publicLink)) {
-            Artisan::call('storage:link');
+            if (! function_exists('symlink')) {
+                throw new RuntimeException((string) __('installer.errors.public_storage_link'));
+            }
+
+            try {
+                Artisan::call('storage:link');
+            } catch (Throwable) {
+                throw new RuntimeException((string) __('installer.errors.public_storage_link'));
+            }
         }
 
-        // An existing symlink must not silently expose a foreign directory
-        // (or a dangling target) as public uploads during the web installer.
-        // A real directory remains valid for shared hosts without symlinks.
         if (is_link($publicLink)) {
+            // Never accept a foreign or dangling symlink as public uploads.
             $expected = realpath(storage_path('app/public'));
             $actual = realpath($publicLink);
 
@@ -149,6 +366,10 @@ final class InstallerWorkflow
         } elseif (! is_dir($publicLink)) {
             throw new RuntimeException((string) __('installer.errors.public_storage_link'));
         }
+
+        // Persist the selected disk only after symlink validation (or after
+        // preserving a pre-existing shared-host directory mapping).
+        $this->environment->write(['FILESYSTEM_DISK' => $disk]);
     }
 
     /**
@@ -201,15 +422,60 @@ final class InstallerWorkflow
     public function runMigrations(): void
     {
         $this->applyDatabaseConfiguration();
+        $this->assertFreshInstallDatabase();
 
-        if (Artisan::call('migrate', ['--force' => true]) !== 0) {
+        // Capture the FIRST migration failure. MySQL DDL is not transactional:
+        // rerunning migrate merely to diagnose a 422 can hit a partially
+        // created table and disguise the original failure (or mutate data).
+        $output = new BufferedOutput;
+
+        try {
+            $exitCode = Artisan::call('migrate', ['--force' => true], $output);
+        } catch (Throwable $exception) {
+            // Some database/console failures throw before Artisan returns an
+            // exit code. Preserve only the same allowlisted metadata; never
+            // expose the exception, SQL, connection details or credentials.
+            $this->logSanitizedMigrationFailure($output->fetch()."\n".$exception->getMessage());
+
+            throw new RuntimeException((string) __('installer.errors.migrations'));
+        }
+
+        if ($exitCode !== 0) {
+            $this->logSanitizedMigrationFailure($output->fetch());
+
             throw new RuntimeException((string) __('installer.errors.migrations'));
         }
     }
 
+    private function logSanitizedMigrationFailure(string $diagnostic): void
+    {
+        preg_match('/SQLSTATE\\[([A-Z0-9]{5})\\]/', $diagnostic, $sqlState);
+        preg_match('/\\b([0-9]{4}_[0-9]{2}_[0-9]{2}_[0-9]{6}_[a-z0-9_]+)\\b/i', $diagnostic, $migration);
+
+        // Persist only a fixed SQLSTATE and migration filename. Never log raw
+        // SQL, connection details, passwords or command/exception contents.
+        Log::error('Installer migration failed', [
+            'sqlstate' => $sqlState[1] ?? 'unknown',
+            'migration' => $migration[1] ?? 'unknown',
+        ]);
+    }
+
     public function seedRequiredCoreData(): void
     {
+        // A direct invocation is not entitled to replay the fresh-install
+        // seeder against a configured site. CoreReferenceSeeder intentionally
+        // reconciles built-in permission grants, so even a second successful
+        // Artisan call can overwrite administrative role changes.
+        abort_if($this->state->isInstalled(), 404);
+        $existing = $this->environment->read(['APP_KEY']);
+        if (trim((string) ($existing['APP_KEY'] ?? '')) !== '') {
+            throw new RuntimeException((string) __('installer.environment_already_configured'));
+        }
+
         $this->applyDatabaseConfiguration();
+        // Permit an interrupted, not-yet-live installation to retry its core
+        // seed, but refuse user/order/version data before *any* seed write.
+        $this->assertFreshInstallDatabase();
 
         if (Artisan::call('db:seed', ['--class' => DatabaseSeeder::class, '--force' => true]) !== 0) {
             throw new RuntimeException((string) __('installer.errors.seed'));
@@ -412,6 +678,38 @@ final class InstallerWorkflow
                 'database.redis.default.password' => $password,
                 'database.redis.cache.password' => $password,
             ]);
+        }
+    }
+
+    /**
+     * Refuse to treat an existing live database as an empty first install.
+     * These are durable business/version markers; empty migrated tables are
+     * allowed so an interrupted migration can be safely retried.
+     */
+    private function assertFreshInstallDatabase(): void
+    {
+        // Core references and the migration-created provisional company hierarchy
+        // are allowed during an interrupted *fresh* install. Real ERP masters,
+        // inventory, financial policies and custody records are not: a DB can
+        // contain them without having any users, orders or legacy products.
+        foreach ([
+            'system_versions', 'users', 'stores', 'orders', 'invoices', 'products', 'b2b_accounts',
+            'b2b_customers', 'b2c_customers', 'warehouses', 'enterprise_suppliers',
+            'enterprise_purchase_requests', 'enterprise_purchase_orders',
+            'enterprise_goods_receipts', 'enterprise_inventory_lots',
+            'enterprise_finance_credit_terms', 'collection_accounts',
+            'collection_transactions', 'payments',
+        ] as $table) {
+            try {
+                $containsData = Schema::hasTable($table) && DB::table($table)->exists();
+            } catch (Throwable) {
+                // Do not continue when the selected database cannot be inspected.
+                throw new RuntimeException((string) __('installer.errors.database_safety_unverifiable'));
+            }
+
+            if ($containsData) {
+                throw new RuntimeException((string) __('installer.errors.existing_business_data'));
+            }
         }
     }
 

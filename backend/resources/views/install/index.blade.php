@@ -39,11 +39,21 @@
         input, select { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 11px 12px; font: inherit; font-size: 16px; background: #fff; min-height: 44px; }
         input[type="email"], input[type="url"], input[type="password"], input[type="number"], input[name="db_host"], input[name="db_database"], input[name="db_username"], input[name="redis_host"], input[name="mail_host"], input[name="mail_username"], input[name="mail_from_address"] { direction: ltr; text-align: start; }
         small { color: #64748b; font-weight: 400; }
-        .actions { display: flex; justify-content: flex-start; gap: 10px; margin-top: 28px; }
+        .actions { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 10px; margin-top: 28px; }
         button { border: 0; border-radius: 8px; background: #047857; color: white; padding: 12px 22px; font: inherit; font-weight: 700; min-height: 44px; cursor: pointer; }
+        .test-only { background: #334155; }
         code { direction: ltr; unicode-bidi: embed; }
         ul { line-height: 1.8; }
         @media (max-width: 820px) { .layout { grid-template-columns: minmax(0, 1fr); } aside { padding: 12px 16px; } aside p { margin-bottom: 8px; } aside ol { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: 6px; } aside li { flex: 0 0 auto; } .step-link, .step-disabled { white-space: nowrap; } main { padding: 16px; } .card { padding: 22px; } .fields { grid-template-columns: minmax(0, 1fr); } }
+            .field-help { margin-top: 20px; padding: 14px; border: 1px solid #cbd5e1; border-radius: 10px; }
+        .field-help summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; font-weight: 700; }
+        .field-help dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .field-help dl > div { padding: 10px; border-radius: 8px; background: #f8fafc; }
+        .field-help dt { font-weight: 700; }
+        .field-help dd { margin: 6px 0 0; line-height: 1.6; overflow-wrap: anywhere; color: #475569; }
+        .readiness { margin-top: 20px; }
+        @media (max-width: 820px) { .field-help dl { grid-template-columns: minmax(0, 1fr); } }
+        summary:focus-visible { outline: 3px solid #059669; outline-offset: 3px; }
     </style>
 </head>
 <body>
@@ -93,6 +103,14 @@
                 </div>
             @endif
 
+            @if ($currentStep === 9 && !empty($cacheQueueInputTestPassed))
+                <div class="success" role="status">{{ __('installer.wizard.cache_queue_test_inputs_passed') }}</div>
+            @endif
+
+            @if ($currentStep === 10 && !empty($mailInputTestPassed))
+                <div class="success" role="status">{{ __('installer.wizard.mail_test_inputs_passed') }}</div>
+            @endif
+
             @if ($currentStep === 2)
                 @if ($requirementFailures === [])
                     <div class="success">{{ __('installer.wizard.requirements_ok') }}</div>
@@ -101,12 +119,36 @@
                 @endif
             @endif
 
+            @if ($currentStep === 2)
+                <div class="{{ $erpEvidenceVerifierAvailable ? 'notice' : 'error' }}" role="note">
+                    {{ __($erpEvidenceVerifierAvailable ? 'installer.hosting.erp_evidence_crypto_available' : 'installer.hosting.erp_evidence_crypto_missing') }}
+                </div>
+            @endif
+
             @if ($currentStep === 3)
                 @if ($permissionFailures === [])
                     <div class="success">{{ __('installer.wizard.permissions_ok') }}</div>
                 @else
                     <div class="error"><ul>@foreach ($permissionFailures as $failure)<li>{{ $failure }}</li>@endforeach</ul></div>
                 @endif
+            @endif
+
+            @if ($currentStep === 1)
+                <div class="{{ $documentRootPrecheck === 'match' ? 'notice' : 'error' }}"
+                     role="{{ $documentRootPrecheck === 'mismatch' ? 'alert' : 'note' }}"
+                     data-installer-document-root-readiness="{{ $documentRootPrecheck }}">
+                    {{ __('installer.hosting.document_root_precheck_'.$documentRootPrecheck) }}
+                </div>
+            @endif
+
+            @php($hostingGuidance = [1 => 'document_root', 2 => 'php_extensions', 3 => 'file_permissions', 4 => 'mysql', 8 => 'public_storage', 9 => 'scheduler'][$currentStep] ?? null)
+            @if ($hostingGuidance !== null)
+                <div class="notice" role="note">{{ __('installer.hosting.'.$hostingGuidance) }}</div>
+            @endif
+            @if (in_array($currentStep, [1, 12, 15], true))
+                <div class="notice" role="note" data-installer-master-data-readiness="review-required">
+                    {{ __('installer.wizard.seed_admin_readiness') }}
+                </div>
             @endif
 
             <form method="post" action="{{ route('install.step', array_filter(['step' => $currentStep, 'lang' => $languageQuery])) }}" autocomplete="off">
@@ -159,17 +201,18 @@
                         </label>
                     </div>
                 @elseif ($currentStep === 9)
+                    <div class="notice" role="note">{{ __('installer.wizard.cache_queue_test_inputs_help') }}</div>
                     <div class="fields">
                         <label>{{ __('installer.fields.cache_store') }}
                             <select name="cache_store">
-                                <option value="redis" @selected(($input['cache_store'] ?? ($values['CACHE_STORE'] ?: 'redis')) === 'redis')>redis</option>
-                                <option value="file" @selected(($input['cache_store'] ?? $values['CACHE_STORE']) === 'file')>file</option>
+                                <option value="redis" @selected($selectedCache === 'redis')>{{ __('installer.options.redis') }}</option>
+                                <option value="file" @selected($selectedCache === 'file')>{{ __('installer.options.file') }}</option>
                             </select>
                         </label>
                         <label>{{ __('installer.fields.queue_connection') }}
                             <select name="queue_connection">
-                                <option value="redis" @selected(($input['queue_connection'] ?? ($values['QUEUE_CONNECTION'] ?: 'redis')) === 'redis')>redis</option>
-                                <option value="sync" @selected(($input['queue_connection'] ?? $values['QUEUE_CONNECTION']) === 'sync')>sync</option>
+                                <option value="redis" @selected($selectedQueue === 'redis')>{{ __('installer.options.redis') }}</option>
+                                <option value="sync" @selected($selectedQueue === 'sync')>{{ __('installer.options.sync') }}</option>
                             </select>
                         </label>
                         <label>{{ __('installer.fields.redis_host') }}<input name="redis_host" value="{{ $input['redis_host'] ?? ($values['REDIS_HOST'] ?: '127.0.0.1') }}"></label>
@@ -177,6 +220,7 @@
                         <label class="full">{{ __('installer.fields.redis_password') }}<input name="redis_password" type="password" value=""></label>
                     </div>
                 @elseif ($currentStep === 10)
+                    <div class="notice" role="note">{{ __('installer.wizard.mail_test_inputs_help') }}</div>
                     <div class="fields">
                         <label>{{ __('installer.fields.mail_mailer') }}
                             <select name="mail_mailer">
@@ -211,9 +255,33 @@
                     <div class="notice">{{ __('installer.wizard.finish_notice') }}</div>
                 @endif
 
+
+                @if ($configurationFields !== [])
+                    <details class="field-help">
+                        <summary>{{ __('installer.wizard.help_summary') }}</summary>
+                        <dl>
+                            @foreach ($configurationFields as $fieldKey)
+                                <div>
+                                    <dt>{{ __('installer.fields.'.$fieldKey) }}</dt>
+                                    <dd>{{ __('installer.help.'.$fieldKey) }}</dd>
+                                </div>
+                            @endforeach
+                        </dl>
+                    </details>
+                @endif
+                @if ($readinessKey !== null)
+                    <div class="notice readiness" role="status"><strong>{{ __('installer.wizard.readiness_label') }}:</strong> {{ __('installer.readiness.'.$readinessKey) }}</div>
+                @endif
+
                 <div class="actions">
+                    @if ($currentStep === 9)
+                        <button type="submit" class="test-only" name="cache_action" value="test_inputs" formnovalidate>{{ __('installer.wizard.cache_queue_test_inputs') }}</button>
+                    @endif
+                    @if ($currentStep === 10)
+                        <button type="submit" class="test-only" name="mail_action" value="test_inputs" formnovalidate>{{ __('installer.wizard.mail_test_inputs') }}</button>
+                    @endif
                     <button type="submit">
-                        {{ $currentStep === 15 ? __('installer.wizard.finish') : __('installer.wizard.continue') }}
+                        {{ __('installer.wizard.'.$actionKey) }}
                     </button>
                 </div>
             </form>

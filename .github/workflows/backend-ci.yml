@@ -40,8 +40,8 @@ jobs:
           path: backend/vendor
           key: composer-vendor-v1-${{ runner.os }}-php-8.3-${{ hashFiles('backend/composer.json', 'backend/composer.lock') }}
 
-      - name: Validate Composer manifest
-        run: composer validate --strict --no-check-lock
+      - name: Validate pinned Composer manifest and lock
+        run: composer validate --strict --no-check-publish
 
       - name: Install Composer dependencies
         run: |

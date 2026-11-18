@@ -137,12 +137,38 @@ class InstallerController extends Controller
 
                 case 9:
                     $validated = $this->validated($request, [
+                        'cache_action' => ['sometimes', 'in:save,test_inputs'],
                         'cache_store' => ['required', 'in:redis,file'],
                         'queue_connection' => ['required', 'in:redis,sync'],
                         'redis_host' => ['nullable', 'required_if:cache_store,redis', 'required_if:queue_connection,redis', 'string', 'max:255'],
                         'redis_port' => ['nullable', 'required_if:cache_store,redis', 'required_if:queue_connection,redis', 'integer', 'between:1,65535'],
                         'redis_password' => ['nullable', 'string', 'max:512'],
                     ]);
+                    // Test Inputs is intentionally write-free. It reuses the exact
+                    // Save validator and installer token/step-order checks, but it
+                    // does not probe Redis, start a worker, schedule Cron or certify
+                    // any provider connection. Real runtime checks run at step 14.
+                    if (($validated['cache_action'] ?? 'save') === 'test_inputs') {
+                        return response()->view('install.index', [
+                            ...$this->viewData(
+                                $state,
+                                $environment,
+                                $workflow,
+                                $step,
+                                [],
+                                $request->except([
+                                    'installer_token',
+                                    'db_password',
+                                    'admin_password',
+                                    'admin_password_confirmation',
+                                    'redis_password',
+                                    'mail_password',
+                                ]),
+                            ),
+                            'cacheQueueInputTestPassed' => true,
+                        ]);
+                    }
+
                     $workflow->saveCacheQueueConfiguration([
                         'cache' => (string) $validated['cache_store'],
                         'queue' => (string) $validated['queue_connection'],
@@ -154,6 +180,7 @@ class InstallerController extends Controller
 
                 case 10:
                     $validated = $this->validated($request, [
+                        'mail_action' => ['sometimes', 'in:save,test_inputs'],
                         'mail_mailer' => ['required', 'in:log,array,smtp'],
                         'mail_host' => ['nullable', 'required_if:mail_mailer,smtp', 'string', 'max:255'],
                         'mail_port' => ['nullable', 'required_if:mail_mailer,smtp', 'integer', 'between:1,65535'],
@@ -163,6 +190,31 @@ class InstallerController extends Controller
                         'mail_from_address' => ['required', 'email', 'max:255'],
                         'mail_from_name' => ['required', 'string', 'max:120'],
                     ]);
+                    // Test Inputs reuses the exact Save validator and installer token/order
+                    // checks, but must never persist credentials, send SMTP mail or
+                    // advance first-install progress. A syntactically valid SMTP host is
+                    // NOT proof that the provider accepted or delivered a message.
+                    if (($validated['mail_action'] ?? 'save') === 'test_inputs') {
+                        return response()->view('install.index', [
+                            ...$this->viewData(
+                                $state,
+                                $environment,
+                                $workflow,
+                                $step,
+                                [],
+                                $request->except([
+                                    'installer_token',
+                                    'db_password',
+                                    'admin_password',
+                                    'admin_password_confirmation',
+                                    'redis_password',
+                                    'mail_password',
+                                ]),
+                            ),
+                            'mailInputTestPassed' => true,
+                        ]);
+                    }
+
                     $workflow->saveMailConfiguration([
                         'mailer' => (string) $validated['mail_mailer'],
                         'host' => (string) ($validated['mail_host'] ?? ''),
@@ -287,7 +339,47 @@ class InstallerController extends Controller
             'MAIL_FROM_ADDRESS', 'MAIL_FROM_NAME',
         ]);
 
+        // The view is presentation-only: keep complex expressions outside Blade,
+        // and never infer live readiness from a stored configuration alone.
+        $completedStep = (int) $progress['completed_step'];
+        $configurationFields = [
+            4 => ['db_host', 'db_port', 'db_database', 'db_username', 'db_password'],
+            6 => ['app_name', 'app_url', 'app_locale'],
+            7 => ['admin_name', 'admin_email', 'admin_locale', 'admin_password', 'admin_password_confirmation'],
+            8 => ['filesystem_disk'],
+            9 => ['cache_store', 'queue_connection', 'redis_host', 'redis_port', 'redis_password'],
+            10 => ['mail_mailer', 'mail_scheme', 'mail_host', 'mail_port', 'mail_username', 'mail_password', 'mail_from_address', 'mail_from_name'],
+        ][$currentStep] ?? [];
+
+        $readinessKey = match ($currentStep) {
+            4, 5 => $completedStep >= 5 ? 'db_tested' : ($completedStep >= 4 ? 'db_saved' : 'not_saved'),
+            6 => $completedStep >= 6 ? 'platform_saved' : 'not_saved',
+            7 => $completedStep >= 7 ? 'admin_prepared' : 'not_saved',
+            8 => $completedStep >= 14 ? 'storage_checked' : ($completedStep >= 8 ? 'storage_pending' : 'not_saved'),
+            9 => $completedStep >= 14 ? 'queue_checked' : ($completedStep >= 9 ? 'queue_pending' : 'not_saved'),
+            10 => $completedStep >= 10 ? (($values['MAIL_MAILER'] ?? 'log') === 'smtp' ? 'smtp_unverified' : 'mail_non_delivery') : 'not_saved',
+            default => null,
+        };
+
+        $cacheChoice = $input['cache_store'] ?? ($values['CACHE_STORE'] ?? null);
+        $queueChoice = $input['queue_connection'] ?? ($values['QUEUE_CONNECTION'] ?? null);
+        $selectedCache = in_array($cacheChoice, ['file', 'redis'], true) ? $cacheChoice : 'file';
+        $selectedQueue = in_array($queueChoice, ['sync', 'redis'], true) ? $queueChoice : 'sync';
+
+        $actionKey = match ($currentStep) {
+            4, 6, 7, 8, 9, 10 => 'save_continue',
+            5 => 'test_database',
+            14 => 'test_health',
+            15 => 'finish',
+            default => 'continue',
+        };
+
         return [
+            'configurationFields' => $configurationFields,
+            'readinessKey' => $readinessKey,
+            'selectedCache' => $selectedCache,
+            'selectedQueue' => $selectedQueue,
+            'actionKey' => $actionKey,
             'steps' => InstallerChecklist::details(),
             'currentStep' => $currentStep,
             'completedStep' => $progress['completed_step'],
@@ -302,8 +394,49 @@ class InstallerController extends Controller
                 ? request()->query('lang')
                 : null,
             'requirementFailures' => $currentStep === 2 ? $workflow->serverRequirementFailures() : [],
+            'erpEvidenceVerifierAvailable' => $currentStep === 2 && $workflow->hasErpEvidenceVerifier(),
+            'documentRootPrecheck' => $currentStep === 1 ? $this->documentRootPrecheck() : null,
             'permissionFailures' => $currentStep === 3 ? $workflow->writablePathFailures() : [],
         ];
+    }
+
+    /**
+     * Inspect the PHP request's Document Root without reading private files
+     * or mutating the host. A matching realpath is only a preflight: it does
+     * NOT establish real HTTP exposure, rewrite or cPanel ownership safety.
+     *
+     * @return 'match'|'mismatch'|'unverified'
+     */
+    private function documentRootPrecheck(): string
+    {
+        $root = request()->server('DOCUMENT_ROOT');
+        if (! is_string($root) || $root === '' || str_contains($root, "\0")) {
+            return 'unverified';
+        }
+
+        $absolute = str_starts_with($root, '/')
+            || (strlen($root) >= 3
+                && ctype_alpha($root[0])
+                && $root[1] === ':'
+                && in_array($root[2], ['/', '\\'], true));
+        if (! $absolute) {
+            return 'unverified';
+        }
+
+        $actualPath = realpath($root);
+        $expectedPath = realpath(public_path());
+        if ($actualPath === false || $expectedPath === false) {
+            return 'unverified';
+        }
+
+        $actual = rtrim(str_replace('\\', '/', $actualPath), '/');
+        $expected = rtrim(str_replace('\\', '/', $expectedPath), '/');
+        if (PHP_OS_FAMILY === 'Windows') {
+            $actual = strtolower($actual);
+            $expected = strtolower($expected);
+        }
+
+        return $actual === $expected ? 'match' : 'mismatch';
     }
 
     private function setInstallerLocale(Request $request, InstallerEnvironment $environment): void

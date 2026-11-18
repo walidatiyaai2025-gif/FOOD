@@ -1,17 +1,31 @@
-FOODEX first install
-====================
+FOODEX first installation — cPanel / shared hosting
+====================================================
 
-1. Extract FOODEX-Laravel-Setup.zip so VERSION and backend/ are in the same deployment root.
-2. Point the web server document root to backend/public.
-3. PHP 8.2+ is required with pdo_mysql, mbstring, openssl, tokenizer, json and zip.
-4. MySQL or MariaDB is required (default port 3306). Redis is recommended for cache and queue.
-5. Make backend/storage and backend/bootstrap/cache writable by the web/PHP user.
-6. Open https://foodex.50sols.com/install and complete the wizard.
-7. Approved first-install database name: solscool_vanfoodex
-8. Approved first-install database username: solscool_vanfoodex
-9. Enter the database password only on the server/installer. Never commit it.
-10. After Finish, /install is locked and normal administration continues from /admin.
+This is a clean-install package. A trusted release Setup ZIP includes Laravel production dependencies and compiled frontend assets. No SSH access and no manual Composer, npm, migration or Artisan commands are required for first installation.
 
-Android tester APKs use the production API origin https://foodex.50sols.com.
-They are test-signed until the production Android keystore is supplied, so they are for
-device testing/acceptance and not Google Play publication.
+1. Upload the versioned FOODEX Setup ZIP to the deployment directory for your domain and extract it once. VERSION, INSTALL-FIRST.txt and backend/ must remain together.
+
+2. In cPanel → Domains, set this domain's Document Root to:
+   <deployment-root>/backend/public
+
+   Do not point the public web root at the deployment root or backend/.env, backend/vendor, backend/storage and other application internals must remain outside the public document root. If your hosting plan does not let you set the domain's document root, ask the hosting provider to configure it before continuing. The web installer cannot change cPanel account/domain settings.
+
+3. In cPanel → MySQL Databases, create a new, empty MySQL/MariaDB database and a dedicated database user. Grant that user the privileges required for the new database. Do not reuse an existing FOODEX database or any database containing live business data. Use the database host and port supplied by your host; do not assume localhost. Enter the database name, username and password only in the web installer.
+
+4. Select PHP 8.2 or newer for this domain. Enable these required PHP extensions: pdo, pdo_mysql, mbstring, openssl, tokenizer, json, zip and fileinfo. The installer checks the active PHP runtime.
+
+   ERP signed-workflow-evidence readiness additionally requires PHP ext-sodium for Ed25519 signature verification. A missing sodium extension does not block an otherwise valid core install, but ERP modules must stay uncertified until the extension, trusted public keys and valid signed evidence are available. Enable it through cPanel PHP settings or ask the host; never bypass signature verification.
+
+5. Ensure the PHP/web-server account can write to backend/storage and backend/bootstrap/cache only. Use the account's correct ownership and restrictive permissions; never make the whole application writable and never use 777 permissions. Do not upload a live .env file.
+
+6. Public uploads must be served from backend/storage/app/public. If backend/public/storage is a symlink, the installer verifies that its real target is exactly backend/storage/app/public and rejects foreign or dangling links. Shared hosts without symlink support may use a pre-created real backend/public/storage directory only when the hosting provider has configured a server-level alias/bind mapping to backend/storage/app/public; the installer preserves that directory but cannot verify the web-server mapping. Confirm an uploaded file is reachable through its public URL before go-live.
+
+7. Open https://<your-domain>/install and complete the graphical wizard. It validates the host, tests the database, writes a protected .env, generates APP_KEY, runs approved migrations and seeders, creates the Super Admin, configures storage/cache/queue/mail, and performs the final health check. Finish records the installed version and permanently locks /install.
+
+8. Redis is recommended for cache and queues. If Redis is unavailable, choose the supported file cache and synchronous queue options in the wizard. Configure SMTP if the installation must send email.
+
+9. The installer attempts to provision the Laravel scheduler when the host permits it. On restricted shared hosting, FOODEX also has a request-driven heartbeat fallback; scheduled work is triggered by incoming web requests and may be delayed while a low-traffic site is idle. For reliable schedules on low-traffic sites, use cPanel → Cron Jobs to run Laravel's schedule:run every minute, using the PHP 8.2+ CLI binary and the absolute backend/artisan path supplied by your host. Configure this in the cPanel interface; SSH is not required.
+
+10. After Finish, /install must return 404 and normal administration continues from /admin. Keep the Setup ZIP and its release provenance for recovery/audit purposes.
+
+Never commit or share database passwords, APP_KEY values, .env files or other server secrets. Do not install unsigned CI staging artifacts as production releases; use only a release whose publisher provenance can be independently verified.

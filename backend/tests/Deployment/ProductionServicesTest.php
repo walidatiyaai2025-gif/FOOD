@@ -2,6 +2,7 @@
 
 namespace Tests\Deployment;
 
+use App\Domain\Installer\InstallerEnvironment;
 use App\Domain\Installer\InstallerWorkflow;
 use App\Domain\Installer\InstallState;
 use App\Domain\Updater\UpdateManager;
@@ -55,6 +56,14 @@ class ProductionServicesTest extends TestCase
             'foodex.install_lock' => $this->directory.'/installed.lock',
             'foodex.install_progress' => $this->directory.'/install-progress.json',
             'foodex.update_backup_path' => $this->directory.'/backups',
+        ]);
+        // Reconstruct a genuinely uninstalled production Setup ZIP state:
+        // the connected disposable MySQL database is empty and APP_KEY is
+        // not yet generated. A copied CI runtime .env already has an APP_KEY
+        // and must not be treated as an uninstalled site by the installer.
+        app(InstallerEnvironment::class)->write([
+            'APP_ENV' => 'production',
+            'APP_KEY' => '',
         ]);
         $this->assertSame(0, Artisan::call('migrate:fresh', ['--force' => true]));
     }

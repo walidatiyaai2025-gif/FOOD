@@ -85,17 +85,14 @@ if ($mode === 'finish') {
     if ($expectedVersion === '') {
         throw new RuntimeException('CURRENT_VERSION is required for fresh-install validation.');
     }
-    $admin = $workflow->prepareSuperAdmin([
-        'name' => 'FOODEX Acceptance Owner',
-        'email' => 'acceptance-owner@example.test',
-        'password' => 'AcceptanceOnly!12345',
-        'locale' => 'en',
-    ]);
-    $version = $workflow->finish($admin);
-    if ($version !== $expectedVersion || ! $state->isInstalled()) {
-        throw new RuntimeException('Installer Finish did not lock '.$expectedVersion.'.');
-    }
+    // HTTP /install/step/15 owns final account, version and lock writes.
+    // This helper verifies the web wizard; it must never finish CLI-side.
     $db = Illuminate\Support\Facades\DB::class;
+    $version = (string) $db::table('system_versions')
+        ->where('version', $expectedVersion)->value('version');
+    if ($version !== $expectedVersion || ! $state->isInstalled()) {
+        throw new RuntimeException('HTTP Installer Finish did not lock '.$expectedVersion.'.');
+    }
     if (! $db::table('users')->where('email', 'acceptance-owner@example.test')->where('is_active', true)->exists()) {
         throw new RuntimeException('First owner was not created.');
     }
@@ -139,6 +136,27 @@ if ($mode === 'finish') {
     ]);
     if ($b2bStoreId <= 0 || ! $db::table('stores')->where('id', $b2bStoreId)->where('store_type_id', $b2bStoreTypeId)->where('is_active', true)->exists()) {
         throw new RuntimeException('Expected seeded B2B store was not returned after fresh setup.');
+    }
+
+    // Fresh-install Van operations use Wholesale customers and an explicitly
+    // scoped B2B warehouse. Legacy Retail fixtures below are isolation-only.
+    $b2bCustomerId = (int) $db::table('b2b_customers')->insertGetId([
+        'name' => 'Fresh Van Wholesale Customer',
+        'phone' => '9000011111',
+        'email' => 'fresh-van-wholesale@example.test',
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+    $b2bWarehouseId = (int) $db::table('warehouses')->insertGetId([
+        'store_id' => $b2bStoreId,
+        'code' => 'FRESH-VAN-B2B-WH',
+        'name' => 'Fresh Van Wholesale Warehouse',
+        'is_active' => true,
+        'created_at' => $now,
+        'updated_at' => $now,
+    ]);
+    if ($b2bCustomerId <= 0 || $b2bWarehouseId <= 0) {
+        throw new RuntimeException('Fresh Wholesale customer or warehouse was not created.');
     }
 
     $b2bCatalogId = (int) $db::table('catalogs')->insertGetId([
@@ -379,6 +397,8 @@ if ($mode === 'finish') {
     file_put_contents('/tmp/foodex-fresh-fixture.json', json_encode([
         'store_id' => $storeId,
         'b2b_store_id' => $b2bStoreId,
+        'b2b_customer_id' => $b2bCustomerId,
+        'b2b_warehouse_id' => $b2bWarehouseId,
         'owner_id' => $owner->id,
         'product_id' => $productId,
         'customer_id' => $domainCustomerId,
@@ -394,7 +414,8 @@ if ($mode === 'finish') {
 throw new RuntimeException('Unknown acceptance mode.');
 PHP
 
-FRESH_ROOT="$fresh" php /tmp/foodex-fresh-install.php prepare
+# The unpacked ZIP must be installed via real /install HTTP Next -> Finish.
+# The PHP CLI helper below only verifies completed state and seeds QA fixtures.
 
 stop_server() {
   local pid_file="$1"
@@ -421,19 +442,33 @@ wait_for_http() {
   local url="$4"
   local output_file="$5"
   local expected_code="$6"
-  local pid code
+  local pid code consecutive=0
   pid="$(cat "$pid_file")"
 
-  for _ in {1..45}; do
+  # Laravel's development server can briefly return one stale 200 while it is
+  # asynchronously restarting after the installer rewrites .env. Require two
+  # consecutive successful GETs before posting the next wizard step; this is
+  # especially important before non-transactional MySQL migration step 11.
+  for _ in {1..60}; do
     if ! kill -0 "$pid" 2>/dev/null; then
       echo "::error::$label server exited before becoming ready."
       cat "$log_file" || true
       tail -n 200 "$fresh/backend/storage/logs/laravel.log" 2>/dev/null || true
       return 1
     fi
-    code="$(curl -s -o "$output_file" -w '%{http_code}' "$url" || true)"
+    code="$(curl -s --connect-timeout 2 --max-time 10 -o "$output_file" -w '%{http_code}' "$url" || true)"
     if [[ "$code" == "$expected_code" ]]; then
-      return 0
+      consecutive=$((consecutive + 1))
+      if [[ "$consecutive" -ge 2 ]]; then
+        kill -0 "$pid" 2>/dev/null || {
+          echo "::error::$label server exited after readiness responses."
+          cat "$log_file" || true
+          return 1
+        }
+        return 0
+      fi
+    else
+      consecutive=0
     fi
     sleep 1
   done
@@ -457,6 +492,26 @@ wait_for_port_free() {
   return 1
 }
 
+# Prove the actual extracted Setup ZIP keeps Laravel internals outside the
+# public web root. Test unauthenticated HTTP before and after installation,
+# without ever downloading/printing potentially sensitive file bodies.
+assert_backend_private_paths_not_served() {
+  local phase="$1" path code
+  for path in .env composer.lock vendor/autoload.php bootstrap/app.php config/app.php; do
+    if [[ ! -f "$fresh/backend/$path" ]]; then
+      echo "::error::G004 $phase private-path fixture is missing: $path"
+      return 1
+    fi
+    code="$(curl --silent --show-error --path-as-is --connect-timeout 2 --max-time 10 \
+      -o /dev/null -w '%{http_code}' "http://127.0.0.1:8099/$path")"
+    if [[ "$code" != "403" && "$code" != "404" ]]; then
+      echo "::error::G004 $phase exposed backend-private path $path (HTTP $code; expected 403/404)."
+      return 1
+    fi
+  done
+  echo "PASS: $phase actual HTTP public root denied backend-private Laravel files"
+}
+
 rm -f /tmp/foodex-install-server.log /tmp/foodex-install-server.pid
 (
   cd "$fresh/backend"
@@ -467,6 +522,216 @@ trap 'stop_server /tmp/foodex-install-server.pid; stop_server /tmp/foodex-instal
 
 wait_for_http             "Pre-finish installer"             /tmp/foodex-install-server.pid             /tmp/foodex-install-server.log             http://127.0.0.1:8099/install             /tmp/install-before.html             200
 grep -Fq 'FOODEX' /tmp/install-before.html
+assert_backend_private_paths_not_served pre-install
+
+# Unpacked Setup ZIP must complete the *actual* web wizard. No PHP CLI
+# prepare/finish shortcut may satisfy this acceptance gate.
+installer_token="$(python3 - <<'PY'
+import re
+from pathlib import Path
+page = Path('/tmp/install-before.html').read_text(encoding='utf-8')
+match = re.search(r'name="installer_token"\s+value="([a-f0-9]{64})"', page)
+if match is None:
+    raise SystemExit('No protected installer progress token in ZIP web form')
+print(match.group(1))
+PY
+)"
+test -n "$installer_token"
+
+# A hostile/out-of-order Finish must NOT bypass the fifteen steps.
+test "$(curl -sS -o /tmp/install-order-block.html -w '%{http_code}' \
+  -X POST --data-urlencode "installer_token=$installer_token" \
+  http://127.0.0.1:8099/install/step/15)" = "409"
+test ! -e "$fresh/backend/storage/app/system/installed.lock"
+
+wizard_post() {
+  local step="$1"
+  shift
+  local status=""
+  for attempt in $(seq 1 15); do
+    status="$(curl -sS --max-time 300 -o "/tmp/install-step-$step.html" \
+      -w '%{http_code}' -X POST \
+      --data-urlencode "installer_token=$installer_token" "$@" \
+      "http://127.0.0.1:8099/install/step/$step" || true)"
+    [[ "$status" == "302" ]] && return 0
+    if [[ "$step" == "11" && "$status" == "000" ]]; then
+      echo "::error::Web installer step 11 lost its HTTP response; refusing to replay because MySQL DDL may have partially committed."
+      FRESH_INSTALL_LOG="$fresh/backend/storage/logs/laravel.log" python3 - <<'PY'
+import os
+import re
+from pathlib import Path
+
+log = Path(os.environ["FRESH_INSTALL_LOG"])
+lines = log.read_text(encoding="utf-8", errors="replace").splitlines() if log.is_file() else []
+failures = [line for line in lines if "Installer migration failed" in line]
+if failures:
+    raw = failures[-1]
+    state = re.search(r'"sqlstate":"([A-Z0-9]{5}|unknown)"', raw)
+    migration = re.search(r'"migration":"([0-9]{4}_[0-9]{2}_[0-9]{2}_[0-9]{6}_[a-z0-9_]+|unknown)"', raw)
+    print("::error::G004 first-attempt migration failure: SQLSTATE=" +
+          (state.group(1) if state else "unknown") + ", migration=" +
+          (migration.group(1) if migration else "unknown"))
+else:
+    print("::error::G004 first-attempt response was ambiguous and no redacted migration diagnostic was written.")
+PY
+      return 1
+    fi
+    if [[ "$status" != "000" ]]; then
+      echo "::error::Web installer step $step returned HTTP $status, expected 302"
+      tail -n 100 "$fresh/backend/storage/logs/laravel.log" 2>/dev/null || true
+      # Inspect the FIRST HTTP migration failure recorded by InstallerWorkflow.
+      # MySQL DDL may persist after a failed migration, so DO NOT invoke
+      # artisan migrate again: that would mask the first SQLSTATE and could
+      # modify partially created tables in the disposable test database.
+      if [[ "$step" == "11" ]]; then
+        FRESH_INSTALL_LOG="$fresh/backend/storage/logs/laravel.log" \
+        FRESH_INSTALL_RESPONSE="/tmp/install-step-$step.html" python3 - <<'PY'
+from html.parser import HTMLParser
+import os
+import re
+from pathlib import Path
+
+
+class InstallerErrorParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.in_error = False
+        self.in_item = False
+        self.current: list[str] = []
+        self.messages: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = dict(attrs)
+        if tag == "div" and "error" in (attributes.get("class") or "").split() and attributes.get("role") == "alert":
+            self.in_error = True
+        elif self.in_error and tag == "li":
+            self.in_item = True
+            self.current = []
+
+    def handle_data(self, data: str) -> None:
+        if self.in_error and self.in_item:
+            self.current.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if self.in_error and tag == "li" and self.in_item:
+            message = " ".join("".join(self.current).split())
+            if message:
+                self.messages.append(message)
+            self.in_item = False
+        elif self.in_error and tag == "div":
+            self.in_error = False
+
+
+def classify(message: str) -> str:
+    value = " ".join(message.split()).casefold()
+    if "selected database already contains foodex data" in value:
+        return "database_not_empty"
+    if "unable to verify that the selected database is safe" in value:
+        return "database_preflight_unverifiable"
+    if "installer progress state" in value:
+        return "installer_progress_state"
+    if "migration" in value or "migrations" in value or "الترحيل" in value:
+        return "migration_error"
+    if "storage" in value or "التخزين" in value:
+        return "storage_error"
+    if "permission" in value or "صلاحيات" in value:
+        return "filesystem_permission_error"
+    return "unclassified_runtime_error"
+
+
+log = Path(os.environ["FRESH_INSTALL_LOG"])
+lines = log.read_text(encoding="utf-8", errors="replace").splitlines() if log.is_file() else []
+failures = [line for line in lines if "Installer migration failed" in line]
+if failures:
+    raw = failures[-1]
+    state = re.search(r'"sqlstate":"([A-Z0-9]{5}|unknown)"', raw)
+    migration = re.search(r'"migration":"([0-9]{4}_[0-9]{2}_[0-9]{2}_[0-9]{6}_[a-z0-9_]+|unknown)"', raw)
+    print("::error::G004 original HTTP migration failure: SQLSTATE=" +
+          (state.group(1) if state else "unknown") + ", migration=" +
+          (migration.group(1) if migration else "unknown"))
+else:
+    response = Path(os.environ["FRESH_INSTALL_RESPONSE"])
+    parser = InstallerErrorParser()
+    if response.is_file():
+        parser.feed(response.read_text(encoding="utf-8", errors="replace"))
+    categories = sorted({classify(message) for message in parser.messages})
+    if categories:
+        print("::error::G004 safe installer error category: " + ",".join(categories))
+    else:
+        print("::error::G004 step 11 returned an error without a recognized rendered message or redacted migration log.")
+PY
+      fi
+      return 1
+    fi
+    sleep 1
+  done
+  echo "::error::Web installer step $step could not complete."
+  return 1
+}
+
+for step in $(seq 1 15); do
+  case "$step" in
+    4) wizard_post "$step" \
+      --data-urlencode "db_host=127.0.0.1" --data-urlencode "db_port=3306" \
+      --data-urlencode "db_database=foodex_acceptance" \
+      --data-urlencode "db_username=root" --data-urlencode "db_password=root";;
+    6) wizard_post "$step" \
+      --data-urlencode "app_name=FOODEX" \
+      --data-urlencode "app_url=https://foodex.50sols.com" \
+      --data-urlencode "app_locale=ar";;
+    7) wizard_post "$step" \
+      --data-urlencode "admin_name=FOODEX Acceptance Owner" \
+      --data-urlencode "admin_email=acceptance-owner@example.test" \
+      --data-urlencode "admin_locale=en" \
+      --data-urlencode "admin_password=AcceptanceOnly!12345" \
+      --data-urlencode "admin_password_confirmation=AcceptanceOnly!12345";;
+    8) wizard_post "$step" --data-urlencode "filesystem_disk=local";;
+    9) wizard_post "$step" \
+      --data-urlencode "cache_store=redis" \
+      --data-urlencode "queue_connection=redis" \
+      --data-urlencode "redis_host=127.0.0.1" \
+      --data-urlencode "redis_port=6379" \
+      --data-urlencode "redis_password=null";;
+    10) wizard_post "$step" \
+      --data-urlencode "mail_mailer=log" \
+      --data-urlencode "mail_from_address=noreply@50sols.com" \
+      --data-urlencode "mail_from_name=FOODEX";;
+    *) wizard_post "$step";;
+  esac
+
+  if [[ "$step" -eq 10 ]]; then
+    # Step 10 is the final .env write. Stop the hot-reloading development
+    # server explicitly so step 11 never races an asynchronous process reload.
+    stop_server /tmp/foodex-install-server.pid
+    wait_for_port_free
+    rm -f /tmp/foodex-install-server.log /tmp/foodex-install-server.pid
+    (
+      cd "$fresh/backend"
+      php artisan serve --host=127.0.0.1 --port=8099 >/tmp/foodex-install-server.log 2>&1 &
+      echo $! >/tmp/foodex-install-server.pid
+    )
+  fi
+
+  if [[ "$step" -lt 15 ]]; then
+    next=$((step + 1))
+    next_status=""
+    # .env changes may recycle the PHP development server: poll the next GET
+    # rather than treating a transient refused connection as install success.
+    for attempt in $(seq 1 15); do
+      next_status="$(curl -sS -o "/tmp/install-next-$next.html" -w '%{http_code}' \
+        "http://127.0.0.1:8099/install?step=$next" || true)"
+      [[ "$next_status" == "200" ]] && break
+      sleep 1
+    done
+    test "$next_status" = "200"
+    grep -Fq "/install/step/$next" "/tmp/install-next-$next.html"
+    if [[ "$step" -eq 7 ]]; then
+      ! grep -Fq 'AcceptanceOnly!12345' "/tmp/install-next-$next.html"
+      ! grep -Fq 'AcceptanceOnly!12345' "$fresh/backend/storage/app/system/install-progress.json"
+    fi
+  fi
+done
+echo "PASS: fifteen real HTTP web-installer steps, ordered Next -> Finish and masked secrets"
 
 # Finish mutates installer/environment state. Do not let Artisan's development
 # server hot-reload in the middle of acceptance requests: stop it completely,
@@ -484,6 +749,8 @@ rm -f /tmp/foodex-installed-server.log /tmp/foodex-installed-server.pid
 )
 
 wait_for_http             "Post-finish dashboard"             /tmp/foodex-installed-server.pid             /tmp/foodex-installed-server.log             'http://127.0.0.1:8099/admin/b2c/login?locale=en'             /tmp/login.html             200
+
+assert_backend_private_paths_not_served post-install
 
 rm -f /tmp/foodex-cookies.txt
 code="$(curl -sS -c /tmp/foodex-cookies.txt -o /tmp/login.html -w '%{http_code}' 'http://127.0.0.1:8099/admin/b2c/login?locale=en')"
@@ -504,19 +771,19 @@ eval "$(python3 - <<'PY'
 import json, shlex
 path='/tmp/foodex-fresh-fixture.json'
 data=json.load(open(path))
-required=['store_id','b2b_store_id','owner_id','product_id','customer_id','flash_offer_id','flash_offer_product_id','owner_token','customer_token','flags']
+required=['store_id','b2b_store_id','b2b_customer_id','b2b_warehouse_id','owner_id','product_id','customer_id','flash_offer_id','flash_offer_product_id','owner_token','customer_token','flags']
 missing=[key for key in required if key not in data]
 if missing:
     detail=' Expected seeded B2B store was not returned after fresh setup.' if 'b2b_store_id' in missing else ''
     raise SystemExit(f"Fresh-install fixture missing required keys: {missing}.{detail}")
-for key in ['store_id','b2b_store_id','owner_id','product_id','customer_id','flash_offer_id','flash_offer_product_id']:
+for key in ['store_id','b2b_store_id','b2b_customer_id','b2b_warehouse_id','owner_id','product_id','customer_id','flash_offer_id','flash_offer_product_id']:
     try:
         value=int(data[key])
     except (TypeError, ValueError):
         raise SystemExit(f"Fresh-install fixture key {key} is not a valid integer ID: {data[key]!r}")
     if value <= 0:
         raise SystemExit(f"Fresh-install fixture key {key} is not a real positive ID: {value}")
-for key in ['store_id','b2b_store_id','owner_id','product_id','customer_id','flash_offer_id','flash_offer_product_id','owner_token','customer_token']:
+for key in ['store_id','b2b_store_id','b2b_customer_id','b2b_warehouse_id','owner_id','product_id','customer_id','flash_offer_id','flash_offer_product_id','owner_token','customer_token']:
     print(f"{key.upper()}={shlex.quote(str(data[key]))}")
 flags=data['flags']
 assert all(flags.get(k) is True for k in [
@@ -525,10 +792,15 @@ assert all(flags.get(k) is True for k in [
 PY
 )"
 
-test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/admin-home.html -w '%{http_code}' http://127.0.0.1:8099/admin)" = "200"
-grep -Fq 'Product Sales Control' /tmp/admin-home.html
-grep -Fq 'Flash Offers' /tmp/admin-home.html
-grep -Fq 'Van &amp; Field Operations' /tmp/admin-home.html || grep -Fq 'Van & Field Operations' /tmp/admin-home.html
+# P130: the freshly provisioned SUPER_ADMIN belongs on the control plane.
+# Preserve the authenticated redirect instead of treating it as a broken install.
+test "$(curl -sS -b /tmp/foodex-cookies.txt -D /tmp/admin-landing.headers -o /tmp/admin-landing.html -w '%{http_code}' http://127.0.0.1:8099/admin)" = "302"
+grep -Eiq '^Location: (https?://[^/]+)?/admin/administration([?][^[:space:]]*)?' /tmp/admin-landing.headers
+test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/admin-home.html -w '%{http_code}' http://127.0.0.1:8099/admin/administration)" = "200"
+grep -Fq 'data-admin-hub="true"' /tmp/admin-home.html
+grep -Fq 'data-admin-app="customer"' /tmp/admin-home.html
+grep -Fq 'data-admin-app="driver"' /tmp/admin-home.html
+grep -Fq 'data-admin-app="van"' /tmp/admin-home.html
 
 declare -A field_pages=(
   [overview]="/admin/field-operations"
@@ -598,7 +870,7 @@ PY
 
 # Avoid a boundary race where the just-created assignment can be a fraction of a second ahead of now().
 EFFECTIVE_FROM="$(date -u -d '1 minute ago' '+%Y-%m-%dT%H:%M:%S+00:00')"
-test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/assignment-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "representative_user_id=$OWNER_ID"             --data-urlencode "territory_key=FRESH-TERR"             --data-urlencode "assignment_type=primary"             --data-urlencode "effective_from=$EFFECTIVE_FROM"             --data-urlencode "loaded_work_count=0"             "http://127.0.0.1:8099/admin/field-operations/vans/$VAN_ID/assignments")" = "302"
+test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/assignment-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "representative_user_id=$OWNER_ID"             --data-urlencode "warehouse_id=$B2B_WAREHOUSE_ID"             --data-urlencode "territory_key=FRESH-TERR"             --data-urlencode "assignment_type=primary"             --data-urlencode "effective_from=$EFFECTIVE_FROM"             --data-urlencode "loaded_work_count=0"             "http://127.0.0.1:8099/admin/field-operations/vans/$VAN_ID/assignments")" = "302"
 
 test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-assignments-populated.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/assignments)" = "200"
 python3 - <<'PY'
@@ -622,12 +894,12 @@ print(matches[0])
 PY
 )"
 
-test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/visit-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "assignment_id=$ASSIGNMENT_ID"             --data-urlencode "customer_type=b2c"             --data-urlencode "customer_id=$CUSTOMER_ID"             --data-urlencode "planned_at=$EFFECTIVE_FROM"             --data-urlencode "route_key=FRESH-ROUTE"             http://127.0.0.1:8099/admin/field-operations/visits)" = "302"
+test "$(curl -sS -b /tmp/foodex-cookies.txt -c /tmp/foodex-cookies.txt -o /tmp/visit-post.html -w '%{http_code}' -X POST             --data-urlencode "_token=$field_csrf"             --data-urlencode "assignment_id=$ASSIGNMENT_ID"             --data-urlencode "customer_type=b2b"             --data-urlencode "customer_id=$B2B_CUSTOMER_ID"             --data-urlencode "store_id=$B2B_STORE_ID"             --data-urlencode "planned_at=$EFFECTIVE_FROM"             --data-urlencode "route_key=FRESH-ROUTE"             http://127.0.0.1:8099/admin/field-operations/visits)" = "302"
 
 test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-visits-populated.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/visits)" = "200"
-grep -Fq 'Fresh Van Customer' /tmp/field-visits-populated.html
+grep -Fq 'Fresh Van Wholesale Customer' /tmp/field-visits-populated.html
 test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-customers-populated.html -w '%{http_code}' http://127.0.0.1:8099/admin/field-operations/customers)" = "200"
-grep -Fq 'Fresh Van Customer' /tmp/field-customers-populated.html
+grep -Fq 'Fresh Van Wholesale Customer' /tmp/field-customers-populated.html
 grep -Fq 'FRESH-VAN-UI' /tmp/field-customers-populated.html
 test "$(curl -sS -b /tmp/foodex-cookies.txt -o /tmp/field-van-detail.html -w '%{http_code}' "http://127.0.0.1:8099/admin/field-operations/vans/$VAN_ID")" = "200"
 grep -Fq 'Assignment history' /tmp/field-van-detail.html

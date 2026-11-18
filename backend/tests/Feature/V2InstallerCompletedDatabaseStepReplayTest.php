@@ -8,6 +8,8 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Mockery;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Tests\TestCase;
 
 final class V2InstallerCompletedDatabaseStepReplayTest extends TestCase
@@ -70,7 +72,7 @@ final class V2InstallerCompletedDatabaseStepReplayTest extends TestCase
 
         Artisan::shouldReceive('call')
             ->once()
-            ->with('migrate', ['--force' => true])
+            ->with('migrate', ['--force' => true], Mockery::type(BufferedOutput::class))
             ->andReturn(0);
 
         $token = $state->token();
@@ -91,7 +93,7 @@ final class V2InstallerCompletedDatabaseStepReplayTest extends TestCase
 
         Artisan::shouldReceive('call')
             ->twice()
-            ->with('migrate', ['--force' => true])
+            ->with('migrate', ['--force' => true], Mockery::type(BufferedOutput::class))
             ->andReturn(1, 0);
 
         $token = $state->token();
