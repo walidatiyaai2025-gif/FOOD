@@ -243,6 +243,7 @@ class CiPlanTest(unittest.TestCase):
             "docs/v2/qa/4000-archived-active-role-authority.md":{"backend"},
             "docs/v2/qa/2732-wholesale-financial-parity.md":{"backend","customer"},
             "docs/v2/qa/2845-erp-entitlement-maker-checker-boundaries.md":{"backend"},
+            "docs/v2/qa/2559-profitability-rule-authority.md":{"backend","dashboard_ui","enterprise_performance"},
         }
         for path,expected in routes.items():
             with self.subTest(path=path):

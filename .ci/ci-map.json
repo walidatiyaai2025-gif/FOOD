@@ -2,7 +2,7 @@
   "schema_version": 1,
   "areas": {
     "backend": {
-      "path_regex": "^(backend/|docs/api/openapi\\.yaml$|\\.github/workflows/backend-ci\\.yml$|docs/v2/qa/(3960-erp-center-horizontal-tabs|4000-archived-active-role-authority|2732-wholesale-financial-parity|2845-erp-entitlement-maker-checker-boundaries|4007-treasury-page-tab-rail|3951-enterprise-bi-page-tabs-authority)\\.md$)"
+      "path_regex": "^(backend/|docs/api/openapi\\.yaml$|\\.github/workflows/backend-ci\\.yml$|docs/v2/qa/(3960-erp-center-horizontal-tabs|4000-archived-active-role-authority|2732-wholesale-financial-parity|2845-erp-entitlement-maker-checker-boundaries|4007-treasury-page-tab-rail|3951-enterprise-bi-page-tabs-authority|2559-profitability-rule-authority)\\.md$)"
     },
     "customer": {
       "path_regex": "^(apps/customer_app/|packages/(design_tokens|foodex_visualization|foodex_formatting)/|scripts/(package-mobile-artifact|verify-mobile-runtime-endpoint|mobile-ci-scope)\\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\\.py$|\\.github/workflows/(customer-app-ci|mobile-build-validation|mobile-release-build|release-factory)\\.yml$|docs/v2/qa/2732-wholesale-financial-parity\\.md$)"
@@ -14,7 +14,7 @@
       "path_regex": "^(apps/van_app/|packages/(design_tokens|foodex_visualization|foodex_formatting)/|scripts/(configure-mobile-native|package-mobile-artifact|verify-mobile-runtime-endpoint|mobile-ci-scope)\\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\\.py$|\\.github/workflows/(van-app-ci|mobile-build-validation|mobile-release-build|release-factory)\\.yml$)"
     },
     "dashboard_ui": {
-      "path_regex": "^(backend/resources/views/admin/|backend/public/assets/admin/|scripts/capture_web_screenshots\\.mjs$|scripts/foodex-ui-pr-plan\\.py$|scripts/tests/test_foodex_ui_pr_plan\\.py$|\\.ai/uiux/visual-evidence-matrix\\.json$|\\.github/workflows/ui-visual-qa\\.yml$|docs/v2/qa/(3960-erp-center-horizontal-tabs|4007-treasury-page-tab-rail|3951-enterprise-bi-page-tabs-authority)\\.md$)"
+      "path_regex": "^(backend/resources/views/admin/|backend/public/assets/admin/|scripts/capture_web_screenshots\\.mjs$|scripts/foodex-ui-pr-plan\\.py$|scripts/tests/test_foodex_ui_pr_plan\\.py$|\\.ai/uiux/visual-evidence-matrix\\.json$|\\.github/workflows/ui-visual-qa\\.yml$|docs/v2/qa/(3960-erp-center-horizontal-tabs|4007-treasury-page-tab-rail|3951-enterprise-bi-page-tabs-authority|2559-profitability-rule-authority)\\.md$)"
     },
     "mobile_ui": {
       "path_regex": "^(apps/(customer_app|driver_app|van_app)/lib/.*\\.dart$|packages/(design_tokens|foodex_visualization)/)"
@@ -38,7 +38,7 @@
       "path_regex": "^(AGENTS\\\\.md|\\\\.ai/(KNOWN_ISSUES\\\\.md|skill-router\\\\.json)|\\\\.ci/|docs/worker-rules/|scripts/(worker-start|worker-preflight|detect-changed-areas|ci-plan|ci-failure-registry|foodex-branch-policy|flutter-test-hermeticity|foodex-skill-router|validate-repo)\\\\.(sh|py)$|scripts/tests/test_(ci_plan|ci_failure_registry|foodex_branch_policy|flutter_test_hermeticity|one_push_green_contract|foodex_skill_router)\\\\.py$|\\\\.github/workflows/(repository-policy|required-ci-gate)\\\\.yml$|\\.ai/KNOWN_ISSUES\\.md$)"
     },
     "enterprise_performance": {
-      "path_regex": "^(backend/(app/Enterprise/|tests/(Feature/Performance/|Performance/|Unit/Performance/)|database/seeders/EnterprisePerformanceSeeder\\.php)|benchmarks/enterprise/|scripts/enterprise-performance-(compare|report)\\.py$|docs/(quality/CPANEL_PERFORMANCE_CONTRACT\\.md|architecture/ENTERPRISE_MODULAR_ERP_ARCHITECTURE\\.md|execution/FOODEX_ENTERPRISE_(ERP_PROGRAM\\.md|MODULE_GATES\\.json))$|\\.github/workflows/(enterprise-performance-gate|required-ci-gate)\\.yml$|\\.ci/ci-map\\.json$)"
+      "path_regex": "^(backend/(app/Enterprise/|tests/(Feature/Performance/|Performance/|Unit/Performance/)|database/seeders/EnterprisePerformanceSeeder\\.php)|benchmarks/enterprise/|scripts/enterprise-performance-(compare|report)\\.py$|docs/(quality/CPANEL_PERFORMANCE_CONTRACT\\.md|architecture/ENTERPRISE_MODULAR_ERP_ARCHITECTURE\\.md|execution/FOODEX_ENTERPRISE_(ERP_PROGRAM\\.md|MODULE_GATES\\.json))$|docs/v2/qa/2559-profitability-rule-authority\\.md$|\\.github/workflows/(enterprise-performance-gate|required-ci-gate)\\.yml$|\\.ci/ci-map\\.json$)"
     }
   },
   "expansions": [

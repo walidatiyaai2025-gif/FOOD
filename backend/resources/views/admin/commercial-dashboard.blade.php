@@ -25,8 +25,9 @@
         .commercial-page-header h1{margin:3px 0 6px;font-size:clamp(1.55rem,2.2vw,2rem);font-weight:800;line-height:1.2}
         .commercial-page-header p{margin:0;color:var(--foodex-muted);max-width:760px}
         .commercial-eyebrow{font-size:.76rem;font-weight:800;color:var(--foodex-green-dark);letter-spacing:.02em}
-        .commercial-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:8px;box-shadow:var(--foodex-shadow-sm)}
-        .commercial-tabs a{min-height:44px;padding:0 14px;border:1px solid transparent;border-radius:var(--foodex-radius-control);text-decoration:none;font-weight:800;display:inline-flex;align-items:center;justify-content:center;color:var(--foodex-muted)}
+        .commercial-tabs{display:flex;gap:8px;flex-wrap:nowrap;max-width:100%;min-width:0;overflow-x:auto;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin;align-items:center;background:var(--foodex-surface);border:1px solid var(--foodex-border);border-radius:var(--foodex-radius-card);padding:8px;box-shadow:var(--foodex-shadow-sm)}
+        .commercial-tabs a{flex:0 0 auto;white-space:nowrap;min-height:var(--foodex-touch-target);padding:0 14px;border:1px solid transparent;border-radius:var(--foodex-radius-control);text-decoration:none;font-weight:800;display:inline-flex;align-items:center;justify-content:center;color:var(--foodex-muted)}
+        .commercial-tabs a:focus-visible{outline:2px solid var(--foodex-action-green);outline-offset:2px}
         .commercial-tabs a:hover{background:var(--foodex-green-soft);color:var(--foodex-green-dark)}
         .commercial-tabs a.active{background:var(--foodex-action-green);color:#fff;border-color:var(--foodex-action-green);box-shadow:0 8px 18px rgba(21,138,58,.14)}
         .contract-banner{padding:14px 16px;border:1px solid #cfe5d6;border-radius:var(--foodex-radius-card);background:linear-gradient(135deg,var(--foodex-green-soft),#fff);box-shadow:var(--foodex-shadow-sm);display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 14px;align-items:center}
@@ -65,6 +66,9 @@
         .commercial-status{display:inline-flex;padding:5px 9px;border-radius:999px;background:var(--foodex-green-soft);color:var(--foodex-green-dark);font-size:.72rem;font-weight:800}
         .policy-section{border:1px solid var(--foodex-border);border-radius:12px;padding:14px;background:#fff;display:grid;gap:12px}
         .policy-section-title{display:flex;justify-content:space-between;gap:10px;align-items:center;font-weight:800;font-size:.88rem}
+        [data-v2-p229-readiness]{display:block;padding:10px 12px;line-height:1.6;font-size:.875rem;white-space:normal;background:var(--foodex-orange-soft);color:var(--foodex-ink);border-radius:10px}
+        [data-v2-p229-setup-help] summary{min-height:44px;padding:10px 0;cursor:pointer;font-weight:800}
+        #profitability-rules .flash-secondary,#profitability-rules .foodex-primary{min-height:44px}
         .commercial-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
         .commercial-form-grid.five{grid-template-columns:repeat(5,minmax(0,1fr))}
         .commercial-form-grid label,.policy-section>label{display:grid;gap:6px;font-weight:700;font-size:.8rem}
@@ -141,9 +145,9 @@
             </div>
             
         </header>
-    <div class="commercial-tabs" aria-label="{{ __('commercial.tabs.aria') }}">
-        <a class="{{ $section === 'sales-control' ? 'active' : '' }}" href="{{ route('admin.commercial.sales-control', $scope) }}">{{ __('commercial.tabs.sales_control') }}</a>
-        <a class="{{ $section === 'flash-offers' ? 'active' : '' }}" href="{{ route($flashRoutePrefix, $scope) }}">{{ __('commercial.tabs.flash_offers') }}</a>
+    <nav class="commercial-tabs foodex-tabs foodex-tabs--horizontal" aria-label="{{ __('commercial.tabs.aria') }}">
+        <a class="{{ $section === 'sales-control' ? 'active' : '' }}" href="{{ route('admin.commercial.sales-control', $scope) }}" @if($section === 'sales-control') aria-current="page" @endif>{{ __('commercial.tabs.sales_control') }}</a>
+        <a class="{{ $section === 'flash-offers' ? 'active' : '' }}" href="{{ route($flashRoutePrefix, $scope) }}" @if($section === 'flash-offers') aria-current="page" @endif>{{ __('commercial.tabs.flash_offers') }}</a>
         @if(!empty($pricingListsUrl))
         <a data-v2-pricing-lists-link aria-label="{{ __('commercial.tabs.price_lists') }}" href="{{ $pricingListsUrl }}">{{ __('commercial.tabs.price_lists') }}</a>
         @endif
@@ -154,7 +158,7 @@
         <a data-v2-approved-discounts-sales-link href="{{ $approvedDiscountsUrl }}">{{ __('customer_service_discount.approved_history') }}</a>
         @endif
         <a href="{{ route($storeChannel === 'b2b' ? 'admin.b2b.module' : 'admin.b2c.module', ['module' => $section === 'sales-control' ? 'products' : 'promotions'] + $scope) }}">{{ __('commercial.tabs.back_store') }}</a>
-    </div>
+    </nav>
 
     <section class="contract-banner {{ $contractReady ? '' : 'pending' }}" data-contract-ready="{{ $contractReady ? '1' : '0' }}">
         <strong>{{ $contractReady ? __('commercial.contract.ready_title') : __('commercial.contract.pending_title') }}</strong>
@@ -493,6 +497,69 @@
                         @endif
                         <button type="submit" class="foodex-primary">{{ __('commercial.sales.save_policy') }}</button>
                     </form>
+                    @if($canViewProfitability)
+                    <section class="policy-section" id="profitability-rules" data-v2-p229-profitability>
+                        <div class="policy-section-title"><span>{{ __('commercial.profitability.title') }}</span></div>
+                        <p class="muted">{{ __('commercial.profitability.inactive_explanation') }}</p>
+                        <div class="commercial-status" role="status" data-v2-p229-readiness data-readiness-state="blocked">
+                            <strong>{{ __('commercial.profitability.readiness_label') }}:</strong>
+                            {{ __('commercial.profitability.readiness_blocked') }}
+                        </div>
+                        <details class="policy-section" data-v2-p229-setup-help>
+                            <summary>{{ __('commercial.profitability.help_title') }}</summary>
+                            <p class="muted">{{ __('commercial.profitability.help_purpose') }}</p>
+                            <p class="muted">{{ __('commercial.profitability.help_source') }}</p>
+                            <p class="muted">{{ __('commercial.profitability.help_example') }}</p>
+                            <p class="muted">{{ __('commercial.profitability.help_default') }}</p>
+                            <p class="muted">{{ __('commercial.profitability.help_permissions') }}</p>
+                            <p class="muted">{{ __('commercial.profitability.help_test') }}</p>
+                        </details>
+                        @if($errors->any())
+                            <div role="alert" class="commercial-status">{{ $errors->first() }}</div>
+                        @endif
+                        @if($canProposeProfitability)
+                            <form method="post" action="{{ route('admin.commercial.sales-control.save', ['product'=>$product->id] + $scope) }}">
+                                @csrf @method('put')
+                                <input type="hidden" name="request_id" value="{{ old('request_id', (string) \Illuminate\Support\Str::uuid()) }}">
+                                <div class="commercial-form-grid">
+                                    <label>{{ __('commercial.profitability.min_margin') }}
+                                        <input type="number" name="minimum_margin_percent" min="0" max="100" step="0.01" inputmode="decimal" placeholder="12.50" aria-describedby="profitability-margin-help-{{ $product->id }}" value="{{ old('minimum_margin_percent') }}" required>
+                                        <small id="profitability-margin-help-{{ $product->id }}" class="muted">{{ __('commercial.profitability.validation_hint') }}</small>
+                                    </label>
+                                    <label>{{ __('commercial.profitability.effective_from') }}
+                                        <input type="date" name="effective_from" value="{{ old('effective_from') }}" required>
+                                    </label>
+                                    <label>{{ __('commercial.profitability.effective_until') }}
+                                        <input type="date" name="effective_until" value="{{ old('effective_until') }}" required>
+                                    </label>
+                                </div>
+                                <button type="submit" class="flash-secondary" name="profitability_action" value="validate_proposal" formnovalidate>{{ __('commercial.profitability.test_inputs') }}</button>
+                                <button type="submit" class="foodex-primary" name="profitability_action" value="propose">{{ __('commercial.profitability.propose') }}</button>
+                            </form>
+                        @endif
+                        <div class="structured-list">
+                            @forelse($profitabilityRevisions as $revision)
+                                <div class="structured-row">
+                                    <strong>{{ __('commercial.profitability.revision', ['number'=>$revision->revision]) }}</strong>
+                                    <span>{{ number_format($revision->minimum_margin_basis_points / 100, 2) }}%</span>
+                                    <span>{{ $revision->effective_from }} — {{ $revision->effective_until }}</span>
+                                    <span class="commercial-status">{{ __('commercial.profitability.statuses.'.strtolower($revision->status)) }}</span>
+                                    @if($canReviewProfitability && $revision->status === 'DRAFT' && (int)$revision->proposed_by !== (int)auth()->id())
+                                        <form method="post" action="{{ route('admin.commercial.sales-control.save', ['product'=>$product->id] + $scope) }}">
+                                            @csrf @method('put')
+                                            <input type="hidden" name="profitability_action" value="review">
+                                            <input type="hidden" name="revision_id" value="{{ $revision->id }}">
+                                            <button class="foodex-primary" name="decision" value="review" type="submit">{{ __('commercial.profitability.review_inactive') }}</button>
+                                            <button name="decision" value="reject" type="submit">{{ __('commercial.profitability.reject') }}</button>
+                                        </form>
+                                    @endif
+                                </div>
+                            @empty
+                                <p class="muted">{{ __('commercial.profitability.empty') }}</p>
+                            @endforelse
+                        </div>
+                    </section>
+                    @endif
                     </div>
                 </article>
             @endforeach

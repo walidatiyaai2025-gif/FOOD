@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\B2bPricingMode;
 use App\Services\CommercialFeatureFlags;
+use App\Services\CommercialProfitabilityRuleService;
 use App\Services\OperationalTenantScope;
 use App\Services\WholesalePrincipal;
 use App\Support\AdminNavigation;
@@ -21,6 +22,9 @@ use Illuminate\Validation\ValidationException;
 
 final class CommercialDashboardController extends Controller
 {
+    // P229: unsupported margin/cost fields must never be silently accepted as quota rules.
+    private const PROFITABILITY_FIELD = '/profitability|profit|margin|cost[_-]?basis|stock[_-]?owner/i';
+
     public function __construct(
         private readonly AdminNavigation $navigation,
         private readonly AuditLogger $audit,
@@ -35,6 +39,7 @@ final class CommercialDashboardController extends Controller
             ->join('products', 'products.id', '=', 'store_products.product_id')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->where('store_products.store_id', $storeId)
+            ->where('catalogs.store_id', $storeId)
             ->where('catalogs.channel', 'b2b')
             ->count();
 
@@ -46,6 +51,7 @@ final class CommercialDashboardController extends Controller
                 ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
                 ->where('store_products.store_id', $storeId)
                 ->where('store_products.product_id', $selectedProductId)
+                ->where('catalogs.store_id', $storeId)
                 ->where('catalogs.channel', 'b2b')
                 ->first(['products.id', 'products.sku', 'products.name', 'store_products.is_active']);
 
@@ -119,6 +125,13 @@ final class CommercialDashboardController extends Controller
             ]);
         }
 
+        $profitability = app(CommercialProfitabilityRuleService::class);
+        $canProposeProfitability = $selectedProduct !== null
+            && $profitability->canPropose($user, $storeId);
+        $canReviewProfitability = $selectedProduct !== null
+            && $profitability->canReview($user, $storeId);
+        $canViewProfitability = $canProposeProfitability || $canReviewProfitability;
+
         return $this->render($request, $user, $storeId, 'sales-control', [
             'products' => $products,
             'selectedProduct' => $selectedProduct,
@@ -132,6 +145,15 @@ final class CommercialDashboardController extends Controller
             'commercialRules' => DB::table('product_commercial_rules')->whereIn('product_id', $selectedProductIds)->orderBy('id')->get()->groupBy('product_id'),
             'ruleCustomers' => $ruleCustomers,
             'ruleGroups' => $ruleGroups,
+            // Catalog visibility does not grant access to sensitive margin
+            // proposals and independent review history. Deny data binding,
+            // not merely the form controls, for a catalog.view-only reader.
+            'profitabilityRevisions' => $canViewProfitability
+                ? $profitability->revisions($user, $storeId, $selectedProductId)
+                : collect(),
+            'canViewProfitability' => $canViewProfitability,
+            'canProposeProfitability' => $canProposeProfitability,
+            'canReviewProfitability' => $canReviewProfitability,
             'featureFlags' => $this->flags->snapshot(),
             'canManageFeatureFlags' => $this->canManageFeatureFlags($user),
             'contractReady' => $this->hasApiContract('commercial'),
@@ -147,6 +169,7 @@ final class CommercialDashboardController extends Controller
             ->join('products', 'products.id', '=', 'store_products.product_id')
             ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
             ->where('store_products.store_id', $storeId)
+            ->where('catalogs.store_id', $storeId)
             ->where('catalogs.channel', 'b2b')
             ->when($term !== '', function ($query) use ($term): void {
                 // Search the operator's text literally; only the outer % anchors
@@ -174,17 +197,53 @@ final class CommercialDashboardController extends Controller
 
     public function saveSalesControl(Request $request, int $product): RedirectResponse
     {
-        [$user, $storeId] = $this->authorizedStore($request, 'catalog.manage', false, 'b2b');
+        // A separated finance checker can review an inactive proposal with
+        // catalog.view, orders.approve and finance.approve, but cannot edit
+        // operational Sales Control or author a profitability proposal.
+        $permission = $request->input('profitability_action') === 'review'
+            ? 'catalog.view' : 'catalog.manage';
+        [$user, $storeId] = $this->authorizedStore($request, $permission, false, 'b2b');
         abort_unless(
             DB::table('store_products')
                 ->join('products', 'products.id', '=', 'store_products.product_id')
                 ->join('catalogs', 'catalogs.id', '=', 'products.catalog_id')
                 ->where('store_products.store_id', $storeId)
                 ->where('store_products.product_id', $product)
+                ->where('catalogs.store_id', $storeId)
                 ->where('catalogs.channel', 'b2b')
                 ->exists(),
             404,
         );
+
+        // A dedicated action on the existing canonical product route avoids a
+        // second Sidebar/route authority and never mixes draft rules with the
+        // operational quota configuration parser.
+        if ($request->has('profitability_action')) {
+            $registry = app(CommercialProfitabilityRuleService::class);
+            $action = $request->input('profitability_action');
+            if ($action === 'propose') {
+                $registry->propose($user, $storeId, $product, $request);
+            } elseif ($action === 'validate_proposal') {
+                // Same maker/store RBAC and input validator as Save. This does
+                // not enable operational cost/margin authority or write state.
+                $registry->validateProposal($user, $storeId, $product, $request);
+            } elseif ($action === 'review') {
+                $registry->review($user, $storeId, $product, $request);
+            } else {
+                throw ValidationException::withMessages([
+                    'profitability_action' => [__('commercial.profitability.unsupported_field')],
+                ]);
+            }
+
+            return redirect()->route('admin.commercial.sales-control', [
+                'store_id' => $storeId,
+                'product' => $product,
+            ])->with('status', __($action === 'validate_proposal'
+                ? 'commercial.profitability.validated_inactive'
+                : 'commercial.profitability.saved_inactive'));
+        }
+
+        $this->rejectUnsupportedProfitabilityFields($request);
 
         $data = $request->validate([
             'status' => ['required', 'in:OPEN,RESTRICTED,CLOSED'],
@@ -330,6 +389,55 @@ final class CommercialDashboardController extends Controller
         return redirect()
             ->route('admin.commercial.sales-control', $returnParams)
             ->with('status', __('commercial.status.sales_control_saved'));
+    }
+
+    /**
+     * The P229 margin floor has no approved quote-time valuation and checker
+     * authority. Do not acknowledge invented profitability fields as saved.
+     */
+    private function rejectUnsupportedProfitabilityFields(Request $request): void
+    {
+        $errors = [];
+        foreach ($request->all() as $field => $_value) {
+            if (is_string($field) && preg_match(self::PROFITABILITY_FIELD, $field) === 1) {
+                $errors[$field] = [__('commercial.validation.profitability_policy_unavailable')];
+            }
+        }
+
+        // The sales-control parser otherwise discards unsupported keys inside
+        // structured JSON. Inspect every nesting level in all four business
+        // builders before accepting or persisting any proposed configuration.
+        // Never interpret these values as real cost, stock title or margin.
+        foreach (['channels_json', 'selling_units_json', 'availability_windows_json', 'rules_json'] as $field) {
+            $raw = $request->input($field);
+            if (! is_string($raw)) {
+                continue;
+            }
+
+            $decoded = json_decode($raw, true);
+            if (! is_array($decoded)) {
+                continue; // Existing request JSON validation owns malformed documents.
+            }
+
+            // Iterative traversal avoids recursion over arbitrary client depth.
+            $pending = [[$decoded, $field]];
+            while ($pending !== []) {
+                [$node, $path] = array_pop($pending);
+                foreach ($node as $key => $value) {
+                    $keyPath = $path.'.'.$key;
+                    if (is_string($key) && preg_match(self::PROFITABILITY_FIELD, $key) === 1) {
+                        $errors[$keyPath] = [__('commercial.validation.profitability_policy_unavailable')];
+                    }
+                    if (is_array($value)) {
+                        $pending[] = [$value, $keyPath];
+                    }
+                }
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
     }
 
     public function flashOffers(Request $request): View|RedirectResponse
@@ -992,6 +1100,15 @@ final class CommercialDashboardController extends Controller
                 $errors["rules_json.$index"] = [__('commercial.validation.sales_rule_invalid')];
 
                 continue;
+            }
+
+            // These fields are not part of the canonical audience/quota rule
+            // contract. Without cost provenance, accepting them would falsely
+            // acknowledge a minimum-margin policy that is never enforced.
+            foreach ($rule as $field => $_value) {
+                if (is_string($field) && preg_match(self::PROFITABILITY_FIELD, $field) === 1) {
+                    $errors["rules_json.$index.$field"] = [__('commercial.validation.profitability_policy_unavailable')];
+                }
             }
 
             $customerId = isset($rule['customer_id']) && $rule['customer_id'] !== ''
