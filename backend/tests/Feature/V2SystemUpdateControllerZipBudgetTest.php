@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Updater\TrustedUpdateSignatureVerifier;
+use App\Domain\Updater\UpdatePackageManifest;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Models\Role;
 use App\Models\UpdateHistory;
@@ -135,13 +137,42 @@ final class V2SystemUpdateControllerZipBudgetTest extends TestCase
     /** @return array<string,mixed> */
     private function uploadPayload(string $path): array
     {
+        if (! function_exists('sodium_crypto_sign_keypair')) {
+            $this->markTestSkipped('Ed25519 support is required for signed ZIP budget HTTP coverage.');
+        }
+
+        $bytes = (string) file_get_contents($path);
+        $keypair = sodium_crypto_sign_keypair();
+        $keyId = 'g005-budget-disposable';
+        config([
+            'update_signatures.publisher_key_id' => $keyId,
+            'update_signatures.publisher_public_key_b64' => base64_encode(sodium_crypto_sign_publickey($keypair)),
+        ]);
+
+        // Use a genuinely valid CI-only publisher signature to reach the
+        // ZIP member budget/corruption checks. Unsigned uploads must still fail.
+        $manifest = new UpdatePackageManifest(
+            '99.0.0', '1.0.0', hash('sha256', $bytes),
+            'Disposable ZIP prevalidation bound', false,
+        );
+        $canonical = app(TrustedUpdateSignatureVerifier::class)->canonicalPayload($manifest, $keyId);
+        $signature = base64_encode(sodium_crypto_sign_detached(
+            $canonical, sodium_crypto_sign_secretkey($keypair),
+        ));
+        $signed = json_encode([
+            'format' => 'foodex-signed-update-v1',
+            'signer_key_id' => $keyId,
+            'target_version' => $manifest->targetVersion,
+            'minimum_current_version' => $manifest->minimumCurrentVersion,
+            'archive_sha256' => $manifest->sha256,
+            'contains_migrations' => $manifest->containsMigrations,
+            'release_notes' => $manifest->releaseNotes,
+            'signature' => $signature,
+        ], JSON_THROW_ON_ERROR);
+
         return [
             'package' => new UploadedFile($path, 'update.zip', 'application/zip', null, true),
-            'target_version' => '99.0.0',
-            'minimum_current_version' => '1.0.0',
-            'sha256' => (string) hash_file('sha256', $path),
-            'release_notes' => 'Synthetic ZIP prevalidation bound',
-            'contains_migrations' => false,
+            'signed_manifest' => UploadedFile::fake()->createWithContent('update.signed.json', $signed),
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Updater\TrustedUpdateSignatureVerifier;
 use App\Domain\Updater\UpdatePackageManifest;
 use App\Domain\Updater\UpdateRuntime;
 use App\Models\Role;
@@ -78,17 +79,39 @@ final class V2SystemUpdateLocalizedFlashTest extends TestCase
     /** @return array<string, mixed> */
     private function updateForm(): array
     {
-        $package = UploadedFile::fake()->createWithContent(
-            'v2-localized-success.zip',
-            UpdateZipFixture::bytes(),
+        if (! function_exists('sodium_crypto_sign_keypair')) {
+            $this->markTestSkipped('Ed25519 extension required for signed update translation test.');
+        }
+
+        $bytes = UpdateZipFixture::bytes();
+        $keypair = sodium_crypto_sign_keypair();
+        $keyId = 'g005-i18n-disposable';
+        config([
+            'update_signatures.publisher_key_id' => $keyId,
+            'update_signatures.publisher_public_key_b64' => base64_encode(sodium_crypto_sign_publickey($keypair)),
+        ]);
+
+        $manifest = new UpdatePackageManifest(
+            '1.1.0', '1.0.0', hash('sha256', $bytes),
+            'Localized response HTTP test', false,
         );
+        $canonical = app(TrustedUpdateSignatureVerifier::class)->canonicalPayload($manifest, $keyId);
+        $signed = json_encode([
+            'format' => 'foodex-signed-update-v1',
+            'signer_key_id' => $keyId,
+            'target_version' => $manifest->targetVersion,
+            'minimum_current_version' => $manifest->minimumCurrentVersion,
+            'archive_sha256' => $manifest->sha256,
+            'contains_migrations' => $manifest->containsMigrations,
+            'release_notes' => $manifest->releaseNotes,
+            'signature' => base64_encode(sodium_crypto_sign_detached(
+                $canonical, sodium_crypto_sign_secretkey($keypair),
+            )),
+        ], JSON_THROW_ON_ERROR);
 
         return [
-            'package' => $package,
-            'target_version' => '1.1.0',
-            'minimum_current_version' => '1.0.0',
-            'sha256' => hash_file('sha256', $package->getRealPath()),
-            'release_notes' => 'Localized response HTTP test',
+            'package' => UploadedFile::fake()->createWithContent('v2-localized-success.zip', $bytes),
+            'signed_manifest' => UploadedFile::fake()->createWithContent('update.signed.json', $signed),
         ];
     }
 

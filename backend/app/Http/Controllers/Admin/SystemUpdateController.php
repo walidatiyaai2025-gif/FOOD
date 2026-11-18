@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Updater\SignedUpdateEnvelope;
+use App\Domain\Updater\TrustedUpdateSignatureVerifier;
 use App\Domain\Updater\UpdateManager;
-use App\Domain\Updater\UpdatePackageManifest;
 use App\Domain\Updater\UpdateVersion;
 use App\Http\Controllers\Controller;
 use App\Models\SystemVersion;
@@ -16,7 +17,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\ViewErrorBag;
 use RuntimeException;
+use Symfony\Component\Process\ExecutableFinder;
 use Throwable;
 use ZipArchive;
 
@@ -24,14 +27,20 @@ final class SystemUpdateController extends Controller
 {
     public function __construct(
         private readonly UpdateManager $manager,
+        private readonly TrustedUpdateSignatureVerifier $signatureVerifier,
         private readonly MobileReleaseArtifactMirror $mobileArtifacts,
         private readonly SystemAdministrationRuntime $systemRuntime,
     ) {}
 
     public function index(Request $request): View
     {
-        Gate::authorize('system.update');
+        $this->authorizeSuperAdminUpdate($request);
 
+        // An updater may rebuild the in-process auth/config caches. The Gate
+        // has already authorized this exact request identity; pass it to the
+        // view rather than resolving a potentially reset global auth guard.
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
         $currentVersion = $this->currentVersion();
 
         // The feature's own first patch is executed by the old PHP request.
@@ -53,6 +62,11 @@ final class SystemUpdateController extends Controller
             ->all();
 
         return view('admin.system-update', [
+            'user' => $actor,
+            // optimize:clear inside the updater may reset the view factory's
+            // middleware-shared globals for the next request in the same PHP
+            // process. Retain the current session's validation error bag.
+            'errors' => $request->session()->get('errors', new ViewErrorBag),
             'currentVersion' => $currentVersion,
             'historyRows' => UpdateHistory::query()->latest('id')->paginate(20)->withQueryString(),
             'updateStatusCounts' => $statusCounts,
@@ -60,45 +74,85 @@ final class SystemUpdateController extends Controller
             'backupRows' => $this->systemRuntime->backups(50),
             'recoveryOperations' => $this->systemRuntime->recentOperations(50),
             'isProduction' => app()->environment('production'),
+            'hostingChecks' => $this->hostingPermissionChecks(),
+            'signatureVerificationConfigured' => $this->hasConfiguredTrustedPublisher(),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        Gate::authorize('system.update');
+        $this->authorizeSuperAdminUpdate($request);
 
-        $validated = $request->validate([
+        $request->validate([
             'package' => ['required', 'file', 'max:512000'],
-            'target_version' => ['required', 'string', 'max:64', 'regex:/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/'],
-            'minimum_current_version' => ['required', 'string', 'max:64', 'regex:/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/'],
-            'sha256' => ['required', 'regex:/^[a-fA-F0-9]{64}$/'],
-            'release_notes' => ['nullable', 'string', 'max:5000'],
-            'contains_migrations' => ['nullable', 'boolean'],
+            'signed_manifest' => ['required', 'file', 'max:16'],
         ]);
 
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
         $upload = $request->file('package');
-        abort_if($upload === null, 422, 'Update package is required.');
+        $signedManifestFile = $request->file('signed_manifest');
+        abort_if($upload === null || $signedManifestFile === null, 422, 'Signed update package is required.');
+
+        // The signed sidecar, not user-entered fields or a ZIP member, is
+        // authoritative. Verify against an independently pinned host key
+        // BEFORE entering UpdateManager or touching any release files.
+        try {
+            $rawManifest = $signedManifestFile->get();
+            if (! is_string($rawManifest)) {
+                throw new RuntimeException('Signed update manifest cannot be read.');
+            }
+            $signed = SignedUpdateEnvelope::parse($rawManifest);
+            $signed->verify($this->signatureVerifier, $this->trustedPublisherKeys());
+        } catch (Throwable) {
+            return redirect()
+                ->route('admin.system-update.index')
+                ->withErrors(['update' => __('update_signed_manifest.invalid_signature')]);
+        }
 
         $directory = storage_path('app/private/updates/incoming');
+        if (! $this->hostPathWritableWithoutMutation($directory)) {
+            return redirect()
+                ->route('admin.system-update.index')
+                ->withErrors(['update' => __('update_signed_manifest.upload_staging_unavailable')]);
+        }
+
         if (! is_dir($directory) && ! @mkdir($directory, 0750, true) && ! is_dir($directory)) {
-            throw new RuntimeException('Update upload directory could not be prepared.');
+            return redirect()
+                ->route('admin.system-update.index')
+                ->withErrors(['update' => __('update_signed_manifest.upload_staging_unavailable')]);
+        }
+
+        if (! $this->hostPathWritableAfterFilesystemChange($directory)) {
+            return redirect()
+                ->route('admin.system-update.index')
+                ->withErrors(['update' => __('update_signed_manifest.upload_staging_unavailable')]);
         }
 
         $fileName = 'update-'.bin2hex(random_bytes(12)).'.zip';
-        $upload->move($directory, $fileName);
         $packagePath = $directory.'/'.$fileName;
 
         try {
-            $manifest = new UpdatePackageManifest(
-                (string) $validated['target_version'],
-                (string) $validated['minimum_current_version'],
-                strtolower((string) $validated['sha256']),
-                (string) ($validated['release_notes'] ?? ''),
-                $this->packageContainsMigrations($packagePath) || $request->boolean('contains_migrations'),
-            );
+            $upload->move($directory, $fileName);
+        } catch (Throwable) {
+            // On shared hosting a move may fail after writing part of the ZIP.
+            // Never expose raw filesystem paths or leave a partial executable
+            // package in private staging when no update has been started.
+            @unlink($packagePath);
+
+            return redirect()
+                ->route('admin.system-update.index')
+                ->withErrors(['update' => __('update_signed_manifest.upload_staging_unavailable')]);
+        }
+
+        try {
+            $manifest = $signed->manifest;
+            // A signed "no migrations" declaration cannot mask migration
+            // files. Never derive a more permissive declaration from the ZIP.
+            if (! $manifest->containsMigrations && $this->packageContainsMigrations($packagePath)) {
+                throw new RuntimeException(__('update_signed_manifest.invalid_signature'));
+            }
 
             $history = $this->manager->execute(
                 $manifest,
@@ -129,7 +183,7 @@ final class SystemUpdateController extends Controller
 
     public function backup(Request $request): RedirectResponse
     {
-        Gate::authorize('system.update');
+        $this->authorizeSuperAdminUpdate($request);
 
         $validated = $request->validate([
             'reason' => ['required', 'string', 'min:5', 'max:500'],
@@ -162,7 +216,7 @@ final class SystemUpdateController extends Controller
 
     public function restore(Request $request, string $backupReference): RedirectResponse
     {
-        Gate::authorize('system.update');
+        $this->authorizeSuperAdminUpdate($request);
 
         $validated = $request->validate([
             'reason' => ['required', 'string', 'min:5', 'max:500'],
@@ -198,6 +252,174 @@ final class SystemUpdateController extends Controller
                 ->route('admin.system-update.index')
                 ->withErrors(['restore' => __('admin.system_update_surface.restore_failed')]);
         }
+    }
+
+    /**
+     * The updater, manual backups and recovery mutate platform-wide files
+     * and databases. system.update alone can be granted to a SYSTEM_ADMINISTRATOR,
+     * but these high-risk operations require an active global Super Admin.
+     * Retain the existing Gate so explicit permission checks are not bypassed.
+     */
+    private function authorizeSuperAdminUpdate(Request $request): void
+    {
+        // A ZIP update rebuilds configuration caches inside an HTTP request.
+        // Bind Gate to the authenticated request actor explicitly, so an
+        // Artisan bootstrap cannot replace the implicit Gate user resolver.
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        Gate::forUser($actor)->authorize('system.update');
+        abort_unless($actor->is_active && $actor->hasRole('SUPER_ADMIN'), 403);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function trustedPublisherKeys(): array
+    {
+        $keyId = trim((string) config('update_signatures.publisher_key_id', ''));
+        $publicKey = trim((string) config('update_signatures.publisher_public_key_b64', ''));
+
+        if ($keyId === '' || $publicKey === '') {
+            return [];
+        }
+
+        return [$keyId => $publicKey];
+    }
+
+    private function hasConfiguredTrustedPublisher(): bool
+    {
+        $keys = $this->trustedPublisherKeys();
+        if (count($keys) !== 1 || ! function_exists('sodium_crypto_sign_verify_detached')
+            || ! defined('SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES')) {
+            return false;
+        }
+
+        $id = array_key_first($keys);
+        if (preg_match('/\\A[a-zA-Z0-9][a-zA-Z0-9_.-]{0,79}\\z/D', $id) !== 1) {
+            return false;
+        }
+
+        $base64 = $keys[$id];
+        $decoded = base64_decode($base64, true);
+
+        return is_string($decoded)
+            && strlen($decoded) === SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES
+            && hash_equals(base64_encode($decoded), $base64);
+    }
+
+    /**
+     * cPanel/shared-host preflight: inspect only, never create probes, chmod
+     * files or mutate the configured environment during a GET request.
+     * A positive result is a permission hint, NOT an update/restore signoff.
+     *
+     * @return array<string, bool>
+     */
+    private function hostingPermissionChecks(): array
+    {
+        return [
+            'zip_extension' => extension_loaded('zip') && class_exists(ZipArchive::class),
+            // Ed25519 is a hosting prerequisite only; it does NOT certify
+            // that the update pipeline authenticates the signed publisher.
+            'sodium_signature' => extension_loaded('sodium')
+                && function_exists('sodium_crypto_sign_verify_detached')
+                && defined('SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES'),
+            // A readable php.ini value is not an upload test; check only the
+            // effective PHP temporary directory and never create a probe here.
+            'upload_temporary' => $this->hostPathWritableWithoutMutation(
+                trim((string) ini_get('upload_tmp_dir')) ?: sys_get_temp_dir(),
+            ),
+            // The GET never invokes shells, probes the database or uploads
+            // artifacts. These are prerequisite hints, not verified backups.
+            'process_execution' => function_exists('proc_open') && function_exists('proc_close'),
+            'backup_cli_tools' => $this->databaseBackupToolsPresent(),
+            'app_storage' => $this->hostPathWritableWithoutMutation(storage_path()),
+            'cache' => $this->hostPathWritableWithoutMutation(base_path('bootstrap/cache')),
+            'update_upload' => $this->hostPathWritableWithoutMutation(storage_path('app/private/updates/incoming')),
+            'update_lock' => $this->hostPathWritableWithoutMutation(
+                (string) config('foodex.updater_execution_lock', storage_path('app/private/updates/execution.lock')),
+                true,
+            ),
+            'backup_directory' => $this->hostPathWritableWithoutMutation(
+                (string) config('foodex.update_backup_path', storage_path('app/system/update-backups')),
+            ),
+            'release_directory' => $this->hostPathWritableWithoutMutation(dirname(base_path())),
+        ];
+    }
+
+    /**
+     * Check tool discovery only. File permissions, credentials, ability to run
+     * subprocesses and restoration are proven by an actual disposable backup
+     * test, not by merely finding a binary on the web host.
+     */
+    private function databaseBackupToolsPresent(): bool
+    {
+        $driver = (string) config('database.default', '');
+        if (! in_array($driver, ['mysql', 'mariadb', 'pgsql'], true)) {
+            return true;
+        }
+
+        $commands = $driver === 'pgsql'
+            ? [(string) config('foodex.pg_dump_binary', 'pg_dump'), (string) config('foodex.pg_restore_binary', 'pg_restore')]
+            : [(string) config('foodex.mysql_dump_binary', 'mysqldump'), (string) config('foodex.mysql_client_binary', 'mysql')];
+        $finder = new ExecutableFinder;
+
+        foreach ($commands as $binary) {
+            if ($binary === '' || $finder->find($binary) === null) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Refuse symlinks, non-directory ancestors and unwritable lock files.
+     * A missing nested directory may be created later if the nearest existing
+     * ancestor is writable; this check intentionally does NOT create it.
+     */
+    private function hostPathWritableWithoutMutation(string $path, bool $file = false): bool
+    {
+        if ($path === '' || (! str_starts_with($path, '/') && preg_match('/^[A-Za-z]:[\\\\\\/]/', $path) !== 1)) {
+            return false;
+        }
+
+        for ($candidate = $path; ; $candidate = dirname($candidate)) {
+            if (is_link($candidate)) {
+                return false;
+            }
+            if (dirname($candidate) === $candidate) {
+                break;
+            }
+        }
+
+        if ($file && file_exists($path) && (! is_file($path) || ! is_writable($path))) {
+            return false;
+        }
+
+        $directory = $file ? dirname($path) : $path;
+        while (! is_dir($directory)) {
+            if (file_exists($directory) || is_link($directory)) {
+                return false;
+            }
+            $parent = dirname($directory);
+            if ($parent === $directory) {
+                return false;
+            }
+            $directory = $parent;
+        }
+
+        return is_writable($directory);
+    }
+
+    /**
+     * Recheck a path after creating its directory so cached pre-creation
+     * filesystem results cannot hide a newly introduced link or blocker.
+     */
+    private function hostPathWritableAfterFilesystemChange(string $path): bool
+    {
+        clearstatcache(true);
+
+        return $this->hostPathWritableWithoutMutation($path);
     }
 
     private function packageContainsMigrations(string $packagePath): bool

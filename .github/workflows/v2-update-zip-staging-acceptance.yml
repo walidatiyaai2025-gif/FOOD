@@ -1,0 +1,355 @@
+# G005: unsigned, nonpublishing source-built Update ZIP acceptance on exact V2 PR head.
+# This DOES NOT certify trusted signatures or authorize a release/production upgrade.
+name: FOODEX V2 Update ZIP staging acceptance
+
+on:
+  pull_request:
+    branches: [Foodex_V2]
+    paths:
+      - '.github/workflows/v2-update-zip-staging-acceptance.yml'
+      - 'scripts/build-update-bundle.py'
+      - 'scripts/ci-127-upgrade.sh'
+      - 'backend/app/Domain/Updater/**'
+      - 'backend/app/Http/Controllers/Admin/SystemUpdateController.php'
+      - 'backend/app/Services/BuiltInJobRoleCatalog.php'
+      - 'backend/database/migrations/**'
+      - 'backend/database/seeders/**'
+      - 'backend/tests/Deployment/**'
+      - 'backend/config/update_signatures.php'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v2-update-staging-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  actual-source-zip-upgrade:
+    name: Build source ZIP and upgrade disposable v125 MySQL installation
+    if: github.event.pull_request.base.ref == 'Foodex_V2'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: foodex_ci_only
+          MYSQL_DATABASE: foodex_upgrade_127
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - name: Checkout exact unmerged PR head and supported baseline tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify immutable source and supported version
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$(tr -d '[:space:]' < VERSION)" = "1.0.127"
+          test "$(git show v1.0.125:VERSION | tr -d '[:space:]')" = "1.0.125"
+      - name: Setup PHP and Composer for disposable upgrade
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, zip, fileinfo, openssl
+          tools: composer:v2
+          coverage: none
+      - name: Verify build and database tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 --version
+          composer --version
+          unzip -v | head -3
+          mysql --version
+          mysqladmin --version
+      - name: Set up canonical Flutter preview builder
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.5'
+          cache: true
+      - name: Build actual Customer and Driver frontend runtime assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf backend/public/preview/customer backend/public/preview/driver
+          pushd apps/customer_app
+          flutter pub get
+          flutter build web --release --target=lib/preview_main.dart \
+            --base-href=/preview/customer/ \
+            --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
+          popd
+          pushd apps/driver_app
+          flutter create --platforms=web --project-name foodex_driver_app .
+          flutter pub get
+          flutter build web --release --target=lib/preview_main.dart \
+            --base-href=/preview/driver/ \
+            --dart-define=FOODEX_PREVIEW_CONTRACT_VERSION=shared-flutter-v1
+          popd
+          mkdir -p backend/public/preview
+          cp -a apps/customer_app/build/web backend/public/preview/customer
+          cp -a apps/driver_app/build/web backend/public/preview/driver
+          for runtime in customer driver; do
+            test -s "backend/public/preview/$runtime/index.html"
+            test -s "backend/public/preview/$runtime/main.dart.js"
+            test -s "backend/public/preview/$runtime/flutter_bootstrap.js"
+            test -d "backend/public/preview/$runtime/assets"
+          done
+      - name: Normalize generated Flutter service worker version to immutable source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Flutter embeds a per-build volatile serviceWorkerVersion in bootstrap.
+          # Every copy of the generated preview bootstrap must use the same
+          # source-derived cache-buster so separate builds of one commit have
+          # the same bytes, while a different source commit invalidates cache.
+          python3 - <<'PY'
+          import pathlib
+          import re
+          import subprocess
+
+          sha = subprocess.check_output(
+              ["git", "rev-parse", "HEAD"], text=True
+          ).strip()
+          if not re.fullmatch(r"[0-9a-f]{40}", sha):
+              raise SystemExit("Expected a full immutable Git SHA.")
+          version = sha
+          quoted = re.compile(
+              r"""(?P<prefix>\b(?:(?:const|let|var)\s+serviceWorkerVersion\s*=|serviceWorkerVersion\s*:)\s*)"""
+              r"""(?P<quote>['"])[^'"\r\n]*(?P=quote)"""
+          )
+          paths = [
+              pathlib.Path(f"{root}/flutter_bootstrap.js")
+              for root in (
+                  "apps/customer_app/build/web",
+                  "apps/driver_app/build/web",
+                  "backend/public/preview/customer",
+                  "backend/public/preview/driver",
+              )
+          ]
+          for path in paths:
+              source = path.read_text(encoding="utf-8")
+              matches = list(quoted.finditer(source))
+              if len(matches) != 1:
+                  raise SystemExit(
+                      f"Refusing unsupported Flutter bootstrap shape: {path}"
+                  )
+              found = matches[0]
+              normalized = (
+                  source[:found.start()]
+                  + found.group("prefix")
+                  + found.group("quote")
+                  + version
+                  + found.group("quote")
+                  + source[found.end():]
+              )
+              path.write_text(normalized, encoding="utf-8")
+              if quoted.search(normalized).group(0) != (
+                  found.group("prefix")
+                  + found.group("quote")
+                  + version
+                  + found.group("quote")
+              ):
+                  raise SystemExit(f"Failed bootstrap check: {path}")
+          print("PASS: four source-SHA-stable preview bootstraps")
+          PY
+      - name: Build the actual repository-selected Update ZIP (not a PHPUnit fixture)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/build-update-bundle.py \
+            --base v1.0.125 \
+            --target-version 1.0.127 \
+            --minimum-current-version 1.0.125 \
+            --output-dir dist/update \
+            --release-notes "UNTRUSTED CI-only V2 staging, not a signed publisher release"
+          test -s dist/update/FOODEX-Update.zip
+          python3 scripts/verify-recovery-update-manifest.py \
+            --package dist/update/FOODEX-Update.zip \
+            --manifest dist/update/FOODEX-Update.json \
+            --target-version 1.0.127 \
+            --minimum-current-version 1.0.125
+      - name: Verify and reject ephemeral Ed25519 signatures against EXACT built ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Test-only ephemeral signing: no publisher key and no signed release output.
+          php <<'PHP'
+          <?php
+          require 'backend/app/Domain/Updater/UpdateVersion.php';
+          require 'backend/app/Domain/Updater/UpdatePackageManifest.php';
+          require 'backend/app/Domain/Updater/TrustedUpdateSignatureVerifier.php';
+          require 'backend/app/Domain/Updater/SignedUpdateEnvelope.php';
+          require 'backend/app/Domain/Updater/UpdatePackageValidator.php';
+          // Standalone validator intentionally supports non-Laravel unit runs.
+          // Only its optional config-bound check uses the framework app() helper.
+          function app(): object {
+              return new class {
+                  public function bound(string $name): bool { return false; }
+              };
+          }
+          use App\Domain\Updater\UpdatePackageManifest;
+          use App\Domain\Updater\TrustedUpdateSignatureVerifier;
+          use App\Domain\Updater\SignedUpdateEnvelope;
+          use App\Domain\Updater\UpdatePackageValidator;
+          $archive = 'dist/update/FOODEX-Update.zip';
+          $data = json_decode(file_get_contents('dist/update/FOODEX-Update.json'), true, 512, JSON_THROW_ON_ERROR);
+          $digest = hash_file('sha256', $archive);
+          if (!hash_equals($digest, $data['sha256'])) {
+              throw new RuntimeException('Actual ZIP digest does not match its manifest.');
+          }
+          $manifest = new UpdatePackageManifest('1.0.127', '1.0.125', $digest, 'ephemeral CI source ZIP verification only', true);
+          $verifier = new TrustedUpdateSignatureVerifier();
+          $keypair = sodium_crypto_sign_keypair();
+          $public = base64_encode(sodium_crypto_sign_publickey($keypair));
+          $secret = sodium_crypto_sign_secretkey($keypair);
+          $keyId = 'ci-disposable-only';
+          $signature = base64_encode(sodium_crypto_sign_detached($verifier->canonicalPayload($manifest, $keyId), $secret));
+          $signed = json_encode([
+              'format' => 'foodex-signed-update-v1',
+              'signer_key_id' => $keyId,
+              'target_version' => $manifest->targetVersion,
+              'minimum_current_version' => $manifest->minimumCurrentVersion,
+              'archive_sha256' => $digest,
+              'contains_migrations' => true,
+              'release_notes' => $manifest->releaseNotes,
+              'signature' => $signature,
+          ], JSON_THROW_ON_ERROR);
+          $envelope = SignedUpdateEnvelope::parse($signed);
+          $envelope->verify($verifier, [$keyId => $public]);
+          (new UpdatePackageValidator())->validate($envelope->manifest, '1.0.125', $archive);
+          $mustReject = static function (callable $operation, string $case): void {
+              try {
+                  $operation();
+              } catch (InvalidArgumentException $e) {
+                  return;
+              }
+              throw new RuntimeException("Failed to reject {$case}");
+          };
+          $mustReject(static fn () => $envelope->verify($verifier, []), 'untrusted key');
+          $wrongKey = sodium_crypto_sign_keypair();
+          $mustReject(static fn () => $envelope->verify($verifier, [$keyId => base64_encode(sodium_crypto_sign_publickey($wrongKey))]), 'wrong publisher key');
+          $corrupt = json_decode($signed, true, 512, JSON_THROW_ON_ERROR);
+          $corrupt['signature'] = base64_encode(str_repeat("\0", SODIUM_CRYPTO_SIGN_BYTES));
+          $mustReject(static fn () => SignedUpdateEnvelope::parse(json_encode($corrupt, JSON_THROW_ON_ERROR))->verify($verifier, [$keyId => $public]), 'modified signature');
+          $badDigest = new UpdatePackageManifest('1.0.127', '1.0.125', str_repeat('0', 64), $manifest->releaseNotes, true);
+          $mustReject(static fn () => (new UpdatePackageValidator())->validate($badDigest, '1.0.125', $archive), 'changed archive SHA-256');
+          $changedManifest = new UpdatePackageManifest('1.0.128', '1.0.125', $digest, $manifest->releaseNotes, true);
+          $mustReject(static fn () => $verifier->verify($changedManifest, $keyId, $signature, [$keyId => $public]), 'changed signed target version');
+          echo "PASS: actual source ZIP digest and test-only ephemeral Ed25519 allow/deny; no release signing\n";
+          PHP
+      - name: Run exact Update ZIP through Admin signature and MySQL recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          MYSQL_PWD=foodex_ci_only mysql -h 127.0.0.1 -uroot \
+            -e 'CREATE DATABASE IF NOT EXISTS foodex_acceptance CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
+          composer install --working-dir backend --no-interaction --prefer-dist --no-progress
+          cp backend/.env.example backend/.env
+          cd backend
+          export DB_CONNECTION=mysql
+          export DB_HOST=127.0.0.1
+          export DB_PORT=3306
+          export DB_DATABASE=foodex_acceptance
+          export DB_USERNAME=root
+          export DB_PASSWORD=foodex_ci_only
+          export CACHE_STORE=array
+          export SESSION_DRIVER=array
+          export QUEUE_CONNECTION=sync
+          export FOODEX_DISPOSABLE_SERVICES=true
+          export FOODEX_ACTUAL_UPDATE_ZIP="$GITHUB_WORKSPACE/dist/update/FOODEX-Update.zip"
+          export FOODEX_ACTUAL_UPDATE_SHA256="$(sha256sum "$FOODEX_ACTUAL_UPDATE_ZIP" | cut -d' ' -f1)"
+          php artisan key:generate --force
+          test_report="$RUNNER_TEMP/g005-actual-zip-recovery.junit.xml"
+          php artisan test tests/Deployment/SignedAdminZipMySqlDeploymentTest.php --filter=test_actual_source_update_zip_rejects_wrong_key_and_restores_after_health_failure --fail-on-empty-test-suite --fail-on-skipped --fail-on-risky --log-junit="$test_report"
+          python3 - "$test_report" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          report = ET.parse(sys.argv[1]).getroot()
+          suites = report.findall("testsuite")
+          if not suites and report.tag == "testsuite":
+              suites = [report]
+          if not suites:
+              suites = report.findall(".//testsuite")
+
+          totals = {
+              key: sum(int(suite.attrib.get(key, "0")) for suite in suites)
+              for key in ("tests", "assertions", "failures", "errors", "skipped")
+          }
+          print(f"Exact source-built ZIP recovery test totals: {totals}")
+          if totals["tests"] < 1 or totals["assertions"] < 1 or any(
+              totals[key] for key in ("failures", "errors", "skipped")
+          ):
+              raise SystemExit("Required exact-ZIP recovery test did not execute and pass with assertions")
+          PY
+      - name: Upgrade real disposable v125 MySQL dataset with EXACT generated ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/ci-127-upgrade.sh
+      - name: Record nonpublishing artifact provenance (not trusted signing)
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib
+          root=pathlib.Path("dist/update")
+          archive=root/"FOODEX-Update.zip"
+          manifest=json.loads((root/"FOODEX-Update.json").read_text())
+          digest=hashlib.sha256(archive.read_bytes()).hexdigest()
+          assert manifest["source_commit"] == os.environ["EXPECTED_SHA"]
+          assert manifest["sha256"] == digest
+          assert manifest["minimum_current_version"] == "1.0.125"
+          assert manifest["target_version"] == "1.0.127"
+          (root/"V2_UPDATE_STAGING_EVIDENCE.json").write_text(json.dumps({
+             "status": "UNTRUSTED_CI_STAGING_ONLY",
+             "signed": False,
+             "source_commit": os.environ["EXPECTED_SHA"],
+             "version": "1.0.127",
+             "minimum_current_version": "1.0.125",
+             "sha256": digest,
+             "actual_v125_upgrade_zip": "PASS",
+             "environment": "DISPOSABLE_MYSQL_CI_ONLY",
+             "publisher_signature_enforcement": "NOT_TESTED_BY_THIS_WORKFLOW",
+           },indent=2)+"\n")
+          PY
+      - name: Retain CI-only real Update ZIP and preservation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2-update-zip-staging-evidence
+          path: |
+            dist/update/FOODEX-Update.zip
+            dist/update/FOODEX-Update.json
+            dist/update/FOODEX-Update.sha256.txt
+            dist/update/V2_UPDATE_STAGING_EVIDENCE.json
+          if-no-files-found: error
+          retention-days: 7
+
+      # Failure must not make the actual generated ZIP disappear from CI.
+      # This is a PRIVATE, unsigned diagnostic artifact, never a publisher release.
+      - name: Retain unsigned source ZIP when disposable upgrade fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2-update-zip-failed-untrusted-staging
+          path: |
+            dist/update/FOODEX-Update.zip
+            dist/update/FOODEX-Update.json
+            dist/update/FOODEX-Update.sha256.txt
+          if-no-files-found: warn
+          retention-days: 7

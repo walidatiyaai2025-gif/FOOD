@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Updater\TrustedUpdateSignatureVerifier;
+use App\Domain\Updater\UpdatePackageManifest;
 use App\Http\Controllers\Admin\SystemUpdateController;
 use App\Models\Role;
 use App\Models\SystemVersion;
@@ -63,30 +65,23 @@ final class V2UpdaterCaseAliasedMigrationUploadTest extends TestCase
         ])));
     }
 
-    public function test_authenticated_upload_records_case_aliased_migration_flag_before_checksum_denial_without_live_mutation(): void
+    public function test_signed_upload_rejects_case_aliased_migrations_before_backup_or_live_mutation(): void
     {
+        if (! function_exists('sodium_crypto_sign_keypair')) {
+            $this->markTestSkipped('Ed25519 extension required for signed migration alias test.');
+        }
+
         $path = $this->archive(['Backend/Database/Migrations/2026_11_14_000001_probe.PHP']);
         $beforeFiles = $this->incomingFiles();
 
-        // The deliberately incorrect SHA stops UpdateManager at validate_package:
-        // no maintenance, backup, extraction or database migration may run.
+        // A trusted signer cannot declare "no migrations" while hiding an
+        // aliased PHP migration. Reject BEFORE UpdateManager and backups.
         $this->actingAs($this->superAdmin())
-            ->post(route('admin.system-update.store'), [
-                'package' => new UploadedFile($path, 'update.zip', 'application/zip', null, true),
-                'target_version' => '1.2.0',
-                'minimum_current_version' => '1.0.0',
-                'sha256' => str_repeat('0', 64),
-                'release_notes' => 'Synthetic alias detection before checksum denial',
-                'contains_migrations' => false,
-            ])
+            ->post(route('admin.system-update.store'), $this->signedPayload($path))
             ->assertRedirect(route('admin.system-update.index'))
             ->assertSessionHasErrors('update');
 
-        $history = UpdateHistory::query()->sole();
-        $this->assertSame('failed', $history->status);
-        $this->assertSame('validate_package', $history->failed_stage);
-        $this->assertSame('pending', $history->execution_evidence['migrations']);
-        $this->assertSame('not_created', $history->backup_status);
+        $this->assertDatabaseCount('update_history', 0);
         $this->assertFalse(app()->isDownForMaintenance());
         $this->assertSame($beforeFiles, $this->incomingFiles());
         $this->assertSame(0, SystemVersion::query()->where('version', '1.2.0')->count());
@@ -120,6 +115,40 @@ final class V2UpdaterCaseAliasedMigrationUploadTest extends TestCase
         $user->roles()->attach(Role::query()->where('code', 'SUPER_ADMIN')->firstOrFail());
 
         return $user;
+    }
+
+    /** @return array<string, mixed> */
+    private function signedPayload(string $path): array
+    {
+        $bytes = (string) file_get_contents($path);
+        $keypair = sodium_crypto_sign_keypair();
+        $keyId = 'g005-migration-alias-ci';
+        config([
+            'update_signatures.publisher_key_id' => $keyId,
+            'update_signatures.publisher_public_key_b64' => base64_encode(sodium_crypto_sign_publickey($keypair)),
+        ]);
+        $manifest = new UpdatePackageManifest(
+            '1.2.0', '1.0.0', hash('sha256', $bytes),
+            'Detect aliased migration before backup', false,
+        );
+        $canonical = app(TrustedUpdateSignatureVerifier::class)->canonicalPayload($manifest, $keyId);
+        $signed = json_encode([
+            'format' => 'foodex-signed-update-v1',
+            'signer_key_id' => $keyId,
+            'target_version' => $manifest->targetVersion,
+            'minimum_current_version' => $manifest->minimumCurrentVersion,
+            'archive_sha256' => $manifest->sha256,
+            'contains_migrations' => $manifest->containsMigrations,
+            'release_notes' => $manifest->releaseNotes,
+            'signature' => base64_encode(sodium_crypto_sign_detached(
+                $canonical, sodium_crypto_sign_secretkey($keypair),
+            )),
+        ], JSON_THROW_ON_ERROR);
+
+        return [
+            'package' => new UploadedFile($path, 'update.zip', 'application/zip', null, true),
+            'signed_manifest' => UploadedFile::fake()->createWithContent('update.signed.json', $signed),
+        ];
     }
 
     private function scan(string $path): bool
