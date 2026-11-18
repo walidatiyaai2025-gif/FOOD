@@ -23,6 +23,7 @@ final class InventoryAdjustmentService
     public function __construct(
         private readonly WarehouseScope $warehouseScope,
         private readonly AuditLogger $audit,
+        private readonly UnknownInventoryOwnerProjection $ownerProjection,
     ) {}
 
     public function post(
@@ -132,6 +133,10 @@ final class InventoryAdjustmentService
             $inventory->forceFill([
                 'quantity' => max(0.0, $next),
             ])->save();
+
+            // Canonical stock is already row-locked in this transaction.
+            // Unknown title is tracked; known legal-title assertions remain stale.
+            $this->ownerProjection->afterProcurementMutation($inventory);
 
             $movement = StockMovement::query()->create([
                 'inventory_id' => $inventory->getKey(),

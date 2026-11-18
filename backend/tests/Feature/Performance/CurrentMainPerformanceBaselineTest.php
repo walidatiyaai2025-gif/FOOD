@@ -39,7 +39,7 @@ final class CurrentMainPerformanceBaselineTest extends TestCase
         $this->actingAs($admin);
 
         $storeId = (int) DB::table('stores')
-            ->where('code', 'like', 'PERF-%')
+            ->where('code', 'like', 'FOODEX-DEMO-B2C-PERF-%')
             ->orderBy('id')
             ->value('id');
 

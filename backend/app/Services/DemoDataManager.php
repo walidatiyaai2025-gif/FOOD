@@ -23,6 +23,7 @@ final class DemoDataManager
     {
         $storeIds = DB::table('stores')
             ->where('code', 'like', self::STORE_PREFIX.'%')
+            ->where('code', 'not like', self::STORE_PREFIX.'PERF-%')
             ->pluck('id');
 
         return [
@@ -43,7 +44,12 @@ final class DemoDataManager
         $before = $this->summary();
 
         DB::transaction(function (): void {
-            $storeIds = DB::table('stores')->where('code', 'like', self::STORE_PREFIX.'%')->pluck('id')->map(fn ($id) => (int) $id)->all();
+            $storeIds = DB::table('stores')
+                ->where('code', 'like', self::STORE_PREFIX.'%')
+                ->where('code', 'not like', self::STORE_PREFIX.'PERF-%')
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
             $orderIds = DB::table('orders')->where('order_number', 'like', self::ORDER_PREFIX.'%')->pluck('id')->map(fn ($id) => (int) $id)->all();
             $customerIds = DB::table('customers')->where('email', 'like', '%'.self::CUSTOMER_EMAIL_SUFFIX)->pluck('id')->map(fn ($id) => (int) $id)->all();
             $productIds = DB::table('products')->where('sku', 'like', self::PRODUCT_PREFIX.'%')->pluck('id')->map(fn ($id) => (int) $id)->all();

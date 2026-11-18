@@ -86,11 +86,22 @@ final class EnterprisePerformanceFixtureTest extends TestCase
 
         $this->seed(EnterprisePerformanceSeeder::class);
         $firstOrderCount = DB::table('orders')->where('order_number', 'like', 'PERF-SMOKE-%')->count();
+        $firstMovementEventCount = DB::table('enterprise_inventory_owner_movement_events')
+            ->where('movement_store_code', 'like', 'FOODEX-DEMO-B2C-PERF-%')
+            ->where('movement_reference_type', 'performance_fixture')
+            ->count();
+        $this->assertSame(500, $firstMovementEventCount);
 
         $this->seed(EnterprisePerformanceSeeder::class);
         $secondOrderCount = DB::table('orders')->where('order_number', 'like', 'PERF-SMOKE-%')->count();
+        $secondMovementEventCount = DB::table('enterprise_inventory_owner_movement_events')
+            ->where('movement_store_code', 'like', 'FOODEX-DEMO-B2C-PERF-%')
+            ->where('movement_reference_type', 'performance_fixture')
+            ->count();
 
         $this->assertSame(200, $firstOrderCount);
         $this->assertSame($firstOrderCount, $secondOrderCount);
+        $this->assertSame(1000, $secondMovementEventCount, 'Fixture cleanup preserves the first immutable event ledger while reseeding current source rows.');
+        $this->assertSame(500, DB::table('stock_movements')->where('reason', 'PERF-smoke')->count());
     }
 }

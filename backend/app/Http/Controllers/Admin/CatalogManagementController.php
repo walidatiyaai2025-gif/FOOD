@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\Store;
 use App\Models\Unit;
 use App\Models\User;
+use App\Rules\ReservedDemoStoreCode;
 use App\Services\AuditLogger;
 use App\Services\CatalogImageService;
 use App\Services\CatalogImportRunService;
@@ -1542,7 +1543,7 @@ final class CatalogManagementController extends Controller
 
         $data = $request->validate([
             'store_type_id' => ['required', 'integer', 'exists:store_types,id'],
-            'code' => ['required', 'string', 'max:50', 'unique:stores,code'],
+            'code' => ['required', 'string', 'max:50', new ReservedDemoStoreCode, 'unique:stores,code'],
             'name' => ['required', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
@@ -1570,7 +1571,7 @@ final class CatalogManagementController extends Controller
 
         $data = $request->validate([
             'store_type_id' => ['required', 'integer', 'exists:store_types,id'],
-            'code' => ['required', 'string', 'max:50', Rule::unique('stores', 'code')->ignore($store)],
+            'code' => ['required', 'string', 'max:50', new ReservedDemoStoreCode, Rule::unique('stores', 'code')->ignore($store)],
             'name' => ['required', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);

@@ -8,13 +8,13 @@ use App\Enterprise\Wms\WarehouseLocationService;
 use App\Enterprise\Wms\WmsDemandPlanningService;
 use App\Models\Role;
 use App\Models\User;
-use App\Models\UserStoreRole;
 use Carbon\CarbonImmutable;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 final class EnterpriseWmsProfessionalCompletionTest extends TestCase
@@ -28,6 +28,12 @@ final class EnterpriseWmsProfessionalCompletionTest extends TestCase
         $this->seed(CoreReferenceSeeder::class);
         // Explicit test-only approval of the exact ERP module version; never a runtime default.
         config()->set('enterprise_module_readiness.certified_versions.inventory_wms', app(ModuleRegistry::class)->manifest('inventory_wms')->version);
+        // Signed, synthetic P135 evidence is only needed when that other PR's
+        // test helper is present. Neither standalone P110 nor runtime changes
+        // the real ERP certification/attestation configuration.
+        if (class_exists(SyntheticErpWorkflowEvidence::class)) {
+            SyntheticErpWorkflowEvidence::install();
+        }
     }
 
     public function test_location_metadata_and_provenance_never_create_a_second_stock_balance(): void
@@ -209,6 +215,202 @@ final class EnterpriseWmsProfessionalCompletionTest extends TestCase
             ->assertSee('Reorder / demand plan');
     }
 
+    public function test_record_360_shows_uncertified_stock_title_in_ar_en_without_tenant_leak_or_mutation(): void
+    {
+        $fixture = $this->fixture();
+        $actor = $this->inventoryUser($fixture['store_id'], 'en');
+        $url = route('admin.erp.wms.index', [
+            'tab' => 'overview',
+            'store_id' => $fixture['store_id'],
+            'warehouse_id' => $fixture['source_warehouse_id'],
+            'inventory_id' => $fixture['source_inventory_id'],
+        ]);
+
+        foreach (['en', 'ar'] as $locale) {
+            $actor->forceFill(['locale' => $locale])->save();
+            $this->actingAs($actor->fresh())->get($url)
+                ->assertOk()
+                ->assertSee('data-v2-owner-title-report', false)
+                ->assertSee('data-v2-owner-state="UNKNOWN"', false)
+                ->assertSee('data-v2-owner-certification="unverified"', false)
+                ->assertSee('data-v2-stock-custodian="warehouse"', false)
+                ->assertSee('data-v2-owner-setup-readiness="hold"', false)
+                ->assertSee('data-v2-owner-setup-help', false)
+                ->assertSee('data-v2-owner-evidence-recheck', false)
+                ->assertSee(__('enterprise_wms.record360.ownership.setup_readiness_label', [], $locale))
+                ->assertSee(__('enterprise_wms.record360.ownership.setup_hold', [], $locale))
+                ->assertSee(__('enterprise_wms.record360.ownership.setup_source', [], $locale))
+                ->assertSee(__('enterprise_wms.record360.ownership.setup_example', [], $locale))
+                ->assertSee(__('enterprise_wms.record360.ownership.setup_default', [], $locale))
+                ->assertSee(__('enterprise_wms.record360.ownership.setup_validation', [], $locale))
+                ->assertSee(__('enterprise_wms.record360.ownership.setup_permissions', [], $locale))
+                ->assertSee(__('enterprise_wms.record360.ownership.setup_save_boundary', [], $locale))
+                ->assertSee(__('enterprise_wms.record360.ownership.setup_recheck_help', [], $locale))
+                ->assertDontSee('name="owner_kind"', false)
+                ->assertDontSee('name="evidence_reference"', false)
+                ->assertDontSee('data-v2-owner-setup-readiness="verified"', false)
+                ->assertSee('data-v2-legal-valuation-status="unavailable"', false)
+                ->assertSee(__('enterprise_wms.record360.ownership.custodian', [], $locale))
+                ->assertSee(__('enterprise_wms.record360.ownership.warehouse_custodian', [], $locale))
+                ->assertSee(__('enterprise_wms.record360.ownership.owner_valuation_unavailable', [], $locale))
+                ->assertSee(__('enterprise_wms.record360.ownership.notice', [], $locale))
+                ->assertSee(__('enterprise_wms.record360.ownership.states.UNKNOWN', [], $locale))
+                ->assertSee(__('enterprise_wms.record360.ownership.kinds.UNKNOWN', [], $locale))
+                ->assertDontSee('data-v2-certified-title', false);
+        }
+
+        $this->assertSame(0, DB::table('enterprise_inventory_owner_positions')
+            ->where('inventory_id', $fixture['source_inventory_id'])->count());
+
+        $checker = User::query()->create([
+            'name' => 'Unverified Legal Title Checker',
+            'email' => 'wms-pro-owner-checker@example.test',
+            'password' => 'password',
+            'is_active' => true,
+        ]);
+        DB::table('enterprise_inventory_owner_positions')->insert([
+            'inventory_id' => $fixture['source_inventory_id'],
+            'owner_key' => 'FOODEX',
+            'owner_kind' => 'FOODEX',
+            'supplier_id' => null,
+            'quantity' => 10,
+            'reserved_quantity' => 1,
+            'source_inventory_updated_at' => DB::table('inventories')
+                ->where('id', $fixture['source_inventory_id'])->value('updated_at'),
+            'evidence_type' => 'untrusted_free_text',
+            'evidence_reference' => 'NOT-A-VERIFIED-DEED',
+            'proposed_by' => $actor->id,
+            'certified_by' => $checker->id,
+            'certified_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        foreach (['en', 'ar'] as $locale) {
+            $actor->forceFill(['locale' => $locale])->save();
+            $this->actingAs($actor->fresh())->get($url)
+                ->assertOk()
+                ->assertSee('data-v2-owner-state="UNVERIFIED"', false)
+                ->assertSee('data-v2-owner-setup-readiness="hold"', false)
+                ->assertSee(__('enterprise_wms.record360.ownership.setup_hold', [], $locale))
+                ->assertDontSee('data-v2-owner-setup-readiness="verified"', false)
+                ->assertSee('data-v2-owner-certification="unverified"', false)
+                ->assertSee(__('enterprise_wms.record360.ownership.states.UNVERIFIED', [], $locale))
+                ->assertSee(__('enterprise_wms.record360.ownership.kinds.FOODEX', [], $locale))
+                ->assertDontSee('data-v2-certified-title', false);
+        }
+
+        $retailStoreTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $foreignStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => $retailStoreTypeId,
+            'code' => 'WMS-P110-FOREIGN',
+            'name' => 'Out Of Scope WMS Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignWarehouseId = (int) DB::table('warehouses')->insertGetId([
+            'store_id' => $foreignStoreId,
+            'code' => 'WMS-P110-FOREIGN',
+            'name' => 'Foreign Warehouse',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignInventoryId = (int) DB::table('inventories')->insertGetId([
+            'warehouse_id' => $foreignWarehouseId,
+            'product_id' => $fixture['product_id'],
+            'quantity' => 1000,
+            'reserved_quantity' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->actingAs($actor->fresh())->get(route('admin.erp.wms.index', [
+            'tab' => 'overview',
+            'store_id' => $fixture['store_id'],
+            'warehouse_id' => $fixture['source_warehouse_id'],
+            'inventory_id' => $foreignInventoryId,
+        ]))->assertNotFound();
+
+        $this->assertDatabaseHas('inventories', [
+            'id' => $fixture['source_inventory_id'],
+            'quantity' => 10,
+            'reserved_quantity' => 1,
+        ]);
+        $this->assertDatabaseHas('enterprise_inventory_owner_positions', [
+            'inventory_id' => $fixture['source_inventory_id'],
+            'owner_kind' => 'FOODEX',
+            'evidence_reference' => 'NOT-A-VERIFIED-DEED',
+        ]);
+    }
+
+    public function test_direct_wms_http_forged_legal_owner_cost_and_cross_store_replay_never_grant_title(): void
+    {
+        $fixture = $this->fixture();
+        $actor = $this->inventoryUser($fixture['store_id'], 'en');
+        config()->set('security.mfa.enforce_privileged', false);
+        $path = route('admin.erp.wms.adjustments.store');
+        $request = [
+            'store_id' => $fixture['store_id'],
+            'warehouse_id' => $fixture['source_warehouse_id'],
+            'product_id' => $fixture['product_id'],
+            'quantity_delta' => -1,
+            'classification' => 'damage',
+            'reason' => 'P110 direct-HTTP forged ownership protection',
+            'request_key' => 'p110-forged-owner-amount-replay',
+            // Untrusted fields must never reach the canonical stock writer
+            // or silently certify FOODEX title, vendor identity or COGS.
+            'owner_kind' => 'FOODEX',
+            'owner_key' => 'FOODEX',
+            'supplier_id' => 999999,
+            'certified_by' => $actor->id,
+            'legal_title_verified' => true,
+            'stock_cost' => '99999999.99',
+        ];
+
+        foreach (['en', 'ar'] as $locale) {
+            $actor->forceFill(['locale' => $locale])->save();
+            $this->actingAs($actor->fresh())->post($path, $request)->assertRedirect();
+        }
+
+        $this->assertDatabaseHas('inventories', [
+            'id' => $fixture['source_inventory_id'], 'quantity' => 9, 'reserved_quantity' => 1,
+        ]);
+        $this->assertSame(1, DB::table('stock_movements')
+            ->where('inventory_id', $fixture['source_inventory_id'])
+            ->where('reference_type', 'wms_workbench_adjustment')->count());
+        $this->assertDatabaseHas('enterprise_inventory_owner_positions', [
+            'inventory_id' => $fixture['source_inventory_id'],
+            'owner_kind' => 'UNKNOWN',
+            'owner_key' => 'UNKNOWN',
+            'supplier_id' => null,
+            'quantity' => 9,
+            'reserved_quantity' => 1,
+            'certified_by' => null,
+        ]);
+        $this->assertSame(0, DB::table('enterprise_finance_journals')->count());
+
+        $foreignStoreId = (int) DB::table('stores')->insertGetId([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'code' => 'WMS-P110-DIRECT-FOREIGN-STORE',
+            'name' => 'Foreign WMS Direct Caller Store',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreignActor = $this->retailInventoryUser($foreignStoreId, 'ar');
+
+        // A retail inventory actor bound to its B2C store must not mutate
+        // wholesale stock by forging the store, warehouse and owner fields.
+        $this->actingAs($foreignActor)->post($path, $request)->assertNotFound();
+        $this->assertDatabaseHas('inventories', [
+            'id' => $fixture['source_inventory_id'], 'quantity' => 9, 'reserved_quantity' => 1,
+        ]);
+        $this->assertSame(1, DB::table('stock_movements')
+            ->where('inventory_id', $fixture['source_inventory_id'])
+            ->where('reference_type', 'wms_workbench_adjustment')->count());
+        $this->assertSame(0, DB::table('enterprise_finance_journals')->count());
+    }
+
     public function test_wms_completion_keeps_ar_en_translation_key_parity_and_report_contract(): void
     {
         $en = require lang_path('en/enterprise_wms.php');
@@ -254,7 +456,7 @@ final class EnterpriseWmsProfessionalCompletionTest extends TestCase
     /** @return array<string,int> */
     private function fixture(): array
     {
-        $storeTypeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $storeTypeId = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
         $storeId = (int) DB::table('stores')->insertGetId([
             'store_type_id' => $storeTypeId,
             'code' => 'WMS-PRO-COMP',
@@ -266,7 +468,7 @@ final class EnterpriseWmsProfessionalCompletionTest extends TestCase
         $unitId = (int) DB::table('units')->orderBy('id')->value('id');
         $catalogId = (int) DB::table('catalogs')->insertGetId([
             'store_id' => $storeId,
-            'channel' => 'b2c',
+            'channel' => 'b2b',
             'code' => 'wms-professional',
             'name' => 'WMS Professional Catalog',
             'is_active' => true,
@@ -338,11 +540,31 @@ final class EnterpriseWmsProfessionalCompletionTest extends TestCase
             'is_active' => true,
         ]);
         $this->grantPlatformErpAccess($user);
+        $role = Role::query()->where('code', 'INVENTORY')->firstOrFail();
+        $user->roles()->syncWithoutDetaching([$role->id]);
+
+        return $user;
+    }
+
+    private function retailInventoryUser(int $storeId, string $locale): User
+    {
+        $user = User::query()->create([
+            'name' => 'Retail Inventory Operator',
+            'email' => 'wms-retail-scope-'.$storeId.'@example.test',
+            'password' => 'password',
+            'locale' => $locale,
+            'is_active' => true,
+        ]);
+        $this->grantPlatformErpAccess($user);
         $role = Role::query()->where('code', 'RETAIL_INVENTORY')->firstOrFail();
-        UserStoreRole::query()->create([
+        $user->roles()->syncWithoutDetaching([$role->id]);
+
+        DB::table('user_store_roles')->insert([
             'user_id' => $user->id,
             'store_id' => $storeId,
             'role_id' => $role->id,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return $user;
@@ -357,7 +579,7 @@ final class EnterpriseWmsProfessionalCompletionTest extends TestCase
         string $number,
     ): void {
         $customerId = (int) DB::table('customers')->insertGetId([
-            'type' => 'b2c',
+            'type' => 'b2b',
             'name' => $number.' Customer',
             'created_at' => $at->utc()->toDateTimeString(),
             'updated_at' => $at->utc()->toDateTimeString(),
@@ -366,7 +588,7 @@ final class EnterpriseWmsProfessionalCompletionTest extends TestCase
             'store_id' => $storeId,
             'customer_id' => $customerId,
             'order_number' => $number.'-'.$storeId,
-            'channel' => 'b2c',
+            'channel' => 'b2b',
             'status' => $status,
             'currency' => 'KWD',
             'subtotal' => $quantity,

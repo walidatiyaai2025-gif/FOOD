@@ -2,6 +2,7 @@
 
 namespace App\Enterprise\Procurement;
 
+use App\Enterprise\Wms\UnknownInventoryOwnerProjection;
 use App\Models\EnterpriseGoodsReceiptLine;
 use App\Models\EnterprisePurchaseReturn;
 use App\Models\EnterprisePurchaseReturnLine;
@@ -13,6 +14,10 @@ use Illuminate\Validation\ValidationException;
 
 final class PurchaseReturnInventoryHandoff
 {
+    public function __construct(
+        private readonly UnknownInventoryOwnerProjection $ownerProjection,
+    ) {}
+
     public function reverse(
         User $actor,
         int $storeId,
@@ -85,6 +90,10 @@ final class PurchaseReturnInventoryHandoff
         }
 
         $inventory->forceFill(['quantity' => $next])->save();
+
+        // Preserve legal title uncertainty during partial return; do not
+        // borrow quantities from a supplier/FOODEX owner's unverified bucket.
+        $this->ownerProjection->afterProcurementMutation($inventory);
 
         $movement = StockMovement::query()->create([
             'inventory_id' => $inventory->getKey(),

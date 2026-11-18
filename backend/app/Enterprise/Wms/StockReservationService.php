@@ -15,6 +15,7 @@ final class StockReservationService
     public function __construct(
         private readonly WarehouseScope $warehouseScope,
         private readonly AuditLogger $audit,
+        private readonly UnknownInventoryOwnerProjection $ownerProjection,
     ) {}
 
     public function ensureReservation(
@@ -97,6 +98,10 @@ final class StockReservationService
             $inventory->forceFill([
                 'reserved_quantity' => $nextReserved,
             ])->save();
+
+            // The canonical row is locked in this transaction. Synchronize only
+            // wholly UNKNOWN title; a claimed FOODEX/supplier owner stays stale.
+            $this->ownerProjection->afterReservationMutation($inventory);
 
             DB::table('stock_movements')->insert([
                 'inventory_id' => $inventory->getKey(),

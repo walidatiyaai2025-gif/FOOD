@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\Store;
 use App\Models\User;
+use App\Rules\ReservedDemoStoreCode;
 use App\Services\AuditLogger;
 use App\Services\RetailWholesaleAccountService;
 use App\Services\StoreChannelOperationsService;
@@ -186,7 +187,7 @@ final class RetailStoreProvisioningController extends Controller
         $actor = $this->superAdmin($request);
         $data = $request->validate([
             'business_profile' => ['required', Rule::in([self::PROFILE_RETAIL, self::PROFILE_RESTAURANT])],
-            'code' => ['required', 'string', 'max:80', 'regex:/^[A-Za-z0-9_-]+$/', 'unique:stores,code'],
+            'code' => ['required', 'string', 'max:80', 'regex:/^[A-Za-z0-9_-]+$/', new ReservedDemoStoreCode, 'unique:stores,code'],
             'name' => ['required', 'string', 'max:255'],
             'logo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'price_tier_id' => ['required', 'integer', 'exists:b2b_price_tiers,id'],
@@ -334,7 +335,7 @@ final class RetailStoreProvisioningController extends Controller
         }
 
         $data = $request->validate([
-            'code' => ['required', 'string', 'max:80', 'regex:/^[A-Za-z0-9_-]+$/', Rule::unique('stores', 'code')->ignore($store->id)],
+            'code' => ['required', 'string', 'max:80', 'regex:/^[A-Za-z0-9_-]+$/', new ReservedDemoStoreCode, Rule::unique('stores', 'code')->ignore($store->id)],
             'name' => ['required', 'string', 'max:255'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'price_tier_id' => ['required', 'integer', 'exists:b2b_price_tiers,id'],

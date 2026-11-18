@@ -258,6 +258,21 @@ final class PurchaseReturnManager
                 ]);
             }
 
+            // A persisted draft can be changed by an import or old integration.
+            // The return is only a reversal of this posted GRN's exact source;
+            // never allow forged supplier/currency/provenance headers through.
+            if (
+                (int) $return->supplier_id !== (int) $receipt->supplier_id
+                || (string) $return->supplier_code !== (string) $receipt->supplier_code
+                || (string) $return->currency_code !== (string) $receipt->currency_code
+                || (string) $return->source_receipt_number !== (string) $receipt->receipt_number
+                || (string) $return->source_order_number !== (string) $receipt->source_order_number
+            ) {
+                throw ValidationException::withMessages([
+                    'goods_receipt_id' => ['Purchase return no longer matches its posted source receipt.'],
+                ]);
+            }
+
             $lines = $return->lines()
                 ->orderBy('warehouse_id')
                 ->orderBy('line_no')
@@ -278,6 +293,26 @@ final class PurchaseReturnManager
                 if ($receiptLine === null) {
                     throw ValidationException::withMessages([
                         'lines' => ['A purchase return line no longer belongs to its source goods receipt.'],
+                    ]);
+                }
+
+                // Revalidate the saved line against the locked, posted GRN
+                // before any stock/owner-position/audit write. This is not a
+                // legal-title transfer and must never infer supplier ownership.
+                $quantity = (float) $line->returned_quantity;
+                if (
+                    ! is_finite($quantity)
+                    || $quantity <= 0
+                    || $this->quantityUnits($line->returned_quantity) <= 0
+                    || (int) $line->purchase_order_line_id !== (int) $receiptLine->purchase_order_line_id
+                    || (int) $line->warehouse_id !== (int) $receiptLine->warehouse_id
+                    || (string) $line->item_code !== (string) $receiptLine->item_code
+                    || (string) $line->unit !== (string) $receiptLine->unit
+                    || (string) $line->received_quantity !== (string) $receiptLine->received_quantity
+                    || (string) ($line->unit_price ?? '') !== (string) ($receiptLine->unit_price ?? '')
+                ) {
+                    throw ValidationException::withMessages([
+                        'lines' => ['Purchase return line quantity or source snapshot is invalid.'],
                     ]);
                 }
 
@@ -469,7 +504,7 @@ final class PurchaseReturnManager
         return Validator::make($attributes, [
             'lines' => ['required', 'array', 'min:1', 'max:100'],
             'lines.*.goods_receipt_line_id' => ['required', 'integer', 'min:1', 'distinct'],
-            'lines.*.quantity' => ['required', 'numeric', 'gt:0', 'max:999999999'],
+            'lines.*.quantity' => ['required', 'numeric', 'gt:0', 'max:999999999', 'decimal:0,3'],
         ])->validate();
     }
 

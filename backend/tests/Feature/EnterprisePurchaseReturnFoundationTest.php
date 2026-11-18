@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
-use Tests\Support\ProcurementSecondApprover;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 final class EnterprisePurchaseReturnFoundationTest extends TestCase
@@ -89,6 +89,18 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
 
         $this->assertNotNull($inventory);
         $this->assertSame(3.0, (float) $inventory->quantity);
+        // This return is unattributed, never silently FOODEX/supplier-owned.
+        $this->assertDatabaseHas('enterprise_inventory_owner_positions', [
+            'inventory_id' => $inventory->id,
+            'owner_key' => 'UNKNOWN',
+            'owner_kind' => 'UNKNOWN',
+            'supplier_id' => null,
+            'quantity' => 3,
+            'reserved_quantity' => 0,
+            'certified_by' => null,
+        ]);
+        $this->assertSame(1, DB::table('enterprise_inventory_owner_positions')
+            ->where('inventory_id', $inventory->id)->count());
         $this->assertSame(
             1,
             DB::table('stock_movements')
@@ -106,6 +118,149 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
                 ->where('auditable_id', $return->id)
                 ->count(),
         );
+    }
+
+    /**
+     * P110: supplier identity on a posted receipt does not certify legal title.
+     * A persisted draft must not return zero/negative stock or forge its source
+     * after the original positive request validation has already completed.
+     */
+    public function test_p110_fractional_supplier_return_replay_and_tampered_draft_fail_without_owner_or_stock_writes(): void
+    {
+        $this->enableProcurement();
+        [$actor, $store, $context] = $this->scopedUser($this->allPermissions(), 'PRTN-P110-MILLI');
+        [$product, $warehouse] = $this->stockTarget($store, 'PRTN-P110-MILLI-SKU');
+        $receipt = $this->postedReceipt(
+            $actor, $context, $warehouse, 'PRTN-P110-MILLI-SUP', 'PRTN-P110-MILLI-SKU', 1.500,
+        );
+        $source = $receipt->lines()->firstOrFail();
+        $manager = app(PurchaseReturnManager::class);
+
+        $first = $manager->createFromPostedReceipt($actor, $context, $receipt->id, [
+            'owner_key' => 'FOODEX',
+            'supplier_id' => 999999,
+            'lines' => [[
+                'goods_receipt_line_id' => $source->id,
+                'quantity' => '0.625',
+                'owner_key' => 'SUPPLIER:'.$receipt->supplier_id,
+                'unit_price' => 0,
+            ]],
+        ]);
+        $posted = $manager->post($actor, $context, $first->id);
+        $replayed = $manager->post($actor, $context, $first->id);
+        $this->assertSame('posted', $posted->status);
+        $this->assertSame($posted->posted_at?->toISOString(), $replayed->posted_at?->toISOString());
+        $this->assertSame((int) $receipt->supplier_id, (int) $posted->supplier_id);
+        $this->assertSame('0.625', $posted->lines[0]->returned_quantity);
+        $this->assertSame((string) $source->unit_price, (string) $posted->lines[0]->unit_price);
+
+        $inventory = DB::table('inventories')
+            ->where('warehouse_id', $warehouse->id)
+            ->where('product_id', $product->id)
+            ->firstOrFail();
+        $this->assertSame('0.875', number_format((float) $inventory->quantity, 3, '.', ''));
+        $this->assertDatabaseHas('enterprise_inventory_owner_positions', [
+            'inventory_id' => $inventory->id,
+            'owner_key' => 'UNKNOWN',
+            'owner_kind' => 'UNKNOWN',
+            'supplier_id' => null,
+            'certified_by' => null,
+        ]);
+        $this->assertSame('0.875', number_format((float) DB::table('enterprise_inventory_owner_positions')
+            ->where('inventory_id', $inventory->id)->value('quantity'), 3, '.', ''));
+        $this->assertSame(1, DB::table('enterprise_inventory_owner_positions')
+            ->where('inventory_id', $inventory->id)->count());
+        $returnMovement = DB::table('stock_movements')
+            ->where('inventory_id', $inventory->id)
+            ->where('type', 'purchase_return')
+            ->where('reference_type', 'enterprise_purchase_return_line')
+            ->where('reference_id', $posted->lines[0]->id)
+            ->firstOrFail();
+        $returnEvent = DB::table('enterprise_inventory_owner_movement_events')
+            ->where('source_stock_movement_id', $returnMovement->id)->firstOrFail();
+        $this->assertSame('UNKNOWN', $returnEvent->owner_snapshot_state);
+        $this->assertSame('0.875', number_format((float) $returnEvent->owner_quantity, 3, '.', ''));
+        $this->assertSame('0.875', number_format((float) $returnEvent->observed_inventory_quantity, 3, '.', ''));
+        $this->assertSame('-0.625', number_format((float) $returnEvent->movement_quantity, 3, '.', ''));
+        $this->assertSame(1, DB::table('enterprise_inventory_owner_movement_events')
+            ->where('source_stock_movement_id', $returnMovement->id)->count(), 'Return replay must not append a duplicate event.');
+
+        $draft = $manager->createFromPostedReceipt($actor, $context, $receipt->id, [
+            'lines' => [['goods_receipt_line_id' => $source->id, 'quantity' => '0.250']],
+        ]);
+        $draftLine = $draft->lines()->firstOrFail();
+
+        foreach ([
+            'returned_quantity' => '-0.250',
+            'item_code' => 'FORGED-SKU',
+            'unit' => 'case',
+            'received_quantity' => '9.000',
+            'unit_price' => '99.000',
+        ] as $column => $forged) {
+            DB::table('enterprise_purchase_return_lines')
+                ->where('id', $draftLine->id)->update([$column => $forged]);
+            try {
+                $manager->post($actor, $context, $draft->id);
+                $this->fail('Persisted supplier return source must fail closed for '.$column);
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('lines', $exception->errors());
+            }
+            DB::table('enterprise_purchase_return_lines')
+                ->where('id', $draftLine->id)->update([$column => $draftLine->{$column}]);
+        }
+
+        foreach (['supplier_code' => 'FOREIGN-SUP', 'currency_code' => 'USD'] as $column => $forged) {
+            DB::table('enterprise_purchase_returns')
+                ->where('id', $draft->id)->update([$column => $forged]);
+            try {
+                $manager->post($actor, $context, $draft->id);
+                $this->fail('Forged return header must fail closed for '.$column);
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('goods_receipt_id', $exception->errors());
+            }
+            DB::table('enterprise_purchase_returns')
+                ->where('id', $draft->id)->update([$column => $draft->{$column}]);
+        }
+
+        try {
+            $manager->createFromPostedReceipt($actor, $context, $receipt->id, [
+                'lines' => [['goods_receipt_line_id' => $source->id, 'quantity' => '0.0004']],
+            ]);
+            $this->fail('A return below one milliquantity must not round into a posting.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('lines.0.quantity', $exception->errors());
+        }
+
+        $this->assertDatabaseHas('enterprise_purchase_returns', [
+            'id' => $draft->id, 'status' => 'draft', 'posted_at' => null,
+        ]);
+        $this->assertSame('0.875', number_format((float) DB::table('inventories')
+            ->where('id', $inventory->id)->value('quantity'), 3, '.', ''));
+        $this->assertSame(1, DB::table('stock_movements')
+            ->where('type', 'purchase_return')
+            ->where('reference_type', 'enterprise_purchase_return_line')->count());
+        $this->assertSame(1, DB::table('audit_logs')
+            ->where('event', 'enterprise.purchase_return.posted')->count());
+
+        $manager->post($actor, $context, $draft->id);
+        $manager->post($actor, $context, $draft->id);
+        $this->assertSame('0.625', number_format((float) DB::table('inventories')
+            ->where('id', $inventory->id)->value('quantity'), 3, '.', ''));
+        $this->assertSame('0.625', number_format((float) DB::table('enterprise_inventory_owner_positions')
+            ->where('inventory_id', $inventory->id)->value('quantity'), 3, '.', ''));
+        $this->assertSame(1, DB::table('enterprise_inventory_owner_positions')
+            ->where('inventory_id', $inventory->id)->count());
+        $this->assertSame(2, DB::table('stock_movements')
+            ->where('type', 'purchase_return')
+            ->where('reference_type', 'enterprise_purchase_return_line')->count());
+        $this->assertSame(2, DB::table('audit_logs')
+            ->where('event', 'enterprise.purchase_return.posted')->count());
+        $this->assertDatabaseMissing('enterprise_inventory_owner_positions', [
+            'inventory_id' => $inventory->id, 'owner_key' => 'FOODEX',
+        ]);
+        $this->assertDatabaseMissing('enterprise_inventory_owner_positions', [
+            'inventory_id' => $inventory->id, 'owner_key' => 'SUPPLIER:'.$receipt->supplier_id,
+        ]);
     }
 
     public function test_partial_returns_cannot_exceed_posted_receipt_remainder(): void
@@ -435,10 +590,6 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
             ]],
         ]);
 
-        // Preserve the maker/checker fixture's dedicated procurement role
-        // while generating the receipt, then admit the actor to the HTTP workbench.
-        $this->allowReturnsWorkbench($actor, $store);
-
         foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
             app()->setLocale($locale);
             $actor->forceFill(['locale' => $locale])->save();
@@ -492,10 +643,23 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
             ]],
         ]);
 
-        $this->allowReturnsWorkbench($owner, $store);
-
         [$foreign, $otherStore] = $this->scopedUser($this->allPermissions(), 'P243-SEC-FOREIGN');
-        $this->allowReturnsWorkbench($foreign, $otherStore);
+
+        // A Wholesale manager can ordinarily access multiple B2B stores.
+        // An explicit STORE DENY must still win when a forged request selects
+        // this other company's return; ordinary own-store reads remain valid.
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $foreign->id,
+            'permission_id' => Permission::query()
+                ->where('code', 'procurement.purchase_returns.view')->firstOrFail()->id,
+            'scope_key' => 'store:'.$store->id,
+            'store_id' => $store->id,
+            'effect' => 'deny',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $foreign->forceFill(['has_permission_overrides' => true])->save();
+
         [$limited, $limitedStore] = $this->scopedUser(['procurement.suppliers.view'], 'P243-SEC-LIMITED');
         $this->grantPlatformErpAccess($limited);
 
@@ -534,8 +698,6 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
     {
         config()->set('security.mfa.enforce_privileged', false);
         [$actor, $store] = $this->scopedUser($this->allPermissions(), 'P243-MODULE-OFF');
-        $this->allowReturnsWorkbench($actor, $store);
-
         $this->actingAs($actor)
             ->get(route('admin.erp.procurement.index', [
                 'tab' => 'returns',
@@ -558,34 +720,15 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
             ->assertForbidden();
     }
 
-    /**
-     * The public ERP HTTP route requires a canonical Retail dashboard persona,
-     * not merely a custom scope role that is valid for the domain service.
-     * Mirror EnterpriseProcurementWorkbenchTest's production-route actor.
-     */
-    private function allowReturnsWorkbench(User $actor, Store $store): void
-    {
-        $role = Role::query()->firstOrCreate(
-            ['code' => 'B2C_STORE_ADMIN'],
-            ['name' => 'Retail Store Admin', 'scope' => 'store', 'is_active' => true, 'is_system' => true],
-        );
-        foreach (['procurement.suppliers.view', 'procurement.purchase_returns.view'] as $code) {
-            $permission = Permission::query()->firstOrCreate(
-                ['code' => $code],
-                ['name' => $code],
-            );
-            $role->permissions()->syncWithoutDetaching([$permission->id]);
-        }
-
-        DB::table('user_store_roles')->updateOrInsert(
-            ['user_id' => $actor->id, 'store_id' => $store->id, 'role_id' => $role->id],
-            ['created_at' => now(), 'updated_at' => now()],
-        );
-        $this->grantPlatformErpAccess($actor);
-    }
-
     private function enableProcurement(): void
     {
+        // P135 adds a signed workflow prerequisite. Keep this P110 test branch
+        // independently runnable until that test-only helper is integrated.
+        // Never provision trust keys or certification in live configuration.
+        if (class_exists(SyntheticErpWorkflowEvidence::class)) {
+            SyntheticErpWorkflowEvidence::install();
+        }
+
         $lifecycle = app(ModuleLifecycleManager::class);
         $lifecycle->transition('procurement', ModuleState::ENABLING);
         $lifecycle->transition('procurement', ModuleState::ENABLED);
@@ -619,7 +762,13 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
             ]],
         ]);
         $requests->submit($actor, $context, $request->id);
-        [$checker, $checkerContext] = ProcurementSecondApprover::forSameStore($actor, $context);
+        // Procurement is Wholesale-only. An independent B2B checker must
+        // hold its own effective global role; the Retail checker fixture
+        // cannot create a B2C context for a B2B warehouse.
+        $checker = User::factory()->create(['is_active' => true]);
+        $checkerRole = Role::query()->where('code', 'PROCUREMENT_MANAGER')->firstOrFail();
+        $checker->roles()->syncWithoutDetaching([$checkerRole->id]);
+        $checkerContext = app(TenantContextResolver::class)->wholesale($checker, $context->storeId);
         $requests->approve($checker, $checkerContext, $request->id);
 
         $orders = app(PurchaseOrderManager::class);
@@ -643,7 +792,7 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
     {
         $catalog = Catalog::query()->create([
             'store_id' => $store->id,
-            'channel' => 'b2c',
+            'channel' => 'b2b',
             'code' => 'prtn-'.strtolower($sku),
             'name' => $sku.' Catalog',
             'is_active' => true,
@@ -727,7 +876,26 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
         }
 
         $user = User::factory()->create(['is_active' => true]);
-        $store = $this->createRetailStore($storeCode);
+        $store = $this->createWholesaleStore($storeCode);
+
+        // Wholesale RBAC intentionally ignores store-role permission grants.
+        // Supply the test actor's requested permission subset through a real,
+        // channel-allowed global Procurement role, without changing production
+        // RBAC or giving the limited viewer the manager's permissions.
+        $manager = count($permissions) === count($this->allPermissions());
+        $channelRole = Role::query()->firstOrCreate(
+            ['code' => $manager ? 'PROCUREMENT_MANAGER' : 'PROCUREMENT_BUYER'],
+            [
+                'name' => $manager ? 'Wholesale Procurement Manager' : 'Wholesale Procurement Buyer',
+                'scope' => 'global',
+                'is_active' => true,
+                'is_system' => false,
+            ],
+        );
+        $channelRole->permissions()->sync(
+            Permission::query()->whereIn('code', $permissions)->pluck('id')->all(),
+        );
+        $user->roles()->syncWithoutDetaching([$channelRole->id]);
 
         DB::table('user_store_roles')->insert([
             'user_id' => $user->id,
@@ -740,17 +908,17 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
         return [
             $user,
             $store,
-            app(TenantContextResolver::class)->retail($user, $store->id),
+            app(TenantContextResolver::class)->wholesale($user, $store->id),
         ];
     }
 
-    private function createRetailStore(string $code): Store
+    private function createWholesaleStore(string $code): Store
     {
-        $typeId = (int) DB::table('store_types')->where('code', 'B2C')->value('id');
+        $typeId = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
         if ($typeId < 1) {
-            $typeId = DB::table('store_types')->insertGetId([
-                'code' => 'B2C',
-                'name' => 'Retail',
+            $typeId = (int) DB::table('store_types')->insertGetId([
+                'code' => 'B2B',
+                'name' => 'Wholesale',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

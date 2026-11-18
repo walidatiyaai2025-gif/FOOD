@@ -18,6 +18,8 @@ class EnterprisePerformanceSeeder extends Seeder
 
     private const PREFIX = 'PERF-';
 
+    private const STORE_PREFIX = 'FOODEX-DEMO-B2C-PERF-';
+
     /**
      * @var array<string, array{
      *     tenants:int,
@@ -177,8 +179,11 @@ class EnterprisePerformanceSeeder extends Seeder
 
         DB::table('customers')->where('email', 'like', 'perf-c-%@example.test')->delete();
 
+        $storeIds = DB::table('stores')
+            ->where('code', 'like', self::STORE_PREFIX.'%')
+            ->pluck('id');
         $warehouseIds = DB::table('warehouses')
-            ->where('code', 'like', self::PREFIX.'%')
+            ->whereIn('store_id', $storeIds)
             ->pluck('id');
 
         if ($warehouseIds->isNotEmpty()) {
@@ -187,7 +192,7 @@ class EnterprisePerformanceSeeder extends Seeder
 
         DB::table('products')->where('sku', 'like', self::PREFIX.'%')->delete();
         DB::table('catalogs')->where('code', 'like', 'perf-%')->delete();
-        DB::table('stores')->where('code', 'like', self::PREFIX.'%')->delete();
+        DB::table('stores')->whereIn('id', $storeIds)->delete();
     }
 
     private function cleanupLoadUsers(): void
@@ -326,7 +331,7 @@ class EnterprisePerformanceSeeder extends Seeder
         for ($index = 0; $index < $profile['stores']; $index++) {
             $tenant = ($index % $profile['tenants']) + 1;
             $storeNumber = $index + 1;
-            $storeCode = sprintf('%sT%02d-S%02d', self::PREFIX, $tenant, $storeNumber);
+            $storeCode = sprintf('%sT%02d-S%02d', self::STORE_PREFIX, $tenant, $storeNumber);
             $now = $this->anchor->addMinutes($storeNumber);
 
             $storeId = (int) DB::table('stores')->insertGetId([
@@ -793,7 +798,7 @@ class EnterprisePerformanceSeeder extends Seeder
             'targets' => $profile,
             'actual' => [
                 'tenants' => $profile['tenants'],
-                'stores' => DB::table('stores')->where('code', 'like', self::PREFIX.'%')->count(),
+                'stores' => DB::table('stores')->where('code', 'like', self::STORE_PREFIX.'%')->count(),
                 'warehouses' => DB::table('warehouses')->where('code', 'like', self::PREFIX.'%')->count(),
                 'products' => DB::table('products')->where('sku', 'like', self::PREFIX.'%')->count(),
                 'customers' => DB::table('customers')->where('email', 'like', $customerPattern)->count(),

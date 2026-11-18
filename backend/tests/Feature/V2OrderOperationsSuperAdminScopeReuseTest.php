@@ -21,7 +21,7 @@ final class V2OrderOperationsSuperAdminScopeReuseTest extends TestCase
         $this->seed(EnterprisePerformanceSeeder::class);
 
         $storeId = (int) DB::table('stores')
-            ->where('code', 'like', 'PERF-%')
+            ->where('code', 'like', 'FOODEX-DEMO-B2C-PERF-%')
             ->orderBy('id')
             ->value('id');
 

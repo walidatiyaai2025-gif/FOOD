@@ -16,6 +16,7 @@ final class WarehouseTransferService
     public function __construct(
         private readonly WarehouseScope $warehouseScope,
         private readonly AuditLogger $audit,
+        private readonly UnknownInventoryOwnerProjection $ownerProjection,
     ) {}
 
     /** @param list<mixed> $lines */
@@ -206,6 +207,10 @@ final class WarehouseTransferService
                         'updated_at' => $now,
                     ]);
 
+                // Follow the single canonical WMS posting; never invent
+                // supplier/FOODEX title or debit inventory a second time.
+                $this->ownerProjection->afterUnattributedInventoryMutation((int) $inventory->id);
+
                 $movements[] = [
                     'inventory_id' => (int) $inventory->id,
                     'store_id' => (int) $transfer->store_id,
@@ -300,6 +305,10 @@ final class WarehouseTransferService
                         'quantity' => $newQuantity,
                         'updated_at' => $now,
                     ]);
+
+                // Follow the single canonical WMS posting; never invent
+                // supplier/FOODEX title or debit inventory a second time.
+                $this->ownerProjection->afterUnattributedInventoryMutation((int) $inventory->id);
 
                 $movements[] = [
                     'inventory_id' => (int) $inventory->id,

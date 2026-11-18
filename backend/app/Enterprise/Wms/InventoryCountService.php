@@ -16,6 +16,7 @@ final class InventoryCountService
     public function __construct(
         private readonly WarehouseScope $warehouseScope,
         private readonly AuditLogger $audit,
+        private readonly UnknownInventoryOwnerProjection $ownerProjection,
     ) {}
 
     /** @param list<int> $inventoryIds */
@@ -209,6 +210,10 @@ final class InventoryCountService
                             'quantity' => $counted,
                             'updated_at' => $now,
                         ]);
+
+                    // Reconcile only a wholly UNKNOWN legal-title position,
+                    // never reclassify vendor stock after an inventory count.
+                    $this->ownerProjection->afterUnattributedInventoryMutation($inventoryId);
 
                     $movements[] = [
                         'inventory_id' => $inventoryId,

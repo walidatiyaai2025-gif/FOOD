@@ -2,6 +2,7 @@
 
 namespace App\Enterprise\Procurement;
 
+use App\Enterprise\Wms\UnknownInventoryOwnerProjection;
 use App\Models\EnterpriseGoodsReceipt;
 use App\Models\EnterpriseGoodsReceiptLine;
 use App\Models\Inventory;
@@ -13,6 +14,10 @@ use Illuminate\Validation\ValidationException;
 
 final class GoodsReceiptInventoryHandoff
 {
+    public function __construct(
+        private readonly UnknownInventoryOwnerProjection $ownerProjection,
+    ) {}
+
     public function receive(
         User $actor,
         int $storeId,
@@ -86,6 +91,10 @@ final class GoodsReceiptInventoryHandoff
         $inventory->forceFill([
             'quantity' => round((float) $inventory->quantity + $quantity, 3),
         ])->save();
+
+        // Unknown is not supplier or FOODEX title; maintain only the wholly
+        // unattributed projection in the surrounding GRN posting transaction.
+        $this->ownerProjection->afterProcurementMutation($inventory);
 
         $movement = StockMovement::query()->create([
             'inventory_id' => $inventory->getKey(),
