@@ -65,7 +65,20 @@
     <p class="wsf-muted">{{ app()->getLocale()==='ar'
         ? 'الحد الأدنى لقيمة منتجات طلب الجملة بعد خصومات الأصناف، بدون التوصيل أو الضرائب. يتم تطبيق التغيير فور الحفظ على تطبيق العميل وعلى الخادم.'
         : 'Minimum wholesale merchandise value after product discounts, excluding delivery and tax. Changes apply immediately in the Customer app and at checkout.' }}</p>
+    <p class="wsf-muted" role="status" data-v2-minimum-order-readiness data-readiness-state="policy-review">
+        <strong>{{ __('b2b_minimum_order_setup.readiness') }}:</strong> {{ __('b2b_minimum_order_setup.readiness_review') }}
+    </p>
+    <details>
+        <summary>{{ __('b2b_minimum_order_setup.help') }}</summary>
+        <p>{{ __('b2b_minimum_order_setup.source') }}</p>
+        <p>{{ __('b2b_minimum_order_setup.example') }}</p>
+        <p>{{ __('b2b_minimum_order_setup.default') }}</p>
+        <p>{{ __('b2b_minimum_order_setup.validation') }}</p>
+        <p>{{ __('b2b_minimum_order_setup.permission') }}</p>
+        <p>{{ __('b2b_minimum_order_setup.test_help') }}</p>
+    </details>
     @error('minimum_order_egp')<p role="alert" style="color:var(--foodex-danger-text, firebrick);font-weight:700">{{ $message }}</p>@enderror
+    @error('setup_action')<p role="alert">{{ $message }}</p>@enderror
     <form method="post" action="{{ route('admin.b2b.storefront.minimum-order') }}" class="wsf-actions" style="align-items:end;gap:12px">
         @csrf @method('PUT')
         <label for="wholesale-minimum-order-egp" style="flex:0 1 260px">
@@ -76,7 +89,10 @@
                    @unless($canManageStorefront) disabled @endunless>
         </label>
         @if($canManageStorefront)
-            <button type="submit" class="foodex-primary" data-wholesale-minimum-order-save style="min-height:44px">
+            <button type="submit" name="setup_action" value="test" class="foodex-primary" data-v2-minimum-order-test style="min-height:44px">
+                {{ __('b2b_minimum_order_setup.test') }}
+            </button>
+            <button type="submit" name="setup_action" value="save" class="foodex-primary" data-wholesale-minimum-order-save style="min-height:44px">
                 {{ app()->getLocale()==='ar' ? 'حفظ الحد الأدنى' : 'Save minimum' }}
             </button>
         @endif

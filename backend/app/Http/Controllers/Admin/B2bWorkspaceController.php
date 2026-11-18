@@ -461,7 +461,14 @@ class B2bWorkspaceController extends Controller
         $storeId = $this->principal->storeId();
         abort_unless($this->pricingMode->tiersEnabled($storeId), 409, 'B2B pricing tiers are disabled.');
         $this->operationalScope->assertStore($actor, $storeId, 'b2b.pricing.manage', 'b2b');
+        $request->validate(['setup_action' => ['sometimes', 'in:save,test']]);
         $request->merge(['store_id' => $storeId]);
+
+        if ($request->input('setup_action') === 'test') {
+            $pricing->validateCandidate($request);
+
+            return back()->with('status', __('b2b_pricing_setup.rule_test_valid'));
+        }
 
         $pricing->upsert($request);
 
@@ -475,6 +482,26 @@ class B2bWorkspaceController extends Controller
     ): RedirectResponse {
         $actor = $this->actor($request);
         abort_unless($actor->hasPermission('b2b.accounts.manage'), 403);
+
+        $setup = $request->validate([
+            'setup_action' => ['sometimes', 'in:save,test'],
+        ]);
+
+        // Preflight mirrors B2bAccountController::store validation. The actual
+        // Save always revalidates there under its existing Gate and transaction.
+        // Test never persists users, customers, accounts, credentials or audit.
+        if (($setup['setup_action'] ?? 'save') === 'test') {
+            $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+                'password' => ['required', 'string', 'min:8'],
+                'phone' => ['nullable', 'string', 'max:50'],
+                'company_name' => ['required', 'string', 'max:255'],
+                'tax_number' => ['nullable', 'string', 'max:100'],
+            ]);
+
+            return back()->with('status', __('b2b_customer_setup.test_valid'));
+        }
 
         $accounts->store($request, $customers);
 
@@ -820,10 +847,25 @@ class B2bWorkspaceController extends Controller
         $actor = $this->actor($request);
         $data = $request->validate([
             'enabled' => ['required', 'boolean'],
+            'setup_action' => ['sometimes', 'in:save,test'],
         ]);
         $storeId = $this->principal->storeId();
         $this->operationalScope->assertStore($actor, $storeId, 'settings.manage', 'b2b');
         $enabled = (bool) $data['enabled'];
+
+        // Server-side Test uses the same authorized Wholesale store scope,
+        // without saving settings or claiming pricing/credit/margin certification.
+        if (($data['setup_action'] ?? 'save') === 'test') {
+            $hasActiveRules = DB::table('b2b_price_rules')
+                ->where('store_id', $storeId)
+                ->where('is_active', true)
+                ->exists();
+
+            return back()->with('status', __(
+                ! $enabled ? 'b2b_pricing_setup.test_base'
+                    : ($hasActiveRules ? 'b2b_pricing_setup.test_partial' : 'b2b_pricing_setup.test_missing')
+            ));
+        }
 
         DB::table('settings')->updateOrInsert(
             ['store_id' => $storeId, 'key' => B2bPricingMode::SETTING_KEY],
@@ -850,9 +892,17 @@ class B2bWorkspaceController extends Controller
         $actor = $this->actor($request);
         $data = $request->validate([
             'minimum_order_egp' => ['required', 'numeric', 'min:0', 'max:99999999.99', 'decimal:0,2'],
+            'setup_action' => ['sometimes', 'in:save,test'],
         ]);
         $storeId = $this->principal->storeId();
         $this->operationalScope->assertStore($actor, $storeId, 'settings.manage', 'b2b');
+
+        // Precheck is scoped and read-only. A candidate value is not a published policy.
+        if (($data['setup_action'] ?? 'save') === 'test') {
+            return back()->with('status', __('b2b_minimum_order_setup.test_valid', [
+                'amount' => number_format((float) $data['minimum_order_egp'], 2, '.', ''),
+            ]));
+        }
 
         $previous = $minimumOrders->minimumForStore($storeId);
         $minimum = round((float) $data['minimum_order_egp'], 2);
@@ -1209,6 +1259,10 @@ class B2bWorkspaceController extends Controller
                 ])->all(),
             'actions' => $actions,
             'pricing_tiers_enabled' => $this->pricingMode->tiersEnabled($this->principal->storeId()),
+            'pricing_active_rule_count' => DB::table('b2b_price_rules')
+                ->where('store_id', $this->principal->storeId())
+                ->where('is_active', true)
+                ->count(),
         ];
     }
 

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "areas": {
     "backend": {
-      "path_regex": "^(backend/|docs/api/openapi\\.yaml$|\\.github/workflows/backend-ci\\.yml$|docs/v2/qa/(3960-erp-center-horizontal-tabs|4000-archived-active-role-authority|2732-wholesale-financial-parity|2845-erp-entitlement-maker-checker-boundaries|4007-treasury-page-tab-rail|3951-enterprise-bi-page-tabs-authority)\\.md$)"
+      "path_regex": "^(backend/|docs/api/openapi\\.yaml$|\\.github/workflows/backend-ci\\.yml$|docs/v2/qa/(3960-erp-center-horizontal-tabs|4000-archived-active-role-authority|2732-wholesale-financial-parity|2845-erp-entitlement-maker-checker-boundaries|4007-treasury-page-tab-rail|3951-enterprise-bi-page-tabs-authority|2706-pricing-mode-settings-readiness)\\.md$)"
     },
     "customer": {
       "path_regex": "^(apps/customer_app/|packages/(design_tokens|foodex_visualization|foodex_formatting)/|scripts/(package-mobile-artifact|verify-mobile-runtime-endpoint|mobile-ci-scope)\\.py$|scripts/tests/test_(mobile_artifact|mobile_runtime_endpoint)\\.py$|\\.github/workflows/(customer-app-ci|mobile-build-validation|mobile-release-build|release-factory)\\.yml$|docs/v2/qa/2732-wholesale-financial-parity\\.md$)"

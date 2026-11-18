@@ -1302,7 +1302,7 @@ class OrderOperationsIsolationTest extends TestCase
         $this->assertArrayHasKey('state_version', $driverData);
     }
 
-    public function test_retail_admin_cannot_operate_foreign_order_but_can_cancel_own_new_order(): void
+    public function test_retail_admin_cannot_operate_foreign_order_but_can_transition_own_order(): void
     {
         $mine = $this->store('OPS-ACTION-MINE');
         $foreign = $this->store('OPS-ACTION-FOREIGN');
@@ -1318,7 +1318,15 @@ class OrderOperationsIsolationTest extends TestCase
             ->post("/admin/operations/orders/{$foreignOrder}/status", ['status' => 'cancelled'])
             ->assertNotFound();
 
-        $this->assertDatabaseHas('orders', ['id' => $foreignOrder, 'status' => 'pending']);
+        $this->assertDatabaseHas('orders', [
+            'id' => $foreignOrder,
+            'store_id' => $foreign,
+            'channel' => 'b2c',
+            'status' => 'pending',
+        ]);
+        $this->assertDatabaseMissing('order_status_history', [
+            'order_id' => $foreignOrder,
+        ]);
 
         $this->actingAs($admin)
             ->post("/admin/operations/orders/{$mineOrder}/status", [
@@ -1327,7 +1335,12 @@ class OrderOperationsIsolationTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas('orders', ['id' => $mineOrder, 'status' => 'cancelled']);
+        $this->assertDatabaseHas('orders', [
+            'id' => $mineOrder,
+            'store_id' => $mine,
+            'channel' => 'b2c',
+            'status' => 'cancelled',
+        ]);
         $this->assertDatabaseHas('order_status_history', [
             'order_id' => $mineOrder,
             'from_status' => 'pending',

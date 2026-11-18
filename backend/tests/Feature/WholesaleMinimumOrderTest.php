@@ -90,6 +90,67 @@ class WholesaleMinimumOrderTest extends TestCase
         $this->assertSame(1500.0, app(MinimumOrderPolicy::class)->minimumForStore($storeId));
     }
 
+    public function test_minimum_setup_guidance_and_no_write_test_preserve_existing_policy(): void
+    {
+        $storeId = app(WholesalePrincipal::class)->storeId();
+        $admin = $this->roleUser('B2B_ADMIN');
+
+        foreach (['ar', 'en'] as $locale) {
+            $admin->update(['locale' => $locale]);
+            $this->actingAs($admin)->get(route('admin.b2b.module', ['module' => 'storefront']))
+                ->assertOk()
+                ->assertSee('data-v2-minimum-order-readiness', false)
+                ->assertSee('data-v2-minimum-order-test', false)
+                ->assertSee(__('b2b_minimum_order_setup.source'))
+                ->assertSee(__('b2b_minimum_order_setup.example'))
+                ->assertSee(__('b2b_minimum_order_setup.default'))
+                ->assertSee(__('b2b_minimum_order_setup.permission'))
+                ->assertSee($locale === 'ar' ? 'dir="rtl"' : 'dir="ltr"', false);
+        }
+
+        $this->actingAs($admin)->put(route('admin.b2b.storefront.minimum-order'), [
+            'minimum_order_egp' => '1750.25',
+            'setup_action' => 'test',
+        ])->assertRedirect()->assertSessionHasNoErrors()
+            ->assertSessionHas('status', __('b2b_minimum_order_setup.test_valid', ['amount' => '1750.25']));
+
+        $this->assertDatabaseMissing('settings', [
+            'store_id' => $storeId,
+            'key' => MinimumOrderPolicy::WHOLESALE_SETTING_KEY,
+        ]);
+        $this->assertDatabaseMissing('audit_logs', ['event' => 'b2b.checkout.minimum_order.updated']);
+        $this->assertSame(1500.0, app(MinimumOrderPolicy::class)->minimumForStore($storeId));
+
+        $this->actingAs($admin)->put(route('admin.b2b.storefront.minimum-order'), [
+            'minimum_order_egp' => '1750.25',
+            'setup_action' => 'save',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame(1750.25, app(MinimumOrderPolicy::class)->minimumForStore($storeId));
+    }
+
+    public function test_minimum_setup_rejects_invalid_action_and_retail_readonly_test(): void
+    {
+        $admin = $this->roleUser('B2B_ADMIN');
+        $this->actingAs($admin)->put(route('admin.b2b.storefront.minimum-order'), [
+            'minimum_order_egp' => '1000',
+            'setup_action' => 'preview-and-save',
+        ])->assertSessionHasErrors('setup_action');
+
+        $this->actingAs($admin)->put(route('admin.b2b.storefront.minimum-order'), [
+            'minimum_order_egp' => '1.234',
+            'setup_action' => 'test',
+        ])->assertSessionHasErrors('minimum_order_egp');
+
+        $retail = $this->roleUser('B2C_STORE_ADMIN');
+        $this->actingAs($retail)->put(route('admin.b2b.storefront.minimum-order'), [
+            'minimum_order_egp' => '1000',
+            'setup_action' => 'test',
+        ])->assertForbidden();
+
+        $this->assertSame(1500.0, app(MinimumOrderPolicy::class)->minimumForStore(app(WholesalePrincipal::class)->storeId()));
+        $this->assertDatabaseMissing('audit_logs', ['event' => 'b2b.checkout.minimum_order.updated']);
+    }
+
     public function test_customer_cart_and_checkout_options_expose_same_minimum(): void
     {
         $cart = file_get_contents(app_path('Http/Controllers/Api/V1/GuestCartController.php'));

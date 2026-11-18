@@ -59,6 +59,88 @@ class B2bPricingController extends Controller
 
     public function upsert(Request $request): JsonResponse
     {
+        [$data, $replaceBreaks, $breaks] = $this->validatedRuleInput($request);
+
+        $rule = DB::transaction(function () use ($data, $request, $replaceBreaks, $breaks): B2bPriceRule {
+            // A legacy caller may omit the schedule but must not silently
+            // invalidate its saved breaks by changing base price, MOQ or increment.
+            // Lock before checking so a concurrent editor cannot change the
+            // schedule between validation and the audited write.
+            $current = B2bPriceRule::query()
+                ->where('price_tier_id', $data['price_tier_id'])
+                ->where('store_id', $data['store_id'])
+                ->where('product_id', $data['product_id'])
+                ->lockForUpdate()
+                ->first();
+            if (! $replaceBreaks && $current instanceof B2bPriceRule) {
+                QuantityPriceBreaks::normalize(
+                    QuantityPriceBreaks::readBreaks($current->quantity_price_breaks),
+                    (float) $data['minimum_quantity'],
+                    (float) ($data['ordering_increment'] ?? 1),
+                    (float) $data['unit_price'],
+                );
+            }
+
+            $rule = B2bPriceRule::query()->updateOrCreate(
+                ['price_tier_id' => $data['price_tier_id'], 'store_id' => $data['store_id'], 'product_id' => $data['product_id']],
+                [
+                    'unit_price' => $data['unit_price'],
+                    'minimum_quantity' => $data['minimum_quantity'],
+                    'ordering_increment' => $data['ordering_increment'] ?? 1,
+                    'pack_size' => $data['pack_size'] ?? 1,
+                    'case_size' => $data['case_size'] ?? null,
+                    'pack_label' => $data['pack_label'] ?? null,
+                    'retail_reference_price' => $data['retail_reference_price'] ?? null,
+                    'is_active' => $data['is_active'] ?? true,
+                ],
+            );
+            if ($replaceBreaks) {
+                $rule->quantity_price_breaks = $breaks;
+                $rule->save();
+            }
+            app(AuditLogger::class)->record('b2b.price_rule.saved', $request->user(), $rule, null, $rule->toArray(), $request);
+
+            return $rule;
+        });
+
+        return response()->json(['data' => $rule], $rule->wasRecentlyCreated ? 201 : 200);
+    }
+
+    /**
+     * Read-only precheck for the existing Wholesale price-rule form. Uses the
+     * exact authorization, tenant/product checks and quantity normalization
+     * used for Save; never writes price rules, settings or audit events.
+     */
+    public function validateCandidate(Request $request): void
+    {
+        [$data, $replaceBreaks] = $this->validatedRuleInput($request);
+
+        // Save also checks persisted breaks when the operator leaves them
+        // unchanged. Mirror that check without locking or writing a record;
+        // Save still performs the authoritative locked recheck to avoid races.
+        if (! $replaceBreaks) {
+            $existing = B2bPriceRule::query()
+                ->where('price_tier_id', $data['price_tier_id'])
+                ->where('store_id', $data['store_id'])
+                ->where('product_id', $data['product_id'])
+                ->first();
+
+            if ($existing instanceof B2bPriceRule) {
+                QuantityPriceBreaks::normalize(
+                    QuantityPriceBreaks::readBreaks($existing->quantity_price_breaks),
+                    (float) $data['minimum_quantity'],
+                    (float) ($data['ordering_increment'] ?? 1),
+                    (float) $data['unit_price'],
+                );
+            }
+        }
+    }
+
+    /**
+     * @return array{0: array<string, mixed>, 1: bool, 2: ?array}
+     */
+    private function validatedRuleInput(Request $request): array
+    {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
         Gate::authorize('b2b.pricing.manage');
@@ -111,49 +193,7 @@ class B2bPricingController extends Controller
             )
             : null;
 
-        $rule = DB::transaction(function () use ($data, $request, $replaceBreaks, $breaks): B2bPriceRule {
-            // A legacy caller may omit the schedule but must not silently
-            // invalidate its saved breaks by changing base price, MOQ or increment.
-            // Lock before checking so a concurrent editor cannot change the
-            // schedule between validation and the audited write.
-            $current = B2bPriceRule::query()
-                ->where('price_tier_id', $data['price_tier_id'])
-                ->where('store_id', $data['store_id'])
-                ->where('product_id', $data['product_id'])
-                ->lockForUpdate()
-                ->first();
-            if (! $replaceBreaks && $current instanceof B2bPriceRule) {
-                QuantityPriceBreaks::normalize(
-                    QuantityPriceBreaks::readBreaks($current->quantity_price_breaks),
-                    (float) $data['minimum_quantity'],
-                    (float) ($data['ordering_increment'] ?? 1),
-                    (float) $data['unit_price'],
-                );
-            }
-
-            $rule = B2bPriceRule::query()->updateOrCreate(
-                ['price_tier_id' => $data['price_tier_id'], 'store_id' => $data['store_id'], 'product_id' => $data['product_id']],
-                [
-                    'unit_price' => $data['unit_price'],
-                    'minimum_quantity' => $data['minimum_quantity'],
-                    'ordering_increment' => $data['ordering_increment'] ?? 1,
-                    'pack_size' => $data['pack_size'] ?? 1,
-                    'case_size' => $data['case_size'] ?? null,
-                    'pack_label' => $data['pack_label'] ?? null,
-                    'retail_reference_price' => $data['retail_reference_price'] ?? null,
-                    'is_active' => $data['is_active'] ?? true,
-                ],
-            );
-            if ($replaceBreaks) {
-                $rule->quantity_price_breaks = $breaks;
-                $rule->save();
-            }
-            app(AuditLogger::class)->record('b2b.price_rule.saved', $request->user(), $rule, null, $rule->toArray(), $request);
-
-            return $rule;
-        });
-
-        return response()->json(['data' => $rule], $rule->wasRecentlyCreated ? 201 : 200);
+        return [$data, $replaceBreaks, $breaks];
     }
 
     public function product(Request $request, int $product): JsonResponse
