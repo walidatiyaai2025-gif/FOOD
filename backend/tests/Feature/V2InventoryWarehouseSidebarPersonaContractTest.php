@@ -12,6 +12,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -26,6 +27,8 @@ final class V2InventoryWarehouseSidebarPersonaContractTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Test-only ERP workflow evidence; never a live certificate.
+        SyntheticErpWorkflowEvidence::install();
 
         config()->set('security.mfa.enforce_privileged', false);
         $this->seed(CoreReferenceSeeder::class);

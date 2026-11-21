@@ -19,6 +19,7 @@ use App\Support\TenantContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -32,6 +33,8 @@ final class V2BankReconciliationSidebarContractTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Synthetic workflow proof is scoped to positive test fixtures only.
+        SyntheticErpWorkflowEvidence::install();
         $this->seed(CoreReferenceSeeder::class);
 
         // Test-only version certification; never a production readiness grant.

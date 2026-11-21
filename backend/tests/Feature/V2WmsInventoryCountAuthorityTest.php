@@ -15,6 +15,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 final class V2WmsInventoryCountAuthorityTest extends TestCase
@@ -25,6 +26,8 @@ final class V2WmsInventoryCountAuthorityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Test-only simulation; never a production ERP certification.
+        SyntheticErpWorkflowEvidence::install();
         $this->seed(CoreReferenceSeeder::class);
 
         // Test-only certification of the exact WMS module under examination.

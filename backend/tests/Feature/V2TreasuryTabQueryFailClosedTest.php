@@ -17,6 +17,7 @@ use App\Support\TenantContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 final class V2TreasuryTabQueryFailClosedTest extends TestCase
@@ -26,6 +27,8 @@ final class V2TreasuryTabQueryFailClosedTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Signed synthetic workflow proof is scoped to test fixtures, not ERP runtime certification.
+        SyntheticErpWorkflowEvidence::install();
         $this->seed(CoreReferenceSeeder::class);
         config()->set('security.mfa.enforce_privileged', false);
         // Test-only version approval; never alter real ERP readiness.

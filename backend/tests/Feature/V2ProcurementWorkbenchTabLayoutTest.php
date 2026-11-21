@@ -12,6 +12,7 @@ use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 final class V2ProcurementWorkbenchTabLayoutTest extends TestCase
@@ -32,6 +33,7 @@ final class V2ProcurementWorkbenchTabLayoutTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        SyntheticErpWorkflowEvidence::install();
         config()->set('security.mfa.enforce_privileged', false);
         config()->set(
             'enterprise_module_readiness.certified_versions.procurement',

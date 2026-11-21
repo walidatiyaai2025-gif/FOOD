@@ -20,6 +20,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -33,6 +34,8 @@ final class V2FoodexAccountCrossDomainSoDAuditTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Test-only ERP workflow evidence; never a live certificate.
+        SyntheticErpWorkflowEvidence::install();
 
         config()->set('security.mfa.enforce_privileged', false);
         $this->seed(CoreReferenceSeeder::class);

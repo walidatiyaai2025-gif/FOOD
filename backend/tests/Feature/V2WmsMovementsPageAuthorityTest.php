@@ -15,6 +15,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 final class V2WmsMovementsPageAuthorityTest extends TestCase
@@ -25,6 +26,8 @@ final class V2WmsMovementsPageAuthorityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Test-only simulation; production workflow certification remains fail-closed.
+        SyntheticErpWorkflowEvidence::install();
         $this->seed(CoreReferenceSeeder::class);
         config()->set(
             'enterprise_module_readiness.certified_versions.inventory_wms',

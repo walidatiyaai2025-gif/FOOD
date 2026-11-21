@@ -17,6 +17,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -30,6 +31,8 @@ final class V2PurchaseOrdersTabAuthorityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Test-only simulation; production workflow certification remains fail-closed.
+        SyntheticErpWorkflowEvidence::install();
 
         config()->set('security.mfa.enforce_privileged', false);
         config()->set('enterprise_module_readiness.certified_versions', []);
@@ -187,13 +190,35 @@ final class V2PurchaseOrdersTabAuthorityTest extends TestCase
 
         $this->actingAs($buyer)->post(route('admin.erp.procurement.orders.create', $requestId), [
             'store_id' => $own->id,
+            // These must never be copied from a client-controlled body.
+            'supplier_id' => $supplierId + 99999,
+            'currency_code' => 'USD',
+            'order_number' => 'PO-FORGED-CLIENT-NUMBER',
+            'created_by' => $checker->id,
+            'issued_by' => $buyer->id,
+            'procurement_contract_id' => 99999,
+            'discount_percent' => 99,
+            'lines' => [['quantity' => -99, 'unit_price' => -999, 'discount_percent' => 99]],
         ])->assertRedirect();
         $orderId = (int) DB::table('enterprise_purchase_orders')
             ->where('purchase_request_id', $requestId)->value('id');
         $this->assertGreaterThan(0, $orderId);
         $this->assertDatabaseHas('enterprise_purchase_orders', [
-            'id' => $orderId, 'status' => 'draft', 'store_id' => $own->id,
+            'id' => $orderId,
+            'status' => 'draft',
+            'store_id' => $own->id,
+            'supplier_id' => $supplierId,
+            'currency_code' => 'KWD',
+            'created_by' => $buyer->id,
+            'procurement_contract_id' => null,
+            'issued_by' => null,
         ]);
+        $this->assertNotSame('PO-FORGED-CLIENT-NUMBER', DB::table('enterprise_purchase_orders')
+            ->where('id', $orderId)->value('order_number'));
+        $draftLine = DB::table('enterprise_purchase_order_lines')->where('purchase_order_id', $orderId)->first();
+        $this->assertNotNull($draftLine);
+        $this->assertSame(3.0, (float) $draftLine->quantity);
+        $this->assertSame(5.25, (float) $draftLine->unit_price);
 
         $this->actingAs($buyer)->get(route('admin.erp.procurement.index', [
             'tab' => 'orders', 'store_id' => $own->id, 'order' => $orderId,
@@ -214,8 +239,16 @@ final class V2PurchaseOrdersTabAuthorityTest extends TestCase
 
         $this->actingAs($checker)->post(route('admin.erp.procurement.orders.issue', $orderId), [
             'store_id' => $own->id,
+            'status' => 'cancelled',
+            'issued_by' => $buyer->id,
+            'order_number' => 'PO-FORGED-ISSUE',
+            'unit_price' => -99,
         ])->assertRedirect();
-        $this->assertDatabaseHas('enterprise_purchase_orders', ['id' => $orderId, 'status' => 'issued']);
+        $this->assertDatabaseHas('enterprise_purchase_orders', [
+            'id' => $orderId, 'status' => 'issued', 'issued_by' => $checker->id,
+        ]);
+        $this->assertNotSame('PO-FORGED-ISSUE', DB::table('enterprise_purchase_orders')
+            ->where('id', $orderId)->value('order_number'));
 
         $this->actingAs($buyer)->post(route('admin.erp.procurement.orders.cancel', $orderId), [
             'store_id' => $own->id,

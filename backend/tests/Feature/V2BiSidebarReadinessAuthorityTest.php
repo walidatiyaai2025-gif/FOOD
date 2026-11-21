@@ -16,6 +16,7 @@ use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -29,6 +30,8 @@ final class V2BiSidebarReadinessAuthorityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Test-only simulation; never a production ERP certification.
+        SyntheticErpWorkflowEvidence::install();
 
         config()->set('security.mfa.enforce_privileged', false);
         $this->seed(CoreReferenceSeeder::class);
@@ -67,13 +70,26 @@ final class V2BiSidebarReadinessAuthorityTest extends TestCase
         }
     }
 
-    public function test_foreign_store_entitlement_cannot_unlock_bi_or_become_a_sidebar_grant(): void
+    public function test_foreign_store_entitlement_cannot_override_explicit_store_deny_or_become_a_sidebar_grant(): void
     {
         $this->enableBi();
         $assigned = $this->store('V2-P312-MY-STORE');
         $foreign = $this->store('V2-P312-FOREIGN');
         $actor = $this->analyst($assigned);
 
+        // The global Wholesale reporting role can reach B2B stores, but an
+        // explicit user-level foreign-store DENY still takes precedence over
+        // that role and the other store's module entitlement.
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $actor->id,
+            'permission_id' => Permission::query()->where('code', 'reports.view')->firstOrFail()->id,
+            'scope_key' => 'store:'.$foreign->id,
+            'store_id' => $foreign->id,
+            'effect' => 'deny',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $actor->forceFill(['has_permission_overrides' => true])->save();
         app(ModuleEntitlementManager::class)->set(
             'enterprise_bi',
             new EntitlementScope(EntitlementScope::STORE, $foreign->id),
@@ -91,7 +107,8 @@ final class V2BiSidebarReadinessAuthorityTest extends TestCase
                 ->assertForbidden();
         }
 
-        // Adding one legitimate assignment makes only that store eligible.
+        // An independently entitled and permitted Wholesale store restores
+        // access without revoking or weakening the foreign-store DENY.
         app(ModuleEntitlementManager::class)->set(
             'enterprise_bi',
             new EntitlementScope(EntitlementScope::STORE, $assigned->id),
@@ -100,6 +117,81 @@ final class V2BiSidebarReadinessAuthorityTest extends TestCase
         app()->forgetInstance(AdminNavigation::class);
         $this->assertNotNull($this->biNavItem($actor->fresh()));
         $this->actingAs($actor->fresh())->get(route('admin.erp.bi'))->assertOk();
+        $this->actingAs($actor->fresh())
+            ->get(route('admin.erp.bi', ['scope' => 'store:'.$foreign->id, 'run' => 1]))
+            ->assertForbidden();
+    }
+
+    public function test_retail_bi_http_and_sidebar_revoke_access_when_assigned_store_permission_is_denied(): void
+    {
+        $this->enableBi();
+
+        $store = Store::query()->create([
+            'store_type_id' => (int) DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'code' => 'V2-P312-RETAIL-DENY',
+            'name' => 'V2 P312 Retail BI',
+            'is_active' => true,
+        ]);
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
+
+        // Keep the global reporting role and the exact Retail module grant
+        // alive. Only the store-specific reporting permission is withdrawn.
+        $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $actor->roles()->attach(Role::query()->where('code', 'EXECUTIVE_VIEWER')->firstOrFail());
+        $retailRole = Role::query()
+            ->where('code', 'B2C_STORE_ADMIN')
+            ->where('scope', 'store')
+            ->firstOrFail();
+        $reportsPermission = Permission::query()->where('code', 'reports.view')->firstOrFail();
+        $retailRole->permissions()->syncWithoutDetaching([$reportsPermission->id]);
+
+        DB::table('user_store_roles')->insert([
+            'user_id' => $actor->id,
+            'role_id' => $retailRole->id,
+            'store_id' => $store->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        app(ModuleEntitlementManager::class)->set(
+            'enterprise_bi',
+            new EntitlementScope(EntitlementScope::STORE, $store->id),
+            true,
+        );
+
+        app()->forgetInstance(AdminNavigation::class);
+        $this->assertNotNull($this->biNavItem($actor->fresh()));
+        $this->actingAs($actor->fresh())->get(route('admin.erp.bi'))->assertOk();
+
+        DB::table('user_permission_overrides')->insert([
+            'user_id' => $actor->id,
+            'permission_id' => $reportsPermission->id,
+            'scope_key' => 'store:'.$store->id,
+            'store_id' => $store->id,
+            'effect' => 'deny',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $actor->forceFill(['has_permission_overrides' => true])->save();
+
+        foreach (['ar', 'en'] as $locale) {
+            app()->setLocale($locale);
+            $actor->forceFill(['locale' => $locale])->save();
+            app()->forgetInstance(AdminNavigation::class);
+
+            // Neither navigation nor a forged direct GET can use the
+            // outstanding entitlement after the user-level DENY.
+            $this->assertNull($this->biNavItem($actor->fresh()));
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.erp.bi', [
+                    'bi_tab' => 'reports',
+                    'scope' => 'store:'.$store->id,
+                    'run' => 1,
+                ]))
+                ->assertForbidden();
+            $this->actingAs($actor->fresh())
+                ->get(route('admin.erp.bi'))
+                ->assertForbidden();
+        }
     }
 
     public function test_ready_module_without_entitlement_is_denied_even_for_a_privileged_role(): void
@@ -200,7 +292,7 @@ final class V2BiSidebarReadinessAuthorityTest extends TestCase
     private function store(string $code): Store
     {
         $store = Store::query()->create([
-            'store_type_id' => (int) DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'store_type_id' => (int) DB::table('store_types')->where('code', 'B2B')->value('id'),
             'code' => $code,
             'name' => $code,
             'is_active' => true,
@@ -213,14 +305,7 @@ final class V2BiSidebarReadinessAuthorityTest extends TestCase
     private function analyst(Store $store): User
     {
         $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
-        $actor->roles()->attach(Role::query()->where('code', 'BUSINESS_ANALYST')->firstOrFail());
-        DB::table('user_store_roles')->insert([
-            'user_id' => $actor->id,
-            'store_id' => $store->id,
-            'role_id' => Role::query()->where('code', 'RETAIL_OPERATIONS')->firstOrFail()->id,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $actor->roles()->attach(Role::query()->where('code', 'EXECUTIVE_VIEWER')->firstOrFail());
 
         return $actor->fresh();
     }

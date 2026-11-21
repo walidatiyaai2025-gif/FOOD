@@ -19,6 +19,7 @@ use App\Support\TenantContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -32,6 +33,8 @@ final class V2FinanceEntitlementParityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Test-only simulation; never a production ERP certification.
+        SyntheticErpWorkflowEvidence::install();
         config()->set('security.mfa.enforce_privileged', false);
         $this->seed(CoreReferenceSeeder::class);
         config()->set(

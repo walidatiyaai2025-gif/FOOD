@@ -20,6 +20,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -33,6 +34,8 @@ final class V2SupplierSettlementsGroupNavigationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Test-only simulation; production workflow certification remains fail-closed.
+        SyntheticErpWorkflowEvidence::install();
 
         config()->set('security.mfa.enforce_privileged', false);
         $this->seed(CoreReferenceSeeder::class);

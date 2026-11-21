@@ -30,14 +30,22 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Support\ProcurementSecondApprover;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 final class EnterpriseProcurementCompletionTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        SyntheticErpWorkflowEvidence::install();
+    }
 
     public function test_scoped_rfq_search_preserves_literal_prefix_and_title_punctuation_without_mutation(): void
     {
@@ -540,6 +548,241 @@ final class EnterpriseProcurementCompletionTest extends TestCase
             'scope_id' => $store->id,
             'enabled' => true,
         ]);
+    }
+
+    public function test_procurement_reports_require_exact_source_document_permission_without_leaking_other_modules(): void
+    {
+        $this->enableProcurement();
+        [$statementsActor, , $statementContext] = $this->scopedUser(
+            ['procurement.supplier_statements.view', 'reports.export'],
+            'P135-REPORT-STATEMENT-ONLY',
+        );
+        $completion = app(ProcurementCompletionManager::class);
+        $sourcePermissions = [
+            'open_orders' => 'procurement.purchase_orders.view',
+            'supplier_performance' => 'procurement.purchase_orders.view',
+            'contract_expiry' => 'procurement.purchase_orders.view',
+            'spend' => 'procurement.purchase_invoices.view',
+            'match_exceptions' => 'procurement.purchase_invoices.view',
+            'savings' => 'procurement.purchase_requests.view',
+        ];
+
+        foreach (array_keys($sourcePermissions) as $report) {
+            try {
+                $completion->report($statementsActor, $statementContext, $report);
+                $this->fail('Statement read/export must never reveal '.$report.' without its document permission.');
+            } catch (HttpException $exception) {
+                $this->assertSame(403, $exception->getStatusCode());
+            }
+        }
+
+        [$ordersActor, , $ordersContext] = $this->scopedUser(
+            ['procurement.supplier_statements.view', 'procurement.purchase_orders.view'],
+            'P135-REPORT-ORDERS-ONLY',
+        );
+        foreach (['open_orders', 'supplier_performance', 'contract_expiry'] as $report) {
+            $result = $completion->report($ordersActor, $ordersContext, $report);
+            $this->assertArrayHasKey('columns', $result);
+            $this->assertSame([], $result['rows']);
+        }
+        foreach (['spend', 'match_exceptions', 'savings'] as $report) {
+            try {
+                $completion->report($ordersActor, $ordersContext, $report);
+                $this->fail('Purchase order access is not blanket invoice/RFQ report authority: '.$report);
+            } catch (HttpException $exception) {
+                $this->assertSame(403, $exception->getStatusCode());
+            }
+        }
+
+        [$invoicesActor, , $invoicesContext] = $this->scopedUser(
+            ['procurement.supplier_statements.view', 'procurement.purchase_invoices.view'],
+            'P135-REPORT-INVOICES-ONLY',
+        );
+        foreach (['spend', 'match_exceptions'] as $report) {
+            $this->assertSame([], $completion->report($invoicesActor, $invoicesContext, $report)['rows']);
+        }
+        foreach (['open_orders', 'savings'] as $report) {
+            try {
+                $completion->report($invoicesActor, $invoicesContext, $report);
+                $this->fail('Invoice viewer must not see order/RFQ report: '.$report);
+            } catch (HttpException $exception) {
+                $this->assertSame(403, $exception->getStatusCode());
+            }
+        }
+
+        [$requestActor, , $requestContext] = $this->scopedUser(
+            ['procurement.supplier_statements.view', 'procurement.purchase_requests.view'],
+            'P135-REPORT-RFQ-ONLY',
+        );
+        $this->assertSame([], $completion->report($requestActor, $requestContext, 'savings')['rows']);
+
+        [$noStatementActor, , $noStatementContext] = $this->scopedUser(
+            ['procurement.purchase_orders.view', 'reports.export'],
+            'P135-REPORT-NO-ENTRY',
+        );
+        try {
+            $completion->report($noStatementActor, $noStatementContext, 'open_orders');
+            $this->fail('Report document permission without the canonical Reports entry is insufficient.');
+        } catch (HttpException $exception) {
+            $this->assertSame(403, $exception->getStatusCode());
+        }
+
+        $this->assertSame(0, DB::table('enterprise_purchase_orders')->count());
+        $this->assertSame(0, DB::table('enterprise_purchase_invoices')->count());
+    }
+
+    public function test_procurement_report_and_bi_bridge_ignore_foreign_company_rows_with_same_store_id(): void
+    {
+        $this->enableProcurement();
+        [$actor, $store, $context] = $this->scopedUser(
+            $this->allPermissions(),
+            'P135-REPORT-COMPANY-A',
+        );
+        $supplier = app(SupplierDirectory::class)->create($actor, $context, [
+            'scope_type' => 'store',
+            'code' => 'P135-REPORT-ONLY-A',
+            'name_en' => 'Scoped supplier',
+        ]);
+        $visible = $this->approvedOrder($actor, $context, $supplier->id, 2, 1.250);
+        $foreignCompanyRow = $this->approvedOrder($actor, $context, $supplier->id, 3, 9.000);
+
+        // A legacy/imported row may reference a valid store FK yet belong to
+        // another legal company. A store-only aggregate must not count it.
+        $foreignCompanyId = DB::table('enterprise_companies')->insertGetId([
+            'organization_id' => $context->enterpriseScope->organizationId,
+            'code' => 'p135_report_foreign_company',
+            'name' => 'Unrelated Company',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('enterprise_purchase_orders')
+            ->where('id', $foreignCompanyRow->id)
+            ->update(['company_id' => $foreignCompanyId]);
+
+        $manager = app(ProcurementCompletionManager::class);
+        $report = $manager->report($actor, $context, 'open_orders');
+        $this->assertSame([$visible->order_number], array_column($report['rows'], 'order_number'));
+        $this->assertSame('2.500', $report['rows'][0]['order_value']);
+
+        // The trusted BI bridge inherits the store's authoritative company
+        // hierarchy even when a BI export is paged or invoked independently.
+        $bridge = $manager->reportForStore('open_orders', $store->id, [], 25);
+        $this->assertSame([$visible->order_number], array_column($bridge['rows'], 'order_number'));
+        $this->assertSame('2.500', $bridge['rows'][0]['order_value']);
+
+        // Dashboard KPI and status chart must inherit the same company/org
+        // boundary. A row with an authorized store ID but foreign company ID
+        // must not inflate even a read-only aggregate.
+        $dashboard = $manager->dashboard($actor, $context);
+        $openOrderMetric = collect($dashboard['kpis'])->firstWhere('key', 'open_orders');
+        $this->assertNotNull($openOrderMetric);
+        $this->assertSame(1, $openOrderMetric['value']);
+        $statusChart = collect($dashboard['charts']['po_status'])->keyBy('label');
+        $this->assertSame(1, $statusChart['draft']['value']);
+
+        [$otherActor, , $otherContext] = $this->scopedUser(
+            $this->allPermissions(),
+            'P135-REPORT-COMPANY-B',
+        );
+        $this->assertSame([], $manager->report($otherActor, $otherContext, 'open_orders')['rows']);
+
+        try {
+            $manager->reportForStore(
+                'open_orders', $store->id, [], 25, 0, $otherContext->enterpriseScope,
+            );
+            $this->fail('A caller cannot substitute a foreign tenant scope into a BI report.');
+        } catch (HttpException $exception) {
+            $this->assertSame(403, $exception->getStatusCode());
+        }
+
+        $this->assertSame(2, DB::table('enterprise_purchase_orders')->count());
+        $this->assertSame(0, DB::table('enterprise_purchase_invoices')->count());
+    }
+
+    public function test_ordered_not_received_kpi_counts_partial_posted_grns_without_multiplying_po_lines(): void
+    {
+        $this->enableProcurement();
+        [$actor, $store, $context] = $this->scopedUser(
+            $this->allPermissions(), 'P135-PARTIAL-REPORT',
+        );
+        $supplier = app(SupplierDirectory::class)->create($actor, $context, [
+            'scope_type' => 'store',
+            'code' => 'P135-PARTIAL-SUP',
+            'name_en' => 'Partial delivery supplier',
+        ]);
+        $order = $this->approvedOrder($actor, $context, $supplier->id, 5, 1.250);
+        $orderLine = $order->lines()->firstOrFail();
+
+        // Report-specific SQL fixture: status and GRN rows are deterministic.
+        // This tests aggregation only; it is not evidence of physical posting.
+        DB::table('enterprise_purchase_orders')->where('id', $order->id)->update([
+            'status' => 'issued',
+            'issued_by' => $actor->id,
+            'issued_at' => now(),
+        ]);
+        $warehouseId = DB::table('warehouses')->insertGetId([
+            'store_id' => $store->id,
+            'code' => 'P135-PARTIAL-WH',
+            'name' => 'Partial Receiving',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $scope = $context->enterpriseScope;
+        $addReceipt = function (string $number, string $status, string $received) use (
+            $actor, $scope, $store, $order, $orderLine, $warehouseId
+        ): void {
+            $receiptId = DB::table('enterprise_goods_receipts')->insertGetId([
+                'public_id' => (string) Str::uuid(),
+                'receipt_number' => $number,
+                'purchase_order_id' => $order->id,
+                'source_order_number' => $order->order_number,
+                'organization_id' => $scope->organizationId,
+                'company_id' => $scope->companyId,
+                'store_id' => $store->id,
+                'supplier_id' => $order->supplier_id,
+                'supplier_code' => $order->supplier_code,
+                'supplier_name_en' => $order->supplier_name_en,
+                'currency_code' => $order->currency_code,
+                'status' => $status,
+                'created_by' => $actor->id,
+                'posted_by' => $status === 'posted' ? $actor->id : null,
+                'posted_at' => $status === 'posted' ? now() : null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            DB::table('enterprise_goods_receipt_lines')->insert([
+                'goods_receipt_id' => $receiptId,
+                'purchase_order_line_id' => $orderLine->id,
+                'line_no' => 1,
+                'item_code' => $orderLine->item_code,
+                'description' => $orderLine->description,
+                'ordered_quantity' => $orderLine->quantity,
+                'received_quantity' => $received,
+                'unit' => $orderLine->unit,
+                'unit_price' => $orderLine->unit_price,
+                'warehouse_id' => $warehouseId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        };
+        $manager = app(ProcurementCompletionManager::class);
+        $outstanding = static function () use ($manager, $actor, $context): int {
+            $dashboard = $manager->dashboard($actor, $context);
+
+            return (int) collect($dashboard['kpis'])
+                ->firstWhere('key', 'ordered_not_received')['value'];
+        };
+
+        $this->assertSame(1, $outstanding());
+        $addReceipt('P135-DRAFT-IGNORED', 'draft', '5.000');
+        $this->assertSame(1, $outstanding());
+        $addReceipt('P135-PARTIAL-2', 'posted', '2.000');
+        $this->assertSame(1, $outstanding());
+        $addReceipt('P135-PARTIAL-3', 'posted', '3.000');
+        $this->assertSame(0, $outstanding());
+        $this->assertSame(0, DB::table('stock_movements')->count());
     }
 
     public function test_completion_migration_is_reversible_without_leaving_parallel_authority(): void

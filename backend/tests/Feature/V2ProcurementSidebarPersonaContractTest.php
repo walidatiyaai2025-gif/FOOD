@@ -16,6 +16,7 @@ use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -94,6 +95,9 @@ final class V2ProcurementSidebarPersonaContractTest extends TestCase
         $this->assertArrayNotHasKey('erp_procurement', $this->navigationItems($actor->fresh()));
 
         config()->set('enterprise_module_readiness.certified_versions.procurement', $version);
+        // Exact manifest version alone is still insufficient after P135.
+        $this->assertArrayNotHasKey('erp_procurement', $this->navigationItems($actor->fresh()));
+        SyntheticErpWorkflowEvidence::install();
         $this->assertTrue($actor->hasPermission('procurement.suppliers.view', $store));
         $this->assertTrue($actor->hasPermission('reports.view', $store));
         $this->assertFalse($actor->hasPermission('inventory.view', $store));
@@ -137,6 +141,8 @@ final class V2ProcurementSidebarPersonaContractTest extends TestCase
             app(ModuleRegistry::class)->manifest('procurement')->version,
         );
 
+        // Positive navigation scenarios need explicit synthetic workflow proof.
+        SyntheticErpWorkflowEvidence::install();
         $this->assertTrue($buyer->hasPermission('procurement.suppliers.view', $store));
         $this->assertTrue($buyer->hasPermission('procurement.purchase_requests.manage', $store));
         $this->assertFalse($buyer->hasPermission('procurement.purchase_requests.approve', $store));
@@ -191,6 +197,8 @@ final class V2ProcurementSidebarPersonaContractTest extends TestCase
             app(ModuleRegistry::class)->manifest('procurement')->version,
         );
 
+        // Keep this evidence test-only; Retail still must not inherit B2B routes.
+        SyntheticErpWorkflowEvidence::install();
         $this->assertArrayHasKey('erp_procurement', $this->navigationItems($manager->fresh()));
         $this->assertArrayNotHasKey('erp_procurement', $this->navigationItems($retail->fresh()));
 

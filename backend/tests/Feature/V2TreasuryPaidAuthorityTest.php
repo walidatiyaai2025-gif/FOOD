@@ -19,6 +19,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -32,6 +33,8 @@ final class V2TreasuryPaidAuthorityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Test-only simulation; production workflow certification remains fail-closed.
+        SyntheticErpWorkflowEvidence::install();
         $this->seed(CoreReferenceSeeder::class);
         config()->set(
             'enterprise_module_readiness.certified_versions.treasury',

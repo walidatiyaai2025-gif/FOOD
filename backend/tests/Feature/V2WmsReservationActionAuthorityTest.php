@@ -13,6 +13,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 final class V2WmsReservationActionAuthorityTest extends TestCase
@@ -23,6 +24,8 @@ final class V2WmsReservationActionAuthorityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Test-only simulation; never a production ERP certification.
+        SyntheticErpWorkflowEvidence::install();
         $this->seed(CoreReferenceSeeder::class);
 
         // Exact WMS module readiness is authorized for this test process only.

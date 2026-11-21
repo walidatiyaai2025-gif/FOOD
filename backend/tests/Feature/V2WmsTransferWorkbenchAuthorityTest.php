@@ -12,6 +12,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -26,6 +27,8 @@ final class V2WmsTransferWorkbenchAuthorityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Synthetic proof is for in-memory fixture readiness only; never production certification.
+        SyntheticErpWorkflowEvidence::install();
         $this->seed(CoreReferenceSeeder::class);
 
         // This is test-only evidence, not a new operational certification.

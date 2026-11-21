@@ -15,6 +15,7 @@ use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -31,6 +32,7 @@ final class V2BiExplicitScopeScheduleAuthorityTest extends TestCase
 
         config()->set('security.mfa.enforce_privileged', false);
         $this->seed(CoreReferenceSeeder::class);
+        SyntheticErpWorkflowEvidence::install();
         config()->set(
             'enterprise_module_readiness.certified_versions.enterprise_bi',
             app(ModuleRegistry::class)->manifest('enterprise_bi')->version,

@@ -240,18 +240,19 @@ final class GoodsReceiptManager
 
         return DB::transaction(function () use ($actor, $scope, $receiptId): EnterpriseGoodsReceipt {
             $receipt = $this->lockVisible($scope, $receiptId);
-            if ($receipt->status === 'posted') {
-                return $receipt->refresh()->load('lines');
+            $alreadyPosted = $receipt->status === 'posted';
+            if (! $alreadyPosted) {
+                $this->requireStatus($receipt, ['draft'], 'posted');
             }
 
-            $this->requireStatus($receipt, ['draft'], 'posted');
-
+            // Even an idempotent retry must verify the locked PO snapshot
+            // before claiming a historically posted receipt is still valid.
             $order = $this->visibleOrderQuery($scope)
                 ->whereKey($receipt->purchase_order_id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($order->status !== 'issued') {
+            if (! $alreadyPosted && $order->status !== 'issued') {
                 throw ValidationException::withMessages([
                     'purchase_order_id' => [
                         sprintf(
@@ -260,6 +261,26 @@ final class GoodsReceiptManager
                         ),
                     ],
                 ]);
+            }
+
+            // The draft GRN originally snapshots the issued PO supplier and
+            // currency. Imported or modified data cannot silently substitute
+            // a different supplier/order or currency at inventory posting.
+            // Both records are locked and store/company-scoped before this
+            // comparison; reject before any inventory or audit writes.
+            if ((int) $receipt->supplier_id !== (int) $order->supplier_id
+                || (string) $receipt->supplier_code !== (string) $order->supplier_code
+                || (string) $receipt->currency_code !== (string) $order->currency_code
+                || (string) $receipt->source_order_number !== (string) $order->order_number) {
+                throw ValidationException::withMessages([
+                    'purchase_order_id' => [
+                        __('enterprise_procurement.errors.receipt_source_invalid'),
+                    ],
+                ]);
+            }
+
+            if ($alreadyPosted) {
+                return $receipt->refresh()->load('lines');
             }
 
             $lines = $receipt->lines()
@@ -282,6 +303,23 @@ final class GoodsReceiptManager
                 if ($orderLine === null) {
                     throw ValidationException::withMessages([
                         'lines' => ['A goods receipt line no longer belongs to its purchase order.'],
+                    ]);
+                }
+
+                // Imported or altered draft lines must remain an exact
+                // snapshot of the issued PO at posting time. A valid PO-line
+                // foreign key alone does not authenticate its item, unit or
+                // immutable source price, and negative/zero receipts must
+                // never reach inventory or the finance/audit handoff.
+                $received = trim((string) $line->received_quantity);
+                if (preg_match('/\A(?:0|[1-9][0-9]{0,10})(?:\.[0-9]{1,3})?\z/D', $received) !== 1
+                    || $this->quantityUnits($received) <= 0
+                    || (string) $line->item_code !== (string) $orderLine->item_code
+                    || (string) $line->unit !== (string) $orderLine->unit
+                    || $this->quantityUnits($line->ordered_quantity) !== $this->quantityUnits($orderLine->quantity)
+                    || $this->quantityUnits($line->unit_price) !== $this->quantityUnits($orderLine->unit_price)) {
+                    throw ValidationException::withMessages([
+                        'lines' => [__('enterprise_procurement.errors.receipt_source_invalid')],
                     ]);
                 }
 
@@ -475,7 +513,9 @@ final class GoodsReceiptManager
             'lines' => ['required', 'array', 'min:1', 'max:100'],
             'lines.*.purchase_order_line_id' => ['required', 'integer', 'min:1', 'distinct'],
             'lines.*.warehouse_id' => ['required', 'integer', 'min:1'],
-            'lines.*.quantity' => ['required', 'numeric', 'gt:0', 'max:999999999'],
+            // The receipt schema and canonical stock ledger use three decimal places.
+            // Reject extra precision before it could silently round into stock.
+            'lines.*.quantity' => ['required', 'numeric', 'gt:0', 'decimal:0,3', 'max:999999999'],
         ])->validate();
     }
 

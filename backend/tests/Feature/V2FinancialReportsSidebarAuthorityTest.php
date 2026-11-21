@@ -20,6 +20,7 @@ use App\Support\TenantContextResolver;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -33,6 +34,8 @@ final class V2FinancialReportsSidebarAuthorityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Test-only simulation; never a production ERP certification.
+        SyntheticErpWorkflowEvidence::install();
 
         $this->seed(CoreReferenceSeeder::class);
         config()->set('security.mfa.enforce_privileged', false);

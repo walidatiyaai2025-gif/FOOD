@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enterprise\Entitlements\EntitlementScope;
+use App\Enterprise\Entitlements\ModuleEntitlementResolver;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Procurement\GoodsReceiptManager;
 use App\Enterprise\Procurement\ProcurementCompletionManager;
@@ -22,7 +24,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 final class EnterpriseProcurementController extends Controller
 {
@@ -42,6 +46,54 @@ final class EnterpriseProcurementController extends Controller
         'reports' => 'procurement.supplier_statements.view',
     ];
 
+    /**
+     * Mirror each route's existing service-level permission BEFORE resolving
+     * enterprise hierarchy. This is an entry-point denial guard, not a grant:
+     * each manager retains its independent record, scope and SoD authorization.
+     *
+     * @var array<string, list<string>>
+     */
+    private const ACTION_PERMISSIONS = [
+        'admin.erp.procurement.suppliers.store' => ['procurement.suppliers.manage'],
+        'admin.erp.procurement.suppliers.governance' => ['procurement.suppliers.manage'],
+        'admin.erp.procurement.suppliers.archive' => ['procurement.suppliers.manage'],
+        'admin.erp.procurement.rfqs.store' => ['procurement.purchase_requests.manage'],
+        'admin.erp.procurement.rfqs.publish' => ['procurement.purchase_requests.manage'],
+        'admin.erp.procurement.rfqs.cancel' => ['procurement.purchase_requests.manage'],
+        'admin.erp.procurement.rfqs.award' => [
+            'procurement.purchase_requests.approve',
+            'procurement.purchase_orders.manage',
+        ],
+        'admin.erp.procurement.rfqs.documents.download' => ['procurement.purchase_requests.view'],
+        'admin.erp.procurement.contracts.store' => ['procurement.purchase_orders.manage'],
+        'admin.erp.procurement.contracts.activate' => ['procurement.purchase_orders.manage'],
+        'admin.erp.procurement.contracts.terminate' => ['procurement.purchase_orders.manage'],
+        'admin.erp.procurement.contracts.documents.store' => ['procurement.purchase_orders.manage'],
+        'admin.erp.procurement.contracts.documents.download' => ['procurement.purchase_orders.view'],
+        'admin.erp.procurement.orders.contract' => ['procurement.purchase_orders.manage'],
+        'admin.erp.procurement.matches.review' => ['procurement.purchase_invoices.handoff'],
+        'admin.erp.procurement.reports.export' => [
+            'procurement.supplier_statements.view',
+            'reports.export',
+        ],
+        'admin.erp.procurement.requests.store' => ['procurement.purchase_requests.manage'],
+        'admin.erp.procurement.requests.submit' => ['procurement.purchase_requests.manage'],
+        'admin.erp.procurement.requests.decision' => ['procurement.purchase_requests.approve'],
+        'admin.erp.procurement.requests.cancel' => ['procurement.purchase_requests.manage'],
+        'admin.erp.procurement.orders.create' => ['procurement.purchase_orders.manage'],
+        'admin.erp.procurement.orders.issue' => ['procurement.purchase_orders.issue'],
+        'admin.erp.procurement.orders.cancel' => ['procurement.purchase_orders.manage'],
+        'admin.erp.procurement.receipts.store' => ['procurement.goods_receipts.manage'],
+        'admin.erp.procurement.receipts.post' => ['procurement.goods_receipts.post'],
+        'admin.erp.procurement.receipts.cancel' => ['procurement.goods_receipts.manage'],
+        'admin.erp.procurement.invoices.store' => ['procurement.purchase_invoices.manage'],
+        'admin.erp.procurement.invoices.handoff' => ['procurement.purchase_invoices.handoff'],
+        'admin.erp.procurement.invoices.cancel' => ['procurement.purchase_invoices.manage'],
+        'admin.erp.procurement.returns.store' => ['procurement.purchase_returns.manage'],
+        'admin.erp.procurement.returns.post' => ['procurement.purchase_returns.post'],
+        'admin.erp.procurement.returns.cancel' => ['procurement.purchase_returns.manage'],
+    ];
+
     public function __construct(
         private readonly SupplierDirectory $suppliers,
         private readonly PurchaseRequestManager $requests,
@@ -54,6 +106,7 @@ final class EnterpriseProcurementController extends Controller
         private readonly TenantContextResolver $tenants,
         private readonly AdminNavigation $navigation,
         private readonly ModuleRegistry $modules,
+        private readonly ModuleEntitlementResolver $entitlements,
     ) {}
 
     public function index(Request $request): View
@@ -61,9 +114,24 @@ final class EnterpriseProcurementController extends Controller
         $actor = $this->actor($request);
         abort_unless($this->modules->isEnabled('procurement'), 404, 'Procurement module is disabled.');
 
-        [$context, $storeOptions, $storeId] = $this->context($request, $actor);
-        $tab = (string) $request->query('tab', $this->firstVisibleTab($actor, $storeId));
-        abort_unless(array_key_exists($tab, self::TABS), 404);
+        // A valid but unauthorized explicit tab must fail with 403 before a
+        // missing enterprise hierarchy could incorrectly surface HTTP 409.
+        $requestedTab = $request->query('tab');
+        // Laravel can normalize an explicitly blank ?tab= into null.
+        // Treat that differently from an omitted tab: an invalid selector
+        // must never silently fall back to the user's first permitted tab.
+        $hasExplicitTab = array_key_exists('tab', $request->query());
+        abort_unless(
+            ! $hasExplicitTab || (is_string($requestedTab) && array_key_exists($requestedTab, self::TABS)),
+            404,
+        );
+        $requiredPermission = is_string($requestedTab) ? self::TABS[$requestedTab] : null;
+        [$context, $storeOptions, $storeId] = $this->context(
+            $request,
+            $actor,
+            $requiredPermission === null ? [] : [$requiredPermission],
+        );
+        $tab = is_string($requestedTab) ? $requestedTab : $this->firstVisibleTab($actor, $storeId);
         $this->authorizeTab($actor, $storeId, $tab);
 
         $data = [
@@ -90,6 +158,7 @@ final class EnterpriseProcurementController extends Controller
             'activeContracts' => [],
             'reportData' => null,
             'reportName' => null,
+            'purchaseRequestIdempotencyKey' => null,
         ];
 
         if ($this->allowed($actor, $storeId, 'procurement.suppliers.view')) {
@@ -118,6 +187,7 @@ final class EnterpriseProcurementController extends Controller
                 break;
 
             case 'requests':
+                $data['purchaseRequestIdempotencyKey'] = (string) Str::uuid();
                 $data['rows'] = $this->requests->paginate($actor, $context, [
                     'q' => $request->query('q'),
                     'status' => $request->query('status'),
@@ -211,21 +281,17 @@ final class EnterpriseProcurementController extends Controller
                 break;
 
             case 'matches':
+                // This is a read-only GET. Materializing a three-way review can
+                // insert or auto-approve an accounting decision, so it must
+                // happen only inside the existing authorized invoice write /
+                // explicit review workflow, never while listing records.
+                // paginateMatches uses a LEFT JOIN: invoices without a review
+                // remain visible as pending in the existing view, with no
+                // fabricated variance, reviewer, or approval persisted here.
                 $data['rows'] = $this->completion->paginateMatches($actor, $context, [
                     'q' => $request->query('q'),
                     'status' => $request->query('status'),
                 ], 25);
-                foreach ($data['rows']->getCollection() as $matchRow) {
-                    if ($matchRow->match_review_id === null) {
-                        $this->completion->syncMatchForInvoice((int) $matchRow->purchase_invoice_id);
-                    }
-                }
-                if ($data['rows']->getCollection()->contains(fn ($matchRow): bool => $matchRow->match_review_id === null)) {
-                    $data['rows'] = $this->completion->paginateMatches($actor, $context, [
-                        'q' => $request->query('q'),
-                        'status' => $request->query('status'),
-                    ], 25);
-                }
                 break;
 
             case 'returns':
@@ -478,11 +544,37 @@ final class EnterpriseProcurementController extends Controller
     public function storeSupplier(Request $request): RedirectResponse
     {
         [$actor, $context, $storeId] = $this->mutationContext($request);
-        $supplier = $this->suppliers->create($actor, $context, $request->only([
+        $actionPayload = $request->validate([
+            'setup_action' => ['nullable', 'in:save,test'],
+            'supplier_id' => ['sometimes', 'required', 'integer', 'min:1', 'prohibited_if:setup_action,test'],
+        ]);
+        $action = $actionPayload['setup_action'] ?? 'save';
+        $attributes = $request->only([
             'scope_type', 'code', 'name_en', 'name_ar', 'contact_name', 'email', 'phone',
             'tax_registration_number', 'commercial_registration_number', 'business_type',
             'payment_terms_days', 'notes',
-        ]));
+        ]);
+
+        if ($action === 'test') {
+            $this->suppliers->validateCandidate($actor, $context, $attributes);
+
+            return $this->backTo('suppliers', $storeId)
+                ->with('status', __('supplier_setup_help.test_passed'));
+        }
+
+        if (isset($actionPayload['supplier_id'])) {
+            $supplier = $this->suppliers->update(
+                $actor,
+                $context,
+                (int) $actionPayload['supplier_id'],
+                $attributes,
+            );
+
+            return $this->backTo('suppliers', $storeId, ['supplier' => $supplier->id])
+                ->with('status', __('p111_procurement.supplier.updated'));
+        }
+
+        $supplier = $this->suppliers->create($actor, $context, $attributes);
 
         return $this->backTo('suppliers', $storeId, ['supplier' => $supplier->id])
             ->with('status', __('enterprise_procurement.flash.supplier_created'));
@@ -500,31 +592,65 @@ final class EnterpriseProcurementController extends Controller
     {
         [$actor, $context, $storeId] = $this->mutationContext($request);
         $payload = $request->validate([
+            'purchase_request_id' => ['sometimes', 'required', 'integer', 'min:1'],
+            'idempotency_key' => ['sometimes', 'nullable', 'uuid'],
             'supplier_id' => ['nullable', 'integer', 'min:1'],
             'currency_code' => ['required', 'string', 'size:3'],
             'needed_by' => ['nullable', 'date'],
             'reason' => ['nullable', 'string', 'max:2000'],
             'notes' => ['nullable', 'string', 'max:4000'],
+            'lines' => ['sometimes', 'required', 'array', 'min:1', 'max:100'],
+            'lines.*.item_code' => ['nullable', 'string', 'max:96'],
+            'lines.*.description' => ['required_with:lines', 'string', 'max:255'],
+            'lines.*.quantity' => ['required_with:lines', 'numeric', 'decimal:0,3', 'min:0.001', 'max:999999999'],
+            'lines.*.unit' => ['required_with:lines', 'string', 'max:32'],
+            'lines.*.estimated_unit_cost' => ['nullable', 'numeric', 'decimal:0,3', 'min:0', 'max:999999999'],
             'item_code' => ['nullable', 'string', 'max:96'],
-            'description' => ['required', 'string', 'max:255'],
-            'quantity' => ['required', 'numeric', 'gt:0'],
-            'unit' => ['required', 'string', 'max:32'],
-            'estimated_unit_cost' => ['nullable', 'numeric', 'min:0'],
+            'description' => ['required_without:lines', 'string', 'max:255'],
+            'quantity' => ['required_without:lines', 'numeric', 'decimal:0,3', 'min:0.001', 'max:999999999'],
+            'unit' => ['required_without:lines', 'string', 'max:32'],
+            'estimated_unit_cost' => ['nullable', 'numeric', 'decimal:0,3', 'min:0', 'max:999999999'],
         ]);
-        $purchaseRequest = $this->requests->create($actor, $context, [
-            'supplier_id' => $payload['supplier_id'] ?? null,
-            'currency_code' => $payload['currency_code'],
-            'needed_by' => $payload['needed_by'] ?? null,
-            'reason' => $payload['reason'] ?? null,
-            'notes' => $payload['notes'] ?? null,
-            'lines' => [[
+
+        $lines = isset($payload['lines'])
+            ? array_values($payload['lines'])
+            : [[
                 'item_code' => $payload['item_code'] ?? null,
                 'description' => $payload['description'],
                 'quantity' => $payload['quantity'],
                 'unit' => $payload['unit'],
                 'estimated_unit_cost' => $payload['estimated_unit_cost'] ?? null,
-            ]],
-        ]);
+            ]];
+        $attributes = [
+            'supplier_id' => $payload['supplier_id'] ?? null,
+            'currency_code' => $payload['currency_code'],
+            'needed_by' => $payload['needed_by'] ?? null,
+            'reason' => $payload['reason'] ?? null,
+            'notes' => $payload['notes'] ?? null,
+            'lines' => $lines,
+        ];
+
+        if (isset($payload['purchase_request_id'])) {
+            $purchaseRequestId = (int) $payload['purchase_request_id'];
+            $purchaseRequest = $this->requests->updateDraft($actor, $context, $purchaseRequestId, $attributes);
+
+            return $this->backTo('requests', $storeId, ['request' => $purchaseRequest->id])
+                ->with('status', __('purchase_requests.draft_updated'));
+        }
+
+        $bodyKey = $payload['idempotency_key'] ?? null;
+        $headerKey = $request->header('Idempotency-Key');
+        if ($bodyKey !== null && $headerKey !== null && ! hash_equals((string) $bodyKey, (string) $headerKey)) {
+            throw ValidationException::withMessages([
+                'idempotency_key' => [__('purchase_requests.idempotency_key_mismatch')],
+            ]);
+        }
+        $purchaseRequest = $this->requests->create(
+            $actor,
+            $context,
+            $attributes,
+            $headerKey ?? $bodyKey,
+        );
 
         return $this->backTo('requests', $storeId, ['request' => $purchaseRequest->id])
             ->with('status', __('enterprise_procurement.flash.request_created'));
@@ -699,22 +825,70 @@ final class EnterpriseProcurementController extends Controller
     {
         $actor = $this->actor($request);
         abort_unless($this->modules->isEnabled('procurement'), 404, 'Procurement module is disabled.');
-        [$context, , $storeId] = $this->context($request, $actor);
+
+        $routeName = $request->route()?->getName();
+        $requiredPermissions = is_string($routeName) ? (self::ACTION_PERMISSIONS[$routeName] ?? null) : null;
+        // Unknown endpoints must not inherit the broad Procurement role as
+        // authority for mutations, exports or private document downloads.
+        abort_unless(is_array($requiredPermissions), 403);
+        [$context, , $storeId] = $this->context($request, $actor, $requiredPermissions);
 
         return [$actor, $context, $storeId];
     }
 
-    /** @return array{ResolvedTenantContext,list<array{id:int,name:string,code:string,channel:string}>,int} */
-    private function context(Request $request, User $actor): array
+    /**
+     * @param  list<string>  $requiredPermissions
+     * @return array{ResolvedTenantContext,list<array{id:int,name:string,code:string,channel:string}>,int}
+     */
+    private function context(Request $request, User $actor, array $requiredPermissions = []): array
     {
-        $options = $this->storeOptions($actor);
+        // A tenant assignment is not an ERP authorization grant. Preserve the
+        // existing B2B and B2C Procurement contexts, then derive both the
+        // selected store and visible chooser from effective channel-aware
+        // permission and the same hierarchical entitlement used by direct HTTP
+        // actions. The store-specific authorization below prevents channel,
+        // company or store assignments from crossing into another tenant.
+        $candidates = $this->storeOptions($actor);
+        abort_if($candidates === [], 403);
+
+        $hasEntitlementPolicy = DB::table('enterprise_module_entitlements')
+            ->where('module_code', 'procurement')
+            ->exists();
+        $options = array_values(array_filter(
+            $candidates,
+            fn (array $option): bool => $this->canUseProcurementStore(
+                $actor,
+                (int) $option['id'],
+                $hasEntitlementPolicy,
+            ) && $this->hasRequiredPermissions($actor, (int) $option['id'], $requiredPermissions),
+        ));
         abort_if($options === [], 403);
 
-        $requested = $request->integer('store_id');
-        $selected = collect($options)->firstWhere('id', $requested > 0 ? $requested : $options[0]['id']);
+        // An explicitly supplied malformed or cross-channel store must never
+        // be coerced into an authorized integer ID or silently fall back.
+        // Request::integer casts "1junk" and nonempty arrays to positive IDs.
+        $requested = 0;
+        if ($request->exists('store_id')) {
+            $rawStoreId = $request->input('store_id');
+            abort_unless(
+                is_int($rawStoreId)
+                    || (is_string($rawStoreId) && preg_match('/^[1-9][0-9]*$/D', $rawStoreId) === 1),
+                403,
+            );
+            $validatedStoreId = filter_var($rawStoreId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            abort_if($validatedStoreId === false, 403);
+            $requested = (int) $validatedStoreId;
+        }
+        $selected = collect($options)->firstWhere(
+            'id',
+            $requested > 0 ? $requested : $options[0]['id'],
+        );
         abort_unless(is_array($selected), 403);
         $storeId = (int) $selected['id'];
 
+        // Tenant resolution remains authoritative for company/legal-entity and
+        // channel scope. Retail support access retains its existing audited
+        // entry path; assigned Retail users stay constrained to their store.
         $context = $selected['channel'] === 'b2c'
             ? $this->tenants->retail($actor, $storeId, $actor->hasRole('SUPER_ADMIN'), $request)
             : $this->tenants->wholesale($actor, $storeId);
@@ -724,12 +898,86 @@ final class EnterpriseProcurementController extends Controller
         return [$context, $options, $storeId];
     }
 
+    /**
+     * @param  list<string>  $requiredPermissions
+     */
+    private function hasRequiredPermissions(User $actor, int $storeId, array $requiredPermissions): bool
+    {
+        foreach ($requiredPermissions as $permission) {
+            if (! $this->allowed($actor, $storeId, $permission)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function canUseProcurementStore(User $actor, int $storeId, bool $hasEntitlementPolicy): bool
+    {
+        // Archived identities retain historical role rows for audit, but may
+        // not select a Procurement store or receive business authority.
+        if (! $actor->is_active || $actor->archived_at !== null) {
+            return false;
+        }
+
+        // User::effectivePermissionCodes applies active-role/channel rules and
+        // explicit GLOBAL or STORE permission DENY precedence. A Retail Finance
+        // assignment alone must not authorize Procurement in that Retail store.
+        $hasProcurementPermission = collect($actor->effectivePermissionCodes($storeId))
+            ->contains(static fn (string $permission): bool => str_starts_with($permission, 'procurement.'));
+
+        if (! $hasProcurementPermission) {
+            return false;
+        }
+
+        // Preserve the existing legacy-unenrolled policy contract, but once
+        // Procurement entitlements are configured, the selected STORE lineage
+        // (including explicit DENY over Platform ALLOW) is authoritative.
+        if (! $hasEntitlementPolicy) {
+            return true;
+        }
+
+        // With no enterprise store hierarchy there is no valid inherited
+        // lineage to resolve. Honor a direct store decision first, then the
+        // platform decision so an authorized Wholesale store reaches the
+        // existing 409 setup response instead of being mislabeled as denied.
+        // An explicit store DENY remains authoritative in this fallback.
+        $scopeExists = DB::table('enterprise_store_scopes')
+            ->where('store_id', $storeId)
+            ->exists();
+
+        if (! $scopeExists) {
+            $storeDecision = DB::table('enterprise_module_entitlements')
+                ->where('module_code', 'procurement')
+                ->where('scope_key', 'store:'.$storeId)
+                ->value('is_enabled');
+
+            if ($storeDecision !== null) {
+                return (bool) $storeDecision;
+            }
+
+            return (bool) DB::table('enterprise_module_entitlements')
+                ->where('module_code', 'procurement')
+                ->where('scope_key', EntitlementScope::platform()->key())
+                ->value('is_enabled');
+        }
+
+        return $this->entitlements->allows(
+            'procurement',
+            new EntitlementScope(EntitlementScope::STORE, $storeId),
+        );
+    }
+
     /** @return list<array{id:int,name:string,code:string,channel:string}> */
     private function storeOptions(User $actor): array
     {
         $retailIds = $this->tenants->retailStoreIds($actor);
+        // An archived global role remains linked for audit, but cannot
+        // create Wholesale store choices after its authority is revoked.
+        // Keep this chooser consistent with User::hasRole/hasPermission.
         $globalWholesale = $actor->roles()
             ->where('roles.is_active', true)
+            ->whereNull('roles.archived_at')
             ->where('roles.scope', 'global')
             ->whereIn('roles.code', (array) config('admin.channels.b2b.global_roles', []))
             ->exists();
@@ -804,7 +1052,22 @@ final class EnterpriseProcurementController extends Controller
 
     private function allowed(User $actor, int $storeId, string $permission): bool
     {
-        return $actor->hasRole('SUPER_ADMIN') || $actor->hasPermission($permission, $storeId);
+        // Archive is a revocation state even if historical roles remain.
+        if (! $actor->is_active || $actor->archived_at !== null) {
+            return false;
+        }
+
+        // The platform Super Admin normally has all role permissions, but an
+        // explicit per-user GLOBAL or STORE DENY must still win for a selected
+        // Procurement action/tab. User::hasPermission() intentionally grants
+        // SUPER_ADMIN before reading overrides, so enforce the override here
+        // without mutating the shared RBAC authority for other modules.
+        if ($actor->has_permission_overrides && $actor->hasRole('SUPER_ADMIN')
+            && ($actor->permissionOverrideEffects($storeId)[$permission] ?? null) === 'deny') {
+            return false;
+        }
+
+        return $actor->hasPermission($permission, $storeId);
     }
 
     /** @return array<string,bool> */
@@ -836,6 +1099,7 @@ final class EnterpriseProcurementController extends Controller
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
+        abort_unless($actor->is_active && $actor->archived_at === null, 403);
 
         return $actor;
     }

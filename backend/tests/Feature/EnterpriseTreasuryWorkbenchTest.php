@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 final class EnterpriseTreasuryWorkbenchTest extends TestCase
@@ -33,6 +34,7 @@ final class EnterpriseTreasuryWorkbenchTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        SyntheticErpWorkflowEvidence::install();
         $this->seed(CoreReferenceSeeder::class);
         // Explicit test-only approval of the exact ERP module version; never a runtime default.
         config()->set('enterprise_module_readiness.certified_versions.treasury', app(ModuleRegistry::class)->manifest('treasury')->version);

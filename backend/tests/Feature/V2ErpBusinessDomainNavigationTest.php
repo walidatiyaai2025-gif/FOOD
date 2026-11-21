@@ -12,6 +12,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /** P358: authorized ERP module destinations move by domain, never by privilege. */
@@ -31,6 +32,7 @@ final class V2ErpBusinessDomainNavigationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        SyntheticErpWorkflowEvidence::install();
         config()->set('security.mfa.enforce_privileged', false);
         $this->seed(CoreReferenceSeeder::class);
         // Certified ERP navigation needs a real WMS-entitled B2B store.
@@ -60,14 +62,25 @@ final class V2ErpBusinessDomainNavigationTest extends TestCase
             $groups = app(AdminNavigation::class)->groupsFor($actor->fresh());
             foreach (self::EXPECTED_GROUPS as $key => $expectedGroup) {
                 $found = [];
+                $destinations = [];
                 foreach ($groups as $group) {
                     foreach ($group['children'] as $item) {
                         if ($item['key'] === $key) {
                             $found[] = $group['key'];
+                            $destinations[] = $item;
                         }
                     }
                 }
                 $this->assertSame([$expectedGroup], $found, $locale.' '.$key);
+                $this->assertCount(1, $destinations);
+
+                // A link projected by the Sidebar must also be accepted by
+                // the canonical HTTP Workbench for this exact actor and
+                // selected store. A visible 403 link is a regression.
+                $destination = $destinations[0];
+                $this->actingAs($actor->fresh())
+                    ->get(route($destination['route'], $destination['params'] ?? []))
+                    ->assertOk();
             }
         }
     }

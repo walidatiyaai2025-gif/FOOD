@@ -20,6 +20,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -33,6 +34,8 @@ final class V2FinanceCenterNavigationAuthorityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Test-only simulation; production workflow certification remains fail-closed.
+        SyntheticErpWorkflowEvidence::install();
 
         config()->set('security.mfa.enforce_privileged', false);
         $this->seed(CoreReferenceSeeder::class);
@@ -134,6 +137,57 @@ final class V2FinanceCenterNavigationAuthorityTest extends TestCase
                 ->get(route('admin.erp.finance.index', ['store_id' => $store->id], false))
                 ->assertForbidden();
         }
+    }
+
+    public function test_mixed_ar_officer_finance_role_projects_only_receivables_and_revokes_archived_link(): void
+    {
+        $store = Store::query()->create([
+            'store_type_id' => (int) DB::table('store_types')->where('code', 'B2B')->value('id'),
+            'code' => 'V2-P135-MIXED-AR-ONLY',
+            'name' => 'Mixed AR duty ERP link',
+            'is_active' => true,
+        ]);
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
+
+        $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
+        $actor->roles()->attach(
+            Role::query()->whereIn('code', ['AR_OFFICER', 'FINANCE'])->pluck('id')->all(),
+        );
+
+        $context = app(TenantContextResolver::class)->wholesale($actor->fresh(), $store->id);
+        $this->enableFinance($actor, $context);
+        $this->assertTrue($actor->fresh()->hasPermission('finance.view', $store->id));
+
+        $journalsBefore = DB::table('enterprise_finance_journals')->count();
+        foreach (['ar' => 'rtl', 'en' => 'ltr'] as $locale => $direction) {
+            app()->setLocale($locale);
+            $actor->forceFill(['locale' => $locale])->save();
+
+            $response = $this->actingAs($actor->fresh())->get(route('admin.erp.index'))
+                ->assertOk()
+                ->assertSee('dir="'.$direction.'"', false);
+            $card = collect($response->viewData('cards'))->firstWhere('key', 'finance');
+
+            $this->assertIsArray($card);
+            $this->assertSame('available', $card['status']);
+            $this->assertSame(route('admin.erp.finance.index', [
+                'store_id' => $store->id,
+                'tab' => 'receivables',
+            ]), $card['url']);
+            $this->assertStringNotContainsString('tab=journals', $card['url']);
+            $this->assertStringNotContainsString('tab=payables', $card['url']);
+        }
+
+        // Revoked identities must lose even an otherwise entitled link. This
+        // remains presentation denial; direct HTTP/domain RBAC is separately
+        // tested at the Finance owner boundary.
+        $actor->forceFill(['archived_at' => now(), 'is_active' => true])->save();
+        $card = collect($this->actingAs($actor->fresh())->get(route('admin.erp.index'))
+            ->assertOk()->viewData('cards'))->firstWhere('key', 'finance');
+        if (is_array($card)) {
+            $this->assertNull($card['url']);
+        }
+        $this->assertSame($journalsBefore, DB::table('enterprise_finance_journals')->count());
     }
 
     private function hasFinanceEntry(User $actor): bool

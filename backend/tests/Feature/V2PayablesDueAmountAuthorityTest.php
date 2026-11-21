@@ -21,6 +21,7 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -34,6 +35,8 @@ final class V2PayablesDueAmountAuthorityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Test-only simulation; production workflow certification remains fail-closed.
+        SyntheticErpWorkflowEvidence::install();
 
         $this->seed(CoreReferenceSeeder::class);
         config()->set('security.mfa.enforce_privileged', false);

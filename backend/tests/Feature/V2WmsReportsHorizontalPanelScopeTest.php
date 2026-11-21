@@ -12,6 +12,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 final class V2WmsReportsHorizontalPanelScopeTest extends TestCase
@@ -28,6 +29,7 @@ final class V2WmsReportsHorizontalPanelScopeTest extends TestCase
         parent::setUp();
         config()->set('security.mfa.enforce_privileged', false);
         $this->seed(CoreReferenceSeeder::class);
+        SyntheticErpWorkflowEvidence::install();
         config()->set(
             'enterprise_module_readiness.certified_versions.inventory_wms',
             app(ModuleRegistry::class)->manifest('inventory_wms')->version,

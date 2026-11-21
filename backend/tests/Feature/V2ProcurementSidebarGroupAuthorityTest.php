@@ -17,6 +17,7 @@ use App\Support\AdminNavigation;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 final class V2ProcurementSidebarGroupAuthorityTest extends TestCase
@@ -26,6 +27,8 @@ final class V2ProcurementSidebarGroupAuthorityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Test-only ERP workflow evidence; never a live certificate.
+        SyntheticErpWorkflowEvidence::install();
         $this->seed(CoreReferenceSeeder::class);
         config()->set('security.mfa.enforce_privileged', false);
         config()->set(
@@ -52,7 +55,9 @@ final class V2ProcurementSidebarGroupAuthorityTest extends TestCase
             $items = collect($procurement['children'])->keyBy('key');
             $this->assertCount(1, $items);
             $this->assertSame('admin.erp.procurement.index', $items['erp_procurement']['route']);
-            $this->assertSame([], $items['erp_procurement']['params']);
+            // A Retail store-scoped role needs its exact authorized store on the link.
+            // Link selection never grants a new permission or an ERP certification.
+            $this->assertSame(['store_id' => (string) $store->id], $items['erp_procurement']['params']);
 
             $catalog = $groups->firstWhere('key', 'catalog');
             $this->assertNotContains('erp_procurement', array_column($catalog['children'] ?? [], 'key'));

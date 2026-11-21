@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\DB;
 use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -25,6 +26,8 @@ final class V2VanLoadingAuthorizationContractTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Signed synthetic workflow proof is scoped to test fixtures, not ERP runtime certification.
+        SyntheticErpWorkflowEvidence::install();
         // The adversarial matrix exercises many repeated HTTP denials; keep
         // authentication and RBAC active, but isolate unrelated rate limiting.
         $this->withoutMiddleware(ThrottleRequests::class);

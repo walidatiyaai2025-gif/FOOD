@@ -102,6 +102,7 @@ return [
             'module_disabled' => 'The module is disabled. Its business actions cannot run until it is explicitly enabled.',
             'module_unavailable' => 'The module is suspended, in maintenance or in an error state. Its business actions remain blocked.',
             'entitlement_scope' => 'No effective entitlement applies to your authorized platform, company or store scope. Check the assignment and entitlement for the current business context.',
+            'missing_scope' => 'A module grant exists, but there is no usable authorized store and legal-entity scope for this workbench. Complete scope setup and access assignment first.',
             'uncertified' => 'This module version has not passed operational certification. Enabling the module or granting access does not make it ready.',
             'unhealthy' => 'The certified module failed its operational health check. Resolve the failure before using its business actions.',
             'route_unavailable' => 'The registered business destination is unavailable. Operation is blocked until its route is restored.',

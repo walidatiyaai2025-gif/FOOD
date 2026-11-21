@@ -7,11 +7,15 @@ use App\Enterprise\Entitlements\ModuleEntitlementManager;
 use App\Enterprise\Health\ModuleHealthCheck;
 use App\Enterprise\Health\ModuleHealthProbe;
 use App\Enterprise\Modules\ModuleRegistry;
+use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Models\Role;
+use App\Models\Store;
 use App\Models\User;
 use App\Services\EnterpriseModuleAdministration;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -24,6 +28,7 @@ final class V2ErpDenialDiagnosticsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        SyntheticErpWorkflowEvidence::install();
         $this->seed(CoreReferenceSeeder::class);
         config()->set('security.mfa.enforce_privileged', false);
         config()->set('enterprise_module_readiness.certified_versions', []);
@@ -89,14 +94,23 @@ final class V2ErpDenialDiagnosticsTest extends TestCase
                 ->assertForbidden();
         }
 
+        // Certified version alone cannot produce a Workbench route: its
+        // accepted positive path also needs a real authorized enterprise store.
         $version = app(ModuleRegistry::class)->manifest('procurement')->version;
         config()->set('enterprise_module_readiness.certified_versions.procurement', $version);
+        $store = Store::query()->create([
+            'store_type_id' => (int) DB::table('store_types')->where('code', 'B2B')->value('id'),
+            'code' => 'P034-ERP-READY',
+            'name' => 'P034 Ready Store',
+            'is_active' => true,
+        ]);
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
 
         foreach (['en' => 'ltr', 'ar' => 'rtl'] as $locale => $direction) {
             $card = $this->viewCard($admin, $locale, $direction);
             $this->assertSame('available', $card['status']);
             $this->assertNull($card['denial_reason']);
-            $this->assertSame(route('admin.erp.procurement.index'), $card['url']);
+            $this->assertSame(route('admin.erp.procurement.index', ['store_id' => $store->id]), $card['url']);
         }
     }
 

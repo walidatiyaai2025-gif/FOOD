@@ -12,6 +12,7 @@ use App\Services\EnterpriseModuleAdministration;
 use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -26,8 +27,10 @@ final class V2ErpWorkflowReadinessCertificationTest extends TestCase
     /** @var array<string, string> */
     private const ROUTES = [
         'procurement' => 'admin.erp.procurement.index',
+        'inventory_wms' => 'admin.erp.wms.index',
         'finance' => 'admin.erp.finance.index',
         'treasury' => 'admin.erp.treasury.index',
+        'enterprise_bi' => 'admin.erp.bi',
     ];
 
     protected function setUp(): void
@@ -60,6 +63,9 @@ final class V2ErpWorkflowReadinessCertificationTest extends TestCase
                 );
 
                 $this->actingAs($actor->fresh())->get(route($route))->assertForbidden();
+                $this->actingAs($actor->fresh())->get(route($route, [
+                    'store_id' => 999999999,
+                ]))->assertForbidden();
 
                 // A stale approval is not equivalent to approval of the
                 // currently installed manifest.
@@ -85,6 +91,8 @@ final class V2ErpWorkflowReadinessCertificationTest extends TestCase
     {
         $actor = $this->privilegedActor();
         $this->enableAndEntitle($actor);
+        // Explicit proof fixture only for this positive revocation scenario.
+        SyntheticErpWorkflowEvidence::install();
         $registry = app(ModuleRegistry::class);
         $readiness = app(ModuleOperationalReadiness::class);
 

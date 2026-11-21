@@ -77,7 +77,9 @@ jobs:
     name: Backend tests
     needs: fast
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The full Laravel suite exceeds 20 minutes on busy hosted runners.
+    # Preserve every security/feature test instead of cancelling it mid-run.
+    timeout-minutes: 35
     defaults:
       run:
         working-directory: backend

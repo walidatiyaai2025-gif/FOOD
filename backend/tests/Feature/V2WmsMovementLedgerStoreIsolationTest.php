@@ -12,6 +12,7 @@ use Database\Seeders\CoreReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Feature\Enterprise\Concerns\EnablesEnterpriseWms;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 /**
@@ -26,6 +27,8 @@ final class V2WmsMovementLedgerStoreIsolationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Positive ERP test fixture only; no production readiness certificate.
+        SyntheticErpWorkflowEvidence::install();
         $this->seed(CoreReferenceSeeder::class);
 
         // A test-only exact-version certification; not a production approval.

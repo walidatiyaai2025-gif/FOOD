@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Tests\Support\ProcurementSecondApprover;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 final class EnterprisePurchaseReturnFoundationTest extends TestCase
@@ -423,6 +424,9 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
             'enterprise_module_readiness.certified_versions.procurement',
             app(ModuleRegistry::class)->manifest('procurement')->version,
         );
+        // Synthetic signed workflow acceptance only for this positive/negative
+        // HTTP fixture; production operational certification stays fail-closed.
+        SyntheticErpWorkflowEvidence::install();
         $this->enableProcurement();
 
         [$actor, $store, $context] = $this->scopedUser($this->allPermissions(), 'P243-OWN');
@@ -480,6 +484,9 @@ final class EnterprisePurchaseReturnFoundationTest extends TestCase
             'enterprise_module_readiness.certified_versions.procurement',
             app(ModuleRegistry::class)->manifest('procurement')->version,
         );
+        // Synthetic signed workflow acceptance only for this positive/negative
+        // HTTP fixture; production operational certification stays fail-closed.
+        SyntheticErpWorkflowEvidence::install();
         $this->enableProcurement();
 
         [$owner, $store, $context] = $this->scopedUser($this->allPermissions(), 'P243-SEC-OWNER');

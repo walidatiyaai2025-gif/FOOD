@@ -196,6 +196,29 @@ final class PurchaseOrderManager
             $lines = $order->lines()->get();
             abort_if($lines->isEmpty(), 409, 'A purchase order must contain at least one line.');
 
+            // A supplier can be blocked or lose qualification after the draft
+            // PO was created. Revalidate under a row lock before issuing.
+            $this->activeVisibleSupplier($scope, (int) $order->supplier_id);
+
+            // The approved PR validates inputs at creation, but persisted PO
+            // lines may have been altered by an import or legacy writer.
+            // Reject invalid quantity/price before any contract commitment,
+            // state transition or audit entry, whether or not a contract exists.
+            foreach ($lines as $line) {
+                if (
+                    ! is_finite((float) $line->quantity)
+                    || (float) $line->quantity <= 0
+                    || ($line->unit_price !== null && (
+                        ! is_finite((float) $line->unit_price)
+                        || (float) $line->unit_price < 0
+                    ))
+                ) {
+                    throw ValidationException::withMessages([
+                        'lines' => ['Purchase order quantities must be positive and unit prices cannot be negative.'],
+                    ]);
+                }
+            }
+
             if ($order->procurement_contract_id !== null) {
                 $contract = DB::table('enterprise_procurement_contracts')
                     ->where('id', $order->procurement_contract_id)
@@ -290,6 +313,22 @@ final class PurchaseOrderManager
             }
 
             $this->requireStatus($order, ['draft', 'issued'], 'cancelled');
+
+            // GRN posting locks the same PO and creates authoritative stock
+            // movements. Do not release contractual commitments or cancel an
+            // issued order once inventory has actually been received.
+            if ($order->status === 'issued' && DB::table('enterprise_goods_receipts')
+                ->where('purchase_order_id', $order->id)
+                ->where('organization_id', $scope->organizationId)
+                ->where('company_id', $scope->companyId)
+                ->where('store_id', $scope->storeId)
+                ->where('status', 'posted')
+                ->exists()) {
+                throw ValidationException::withMessages([
+                    'status' => ['A purchase order with posted receipts cannot be cancelled; use the authorized return or correction workflow.'],
+                ]);
+            }
+
             $before = $order->toArray();
 
             if ($order->status === 'issued' && $order->procurement_contract_id !== null) {
@@ -410,6 +449,7 @@ final class PurchaseOrderManager
                             ->where('store_id', $scope->storeId);
                     });
             })
+            ->lockForUpdate()
             ->firstOrFail();
     }
 

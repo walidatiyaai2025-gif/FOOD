@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Support\ProcurementSecondApprover;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 final class V2ProcurementTreasurySodBoundaryTest extends TestCase
@@ -32,6 +33,8 @@ final class V2ProcurementTreasurySodBoundaryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Positive ERP test fixture only; no production readiness certificate.
+        SyntheticErpWorkflowEvidence::install();
 
         $this->seed(CoreReferenceSeeder::class);
         config()->set('enterprise_module_readiness.certified_versions.procurement', app(ModuleRegistry::class)->manifest('procurement')->version);

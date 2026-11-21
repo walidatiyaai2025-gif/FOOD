@@ -28,11 +28,19 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Tests\Support\ProcurementSecondApprover;
+use Tests\Support\SyntheticErpWorkflowEvidence;
 use Tests\TestCase;
 
 final class EnterpriseSupplierStatementAgingFoundationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Positive ERP simulation only, never real operational approval.
+        SyntheticErpWorkflowEvidence::install();
+    }
 
     public function test_disabled_procurement_performs_no_supplier_statement_query_work(): void
     {
