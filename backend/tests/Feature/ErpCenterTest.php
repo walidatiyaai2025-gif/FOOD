@@ -4,8 +4,10 @@ namespace Tests\Feature;
 
 use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementManager;
+use App\Enterprise\Organization\OrganizationHierarchyService;
 use App\Models\EnterpriseModuleEntitlement;
 use App\Models\Role;
+use App\Models\Store;
 use App\Models\User;
 use App\Services\EnterpriseModuleAdministration;
 use App\Support\AdminNavigation;
@@ -22,6 +24,16 @@ final class ErpCenterTest extends TestCase
     {
         parent::setUp();
         $this->seed(CoreReferenceSeeder::class);
+        // ERP readiness is scoped to a real authorized Wholesale store.
+        // Do not manufacture access in production or permit a Retail store
+        // to make platform-only module entitlement operational.
+        $store = Store::query()->create([
+            'store_type_id' => (int) DB::table('store_types')->where('code', 'B2B')->value('id'),
+            'code' => 'V2-ERP-CENTER-WHOLESALE',
+            'name' => 'ERP Center Wholesale fixture',
+            'is_active' => true,
+        ]);
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
         // Existing available-card fixtures are explicitly version-certified.
         config()->set('enterprise_module_readiness.certified_versions', [
             'procurement' => 2,
@@ -340,8 +352,8 @@ final class ErpCenterTest extends TestCase
         ] as [$requestedBy, $key]) {
             DB::table('enterprise_report_exports')->insert([
                 'report_code' => 'orders.summary',
-                'scope_type' => 'platform',
-                'scope_id' => null,
+                'scope_type' => 'store',
+                'scope_id' => (int) Store::query()->where('code', 'V2-ERP-CENTER-WHOLESALE')->value('id'),
                 'requested_by' => $requestedBy,
                 'scheduled_report_id' => null,
                 'query_payload' => '{}',

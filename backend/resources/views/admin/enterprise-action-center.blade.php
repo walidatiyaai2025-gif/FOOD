@@ -92,6 +92,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <form method="get" class="work-filters">
 <input type="hidden" name="tab" value="queue">
 <input type="hidden" name="state" value="{{ $state }}">
+@if($storeChannel === 'B2B')<input type="hidden" name="store_channel" value="b2b">@endif
 <label>{{ __('enterprise_action_center.search') }}<input type="search" name="q" maxlength="100" value="{{ $search }}" placeholder="{{ __('enterprise_action_center.search_placeholder') }}"></label>
 <label>{{ __('enterprise_my_work.filters.module') }}<select name="module">
 <option value="all" @selected($module==='all')>{{ __('enterprise_my_work.filters.all_modules') }}</option>
@@ -110,7 +111,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <label>{{ __('enterprise_my_work.filters.age') }}<select name="age"><option value="0" @selected($age===0)>{{ __('enterprise_my_work.filters.any_age') }}</option>@foreach([7,30,90] as $ageOption)<option value="{{ $ageOption }}" @selected($age===$ageOption)>{{ __('enterprise_my_work.filters.days',['days'=>$ageOption]) }}</option>@endforeach</select></label>
 <label>{{ __('enterprise_my_work.filters.from') }}<input type="date" name="from" value="{{ $workFilters['from'] ?? '' }}"></label>
 <label>{{ __('enterprise_my_work.filters.to') }}<input type="date" name="to" value="{{ $workFilters['to'] ?? '' }}"></label>
-<div class="work-filter-actions"><button class="foodex-action-primary" type="submit">{{ __('enterprise_my_work.filters.apply') }}</button><a class="foodex-action-secondary" href="{{ route('admin.action-center.index',['state'=>$state!=='all'?$state:null]) }}">{{ __('enterprise_my_work.filters.reset') }}</a></div>
+<div class="work-filter-actions"><button class="foodex-action-primary" type="submit">{{ __('enterprise_my_work.filters.apply') }}</button><a class="foodex-action-secondary" href="{{ route('admin.action-center.index',array_filter(['store_channel'=>$storeChannel==='B2B'?'b2b':null,'state'=>$state!=='all'?$state:null])) }}">{{ __('enterprise_my_work.filters.reset') }}</a></div>
 </form>
 </section>
 </section>
@@ -171,7 +172,7 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 @foreach(request()->except(['q','state','actions_page','tab']) as $key=>$value)@if(is_scalar($value))<input type="hidden" name="{{ $key }}" value="{{ $value }}">@endif @endforeach
 <label>{{ __('enterprise_action_center.search') }}<input type="search" name="q" maxlength="100" value="{{ $search }}" placeholder="{{ __('enterprise_action_center.search_placeholder') }}"></label>
 <label>{{ __('enterprise_action_center.state') }}<select name="state"><option value="all" @selected($state==='all')>{{ __('enterprise_action_center.all') }}</option><option value="pending" @selected($state==='pending')>{{ __('enterprise_action_center.pending') }}</option><option value="overdue" @selected($state==='overdue')>{{ __('enterprise_action_center.overdue') }}</option></select></label>
-<button class="foodex-action-primary" type="submit">{{ __('enterprise_action_center.apply') }}</button><a class="foodex-action-secondary" href="{{ route('admin.action-center.index', ['tab' => 'approvals']) }}">{{ __('enterprise_action_center.reset') }}</a>
+<button class="foodex-action-primary" type="submit">{{ __('enterprise_action_center.apply') }}</button><a class="foodex-action-secondary" href="{{ route('admin.action-center.index', array_filter(['tab' => 'approvals','store_channel' => $storeChannel === 'B2B' ? 'b2b' : null])) }}">{{ __('enterprise_action_center.reset') }}</a>
 </form>
 </section>
 
@@ -189,10 +190,10 @@ body{margin:0;background:var(--foodex-background);color:var(--foodex-ink)}
 <td><span class="action-badge">{{ $action['overdue'] ? __('enterprise_action_center.overdue') : __('enterprise_action_center.pending') }}</span></td>
 <td><details class="action-menu"><summary aria-label="{{ __('enterprise_action_center.more_actions') }}">⋯</summary><div class="decision-stack">
 <form method="post" action="{{ route('admin.action-center.decide',['workflowRequest'=>$action['workflow_request_id'],'stepCode'=>$action['step_code']]) }}" class="decision-form" data-action-form>@csrf
-<input type="hidden" name="decision" value="APPROVED"><input type="hidden" name="q" value="{{ $search }}"><input type="hidden" name="state" value="{{ $state }}"><input type="hidden" name="actions_page" value="{{ $actions->currentPage() }}"><input type="hidden" name="tab" value="approvals">
+<input type="hidden" name="decision" value="APPROVED"><input type="hidden" name="q" value="{{ $search }}"><input type="hidden" name="state" value="{{ $state }}"><input type="hidden" name="actions_page" value="{{ $actions->currentPage() }}"><input type="hidden" name="tab" value="approvals">@if($storeChannel === 'B2B')<input type="hidden" name="store_channel" value="b2b">@endif
 <label>{{ __('enterprise_action_center.comment') }}<input name="comment" maxlength="1000" placeholder="{{ __('enterprise_action_center.comment_placeholder') }}"></label><button class="foodex-primary" type="submit">{{ __('enterprise_action_center.approve') }}</button></form>
 <form method="post" action="{{ route('admin.action-center.decide',['workflowRequest'=>$action['workflow_request_id'],'stepCode'=>$action['step_code']]) }}" class="decision-form" data-action-form>@csrf
-<input type="hidden" name="decision" value="REJECTED"><input type="hidden" name="q" value="{{ $search }}"><input type="hidden" name="state" value="{{ $state }}"><input type="hidden" name="actions_page" value="{{ $actions->currentPage() }}"><input type="hidden" name="tab" value="approvals">
+<input type="hidden" name="decision" value="REJECTED"><input type="hidden" name="q" value="{{ $search }}"><input type="hidden" name="state" value="{{ $state }}"><input type="hidden" name="actions_page" value="{{ $actions->currentPage() }}"><input type="hidden" name="tab" value="approvals">@if($storeChannel === 'B2B')<input type="hidden" name="store_channel" value="b2b">@endif
 <label>{{ __('enterprise_action_center.comment') }}<input name="comment" maxlength="1000" placeholder="{{ __('enterprise_action_center.comment_placeholder') }}"></label><button class="foodex-action-secondary" type="submit">{{ __('enterprise_action_center.reject') }}</button></form>
 </div></details></td>
 </tr>@endforeach</tbody></table>

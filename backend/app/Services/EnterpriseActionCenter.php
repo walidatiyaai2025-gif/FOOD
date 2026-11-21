@@ -9,6 +9,7 @@ use App\Models\UserStoreRole;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -25,6 +26,7 @@ final class EnterpriseActionCenter
         string $state,
         int $page,
         string $path,
+        ?string $storeChannel = null,
     ): array {
         $search = trim(Str::limit($search, 100, ''));
 
@@ -32,6 +34,45 @@ final class EnterpriseActionCenter
             ->with(['workflowRequest.requester:id,name'])
             ->where('status', 'PENDING')
             ->whereHas('workflowRequest', fn ($request) => $request->where('status', 'PENDING'));
+
+        if ($storeChannel !== null) {
+            $channel = strtoupper($storeChannel);
+            $hasEntityScopes = Schema::hasTable('enterprise_store_scopes')
+                && Schema::hasTable('enterprise_business_units')
+                && Schema::hasTable('enterprise_legal_entities');
+            $query->whereHas('workflowRequest', function ($request) use ($channel, $hasEntityScopes): void {
+                $request->where(function ($scope) use ($channel, $hasEntityScopes): void {
+                    $scope->where(function ($storeScope) use ($channel): void {
+                        $storeScope->where('scope_type', 'store')
+                            ->whereExists(function ($store) use ($channel): void {
+                                $store->selectRaw('1')
+                                    ->from('stores')
+                                    ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                                    ->whereColumn('stores.id', 'enterprise_workflow_requests.scope_id')
+                                    ->where('stores.is_active', true)
+                                    ->where('store_types.code', $channel);
+                            });
+                    });
+
+                    if ($hasEntityScopes) {
+                        $scope->orWhere(function ($entityScope) use ($channel): void {
+                            $entityScope->where('scope_type', 'legal_entity')
+                                ->whereExists(function ($entity) use ($channel): void {
+                                    $entity->selectRaw('1')
+                                        ->from('enterprise_store_scopes')
+                                        ->join('enterprise_business_units', 'enterprise_business_units.id', '=', 'enterprise_store_scopes.business_unit_id')
+                                        ->join('enterprise_legal_entities', 'enterprise_legal_entities.id', '=', 'enterprise_business_units.legal_entity_id')
+                                        ->join('stores', 'stores.id', '=', 'enterprise_store_scopes.store_id')
+                                        ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                                        ->whereColumn('enterprise_legal_entities.id', 'enterprise_workflow_requests.scope_id')
+                                        ->where('stores.is_active', true)
+                                        ->where('store_types.code', $channel);
+                                });
+                        });
+                    }
+                });
+            });
+        }
 
         if ($search !== '') {
             // An approval search is a literal substring, not a user-supplied
@@ -116,6 +157,9 @@ final class EnterpriseActionCenter
         }
         if ($state !== 'all') {
             $paginator->appends('state', $state);
+        }
+        if ($storeChannel !== null) {
+            $paginator->appends('store_channel', strtolower($storeChannel));
         }
 
         return ['actions' => $paginator, 'truncated' => $truncated];

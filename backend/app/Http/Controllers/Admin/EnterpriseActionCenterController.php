@@ -52,6 +52,7 @@ final class EnterpriseActionCenterController extends Controller
             'delegate' => ['nullable', 'string', 'max:40'],
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'store_channel' => ['nullable', Rule::in(['b2b'])],
         ]);
 
         $search = trim((string) ($validated['q'] ?? ''));
@@ -74,7 +75,9 @@ final class EnterpriseActionCenterController extends Controller
             'delegate' => (string) ($validated['delegate'] ?? 'all'),
             'from' => (string) ($validated['from'] ?? ''),
             'to' => (string) ($validated['to'] ?? ''),
+            'store_channel' => isset($validated['store_channel']) ? 'B2B' : null,
         ];
+        $storeChannel = $workFilters['store_channel'];
 
         $result = $this->actionCenter->page(
             $actor,
@@ -82,6 +85,7 @@ final class EnterpriseActionCenterController extends Controller
             $state,
             $page,
             route('admin.action-center.index'),
+            $storeChannel,
         );
 
         $workResult = $this->myWork->page(
@@ -102,6 +106,7 @@ final class EnterpriseActionCenterController extends Controller
             'all',
             1,
             route('admin.action-center.index'),
+            $storeChannel,
         );
         $approvalOverdue = $this->actionCenter->page(
             $actor,
@@ -109,6 +114,7 @@ final class EnterpriseActionCenterController extends Controller
             'overdue',
             1,
             route('admin.action-center.index'),
+            $storeChannel,
         );
         $workSummary = $workResult['summary'];
         $workSummary['pending_approval'] = $approvalAll['actions']->total();
@@ -162,6 +168,7 @@ final class EnterpriseActionCenterController extends Controller
             'workFilters' => $workFilters,
             'savedViews' => $savedViews,
             'savedViewStateToken' => $savedViewStateToken,
+            'storeChannel' => $storeChannel,
         ]);
     }
 
@@ -187,6 +194,7 @@ final class EnterpriseActionCenterController extends Controller
             'delegate' => ['nullable', 'string', 'max:40'],
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'store_channel' => ['nullable', Rule::in(['b2b'])],
         ]);
 
         $filters = [
@@ -200,6 +208,7 @@ final class EnterpriseActionCenterController extends Controller
             'delegate' => (string) ($validated['delegate'] ?? 'all'),
             'from' => (string) ($validated['from'] ?? ''),
             'to' => (string) ($validated['to'] ?? ''),
+            'store_channel' => isset($validated['store_channel']) ? 'B2B' : null,
         ];
 
         $result = $this->myWork->page(
@@ -257,6 +266,7 @@ final class EnterpriseActionCenterController extends Controller
             'state' => ['nullable', Rule::in(['all', 'pending', 'overdue'])],
             'actions_page' => ['nullable', 'integer', 'min:1'],
             'tab' => ['nullable', Rule::in(['approvals'])],
+            'store_channel' => ['nullable', Rule::in(['b2b'])],
         ]);
 
         try {
@@ -274,6 +284,9 @@ final class EnterpriseActionCenterController extends Controller
         }
 
         $query = ['tab' => 'approvals'];
+        if (isset($validated['store_channel'])) {
+            $query['store_channel'] = 'b2b';
+        }
         $search = trim((string) ($validated['q'] ?? ''));
         $state = (string) ($validated['state'] ?? 'all');
         $page = (int) ($validated['actions_page'] ?? 1);

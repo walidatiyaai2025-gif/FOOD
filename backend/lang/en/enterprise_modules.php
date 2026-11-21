@@ -12,6 +12,12 @@ return [
     'state' => 'Lifecycle state',
     'readiness' => 'Operational readiness',
     'readiness_note' => 'Enabled is a lifecycle state, not an operational certification. An exact-version approval and healthy runtime are both required.',
+    'readiness_report' => [
+        'missing_version_certification' => 'No operational certification is registered for the current manifest (:current). Registered certified version: :certified.',
+        'certification_requirement' => 'This version must pass and receive review of its required operational acceptance evidence before it can be certified.',
+        'version_value' => 'version :version',
+        'no_certified_version' => 'none',
+    ],
     'readiness_states' => [
         'inactive' => 'Not enabled',
         'uncertified' => 'Not certified',

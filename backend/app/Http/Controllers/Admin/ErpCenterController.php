@@ -10,21 +10,27 @@ use App\Enterprise\Modules\ModuleOperationalReadiness;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Enterprise\Modules\ModuleState;
 use App\Http\Controllers\Controller;
+use App\Models\EnterpriseBankAccount;
+use App\Models\EnterpriseCashbox;
 use App\Models\EnterpriseModuleEntitlement;
+use App\Models\Store;
 use App\Models\User;
 use App\Services\EnterpriseActionCenter;
 use App\Services\EnterpriseModuleAdministration;
 use App\Services\EnterpriseMyWork;
+use App\Services\OperationalTenantScope;
 use App\Support\AdminNavigation;
-use App\Support\TenantContextResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 
 final class ErpCenterController extends Controller
 {
+    private const WHOLESALE_CHANNEL = 'B2B';
+
     private const LOCAL_SUPER_ADMIN_MODULES = [
         'procurement',
         'inventory_wms',
@@ -55,7 +61,7 @@ final class ErpCenterController extends Controller
         private readonly EnterpriseModuleAdministration $moduleAdministration,
         private readonly ModuleEntitlementManager $entitlementManager,
         private readonly ModuleEntitlementResolver $entitlements,
-        private readonly TenantContextResolver $tenants,
+        private readonly OperationalTenantScope $operationalTenants,
         private readonly ModuleHealthService $health,
         private readonly ModuleOperationalReadiness $readiness,
         private readonly EnterpriseActionCenter $actionCenter,
@@ -124,6 +130,7 @@ final class ErpCenterController extends Controller
                 'my_work',
                 [],
                 'admin.action-center.index',
+                ['store_channel' => 'b2b'],
             ),
         ]));
 
@@ -147,14 +154,16 @@ final class ErpCenterController extends Controller
             'all',
             0,
             1,
-            route('admin.action-center.index'),
+            route('admin.action-center.index', ['store_channel' => 'b2b']),
+            ['store_channel' => self::WHOLESALE_CHANNEL],
         );
         $approvals = $this->actionCenter->page(
             $actor,
             '',
             'all',
             1,
-            route('admin.action-center.index'),
+            route('admin.action-center.index', ['store_channel' => 'b2b']),
+            self::WHOLESALE_CHANNEL,
         );
         $failedReports = $this->failedReportJobs($actor, $cards);
         $healthSummary = $this->healthSummary($cards);
@@ -180,21 +189,21 @@ final class ErpCenterController extends Controller
                 'value' => $approvals['actions']->total(),
                 'available' => true,
                 'bounded' => $approvals['truncated'],
-                'url' => route('admin.action-center.index'),
+                'url' => route('admin.action-center.index', ['store_channel' => 'b2b']),
             ],
             [
                 'key' => 'overdue_work',
                 'value' => $work['summary']['overdue'],
                 'available' => true,
                 'bounded' => false,
-                'url' => route('admin.action-center.index', ['work_state' => 'overdue']),
+                'url' => route('admin.action-center.index', ['store_channel' => 'b2b', 'work_state' => 'overdue']),
             ],
             [
                 'key' => 'open_exceptions',
                 'value' => $work['summary']['attention'],
                 'available' => true,
                 'bounded' => false,
-                'url' => route('admin.action-center.index', ['work_state' => 'attention']),
+                'url' => route('admin.action-center.index', ['store_channel' => 'b2b', 'work_state' => 'attention']),
             ],
             [
                 'key' => 'failed_reports',
@@ -227,7 +236,438 @@ final class ErpCenterController extends Controller
             'activity' => $work['activity']->take(8)->values(),
             'selectedModule' => $request->string('module')->toString(),
             'selectedStatus' => $selectedStatus,
+            'treasuryReadinessSteps' => $this->treasuryReadinessSteps($actor, $visibleCards),
+            'moduleReadinessReports' => $this->moduleReadinessReports($actor, $visibleCards),
         ]);
+    }
+
+    /** @param list<array<string,mixed>> $cards
+     * @return array<string,list<array{key:string,title:string,complete:bool,detail:string,url:?string}>>
+     */
+    private function moduleReadinessReports(User $actor, array $cards): array
+    {
+        $healthUrl = Route::has('admin.enterprise-system-health.index')
+            && ($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('platform.manage'))
+                ? route('admin.enterprise-system-health.index')
+                : null;
+        $availableTables = array_fill_keys(Schema::getTableListing(), true);
+        $moduleTitle = static fn (string $key): string => __('admin.erp_center.module_readiness.common.'.$key.'.title');
+        $specs = [
+            'procurement' => [
+                'module' => 'procurement', 'view' => 'procurement.purchase_requests.view', 'manage' => 'procurement.purchase_requests.manage',
+                'route' => 'admin.erp.procurement.index',
+                'tables' => ['enterprise_suppliers', 'enterprise_purchase_requests', 'enterprise_purchase_orders', 'enterprise_goods_receipts', 'enterprise_purchase_invoices'],
+                'checks' => [
+                    ['key' => 'suppliers', 'table' => 'enterprise_suppliers', 'scope' => 'store', 'column' => 'status', 'value' => 'active', 'tab' => 'suppliers'],
+                    ['key' => 'approved_requests', 'table' => 'enterprise_purchase_requests', 'scope' => 'store', 'column' => 'status', 'value' => 'approved', 'tab' => 'requests'],
+                    ['key' => 'issued_orders', 'table' => 'enterprise_purchase_orders', 'scope' => 'store', 'column' => 'status', 'value' => 'issued', 'tab' => 'orders'],
+                    ['key' => 'posted_receipts', 'table' => 'enterprise_goods_receipts', 'scope' => 'store', 'column' => 'status', 'value' => 'posted', 'tab' => 'receipts'],
+                    ['key' => 'handed_off_invoices', 'table' => 'enterprise_purchase_invoices', 'scope' => 'store', 'column' => 'status', 'value' => 'handed_off', 'tab' => 'invoices'],
+                ],
+            ],
+            'wms' => [
+                'module' => 'inventory_wms', 'view' => 'inventory.view', 'manage' => 'inventory.manage',
+                'route' => 'admin.erp.wms.index',
+                'tables' => ['warehouses', 'inventories', 'stock_movements', 'enterprise_inventory_counts', 'enterprise_warehouse_transfers'],
+                'checks' => [
+                    ['key' => 'warehouses', 'table' => 'warehouses', 'scope' => 'store', 'column' => 'is_active', 'value' => true, 'tab' => 'warehouses'],
+                    ['key' => 'inventory_balances', 'table' => 'inventories', 'scope' => 'inventory', 'tab' => 'balances'],
+                    ['key' => 'stock_movements', 'table' => 'stock_movements', 'scope' => 'movement', 'tab' => 'movements'],
+                    ['key' => 'completed_counts', 'table' => 'enterprise_inventory_counts', 'scope' => 'store', 'column' => 'status', 'value' => 'completed', 'tab' => 'counts'],
+                    ['key' => 'received_transfers', 'table' => 'enterprise_warehouse_transfers', 'scope' => 'store', 'column' => 'status', 'value' => 'received', 'tab' => 'transfers'],
+                ],
+            ],
+            'finance' => [
+                'module' => 'finance', 'view' => 'finance.view', 'manage' => 'finance.manage',
+                'route' => 'admin.erp.finance.index',
+                'tables' => ['enterprise_finance_accounts', 'enterprise_fiscal_years', 'enterprise_fiscal_periods', 'enterprise_finance_journals', 'enterprise_finance_ledger_entries'],
+                'checks' => [
+                    ['key' => 'accounts', 'table' => 'enterprise_finance_accounts', 'scope' => 'legal_entity', 'column' => 'status', 'value' => 'active', 'tab' => 'accounts'],
+                    ['key' => 'fiscal_periods', 'table' => 'enterprise_fiscal_periods', 'scope' => 'legal_entity', 'column' => 'status', 'value' => 'open', 'tab' => 'periods'],
+                    ['key' => 'posted_journals', 'table' => 'enterprise_finance_journals', 'scope' => 'legal_entity', 'column' => 'status', 'value' => 'posted', 'tab' => 'journals'],
+                    ['key' => 'ledger_entries', 'table' => 'enterprise_finance_ledger_entries', 'scope' => 'legal_entity', 'tab' => 'statements'],
+                ],
+            ],
+            'bi' => [
+                'module' => 'enterprise_bi', 'view' => 'reports.view', 'manage' => 'reports.export',
+                'route' => 'admin.erp.bi',
+                'tables' => ['enterprise_report_exports', 'enterprise_scheduled_reports'],
+                'checks' => [
+                    ['key' => 'completed_exports', 'table' => 'enterprise_report_exports', 'scope' => 'report_store', 'column' => 'status', 'value' => 'completed', 'tab' => null],
+                ],
+            ],
+        ];
+
+        $reports = [];
+        foreach ($specs as $key => $spec) {
+            $card = collect($cards)->firstWhere('key', $key);
+            if (! is_array($card)) {
+                continue;
+            }
+
+            // A diagnostic does not grant access to privileged admin pages or
+            // to a business route when module readiness/entitlement denies it.
+            $canManagePlatform = Gate::forUser($actor)->allows('platform.manage');
+            $moduleDetailUrl = $canManagePlatform && Route::has('admin.enterprise-modules.show')
+                ? route('admin.enterprise-modules.show', ['module' => $spec['module']])
+                : null;
+            $moduleUrl = is_string($card['url']) ? $card['url'] : null;
+            $steps = [];
+            $steps[] = [
+                'key' => 'lifecycle',
+                'title' => $moduleTitle('lifecycle'),
+                'complete' => in_array($card['status'] ?? '', ['available', 'degraded'], true),
+                'detail' => __('admin.erp_center.module_readiness.common.lifecycle_detail', ['state' => __('admin.erp_center.statuses.'.($card['status'] ?? 'disabled'))]),
+                'url' => $moduleDetailUrl,
+            ];
+
+            $manifestVersion = config('enterprise_modules.modules.'.$spec['module'].'.version');
+            $certifiedVersion = config('enterprise_module_readiness.certified_versions.'.$spec['module']);
+            $steps[] = [
+                'key' => 'certification',
+                'title' => $moduleTitle('certification'),
+                'complete' => is_int($manifestVersion) && $certifiedVersion === $manifestVersion,
+                'detail' => __('admin.erp_center.module_readiness.common.certification_detail', [
+                    'current' => (string) $manifestVersion,
+                    'certified' => $certifiedVersion === null ? __('admin.erp_center.module_readiness.common.none') : (string) $certifiedVersion,
+                ]),
+                'url' => $moduleDetailUrl,
+            ];
+
+            $viewStoreIds = $this->operationalTenants->allowedStoreIds($actor, $spec['view'], self::WHOLESALE_CHANNEL);
+            $manageStoreIds = $this->operationalTenants->allowedStoreIds($actor, $spec['manage'], self::WHOLESALE_CHANNEL);
+            $scopeTablesReady = isset($availableTables['enterprise_store_scopes'])
+                && isset($availableTables['enterprise_business_units'])
+                && isset($availableTables['enterprise_legal_entities'])
+                && isset($availableTables['enterprise_companies']);
+            $scopeCount = $scopeTablesReady && $viewStoreIds !== []
+                ? (int) DB::table('enterprise_store_scopes')
+                    ->join('enterprise_business_units', 'enterprise_business_units.id', '=', 'enterprise_store_scopes.business_unit_id')
+                    ->join('enterprise_legal_entities', 'enterprise_legal_entities.id', '=', 'enterprise_business_units.legal_entity_id')
+                    ->join('enterprise_companies', 'enterprise_companies.id', '=', 'enterprise_legal_entities.company_id')
+                    ->whereIn('enterprise_store_scopes.store_id', $viewStoreIds)
+                    ->distinct('enterprise_store_scopes.store_id')
+                    ->count('enterprise_store_scopes.store_id')
+                : 0;
+            $steps[] = [
+                'key' => 'scope',
+                'title' => $moduleTitle('scope'),
+                'complete' => $viewStoreIds !== [] && $scopeCount === count($viewStoreIds),
+                'detail' => __('admin.erp_center.module_readiness.common.scope_detail', ['ready' => $scopeCount, 'total' => count($viewStoreIds)]),
+                'url' => $canManagePlatform && Route::has('admin.enterprise-organizations.index')
+                    ? route('admin.enterprise-organizations.index') : null,
+            ];
+            $steps[] = [
+                'key' => 'permissions',
+                'title' => $moduleTitle('permissions'),
+                'complete' => $viewStoreIds !== [] && array_diff($viewStoreIds, $manageStoreIds) === [],
+                'detail' => __('admin.erp_center.module_readiness.common.permissions_detail', ['ready' => count(array_intersect($viewStoreIds, $manageStoreIds)), 'total' => count($viewStoreIds)]),
+                'url' => Gate::forUser($actor)->allows('security.view') && Route::has('admin.security.index')
+                    ? route('admin.security.index') : null,
+            ];
+
+            $capabilities = config('enterprise_modules.modules.'.$spec['module'].'.capabilities', []);
+            $capabilityTotal = count($viewStoreIds) * (is_array($capabilities) ? count($capabilities) : 0);
+            $capabilityGranted = 0;
+            foreach ($viewStoreIds as $storeId) {
+                foreach (is_array($capabilities) ? $capabilities : [] as $capability) {
+                    if (is_string($capability) && $this->entitlements->allows(
+                        $spec['module'],
+                        new EntitlementScope(EntitlementScope::STORE, (int) $storeId),
+                        $capability,
+                    )) {
+                        $capabilityGranted++;
+                    }
+                }
+            }
+            $steps[] = [
+                'key' => 'capabilities',
+                'title' => $moduleTitle('capabilities'),
+                'complete' => $capabilityTotal > 0 && $capabilityGranted === $capabilityTotal,
+                'detail' => __('admin.erp_center.module_readiness.common.capabilities_detail', ['ready' => $capabilityGranted, 'total' => $capabilityTotal]),
+                'url' => $moduleDetailUrl,
+            ];
+
+            $tableCount = count(array_filter($spec['tables'], fn (string $table): bool => isset($availableTables[$table])));
+            $steps[] = [
+                'key' => 'schema',
+                'title' => $moduleTitle('schema'),
+                'complete' => $tableCount === count($spec['tables']),
+                'detail' => __('admin.erp_center.module_readiness.common.schema_detail', ['ready' => $tableCount, 'total' => count($spec['tables'])]),
+                'url' => $healthUrl ?? $moduleDetailUrl,
+            ];
+
+            $legalEntityIds = $scopeTablesReady && $viewStoreIds !== []
+                ? DB::table('enterprise_store_scopes')
+                    ->join('enterprise_business_units', 'enterprise_business_units.id', '=', 'enterprise_store_scopes.business_unit_id')
+                    ->join('enterprise_legal_entities', 'enterprise_legal_entities.id', '=', 'enterprise_business_units.legal_entity_id')
+                    ->whereIn('enterprise_store_scopes.store_id', $viewStoreIds)
+                    ->distinct()->pluck('enterprise_legal_entities.id')->map(static fn ($id): int => (int) $id)->all()
+                : [];
+            $checks = [];
+            foreach ($spec['checks'] as $check) {
+                $count = 0;
+                if (isset($availableTables[$check['table']])) {
+                    $query = DB::table($check['table']);
+                    if ($check['scope'] === 'store') {
+                        $query->whereIn('store_id', $viewStoreIds);
+                    } elseif ($check['scope'] === 'legal_entity') {
+                        $query->whereIn('legal_entity_id', $legalEntityIds);
+                    } elseif ($check['scope'] === 'report_store') {
+                        $query->where(function ($scope) use ($viewStoreIds, $legalEntityIds): void {
+                            $scope->where(function ($storeScope) use ($viewStoreIds): void {
+                                $storeScope->where('scope_type', 'store')->whereIn('scope_id', $viewStoreIds);
+                            });
+                            if ($legalEntityIds !== []) {
+                                $scope->orWhere(function ($entityScope) use ($legalEntityIds): void {
+                                    $entityScope->where('scope_type', 'legal_entity')->whereIn('scope_id', $legalEntityIds);
+                                });
+                            }
+                        })->where('requested_by', $actor->getKey());
+                    }
+                    if (isset($check['column'])) {
+                        $query->where($check['column'], $check['value']);
+                    }
+                    if ($check['scope'] === 'inventory') {
+                        $query->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+                            ->whereIn('warehouses.store_id', $viewStoreIds);
+                    } elseif ($check['scope'] === 'movement') {
+                        $query->join('inventories', 'inventories.id', '=', 'stock_movements.inventory_id')
+                            ->join('warehouses', 'warehouses.id', '=', 'inventories.warehouse_id')
+                            ->whereIn('warehouses.store_id', $viewStoreIds);
+                    }
+                    $count = (int) $query->count();
+                }
+
+                // A step may deep-link only through a business route already
+                // admitted by the exact module card; unready modules keep
+                // actionable diagnostics instead of dead operational CTAs.
+                $url = $moduleUrl !== null && $check['tab'] !== null && Route::has($spec['route'])
+                    ? route($spec['route'], ['tab' => $check['tab']])
+                    : $moduleUrl;
+                $checks[] = [
+                    'key' => $check['key'],
+                    'title' => __('admin.erp_center.module_readiness.'.$key.'.'.$check['key'].'.title'),
+                    'complete' => $count > 0,
+                    'detail' => __('admin.erp_center.module_readiness.'.$key.'.'.$check['key'].'.detail', ['count' => $count]),
+                    'url' => $url,
+                ];
+            }
+            array_push($steps, ...$checks);
+            $steps[] = [
+                'key' => 'health',
+                'title' => $moduleTitle('health'),
+                'complete' => ($card['health'] ?? null) === 'healthy',
+                'detail' => __('admin.erp_center.module_readiness.common.health_detail', ['state' => __('admin.erp_center.health_statuses.'.($card['health'] ?? 'unknown'))]),
+                'url' => $healthUrl ?? $moduleDetailUrl,
+            ];
+            $reports[$key] = $steps;
+        }
+
+        return $reports;
+    }
+
+    /** @param list<array<string,mixed>> $cards
+     * @return list<array{key:string,complete:bool,detail:string,url:?string}>
+     */
+    private function treasuryReadinessSteps(User $actor, array $cards): array
+    {
+        $card = collect($cards)->firstWhere('key', 'treasury');
+        if (! is_array($card)) {
+            return [];
+        }
+
+        $storeIds = $this->operationalTenants->allowedStoreIds($actor, 'finance.view', self::WHOLESALE_CHANNEL);
+        $manageStoreIds = $this->operationalTenants->allowedStoreIds($actor, 'finance.manage', self::WHOLESALE_CHANNEL);
+        // Treasury Master is a channel-agnostic Retail/Wholesale workspace,
+        // while the ERP readiness report is exclusively Wholesale. Linking
+        // there can expose Retail cashboxes/bank accounts in a B2B journey.
+        // Do not advertise a cross-channel setup link until that destination
+        // accepts and enforces a B2B tenant context server-side.
+        $masterUrl = null;
+        $treasuryUrl = is_string($card['url']) ? $card['url'] : null;
+        $canManagePlatform = Gate::forUser($actor)->allows('platform.manage');
+        $organizationUrl = $canManagePlatform && Route::has('admin.enterprise-organizations.index')
+            ? route('admin.enterprise-organizations.index') : null;
+        $securityUrl = Gate::forUser($actor)->allows('security.view') && Route::has('admin.security.index')
+            ? route('admin.security.index') : null;
+        $moduleDetailUrl = $canManagePlatform && Route::has('admin.enterprise-modules.show')
+            ? route('admin.enterprise-modules.show', ['module' => 'treasury'])
+            : ($canManagePlatform && Route::has('admin.enterprise-modules.index') ? route('admin.enterprise-modules.index') : null);
+        $healthUrl = Route::has('admin.enterprise-system-health.index')
+            && ($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('platform.manage'))
+                ? route('admin.enterprise-system-health.index')
+                : null;
+        $availableTables = array_fill_keys(Schema::getTableListing(), true);
+        $steps = [];
+
+        $manifestVersion = config('enterprise_modules.modules.treasury.version');
+        $certifiedVersion = config('enterprise_module_readiness.certified_versions.treasury');
+        $steps[] = [
+            'key' => 'module_certification',
+            'complete' => is_int($manifestVersion) && $certifiedVersion === $manifestVersion,
+            'detail' => __('admin.erp_center.treasury_readiness.steps.module_certification.detail', [
+                'current' => (string) $manifestVersion,
+                'certified' => $certifiedVersion === null ? __('admin.erp_center.treasury_readiness.steps.none') : (string) $certifiedVersion,
+            ]),
+            'url' => $moduleDetailUrl,
+        ];
+        $steps[] = [
+            'key' => 'module_access',
+            'complete' => ($card['status'] ?? null) === 'available',
+            'detail' => __('admin.erp_center.treasury_readiness.steps.module_access.detail', [
+                'state' => __('admin.erp_center.statuses.'.($card['status'] ?? 'disabled')),
+            ]),
+            'url' => $moduleDetailUrl,
+        ];
+
+        $requiredTables = [
+            'enterprise_store_scopes', 'enterprise_companies', 'enterprise_legal_entities',
+            'enterprise_business_units', 'enterprise_cashboxes', 'enterprise_bank_accounts',
+            'enterprise_treasury_receipts', 'enterprise_treasury_payments',
+            'enterprise_treasury_reconciliations', 'enterprise_treasury_reconciliation_lines',
+            'enterprise_treasury_cash_closings', 'enterprise_treasury_cheques',
+            'enterprise_treasury_cheque_transitions', 'enterprise_treasury_integration_events',
+            'enterprise_treasury_facilities', 'enterprise_treasury_drawdowns',
+            'enterprise_treasury_repayments', 'enterprise_treasury_investments',
+        ];
+        $existingTables = count(array_filter($requiredTables, fn (string $table): bool => isset($availableTables[$table])));
+        $steps[] = [
+            'key' => 'schema',
+            'complete' => $existingTables === count($requiredTables),
+            'detail' => __('admin.erp_center.treasury_readiness.steps.schema.detail', ['existing' => $existingTables, 'total' => count($requiredTables)]),
+            'url' => $healthUrl ?? $moduleDetailUrl,
+        ];
+
+        $activeStores = $storeIds === [] ? collect() : Store::query()
+            ->whereIn('id', $storeIds)
+            ->where('is_active', true)
+            ->get(['id', 'name']);
+        $hierarchyTablesReady = isset($availableTables['enterprise_store_scopes'])
+            && isset($availableTables['enterprise_business_units'])
+            && isset($availableTables['enterprise_legal_entities'])
+            && isset($availableTables['enterprise_companies']);
+        $storesWithHierarchy = $hierarchyTablesReady && $storeIds !== []
+            ? (int) DB::table('enterprise_store_scopes')
+                ->join('enterprise_business_units', 'enterprise_business_units.id', '=', 'enterprise_store_scopes.business_unit_id')
+                ->join('enterprise_legal_entities', 'enterprise_legal_entities.id', '=', 'enterprise_business_units.legal_entity_id')
+                ->join('enterprise_companies', 'enterprise_companies.id', '=', 'enterprise_legal_entities.company_id')
+                ->whereIn('enterprise_store_scopes.store_id', $storeIds)
+                ->distinct('enterprise_store_scopes.store_id')
+                ->count('enterprise_store_scopes.store_id')
+            : 0;
+        $steps[] = [
+            'key' => 'organization',
+            'complete' => $activeStores->isNotEmpty() && $storesWithHierarchy === $activeStores->count(),
+            'detail' => __('admin.erp_center.treasury_readiness.steps.organization.detail', ['count' => $activeStores->count(), 'configured' => $storesWithHierarchy]),
+            'url' => $organizationUrl,
+        ];
+
+        $steps[] = [
+            'key' => 'finance_access',
+            'complete' => $storeIds !== [] && array_diff($storeIds, $manageStoreIds) === [],
+            'detail' => __('admin.erp_center.treasury_readiness.steps.finance_access.detail'),
+            'url' => $securityUrl,
+        ];
+
+        $capabilities = config('enterprise_modules.modules.treasury.capabilities', []);
+        $capabilityChecks = count($storeIds) * (is_array($capabilities) ? count($capabilities) : 0);
+        $grantedCapabilityChecks = 0;
+        foreach ($storeIds as $storeId) {
+            foreach (is_array($capabilities) ? $capabilities : [] as $capability) {
+                if (is_string($capability) && $this->entitlements->allows(
+                    'treasury',
+                    new EntitlementScope(EntitlementScope::STORE, (int) $storeId),
+                    $capability,
+                )) {
+                    $grantedCapabilityChecks++;
+                }
+            }
+        }
+        $steps[] = [
+            'key' => 'capabilities',
+            'complete' => $capabilityChecks > 0 && $grantedCapabilityChecks === $capabilityChecks,
+            'detail' => __('admin.erp_center.treasury_readiness.steps.capabilities.detail', [
+                'granted' => $grantedCapabilityChecks,
+                'total' => $capabilityChecks,
+            ]),
+            'url' => $moduleDetailUrl,
+        ];
+
+        $cashboxTableReady = isset($availableTables['enterprise_cashboxes']);
+        $bankAccountTableReady = isset($availableTables['enterprise_bank_accounts']);
+        $storesWithCashbox = $storeIds === [] || ! $cashboxTableReady ? 0 : EnterpriseCashbox::query()
+            ->whereIn('store_id', $storeIds)->where('is_active', true)->distinct('store_id')->count('store_id');
+        $steps[] = [
+            'key' => 'cashbox',
+            'complete' => $cashboxTableReady && $storeIds !== [] && $storesWithCashbox === count($storeIds),
+            'detail' => __('admin.erp_center.treasury_readiness.steps.cashbox.detail', ['configured' => $storesWithCashbox, 'stores' => count($storeIds)]),
+            'url' => $masterUrl,
+        ];
+
+        $storesWithBankAccount = $storeIds === [] || ! $bankAccountTableReady ? 0 : EnterpriseBankAccount::query()
+            ->whereIn('store_id', $storeIds)->where('is_active', true)->distinct('store_id')->count('store_id');
+        $steps[] = [
+            'key' => 'bank_account',
+            'complete' => $bankAccountTableReady && $storeIds !== [] && $storesWithBankAccount === count($storeIds),
+            'detail' => __('admin.erp_center.treasury_readiness.steps.bank_account.detail', ['configured' => $storesWithBankAccount, 'stores' => count($storeIds)]),
+            'url' => $masterUrl,
+        ];
+
+        $receiptTableReady = isset($availableTables['enterprise_treasury_receipts']);
+        $paymentTableReady = isset($availableTables['enterprise_treasury_payments']);
+        $reconciliationTableReady = isset($availableTables['enterprise_treasury_reconciliations']);
+        $cashClosingTableReady = isset($availableTables['enterprise_treasury_cash_closings']);
+        $postedReceipts = $storeIds === [] || ! $receiptTableReady ? 0 : DB::table('enterprise_treasury_receipts')
+            ->whereIn('store_id', $storeIds)->where('status', 'posted')->count();
+        $postedPayments = $storeIds === [] || ! $paymentTableReady ? 0 : DB::table('enterprise_treasury_payments')
+            ->whereIn('store_id', $storeIds)->where('status', 'posted')->count();
+        $closedReconciliations = $storeIds === [] || ! $reconciliationTableReady ? 0 : DB::table('enterprise_treasury_reconciliations')
+            ->whereIn('store_id', $storeIds)->where('status', 'closed')->count();
+        $closedCashClosings = $storeIds === [] || ! $cashClosingTableReady ? 0 : DB::table('enterprise_treasury_cash_closings')
+            ->whereIn('store_id', $storeIds)->where('status', 'closed')->count();
+        $separatedReceipts = $storeIds === [] || ! $receiptTableReady ? 0 : DB::table('enterprise_treasury_receipts')
+            ->whereIn('store_id', $storeIds)->where('status', 'posted')->whereColumn('requested_by', '!=', 'posted_by')->count();
+        $separatedPayments = $storeIds === [] || ! $paymentTableReady ? 0 : DB::table('enterprise_treasury_payments')
+            ->whereIn('store_id', $storeIds)->where('status', 'posted')->whereColumn('requested_by', '!=', 'posted_by')->count();
+        $separatedReconciliations = $storeIds === [] || ! $reconciliationTableReady ? 0 : DB::table('enterprise_treasury_reconciliations')
+            ->whereIn('store_id', $storeIds)->where('status', 'closed')->whereColumn('requested_by', '!=', 'closed_by')->count();
+        $separatedCashClosings = $storeIds === [] || ! $cashClosingTableReady ? 0 : DB::table('enterprise_treasury_cash_closings')
+            ->whereIn('store_id', $storeIds)->where('status', 'closed')->whereColumn('requested_by', '!=', 'closed_by')->count();
+        $steps[] = [
+            'key' => 'maker_checker',
+            'complete' => $separatedReceipts > 0 && $separatedPayments > 0
+                && $separatedReconciliations > 0 && $separatedCashClosings > 0,
+            'detail' => __('admin.erp_center.treasury_readiness.steps.maker_checker.detail', [
+                'receipts' => $separatedReceipts,
+                'payments' => $separatedPayments,
+                'reconciliations' => $separatedReconciliations,
+                'closings' => $separatedCashClosings,
+            ]),
+            'url' => $securityUrl,
+        ];
+        $steps[] = [
+            'key' => 'receipts_payments',
+            'complete' => $receiptTableReady && $paymentTableReady && $postedReceipts > 0 && $postedPayments > 0,
+            'detail' => __('admin.erp_center.treasury_readiness.steps.receipts_payments.detail', ['receipts' => $postedReceipts, 'payments' => $postedPayments]),
+            'url' => $treasuryUrl ? $treasuryUrl.'?tab=receipts' : null,
+        ];
+        $steps[] = [
+            'key' => 'reconciliation_cash_closing',
+            'complete' => $reconciliationTableReady && $cashClosingTableReady && $closedReconciliations > 0 && $closedCashClosings > 0,
+            'detail' => __('admin.erp_center.treasury_readiness.steps.reconciliation_cash_closing.detail', ['reconciliations' => $closedReconciliations, 'closings' => $closedCashClosings]),
+            'url' => $treasuryUrl ? $treasuryUrl.'?tab=reconciliation' : null,
+        ];
+        $steps[] = [
+            'key' => 'health',
+            'complete' => ($card['health'] ?? null) === 'healthy',
+            'detail' => __('admin.erp_center.treasury_readiness.steps.health.detail', [
+                'state' => __('admin.erp_center.health_statuses.'.($card['health'] ?? 'unknown')),
+            ]),
+            'url' => $healthUrl ?? $moduleDetailUrl,
+        ];
+
+        return $steps;
     }
 
     private function bootstrapLocalSuperAdminModules(User $actor): void
@@ -274,12 +714,17 @@ final class ErpCenterController extends Controller
         string $route,
         array $params = [],
     ): ?array {
-        if (! $this->navigation->hasAnyPermissionInScope($actor, $permissions)) {
+        // A platform owner may inspect setup diagnostics without a store,
+        // never perform business operations on that basis. Other actors must
+        // hold a real authorized Wholesale scope, regardless of broad
+        // platform entitlements or unrelated Retail grants.
+        $hasWholesaleScope = $this->hasWholesalePermissionInScope($actor, $permissions);
+        if (! $hasWholesaleScope && ! $actor->hasRole('SUPER_ADMIN')) {
             return null;
         }
 
         $state = $this->modules->state($moduleCode);
-        $entitled = $state === ModuleState::ENABLED && $this->isEntitled($actor, $moduleCode);
+        $entitled = $state === ModuleState::ENABLED && $this->isEntitled($actor, $moduleCode, $permissions);
         $healthStatus = null;
         $denialReason = null;
 
@@ -342,7 +787,7 @@ final class ErpCenterController extends Controller
         string $route,
         array $params = [],
     ): ?array {
-        if ($permissions !== [] && ! $this->navigation->hasAnyPermissionInScope($actor, $permissions)) {
+        if ($permissions !== [] && ! $this->hasWholesalePermissionInScope($actor, $permissions)) {
             return null;
         }
 
@@ -372,18 +817,20 @@ final class ErpCenterController extends Controller
         ];
     }
 
-    private function isEntitled(User $actor, string $moduleCode): bool
+    private function isEntitled(User $actor, string $moduleCode, array $permissions): bool
     {
-        if ($this->entitlements->allows($moduleCode, EntitlementScope::platform())) {
-            return true;
-        }
-
-        foreach ($this->tenants->retailStoreIds($actor) as $storeId) {
-            if ($this->entitlements->allows(
-                $moduleCode,
-                new EntitlementScope(EntitlementScope::STORE, $storeId),
-            )) {
-                return true;
+        // A PLATFORM allow is only inherited by an effective STORE scope.
+        // Resolve each permitted B2B store: an explicit STORE deny must
+        // override PLATFORM allow before any operational link is advertised.
+        // No Wholesale store means diagnostics only, including Super Admin.
+        foreach ($permissions as $permission) {
+            foreach ($this->operationalTenants->allowedStoreIds($actor, $permission, self::WHOLESALE_CHANNEL) as $storeId) {
+                if ($this->entitlements->allows(
+                    $moduleCode,
+                    new EntitlementScope(EntitlementScope::STORE, $storeId),
+                )) {
+                    return true;
+                }
             }
         }
 
@@ -421,7 +868,8 @@ final class ErpCenterController extends Controller
             $card = $cardsByKey->get($definition['card']);
             if (! is_array($card)
                 || ! in_array($card['status'], ['available', 'degraded'], true)
-                || ! $this->navigation->hasAnyPermissionInScope($actor, [$definition['permission']])) {
+                || (! $actor->hasRole('SUPER_ADMIN')
+                    && ! $this->hasWholesalePermissionInScope($actor, [$definition['permission']]))) {
                 continue;
             }
 
@@ -433,7 +881,8 @@ final class ErpCenterController extends Controller
                 'all',
                 0,
                 1,
-                route('admin.action-center.index'),
+                route('admin.action-center.index', ['store_channel' => 'b2b']),
+                ['store_channel' => self::WHOLESALE_CHANNEL],
             );
 
             $rows[] = [
@@ -441,7 +890,7 @@ final class ErpCenterController extends Controller
                 'label' => __('enterprise_my_work.modules.'.$module),
                 'total' => $result['summary']['total'],
                 'exceptions' => $result['summary']['overdue'] + $result['summary']['attention'],
-                'url' => route('admin.action-center.index', ['module' => $module]),
+                'url' => route('admin.action-center.index', ['store_channel' => 'b2b', 'module' => $module]),
             ];
         }
 
@@ -454,13 +903,27 @@ final class ErpCenterController extends Controller
     private function failedReportJobs(User $actor, array $cards): array
     {
         $biCard = collect($cards)->firstWhere('key', 'bi');
-        $biOperational = is_array($biCard)
+        $storeIds = $this->operationalTenants->allowedStoreIds($actor, 'reports.view', self::WHOLESALE_CHANNEL);
+        $legalEntityIds = $storeIds !== []
+            && Schema::hasTable('enterprise_store_scopes')
+            && Schema::hasTable('enterprise_business_units')
+            && Schema::hasTable('enterprise_legal_entities')
+                ? DB::table('enterprise_store_scopes')
+                    ->join('enterprise_business_units', 'enterprise_business_units.id', '=', 'enterprise_store_scopes.business_unit_id')
+                    ->join('enterprise_legal_entities', 'enterprise_legal_entities.id', '=', 'enterprise_business_units.legal_entity_id')
+                    ->whereIn('enterprise_store_scopes.store_id', $storeIds)
+                    ->distinct()->pluck('enterprise_legal_entities.id')->map(static fn ($id): int => (int) $id)->all()
+                : [];
+        // ERP reporting is exclusively Wholesale. An unscoped PLATFORM export
+        // has no authoritative channel/store owner and may contain Retail
+        // data, so never count it in a B2B-only KPI (even for Super Admin).
+        $biOperational = $storeIds !== []
+            && is_array($biCard)
             && in_array($biCard['status'], ['available', 'degraded'], true)
             && is_string($biCard['url'])
             && $biCard['url'] !== '';
 
-        if (! $biOperational
-            || ! ($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('reports.view'))) {
+        if (! $biOperational) {
             return ['available' => false, 'count' => null, 'url' => null];
         }
 
@@ -472,6 +935,12 @@ final class ErpCenterController extends Controller
 
         $failedExports = $hasExports
             ? (int) DB::table('enterprise_report_exports')
+                ->where(function ($scope) use ($storeIds, $legalEntityIds): void {
+                    $scope->where(fn ($storeScope) => $storeScope->where('scope_type', 'store')->whereIn('scope_id', $storeIds));
+                    if ($legalEntityIds !== []) {
+                        $scope->orWhere(fn ($entityScope) => $entityScope->where('scope_type', 'legal_entity')->whereIn('scope_id', $legalEntityIds));
+                    }
+                })
                 ->when(! $actor->hasRole('SUPER_ADMIN'), fn ($query) => $query->where('requested_by', $actor->id))
                 ->where('status', 'failed')
                 ->count()
@@ -479,6 +948,12 @@ final class ErpCenterController extends Controller
 
         $failedSchedules = $hasSchedules
             ? (int) DB::table('enterprise_scheduled_reports')
+                ->where(function ($scope) use ($storeIds, $legalEntityIds): void {
+                    $scope->where(fn ($storeScope) => $storeScope->where('scope_type', 'store')->whereIn('scope_id', $storeIds));
+                    if ($legalEntityIds !== []) {
+                        $scope->orWhere(fn ($entityScope) => $entityScope->where('scope_type', 'legal_entity')->whereIn('scope_id', $legalEntityIds));
+                    }
+                })
                 ->when(! $actor->hasRole('SUPER_ADMIN'), fn ($query) => $query->where('requested_by', $actor->id))
                 ->whereNotNull('last_error')
                 ->count()
@@ -489,5 +964,17 @@ final class ErpCenterController extends Controller
             'count' => $failedExports + $failedSchedules,
             'url' => $biCard['url'],
         ];
+    }
+
+    /** @param list<string> $permissions */
+    private function hasWholesalePermissionInScope(User $actor, array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if ($this->operationalTenants->allowedStoreIds($actor, $permission, self::WHOLESALE_CHANNEL) !== []) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -13,6 +13,7 @@ final class OperationalTenantScope
     public function allowedStoreIds(User $user, string $permission, ?string $channel = null): array
     {
         $channel = $channel === null ? null : strtoupper($channel);
+        $roleChannel = $channel ?? 'B2C';
 
         // A disabled account must never acquire operational tenant scopes,
         // including through the Super Admin shortcut.
@@ -35,7 +36,7 @@ final class OperationalTenantScope
             ->where('roles.scope', 'store')
             ->where('permissions.code', $permission)
             ->where('stores.is_active', true)
-            ->where('store_types.code', 'B2C')
+            ->where('store_types.code', $roleChannel)
             ->when($channel !== null, fn ($query) => $query->where('store_types.code', $channel))
             ->pluck('stores.id')
             ->map(static fn ($id): int => (int) $id);

@@ -8,6 +8,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 final class EnterpriseMyWork
@@ -43,22 +44,25 @@ final class EnterpriseMyWork
         array $filters = [],
     ): array {
         $search = trim(Str::limit($search, 100, ''));
+        $storeChannel = isset($filters['store_channel']) && is_string($filters['store_channel'])
+            ? strtoupper($filters['store_channel'])
+            : null;
         $items = collect();
 
         if ($module === 'all' || $module === 'procurement') {
-            $items = $items->concat($this->procurement($actor));
+            $items = $items->concat($this->procurement($actor, $storeChannel));
         }
         if ($module === 'all' || $module === 'wms') {
-            $items = $items->concat($this->wms($actor));
+            $items = $items->concat($this->wms($actor, $storeChannel));
         }
         if ($module === 'all' || $module === 'finance') {
-            $items = $items->concat($this->finance($actor));
+            $items = $items->concat($this->finance($actor, $storeChannel));
         }
         if ($module === 'all' || $module === 'treasury') {
-            $items = $items->concat($this->treasury($actor));
+            $items = $items->concat($this->treasury($actor, $storeChannel));
         }
         if ($module === 'all' || $module === 'customer_service') {
-            $items = $items->concat($this->customerService($actor));
+            $items = $items->concat($this->customerService($actor, $storeChannel));
         }
 
         $items = $this->attachDelegationContext($actor, $items);
@@ -126,7 +130,7 @@ final class EnterpriseMyWork
             })
             ->values();
 
-        $completion = $this->completionMetrics($actor);
+        $completion = $this->completionMetrics($actor, $storeChannel);
         $summary = [
             'total' => $items->count(),
             'assigned_to_me' => $items->filter(
@@ -171,6 +175,9 @@ final class EnterpriseMyWork
                 $paginator->appends($key, $value);
             }
         }
+        if ($storeChannel !== null) {
+            $paginator->appends('store_channel', strtolower($storeChannel));
+        }
 
         return [
             'items' => $paginator,
@@ -183,13 +190,13 @@ final class EnterpriseMyWork
     }
 
     /** @return Collection<int,array<string,mixed>> */
-    private function procurement(User $actor): Collection
+    private function procurement(User $actor, ?string $storeChannel = null): Collection
     {
         if (! $this->modules->isEnabled('procurement')) {
             return collect();
         }
 
-        $storeIds = $this->scope->allowedStoreIds($actor, 'procurement.purchase_requests.view');
+        $storeIds = $this->scope->allowedStoreIds($actor, 'procurement.purchase_requests.view', $storeChannel);
         if ($storeIds === []) {
             return collect();
         }
@@ -225,13 +232,13 @@ final class EnterpriseMyWork
     }
 
     /** @return Collection<int,array<string,mixed>> */
-    private function wms(User $actor): Collection
+    private function wms(User $actor, ?string $storeChannel = null): Collection
     {
         if (! $this->modules->isEnabled('inventory_wms')) {
             return collect();
         }
 
-        $storeIds = $this->scope->allowedStoreIds($actor, 'inventory.view');
+        $storeIds = $this->scope->allowedStoreIds($actor, 'inventory.view', $storeChannel);
         if ($storeIds === []) {
             return collect();
         }
@@ -320,7 +327,7 @@ final class EnterpriseMyWork
     }
 
     /** @return Collection<int,array<string,mixed>> */
-    private function finance(User $actor): Collection
+    private function finance(User $actor, ?string $storeChannel = null): Collection
     {
         if (! $this->modules->isEnabled('finance') || ! ($actor->hasRole('SUPER_ADMIN') || $actor->hasPermission('finance.view'))) {
             return collect();
@@ -328,6 +335,25 @@ final class EnterpriseMyWork
 
         $query = DB::table('enterprise_finance_journals')
             ->where('status', 'draft');
+
+        if ($storeChannel !== null) {
+            $storeIds = $this->scope->allowedStoreIds($actor, 'finance.view', $storeChannel);
+            if ($storeIds === [] || ! Schema::hasTable('enterprise_store_scopes')
+                || ! Schema::hasTable('enterprise_business_units') || ! Schema::hasTable('enterprise_legal_entities')) {
+                return collect();
+            }
+
+            $legalEntityIds = DB::table('enterprise_store_scopes')
+                ->join('enterprise_business_units', 'enterprise_business_units.id', '=', 'enterprise_store_scopes.business_unit_id')
+                ->join('enterprise_legal_entities', 'enterprise_legal_entities.id', '=', 'enterprise_business_units.legal_entity_id')
+                ->whereIn('enterprise_store_scopes.store_id', $storeIds)
+                ->distinct()->pluck('enterprise_legal_entities.id');
+            if ($legalEntityIds->isEmpty()) {
+                return collect();
+            }
+
+            $query->whereIn('legal_entity_id', $legalEntityIds);
+        }
 
         if (! $actor->hasRole('SUPER_ADMIN')) {
             $query->where('requested_by', $actor->getKey());
@@ -357,13 +383,13 @@ final class EnterpriseMyWork
     }
 
     /** @return Collection<int,array<string,mixed>> */
-    private function treasury(User $actor): Collection
+    private function treasury(User $actor, ?string $storeChannel = null): Collection
     {
         if (! $this->modules->isEnabled('treasury')) {
             return collect();
         }
 
-        $storeIds = $this->scope->allowedStoreIds($actor, 'finance.view');
+        $storeIds = $this->scope->allowedStoreIds($actor, 'finance.view', $storeChannel);
         if ($storeIds === []) {
             return collect();
         }
@@ -428,9 +454,9 @@ final class EnterpriseMyWork
     }
 
     /** @return Collection<int,array<string,mixed>> */
-    private function customerService(User $actor): Collection
+    private function customerService(User $actor, ?string $storeChannel = null): Collection
     {
-        $storeIds = $this->scope->allowedStoreIds($actor, 'whatsapp.conversations.view');
+        $storeIds = $this->scope->allowedStoreIds($actor, 'whatsapp.conversations.view', $storeChannel);
         if ($storeIds === []) {
             return collect();
         }
@@ -657,16 +683,53 @@ final class EnterpriseMyWork
         ];
     }
 
-    private function completionMetrics(User $actor): array
+    private function completionMetrics(User $actor, ?string $storeChannel = null): array
     {
-        $rows = DB::table('enterprise_workflow_steps as step')
+        $query = DB::table('enterprise_workflow_steps as step')
             ->join('enterprise_workflow_requests as request', 'request.id', '=', 'step.workflow_request_id')
             ->where('step.actor_id', $actor->getKey())
             ->whereIn('step.status', ['APPROVED', 'REJECTED'])
             ->whereNotNull('step.decided_at')
-            ->where('step.decided_at', '>=', now()->subDays(30))
-            ->orderBy('step.decided_at')
-            ->get(['step.decided_at', 'request.created_at']);
+            ->where('step.decided_at', '>=', now()->subDays(30));
+
+        if ($storeChannel !== null) {
+            $channel = strtoupper($storeChannel);
+            $hasEntityScopes = Schema::hasTable('enterprise_store_scopes')
+                && Schema::hasTable('enterprise_business_units')
+                && Schema::hasTable('enterprise_legal_entities');
+            $query->where(function ($scope) use ($channel, $hasEntityScopes): void {
+                $scope->where(function ($storeScope) use ($channel): void {
+                    $storeScope->where('request.scope_type', 'store')
+                        ->whereExists(function ($store) use ($channel): void {
+                            $store->selectRaw('1')
+                                ->from('stores')
+                                ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                                ->whereColumn('stores.id', 'request.scope_id')
+                                ->where('stores.is_active', true)
+                                ->where('store_types.code', $channel);
+                        });
+                });
+
+                if ($hasEntityScopes) {
+                    $scope->orWhere(function ($entityScope) use ($channel): void {
+                        $entityScope->where('request.scope_type', 'legal_entity')
+                            ->whereExists(function ($entity) use ($channel): void {
+                                $entity->selectRaw('1')
+                                    ->from('enterprise_store_scopes')
+                                    ->join('enterprise_business_units', 'enterprise_business_units.id', '=', 'enterprise_store_scopes.business_unit_id')
+                                    ->join('enterprise_legal_entities', 'enterprise_legal_entities.id', '=', 'enterprise_business_units.legal_entity_id')
+                                    ->join('stores', 'stores.id', '=', 'enterprise_store_scopes.store_id')
+                                    ->join('store_types', 'store_types.id', '=', 'stores.store_type_id')
+                                    ->whereColumn('enterprise_legal_entities.id', 'request.scope_id')
+                                    ->where('stores.is_active', true)
+                                    ->where('store_types.code', $channel);
+                            });
+                    });
+                }
+            });
+        }
+
+        $rows = $query->orderBy('step.decided_at')->get(['step.decided_at', 'request.created_at']);
 
         $trend = [];
         $durations = [];

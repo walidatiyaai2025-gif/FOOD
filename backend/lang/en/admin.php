@@ -111,6 +111,112 @@ return [
             'degraded' => 'Health: degraded',
             'error' => 'Health: error',
             'maintenance' => 'Health: maintenance',
+            'unknown' => 'Health: unavailable',
+        ],
+        'treasury_readiness' => [
+            'summary' => ':complete of :total Treasury operating steps complete',
+            'ready' => 'Treasury is fully configured and operating checks have passed',
+            'complete' => 'Complete',
+            'incomplete' => 'Incomplete',
+            'open_step' => 'Open setup step',
+            'steps' => [
+                'module_certification' => [
+                    'title' => 'Enable and certify the Treasury version',
+                    'detail' => 'Current version :current; certified version :certified. The current version needs certification after its operating evidence is reviewed.',
+                ],
+                'module_access' => [
+                    'title' => 'Module access readiness',
+                    'detail' => 'Current module state: :state. Enable it, certify its version and pass the health check.',
+                ],
+                'schema' => [
+                    'title' => 'Treasury database schema',
+                    'detail' => 'Required tables present: :existing of :total. Run pending migrations before operating the module.',
+                ],
+                'organization' => [
+                    'title' => 'Company, stores and organization scope',
+                    'detail' => 'Active stores visible: :count; stores with a complete organization scope: :configured. Each store needs a company, legal entity and currency.',
+                ],
+                'finance_access' => [
+                    'title' => 'Finance and Treasury permissions',
+                    'detail' => 'Grant finance view and manage access for the stores in use, plus the required Treasury management and approval capabilities.',
+                ],
+                'capabilities' => [
+                    'title' => 'Treasury capability entitlements',
+                    'detail' => 'Capabilities effectively granted: :granted of :total across accessible stores. Configure entitlements at store scope.',
+                ],
+                'cashbox' => [
+                    'title' => 'Active cashbox',
+                    'detail' => 'Stores with an active cashbox: :configured of :stores.',
+                ],
+                'bank_account' => [
+                    'title' => 'Active bank account',
+                    'detail' => 'Stores with an active bank account: :configured of :stores.',
+                ],
+                'maker_checker' => [
+                    'title' => 'Separate creation and approval',
+                    'detail' => 'Transactions with separate makers and approvers: receipts :receipts, payments :payments, reconciliations :reconciliations, closings :closings. Each workflow needs evidence of separation.',
+                ],
+                'receipts_payments' => [
+                    'title' => 'Post a test receipt and payment',
+                    'detail' => 'Posted transactions in stores this account can access: receipts :receipts, payments :payments. At least one of each must succeed.',
+                ],
+                'reconciliation_cash_closing' => [
+                    'title' => 'Reconcile a bank statement and close cash',
+                    'detail' => 'Closed bank reconciliations: :reconciliations; closed cash closings: :closings. Both workflows must be completed.',
+                ],
+                'health' => [
+                    'title' => 'Treasury module health check',
+                    'detail' => 'Current health result: :state.',
+                ],
+                'none' => 'none',
+            ],
+        ],
+        'module_readiness' => [
+            'summary' => ':complete of :total module operating steps complete',
+            'complete' => 'The module is fully configured and operating checks have passed',
+            'done' => 'Complete',
+            'missing' => 'Incomplete',
+            'open_step' => 'Open setup step',
+            'common' => [
+                'lifecycle' => ['title' => 'Enable the module', 'detail' => 'Current state: :state. Enable the module before using it.'],
+                'certification' => ['title' => 'Certify the module version', 'detail' => 'Current version :current; certified version :certified. The current version needs certification after its operating evidence is reviewed.'],
+                'scope' => ['title' => 'Organization and store setup', 'detail' => 'Stores with a complete organization scope: :ready of :total. Assign every store to a company and legal entity.'],
+                'permissions' => ['title' => 'User permissions', 'detail' => 'Stores with the required view and manage permissions: :ready of :total.'],
+                'capabilities' => ['title' => 'Module capability entitlements', 'detail' => 'Capabilities effectively granted across stores: :ready of :total.'],
+                'schema' => ['title' => 'Database schema and migrations', 'detail' => 'Required tables present: :ready of :total. Run pending migrations.'],
+                'health' => ['title' => 'Module health check', 'detail' => 'Current health result: :state.'],
+                'lifecycle_detail' => 'Current module operating state: :state.',
+                'certification_detail' => 'Version in use: :current. Certified version: :certified. Certify the version in use after reviewing its operating evidence.',
+                'scope_detail' => 'Stores linked to a company and legal entity: :ready of :total. Complete any missing store links.',
+                'permissions_detail' => 'Stores where you have both view and manage permissions: :ready of :total. Grant access for the remaining stores.',
+                'capabilities_detail' => 'Module operation permissions granted across stores: :ready of :total. Grant the missing permissions.',
+                'schema_detail' => 'Required database tables present: :ready of :total. Apply the missing database updates.',
+                'health_detail' => 'Current module health check result: :state.',
+                'none' => 'none',
+            ],
+            'procurement' => [
+                'suppliers' => ['title' => 'Active supplier', 'detail' => 'Active suppliers in accessible stores: :count.'],
+                'approved_requests' => ['title' => 'Approved purchase request', 'detail' => 'Approved purchase requests: :count.'],
+                'issued_orders' => ['title' => 'Issued purchase order', 'detail' => 'Issued purchase orders: :count.'],
+                'posted_receipts' => ['title' => 'Posted goods receipt', 'detail' => 'Posted goods receipts: :count.'],
+                'handed_off_invoices' => ['title' => 'Supplier invoice handed to Finance', 'detail' => 'Supplier invoices handed off: :count.'],
+            ],
+            'wms' => [
+                'warehouses' => ['title' => 'Active warehouse for every store', 'detail' => 'Stores with active warehouses: :count.'],
+                'inventory_balances' => ['title' => 'Recorded inventory balances', 'detail' => 'Inventory balance records: :count.'],
+                'stock_movements' => ['title' => 'Recorded stock movement', 'detail' => 'Stock movements: :count.'],
+                'completed_counts' => ['title' => 'Completed inventory count', 'detail' => 'Completed inventory counts: :count.'],
+                'received_transfers' => ['title' => 'Received warehouse transfer', 'detail' => 'Received transfers: :count.'],
+            ],
+            'finance' => [
+                'accounts' => ['title' => 'Active chart of accounts', 'detail' => 'Active finance accounts: :count.'],
+                'fiscal_periods' => ['title' => 'Open fiscal period', 'detail' => 'Open fiscal periods: :count.'],
+                'posted_journals' => ['title' => 'Posted journal entry', 'detail' => 'Posted journals: :count.'],
+                'ledger_entries' => ['title' => 'General ledger activity', 'detail' => 'Recorded ledger entries: :count.'],
+            ],
+            'bi' => [
+                'completed_exports' => ['title' => 'Successful report export', 'detail' => 'Successful report exports created by the current user: :count.'],
+            ],
         ],
         'kpis' => [
             'pending_approvals' => [

@@ -12,6 +12,12 @@ return [
     'state' => 'حالة دورة الحياة',
     'readiness' => 'الجاهزية التشغيلية',
     'readiness_note' => 'التفعيل حالة لدورة الحياة وليس اعتمادًا للتشغيل. يلزم اعتماد الإصدار المحدد ونجاح فحص الصحة معًا.',
+    'readiness_report' => [
+        'missing_version_certification' => 'لا يوجد اعتماد تشغيلي مسجل لإصدار التعريف الحالي (:current). الإصدار المعتمد المسجل: :certified.',
+        'certification_requirement' => 'يلزم أن يجتاز هذا الإصدار أدلة القبول التشغيلي وتتم مراجعتها قبل اعتماده.',
+        'version_value' => 'الإصدار :version',
+        'no_certified_version' => 'لا يوجد',
+    ],
     'readiness_states' => [
         'inactive' => 'غير مفعلة',
         'uncertified' => 'غير معتمدة',
