@@ -80,6 +80,23 @@ final class SupplierDirectory
             ->withQueryString();
     }
 
+    /**
+     * Use exactly the Create validator, authorization and company-scoped
+     * uniqueness check without persisting a supplier or writing an audit log.
+     * This preflight never certifies an external registration/tax number.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function validateCandidate(
+        User $actor,
+        ResolvedTenantContext $context,
+        array $attributes,
+    ): void {
+        $scope = $this->authorizedScope($actor, $context, self::MANAGE_PERMISSION);
+        $data = $this->validatedSupplier($attributes);
+        $this->assertCodeAvailable($scope, (string) $data['code']);
+    }
+
     /** @param array<string, mixed> $attributes */
     public function create(
         User $actor,
@@ -136,7 +153,16 @@ final class SupplierDirectory
             if (isset($data['scope_type'])) {
                 $data['store_id'] = $data['scope_type'] === 'company' ? null : $scope->storeId;
             }
-            $locked->fill([...$data, 'updated_by' => $actor->id]);
+            $locked->fill($data);
+            // Retrying an already applied edit/archive must not mutate the
+            // record or append another success audit. In particular, a
+            // different replaying actor must not rewrite updated_by when
+            // no business field changed. The row remains scope-locked.
+            if (! $locked->isDirty()) {
+                return $locked->refresh();
+            }
+
+            $locked->updated_by = $actor->id;
             $locked->save();
 
             $this->audit->record(
