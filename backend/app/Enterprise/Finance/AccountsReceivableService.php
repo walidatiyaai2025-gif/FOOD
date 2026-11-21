@@ -72,7 +72,7 @@ final class AccountsReceivableService
 
         $perPage = max(10, min(100, $perPage));
 
-        return $this->documentQuery($scope)
+        return $this->documentQuery($scope, $context)
             ->when(
                 $context->isRetail(),
                 fn (Builder $query): Builder => $query->where('store_id', $scope->storeId),
@@ -120,6 +120,7 @@ final class AccountsReceivableService
             ],
             'store_id' => ['required', 'integer', 'min:1'],
             'customer_id' => ['required', 'integer', 'min:1'],
+            'source_invoice_id' => ['nullable', 'integer', 'min:1'],
             'entry_date' => ['required', 'date'],
             'due_date' => ['required', 'date', 'after_or_equal:entry_date'],
             'amount' => ['required', 'regex:/^\d{1,15}(?:\.\d{1,3})?$/'],
@@ -130,6 +131,14 @@ final class AccountsReceivableService
         ])->validate();
 
         $this->assertStoreInScope($scope, (int) $data['store_id']);
+        if ($context->isWholesale()) {
+            $this->assertStoreChannel((int) $data['store_id'], 'B2B');
+        }
+        // A Retail operator cannot create an AR document in a sibling store,
+        // even when both stores map to the same enterprise legal entity.
+        if ($context->isRetail()) {
+            abort_unless($context->ownsStore((int) $data['store_id']), 404);
+        }
         Customer::query()->findOrFail((int) $data['customer_id']);
         $this->assertPostingAccount($scope, (int) $data['receivable_account_id']);
         $this->assertPostingAccount($scope, (int) $data['offset_account_id']);
@@ -144,9 +153,12 @@ final class AccountsReceivableService
         }
 
         $currency = strtoupper((string) ($data['currency_code'] ?? 'KWD'));
+        $sourceInvoiceId = isset($data['source_invoice_id']) ? (int) $data['source_invoice_id'] : null;
         $description = $this->trimNullable($data['description'] ?? null);
         $idempotencyKey = trim((string) $data['idempotency_key']);
-        $requestHash = hash('sha256', json_encode([
+        // Preserve the historical idempotency hash for manual/legacy AR
+        // documents. A source invoice participates only when explicitly bound.
+        $requestPayload = [
             'store_id' => (int) $data['store_id'],
             'customer_id' => (int) $data['customer_id'],
             'entry_date' => $entryDate,
@@ -156,13 +168,20 @@ final class AccountsReceivableService
             'receivable_account_id' => (int) $data['receivable_account_id'],
             'offset_account_id' => (int) $data['offset_account_id'],
             'description' => $description,
-        ], JSON_THROW_ON_ERROR));
+        ];
+        if ($sourceInvoiceId !== null) {
+            $requestPayload['source_invoice_id'] = $sourceInvoiceId;
+        }
+        $requestHash = hash('sha256', json_encode($requestPayload, JSON_THROW_ON_ERROR));
 
-        $existing = $this->documentQuery($scope)
+        $existing = $this->documentQuery($scope, $context)
             ->where('idempotency_key', $idempotencyKey)
             ->first();
 
-        if ($existing instanceof EnterpriseAccountsReceivableDocument) {
+        // A source-linked draft is not trusted forever: even a matching
+        // idempotency retry must recheck the invoice inside a transaction.
+        // Retain the fast path for legacy manual AR drafts only.
+        if ($existing instanceof EnterpriseAccountsReceivableDocument && $sourceInvoiceId === null) {
             $this->assertRequestHash($existing->request_hash, $requestHash);
 
             return $existing;
@@ -170,17 +189,19 @@ final class AccountsReceivableService
 
         return DB::transaction(function () use (
             $actor,
+            $context,
             $scope,
             $data,
             $entryDate,
             $dueDate,
             $amount,
             $currency,
+            $sourceInvoiceId,
             $description,
             $idempotencyKey,
             $requestHash,
         ): EnterpriseAccountsReceivableDocument {
-            $existing = $this->documentQuery($scope)
+            $existing = $this->documentQuery($scope, $context)
                 ->where('idempotency_key', $idempotencyKey)
                 ->lockForUpdate()
                 ->first();
@@ -188,7 +209,40 @@ final class AccountsReceivableService
             if ($existing instanceof EnterpriseAccountsReceivableDocument) {
                 $this->assertRequestHash($existing->request_hash, $requestHash);
 
+                // A voided, reissued with changed totals, or cross-store
+                // invoice must not be re-attested by replaying an old draft
+                // request. This shares the invoice lock with fresh drafts.
+                if ($sourceInvoiceId !== null) {
+                    $this->assertSourceInvoiceMatches(
+                        $sourceInvoiceId,
+                        (int) $data['store_id'],
+                        (int) $data['customer_id'],
+                        $currency,
+                        $amount,
+                    );
+                }
+
                 return $existing;
+            }
+
+            if ($sourceInvoiceId !== null) {
+                // Lock the source invoice as part of the draft transaction. Do not
+                // trust a free-text receipt number or a document from another store.
+                $this->assertSourceInvoiceMatches(
+                    $sourceInvoiceId,
+                    (int) $data['store_id'],
+                    (int) $data['customer_id'],
+                    $currency,
+                    $amount,
+                );
+                if (EnterpriseAccountsReceivableDocument::query()
+                    ->where('legal_entity_id', $scope->legalEntityId)
+                    ->where('source_invoice_id', $sourceInvoiceId)
+                    ->exists()) {
+                    throw ValidationException::withMessages([
+                        'source_invoice_id' => [__('finance_workbench.receivables.source_invoice_invalid')],
+                    ]);
+                }
             }
 
             $document = EnterpriseAccountsReceivableDocument::query()->create([
@@ -197,6 +251,7 @@ final class AccountsReceivableService
                 'legal_entity_id' => $scope->legalEntityId,
                 'store_id' => (int) $data['store_id'],
                 'customer_id' => (int) $data['customer_id'],
+                'source_invoice_id' => $sourceInvoiceId,
                 'document_number' => 'AR-'.Str::ulid(),
                 'idempotency_key' => $idempotencyKey,
                 'request_hash' => $requestHash,
@@ -242,10 +297,19 @@ final class AccountsReceivableService
             $scope,
             $documentId,
         ): EnterpriseAccountsReceivableDocument {
-            $document = $this->documentQuery($scope)
+            $document = $this->documentQuery($scope, $context)
                 ->whereKey($documentId)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            // Invoice-linked AR posting is not yet an independently
+            // certified revenue/GL handoff. Never treat an old posted row as
+            // approved simply because this call is an idempotent retry.
+            if ($document->source_invoice_id !== null && $document->status === 'posted') {
+                throw ValidationException::withMessages([
+                    'source_invoice_id' => [__('finance_workbench.receivables.source_invoice_invalid')],
+                ]);
+            }
 
             if ($document->status === 'posted') {
                 return $document;
@@ -267,6 +331,25 @@ final class AccountsReceivableService
             if (! $requester instanceof User) {
                 throw ValidationException::withMessages([
                     'created_by' => ['The AR document creator is unavailable.'],
+                ]);
+            }
+
+            if ($document->source_invoice_id !== null) {
+                // An invoice can be voided or revised after the AR draft. Prevent
+                // a stale source from being posted as an authenticated receivable.
+                $this->assertSourceInvoiceMatches(
+                    (int) $document->source_invoice_id,
+                    (int) $document->store_id,
+                    (int) $document->customer_id,
+                    (string) $document->currency_code,
+                    (string) $document->amount,
+                );
+                // Invoice identity is not yet a certified accounting handoff.
+                // An operational invoice/payment may already have its own GL
+                // source posting: never post another revenue/AR journal merely
+                // because the customer/store/amount metadata matches.
+                throw ValidationException::withMessages([
+                    'source_invoice_id' => [__('finance_workbench.receivables.source_invoice_invalid')],
                 ]);
             }
 
@@ -343,8 +426,8 @@ final class AccountsReceivableService
             self::MANAGE_CAPABILITY,
         );
 
-        return DB::transaction(function () use ($actor, $scope, $documentId): EnterpriseAccountsReceivableDocument {
-            $document = $this->documentQuery($scope)
+        return DB::transaction(function () use ($actor, $context, $scope, $documentId): EnterpriseAccountsReceivableDocument {
+            $document = $this->documentQuery($scope, $context)
                 ->whereKey($documentId)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -401,78 +484,137 @@ final class AccountsReceivableService
             'allocation_date' => ['required', 'date'],
             'amount' => ['required', 'regex:/^\d{1,15}(?:\.\d{1,3})?$/'],
             'settlement_account_id' => ['required', 'integer', 'min:1'],
+            'source_collection_allocation_id' => ['nullable', 'integer', 'min:1'],
             'reference' => ['nullable', 'string', 'max:180'],
         ])->validate();
 
-        $document = $this->documentQuery($scope)->whereKey($documentId)->firstOrFail();
-        if ($document->status !== 'posted') {
-            throw ValidationException::withMessages([
-                'status' => ['Only posted AR documents can receive allocations.'],
-            ]);
-        }
-
-        $this->assertPostingAccount($scope, (int) $data['settlement_account_id']);
-        $amount = $this->formatMills($this->toMills($data['amount']));
-        if ($this->toMills($amount) < 1) {
-            throw ValidationException::withMessages([
-                'amount' => ['Allocation amount must be greater than zero.'],
-            ]);
-        }
-
-        $allocationDate = CarbonImmutable::parse((string) $data['allocation_date'])->toDateString();
-        $idempotencyKey = trim((string) $data['idempotency_key']);
-        $reference = $this->trimNullable($data['reference'] ?? null);
-        $requestHash = hash('sha256', json_encode([
-            'allocation_date' => $allocationDate,
-            'amount' => $amount,
-            'settlement_account_id' => (int) $data['settlement_account_id'],
-            'reference' => $reference,
-        ], JSON_THROW_ON_ERROR));
-
-        $existing = EnterpriseAccountsReceivableAllocation::query()
-            ->where('ar_document_id', $document->id)
-            ->where('idempotency_key', $idempotencyKey)
-            ->first();
-
-        if ($existing instanceof EnterpriseAccountsReceivableAllocation) {
-            $this->assertRequestHash($existing->request_hash, $requestHash);
-
-            return $existing;
-        }
-
-        if ($this->toMills($amount) > $this->toMills($this->outstandingAmount($document))) {
-            throw ValidationException::withMessages([
-                'amount' => ['Allocation exceeds the outstanding AR amount.'],
-            ]);
-        }
-
-        $allocation = EnterpriseAccountsReceivableAllocation::query()->create([
-            'ar_document_id' => $document->id,
-            'idempotency_key' => $idempotencyKey,
-            'request_hash' => $requestHash,
-            'allocation_date' => $allocationDate,
-            'amount' => $amount,
-            'settlement_account_id' => (int) $data['settlement_account_id'],
-            'reference' => $reference,
-            'status' => 'draft',
-            'created_by' => $actor->id,
-        ]);
-
-        $this->audit->record(
-            'enterprise.finance.ar_allocation_created',
+        // One authoritative row lock for all draft idempotency and outstanding
+        // checks on this receivable. Keep the draft, its audit entry and retry
+        // identity atomic; the database unique constraint remains the last
+        // defense against duplicate requests.
+        return DB::transaction(function () use (
             $actor,
-            $allocation,
-            null,
-            $allocation->toArray(),
-        );
+            $context,
+            $scope,
+            $documentId,
+            $data,
+        ): EnterpriseAccountsReceivableAllocation {
+            $document = $this->documentQuery($scope, $context)
+                ->whereKey($documentId)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        return $allocation->refresh();
+            if ($document->status !== 'posted') {
+                throw ValidationException::withMessages([
+                    'status' => ['Only posted AR documents can receive allocations.'],
+                ]);
+            }
+
+            // A settlement must debit a distinct cash/settlement account.
+            // Debiting and crediting the receivable account itself would
+            // falsely clear outstanding AR with no collected consideration.
+            if ((int) $data['settlement_account_id'] === (int) $document->receivable_account_id) {
+                throw ValidationException::withMessages([
+                    'settlement_account_id' => [__('finance_workbench.receivables.settlement_account_same_as_ar')],
+                ]);
+            }
+
+            $this->assertPostingAccount($scope, (int) $data['settlement_account_id']);
+            $amount = $this->formatMills($this->toMills($data['amount']));
+            if ($this->toMills($amount) < 1) {
+                throw ValidationException::withMessages([
+                    'amount' => ['Allocation amount must be greater than zero.'],
+                ]);
+            }
+
+            $allocationDate = CarbonImmutable::parse((string) $data['allocation_date'])->toDateString();
+            $idempotencyKey = trim((string) $data['idempotency_key']);
+            $reference = $this->trimNullable($data['reference'] ?? null);
+            $sourceCollectionAllocationId = isset($data['source_collection_allocation_id'])
+                ? (int) $data['source_collection_allocation_id'] : null;
+            $requestPayload = [
+                'allocation_date' => $allocationDate,
+                'amount' => $amount,
+                'settlement_account_id' => (int) $data['settlement_account_id'],
+                'reference' => $reference,
+            ];
+            // Preserve the exact legacy idempotency hash when no source is bound.
+            if ($sourceCollectionAllocationId !== null) {
+                $requestPayload['source_collection_allocation_id'] = $sourceCollectionAllocationId;
+            }
+            $requestHash = hash('sha256', json_encode($requestPayload, JSON_THROW_ON_ERROR));
+
+            $existing = EnterpriseAccountsReceivableAllocation::query()
+                ->where('ar_document_id', $document->id)
+                ->where('idempotency_key', $idempotencyKey)
+                ->first();
+
+            if ($existing instanceof EnterpriseAccountsReceivableAllocation) {
+                $this->assertRequestHash($existing->request_hash, $requestHash);
+
+                // A successful draft retry is not evidence that its original
+                // operational receipt is still valid. Collections may later
+                // be reversed, disabled or moved out of scope; revalidate
+                // under the original document/source locks without claiming
+                // this allocation's own unique source as a second consumer.
+                if ($sourceCollectionAllocationId !== null) {
+                    $this->assertCollectionAllocationMatches(
+                        $document,
+                        $context,
+                        $sourceCollectionAllocationId,
+                        $amount,
+                        (int) $existing->getKey(),
+                    );
+                }
+
+                return $existing;
+            }
+
+            if ($this->toMills($amount) > $this->toMills($this->outstandingAmount($document))) {
+                throw ValidationException::withMessages([
+                    'amount' => ['Allocation exceeds the outstanding AR amount.'],
+                ]);
+            }
+
+            if ($sourceCollectionAllocationId !== null) {
+                $this->assertCollectionAllocationMatches(
+                    $document,
+                    $context,
+                    $sourceCollectionAllocationId,
+                    $amount,
+                );
+            }
+
+            $allocation = EnterpriseAccountsReceivableAllocation::query()->create([
+                'ar_document_id' => $document->id,
+                'idempotency_key' => $idempotencyKey,
+                'request_hash' => $requestHash,
+                'allocation_date' => $allocationDate,
+                'amount' => $amount,
+                'settlement_account_id' => (int) $data['settlement_account_id'],
+                'source_collection_allocation_id' => $sourceCollectionAllocationId,
+                'reference' => $reference,
+                'status' => 'draft',
+                'created_by' => $actor->id,
+            ]);
+
+            $this->audit->record(
+                'enterprise.finance.ar_allocation_created',
+                $actor,
+                $allocation,
+                null,
+                $allocation->toArray(),
+            );
+
+            return $allocation->refresh();
+        }, 3);
     }
 
     public function postAllocation(
         User $actor,
         ResolvedTenantContext $context,
         int $allocationId,
+        bool $requiresVerifiedCollectionSource = false,
     ): EnterpriseAccountsReceivableAllocation {
         $scope = $this->authorizedScope(
             $actor,
@@ -486,8 +628,13 @@ final class AccountsReceivableService
             $context,
             $scope,
             $allocationId,
+            $requiresVerifiedCollectionSource,
         ): EnterpriseAccountsReceivableAllocation {
-            $allocation = EnterpriseAccountsReceivableAllocation::query()
+            // Read the scoped allocation identity without a row lock first.
+            // Draft creation locks the parent AR document before touching
+            // allocations. Posting must use the same lock order to prevent
+            // opposite-order MySQL deadlocks under concurrent draft/post calls.
+            $allocationIdentity = EnterpriseAccountsReceivableAllocation::query()
                 ->whereHas(
                     'document',
                     fn (Builder $query): Builder => $query
@@ -496,8 +643,43 @@ final class AccountsReceivableService
                         ->where('legal_entity_id', $scope->legalEntityId),
                 )
                 ->whereKey($allocationId)
+                ->firstOrFail(['ar_document_id']);
+
+            // Check canonical store/channel scope BEFORE touching the allocation
+            // or returning an idempotent posted row. The locked document is the
+            // authoritative parent; Retail sibling stores remain inaccessible.
+            $document = $this->documentQuery($scope, $context)
+                ->whereKey($allocationIdentity->ar_document_id)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            // Re-read and lock the allocation only after the parent document.
+            // Never act on the unlocked identity snapshot under concurrency.
+            $allocation = EnterpriseAccountsReceivableAllocation::query()
+                ->where('ar_document_id', $document->id)
+                ->whereKey($allocationId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            // A typed operational receipt is already associated with a
+            // collected payment. Until the independent accounting handoff is
+            // certified, NEVER post it via this manual AR cash/GL service,
+            // including callers using the legacy default-false flag or a
+            // previously posted row's idempotent replay. The route-level
+            // P303 flag alone cannot enforce this financial invariant.
+            if ($allocation->getAttribute('source_collection_allocation_id') !== null) {
+                throw ValidationException::withMessages([
+                    'collection_source' => [__('finance_workbench.receivables.verification_pending')],
+                ]);
+            }
+
+            // A historic allocation posted by another legitimate AR flow is
+            // not proof that the P303 collection-backed workflow verified it.
+            if ($requiresVerifiedCollectionSource && $allocation->status === 'posted') {
+                throw ValidationException::withMessages([
+                    'collection_source' => [__('finance_workbench.receivables.verification_pending')],
+                ]);
+            }
 
             if ($allocation->status === 'posted') {
                 return $allocation;
@@ -515,10 +697,24 @@ final class AccountsReceivableService
                 ]);
             }
 
-            $document = $this->documentQuery($scope)
-                ->whereKey($allocation->ar_document_id)
-                ->lockForUpdate()
-                ->firstOrFail();
+            // P303 requires a verifiable collected receipt, not an editable
+            // reference. The AR allocation schema does not yet persist a
+            // trustworthy source link. Refuse this UI posting path until the
+            // source can be verified and consumed atomically; preserve the
+            // existing canonical manual-AR API for its separate callers.
+            if ($requiresVerifiedCollectionSource) {
+                throw ValidationException::withMessages([
+                    'collection_source' => [__('finance_workbench.receivables.verification_pending')],
+                ]);
+            }
+
+            // Also reject legacy drafts created before the input guard.
+            // No AR journal may debit and credit the same account.
+            if ((int) $allocation->settlement_account_id === (int) $document->receivable_account_id) {
+                throw ValidationException::withMessages([
+                    'settlement_account_id' => [__('finance_workbench.receivables.settlement_account_same_as_ar')],
+                ]);
+            }
 
             $postedAllocations = EnterpriseAccountsReceivableAllocation::query()
                 ->where('ar_document_id', $document->id)
@@ -687,6 +883,19 @@ final class AccountsReceivableService
                 $context->isRetail(),
                 fn (QueryBuilder $query) => $query->where('document.store_id', $scope->storeId),
             )
+            // Finance is a shared legal-entity ledger, but the ERP AR aging
+            // surface is Wholesale-only. Keep Retail documents out even when
+            // both channels map to the same legal entity.
+            ->when(
+                $context->isWholesale(),
+                fn (QueryBuilder $query) => $query->whereIn(
+                    'document.store_id',
+                    DB::table('stores as store')
+                        ->join('store_types as type', 'type.id', '=', 'store.store_type_id')
+                        ->where('type.code', 'B2B')
+                        ->select('store.id'),
+                ),
+            )
             ->where('document.status', 'posted')
             ->when(
                 $customerId !== null,
@@ -773,11 +982,31 @@ final class AccountsReceivableService
     /** @return Builder<EnterpriseAccountsReceivableDocument> */
     private function documentQuery(
         EnterpriseDataScope $scope,
+        ResolvedTenantContext $context,
     ): Builder {
         return EnterpriseAccountsReceivableDocument::query()
             ->where('organization_id', $scope->organizationId)
             ->where('company_id', $scope->companyId)
-            ->where('legal_entity_id', $scope->legalEntityId);
+            ->where('legal_entity_id', $scope->legalEntityId)
+            ->when($context->isRetail(), fn (Builder $query): Builder => $query->where('store_id', $context->requiresStore()))
+            ->when(
+                $context->isWholesale(),
+                fn (Builder $query): Builder => $query->whereIn('store_id', DB::table('stores as store')
+                    ->join('store_types as type', 'type.id', '=', 'store.store_type_id')
+                    ->where('type.code', 'B2B')
+                    ->select('store.id')),
+            );
+    }
+
+    private function assertStoreChannel(int $storeId, string $channel): void
+    {
+        $exists = DB::table('stores as store')
+            ->join('store_types as type', 'type.id', '=', 'store.store_type_id')
+            ->where('store.id', $storeId)
+            ->where('type.code', $channel)
+            ->exists();
+
+        abort_unless($exists, 404);
     }
 
     private function assertStoreInScope(
@@ -796,6 +1025,156 @@ final class AccountsReceivableService
             ->exists();
 
         abort_unless($exists, 404);
+    }
+
+    /**
+     * Certifies only invoice-to-AR identity, not receipt-to-AR settlement.
+     * Legacy invoice rows without a store or with an untrusted status fail closed.
+     * Called inside the document draft/post transaction to lock the source row.
+     */
+    private function assertSourceInvoiceMatches(
+        int $invoiceId,
+        int $storeId,
+        int $customerId,
+        string $currency,
+        string $amount,
+    ): void {
+        $invoice = DB::table('invoices')
+            ->where('id', $invoiceId)
+            ->lockForUpdate()
+            ->first(['store_id', 'customer_id', 'currency', 'total', 'status', 'voided_at']);
+
+        if ($invoice === null
+            || ! in_array((string) $invoice->status, ['issued', 'reissued'], true)
+            || $invoice->voided_at !== null
+            || (int) $invoice->store_id !== $storeId
+            || (int) $invoice->customer_id !== $customerId
+            || strtoupper((string) $invoice->currency) !== strtoupper($currency)
+            || $this->toMills((string) $invoice->total) !== $this->toMills($amount)) {
+            throw ValidationException::withMessages([
+                'source_invoice_id' => [__('finance_workbench.receivables.source_invoice_invalid')],
+            ]);
+        }
+    }
+
+    /**
+     * Reserve an immutable operational collection allocation as P303 draft
+     * evidence. This is NOT an accounting handoff and MUST NOT authorize a
+     * Finance GL post: the source may already be recognized in another ledger.
+     * The parent AR document is locked by the caller before these reads.
+     */
+    private function assertCollectionAllocationMatches(
+        EnterpriseAccountsReceivableDocument $document,
+        ResolvedTenantContext $context,
+        int $sourceAllocationId,
+        string $amount,
+        ?int $replayingAllocationId = null,
+    ): void {
+        if ($document->source_invoice_id === null) {
+            $this->rejectCollectionSource();
+        }
+
+        // Matching a customer and store is not enough. Require the typed,
+        // still-valid invoice association before inspecting its receipt.
+        $this->assertSourceInvoiceMatches(
+            (int) $document->source_invoice_id,
+            (int) $document->store_id,
+            (int) $document->customer_id,
+            (string) $document->currency_code,
+            (string) $document->amount,
+        );
+
+        $source = DB::table('collection_allocations')
+            ->where('id', $sourceAllocationId)
+            ->lockForUpdate()
+            ->first();
+        if ($source === null) {
+            $this->rejectCollectionSource();
+        }
+
+        $transaction = DB::table('collection_transactions')
+            ->where('id', $source->collection_transaction_id)
+            ->lockForUpdate()
+            ->first();
+        if ($transaction === null) {
+            $this->rejectCollectionSource();
+        }
+
+        $account = DB::table('collection_accounts')
+            ->where('id', $transaction->collection_account_id)
+            ->first();
+        $payment = $transaction->payment_id === null
+            ? null
+            : DB::table('payments')->where('id', $transaction->payment_id)->first();
+
+        $currency = strtoupper((string) $document->currency_code);
+        $collector = $context->isRetail() ? 'driver' : 'van_rep';
+        if (
+            $account === null
+            || $payment === null
+            || (int) $source->invoice_id !== (int) $document->source_invoice_id
+            || $this->toMills((string) $source->amount) !== $this->toMills($amount)
+            || strtoupper((string) $source->currency) !== $currency
+            || (int) $account->store_id !== (int) $document->store_id
+            || (string) $account->status !== 'active'
+            || (string) $account->actor_type !== $collector
+            || strtoupper((string) $account->currency) !== $currency
+            || (string) $transaction->type !== 'collection'
+            || (string) $transaction->status !== 'posted'
+            // A wallet actor_type alone cannot attest a source: a forged
+            // driver-origin collection must never become Wholesale Van cash,
+            // nor can a Van-origin receipt be claimed for a Retail Driver.
+            || (string) $transaction->source !== ($context->isRetail() ? 'driver_app' : 'van_app')
+            || strtoupper((string) $transaction->currency) !== $currency
+            || (string) $payment->status !== 'paid'
+            // The operational receipt and its Payment must represent the
+            // exact same collected funds, down to the KWD mill. A smaller
+            // allocation cannot legitimize mismatched source totals.
+            || $this->toMills((string) $transaction->amount) !== $this->toMills((string) $payment->amount)
+            || (string) $payment->provider !== 'field_collection'
+            || (string) $payment->provider_reference !== (string) $transaction->idempotency_key
+            || ($payment->invoice_id !== null
+                && (int) $payment->invoice_id !== (int) $document->source_invoice_id)
+            || strtoupper((string) $payment->currency) !== $currency
+        ) {
+            $this->rejectCollectionSource();
+        }
+
+        // Reversal provenance can be a distinct, later transaction. A reversed
+        // source must never be reclassified as a fresh collectible receipt.
+        if (DB::table('collection_transactions')
+            ->where('reversal_of_id', $transaction->id)
+            ->where('status', 'posted')
+            ->exists()) {
+            $this->rejectCollectionSource();
+        }
+
+        $sourceTotal = (string) DB::table('collection_allocations')
+            ->where('collection_transaction_id', $transaction->id)
+            ->sum('amount');
+
+        $otherClaim = DB::table('enterprise_ar_allocations')
+            ->where('source_collection_allocation_id', $sourceAllocationId);
+        if ($replayingAllocationId !== null) {
+            $otherClaim->where('id', '!=', $replayingAllocationId);
+        }
+
+        if (
+            $this->toMills($sourceTotal) > $this->toMills((string) $transaction->amount)
+            || $this->toMills($sourceTotal) > $this->toMills((string) $payment->amount)
+            || $otherClaim->exists()
+        ) {
+            $this->rejectCollectionSource();
+        }
+    }
+
+    private function rejectCollectionSource(): never
+    {
+        throw ValidationException::withMessages([
+            'source_collection_allocation_id' => [
+                __('finance_workbench.receivables.collection_source_invalid'),
+            ],
+        ]);
     }
 
     private function assertPostingAccount(

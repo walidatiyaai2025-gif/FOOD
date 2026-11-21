@@ -453,20 +453,27 @@ class B2bFinanceController extends Controller
                     ];
                 })
                 ->values();
+            // Match B2bAccountLedgerService::invoiceAmounts: a captured
+            // field receipt already affects the customer's outstanding
+            // balance, so it must also appear in invoice payment readback.
+            // Neither state implies a Treasury/Finance GL posting.
             $payload['payments'] = Payment::query()
                 ->where('invoice_id', $invoice->getKey())
-                ->where('status', 'paid')
+                ->whereIn('status', ['paid', 'captured'])
                 ->orderBy('created_at')
                 ->orderBy('id')
-                ->get(['id', 'provider', 'provider_reference', 'amount', 'currency', 'created_at'])
+                ->get(['id', 'provider', 'provider_reference', 'status', 'amount', 'currency', 'created_at'])
                 ->map(fn (Payment $payment): array => [
                     'id' => (int) $payment->getKey(),
+                    'status' => (string) $payment->status,
                     'method' => (string) $payment->provider,
                     'reference' => $payment->provider_reference,
                     'amount' => (float) $payment->amount,
                     'currency' => (string) ($payment->currency ?: $invoice->currency),
                     'paid_at' => $payment->created_at,
                 ])
+                ->concat($this->ledger->splitFieldCollectionPaymentsForInvoice($invoice))
+                ->sortBy(static fn (array $row): string => (string) $row['paid_at'])
                 ->values();
             $payload['ledger_entries'] = $this->ledger->invoiceLedgerEntries($invoice)->values();
         }

@@ -119,9 +119,9 @@ final class V2ArAgingFullLedgerPaginationTest extends TestCase
             'status' => 'cancelled',
         ]);
 
-        // Separate legal-entity/store rows cannot enter the current actor's
-        // paginated detail or currency/bucket aggregates.
-        $foreign = $this->retailStore('AR-AGING-FOREIGN');
+        // A Retail-channel row in the same default legal entity cannot enter
+        // the Wholesale actor's paginated detail or currency/bucket aggregates.
+        $foreign = $this->retailChannelStore('AR-AGING-FOREIGN');
         $foreignHierarchy = app(OrganizationHierarchyService::class)->scopeForStore($foreign->id);
         $this->assertNotNull($foreignHierarchy);
         $foreignScope = EnterpriseDataScope::fromHierarchy($foreignHierarchy);
@@ -216,12 +216,8 @@ final class V2ArAgingFullLedgerPaginationTest extends TestCase
     /** @return array{User, Store, ResolvedTenantContext} */
     private function operator(string $code): array
     {
-        $store = $this->retailStore($code);
-        $role = Role::query()
-            ->where('code', 'B2C_STORE_ADMIN')
-            ->where('scope', 'store')
-            ->where('is_active', true)
-            ->firstOrFail();
+        $store = $this->wholesaleStore($code);
+        $role = Role::query()->where('code', 'B2B_ADMIN')->where('is_active', true)->firstOrFail();
         $permissionIds = Permission::query()
             ->whereIn('code', ['finance.view', 'finance.manage'])
             ->pluck('id')
@@ -229,18 +225,25 @@ final class V2ArAgingFullLedgerPaginationTest extends TestCase
         $role->permissions()->syncWithoutDetaching($permissionIds);
         $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
         $this->grantPlatformErpAccess($actor);
-        DB::table('user_store_roles')->insert([
-            'user_id' => $actor->id,
-            'store_id' => $store->id,
-            'role_id' => $role->id,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $actor->roles()->attach($role->id);
 
-        return [$actor, $store, app(TenantContextResolver::class)->retail($actor, $store->id)];
+        return [$actor, $store, app(TenantContextResolver::class)->wholesale($actor, $store->id)];
     }
 
-    private function retailStore(string $code): Store
+    private function wholesaleStore(string $code): Store
+    {
+        $store = Store::query()->create([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2B')->value('id'),
+            'code' => $code,
+            'name' => $code,
+            'is_active' => true,
+        ]);
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
+
+        return $store;
+    }
+
+    private function retailChannelStore(string $code): Store
     {
         $store = Store::query()->create([
             'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),

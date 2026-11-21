@@ -121,7 +121,7 @@ final class V2ReceivablesSidebarGroupAuthorityTest extends TestCase
         $this->actingAs($actor)->get($this->tabUrl($store, 'payables'))->assertForbidden();
     }
 
-    public function test_cross_store_and_wholesale_contexts_cannot_be_inferred_from_an_authorized_retail_link(): void
+    public function test_wholesale_reader_cannot_enter_retail_and_can_use_same_legal_entity_wholesale_context(): void
     {
         [$actor, $store, $context] = $this->reader('V2-P285-RETAIL');
         $foreignRetail = $this->store('V2-P285-FOREIGN', 'B2C');
@@ -138,10 +138,10 @@ final class V2ReceivablesSidebarGroupAuthorityTest extends TestCase
             }
         }
 
-        foreach ([$foreignRetail, $foreignWholesale] as $foreign) {
-            $this->actingAs($actor)->get($this->tabUrl($foreign, 'receivables'))->assertNotFound();
-            $this->actingAs($actor)->get($this->tabUrl($foreign, 'payables'))->assertNotFound();
-        }
+        $this->actingAs($actor)->get($this->tabUrl($foreignRetail, 'receivables'))->assertNotFound();
+        $this->actingAs($actor)->get($this->tabUrl($foreignRetail, 'payables'))->assertNotFound();
+        $this->actingAs($actor)->get($this->tabUrl($foreignWholesale, 'receivables'))->assertOk();
+        $this->actingAs($actor)->get($this->tabUrl($foreignWholesale, 'payables'))->assertOk();
     }
 
     public function test_explicit_finance_deny_and_inactive_accounts_never_expose_receivables(): void
@@ -190,22 +190,16 @@ final class V2ReceivablesSidebarGroupAuthorityTest extends TestCase
     /** @return array{User, Store, ResolvedTenantContext} */
     private function reader(string $code): array
     {
-        $store = $this->store($code, 'B2C');
-        $role = Role::query()->where('code', 'B2C_STORE_ADMIN')->where('scope', 'store')->firstOrFail();
+        $store = $this->store($code, 'B2B');
+        $role = Role::query()->where('code', 'B2B_ADMIN')->firstOrFail();
         $permission = Permission::query()->where('code', 'finance.view')->firstOrFail();
         $role->permissions()->syncWithoutDetaching([$permission->id]);
 
         $actor = User::factory()->create(['locale' => 'en', 'is_active' => true]);
         $this->grantPlatformErpAccess($actor);
-        DB::table('user_store_roles')->insert([
-            'user_id' => $actor->id,
-            'store_id' => $store->id,
-            'role_id' => $role->id,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $actor->roles()->attach($role->id);
 
-        return [$actor, $store, app(TenantContextResolver::class)->retail($actor, $store->id)];
+        return [$actor, $store, app(TenantContextResolver::class)->wholesale($actor, $store->id)];
     }
 
     private function store(string $code, string $channel): Store

@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int|null $source_invoice_id
+ */
 class EnterpriseAccountsReceivableDocument extends Model
 {
     protected $table = 'enterprise_ar_documents';

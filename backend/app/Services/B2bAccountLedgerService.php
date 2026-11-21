@@ -7,6 +7,7 @@ use App\Models\B2bCustomer;
 use App\Models\Invoice;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -491,6 +492,29 @@ final class B2bAccountLedgerService
             $recordCurrencies($key, $aggregate->min_currency, $aggregate->max_currency);
         }
 
+        // One field Payment can cover multiple invoices (its invoice_id is
+        // NULL); each immutable collection allocation is a distinct credit.
+        // Do not add the whole Payment again to any one invoice.
+        foreach ($this->multiInvoiceFieldAllocations()
+            ->whereIn('invoice.b2b_customer_id', $customerIds)
+            ->whereIn('invoice.store_id', $storeIds)
+            ->whereNotIn('invoice.status', ['cancelled', 'void', 'voided'])
+            ->groupBy('invoice.b2b_customer_id', 'invoice.store_id')
+            ->get([
+                'invoice.b2b_customer_id as customer_id',
+                'invoice.store_id',
+                DB::raw('COALESCE(SUM(allocation.amount), 0) as total'),
+                DB::raw('MIN(payment.currency) as min_currency'),
+                DB::raw('MAX(payment.currency) as max_currency'),
+            ]) as $aggregate) {
+            $key = $pairKey((int) $aggregate->customer_id, (int) $aggregate->store_id);
+            $paymentCredits[$key] = round(
+                (float) ($paymentCredits[$key] ?? 0) + (float) $aggregate->total,
+                3,
+            );
+            $recordCurrencies($key, $aggregate->min_currency, $aggregate->max_currency);
+        }
+
         $manualAggregates = DB::table('customer_account_ledger_entries')
             ->whereIn('b2b_customer_id', $customerIds)
             ->where(function ($query) use ($storeIds): void {
@@ -524,14 +548,7 @@ final class B2bAccountLedgerService
         $paidByInvoice = [];
         $ledgerByInvoice = [];
         if ($invoiceIds !== []) {
-            $paidByInvoice = DB::table('payments')
-                ->whereIn('invoice_id', $invoiceIds)
-                ->whereIn('status', ['paid', 'captured'])
-                ->groupBy('invoice_id')
-                ->selectRaw('invoice_id, COALESCE(SUM(amount), 0) as paid')
-                ->pluck('paid', 'invoice_id')
-                ->map(static fn ($paid): float => round((float) $paid, 3))
-                ->all();
+            $paidByInvoice = $this->paidByInvoice($invoiceIds);
 
             foreach (
                 DB::table('customer_account_ledger_entries')
@@ -624,10 +641,8 @@ final class B2bAccountLedgerService
     /** @return array{invoice_total:float,paid_amount:float,debit_adjustments:float,credit_adjustments:float,outstanding_amount:float,credit_amount:float} */
     public function invoiceAmounts(Invoice $invoice): array
     {
-        $paid = round((float) DB::table('payments')
-            ->where('invoice_id', $invoice->getKey())
-            ->whereIn('status', ['paid', 'captured'])
-            ->sum('amount'), 3);
+        $paidByInvoice = $this->paidByInvoice([(int) $invoice->getKey()]);
+        $paid = (float) ($paidByInvoice[(int) $invoice->getKey()] ?? 0);
 
         $ledger = DB::table('customer_account_ledger_entries')
             ->where('invoice_id', $invoice->getKey())
@@ -738,6 +753,44 @@ final class B2bAccountLedgerService
                     'sort_key' => sprintf('2:%012d', $payment->id),
                 ]);
             }
+
+            // Multi-invoice receipts are stored once in Payment with
+            // invoice_id=NULL; expose one correctly scoped ledger row for each
+            // genuine invoice allocation, not the full receipt amount twice.
+            $splitReceipts = $this->multiInvoiceFieldAllocations()
+                ->whereIn('allocation.invoice_id', $invoiceIds)
+                ->orderBy('payment.created_at')
+                ->orderBy('allocation.id')
+                ->get([
+                    'allocation.id as allocation_id',
+                    'allocation.invoice_id',
+                    'allocation.amount',
+                    'invoice.order_id',
+                    'invoice.store_id',
+                    'payment.id as payment_id',
+                    'payment.provider_reference',
+                    'payment.currency',
+                    'payment.created_at',
+                ]);
+
+            foreach ($splitReceipts as $receipt) {
+                $rows->push([
+                    'id' => 'field-allocation:'.$receipt->allocation_id,
+                    'type' => 'payment',
+                    'reference' => $receipt->provider_reference ?: ('PAY-'.$receipt->payment_id),
+                    'description' => 'Payment via field_collection',
+                    'debit' => 0.0,
+                    'credit' => round((float) $receipt->amount, 3),
+                    'currency' => $this->normalizeCurrency($receipt->currency),
+                    'invoice_id' => (int) $receipt->invoice_id,
+                    'order_id' => $receipt->order_id === null ? null : (int) $receipt->order_id,
+                    'store_id' => (int) $receipt->store_id,
+                    'actor_user_id' => null,
+                    'source' => 'field_collection_allocation',
+                    'occurred_at' => (string) $receipt->created_at,
+                    'sort_key' => sprintf('2:%012d:%012d', $receipt->payment_id, $receipt->allocation_id),
+                ]);
+            }
         }
 
         $manual = DB::table('customer_account_ledger_entries')
@@ -785,12 +838,7 @@ final class B2bAccountLedgerService
         }
 
         $invoiceIds = $invoices->pluck('id')->map(fn ($id): int => (int) $id)->all();
-        $paidByInvoice = DB::table('payments')
-            ->whereIn('invoice_id', $invoiceIds)
-            ->whereIn('status', ['paid', 'captured'])
-            ->groupBy('invoice_id')
-            ->selectRaw('invoice_id, COALESCE(SUM(amount), 0) as paid')
-            ->pluck('paid', 'invoice_id');
+        $paidByInvoice = $this->paidByInvoice($invoiceIds);
 
         $ledgerByInvoice = DB::table('customer_account_ledger_entries')
             ->whereIn('invoice_id', $invoiceIds)
@@ -815,6 +863,117 @@ final class B2bAccountLedgerService
         }
 
         return [round($open, 3), round($overdue, 3)];
+    }
+
+    /**
+     * A Payment with no invoice_id can still have a verified per-invoice
+     * allocation when a Van deposits against multiple B2B invoices. Every
+     * consumer uses the same server-scoped source; never guess from the
+     * collector's total or trust an unbound/fake receipt.
+     */
+    private function multiInvoiceFieldAllocations(): QueryBuilder
+    {
+        return DB::table('collection_allocations as allocation')
+            ->join('collection_transactions as receipt', 'receipt.id', '=', 'allocation.collection_transaction_id')
+            ->join('collection_accounts as collector', 'collector.id', '=', 'receipt.collection_account_id')
+            ->join('payments as payment', 'payment.id', '=', 'receipt.payment_id')
+            ->join('invoices as invoice', 'invoice.id', '=', 'allocation.invoice_id')
+            ->whereNull('payment.invoice_id')
+            ->where('invoice.channel', 'b2b')
+            ->where('collector.actor_type', 'van_rep')
+            ->where('receipt.source', 'van_app')
+            ->where('receipt.type', 'collection')
+            ->where('receipt.status', 'posted')
+            ->whereNull('receipt.reversal_of_id')
+            ->where('payment.provider', 'field_collection')
+            ->whereIn('payment.status', ['paid', 'captured'])
+            ->where('allocation.amount', '>', 0)
+            ->whereColumn('collector.store_id', 'invoice.store_id')
+            ->whereColumn('collector.currency', 'invoice.currency')
+            ->whereColumn('receipt.currency', 'invoice.currency')
+            ->whereColumn('payment.currency', 'invoice.currency')
+            ->whereColumn('allocation.currency', 'invoice.currency')
+            ->whereColumn('payment.provider_reference', 'receipt.idempotency_key')
+            ->whereColumn('payment.amount', 'receipt.amount')
+            // All persisted money is DECIMAL(14,3). SQLite's SUM may turn
+            // 30.001 + 20.000 into 50.001000000000005 and wrongly reject a
+            // fully funded receipt. Quantize the aggregate back to the
+            // authoritative mill scale before comparing; 0.001 overcollection
+            // must still fail closed on both SQLite and MySQL/MariaDB.
+            ->whereRaw('(SELECT ROUND(COALESCE(SUM(other_allocation.amount), 0), 3) FROM collection_allocations AS other_allocation WHERE other_allocation.collection_transaction_id = receipt.id) <= receipt.amount')
+            ->whereNotExists(static function (QueryBuilder $query): void {
+                $query->selectRaw('1')
+                    ->from('collection_transactions as reversal')
+                    ->whereColumn('reversal.reversal_of_id', 'receipt.id')
+                    ->where('reversal.status', 'posted');
+            });
+    }
+
+    /** @param array<int,int> $invoiceIds
+     * @return array<int,float>
+     */
+    private function paidByInvoice(array $invoiceIds): array
+    {
+        if ($invoiceIds === []) {
+            return [];
+        }
+
+        $paid = DB::table('payments')
+            ->whereIn('invoice_id', $invoiceIds)
+            ->whereIn('status', ['paid', 'captured'])
+            ->groupBy('invoice_id')
+            ->selectRaw('invoice_id, COALESCE(SUM(amount), 0) as paid')
+            ->pluck('paid', 'invoice_id')
+            ->map(static fn ($amount): float => round((float) $amount, 3))
+            ->all();
+
+        foreach ($this->multiInvoiceFieldAllocations()
+            ->whereIn('allocation.invoice_id', $invoiceIds)
+            ->groupBy('allocation.invoice_id')
+            ->get([
+                'allocation.invoice_id',
+                DB::raw('COALESCE(SUM(allocation.amount), 0) as paid'),
+            ]) as $row) {
+            $id = (int) $row->invoice_id;
+            $paid[$id] = round((float) ($paid[$id] ?? 0) + (float) $row->paid, 3);
+        }
+
+        return $paid;
+    }
+
+    /**
+     * The Customer invoice API needs the same proof as the account ledger:
+     * the original Payment identity plus the *allocated* amount, not its
+     * full multi-invoice receipt. Does not authorize Treasury/GL posting.
+     *
+     * @return Collection<int,array{id:int,collection_allocation_id:int,status:string,method:string,reference:mixed,amount:float,currency:string,paid_at:mixed}>
+     */
+    public function splitFieldCollectionPaymentsForInvoice(Invoice $invoice): Collection
+    {
+        return $this->multiInvoiceFieldAllocations()
+            ->where('allocation.invoice_id', $invoice->getKey())
+            ->orderBy('payment.created_at')
+            ->orderBy('allocation.id')
+            ->get([
+                'allocation.id as allocation_id',
+                'allocation.amount',
+                'payment.id as payment_id',
+                'payment.status',
+                'payment.provider',
+                'payment.provider_reference',
+                'payment.currency',
+                'payment.created_at',
+            ])
+            ->map(static fn (object $row): array => [
+                'id' => (int) $row->payment_id,
+                'collection_allocation_id' => (int) $row->allocation_id,
+                'status' => (string) $row->status,
+                'method' => (string) $row->provider,
+                'reference' => $row->provider_reference,
+                'amount' => round((float) $row->amount, 3),
+                'currency' => (string) $row->currency,
+                'paid_at' => $row->created_at,
+            ]);
     }
 
     private function normalizeCurrency(mixed $value): ?string

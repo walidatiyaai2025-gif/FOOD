@@ -48,7 +48,7 @@ final class V2ReceivablesAgingSidebarContractTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_authorized_retail_finance_user_sees_canonical_aging_tab_in_both_locales_but_not_another_store(): void
+    public function test_authorized_wholesale_finance_user_sees_canonical_aging_tab_in_both_locales(): void
     {
         [$actor, $store, $context] = $this->operator('P288-OWN');
         $this->enableFinance($actor, $context, true);
@@ -67,8 +67,7 @@ final class V2ReceivablesAgingSidebarContractTest extends TestCase
                 ->assertSee('dir="'.$direction.'"', false)
                 ->assertSee(__('finance_workbench.common.aging_bucket'));
 
-            // Explicitly selecting another Retail store never broadens the
-            // legal-entity AR aging query or returns its documents.
+            // Retail remains outside the ERP finance workspace.
             $this->actingAs($actor->fresh())
                 ->get(route('admin.erp.finance.index', [
                     'store_id' => $foreign->id,
@@ -107,32 +106,35 @@ final class V2ReceivablesAgingSidebarContractTest extends TestCase
     /** @return array{User, Store, ResolvedTenantContext} */
     private function operator(string $code): array
     {
-        $store = $this->retailStore($code);
-        $role = Role::query()
-            ->where('code', 'B2C_STORE_ADMIN')
-            ->where('scope', 'store')
-            ->where('is_active', true)
-            ->firstOrFail();
+        $store = $this->wholesaleStore($code);
+        $role = Role::query()->where('code', 'B2B_ADMIN')->where('is_active', true)->firstOrFail();
         $permission = Permission::query()->where('code', 'finance.view')->firstOrFail();
         $role->permissions()->syncWithoutDetaching([$permission->id]);
 
         $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
         $this->grantPlatformErpAccess($actor);
-        DB::table('user_store_roles')->insert([
-            'user_id' => $actor->id,
-            'store_id' => $store->id,
-            'role_id' => $role->id,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $actor->roles()->attach($role->id);
 
-        return [$actor, $store, app(TenantContextResolver::class)->retail($actor, $store->id)];
+        return [$actor, $store, app(TenantContextResolver::class)->wholesale($actor, $store->id)];
     }
 
     private function retailStore(string $code): Store
     {
         $store = Store::query()->create([
             'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'code' => $code,
+            'name' => $code,
+            'is_active' => true,
+        ]);
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
+
+        return $store;
+    }
+
+    private function wholesaleStore(string $code): Store
+    {
+        $store = Store::query()->create([
+            'store_type_id' => DB::table('store_types')->where('code', 'B2B')->value('id'),
             'code' => $code,
             'name' => $code,
             'is_active' => true,

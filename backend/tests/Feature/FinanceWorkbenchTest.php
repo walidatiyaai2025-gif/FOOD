@@ -42,7 +42,7 @@ final class FinanceWorkbenchTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_retail_accountant_can_open_store_tabs_but_not_corporate_gl_in_both_locales(): void
+    public function test_wholesale_accountant_can_open_finance_tabs_in_both_locales(): void
     {
         [$actor, $store, $context] = $this->operator(['finance.view'], 'ERP-FINANCE-READ', 'en');
         $this->enableFinance($actor, $context);
@@ -73,13 +73,12 @@ final class FinanceWorkbenchTest extends TestCase
                 ->assertSee('dir="ltr"', false);
         }
 
-        // Legal-entity GL statements and aggregate reports have no immutable
-        // Retail store provenance; a Retail-only actor must not read them.
-        foreach (['statements', 'reports'] as $corporateTab) {
-            $this->actingAs($actor)
-                ->get(route('admin.erp.finance.index', ['store_id' => $store->id, 'tab' => $corporateTab]))
-                ->assertForbidden();
-        }
+        $this->actingAs($actor)
+            ->get(route('admin.erp.finance.index', ['store_id' => $store->id, 'tab' => 'statements']))
+            ->assertOk();
+        $this->actingAs($actor)
+            ->get(route('admin.erp.finance.index', ['store_id' => $store->id, 'tab' => 'reports']))
+            ->assertOk();
 
         $actor->update(['locale' => 'ar']);
 
@@ -94,7 +93,7 @@ final class FinanceWorkbenchTest extends TestCase
     {
         [$actor, $store, $context] = $this->operator(['finance.view'], 'ERP-FINANCE-SCOPE', 'en');
         $this->enableFinance($actor, $context);
-        $foreignStore = $this->retailStore('ERP-FINANCE-FOREIGN');
+        $foreignStore = $this->retailStore('ERP-FINANCE-RETAIL');
 
         $this->actingAs($actor)
             ->get(route('admin.erp.finance.index', ['store_id' => $foreignStore->id]))
@@ -197,12 +196,8 @@ final class FinanceWorkbenchTest extends TestCase
      */
     private function operator(array $permissions, string $storeCode, string $locale): array
     {
-        $store = $this->retailStore($storeCode);
-        $role = Role::query()
-            ->where('code', 'B2C_STORE_ADMIN')
-            ->where('scope', 'store')
-            ->where('is_active', true)
-            ->firstOrFail();
+        $store = $this->wholesaleStore($storeCode);
+        $role = Role::query()->where('code', 'B2B_ADMIN')->where('is_active', true)->firstOrFail();
 
         foreach ($permissions as $permissionCode) {
             $permission = Permission::query()->firstOrCreate(
@@ -219,15 +214,23 @@ final class FinanceWorkbenchTest extends TestCase
         ]);
         $this->grantPlatformErpAccess($actor);
 
-        DB::table('user_store_roles')->insert([
-            'user_id' => $actor->id,
-            'store_id' => $store->id,
-            'role_id' => $role->id,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $actor->roles()->attach($role->id);
 
-        return [$actor, $store, app(TenantContextResolver::class)->retail($actor, $store->id)];
+        return [$actor, $store, app(TenantContextResolver::class)->wholesale($actor, $store->id)];
+    }
+
+    private function wholesaleStore(string $code): Store
+    {
+        $storeTypeId = (int) DB::table('store_types')->where('code', 'B2B')->value('id');
+        $store = Store::query()->create([
+            'store_type_id' => $storeTypeId,
+            'code' => $code,
+            'name' => $code,
+            'is_active' => true,
+        ]);
+        app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
+
+        return $store;
     }
 
     private function retailStore(string $code): Store

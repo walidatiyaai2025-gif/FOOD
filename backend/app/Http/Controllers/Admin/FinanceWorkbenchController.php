@@ -6,6 +6,7 @@ use App\Enterprise\Entitlements\EntitlementScope;
 use App\Enterprise\Entitlements\ModuleEntitlementResolver;
 use App\Enterprise\Finance\AccountsPayableService;
 use App\Enterprise\Finance\AccountsReceivableService;
+use App\Enterprise\Finance\CollectionAccountSettlementMappingService;
 use App\Enterprise\Finance\FinanceAnalyticsService;
 use App\Enterprise\Finance\FinanceApprovalService;
 use App\Enterprise\Finance\FinanceAssetService;
@@ -20,6 +21,9 @@ use App\Enterprise\Finance\OpeningBalanceService;
 use App\Enterprise\Modules\ModuleRegistry;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\EnterpriseAccountsReceivableAllocation;
+use App\Models\EnterpriseAccountsReceivableDocument;
+use App\Models\EnterpriseFinanceAccount;
 use App\Models\EnterpriseFinanceJournal;
 use App\Models\EnterpriseFinanceLedgerEntry;
 use App\Models\EnterpriseFinanceOpeningBalanceBatch;
@@ -69,6 +73,7 @@ final class FinanceWorkbenchController extends Controller
         private readonly GeneralLedgerService $ledger,
         private readonly OpeningBalanceService $openingBalances,
         private readonly AccountsReceivableService $receivables,
+        private readonly CollectionAccountSettlementMappingService $collectionMappings,
         private readonly AccountsPayableService $payables,
         private readonly FinanceCreditTermsService $creditTerms,
         private readonly FinancialStatementService $statements,
@@ -83,11 +88,12 @@ final class FinanceWorkbenchController extends Controller
     {
         $actor = $this->actor($request);
         abort_unless($this->modules->isEnabled(FinanceFoundationService::MODULE), 403);
+        [$requestedStoreId, $requestedStoreCode] = $this->validatedStoreSelectors($request);
 
         // Do not expose Finance context choices to operational roles lacking
         // Finance read permission. Authorize before enterprise scope resolution
         // so a service-only actor receives 403, not a misleading 409.
-        $assignedContexts = $this->contextOptions($actor);
+        $assignedContexts = $this->contextOptions($actor, $requestedStoreId, $requestedStoreCode);
         $contexts = array_values(array_filter(
             $assignedContexts,
             fn (array $option): bool => $this->financeAccess->canRead($actor, (int) $option['id']),
@@ -98,15 +104,35 @@ final class FinanceWorkbenchController extends Controller
         // B2B contexts without store assignment: preserve their 404 when denied.
         // Never resolve a denied store's enterprise data scope or borrow access
         // from the user's other authorized Retail store.
-        $requestedStoreId = (int) $request->input('store_id', 0);
         $assignedRetailStoreIds = array_column(
             array_filter($assignedContexts, static fn (array $option): bool => $option['channel'] === 'b2c'),
             'id',
         );
-        if ($requestedStoreId > 0
+        if ($requestedStoreId !== null
             && in_array($requestedStoreId, $assignedRetailStoreIds, true)
             && ! in_array($requestedStoreId, array_column($contexts, 'id'), true)) {
             abort(403);
+        }
+
+        if ($requestedStoreId === null && $requestedStoreCode !== '') {
+            $requestedRetail = collect($assignedContexts)->first(
+                fn (array $option): bool => $option['channel'] === 'b2c'
+                    && strcasecmp($option['code'], $requestedStoreCode) === 0,
+            );
+            if (is_array($requestedRetail)
+                && ! in_array($requestedRetail['id'], array_column($contexts, 'id'), true)) {
+                abort(403);
+            }
+        }
+
+        if (($requestedStoreId !== null || $requestedStoreCode !== '') && $contexts === []) {
+            $otherAuthorizedContexts = array_filter(
+                $this->contextOptions($actor),
+                fn (array $option): bool => $this->financeAccess->canRead($actor, (int) $option['id']),
+            );
+            if ($otherAuthorizedContexts !== []) {
+                abort(404);
+            }
         }
 
         if ($contexts === []) {
@@ -162,7 +188,7 @@ final class FinanceWorkbenchController extends Controller
             'periods' => $this->periodData($request, $actor, $context),
             'journals' => $this->journalData($request, $actor, $context),
             'opening_balances' => $this->openingBalanceData($request, $actor, $context),
-            'receivables' => $this->receivableData($request, $actor, $context),
+            'receivables' => $this->receivableData($request, $actor, $context, $access),
             'payables' => $this->payableData($request, $actor, $context),
             'credit_terms' => $this->creditTermData($request, $actor, $context),
             'budgets' => $this->budgetData($request, $actor, $context),
@@ -172,6 +198,10 @@ final class FinanceWorkbenchController extends Controller
             'statements' => $this->statementData($request, $actor, $context),
             'reports' => $this->reportData($request, $actor, $context),
         };
+        // Keep the Blade view contract stable on every authorized tab. AR/AP
+        // only readers do not have foundation access, so this fallback must
+        // remain empty and must not query fiscal periods without entitlement.
+        $data['periods'] ??= collect();
 
         if ($request->query->has('download')) {
             abort_unless($request->query('download') === 'csv' && in_array($tab, ['reports', 'statements'], true), 404);
@@ -191,6 +221,101 @@ final class FinanceWorkbenchController extends Controller
             'tab' => $tab,
             'data' => $data,
             'needsContext' => false,
+        ]);
+    }
+
+    public function proposeCollectionMapping(Request $request): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $action = $request->validate(['mapping_action' => ['sometimes', 'in:test,save']]);
+        $attributes = $request->only([
+            'request_id', 'collection_account_id', 'finance_account_id',
+        ]);
+
+        if (($action['mapping_action'] ?? 'save') === 'test') {
+            $this->collectionMappings->testProposal($actor, $context, $attributes);
+
+            return $this->redirectTo($request, 'receivables', 'mapping_tested', ['finance_panel' => 'settlements']);
+        }
+
+        $this->collectionMappings->propose($actor, $context, $attributes);
+
+        return $this->redirectTo($request, 'receivables', 'mapping_proposed', ['finance_panel' => 'settlements']);
+    }
+
+    public function reviewCollectionMapping(Request $request, int $mapping): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+        $this->collectionMappings->review(
+            $actor, $context, $mapping, (string) $request->input('decision', ''),
+        );
+
+        return $this->redirectTo($request, 'receivables', 'mapping_reviewed', ['finance_panel' => 'settlements']);
+    }
+
+    public function storeReceivableSettlement(Request $request, int $document): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+
+        // The same legal entity may serve several Retail stores. Store-scoped
+        // operators may only settle a document belonging to the selected store.
+        if ($context->isRetail()) {
+            abort_unless(
+                EnterpriseAccountsReceivableDocument::query()
+                    ->whereKey($document)
+                    ->where('store_id', $context->requiresStore())
+                    ->exists(),
+                404,
+            );
+        }
+
+        // The canonical AR service owns permission, legal-entity scope,
+        // entitlement, idempotency and over-allocation validation.
+        $this->receivables->createAllocation(
+            $actor,
+            $context,
+            $document,
+            $request->only([
+                'idempotency_key',
+                'allocation_date',
+                'amount',
+                'settlement_account_id',
+                'source_collection_allocation_id',
+                'reference',
+            ]),
+        );
+
+        return $this->redirectTo($request, 'receivables', 'ar_settlement_created', [
+            'settlement_document_id' => $document,
+        ]);
+    }
+
+    public function postReceivableSettlement(Request $request, int $allocation): RedirectResponse
+    {
+        [$actor, $context] = $this->mutationContext($request);
+
+        if ($context->isRetail()) {
+            abort_unless(
+                EnterpriseAccountsReceivableAllocation::query()
+                    ->whereKey($allocation)
+                    ->whereHas('document', fn ($query) => $query->where('store_id', $context->requiresStore()))
+                    ->exists(),
+                404,
+            );
+        }
+
+        // Never allow a typed free-text reference to attest a collected
+        // receipt. The canonical AR service checks posting authority first
+        // and fails closed until P303 supports a verified source link.
+        $posted = $this->receivables->postAllocation(
+            $actor,
+            $context,
+            $allocation,
+            requiresVerifiedCollectionSource: true,
+        );
+
+        return $this->redirectTo($request, 'receivables', 'ar_settlement_posted', [
+            'settlement_document_id' => (int) $posted->ar_document_id,
         ]);
     }
 
@@ -898,8 +1023,12 @@ final class FinanceWorkbenchController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function receivableData(Request $request, User $actor, ResolvedTenantContext $context): array
-    {
+    private function receivableData(
+        Request $request,
+        User $actor,
+        ResolvedTenantContext $context,
+        array $access,
+    ): array {
         $filters = $request->only(['customer_id', 'status', 'date_from', 'date_to']);
         $documents = $this->receivables->paginate($actor, $context, $filters, 25);
         $documents->getCollection()->load('customer');
@@ -907,7 +1036,153 @@ final class FinanceWorkbenchController extends Controller
         $aging = $this->receivables->paginateAging($actor, $context, $customerId, 25);
         $agingTotals = $this->receivables->agingTotals($actor, $context, $customerId);
 
-        return compact('documents', 'aging', 'agingTotals', 'filters');
+        // Keep custody-account GL mapping in the existing Receivables
+        // workbench. It is maker/checker configuration, not a cash posting
+        // or a replacement for verified Treasury receipt provenance.
+        $mappingRevisions = $this->collectionMappings->revisions($actor, $context);
+        $mappingCollectors = collect();
+        $mappingFinanceAccounts = collect();
+        if (($access['ar_manage'] ?? false) || ($access['approval_decide'] ?? false)) {
+            $scope = $context->enterpriseScope;
+            abort_if($scope === null, 409);
+            $mappingCollectors = DB::table('collection_accounts as collector')
+                ->leftJoin('drivers as driver', function ($join): void {
+                    $join->on('driver.id', '=', 'collector.actor_id')
+                        ->where('collector.actor_type', 'driver');
+                })
+                ->leftJoin('users as driver_user', 'driver_user.id', '=', 'driver.user_id')
+                ->leftJoin('users as van_user', function ($join): void {
+                    $join->on('van_user.id', '=', 'collector.actor_id')
+                        ->where('collector.actor_type', 'van_rep');
+                })
+                ->where('collector.store_id', $context->requiresStore())
+                ->where('collector.status', 'active')
+                ->where('collector.actor_type', $context->isRetail() ? 'driver' : 'van_rep')
+                ->orderBy('collector.id')
+                ->limit(100)
+                ->get(['collector.id', 'collector.currency', 'collector.actor_type',
+                    DB::raw('COALESCE(driver_user.name, van_user.name) as collector_name')]);
+            $mappingFinanceAccounts = EnterpriseFinanceAccount::query()
+                ->where('organization_id', $scope->organizationId)
+                ->where('company_id', $scope->companyId)
+                ->where('legal_entity_id', $scope->legalEntityId)
+                ->where('status', 'active')
+                ->where('type', 'asset')
+                ->where('normal_balance', 'debit')
+                ->where('allow_posting', true)
+                ->where('is_control', false)
+                ->orderBy('code')
+                ->limit(100)
+                ->get();
+        }
+
+        // Show exactly one selected AR document and a bounded, separate
+        // settlement paginator; never eager-load an unlimited allocation list
+        // for every document on the main AR page.
+        $settlementDocument = null;
+        $settlements = null;
+        $settlementAccounts = collect();
+        $settlementCreators = collect();
+        $receiptCandidates = collect();
+        $sourceReceiptReferences = collect();
+        if ($request->filled('settlement_document_id')) {
+            $validated = $request->validate([
+                'settlement_document_id' => ['required', 'integer', 'min:1'],
+            ]);
+            $scope = $context->enterpriseScope;
+            abort_if($scope === null, 409);
+
+            $settlementDocument = EnterpriseAccountsReceivableDocument::query()
+                ->where('organization_id', $scope->organizationId)
+                ->where('company_id', $scope->companyId)
+                ->where('legal_entity_id', $scope->legalEntityId)
+                ->when($context->isRetail(), fn ($query) => $query->where('store_id', $context->requiresStore()))
+                ->when($context->isWholesale(), fn ($query) => $query->whereIn('store_id', DB::table('stores as store')
+                    ->join('store_types as type', 'type.id', '=', 'store.store_type_id')
+                    ->where('type.code', 'B2B')
+                    ->select('store.id')))
+                ->whereKey((int) $validated['settlement_document_id'])
+                ->firstOrFail();
+
+            $settlements = EnterpriseAccountsReceivableAllocation::query()
+                ->where('ar_document_id', $settlementDocument->id)
+                ->orderByDesc('id')
+                ->paginate(25, ['*'], 'settlement_page')
+                ->withQueryString();
+
+            $settlementCreators = User::query()
+                ->whereIn('id', $settlements->getCollection()->pluck('created_by')->filter()->all())
+                ->pluck('name', 'id');
+
+            $linkedSourceIds = $settlements->getCollection()
+                ->pluck('source_collection_allocation_id')->filter()->all();
+            if ($linkedSourceIds !== []) {
+                $sourceReceiptReferences = DB::table('collection_allocations as source')
+                    ->join('collection_transactions as receipt', 'receipt.id', '=', 'source.collection_transaction_id')
+                    ->whereIn('source.id', $linkedSourceIds)
+                    ->pluck('receipt.created_at', 'source.id');
+            }
+
+            if ($access['ar_manage'] ?? false) {
+                $settlementAccounts = EnterpriseFinanceAccount::query()
+                    ->where('organization_id', $scope->organizationId)
+                    ->where('company_id', $scope->companyId)
+                    ->where('legal_entity_id', $scope->legalEntityId)
+                    ->where('status', 'active')
+                    ->where('allow_posting', true)
+                    ->where('is_control', false)
+                    ->orderBy('code')
+                    ->limit(100)
+                    ->get();
+
+                // Selection is a bounded, store/invoice-scoped preview only.
+                // The canonical AR service row-locks and validates the receipt
+                // again when drafting; no UI option can authorize GL posting.
+                if ($settlementDocument->source_invoice_id !== null) {
+                    $receiptCandidates = DB::table('collection_allocations as source')
+                        ->join('collection_transactions as receipt', 'receipt.id', '=', 'source.collection_transaction_id')
+                        ->join('collection_accounts as custody', 'custody.id', '=', 'receipt.collection_account_id')
+                        ->join('payments as payment', 'payment.id', '=', 'receipt.payment_id')
+                        ->leftJoin('enterprise_ar_allocations as claimed', 'claimed.source_collection_allocation_id', '=', 'source.id')
+                        ->whereNull('claimed.id')
+                        ->where('source.invoice_id', (int) $settlementDocument->source_invoice_id)
+                        ->where('source.currency', (string) $settlementDocument->currency_code)
+                        ->where('custody.store_id', (int) $settlementDocument->store_id)
+                        ->where('custody.currency', (string) $settlementDocument->currency_code)
+                        ->where('custody.actor_type', $context->isRetail() ? 'driver' : 'van_rep')
+                        ->where('custody.status', 'active')
+                        ->where('receipt.type', 'collection')
+                        ->where('receipt.status', 'posted')
+                        // Preview only the source emitted by the correct
+                        // Driver/Van channel; service revalidates under locks.
+                        ->where('receipt.source', $context->isRetail() ? 'driver_app' : 'van_app')
+                        ->where('receipt.currency', (string) $settlementDocument->currency_code)
+                        ->where('payment.status', 'paid')
+                        ->where('payment.provider', 'field_collection')
+                        ->where('payment.currency', (string) $settlementDocument->currency_code)
+                        // Preview must not advertise inconsistent Payment/receipt
+                        // totals; the AR service rechecks exact mills on POST.
+                        ->whereColumn('payment.amount', 'receipt.amount')
+                        ->whereColumn('payment.provider_reference', 'receipt.idempotency_key')
+                        ->where(function ($query) use ($settlementDocument): void {
+                            $query->whereNull('payment.invoice_id')
+                                ->orWhere('payment.invoice_id', (int) $settlementDocument->source_invoice_id);
+                        })
+                        ->whereNotExists(function ($query): void {
+                            $query->selectRaw('1')
+                                ->from('collection_transactions as reversal')
+                                ->whereColumn('reversal.reversal_of_id', 'receipt.id')
+                                ->where('reversal.status', 'posted');
+                        })
+                        ->where('source.amount', '>', 0)
+                        ->orderByDesc('source.id')
+                        ->limit(50)
+                        ->get(['source.id', 'source.amount', 'source.currency', 'receipt.created_at as collected_at']);
+                }
+            }
+        }
+
+        return compact('documents', 'aging', 'agingTotals', 'filters', 'settlementDocument', 'settlements', 'settlementAccounts', 'settlementCreators', 'receiptCandidates', 'sourceReceiptReferences', 'mappingRevisions', 'mappingCollectors', 'mappingFinanceAccounts');
     }
 
     /** @return array<string, mixed> */
@@ -1080,27 +1355,33 @@ final class FinanceWorkbenchController extends Controller
             new EntitlementScope(EntitlementScope::LEGAL_ENTITY, $scope->legalEntityId),
             $capability,
         ) && $this->financeAccess->allowsAtStore($storeId, $capability);
-        $permitted = fn (string $permission): bool => $actor->hasPermission($permission, $storeId);
+        // The same server-scoped Finance access verdict governs every visible tab
+        // and direct HTTP mutation, including restricted combined duty roles.
+        $permitted = fn (string $permission, string $capability): bool => $this->canPerformFinanceAction(
+            $actor, $storeId, $permission, $capability,
+        );
 
         return [
-            'foundation_read' => $permitted('finance.view') && $entitled('finance.foundation.read'),
+            'foundation_read' => $permitted('finance.view', 'finance.foundation.read') && $entitled('finance.foundation.read'),
             // Posted GL has legal-entity, not immutable Retail store, source scope.
             // Report/statement tab visibility must match server-side 403 checks.
-            'reports_read' => ! $context->isRetail() && $permitted('finance.view') && $entitled('finance.foundation.read'),
-            'statements_read' => ! $context->isRetail() && $permitted('finance.view') && $entitled('finance.gl.read'),
-            'foundation_manage' => $permitted('finance.manage') && $entitled('finance.foundation.manage'),
-            'gl_read' => $permitted('finance.view') && $entitled('finance.gl.read'),
-            'gl_manage' => $permitted('finance.manage') && $entitled('finance.gl.manage'),
-            'gl_post' => $permitted('finance.post') && $entitled('finance.gl.post'),
-            'opening_read' => $permitted('finance.view') && $entitled('finance.opening_balances.read'),
-            'opening_manage' => $permitted('finance.manage') && $entitled('finance.opening_balances.manage'),
-            'opening_post' => $permitted('finance.post') && $entitled('finance.opening_balances.post'),
-            'ar_read' => $permitted('finance.view') && $entitled('finance.ar.read'),
-            'ap_read' => $permitted('finance.view') && $entitled('finance.ap.read'),
-            'credit_read' => $permitted('finance.view') && $entitled('finance.credit_terms.read'),
-            'credit_manage' => $permitted('finance.manage') && $entitled('finance.credit_terms.manage'),
-            'approval_request' => $permitted('finance.manage') && $entitled('finance.approvals.manage'),
-            'approval_decide' => $permitted('finance.approve') && $entitled('finance.approvals.approve'),
+            'reports_read' => ! $context->isRetail() && $permitted('finance.view', 'finance.foundation.read') && $entitled('finance.foundation.read'),
+            'statements_read' => ! $context->isRetail() && $permitted('finance.view', 'finance.gl.read') && $entitled('finance.gl.read'),
+            'foundation_manage' => $permitted('finance.manage', 'finance.foundation.manage') && $entitled('finance.foundation.manage'),
+            'gl_read' => $permitted('finance.view', 'finance.gl.read') && $entitled('finance.gl.read'),
+            'gl_manage' => $permitted('finance.manage', 'finance.gl.manage') && $entitled('finance.gl.manage'),
+            'gl_post' => $permitted('finance.post', 'finance.gl.post') && $entitled('finance.gl.post'),
+            'opening_read' => $permitted('finance.view', 'finance.opening_balances.read') && $entitled('finance.opening_balances.read'),
+            'opening_manage' => $permitted('finance.manage', 'finance.opening_balances.manage') && $entitled('finance.opening_balances.manage'),
+            'opening_post' => $permitted('finance.post', 'finance.opening_balances.post') && $entitled('finance.opening_balances.post'),
+            'ar_read' => $permitted('finance.view', 'finance.ar.read') && $entitled('finance.ar.read'),
+            'ar_manage' => $permitted('finance.manage', 'finance.ar.manage') && $entitled('finance.ar.manage'),
+            'ar_post' => $permitted('finance.post', 'finance.ar.post') && $entitled('finance.ar.post'),
+            'ap_read' => $permitted('finance.view', 'finance.ap.read') && $entitled('finance.ap.read'),
+            'credit_read' => $permitted('finance.view', 'finance.credit_terms.read') && $entitled('finance.credit_terms.read'),
+            'credit_manage' => $permitted('finance.manage', 'finance.credit_terms.manage') && $entitled('finance.credit_terms.manage'),
+            'approval_request' => $permitted('finance.manage', 'finance.approvals.manage') && $entitled('finance.approvals.manage'),
+            'approval_decide' => $permitted('finance.approve', 'finance.approvals.approve') && $entitled('finance.approvals.approve'),
         ];
     }
 
@@ -1135,13 +1416,35 @@ final class FinanceWorkbenchController extends Controller
     /**
      * @return list<array{id:int,code:string,name:string,channel:string}>
      */
-    private function contextOptions(User $actor): array
+    private function contextOptions(User $actor, ?int $selectedStoreId = null, string $selectedStoreCode = ''): array
     {
         $retailIds = $this->tenants->retailStoreIds($actor);
         $canWholesale = $this->navigation->canAccess($actor, 'b2b');
 
         if (! $canWholesale && $retailIds === []) {
             return [];
+        }
+
+        if ($selectedStoreId !== null) {
+            $isAssignedRetailStore = in_array($selectedStoreId, $retailIds, true);
+            if (! $isAssignedRetailStore && ! $canWholesale) {
+                return [];
+            }
+
+            $store = DB::table('stores as store')
+                ->join('store_types as type', 'type.id', '=', 'store.store_type_id')
+                ->where('store.is_active', true)
+                ->where('store.id', $selectedStoreId)
+                ->where('type.code', $isAssignedRetailStore ? 'B2C' : 'B2B')
+                ->select(['store.id', 'store.code', 'store.name', 'type.code as channel'])
+                ->first();
+
+            return $store === null ? [] : [[
+                'id' => (int) $store->id,
+                'code' => (string) $store->code,
+                'name' => (string) $store->name,
+                'channel' => strtolower((string) $store->channel),
+            ]];
         }
 
         $query = DB::table('stores as store')
@@ -1162,11 +1465,19 @@ final class FinanceWorkbenchController extends Controller
             })
             ->select(['store.id', 'store.code', 'store.name', 'type.code as channel'])
             ->orderBy('type.code')
-            ->orderBy('store.code')
-            ->limit(100)
-            ->get();
+            ->orderBy('store.code');
 
-        return $query->map(static fn ($store): array => [
+        // Keep the unselected chooser bounded, while allowing a directly
+        // selected, otherwise-authorized store beyond the first 100 options.
+        if ($selectedStoreCode !== '') {
+            $query->whereRaw('LOWER(store.code) = ?', [strtolower($selectedStoreCode)]);
+        } else {
+            $query->limit(100);
+        }
+
+        $stores = $query->get();
+
+        return $stores->map(static fn ($store): array => [
             'id' => (int) $store->id,
             'code' => (string) $store->code,
             'name' => (string) $store->name,
@@ -1180,18 +1491,18 @@ final class FinanceWorkbenchController extends Controller
      */
     private function selectedContextOption(Request $request, array $contexts): ?array
     {
-        $storeId = (int) $request->input('store_id', 0);
-        $storeCode = trim((string) $request->input('store_code', ''));
+        [$storeId, $storeCode] = $this->validatedStoreSelectors($request);
 
-        if ($storeId < 1 && $storeCode === '') {
+        if ($storeId === null && $storeCode === '') {
             return null;
         }
 
+        // When both selectors are supplied, they must identify the SAME
+        // authorized context. A valid code must never override a forged or
+        // stale store_id (or vice versa) and silently switch the ledger scope.
         foreach ($contexts as $context) {
-            if ($storeId > 0 && $context['id'] === $storeId) {
-                return $context;
-            }
-            if ($storeCode !== '' && strcasecmp($context['code'], $storeCode) === 0) {
+            if (($storeId === null || $context['id'] === $storeId)
+                && ($storeCode === '' || strcasecmp($context['code'], $storeCode) === 0)) {
                 return $context;
             }
         }
@@ -1216,13 +1527,43 @@ final class FinanceWorkbenchController extends Controller
         );
     }
 
+    /**
+     * A forged context selector must never be silently coerced into an absent
+     * selector. Parse before querying a store or resolving a Finance ledger.
+     *
+     * @return array{?int, string}
+     */
+    private function validatedStoreSelectors(Request $request): array
+    {
+        $rawStoreId = $request->input('store_id');
+        $storeId = null;
+        if ($rawStoreId !== null && $rawStoreId !== '') {
+            abort_unless(is_int($rawStoreId) || is_string($rawStoreId), 404);
+            $text = (string) $rawStoreId;
+            abort_unless(preg_match('/^[1-9][0-9]*$/D', $text) === 1, 404);
+
+            $id = filter_var($text, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if ($id === false) {
+                abort(404);
+            }
+
+            $storeId = $id;
+        }
+
+        $rawStoreCode = $request->input('store_code', '');
+        abort_unless(is_string($rawStoreCode), 404);
+
+        return [$storeId, trim($rawStoreCode)];
+    }
+
     /** @return array{User, ResolvedTenantContext} */
     private function mutationContext(Request $request): array
     {
         $actor = $this->actor($request);
         abort_unless($this->modules->isEnabled(FinanceFoundationService::MODULE), 403);
+        [$requestedStoreId, $requestedStoreCode] = $this->validatedStoreSelectors($request);
 
-        $contexts = $this->contextOptions($actor);
+        $contexts = $this->contextOptions($actor, $requestedStoreId, $requestedStoreCode);
         $selected = $this->selectedContextOption($request, $contexts);
         abort_if($selected === null, 422);
 
@@ -1252,11 +1593,46 @@ final class FinanceWorkbenchController extends Controller
         // STORE scope. Domain services independently enforce finance SoD.
         [$permission, $capability] = $this->mutationEntitlement($request);
         abort_unless(
-            $this->financeAccess->canPerform($actor, (int) $selected['id'], $permission, $capability),
+            $this->canPerformFinanceAction($actor, (int) $selected['id'], $permission, $capability),
             403,
         );
 
         return [$actor, $context];
+    }
+
+    /**
+     * #2633 controller boundary: a second Finance role must not enlarge an
+     * AR_OFFICER's receivables duty into GL, AP, Treasury or approval actions.
+     * The shared FinanceWorkbenchAccess service still owns the effective
+     * permission and legal/store entitlement; this guard only narrows it.
+     * Reconcile with #2696's original canonical role-capability service when
+     * those original PRs are integrated.
+     */
+    private function canPerformFinanceAction(
+        User $actor,
+        int $storeId,
+        string $permission,
+        string $capability,
+    ): bool {
+        if (! $actor->is_active || $actor->archived_at !== null) {
+            return false;
+        }
+
+        if ($actor->hasRole('AR_OFFICER')) {
+            $arRead = $capability === 'finance.ar.read' && $permission === 'finance.view';
+            $arManage = $capability === 'finance.ar.manage' && $permission === 'finance.manage';
+
+            if (! $arRead && ! $arManage) {
+                return false;
+            }
+
+            // Do not allow AR drafts after its read entitlement is revoked.
+            if ($arManage && ! $this->financeAccess->allowsAtStore($storeId, 'finance.ar.read')) {
+                return false;
+            }
+        }
+
+        return $this->financeAccess->canPerform($actor, $storeId, $permission, $capability);
     }
 
     /**
@@ -1283,6 +1659,9 @@ final class FinanceWorkbenchController extends Controller
             'storeOpeningBalance', 'cancelOpeningBalance' => ['finance.manage', 'finance.opening_balances.manage'],
             'postOpeningBalance' => ['finance.post', 'finance.opening_balances.post'],
             'storeCreditTerm', 'updateCreditTermStatus' => ['finance.manage', 'finance.credit_terms.manage'],
+            'proposeCollectionMapping', 'storeReceivableSettlement' => ['finance.manage', 'finance.ar.manage'],
+            'reviewCollectionMapping' => ['finance.approve', 'finance.approvals.approve'],
+            'postReceivableSettlement' => ['finance.post', 'finance.ar.post'],
             'transitionBudget' => $request->input('action') === 'submit'
                     ? ['finance.manage', 'finance.foundation.manage']
                     : ['finance.approve', 'finance.approvals.approve'],

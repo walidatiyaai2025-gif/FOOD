@@ -43,7 +43,7 @@ final class V2AccountsReceivablePageAuthorityTest extends TestCase
         );
     }
 
-    public function test_customer_ar_documents_are_real_store_scoped_and_bilingual(): void
+    public function test_customer_ar_documents_are_wholesale_legal_entity_scoped_and_bilingual(): void
     {
         [$alice, $storeA, $contextA] = $this->operator('P286-A');
         [$bob, $storeB, $contextB] = $this->operator('P286-B');
@@ -68,7 +68,7 @@ final class V2AccountsReceivablePageAuthorityTest extends TestCase
                 ->assertSee('dir="'.$direction.'"', false)
                 ->assertSee(__('finance_workbench.receivables.title'))
                 ->assertSee('P286-A Customer')
-                ->assertDontSee('P286-B Customer');
+                ->assertSee('P286-B Customer');
         }
 
         $this->actingAs($bob->fresh())
@@ -78,14 +78,16 @@ final class V2AccountsReceivablePageAuthorityTest extends TestCase
             ]))
             ->assertOk()
             ->assertSee('P286-B Customer')
-            ->assertDontSee('P286-A Customer');
+            ->assertSee('P286-A Customer');
 
         $this->actingAs($alice->fresh())
             ->get(route('admin.erp.finance.index', [
                 'store_id' => $storeB->id,
                 'tab' => 'receivables',
             ]))
-            ->assertNotFound();
+            ->assertOk()
+            ->assertSee('P286-A Customer')
+            ->assertSee('P286-B Customer');
 
         // The P286 document-status filter is independent of P288 aging.
         $this->actingAs($alice->fresh())
@@ -170,7 +172,7 @@ final class V2AccountsReceivablePageAuthorityTest extends TestCase
         $this->actingAs($roleless)->get($url)->assertForbidden();
     }
 
-    public function test_multi_store_actor_must_explicitly_select_a_store_without_leaking_sibling_ar(): void
+    public function test_wholesale_finance_reader_sees_the_legal_entity_ar_ledger_across_stores(): void
     {
         [$actor, $storeA, $contextA] = $this->operator('P286-MULTI-A');
         [$otherActor, $storeB, $contextB] = $this->operator('P286-MULTI-B');
@@ -208,7 +210,7 @@ final class V2AccountsReceivablePageAuthorityTest extends TestCase
                 ]))
                 ->assertOk()
                 ->assertSee($visible)
-                ->assertDontSee($hidden);
+                ->assertSee($hidden);
         }
     }
 
@@ -216,7 +218,7 @@ final class V2AccountsReceivablePageAuthorityTest extends TestCase
     private function operator(string $code): array
     {
         $store = Store::query()->create([
-            'store_type_id' => DB::table('store_types')->where('code', 'B2C')->value('id'),
+            'store_type_id' => DB::table('store_types')->where('code', 'B2B')->value('id'),
             'code' => $code,
             'name' => $code,
             'is_active' => true,
@@ -224,8 +226,7 @@ final class V2AccountsReceivablePageAuthorityTest extends TestCase
         app(OrganizationHierarchyService::class)->ensureDefaultScopeForStore($store);
 
         $role = Role::query()
-            ->where('code', 'B2C_STORE_ADMIN')
-            ->where('scope', 'store')
+            ->where('code', 'B2B_ADMIN')
             ->firstOrFail();
 
         $role->permissions()->syncWithoutDetaching(
@@ -236,6 +237,7 @@ final class V2AccountsReceivablePageAuthorityTest extends TestCase
 
         $actor = User::factory()->create(['is_active' => true, 'locale' => 'en']);
         $this->grantPlatformErpAccess($actor);
+        $actor->roles()->attach($role->id);
         DB::table('user_store_roles')->insert([
             'user_id' => $actor->id,
             'store_id' => $store->id,
@@ -244,7 +246,7 @@ final class V2AccountsReceivablePageAuthorityTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        return [$actor, $store, app(TenantContextResolver::class)->retail($actor, $store->id)];
+        return [$actor, $store, app(TenantContextResolver::class)->wholesale($actor, $store->id)];
     }
 
     private function enableFinance(
