@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 final class EnterpriseOrganizationAdministrationController extends Controller
@@ -122,6 +123,11 @@ final class EnterpriseOrganizationAdministrationController extends Controller
     {
         $actor = $this->platformAdmin($request);
         $data = $this->validatedRecord($request, Rule::unique('enterprise_organizations', 'code'));
+        if ($request->has('_setup_test')) {
+            return back()->withInput($request->only(['name', 'code', 'is_active', '_setup_test', '_setup_form']))
+                ->with('status', __('enterprise_organization.setup_test_passed'));
+        }
+
         $organization = $this->administration->createOrganization($data, $actor);
 
         return redirect()->route('admin.enterprise-organizations.show', $organization)->with('status', __('enterprise_organization.saved'));
@@ -131,6 +137,12 @@ final class EnterpriseOrganizationAdministrationController extends Controller
     {
         $actor = $this->platformAdmin($request);
         $data = $this->validatedRecord($request, Rule::unique('enterprise_organizations', 'code')->ignore($organization->id));
+        $this->administration->assertDefaultRoutingIdentityPreserved($organization, $data);
+        if ($request->has('_setup_test')) {
+            return back()->withInput($request->only(['name', 'code', 'is_active', '_setup_test', '_setup_form']))
+                ->with('status', __('enterprise_organization.setup_test_passed'));
+        }
+
         $this->administration->updateOrganization($organization, $data, $actor);
 
         return back()->with('status', __('enterprise_organization.saved'));
@@ -143,6 +155,11 @@ final class EnterpriseOrganizationAdministrationController extends Controller
             $request,
             Rule::unique('enterprise_companies', 'code')->where('organization_id', $organization->id),
         );
+        if ($request->has('_setup_test')) {
+            return back()->withInput($request->only(['name', 'code', 'is_active', '_setup_test', '_setup_form']))
+                ->with('status', __('enterprise_organization.setup_test_passed'));
+        }
+
         $company = $this->administration->createCompany($organization, $data, $actor);
 
         return redirect()->route('admin.enterprise-companies.show', $company)->with('status', __('enterprise_organization.saved'));
@@ -155,6 +172,11 @@ final class EnterpriseOrganizationAdministrationController extends Controller
             $request,
             Rule::unique('enterprise_companies', 'code')->where('organization_id', $company->organization_id)->ignore($company->id),
         );
+        if ($request->has('_setup_test')) {
+            return back()->withInput($request->only(['name', 'code', 'is_active', '_setup_test', '_setup_form']))
+                ->with('status', __('enterprise_organization.setup_test_passed'));
+        }
+
         $this->administration->updateCompany($company, $data, $actor);
 
         return back()->with('status', __('enterprise_organization.saved'));
@@ -167,6 +189,11 @@ final class EnterpriseOrganizationAdministrationController extends Controller
             $request,
             Rule::unique('enterprise_legal_entities', 'code')->where('company_id', $company->id),
         );
+        if ($request->has('_setup_test')) {
+            return back()->withInput($request->only(['name', 'code', 'is_active', '_setup_test', '_setup_form']))
+                ->with('status', __('enterprise_organization.setup_test_passed'));
+        }
+
         $entity = $this->administration->createLegalEntity($company, $data, $actor);
 
         return redirect()->route('admin.enterprise-legal-entities.show', $entity)->with('status', __('enterprise_organization.saved'));
@@ -179,6 +206,11 @@ final class EnterpriseOrganizationAdministrationController extends Controller
             $request,
             Rule::unique('enterprise_legal_entities', 'code')->where('company_id', $legalEntity->company_id)->ignore($legalEntity->id),
         );
+        if ($request->has('_setup_test')) {
+            return back()->withInput($request->only(['name', 'code', 'is_active', '_setup_test', '_setup_form']))
+                ->with('status', __('enterprise_organization.setup_test_passed'));
+        }
+
         $this->administration->updateLegalEntity($legalEntity, $data, $actor);
 
         return back()->with('status', __('enterprise_organization.saved'));
@@ -191,6 +223,11 @@ final class EnterpriseOrganizationAdministrationController extends Controller
             $request,
             Rule::unique('enterprise_business_units', 'code')->where('legal_entity_id', $legalEntity->id),
         );
+        if ($request->has('_setup_test')) {
+            return back()->withInput($request->only(['name', 'code', 'is_active', '_setup_test', '_setup_form']))
+                ->with('status', __('enterprise_organization.setup_test_passed'));
+        }
+
         $unit = $this->administration->createBusinessUnit($legalEntity, $data, $actor);
 
         return redirect()->route('admin.enterprise-business-units.show', $unit)->with('status', __('enterprise_organization.saved'));
@@ -203,6 +240,12 @@ final class EnterpriseOrganizationAdministrationController extends Controller
             $request,
             Rule::unique('enterprise_business_units', 'code')->where('legal_entity_id', $businessUnit->legal_entity_id)->ignore($businessUnit->id),
         );
+        $this->administration->assertDefaultRoutingIdentityPreserved($businessUnit, $data);
+        if ($request->has('_setup_test')) {
+            return back()->withInput($request->only(['name', 'code', 'is_active', '_setup_test', '_setup_form']))
+                ->with('status', __('enterprise_organization.setup_test_passed'));
+        }
+
         $this->administration->updateBusinessUnit($businessUnit, $data, $actor);
 
         return back()->with('status', __('enterprise_organization.saved'));
@@ -218,11 +261,19 @@ final class EnterpriseOrganizationAdministrationController extends Controller
 
     private function validatedRecord(Request $request, mixed $unique): array
     {
-        $validated = $request->validate([
+        // Codes are stored in lowercase. Validate uniqueness against that same
+        // canonical value so a case-sensitive database cannot accept a
+        // duplicate that Test Inputs incorrectly reports as valid.
+        $input = $request->all();
+        if (is_string($input['code'] ?? null)) {
+            $input['code'] = strtolower($input['code']);
+        }
+
+        $validated = Validator::make($input, [
             'code' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z][A-Za-z0-9_-]*$/', $unique],
             'name' => ['required', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
-        ]);
+        ])->validate();
 
         return [
             'code' => strtolower((string) $validated['code']),

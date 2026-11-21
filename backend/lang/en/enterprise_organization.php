@@ -1,6 +1,17 @@
 <?php
 
 return [
+    'default_routing_identity_protected' => 'This is a system routing identity created by initial installation. Its code and active status cannot be changed because unassigned stores depend on it. You may safely edit its display name; verify the legal entity separately.',
+    'setup_title' => 'Setup readiness — business hierarchy',
+    'setup_unverified' => 'UNVERIFIED — Saving a name or code records a hierarchy entry; it does not verify company registration, tax status, inventory title, or finance readiness. Have the responsible operator validate official records before enabling dependent ERP workflows.',
+    'setup_purpose' => 'Purpose: select the authorized organization, company, legal entity and business unit that own ERP activity and store assignments.',
+    'setup_source' => 'Source: use the organization\'s approved registration and internal legal/company structure. Legal and tax identifiers must be validated against official records outside this form; never enter a placeholder as a certified value.',
+    'setup_name_help' => 'Use the approved business display name from your registration or internal hierarchy (example: Example Trading Company). Required; maximum 255 characters.',
+    'setup_code_help' => 'Choose a stable, scoped business code from the approved master-data register (example: EXAMPLE_TRADING). Required; starts with a letter; letters, digits, underscore and hyphen only; maximum 100 characters. Uniqueness is enforced on Save/Test. Installer-reserved routing codes must remain unchanged; display names remain editable.',
+    'setup_active_help' => 'Active enables this hierarchy record for permitted workflows; uncheck until its business scope has been verified. New records default to Active, not certified.',
+    'setup_access_help' => 'Access: platform.manage permission. Save is audited by the existing Organization service. Test Inputs runs the same server validation and RBAC without persisting; it does not verify official legal/tax data or grant financial approval.',
+    'setup_test' => 'Test inputs (no save)',
+    'setup_test_passed' => 'Input validation passed without saving or changing the hierarchy. Legal/business readiness remains UNVERIFIED.',
     'title' => 'Organization Administration',
     'eyebrow' => 'Enterprise structure',
     'description' => 'Manage the organization, company, legal-entity, business-unit and branch scope hierarchy.',

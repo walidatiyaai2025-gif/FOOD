@@ -32,6 +32,7 @@ final class EnterpriseOrganizationAdministration
 
     public function updateOrganization(EnterpriseOrganization $organization, array $data, Authenticatable $actor): EnterpriseOrganization
     {
+        $this->assertDefaultRoutingIdentityPreserved($organization, $data);
         if (($data['is_active'] ?? true) === false && $organization->companies()->where('is_active', true)->exists()) {
             throw ValidationException::withMessages(['is_active' => [__('enterprise_organization.active_children')]]);
         }
@@ -99,6 +100,7 @@ final class EnterpriseOrganizationAdministration
 
     public function updateBusinessUnit(EnterpriseBusinessUnit $unit, array $data, Authenticatable $actor): EnterpriseBusinessUnit
     {
+        $this->assertDefaultRoutingIdentityPreserved($unit, $data);
         if (($data['is_active'] ?? true) === false && $unit->storeScopes()->exists()) {
             throw ValidationException::withMessages(['is_active' => [__('enterprise_organization.assigned_stores')]]);
         }
@@ -116,6 +118,42 @@ final class EnterpriseOrganizationAdministration
             $this->hierarchy->assignStore($store, $unit, $actor);
         } catch (\LogicException) {
             throw ValidationException::withMessages(['store' => [__('enterprise_organization.cross_scope_denied')]]);
+        }
+    }
+
+    /**
+     * Keep the migrated default assignment path reachable while allowing
+     * operators to correct scaffold display names in Administration Hub.
+     * Apply this to the service too: non-HTTP callers may not bypass it.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function assertDefaultRoutingIdentityPreserved(Model $model, array $data): void
+    {
+        $protected = $model instanceof EnterpriseOrganization
+            && $model->code === OrganizationHierarchyService::DEFAULT_ORGANIZATION;
+
+        if ($model instanceof EnterpriseBusinessUnit
+            && $model->code === OrganizationHierarchyService::DEFAULT_BUSINESS_UNIT) {
+            $model->loadMissing('legalEntity.company.organization');
+            $protected = $model->legalEntity->company->organization->code
+                === OrganizationHierarchyService::DEFAULT_ORGANIZATION;
+        }
+
+        if (! $protected) {
+            return;
+        }
+
+        if (isset($data['code']) && $data['code'] !== (string) $model->getAttribute('code')) {
+            throw ValidationException::withMessages([
+                'code' => [__('enterprise_organization.default_routing_identity_protected')],
+            ]);
+        }
+
+        if (($data['is_active'] ?? true) === false) {
+            throw ValidationException::withMessages([
+                'is_active' => [__('enterprise_organization.default_routing_identity_protected')],
+            ]);
         }
     }
 
